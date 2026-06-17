@@ -1,4 +1,3 @@
-# Level 15: Addition (1-30)
 
 # Level 16: Addition Through Objects & Numbers 1-30
 

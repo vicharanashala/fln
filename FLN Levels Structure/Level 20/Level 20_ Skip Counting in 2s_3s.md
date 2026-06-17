@@ -1,6 +1,5 @@
-# Level 19: Skip Counting in 2s/3s
+# Level 20: Skip Counting in 2s/3s
 
-# Level 19: Skip Counting 2s/3s
 
 ## Objective
 

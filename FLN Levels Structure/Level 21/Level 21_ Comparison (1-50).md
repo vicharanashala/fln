@@ -1,6 +1,4 @@
-# Level 20: Comparison (1-50)
-
-# Level 20: Comparison
+# Level 21: Comparison (1-50)
 
 ## Objective
 

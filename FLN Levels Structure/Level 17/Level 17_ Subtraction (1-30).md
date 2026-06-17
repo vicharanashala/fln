@@ -1,6 +1,5 @@
-# Level 16: Subtraction (1-30)
 
-# Level 16: Subtraction Through Objects & Numbers 1-30
+# Level 17: Subtraction Through Objects & Numbers 1-30
 
 ## Objective
 

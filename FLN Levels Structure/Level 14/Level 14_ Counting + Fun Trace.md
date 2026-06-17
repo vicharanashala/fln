@@ -1,6 +1,5 @@
-# Level 13: Counting + Fun Trace
 
-# Level 13: Counting and Tracing
+# Level 14: Counting and Tracing
 
 ### SECTION A: Matching (Object ↔ Number)
 
