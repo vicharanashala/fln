@@ -329,23 +329,30 @@ const ICONS = {
     '<circle cx="48" cy="60" r="2" fill="#000"/><circle cx="44" cy="70" r="2" fill="#000"/>'
   , size),
 
-  glassWater:(size, opts)=>{
+ glassWater:(size, opts)=>{
     const level = (opts && typeof opts.level==='number') ? opts.level : 0.5;
     const uid = nextUid();
     const topY = 90 - (90-15)*level;
     let hatch='';
     for(let i=0;i<22;i++){
       const x = i*9-60;
-      hatch += '<line x1="'+x+'" y1="100" x2="'+(x+30)+'" y2="0" stroke="#000" stroke-width="1"/>';
+      hatch += '<line x1="'+x+'" y1="100" x2="'+(x+30)+'" y2="0" stroke="#4af" stroke-width="1.5"/>';
     }
     return svgWrap(
-      '<defs><clipPath id="gw'+uid+'"><path d="M30,15 L70,15 L62,90 L38,90 Z"/></clipPath></defs>'+
-      '<g clip-path="url(#gw'+uid+')"><rect x="20" y="'+topY+'" width="60" height="90" fill="#fff"/>'+hatch+'</g>'+
+      '<defs>'+
+        '<clipPath id="gw'+uid+'"><path d="M30,15 L70,15 L62,90 L38,90 Z"/></clipPath>'+
+        '<clipPath id="wl'+uid+'"><rect x="20" y="'+topY+'" width="60" height="90"/></clipPath>'+
+      '</defs>'+
+      // water fill (blue background)
+      '<g clip-path="url(#gw'+uid+')"><rect x="20" y="'+topY+'" width="60" height="90" fill="#cceeff"/></g>'+
+      // hatch lines clipped to BOTH glass shape AND water level
+      '<g clip-path="url(#gw'+uid+')"><g clip-path="url(#wl'+uid+')">'+hatch+'</g></g>'+
+      // glass outline
       '<path d="M30,15 L70,15 L62,90 L38,90 Z" fill="none" stroke="#000" stroke-width="3"/>'+
       '<line x1="30" y1="15" x2="70" y2="15" stroke="#000" stroke-width="2"/>'
     , size);
   },
-
+ 
   /* basic geometric outlines for matching + patterns */
   circle:(size)=> svgWrap('<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3.5"/>', size),
   triangle:(size)=> svgWrap('<polygon points="50,12 90,88 10,88" fill="#fff" stroke="#000" stroke-width="3.5"/>', size),
@@ -609,7 +616,7 @@ function section3(){
   const C = randInt(1,48);
   out += '<div class="seqline"><span class="qn">3.</span> '+C+' , ____ , '+(C+2)+' &nbsp;(between)</div>';
   const D = randInt(2,48);
-  out += '<div class="seqline"><span class="qn">4.</span> ____ , '+D+' , '+(D+1)+' &nbsp;(between)</div>';
+  out += '<div class="seqline"><span class="qn">4.</span> ____ , '+D+' , '+(D+1)+' &nbsp;(before)</div>';
   const E = randInt(1,47);
   out += '<div class="seqline"><span class="qn">5.</span> '+E+' , '+(E+1)+' , ____ &nbsp;(after)</div>';
   return out;
