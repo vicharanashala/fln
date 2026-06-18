@@ -55,6 +55,9 @@
     border-radius:3px;
   }
   .btn:hover{background:#000;color:#fff;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn:disabled:hover{background:#fff;color:#000;}
+  #exportProgress{font-size:12.5px;color:#000;min-width:160px;}
   .tabbar{
     background:#f3f3f3;
     border-bottom:2px solid #000;
@@ -155,9 +158,9 @@
   .blankline{display:inline-block;border-bottom:1.4px solid #000;width:50px;margin:0 4px;}
   .matchwrap{display:flex;justify-content:space-between;gap:30px;}
   .matchcol{flex:1;}
-  .matchitem{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:13px;}
-  .matchitem .dot{width:10px;height:10px;border:1.4px solid #000;border-radius:50%;background:#fff;}
-  .matchitem.right{justify-content:flex-end;}
+  .matchitem{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0;font-size:13px;width:100%;}
+  .matchitem .micontent{display:flex;align-items:center;gap:8px;}
+  .matchitem .dot{width:10px;height:10px;border:1.4px solid #000;border-radius:50%;background:#fff;flex-shrink:0;}
   .objline{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;}
   .objitem{display:flex;flex-direction:column;align-items:center;font-size:11.5px;gap:2px;}
   .sizebox-row{display:flex;gap:18px;align-items:flex-end;}
@@ -177,6 +180,12 @@
   }
   @page{size:A4;margin:8mm;}
 </style>
+
+<!-- Libraries used ONLY by the "Download All Sets" PDF/ZIP export feature.
+     The core generator above does not depend on these at all. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -187,12 +196,18 @@
     </label>
     <button class="btn" id="generateBtn">Generate</button>
     <button class="btn" id="printBtn">Print current set</button>
+    <button class="btn" id="exportAllBtn">Download All Sets (separate PDFs)</button>
+    <span id="exportProgress" class="no-print"></span>
     <span style="font-size:12px;color:#555;">All worksheets are black &amp; white, ready to print on A4.</span>
   </div>
 
   <div class="tabbar no-print" id="tabbar"></div>
 
   <div id="setsContainer"></div>
+
+  <!-- Off-screen container used only when exporting PDFs. Never shown to the user,
+       never involved in the normal tab/print flow. -->
+  <div id="pdfRenderRoot" style="position:fixed; left:-99999px; top:0; width:210mm; background:#fff;"></div>
 
 <script>
 /* ============================================================
@@ -410,7 +425,122 @@ const ICONS = {
     '<rect x="32" y="6" width="36" height="88" fill="#fff" stroke="#000" stroke-width="3"/>'+
     Array.from({length:9},(_,i)=>'<line x1="32" y1="'+(6+(i+1)*8.8)+'" x2="68" y2="'+(6+(i+1)*8.8)+'" stroke="#000" stroke-width="1"/>').join('')
   , size),
-  unit:(size)=> svgWrap('<rect x="28" y="28" width="44" height="44" fill="#fff" stroke="#000" stroke-width="3"/>', size)
+  unit:(size)=> svgWrap('<rect x="28" y="28" width="44" height="44" fill="#fff" stroke="#000" stroke-width="3"/>', size),
+
+  /* real-life objects for Section 9 right column */
+  coin:(size)=> svgWrap(
+    '<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<circle cx="50" cy="50" r="29" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<circle cx="50" cy="50" r="11" fill="#fff" stroke="#000" stroke-width="1.5"/>'+
+    Array.from({length:16},(_,i)=>{
+      const a = (Math.PI/8)*i;
+      const x1=50+34*Math.cos(a), y1=50+34*Math.sin(a);
+      const x2=50+38*Math.cos(a), y2=50+38*Math.sin(a);
+      return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#000" stroke-width="1.5"/>';
+    }).join('')
+  , size),
+  trafficSign:(size)=> svgWrap(
+    '<rect x="46" y="55" width="8" height="40" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<polygon points="50,8 86,66 14,66" fill="#fff" stroke="#000" stroke-width="3" stroke-linejoin="round"/>'+
+    '<line x1="50" y1="28" x2="50" y2="48" stroke="#000" stroke-width="3.5"/>'+
+    '<circle cx="50" cy="57" r="2.4" fill="#000"/>'
+  , size),
+  chessboard:(size)=>{
+    const n=6, cell=72/n, ox=14, oy=14;
+    let sq='';
+    for(let r=0;r<n;r++){
+      for(let c=0;c<n;c++){
+        const fill = (r+c)%2===0 ? '#000' : '#fff';
+        sq += '<rect x="'+(ox+c*cell)+'" y="'+(oy+r*cell)+'" width="'+cell+'" height="'+cell+'" fill="'+fill+'"/>';
+      }
+    }
+    return svgWrap('<rect x="'+ox+'" y="'+oy+'" width="72" height="72" fill="#fff" stroke="#000" stroke-width="3"/>'+sq, size);
+  },
+  book:(size)=> svgWrap(
+    '<path d="M10,25 C25,15 40,16 50,23 L50,86 C40,79 25,78 10,86 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M90,25 C75,15 60,16 50,23 L50,86 C60,79 75,78 90,86 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="18" y1="36" x2="40" y2="33" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="18" y1="46" x2="40" y2="43" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="18" y1="56" x2="40" y2="53" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="60" y1="33" x2="82" y2="36" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="60" y1="43" x2="82" y2="46" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="60" y1="53" x2="82" y2="56" stroke="#000" stroke-width="1.2"/>'
+  , size),
+
+  /* circle alternatives */
+  ball:(size)=> svgWrap(
+    '<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M50,12 C44,30 44,70 50,88" fill="none" stroke="#000" stroke-width="1.8"/>'+
+    '<path d="M50,12 C56,30 56,70 50,88" fill="none" stroke="#000" stroke-width="1.8"/>'+
+    '<path d="M14,38 C30,46 70,46 86,38" fill="none" stroke="#000" stroke-width="1.8"/>'+
+    '<path d="M14,62 C30,54 70,54 86,62" fill="none" stroke="#000" stroke-width="1.8"/>'
+  , size),
+  clock:(size)=> svgWrap(
+    '<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    Array.from({length:12},(_,i)=>{
+      const a=(Math.PI/6)*i;
+      const x1=50+32*Math.cos(a), y1=50+32*Math.sin(a);
+      const x2=50+37*Math.cos(a), y2=50+37*Math.sin(a);
+      return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#000" stroke-width="2"/>';
+    }).join('')+
+    '<line x1="50" y1="50" x2="50" y2="27" stroke="#000" stroke-width="3"/>'+
+    '<line x1="50" y1="50" x2="67" y2="58" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="50" cy="50" r="3" fill="#000"/>'
+  , size),
+
+  /* triangle alternatives */
+  partyHat:(size)=> svgWrap(
+    '<polygon points="50,8 76,85 24,85" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<circle cx="50" cy="8" r="6" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M30,85 L38,76 L46,85 L54,76 L62,85 L70,85" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="44" cy="50" r="2.5" fill="#000"/><circle cx="58" cy="62" r="2.5" fill="#000"/><circle cx="46" cy="70" r="2.5" fill="#000"/>'
+  , size),
+  sandwich:(size)=> svgWrap(
+    '<polygon points="50,14 90,86 10,86" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="22" y1="62" x2="78" y2="62" stroke="#000" stroke-width="2"/>'+
+    '<line x1="30" y1="44" x2="70" y2="44" stroke="#000" stroke-width="1.5"/>'+
+    '<circle cx="38" cy="53" r="1.8" fill="#000"/><circle cx="50" cy="56" r="1.8" fill="#000"/><circle cx="62" cy="53" r="1.8" fill="#000"/>'
+  , size),
+
+  /* square alternatives */
+  window:(size)=> svgWrap(
+    '<rect x="14" y="14" width="72" height="72" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="50" y1="14" x2="50" y2="86" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="14" y1="50" x2="86" y2="50" stroke="#000" stroke-width="2.5"/>'+
+    '<rect x="8" y="86" width="84" height="6" fill="#fff" stroke="#000" stroke-width="2"/>'
+  , size),
+  frame:(size)=> svgWrap(
+    '<rect x="12" y="12" width="76" height="76" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="22" y="22" width="56" height="56" fill="#fff" stroke="#000" stroke-width="1.5"/>'+
+    '<path d="M28,62 L42,42 L52,55 L62,38 L74,62 Z" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<circle cx="65" cy="32" r="5" fill="none" stroke="#000" stroke-width="1.5"/>'
+  , size),
+
+  /* rectangle alternatives */
+  door:(size)=> svgWrap(
+    '<rect x="22" y="8" width="56" height="88" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="30" y="18" width="40" height="30" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<rect x="30" y="54" width="40" height="34" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<circle cx="68" cy="55" r="3" fill="#000"/>'
+  , size),
+  brick:(size)=> svgWrap(
+    '<rect x="8" y="32" width="84" height="36" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="8" y1="50" x2="92" y2="50" stroke="#000" stroke-width="1" stroke-dasharray="3,3"/>'+
+    '<line x1="30" y1="32" x2="30" y2="50" stroke="#000" stroke-width="1" stroke-dasharray="3,3"/>'+
+    '<line x1="60" y1="50" x2="60" y2="68" stroke="#000" stroke-width="1" stroke-dasharray="3,3"/>'
+  , size),
+
+  /* oval alternatives */
+  egg:(size)=> svgWrap(
+    '<path d="M50,10 C30,10 20,45 25,65 C30,90 70,90 75,65 C80,45 70,10 50,10 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M40,25 C38,30 36,35 37,40" fill="none" stroke="#000" stroke-width="1.2"/>'
+  , size),
+  mirror:(size)=> svgWrap(
+    '<ellipse cx="50" cy="38" rx="30" ry="34" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="38" rx="22" ry="26" fill="none" stroke="#000" stroke-width="1"/>'+
+    '<rect x="44" y="68" width="12" height="28" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="38" y1="22" x2="44" y2="34" stroke="#000" stroke-width="1.2"/>'
+  , size)
 };
 
 function renderIcon(name,size,opts){ return ICONS[name](size, opts); }
@@ -434,7 +564,13 @@ const SIZE_ORIENT = {pencil:'horizontal',candle:'vertical',tree:'vertical',fish:
 const COMPARE_OBJECTS = ['giraffe','candle','balloon','pumpkin','glassWater','apple','tree','pencil'];
 const PATTERN_SHAPES = ['triangle','square','circle','star','heart'];
 const MATCH_SHAPES = [['circle','Circle'],['triangle','Triangle'],['square','Square'],['rectangle','Rectangle'],['oval','Oval']];
-const MATCH_OBJECTS = ['Coin','Traffic Sign','Chessboard','Book','Balloon'];
+const MATCH_POOLS = {
+  circle:    [['coin','Coin'],['clock','Clock'],['ball','Ball']],
+  triangle:  [['trafficSign','Traffic Sign'],['partyHat','Party Hat'],['sandwich','Sandwich']],
+  square:    [['chessboard','Chessboard'],['window','Window'],['frame','Picture Frame']],
+  rectangle: [['book','Book'],['door','Door'],['brick','Brick']],
+  oval:      [['balloon','Balloon'],['egg','Egg'],['mirror','Hand Mirror']]
+};
 const VEHICLES = [['car','Car'],['bus','Bus'],['bicycle','Bicycle'],['train','Train'],['auto','Auto']];
 const FLOWERS_NAMED = [['tulip','Tulip'],['lotus','Lotus'],['rose','Rose'],['sunflower','Sunflower'],['daisy','Daisy']];
 
@@ -567,13 +703,15 @@ function section8(){
 
 function section9(){
   const left = shuffle(MATCH_SHAPES);
-  const rightLabels = shuffle(MATCH_OBJECTS);
+  // exactly one object per shape category, chosen at random from that shape's pool
+  const rightItems = MATCH_SHAPES.map(([shapeKey]) => pick(MATCH_POOLS[shapeKey]));
+  const right = shuffle(rightItems);
   let leftHtml='', rightHtml='';
   left.forEach(([key,label])=>{
-    leftHtml += '<div class="matchitem"><span class="dot"></span>'+renderIcon(key,40)+'<span>'+label+'</span></div>';
+    leftHtml += '<div class="matchitem"><div class="micontent">'+renderIcon(key,40)+'<span>'+label+'</span></div><span class="dot"></span></div>';
   });
-  rightLabels.forEach(label=>{
-    rightHtml += '<div class="matchitem right"><span>'+label+'</span><span class="dot"></span></div>';
+  right.forEach(([key,label])=>{
+    rightHtml += '<div class="matchitem"><span class="dot"></span><div class="micontent">'+renderIcon(key,40)+'<span>'+label+'</span></div></div>';
   });
   return '<p class="instr">Draw a line from each shape on the left to a matching real-life object on the right.</p>'+
     '<div class="matchwrap"><div class="matchcol">'+leftHtml+'</div><div class="matchcol">'+rightHtml+'</div></div>';
@@ -749,6 +887,118 @@ document.getElementById('generateBtn').addEventListener('click', ()=>{
 document.getElementById('printBtn').addEventListener('click', ()=> window.print());
 
 generateSets(parseInt(document.getElementById('setCount').value,10) || 5);
+
+/* ============================================================
+   EXPORT ALL SETS — each set becomes its own separate PDF file,
+   all packaged into one ZIP so the browser only triggers a
+   single download (avoids the "site wants to download multiple
+   files" block, and avoids merging sets into shared PDF pages).
+   This feature is fully independent of generateSets/activateSet/
+   printBtn above — it only *reads* the cached worksheetHTMLs.
+   ============================================================ */
+
+// Pure math, kept separate from any DOM/canvas calls so it can be
+// unit-tested on its own: given a captured image's pixel size and
+// the printable page size (mm), work out how many A4 pages it must
+// be sliced into and the pixel range for each slice.
+function computePdfSlices(imgWidthPx, imgHeightPx, pageWidthMM, pageHeightMM){
+  const pxPerMM = imgWidthPx / pageWidthMM;
+  const pageHeightPx = Math.max(1, Math.round(pageHeightMM * pxPerMM));
+  const slices = [];
+  let y = 0;
+  while(y < imgHeightPx){
+    const h = Math.min(pageHeightPx, imgHeightPx - y);
+    slices.push({ sy:y, sh:h, mmHeight: h / pxPerMM });
+    y += h;
+  }
+  return slices;
+}
+
+function sliceCanvas(sourceCanvas, sy, sh){
+  const c = document.createElement('canvas');
+  c.width = sourceCanvas.width;
+  c.height = sh;
+  c.getContext('2d').drawImage(sourceCanvas, 0, sy, sourceCanvas.width, sh, 0, 0, sourceCanvas.width, sh);
+  return c;
+}
+
+// Renders one cached set's HTML off-screen and returns it as a jsPDF blob
+// (one or more pages, sliced from a single tall screenshot of that set).
+async function buildPdfBlobForSet(setIndex){
+  const renderRoot = document.getElementById('pdfRenderRoot');
+  renderRoot.innerHTML = worksheetHTMLs[setIndex-1];
+  // let the browser lay out / paint before screenshotting
+  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => requestAnimationFrame(r));
+
+  const pageEl = renderRoot.querySelector('.page');
+  const canvas = await html2canvas(pageEl, { scale:2, backgroundColor:'#ffffff' });
+
+  const pdf = new window.jspdf.jsPDF({ unit:'mm', format:'a4' });
+  const slices = computePdfSlices(canvas.width, canvas.height, 210, 297);
+
+  slices.forEach((slice, idx)=>{
+    const sliceCanvasEl = sliceCanvas(canvas, slice.sy, slice.sh);
+    const imgData = sliceCanvasEl.toDataURL('image/png');
+    if(idx > 0) pdf.addPage();
+    pdf.addImage(imgData, 'PNG', 0, 0, 210, slice.mmHeight);
+  });
+
+  // free the off-screen DOM and the big canvas before moving to the next set
+  renderRoot.innerHTML = '';
+
+  return pdf.output('blob');
+}
+
+async function exportAllSetsAsZip(){
+  if(!worksheetHTMLs.length){
+    alert('Generate at least one set first.');
+    return;
+  }
+  const exportBtn = document.getElementById('exportAllBtn');
+  const generateBtn = document.getElementById('generateBtn');
+  const progressEl = document.getElementById('exportProgress');
+  const n = worksheetHTMLs.length;
+
+  exportBtn.disabled = true;
+  generateBtn.disabled = true;
+
+  try{
+    const zip = new JSZip();
+    const padWidth = String(n).length;
+
+    for(let i=1; i<=n; i++){
+      progressEl.textContent = 'Building PDF ' + i + ' of ' + n + ' …';
+      const blob = await buildPdfBlobForSet(i);
+      const fileName = 'Set_' + String(i).padStart(padWidth,'0') + '.pdf';
+      zip.file(fileName, blob);
+      // yield back to the browser between sets so the tab stays responsive
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    progressEl.textContent = 'Packaging ZIP …';
+    const zipBlob = await zip.generateAsync({ type:'blob' });
+
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Class2_Math_Worksheets_AllSets.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    progressEl.textContent = 'Done — ' + n + ' separate PDFs packaged in one ZIP.';
+  } catch(err){
+    console.error(err);
+    progressEl.textContent = 'Export failed — see console for details.';
+  } finally {
+    exportBtn.disabled = false;
+    generateBtn.disabled = false;
+  }
+}
+
+document.getElementById('exportAllBtn').addEventListener('click', exportAllSetsAsZip);
 </script>
 </body>
 </html>
