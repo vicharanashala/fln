@@ -310,48 +310,110 @@ const IC={
     '<line x1="28" y1="42" x2="72" y2="42" stroke="#000" stroke-width="1.5"/>',z),
 
   /* ── CONTAINERS (Q4) ── */
-  cupC:(z)=>sw(
+  cupC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=88-fill*72;return sw(
     '<path d="M24,16 L32,88 L68,88 L76,16 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<path d="M'+(24+(top-16)/72*8)+','+top+' L32,88 L68,88 L'+(76-(top-16)/72*8)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
     '<line x1="24" y1="16" x2="76" y2="16" stroke="#000" stroke-width="2.5"/>'+
-    '<path d="M62,72 L60,60" stroke="#000" stroke-width="1"/>'+
-    '<line x1="24" y1="56" x2="76" y2="56" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
-    '<line x1="27" y1="74" x2="73" y2="74" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
-    kf(50,78,0.76),z),
+    kf(50,78,0.76),z);},
 
-  mugC:(z)=>sw(
+  mugC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=88-fill*70;return sw(
     '<rect x="14" y="18" width="62" height="70" rx="5" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<rect x="14" y="'+top+'" width="62" height="'+(88-top)+'" fill="#cfe8f5" stroke="none"/>':'')+
     '<path d="M76,34 C94,34 94,72 76,72" fill="none" stroke="#000" stroke-width="3.5"/>'+
-    '<line x1="14" y1="46" x2="76" y2="46" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
-    '<line x1="14" y1="64" x2="76" y2="64" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
-    kf(44,80,0.76),z),
+    kf(44,80,0.76),z);},
 
-  bucketC:(z)=>sw(
+  bucketC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=88-fill*66;return sw(
     '<path d="M16,22 L24,88 L76,88 L84,22 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<path d="M'+(16+(top-22)/66*8)+','+top+' L24,88 L76,88 L'+(84-(top-22)/66*8)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
     '<path d="M16,22 C26,10 74,10 84,22" fill="none" stroke="#000" stroke-width="3"/>'+
     '<path d="M22,10 C26,2 74,2 78,10" fill="none" stroke="#000" stroke-width="2.5"/>'+
-    '<line x1="17" y1="48" x2="83" y2="48" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
-    '<line x1="19" y1="66" x2="81" y2="66" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
-    kf(50,78,0.82),z),
+    kf(50,78,0.82),z);},
 
-  spoonC:(z)=>sw(
+  spoonC:(z,fill)=>{fill=fill===undefined?0.55:fill;return sw(
     '<ellipse cx="50" cy="30" rx="22" ry="26" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<ellipse cx="50" cy="'+(30+10*(1-fill))+'" rx="'+(20*fill+2)+'" ry="'+(24*fill+2)+'" fill="#cfe8f5"/>':'')+
     '<rect x="46" y="55" width="8" height="40" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
     '<ellipse cx="50" cy="55" rx="8" ry="5" fill="#fff" stroke="#000" stroke-width="2"/>'+
-    kf(50,30,0.84),z),
+    kf(50,30,0.84),z);},
 
-  glassC:(z)=>sw(
+  glassC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=90-fill*82;return sw(
     '<path d="M22,8 L30,90 L70,90 L78,8 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<path d="M'+(22+(top-8)/82*8)+','+top+' L30,90 L70,90 L'+(78-(top-8)/82*8)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
     '<line x1="22" y1="8" x2="78" y2="8" stroke="#000" stroke-width="2.5"/>'+
-    '<line x1="24" y1="34" x2="76" y2="34" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
-    '<line x1="27" y1="60" x2="73" y2="60" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
-    kf(50,78,0.76),z),
+    kf(50,78,0.76),z);},
 
-  jugC:(z)=>sw(
+  jugC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=87-fill*69;return sw(
     '<path d="M22,18 L27,87 L70,87 L73,18 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<path d="M'+(22+(top-18)/69*5)+','+top+' L27,87 L70,87 L'+(73-(top-18)/69*3)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
     '<path d="M22,18 C28,8 72,8 73,18" fill="none" stroke="#000" stroke-width="2.5"/>'+
     '<path d="M70,32 C88,32 94,54 84,62 L70,62" fill="none" stroke="#000" stroke-width="3.5"/>'+
-    '<line x1="23" y1="46" x2="73" y2="46" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
-    kf(44,74,0.74),z),
+    kf(44,74,0.74),z);},
+
+  bottleC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=92-fill*60;return sw(
+    '<path d="M40,6 L60,6 L60,22 L70,34 L70,92 L30,92 L30,34 L40,22 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<path d="M30,'+Math.max(top,34)+' L30,92 L70,92 L70,'+Math.max(top,34)+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+    '<rect x="40" y="2" width="20" height="8" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    kf(50,72,0.7),z);},
+
+  /* ── LENGTH comparison (pencil/ribbon/stick of given length, out of 100 max) ── */
+  pencilLen:(z,len)=>{len=len||60;const x2=10+len;return sw(
+    '<rect x="10" y="40" width="'+len+'" height="20" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M'+x2+',40 L'+(x2+14)+',50 L'+x2+',60 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="'+(10+len*0.35)+'" y1="40" x2="'+(10+len*0.35)+'" y2="60" stroke="#000" stroke-width="2"/>',z);},
+  ribbonLen:(z,len)=>{len=len||60;return sw(
+    '<path d="M10,50 Q'+(10+len*0.25)+',30 '+(10+len*0.5)+',50 Q'+(10+len*0.75)+',70 '+(10+len)+',50" fill="none" stroke="#000" stroke-width="6" stroke-linecap="round"/>',z);},
+  snakeLen:(z,len)=>{len=len||60;return sw(
+    '<path d="M8,55 Q'+(8+len*0.2)+',35 '+(8+len*0.4)+',55 Q'+(8+len*0.6)+',75 '+(8+len*0.8)+',55 L'+(8+len)+',55" fill="none" stroke="#000" stroke-width="7" stroke-linecap="round"/>'+
+    '<circle cx="'+(8+len)+'" cy="55" r="5" fill="#fff" stroke="#000" stroke-width="2"/>',z);},
+
+  /* ── HEIGHT comparison (tower/tree/building of given height, drawn upward from baseline 92) ── */
+  towerH:(z,h)=>{h=h||50;const top=92-h;return sw(
+    '<rect x="35" y="'+top+'" width="30" height="'+h+'" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    Array.from({length:Math.max(1,Math.floor(h/16))},(_,i)=>'<line x1="35" y1="'+(top+16*(i+1))+'" x2="65" y2="'+(top+16*(i+1))+'" stroke="#000" stroke-width="1.5"/>').join('')+
+    '<line x1="20" y1="92" x2="80" y2="92" stroke="#000" stroke-width="2.5"/>',z);},
+  treeH:(z,h)=>{h=h||50;const top=92-h;return sw(
+    '<rect x="45" y="'+(92-h*0.25)+'" width="10" height="'+(h*0.25)+'" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<ellipse cx="50" cy="'+(top+h*0.3)+'" rx="'+(h*0.42)+'" ry="'+(h*0.42)+'" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="20" y1="92" x2="80" y2="92" stroke="#000" stroke-width="2.5"/>',z);},
+  girlH:(z,h)=>{h=h||50;const top=92-h;const s=h/70;return sw(
+    '<circle cx="50" cy="'+(top+10*s)+'" r="'+(10*s)+'" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<rect x="'+(50-9*s)+'" y="'+(top+18*s)+'" width="'+(18*s)+'" height="'+(28*s)+'" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="'+(50-9*s)+'" y1="92" x2="'+(50-9*s)+'" y2="'+(top+46*s)+'" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="'+(50+9*s)+'" y1="92" x2="'+(50+9*s)+'" y2="'+(top+46*s)+'" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="20" y1="92" x2="80" y2="92" stroke="#000" stroke-width="2.5"/>',z);},
+
+  /* ── SIZE comparison (circle/balloon/ball drawn at given radius) ── */
+  ballSz:(z,r)=>{r=r||30;return sw('<circle cx="50" cy="50" r="'+r+'" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="50" cy="50" r="'+(r*0.65)+'" fill="none" stroke="#000" stroke-width="1.3"/>',z);},
+  balloonSz:(z,r)=>{r=r||30;return sw(
+    '<ellipse cx="50" cy="46" rx="'+(r*0.82)+'" ry="'+r+'" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="50" y1="'+(46+r)+'" x2="50" y2="94" stroke="#000" stroke-width="1.5"/>',z);},
+  watermelonSz:(z,r)=>{r=r||30;return sw(
+    '<ellipse cx="50" cy="50" rx="'+r+'" ry="'+(r*0.78)+'" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M'+(50-r*0.8)+',38 Q50,30 '+(50+r*0.8)+',38" fill="none" stroke="#000" stroke-width="1.3"/>'+
+    '<path d="M'+(50-r*0.85)+',50 Q50,44 '+(50+r*0.85)+',50" fill="none" stroke="#000" stroke-width="1.3"/>',z);},
+
+  /* ── WEIGHT comparison: see-saw / balance scale, heavier side dips down ── */
+  seesaw:(z,leftIcon,rightIcon,leftHeavy)=>{
+    const tilt=leftHeavy===true?-9:(leftHeavy===false?9:0);
+    const lY=leftHeavy===true?6:(leftHeavy===false?-10:-2),rY=leftHeavy===true?-10:(leftHeavy===false?6:-2);
+    return '<svg width="160" height="100" viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg">'+
+      '<polygon points="70,92 90,92 80,70" fill="#fff" stroke="#000" stroke-width="3"/>'+
+      '<g transform="rotate('+tilt+' 80 70)">'+
+      '<rect x="20" y="68" width="120" height="5" fill="#000"/>'+
+      '<line x1="28" y1="73" x2="28" y2="'+(86+lY)+'" stroke="#000" stroke-width="2.5"/>'+
+      '<line x1="132" y1="73" x2="132" y2="'+(86+rY)+'" stroke="#000" stroke-width="2.5"/>'+
+      '<rect x="8" y="'+(86+lY)+'" width="40" height="5" fill="#000"/>'+
+      '<rect x="112" y="'+(86+rY)+'" width="40" height="5" fill="#000"/>'+
+      '<g transform="translate('+(28-15)+','+(58+lY)+')">'+IC[leftIcon](30)+'</g>'+
+      '<g transform="translate('+(132-15)+','+(58+rY)+')">'+IC[rightIcon](30)+'</g>'+
+      '</g></svg>';
+  },
+
+  bowlC:(z,fill)=>{fill=fill===undefined?0.55:fill;return sw(
+    '<path d="M10,40 C10,40 10,86 50,86 C90,86 90,40 90,40 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<ellipse cx="50" cy="40" rx="40" ry="10" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    (fill>0?'<ellipse cx="50" cy="'+(40+2)+'" rx="'+(38*fill+2)+'" ry="'+(8*fill+1)+'" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.2"/>':'')+
+    kf(50,68,0.7),z);},
 
   /* ── COINS (Q6) ── */
   coin1:(z)=>sw(
@@ -368,12 +430,12 @@ const IC={
     '<text x="50" y="44" text-anchor="middle" font-size="13" font-family="Arial" font-weight="bold" fill="#000">₹</text>'+
     '<text x="50" y="62" text-anchor="middle" font-size="18" font-family="Arial" font-weight="bold" fill="#000">2</text>',z),
 
-  /* ── Q7: fruit with dotted line (guava/mango/watermelon) ── */
+  /* ── Q7: shareable foods with dotted cut line ── */
   guava:(z)=>sw(
     '<path d="M50,16 C26,16 12,34 12,54 C12,76 30,92 50,92 C70,92 88,76 88,54 C88,34 74,16 50,16 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
     '<path d="M50,8 C46,4 54,0 52,8" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>'+
     '<ellipse cx="54" cy="10" rx="7" ry="4" fill="#fff" stroke="#000" stroke-width="1.8" transform="rotate(-20 54 10)"/>'+
-    '<line x1="50" y1="16" x2="50" y2="92" stroke="#000" stroke-width="2" stroke-dasharray="5,4"/>'+
+    '<line x1="50" y1="16" x2="50" y2="92" stroke="#000" stroke-width="2.2" stroke-dasharray="5,4"/>'+
     '<circle cx="38" cy="52" r="3" fill="#000" opacity="0.3"/><circle cx="46" cy="64" r="2.5" fill="#000" opacity="0.3"/><circle cx="34" cy="66" r="2" fill="#000" opacity="0.3"/>'+
     '<circle cx="62" cy="52" r="3" fill="#000" opacity="0.3"/><circle cx="66" cy="66" r="2.5" fill="#000" opacity="0.3"/>',z),
 
@@ -381,9 +443,32 @@ const IC={
     '<path d="M50,10 C32,10 16,26 14,48 C12,70 26,88 50,90 C74,88 88,70 86,48 C84,26 68,10 50,10 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
     '<path d="M50,6 C48,0 56,-2 54,6" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>'+
     '<ellipse cx="56" cy="7" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="1.8" transform="rotate(-15 56 7)"/>'+
-    '<line x1="50" y1="10" x2="50" y2="90" stroke="#000" stroke-width="2" stroke-dasharray="5,4"/>',z),
+    '<line x1="50" y1="10" x2="50" y2="90" stroke="#000" stroke-width="2.2" stroke-dasharray="5,4"/>',z),
 
-  /* ── Q8: jar (full & empty) & cookie ── */
+  chocolate:(z)=>sw(
+    '<rect x="8" y="22" width="84" height="56" rx="4" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<line x1="50" y1="22" x2="50" y2="78" stroke="#000" stroke-width="2.4" stroke-dasharray="5,4"/>'+
+    '<line x1="29" y1="22" x2="29" y2="78" stroke="#000" stroke-width="1.4"/>'+
+    '<line x1="71" y1="22" x2="71" y2="78" stroke="#000" stroke-width="1.4"/>'+
+    '<line x1="8" y1="50" x2="92" y2="50" stroke="#000" stroke-width="1.4"/>'+
+    '<text x="50" y="16" text-anchor="middle" font-size="9" font-weight="bold" fill="#000">CHOCO</text>',z),
+
+  sandwich:(z)=>sw(
+    '<path d="M8,86 L50,18 L92,86 Z" fill="#fff" stroke="#000" stroke-width="3.5" stroke-linejoin="round"/>'+
+    '<line x1="50" y1="18" x2="50" y2="86" stroke="#000" stroke-width="2.2" stroke-dasharray="5,4"/>'+
+    '<path d="M18,72 L82,72" stroke="#000" stroke-width="2"/>'+
+    '<path d="M24,60 Q30,55 36,60" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<path d="M64,60 Q70,55 76,60" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+
+  pizza:(z)=>sw(
+    '<path d="M50,8 L92,86 L8,86 Z" fill="#fff" stroke="#000" stroke-width="3.5" stroke-linejoin="round"/>'+
+    '<path d="M14,80 Q50,68 86,80" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<line x1="50" y1="8" x2="50" y2="86" stroke="#000" stroke-width="2.2" stroke-dasharray="5,4"/>'+
+    '<circle cx="36" cy="58" r="4" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<circle cx="64" cy="58" r="4" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<circle cx="50" cy="40" r="4" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+
+  /* ── Q8: containers/scenes that empty out ── */
   jarFull:(z)=>sw(
     '<rect x="20" y="28" width="60" height="62" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
     '<rect x="28" y="14" width="44" height="16" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
@@ -400,34 +485,160 @@ const IC={
     '<rect x="28" y="14" width="44" height="16" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
     '<circle cx="50" cy="14" r="6" fill="#fff" stroke="#000" stroke-width="2.5"/>',z),
 
-  /* ── Q9: baskets ── */
-  basket:(z,count,icon)=>{
-    const icoMap={apple:IC.apple,star:IC.star,flower:IC.flower,balloon:IC.balloon,fish:IC.fish};
-    const fn=icoMap[icon]||IC.apple;
-    let items='';
-    // arrange in rows
-    const cols=count<=3?count:Math.ceil(count/2);
-    for(let k=0;k<count;k++){
-      const x=14+(k%cols)*(72/cols);
-      const y=count>3?(k<cols?8:36):10;
-      items+='<image href="data:image/svg+xml;base64,'+btoa(fn(30))+'" x="'+x+'" y="'+y+'" width="28" height="28"/>';
-    }
-    return sw(
-      items+
-      // basket body
-      '<path d="M6,60 L14,92 L86,92 L94,60 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
-      '<path d="M6,60 L94,60" stroke="#000" stroke-width="2.5"/>'+
-      // weave lines horizontal
-      '<line x1="8" y1="70" x2="92" y2="70" stroke="#000" stroke-width="1.2"/>'+
-      '<line x1="9" y1="80" x2="91" y2="80" stroke="#000" stroke-width="1.2"/>'+
-      // weave lines vertical
-      Array.from({length:9},(_,i)=>{const x=16+i*10;return '<line x1="'+x+'" y1="60" x2="'+(x-4)+'" y2="92" stroke="#000" stroke-width="1"/>';}).join('')+
-      // handle
-      '<path d="M26,60 C26,36 74,36 74,60" fill="none" stroke="#000" stroke-width="3"/>',z);
-  }
+  balloonStallFull:(z)=>sw(
+    '<rect x="6" y="80" width="88" height="6" fill="#000"/>'+
+    [[22,46],[40,38],[58,40],[76,48]].map(p=>'<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="13" ry="16" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="'+p[0]+'" y1="'+(p[1]+16)+'" x2="50" y2="80" stroke="#000" stroke-width="1.2"/>').join(''),z),
+  balloonStallEmpty:(z)=>sw(
+    '<rect x="6" y="80" width="88" height="6" fill="#000"/>'+
+    '<rect x="20" y="70" width="60" height="10" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="4,3"/>',z),
+
+  aquariumFull:(z)=>sw(
+    '<rect x="8" y="14" width="84" height="72" rx="3" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<line x1="8" y1="74" x2="92" y2="74" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
+    [[30,34],[60,30],[42,52],[70,58],[24,62]].map(p=>'<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="8" ry="5" fill="#fff" stroke="#000" stroke-width="2"/><polygon points="'+(p[0]+8)+','+p[1]+' '+(p[0]+14)+','+(p[1]-4)+' '+(p[0]+14)+','+(p[1]+4)+'" fill="#fff" stroke="#000" stroke-width="1.5"/>').join(''),z),
+  aquariumEmpty:(z)=>sw(
+    '<rect x="8" y="14" width="84" height="72" rx="3" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<line x1="8" y1="74" x2="92" y2="74" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>',z),
+
+  plateFullCookies:(z)=>sw(
+    '<ellipse cx="50" cy="68" rx="40" ry="14" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    [[30,52],[50,46],[70,52],[40,60],[60,60]].map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="10" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="'+(p[0]-3)+'" cy="'+(p[1]-2)+'" r="1.4" fill="#000"/><circle cx="'+(p[0]+3)+'" cy="'+(p[1]-1)+'" r="1.4" fill="#000"/><circle cx="'+p[0]+'" cy="'+(p[1]+3)+'" r="1.4" fill="#000"/>').join(''),z),
+  plateEmpty:(z)=>sw(
+    '<ellipse cx="50" cy="60" rx="40" ry="14" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="58" rx="26" ry="8" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+
+  basketFullMangoes:(z)=>sw(
+    '<path d="M6,58 L14,92 L86,92 L94,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M26,58 C26,34 74,34 74,58" fill="none" stroke="#000" stroke-width="3"/>'+
+    [[26,52],[42,44],[58,44],[74,52],[50,56]].map(p=>'<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="11" ry="9.5" fill="#fff" stroke="#000" stroke-width="2.2"/>').join('')+
+    '<line x1="8" y1="70" x2="92" y2="70" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="9" y1="80" x2="91" y2="80" stroke="#000" stroke-width="1.2"/>',z),
+  basketEmpty:(z)=>sw(
+    '<path d="M6,58 L14,92 L86,92 L94,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M26,58 C26,34 74,34 74,58" fill="none" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="60" rx="36" ry="7" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="4,3"/>'+
+    '<line x1="8" y1="70" x2="92" y2="70" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="9" y1="80" x2="91" y2="80" stroke="#000" stroke-width="1.2"/>',z),
+
+  toyboxFull:(z)=>sw(
+    '<rect x="10" y="40" width="80" height="50" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="6" y="30" width="88" height="14" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    IC.ballSz(26,11)+'<g transform="translate(14,38)">'+IC.star(24)+'</g>'+
+    '<g transform="translate(40,40)">'+IC.balloonSz(22,9)+'</g>'+
+    '<g transform="translate(60,36)">'+IC.dice(22)+'</g>',z),
+  toyboxEmpty:(z)=>sw(
+    '<rect x="10" y="40" width="80" height="50" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="6" y="30" width="88" height="14" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="18" y1="60" x2="82" y2="60" stroke="#000" stroke-width="1.3" stroke-dasharray="4,3"/>',z),
+
+  vaseFullFlowers:(z)=>sw(
+    [[30,38],[50,30],[70,38],[40,46],[60,46]].map(p=>'<g transform="translate('+(p[0]-14)+','+(p[1]-14)+')">'+IC.flower(28)+'</g>').join('')+
+    '<path d="M38,58 L34,92 L66,92 L62,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="58" rx="14" ry="5" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+  vaseEmpty:(z)=>sw(
+    '<path d="M38,58 L34,92 L66,92 L62,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="58" rx="14" ry="5" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+
+  /* ── people for Q7 & Q8 scenes ── */
+  boyReach:(z,mirror)=>{const m=mirror?' style="transform:scaleX(-1)"':'';return '<svg width="70" height="100" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg"'+m+'>'+
+    '<circle cx="35" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="30" cy="12" r="2" fill="#000"/><circle cx="40" cy="12" r="2" fill="#000"/>'+
+    '<path d="M29,18 Q35,23 41,18" fill="none" stroke="#000" stroke-width="1.8"/>'+
+    '<rect x="24" y="26" width="22" height="30" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,30 L6,44 L14,48 L28,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M46,30 L58,44 L52,50 L42,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M28,56 L22,82 L30,82 L35,68 L40,82 L48,82 L42,56" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<ellipse cx="26" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<ellipse cx="44" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '</svg>';},
+  girlReach:(z)=>'<svg width="70" height="100" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="35" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,8 C18,2 14,8 20,12" fill="#fff" stroke="#000" stroke-width="1.8"/>'+
+    '<path d="M46,8 C52,2 56,8 50,12" fill="#fff" stroke="#000" stroke-width="1.8"/>'+
+    '<circle cx="30" cy="12" r="2" fill="#000"/><circle cx="40" cy="12" r="2" fill="#000"/>'+
+    '<path d="M29,18 Q35,23 41,18" fill="none" stroke="#000" stroke-width="1.8"/>'+
+    '<path d="M24,26 L20,58 L50,58 L46,26 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,30 L12,44 L18,50 L28,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M46,30 L58,44 L52,48 L42,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M26,58 L22,82 L32,82 L35,70 L38,82 L48,82 L44,58" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<ellipse cx="27" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<ellipse cx="43" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '</svg>',
+
+  boyEatingCookie:(z)=>'<svg width="68" height="80" viewBox="0 0 68 80" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
+    '<path d="M26,20 Q34,30 42,20" fill="none" stroke="#000" stroke-width="2.2"/>'+
+    '<rect x="22" y="26" width="24" height="28" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M46,28 L58,18 L62,24 L50,32" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<circle cx="62" cy="16" r="8" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="59" cy="13" r="1.3" fill="#000"/><circle cx="65" cy="13" r="1.3" fill="#000"/><circle cx="62" cy="17" r="1.3" fill="#000"/><circle cx="60" cy="19" r="1.3" fill="#000"/>'+
+    '<path d="M22,28 L10,42 L18,44 L26,34" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M26,54 L20,76 L30,76 L34,64 L38,76 L48,76 L42,54" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '</svg>',
+
+  girlHoldingBalloons:(z)=>'<svg width="68" height="86" viewBox="0 0 68 86" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,8 C18,2 14,8 20,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<path d="M44,8 C50,2 54,8 48,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
+    '<path d="M27,17 Q34,23 41,17" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<path d="M22,26 L18,56 L50,56 L46,26 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M46,30 L58,26 L60,34 L48,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M22,30 L10,30 L10,38 L24,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<ellipse cx="58" cy="14" rx="8" ry="10" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<ellipse cx="44" cy="8" rx="7" ry="9" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<line x1="58" y1="24" x2="58" y2="28" stroke="#000" stroke-width="1.3"/>'+
+    '<line x1="44" y1="17" x2="56" y2="27" stroke="#000" stroke-width="1.3"/>'+
+    '<path d="M24,56 L20,80 L30,80 L34,68 L38,80 L48,80 L44,56" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '</svg>',
+
+  girlHoldingMango:(z)=>'<svg width="68" height="80" viewBox="0 0 68 80" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,8 C18,2 14,8 20,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<path d="M44,8 C50,2 54,8 48,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
+    '<path d="M27,19 Q34,25 41,19" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<path d="M22,26 L18,56 L50,56 L46,26 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M22,30 L8,40 L12,48 L26,40" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M46,30 L58,34 L56,42 L42,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<ellipse cx="60" cy="40" rx="9" ry="8" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<path d="M24,56 L20,76 L30,76 L34,66 L38,76 L48,76 L44,56" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '</svg>',
+
+  fishSwimAway:(z)=>'<svg width="68" height="60" viewBox="0 0 68 60" xmlns="http://www.w3.org/2000/svg">'+
+    '<ellipse cx="30" cy="32" rx="22" ry="13" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M52,32 L66,18 L66,46 Z" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="16" cy="28" r="2.5" fill="#000"/>'+
+    '<path d="M2,10 Q10,2 18,10 M-2,46 Q6,38 14,46" fill="none" stroke="#000" stroke-width="1.3" stroke-dasharray="2,3"/>'+
+    '</svg>',
+
+  boyHoldingToy:(z)=>'<svg width="68" height="80" viewBox="0 0 68 80" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
+    '<path d="M27,19 Q34,25 41,19" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<rect x="22" y="26" width="24" height="28" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M46,28 L58,30 L58,38 L46,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<g transform="translate(50,24)">'+IC.dice(20)+'</g>'+
+    '<path d="M22,28 L10,42 L18,44 L26,34" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M26,54 L20,76 L30,76 L34,64 L38,76 L48,76 L42,54" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '</svg>',
+
+  girlHoldingFlower:(z)=>'<svg width="68" height="80" viewBox="0 0 68 80" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,8 C18,2 14,8 20,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<path d="M44,8 C50,2 54,8 48,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
+    '<path d="M27,19 Q34,25 41,19" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<path d="M22,26 L18,56 L50,56 L46,26 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M22,30 L8,40 L12,48 L26,40" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M46,30 L58,28 L58,36 L44,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<g transform="translate(48,12)">'+IC.flower(22)+'</g>'+
+    '<path d="M24,56 L20,76 L30,76 L34,66 L38,76 L48,76 L44,56" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '</svg>'
 };
 
-function ic(name,size){if(!IC[name]) return '';return IC[name](size);}
+function ic(name,size,arg2){if(!IC[name]) return '';return IC[name](size,arg2);}
 
 /* ── DATA POOLS ── */
 const SHAPE_MATCH=[
@@ -448,20 +659,62 @@ const PAIR_SETS=[
 const COUNT_ICONS=['apple','star','flower','balloon','fish','leaf','bird','bee'];
 const BASKET_ICONS=['apple','star','flower','balloon','fish'];
 
-const CONTAINERS=[
-  [{key:'cupC',label:'Cup'},{key:'glassC',label:'Glass'},{key:'bucketC',label:'Bucket'},'Circle the container that can hold the MOST water.'],
-  [{key:'spoonC',label:'Spoon'},{key:'glassC',label:'Glass'},{key:'jugC',label:'Jug'},'Tick (✓) the container that can hold the LEAST liquid.'],
-  [{key:'mugC',label:'Mug'},{key:'bucketC',label:'Bucket'},{key:'spoonC',label:'Spoon'},'Circle the container that can hold the MOST water.']
+/* containers: key, label, max fill level (0-1) used to draw water realistically different per object */
+const WATER_SETS=[
+  [{key:'spoonC',label:'Spoon',fill:0.9},{key:'cupC',label:'Cup',fill:0.6},{key:'bucketC',label:'Bucket',fill:0.5},'Circle the container that can hold the MOST water.'],
+  [{key:'spoonC',label:'Spoon',fill:0.9},{key:'glassC',label:'Glass',fill:0.55},{key:'jugC',label:'Jug',fill:0.45},'Tick (✓) the container that can hold the LEAST water.'],
+  [{key:'mugC',label:'Mug',fill:0.55},{key:'bucketC',label:'Bucket',fill:0.45},{key:'spoonC',label:'Spoon',fill:0.95},'Circle the container that can hold the MOST water.'],
+  [{key:'bottleC',label:'Bottle',fill:0.55},{key:'bowlC',label:'Bowl',fill:0.4},{key:'cupC',label:'Cup',fill:0.6},'Tick (✓) the container that can hold the LEAST water.'],
+  [{key:'bucketC',label:'Bucket',fill:0.5},{key:'jugC',label:'Jug',fill:0.45},{key:'mugC',label:'Mug',fill:0.55},'Circle the container that can hold the MOST water.'],
+  [{key:'glassC',label:'Glass',fill:0.55},{key:'bottleC',label:'Bottle',fill:0.5},{key:'spoonC',label:'Spoon',fill:0.95},'Tick (✓) the container that can hold the LEAST water.']
 ];
 
-const FRUITS=['guava','mango'];
+/* length sets: key, label, length value (px) */
+const LENGTH_SETS=[
+  [{key:'pencilLen',label:'Pencil A',len:30},{key:'pencilLen',label:'Pencil B',len:70},'Circle the pencil that is LONGER.'],
+  [{key:'ribbonLen',label:'Ribbon A',len:75},{key:'ribbonLen',label:'Ribbon B',len:35},'Tick (✓) the ribbon that is SHORTER.'],
+  [{key:'snakeLen',label:'Snake A',len:40},{key:'snakeLen',label:'Snake B',len:78},'Circle the snake that is LONGER.']
+];
+
+/* height sets: key, label, height value (px) */
+const HEIGHT_SETS=[
+  [{key:'towerH',label:'Tower A',h:35},{key:'towerH',label:'Tower B',h:75},'Circle the tower that is TALLER.'],
+  [{key:'treeH',label:'Tree A',h:70},{key:'treeH',label:'Tree B',h:32},'Tick (✓) the tree that is SHORTER.'],
+  [{key:'girlH',label:'Child A',h:68},{key:'girlH',label:'Child B',h:38},'Circle the child who is TALLER.']
+];
+
+/* size sets: key, label, radius value (px) */
+const SIZE_SETS=[
+  [{key:'ballSz',label:'Ball A',r:14},{key:'ballSz',label:'Ball B',r:34},'Circle the ball that is BIGGER.'],
+  [{key:'balloonSz',label:'Balloon A',r:32},{key:'balloonSz',label:'Balloon B',r:15},'Tick (✓) the balloon that is SMALLER.'],
+  [{key:'watermelonSz',label:'Watermelon A',r:16},{key:'watermelonSz',label:'Watermelon B',r:33},'Circle the watermelon that is BIGGER.']
+];
+
+/* weight sets for see-saw: leftIcon, rightIcon, leftHeavy(true=left side heavier/down) */
+const WEIGHT_SETS=[
+  ['watermelonSz','apple',true,'a watermelon and an apple'],
+  ['dice','balloonSz',false,'a dice and a balloon'],
+  ['book','flower',true,'a book and a flower'],
+  ['bucketC','spoonC',true,'a bucket and a spoon']
+];
+
+const SHARE_FOODS=['guava','mango','chocolate','sandwich','pizza'];
+
+/* Q8 scenarios: opening icon, action icon, closing icon, story line */
+const Q8_SCENES=[
+  ['jarFull','boyEatingCookie','jarEmpty','The child ate all the cookies from the jar.'],
+  ['balloonStallFull','girlHoldingBalloons','balloonStallEmpty','A girl bought every balloon from the stall.'],
+  ['aquariumFull','fishSwimAway','aquariumEmpty','All the fish swam away from the tank.'],
+  ['plateFullCookies','boyEatingCookie','plateEmpty','The child finished every cookie on the plate.'],
+  ['basketFullMangoes','girlHoldingMango','basketEmpty','Mother gave away all the mangoes from the basket.'],
+  ['toyboxFull','boyHoldingToy','toyboxEmpty','The child took out every toy from the toy box to play.'],
+  ['vaseFullFlowers','girlHoldingFlower','vaseEmpty','All the flowers were picked out of the vase.']
+];
 
 /* ── SECTION BUILDERS ── */
 function section1(){
   const shapes=sh(SHAPE_MATCH).slice(0,4);
   const leftItems=shapes.map(s=>({key:s.shape,label:s.label}));
-  const rightItems=shapes.map(s=>pk(s.objs));
-  // ensure no duplicate right keys
   const used=new Set();
   const rightUniq=shapes.map(s=>{
     const opts=s.objs.filter(o=>!used.has(o[0]));
@@ -501,7 +754,6 @@ function section2(){
 }
 
 function section3(){
-  // Original concept: match groups in boxes by EQUAL COUNT
   const counts=sh([2,3,4,5,6,7]);
   const icons=sh(COUNT_ICONS);
   const N=4;
@@ -522,16 +774,56 @@ function section3(){
 }
 
 function section4(){
-  const set=pk(CONTAINERS);
-  const items=sh([set[0],set[1],set[2]]);
-  const q=set[3];
-  let cells='';
-  items.forEach(({key,label})=>{
-    cells+='<div class="container-item">'+ic(key,72)+'<div class="tickbox"></div></div>';
-  });
-  return '<p class="qinstr">4) Solve.</p>'+
-    '<div class="container-row">'+cells+'</div>'+
-    '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+q+'</p>';
+  const type=pk(['water','length','height','size','weight']);
+  if(type==='water'){
+    const set=pk(WATER_SETS);
+    const items=sh([set[0],set[1],set[2]]);
+    let cells='';
+    items.forEach(({key,label,fill})=>{
+      cells+='<div class="container-item">'+ic(key,76,fill)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
+    });
+    return '<p class="qinstr">4) Look at the water filled in each container. Solve.</p>'+
+      '<div class="container-row">'+cells+'</div>'+
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[3]+'</p>';
+  }
+  if(type==='length'){
+    const set=pk(LENGTH_SETS);
+    const items=sh([set[0],set[1]]);
+    let cells='';
+    items.forEach(({key,label,len})=>{
+      cells+='<div class="container-item">'+ic(key,90,len)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
+    });
+    return '<p class="qinstr">4) Compare the length. Solve.</p>'+
+      '<div class="container-row">'+cells+'</div>'+
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>';
+  }
+  if(type==='height'){
+    const set=pk(HEIGHT_SETS);
+    const items=sh([set[0],set[1]]);
+    let cells='';
+    items.forEach(({key,label,h})=>{
+      cells+='<div class="container-item">'+ic(key,90,h)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
+    });
+    return '<p class="qinstr">4) Compare the height. Solve.</p>'+
+      '<div class="container-row">'+cells+'</div>'+
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>';
+  }
+  if(type==='size'){
+    const set=pk(SIZE_SETS);
+    const items=sh([set[0],set[1]]);
+    let cells='';
+    items.forEach(({key,label,r})=>{
+      cells+='<div class="container-item">'+ic(key,90,r)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
+    });
+    return '<p class="qinstr">4) Compare the size. Solve.</p>'+
+      '<div class="container-row">'+cells+'</div>'+
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>';
+  }
+  // weight
+  const [leftKey,rightKey,leftHeavy,desc]=pk(WEIGHT_SETS);
+  return '<p class="qinstr">4) Look at the balance scale showing '+desc+'. Solve.</p>'+
+    '<div style="display:flex;justify-content:center;margin:6px 0;">'+IC.seesaw(160,leftKey,rightKey,leftHeavy)+'</div>'+
+    '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">Circle the side that is HEAVIER.</p>';
 }
 
 function section5(){
@@ -560,77 +852,26 @@ function section6(){
 }
 
 function section7(){
-  // Original concept: a fruit split down the middle with dotted line, boy on left, girl on right
-  const fruit=pk(FRUITS);
-  const boyIcon='<svg width="70" height="100" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">'+
-    // boy
-    '<circle cx="35" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
-    '<circle cx="30" cy="12" r="2" fill="#000"/><circle cx="40" cy="12" r="2" fill="#000"/>'+
-    '<path d="M29,18 Q35,23 41,18" fill="none" stroke="#000" stroke-width="1.8"/>'+
-    '<rect x="24" y="26" width="22" height="30" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
-    // left arm reaching right
-    '<path d="M24,30 L6,44 L14,48 L28,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
-    // right arm
-    '<path d="M46,30 L58,44 L52,50 L42,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
-    // legs
-    '<path d="M28,56 L22,82 L30,82 L35,68 L40,82 L48,82 L42,56" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
-    // shoes
-    '<ellipse cx="26" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
-    '<ellipse cx="44" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
-    '</svg>';
-  const girlIcon='<svg width="70" height="100" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">'+
-    // girl (mirrored reaching pose)
-    '<circle cx="35" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
-    // pigtails
-    '<path d="M24,8 C18,2 14,8 20,12" fill="#fff" stroke="#000" stroke-width="1.8"/>'+
-    '<path d="M46,8 C52,2 56,8 50,12" fill="#fff" stroke="#000" stroke-width="1.8"/>'+
-    '<circle cx="30" cy="12" r="2" fill="#000"/><circle cx="40" cy="12" r="2" fill="#000"/>'+
-    '<path d="M29,18 Q35,23 41,18" fill="none" stroke="#000" stroke-width="1.8"/>'+
-    // dress
-    '<path d="M24,26 L20,58 L50,58 L46,26 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
-    // left arm reaching left
-    '<path d="M24,30 L12,44 L18,50 L28,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
-    // right arm
-    '<path d="M46,30 L58,44 L52,48 L42,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
-    // legs
-    '<path d="M26,58 L22,82 L32,82 L35,70 L38,82 L48,82 L44,58" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
-    '<ellipse cx="27" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
-    '<ellipse cx="43" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
-    '</svg>';
-  return '<p class="qinstr">7) Share the '+fruit+' equally between them.</p>'+
+  const food=pk(SHARE_FOODS);
+  return '<p class="qinstr">7) Two friends want to share the '+food+' equally. Trace the dotted line to cut it into two equal parts.</p>'+
     '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0;">'+
-    boyIcon+
-    '<div style="transform:scaleX(-1);display:inline-block;">'+ic(fruit,90)+'</div>'+
-    girlIcon+
+    IC.boyReach(70)+
+    '<div style="display:inline-block;">'+ic(food,90)+'</div>'+
+    IC.girlReach(70)+
     '</div>';
 }
 
 function section8(){
-  // Original: jar full of cookies → boy eating → empty jar → circle 0
-  const cookieJarFull=ic('jarFull',80);
-  const cookieJarEmpty=ic('jarEmpty',80);
-  const boyEating='<svg width="68" height="80" viewBox="0 0 68 80" xmlns="http://www.w3.org/2000/svg">'+
-    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
-    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
-    // big happy eating smile
-    '<path d="M26,20 Q34,30 42,20" fill="none" stroke="#000" stroke-width="2.2"/>'+
-    '<rect x="22" y="26" width="24" height="28" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
-    // right arm raised to mouth with cookie
-    '<path d="M46,28 L58,18 L60,26 L50,32" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
-    '<circle cx="62" cy="16" r="7" fill="#fff" stroke="#000" stroke-width="2"/>'+
-    '<circle cx="60" cy="14" r="1.2" fill="#000"/><circle cx="64" cy="14" r="1.2" fill="#000"/><circle cx="62" cy="18" r="1.2" fill="#000"/>'+
-    // left arm
-    '<path d="M22,28 L10,42 L18,44 L26,34" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
-    // legs
-    '<path d="M26,54 L20,76 L30,76 L34,64 L38,76 L48,76 L42,54" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
-    '</svg>';
-  return '<p class="qinstr">8) The child ate all the cookies. How many cookies are left? Circle the correct answer.</p>'+
-    '<div style="display:flex;align-items:center;gap:14px;padding:6px 4px;flex-wrap:wrap;">'+
-    cookieJarFull+
-    '<span style="font-size:26px;font-weight:bold;">→</span>'+
-    boyEating+
-    '<span style="font-size:26px;font-weight:bold;">→</span>'+
-    cookieJarEmpty+
+  const scene=pk(Q8_SCENES);
+  const [openIcon,actionIcon,closeIcon,story]=scene;
+  const openSize=openIcon.includes('Stall')||openIcon==='aquariumFull'?90:78;
+  return '<p class="qinstr">8) '+story+' How many are left? Circle the correct answer.</p>'+
+    '<div style="display:flex;align-items:center;gap:12px;padding:6px 4px;flex-wrap:wrap;">'+
+    ic(openIcon,openSize)+
+    '<span style="font-size:24px;font-weight:bold;">→</span>'+
+    IC[actionIcon](68)+
+    '<span style="font-size:24px;font-weight:bold;">→</span>'+
+    ic(closeIcon,openSize)+
     '</div>'+
     '<div style="display:flex;gap:14px;margin-top:6px;">'+
     ['0','1','2'].map(n=>'<div style="border:2.5px solid #000;padding:6px 20px;font-size:22px;font-weight:bold;font-family:Arial;">'+n+'</div>').join('')+
