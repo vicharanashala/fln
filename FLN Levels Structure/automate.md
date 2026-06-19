@@ -16,4 +16,4 @@ Draft appears in the console. You edit inline, or send feedback and Claude revis
 ### Output 
 JSZip assembles the exact folder/file structure your repo uses, downloads as Level_N_files.zip, and the console advances its counter to N+1, ready for the next round.
 
-[image](image/fln_level_creation_pipeline.svg)
+![image](image/fln_level_creation_pipeline.svg) 
