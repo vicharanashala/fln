@@ -904,103 +904,117 @@ generateSets(parseInt(document.getElementById('setCount').value,10) || 5);
    printBtn above — it only *reads* the cached worksheetHTMLs.
    ============================================================ */
 
-// Pure math, kept separate from any DOM/canvas calls so it can be
-// unit-tested on its own: given a captured image's pixel size and
-// the printable page size (mm), work out how many A4 pages it must
-// be sliced into and the pixel range for each slice.
-function computePdfSlices(imgWidthPx, imgHeightPx, pageWidthMM, pageHeightMM){
+// Given a captured image's pixel dimensions and the printable page
+// size in mm, compute A4-page slices (pixel range + mm height each).
+function computePdfSlices(imgWidthPx, imgHeightPx, pageWidthMM, pageHeightMM) {
   const pxPerMM = imgWidthPx / pageWidthMM;
   const pageHeightPx = Math.max(1, Math.round(pageHeightMM * pxPerMM));
   const slices = [];
   let y = 0;
-  while(y < imgHeightPx){
+  while (y < imgHeightPx) {
     const h = Math.min(pageHeightPx, imgHeightPx - y);
-    slices.push({ sy:y, sh:h, mmHeight: h / pxPerMM });
+    slices.push({ sy: y, sh: h, mmHeight: h / pxPerMM });
     y += h;
   }
   return slices;
 }
 
-function sliceCanvas(sourceCanvas, sy, sh){
+// Copy one horizontal strip of a canvas into a fresh canvas element.
+function sliceCanvas(srcCanvas, sy, sh) {
   const c = document.createElement('canvas');
-  c.width = sourceCanvas.width;
+  c.width  = srcCanvas.width;
   c.height = sh;
-  c.getContext('2d').drawImage(sourceCanvas, 0, sy, sourceCanvas.width, sh, 0, 0, sourceCanvas.width, sh);
+  c.getContext('2d').drawImage(srcCanvas, 0, sy, srcCanvas.width, sh, 0, 0, srcCanvas.width, sh);
   return c;
 }
 
-// Renders one cached set's HTML off-screen and returns it as a jsPDF blob
-// (one or more pages, sliced from a single tall screenshot of that set).
-async function buildPdfBlobForSet(setIndex){
+async function buildPdfBlobForSet(setIndex) {
   const renderRoot = document.getElementById('pdfRenderRoot');
-  renderRoot.innerHTML = worksheetHTMLs[setIndex-1];
-  // let the browser lay out / paint before screenshotting
+  renderRoot.innerHTML = worksheetHTMLs[setIndex - 1];
+
+  // Two rAF passes guarantee layout + paint before screenshotting.
   await new Promise(r => requestAnimationFrame(r));
   await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => setTimeout(r, 80)); // extra settle for SVG icons
 
   const pageEl = renderRoot.querySelector('.page');
-  const canvas = await html2canvas(pageEl, { scale:2, backgroundColor:'#ffffff' });
 
-  const pdf = new window.jspdf.jsPDF({ unit:'mm', format:'a4' });
+  // scale:1.5 cuts canvas memory ~44% vs scale:2; quality stays fine for print.
+  const canvas = await html2canvas(pageEl, { scale: 1.5, backgroundColor: '#ffffff' });
+
+  const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
   const slices = computePdfSlices(canvas.width, canvas.height, 210, 297);
 
-  slices.forEach((slice, idx)=>{
+  slices.forEach((slice, idx) => {
     const sliceCanvasEl = sliceCanvas(canvas, slice.sy, slice.sh);
-    const imgData = sliceCanvasEl.toDataURL('image/png');
-    if(idx > 0) pdf.addPage();
-    pdf.addImage(imgData, 'PNG', 0, 0, 210, slice.mmHeight);
+    // JPEG at 0.85 is ~60 % smaller than PNG with no visible quality loss on worksheets.
+    const imgData = sliceCanvasEl.toDataURL('image/jpeg', 0.85);
+    if (idx > 0) pdf.addPage();
+    pdf.addImage(imgData, 'JPEG', 0, 0, 210, slice.mmHeight);
+    // Release the slice canvas immediately.
+    sliceCanvasEl.width = 0;
+    sliceCanvasEl.height = 0;
   });
 
-  // free the off-screen DOM and the big canvas before moving to the next set
+  // Release the main canvas and DOM before the next iteration.
+  canvas.width  = 0;
+  canvas.height = 0;
   renderRoot.innerHTML = '';
 
   return pdf.output('blob');
 }
 
-async function exportAllSetsAsZip(){
-  if(!worksheetHTMLs.length){
+async function exportAllSetsAsZip() {
+  if (!worksheetHTMLs.length) {
     alert('Generate at least one set first.');
     return;
   }
-  const exportBtn = document.getElementById('exportAllBtn');
+
+  const exportBtn   = document.getElementById('exportAllBtn');
   const generateBtn = document.getElementById('generateBtn');
-  const progressEl = document.getElementById('exportProgress');
+  const progressEl  = document.getElementById('exportProgress');
   const n = worksheetHTMLs.length;
 
-  exportBtn.disabled = true;
+  exportBtn.disabled   = true;
   generateBtn.disabled = true;
 
-  try{
+  try {
     const zip = new JSZip();
     const padWidth = String(n).length;
 
-    for(let i=1; i<=n; i++){
+    for (let i = 1; i <= n; i++) {
       progressEl.textContent = 'Building PDF ' + i + ' of ' + n + ' …';
-      const blob = await buildPdfBlobForSet(i);
-      const fileName = 'Set_' + String(i).padStart(padWidth,'0') + '.pdf';
+
+      const blob     = await buildPdfBlobForSet(i);
+      const fileName = 'Set_' + String(i).padStart(padWidth, '0') + '.pdf';
       zip.file(fileName, blob);
-      // yield back to the browser between sets so the tab stays responsive
-      await new Promise(r => setTimeout(r, 0));
+
+      // Give the GC a real chance to reclaim canvas memory every set.
+      // 150 ms is imperceptible to the user but meaningful for the browser.
+      await new Promise(r => setTimeout(r, 150));
     }
 
     progressEl.textContent = 'Packaging ZIP …';
-    const zipBlob = await zip.generateAsync({ type:'blob' });
+    const zipBlob = await zip.generateAsync(
+      { type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 3 } },
+      meta => { progressEl.textContent = 'Compressing … ' + Math.round(meta.percent) + '%'; }
+    );
 
     const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement('a');
-    a.href = url;
+    const a   = document.createElement('a');
+    a.href     = url;
     a.download = 'Class2_Math_Worksheets_AllSets.zip';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-    progressEl.textContent = 'Done — ' + n + ' separate PDFs packaged in one ZIP.';
-  } catch(err){
+    progressEl.textContent = 'Done — ' + n + ' PDFs in one ZIP.';
+  } catch (err) {
     console.error(err);
-    progressEl.textContent = 'Export failed — see console for details.';
+    progressEl.textContent = 'Export failed — open browser console (F12) for details.';
   } finally {
-    exportBtn.disabled = false;
+    exportBtn.disabled   = false;
     generateBtn.disabled = false;
   }
 }
