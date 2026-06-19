@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Class 1 Math Practice Worksheet Generator — FLN</title>
+<style>
+  *{box-sizing:border-box;}
+  body{font-family:Arial,Helvetica,sans-serif;background:#e9e9e9;color:#000;margin:0;padding:0;}
+  .toolbar{background:#fff;border-bottom:2px solid #000;padding:14px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;position:sticky;top:0;z-index:50;}
+  .toolbar h1{font-size:18px;margin:0;margin-right:10px;}
+  .toolbar label{font-size:14px;}
+  .toolbar input[type=number]{width:64px;padding:5px 6px;border:1px solid #000;font-family:inherit;font-size:14px;}
+  .btn{background:#fff;border:1.5px solid #000;color:#000;padding:7px 16px;font-size:14px;font-family:inherit;cursor:pointer;border-radius:3px;}
+  .btn:hover{background:#000;color:#fff;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn:disabled:hover{background:#fff;color:#000;}
+  #exportProgress{font-size:12.5px;color:#000;min-width:160px;}
+  .tabbar{background:#f3f3f3;border-bottom:2px solid #000;padding:8px 10px 0 10px;display:flex;flex-wrap:wrap;gap:4px;position:sticky;top:64px;z-index:49;max-height:120px;overflow-y:auto;}
+  .tabbtn{background:#ddd;border:1px solid #000;border-bottom:none;padding:6px 14px;font-size:13px;font-family:inherit;cursor:pointer;border-radius:4px 4px 0 0;}
+  .tabbtn.active{background:#fff;font-weight:bold;}
+  #setsContainer{padding:20px;display:flex;justify-content:center;}
+  .worksheet{display:none;}
+  .worksheet.active{display:block;}
+  .page{background:#fff;width:210mm;min-height:296mm;padding:12mm 14mm;border:1px solid #999;box-shadow:0 0 10px rgba(0,0,0,0.15);}
+  .ws-header{text-align:center;border-bottom:3px solid #000;padding-bottom:8px;margin-bottom:10px;}
+  .ws-title{font-size:20px;font-weight:bold;}
+  .ws-sub{font-size:15px;margin-top:2px;font-weight:bold;}
+  .ws-fields{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;flex-wrap:wrap;gap:6px;}
+  .ws-fields span{border-bottom:1px solid #000;padding:0 4px 2px 4px;min-width:120px;display:inline-block;}
+  .section{margin:10px 0 14px 0;}
+  .qinstr{font-size:14px;font-weight:bold;margin:0 0 6px 0;}
+  .matchwrap{display:flex;justify-content:space-between;gap:16px;}
+  .matchcol{flex:1;}
+  .matchitem{display:flex;align-items:center;justify-content:space-between;margin:8px 0;}
+  .matchitem .micontent{display:flex;align-items:center;gap:6px;font-size:13px;}
+  .dot{width:10px;height:10px;border:1.4px solid #000;border-radius:50%;background:#fff;flex-shrink:0;}
+  .imgbox{border:1.5px solid #000;padding:5px;display:inline-flex;align-items:center;justify-content:center;}
+  .group-compare{display:flex;align-items:center;gap:16px;margin:4px 0;}
+  .group-box{border:2px solid #000;padding:6px 8px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;min-width:80px;min-height:52px;justify-content:center;}
+  .qrow{margin:6px 0;font-size:12.5px;font-style:italic;}
+  .pair-box{border:2px solid #000;padding:6px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;justify-content:center;min-width:76px;min-height:64px;}
+  .container-row{display:flex;gap:28px;align-items:flex-end;justify-content:center;margin:8px 0;}
+  .container-item{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .tickbox{display:inline-block;border:2px solid #000;width:28px;height:28px;}
+  .coin-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;padding:6px 0;}
+  .basket-row{display:flex;gap:24px;justify-content:center;align-items:flex-end;flex-wrap:wrap;margin:6px 0;}
+  .basket-item{display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .basket-label{font-size:16px;font-weight:bold;}
+  .ws-footer{margin-top:12px;border-top:1.4px solid #000;padding-top:5px;font-size:11px;text-align:center;color:#333;}
+  @media print{
+    body{background:#fff;}
+    .no-print{display:none !important;}
+    #setsContainer{padding:0;display:block;}
+    .page{box-shadow:none;border:none;width:auto;min-height:0;padding:8mm 10mm;}
+    .worksheet{display:none;}
+    .worksheet.active{display:block;}
+  }
+  @page{size:A4;margin:8mm;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+<div class="toolbar no-print">
+  <h1>Class 1 — Math Worksheet Generator (FLN)</h1>
+  <label>Number of sets: <input type="number" id="setCount" min="1" max="100" value="5"></label>
+  <button class="btn" id="generateBtn">Generate</button>
+  <button class="btn" id="printBtn">Print current set</button>
+  <button class="btn" id="exportAllBtn">Download All Sets (separate PDFs)</button>
+  <span id="exportProgress" class="no-print"></span>
+  <span style="font-size:12px;color:#555;">Black &amp; white, A4 ready.</span>
+</div>
+<div class="tabbar no-print" id="tabbar"></div>
+<div id="setsContainer"></div>
+<div id="pdfRenderRoot" style="position:fixed;left:-99999px;top:0;width:210mm;background:#fff;"></div>
+
+<script>
+/* ── UTILS ── */
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function sh(a){const r=a.slice();for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
+function sp(a,n){return sh(a).slice(0,n);}
+function pk(a){return a[ri(0,a.length-1)];}
+
+/* ── SVG HELPERS ── */
+function sw(inner,size){return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">'+inner+'</svg>';}
+// kawaii face: cx,cy = centre of face area, s = scale 0..1
+function kf(cx,cy,s){
+  s=s||1;
+  return '<circle cx="'+(cx-6*s)+'" cy="'+(cy-3*s)+'" r="'+(2.2*s)+'" fill="#000"/>'+
+         '<circle cx="'+(cx+6*s)+'" cy="'+(cy-3*s)+'" r="'+(2.2*s)+'" fill="#000"/>'+
+         '<path d="M'+(cx-7*s)+','+(cy+3*s)+' Q'+cx+','+(cy+9*s)+' '+(cx+7*s)+','+(cy+3*s)+'" fill="none" stroke="#000" stroke-width="'+(1.8*s)+'"/>';
+}
+
+/* ── ICON LIBRARY ── */
+const IC={
+  /* SHAPES — clean, no face */
+  circle:   (z)=>sw('<circle cx="50" cy="50" r="40" fill="#fff" stroke="#000" stroke-width="4"/>',z),
+  square:   (z)=>sw('<rect x="10" y="10" width="80" height="80" rx="3" fill="#fff" stroke="#000" stroke-width="4"/>',z),
+  triangle: (z)=>sw('<polygon points="50,8 92,91 8,91" fill="#fff" stroke="#000" stroke-width="4"/>',z),
+  rectangle:(z)=>sw('<rect x="5" y="22" width="90" height="56" rx="3" fill="#fff" stroke="#000" stroke-width="4"/>',z),
+
+  /* CIRCLE real-life */
+  clock:(z)=>sw(
+    '<circle cx="50" cy="50" r="40" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    Array.from({length:12},(_,i)=>{const a=i*30*Math.PI/180;const x1=50+32*Math.sin(a),y1=50-32*Math.cos(a),x2=50+38*Math.sin(a),y2=50-38*Math.cos(a);return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#000" stroke-width="1.8"/>';}).join('')+
+    '<line x1="50" y1="50" x2="50" y2="24" stroke="#000" stroke-width="3.5" stroke-linecap="round"/>'+
+    '<line x1="50" y1="50" x2="66" y2="60" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>'+
+    '<circle cx="50" cy="50" r="3" fill="#000"/>'+
+    kf(50,70,0.65),z),
+
+  soccerBall:(z)=>sw(
+    '<circle cx="50" cy="50" r="40" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<polygon points="50,12 62,36 89,36 68,54 75,80 50,63 25,80 32,54 11,36 38,36" fill="#000" stroke="#000" stroke-width="1"/>'+
+    '<circle cx="50" cy="50" r="40" fill="none" stroke="#000" stroke-width="3"/>',z),
+
+  plate:(z)=>sw(
+    '<ellipse cx="50" cy="56" rx="42" ry="13" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<ellipse cx="50" cy="50" rx="42" ry="28" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="48" rx="20" ry="10" fill="none" stroke="#000" stroke-width="1.8"/>'+
+    kf(50,52,0.72),z),
+
+  button:(z)=>sw(
+    '<circle cx="50" cy="50" r="40" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<circle cx="50" cy="50" r="27" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<circle cx="42" cy="44" r="3.5" fill="#000"/><circle cx="58" cy="44" r="3.5" fill="#000"/>'+
+    '<circle cx="42" cy="56" r="3.5" fill="#000"/><circle cx="58" cy="56" r="3.5" fill="#000"/>',z),
+
+  /* SQUARE real-life */
+  window:(z)=>sw(
+    '<rect x="8" y="12" width="84" height="78" rx="3" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<line x1="50" y1="12" x2="50" y2="90" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="8" y1="51" x2="92" y2="51" stroke="#000" stroke-width="2.5"/>'+
+    '<rect x="8" y="88" width="84" height="8" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    kf(30,36,0.65),z),
+
+  dice:(z)=>sw(
+    '<rect x="8" y="8" width="84" height="84" rx="10" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<circle cx="30" cy="30" r="6" fill="#000"/><circle cx="70" cy="30" r="6" fill="#000"/>'+
+    '<circle cx="50" cy="50" r="6" fill="#000"/>'+
+    '<circle cx="30" cy="70" r="6" fill="#000"/><circle cx="70" cy="70" r="6" fill="#000"/>',z),
+
+  giftBox:(z)=>sw(
+    '<rect x="12" y="42" width="76" height="50" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="12" y="30" width="76" height="14" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="50" y1="30" x2="50" y2="92" stroke="#000" stroke-width="3"/>'+
+    '<path d="M50,30 C36,18 22,20 26,30" fill="none" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M50,30 C64,18 78,20 74,30" fill="none" stroke="#000" stroke-width="2.5"/>'+
+    kf(50,74,0.8),z),
+
+  /* TRIANGLE real-life */
+  iceCream:(z)=>sw(
+    '<path d="M22,48 C22,26 78,26 78,48 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M22,50 L50,92 L78,50" fill="#fff" stroke="#000" stroke-width="3" stroke-linejoin="round"/>'+
+    '<path d="M22,48 C22,26 78,26 78,48" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="26" y1="56" x2="34" y2="48" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="38" y1="62" x2="46" y2="54" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="50" y1="66" x2="58" y2="58" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="62" y1="60" x2="70" y2="52" stroke="#000" stroke-width="1.2"/>'+
+    kf(50,38,0.82),z),
+
+  partyHat:(z)=>sw(
+    '<polygon points="50,6 84,90 16,90" fill="#fff" stroke="#000" stroke-width="3.5" stroke-linejoin="round"/>'+
+    '<ellipse cx="50" cy="90" rx="34" ry="8" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="50" cy="6" r="5" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="38" cy="56" r="3" fill="#000"/><circle cx="56" cy="66" r="3" fill="#000"/><circle cx="46" cy="75" r="3" fill="#000"/>',z),
+
+  warningSign:(z)=>sw(
+    '<polygon points="50,6 95,90 5,90" fill="#fff" stroke="#000" stroke-width="3.5" stroke-linejoin="round"/>'+
+    '<line x1="50" y1="35" x2="50" y2="64" stroke="#000" stroke-width="5.5" stroke-linecap="round"/>'+
+    '<circle cx="50" cy="75" r="4" fill="#000"/>',z),
+
+  /* RECTANGLE real-life */
+  door:(z)=>sw(
+    '<rect x="16" y="6" width="68" height="92" rx="3" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<rect x="24" y="14" width="52" height="36" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<rect x="24" y="56" width="52" height="34" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="72" cy="52" r="4" fill="#000"/>'+kf(50,44,0.82),z),
+
+  eraser:(z)=>sw(
+    '<rect x="6" y="28" width="88" height="44" rx="7" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<line x1="34" y1="28" x2="34" y2="72" stroke="#000" stroke-width="2.5"/>'+
+    '<rect x="6" y="28" width="28" height="44" rx="7" fill="none" stroke="#000" stroke-width="2"/>'+
+    kf(64,56,0.78),z),
+
+  book:(z)=>sw(
+    '<path d="M8,18 C22,10 40,11 50,18 L50,88 C40,81 22,80 8,88 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M92,18 C78,10 60,11 50,18 L50,88 C60,81 78,80 92,88 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="16" y1="34" x2="40" y2="31" stroke="#000" stroke-width="1.3"/>'+
+    '<line x1="16" y1="44" x2="40" y2="41" stroke="#000" stroke-width="1.3"/>'+
+    '<line x1="16" y1="54" x2="40" y2="51" stroke="#000" stroke-width="1.3"/>'+
+    '<rect x="38" y="14" width="24" height="20" rx="2" fill="none" stroke="#000" stroke-width="2"/>'+
+    kf(74,56,0.72),z),
+
+  /* ── COUNTING objects ── */
+  apple:(z)=>sw(
+    '<path d="M50,28 C26,26 13,52 23,74 C31,90 45,95 50,95 C55,95 69,90 77,74 C87,52 74,26 50,28 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M50,28 C47,18 54,10 62,7" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>'+
+    '<ellipse cx="64" cy="9" rx="5" ry="4" fill="#fff" stroke="#000" stroke-width="1.8"/>'+
+    kf(50,62,0.92),z),
+
+  star:(z)=>sw(
+    '<polygon points="50,6 61,38 95,38 68,57 79,90 50,70 21,90 32,57 5,38 39,38" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    kf(50,63,0.72),z),
+
+  flower:(z)=>sw(
+    [0,60,120,180,240,300].map(a=>'<ellipse cx="50" cy="26" rx="10" ry="18" fill="#fff" stroke="#000" stroke-width="2.2" transform="rotate('+a+' 50 50)"/>').join('')+
+    '<circle cx="50" cy="50" r="15" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    kf(50,53,0.76),z),
+
+  balloon:(z)=>sw(
+    '<ellipse cx="50" cy="40" rx="29" ry="34" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M44,74 L56,74 L50,82 Z" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<path d="M50,82 C46,88 55,93 50,98" fill="none" stroke="#000" stroke-width="1.8"/>'+
+    '<line x1="42" y1="30" x2="38" y2="24" stroke="#000" stroke-width="1.5"/>'+
+    kf(50,42,0.88),z),
+
+  fish:(z)=>sw(
+    '<ellipse cx="44" cy="52" rx="30" ry="18" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M72,52 L96,32 L96,72 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="26" cy="47" r="3.5" fill="#000"/>'+
+    '<path d="M18,60 Q26,67 34,60" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<path d="M36,36 Q42,30 46,36 M36,68 Q42,62 46,68" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+
+  leaf:(z)=>sw(
+    '<path d="M50,8 C76,26 82,60 50,94 C18,60 24,26 50,8 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="50" y1="14" x2="50" y2="88" stroke="#000" stroke-width="1.8"/>'+
+    '<path d="M50,32 L35,26 M50,32 L65,26 M50,52 L32,46 M50,52 L68,46 M50,70 L38,66 M50,70 L62,66" fill="none" stroke="#000" stroke-width="1.2"/>',z),
+
+  bird:(z)=>sw(
+    '<ellipse cx="46" cy="58" rx="24" ry="17" fill="#fff" stroke="#000" stroke-width="2.8"/>'+
+    '<circle cx="68" cy="40" r="16" fill="#fff" stroke="#000" stroke-width="2.8"/>'+
+    '<path d="M80,38 L97,34 L80,46 Z" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="75" cy="36" r="2.5" fill="#000"/>'+
+    '<path d="M36,58 L22,70 M38,63 L24,74" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M60,58 L72,70 M58,63 L70,74" stroke="#000" stroke-width="2.5"/>',z),
+
+  bee:(z)=>sw(
+    '<ellipse cx="50" cy="60" rx="20" ry="26" fill="#fff" stroke="#000" stroke-width="2.8"/>'+
+    '<line x1="32" y1="54" x2="68" y2="54" stroke="#000" stroke-width="2.2"/>'+
+    '<line x1="30" y1="64" x2="70" y2="64" stroke="#000" stroke-width="2.2"/>'+
+    '<line x1="32" y1="74" x2="68" y2="74" stroke="#000" stroke-width="2.2"/>'+
+    '<ellipse cx="36" cy="36" rx="16" ry="9" fill="#fff" stroke="#000" stroke-width="2" transform="rotate(-30 36 36)"/>'+
+    '<ellipse cx="64" cy="36" rx="16" ry="9" fill="#fff" stroke="#000" stroke-width="2" transform="rotate(30 64 36)"/>'+
+    '<circle cx="50" cy="30" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    kf(50,31,0.58),z),
+
+  /* ── PAIRED objects (Q5) ── */
+  lock:(z)=>sw(
+    '<rect x="20" y="48" width="60" height="46" rx="7" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<path d="M32,48 C32,28 68,28 68,48" fill="none" stroke="#000" stroke-width="4"/>'+
+    '<circle cx="50" cy="68" r="8" fill="none" stroke="#000" stroke-width="3"/>'+
+    '<line x1="50" y1="76" x2="50" y2="84" stroke="#000" stroke-width="3"/>'+
+    kf(50,78,0.68),z),
+
+  key:(z)=>sw(
+    '<circle cx="28" cy="38" r="20" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<circle cx="28" cy="38" r="10" fill="none" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="46" y1="48" x2="92" y2="74" stroke="#000" stroke-width="4.5" stroke-linecap="round"/>'+
+    '<line x1="76" y1="66" x2="76" y2="78" stroke="#000" stroke-width="3.5" stroke-linecap="round"/>'+
+    '<line x1="84" y1="71" x2="84" y2="83" stroke="#000" stroke-width="3.5" stroke-linecap="round"/>'+
+    kf(28,38,0.76),z),
+
+  toothbrush:(z)=>sw(
+    '<rect x="43" y="6" width="14" height="54" rx="7" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="36" y="6" width="28" height="24" rx="5" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="43" cy="14" r="2.5" fill="#000"/><circle cx="50" cy="14" r="2.5" fill="#000"/><circle cx="57" cy="14" r="2.5" fill="#000"/>'+
+    '<circle cx="43" cy="22" r="2.5" fill="#000"/><circle cx="50" cy="22" r="2.5" fill="#000"/><circle cx="57" cy="22" r="2.5" fill="#000"/>'+
+    kf(50,70,0.72),z),
+
+  toothpaste:(z)=>sw(
+    '<rect x="10" y="36" width="68" height="28" rx="6" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M76,40 L94,50 L76,62 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<rect x="4" y="36" width="9" height="28" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="30" y1="36" x2="30" y2="64" stroke="#000" stroke-width="2"/>'+
+    '<text x="52" y="55" text-anchor="middle" font-size="10" font-weight="bold" fill="#000">PASTE</text>',z),
+
+  shoe:(z)=>sw(
+    '<path d="M8,72 C8,56 18,42 34,40 L56,40 L82,52 C94,58 94,68 90,74 L8,74 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M28,40 L28,26 C28,20 40,20 40,26 L40,40" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M16,62 L74,62" stroke="#000" stroke-width="1.8" stroke-dasharray="4,3"/>'+
+    '<circle cx="34" cy="30" r="2.8" fill="#000"/><circle cx="34" cy="22" r="2.8" fill="#000"/>',z),
+
+  sock:(z)=>sw(
+    '<path d="M34,8 L34,60 C34,80 64,90 76,78 C88,66 78,48 64,50 L64,8 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<line x1="34" y1="22" x2="64" y2="22" stroke="#000" stroke-width="3"/>'+
+    '<line x1="34" y1="30" x2="64" y2="30" stroke="#000" stroke-width="1.8"/>'+
+    '<line x1="34" y1="36" x2="64" y2="36" stroke="#000" stroke-width="1.8"/>'+
+    kf(49,46,0.76),z),
+
+  pencil:(z)=>sw(
+    '<rect x="6" y="42" width="72" height="16" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M78,42 L96,50 L78,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="0" y="42" width="8" height="16" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="36" y1="42" x2="36" y2="58" stroke="#000" stroke-width="2"/>'+
+    '<line x1="88" y1="46" x2="88" y2="54" stroke="#000" stroke-width="1.5"/>'+
+    kf(44,53,0.55),z),
+
+  umbrella:(z)=>sw(
+    '<path d="M50,10 C16,10 6,38 8,52 L50,52 L92,52 C94,38 84,10 50,10 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="50" y1="52" x2="50" y2="86" stroke="#000" stroke-width="3"/>'+
+    '<path d="M50,86 C50,94 38,96 38,88" fill="none" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M20,52 C20,36 36,26 50,26 C64,26 80,36 80,52" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+
+  raincoat:(z)=>sw(
+    '<path d="M30,8 C22,8 14,14 14,24 L22,32 C22,24 26,20 30,20 L30,8 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M70,8 C78,8 86,14 86,24 L78,32 C78,24 74,20 70,20 L70,8 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<rect x="24" y="18" width="52" height="76" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="50" y1="30" x2="50" y2="94" stroke="#000" stroke-width="2"/>'+
+    '<line x1="28" y1="42" x2="72" y2="42" stroke="#000" stroke-width="1.5"/>',z),
+
+  /* ── CONTAINERS (Q4) ── */
+  cupC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=88-fill*72;return sw(
+    '<path d="M24,16 L32,88 L68,88 L76,16 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<path d="M'+(24+(top-16)/72*8)+','+top+' L32,88 L68,88 L'+(76-(top-16)/72*8)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+    '<line x1="24" y1="16" x2="76" y2="16" stroke="#000" stroke-width="2.5"/>'+
+    kf(50,78,0.76),z);},
+
+  mugC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=88-fill*70;return sw(
+    '<rect x="14" y="18" width="62" height="70" rx="5" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<rect x="14" y="'+top+'" width="62" height="'+(88-top)+'" fill="#cfe8f5" stroke="none"/>':'')+
+    '<path d="M76,34 C94,34 94,72 76,72" fill="none" stroke="#000" stroke-width="3.5"/>'+
+    kf(44,80,0.76),z);},
+
+  bucketC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=88-fill*66;return sw(
+    '<path d="M16,22 L24,88 L76,88 L84,22 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<path d="M'+(16+(top-22)/66*8)+','+top+' L24,88 L76,88 L'+(84-(top-22)/66*8)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+    '<path d="M16,22 C26,10 74,10 84,22" fill="none" stroke="#000" stroke-width="3"/>'+
+    '<path d="M22,10 C26,2 74,2 78,10" fill="none" stroke="#000" stroke-width="2.5"/>'+
+    kf(50,78,0.82),z);},
+
+  spoonC:(z,fill)=>{fill=fill===undefined?0.55:fill;return sw(
+    '<ellipse cx="50" cy="30" rx="22" ry="26" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<ellipse cx="50" cy="'+(30+10*(1-fill))+'" rx="'+(20*fill+2)+'" ry="'+(24*fill+2)+'" fill="#cfe8f5"/>':'')+
+    '<rect x="46" y="55" width="8" height="40" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="55" rx="8" ry="5" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    kf(50,30,0.84),z);},
+
+  glassC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=90-fill*82;return sw(
+    '<path d="M22,8 L30,90 L70,90 L78,8 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<path d="M'+(22+(top-8)/82*8)+','+top+' L30,90 L70,90 L'+(78-(top-8)/82*8)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+    '<line x1="22" y1="8" x2="78" y2="8" stroke="#000" stroke-width="2.5"/>'+
+    kf(50,78,0.76),z);},
+
+  jugC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=87-fill*69;return sw(
+    '<path d="M22,18 L27,87 L70,87 L73,18 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<path d="M'+(22+(top-18)/69*5)+','+top+' L27,87 L70,87 L'+(73-(top-18)/69*3)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+    '<path d="M22,18 C28,8 72,8 73,18" fill="none" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M70,32 C88,32 94,54 84,62 L70,62" fill="none" stroke="#000" stroke-width="3.5"/>'+
+    kf(44,74,0.74),z);},
+
+  bottleC:(z,fill)=>{fill=fill===undefined?0.55:fill;const top=92-fill*60;return sw(
+    '<path d="M40,6 L60,6 L60,22 L70,34 L70,92 L30,92 L30,34 L40,22 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    (fill>0?'<path d="M30,'+Math.max(top,34)+' L30,92 L70,92 L70,'+Math.max(top,34)+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+    '<rect x="40" y="2" width="20" height="8" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    kf(50,72,0.7),z);},
+
+  /* ── LENGTH comparison (pencil/ribbon/stick of given length, out of 100 max) ── */
+  pencilLen:(z,len)=>{len=len||60;const x2=10+len;return sw(
+    '<rect x="10" y="40" width="'+len+'" height="20" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M'+x2+',40 L'+(x2+14)+',50 L'+x2+',60 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="'+(10+len*0.35)+'" y1="40" x2="'+(10+len*0.35)+'" y2="60" stroke="#000" stroke-width="2"/>',z);},
+  ribbonLen:(z,len)=>{len=len||60;return sw(
+    '<path d="M10,50 Q'+(10+len*0.25)+',30 '+(10+len*0.5)+',50 Q'+(10+len*0.75)+',70 '+(10+len)+',50" fill="none" stroke="#000" stroke-width="6" stroke-linecap="round"/>',z);},
+  snakeLen:(z,len)=>{len=len||60;return sw(
+    '<path d="M8,55 Q'+(8+len*0.2)+',35 '+(8+len*0.4)+',55 Q'+(8+len*0.6)+',75 '+(8+len*0.8)+',55 L'+(8+len)+',55" fill="none" stroke="#000" stroke-width="7" stroke-linecap="round"/>'+
+    '<circle cx="'+(8+len)+'" cy="55" r="5" fill="#fff" stroke="#000" stroke-width="2"/>',z);},
+
+  /* ── HEIGHT comparison (tower/tree/building of given height, drawn upward from baseline 92) ── */
+  towerH:(z,h)=>{h=h||50;const top=92-h;return sw(
+    '<rect x="35" y="'+top+'" width="30" height="'+h+'" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    Array.from({length:Math.max(1,Math.floor(h/16))},(_,i)=>'<line x1="35" y1="'+(top+16*(i+1))+'" x2="65" y2="'+(top+16*(i+1))+'" stroke="#000" stroke-width="1.5"/>').join('')+
+    '<line x1="20" y1="92" x2="80" y2="92" stroke="#000" stroke-width="2.5"/>',z);},
+  treeH:(z,h)=>{h=h||50;const top=92-h;return sw(
+    '<rect x="45" y="'+(92-h*0.25)+'" width="10" height="'+(h*0.25)+'" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<ellipse cx="50" cy="'+(top+h*0.3)+'" rx="'+(h*0.42)+'" ry="'+(h*0.42)+'" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="20" y1="92" x2="80" y2="92" stroke="#000" stroke-width="2.5"/>',z);},
+  girlH:(z,h)=>{h=h||50;const top=92-h;const s=h/70;return sw(
+    '<circle cx="50" cy="'+(top+10*s)+'" r="'+(10*s)+'" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<rect x="'+(50-9*s)+'" y="'+(top+18*s)+'" width="'+(18*s)+'" height="'+(28*s)+'" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="'+(50-9*s)+'" y1="92" x2="'+(50-9*s)+'" y2="'+(top+46*s)+'" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="'+(50+9*s)+'" y1="92" x2="'+(50+9*s)+'" y2="'+(top+46*s)+'" stroke="#000" stroke-width="2.5"/>'+
+    '<line x1="20" y1="92" x2="80" y2="92" stroke="#000" stroke-width="2.5"/>',z);},
+
+  /* ── SIZE comparison (circle/balloon/ball drawn at given radius) ── */
+  ballSz:(z,r)=>{r=r||30;return sw('<circle cx="50" cy="50" r="'+r+'" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="50" cy="50" r="'+(r*0.65)+'" fill="none" stroke="#000" stroke-width="1.3"/>',z);},
+  balloonSz:(z,r)=>{r=r||30;return sw(
+    '<ellipse cx="50" cy="46" rx="'+(r*0.82)+'" ry="'+r+'" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="50" y1="'+(46+r)+'" x2="50" y2="94" stroke="#000" stroke-width="1.5"/>',z);},
+  watermelonSz:(z,r)=>{r=r||30;return sw(
+    '<ellipse cx="50" cy="50" rx="'+r+'" ry="'+(r*0.78)+'" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M'+(50-r*0.8)+',38 Q50,30 '+(50+r*0.8)+',38" fill="none" stroke="#000" stroke-width="1.3"/>'+
+    '<path d="M'+(50-r*0.85)+',50 Q50,44 '+(50+r*0.85)+',50" fill="none" stroke="#000" stroke-width="1.3"/>',z);},
+
+  /* ── WEIGHT comparison: see-saw / balance scale, heavier side dips down ── */
+  seesaw:(z,leftIcon,rightIcon,leftHeavy)=>{
+    const tilt=leftHeavy===true?-9:(leftHeavy===false?9:0);
+    const lY=leftHeavy===true?6:(leftHeavy===false?-10:-2),rY=leftHeavy===true?-10:(leftHeavy===false?6:-2);
+    return '<svg width="160" height="100" viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg">'+
+      '<polygon points="70,92 90,92 80,70" fill="#fff" stroke="#000" stroke-width="3"/>'+
+      '<g transform="rotate('+tilt+' 80 70)">'+
+      '<rect x="20" y="68" width="120" height="5" fill="#000"/>'+
+      '<line x1="28" y1="73" x2="28" y2="'+(86+lY)+'" stroke="#000" stroke-width="2.5"/>'+
+      '<line x1="132" y1="73" x2="132" y2="'+(86+rY)+'" stroke="#000" stroke-width="2.5"/>'+
+      '<rect x="8" y="'+(86+lY)+'" width="40" height="5" fill="#000"/>'+
+      '<rect x="112" y="'+(86+rY)+'" width="40" height="5" fill="#000"/>'+
+      '<g transform="translate('+(28-15)+','+(58+lY)+')">'+IC[leftIcon](30)+'</g>'+
+      '<g transform="translate('+(132-15)+','+(58+rY)+')">'+IC[rightIcon](30)+'</g>'+
+      '</g></svg>';
+  },
+
+  bowlC:(z,fill)=>{fill=fill===undefined?0.55:fill;return sw(
+    '<path d="M10,40 C10,40 10,86 50,86 C90,86 90,40 90,40 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<ellipse cx="50" cy="40" rx="40" ry="10" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    (fill>0?'<ellipse cx="50" cy="'+(40+2)+'" rx="'+(38*fill+2)+'" ry="'+(8*fill+1)+'" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.2"/>':'')+
+    kf(50,68,0.7),z);},
+
+  /* ── COINS (Q6) ── */
+  coin1:(z)=>sw(
+    '<circle cx="50" cy="50" r="42" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    Array.from({length:20},(_,i)=>{const a=i*18*Math.PI/180;const x1=50+38*Math.cos(a),y1=50+38*Math.sin(a),x2=50+42*Math.cos(a),y2=50+42*Math.sin(a);return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#000" stroke-width="1.5"/>';}).join('')+
+    '<circle cx="50" cy="50" r="33" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<text x="50" y="44" text-anchor="middle" font-size="13" font-family="Arial" font-weight="bold" fill="#000">₹</text>'+
+    '<text x="50" y="62" text-anchor="middle" font-size="18" font-family="Arial" font-weight="bold" fill="#000">1</text>',z),
+
+  coin2:(z)=>sw(
+    '<circle cx="50" cy="50" r="42" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    Array.from({length:20},(_,i)=>{const a=i*18*Math.PI/180;const x1=50+38*Math.cos(a),y1=50+38*Math.sin(a),x2=50+42*Math.cos(a),y2=50+42*Math.sin(a);return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#000" stroke-width="1.5"/>';}).join('')+
+    '<circle cx="50" cy="50" r="33" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<text x="50" y="44" text-anchor="middle" font-size="13" font-family="Arial" font-weight="bold" fill="#000">₹</text>'+
+    '<text x="50" y="62" text-anchor="middle" font-size="18" font-family="Arial" font-weight="bold" fill="#000">2</text>',z),
+
+  /* ── Q7: shareable foods with dotted cut line ── */
+  guava:(z)=>sw(
+    '<path d="M50,16 C26,16 12,34 12,54 C12,76 30,92 50,92 C70,92 88,76 88,54 C88,34 74,16 50,16 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<path d="M50,8 C46,4 54,0 52,8" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>'+
+    '<ellipse cx="54" cy="10" rx="7" ry="4" fill="#fff" stroke="#000" stroke-width="1.8" transform="rotate(-20 54 10)"/>'+
+    '<line x1="50" y1="16" x2="50" y2="92" stroke="#000" stroke-width="2.2" stroke-dasharray="5,4"/>'+
+    '<circle cx="38" cy="52" r="3" fill="#000" opacity="0.3"/><circle cx="46" cy="64" r="2.5" fill="#000" opacity="0.3"/><circle cx="34" cy="66" r="2" fill="#000" opacity="0.3"/>'+
+    '<circle cx="62" cy="52" r="3" fill="#000" opacity="0.3"/><circle cx="66" cy="66" r="2.5" fill="#000" opacity="0.3"/>',z),
+
+  mango:(z)=>sw(
+    '<path d="M50,10 C32,10 16,26 14,48 C12,70 26,88 50,90 C74,88 88,70 86,48 C84,26 68,10 50,10 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<path d="M50,6 C48,0 56,-2 54,6" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>'+
+    '<ellipse cx="56" cy="7" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="1.8" transform="rotate(-15 56 7)"/>'+
+    '<line x1="50" y1="10" x2="50" y2="90" stroke="#000" stroke-width="2.2" stroke-dasharray="5,4"/>',z),
+
+  chocolate:(z)=>sw(
+    '<rect x="8" y="22" width="84" height="56" rx="4" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<line x1="50" y1="22" x2="50" y2="78" stroke="#000" stroke-width="2.4" stroke-dasharray="5,4"/>'+
+    '<line x1="29" y1="22" x2="29" y2="78" stroke="#000" stroke-width="1.4"/>'+
+    '<line x1="71" y1="22" x2="71" y2="78" stroke="#000" stroke-width="1.4"/>'+
+    '<line x1="8" y1="50" x2="92" y2="50" stroke="#000" stroke-width="1.4"/>'+
+    '<text x="50" y="16" text-anchor="middle" font-size="9" font-weight="bold" fill="#000">CHOCO</text>',z),
+
+  sandwich:(z)=>sw(
+    '<path d="M8,86 L50,18 L92,86 Z" fill="#fff" stroke="#000" stroke-width="3.5" stroke-linejoin="round"/>'+
+    '<line x1="50" y1="18" x2="50" y2="86" stroke="#000" stroke-width="2.2" stroke-dasharray="5,4"/>'+
+    '<path d="M18,72 L82,72" stroke="#000" stroke-width="2"/>'+
+    '<path d="M24,60 Q30,55 36,60" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<path d="M64,60 Q70,55 76,60" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+
+  pizza:(z)=>sw(
+    '<path d="M50,8 L92,86 L8,86 Z" fill="#fff" stroke="#000" stroke-width="3.5" stroke-linejoin="round"/>'+
+    '<path d="M14,80 Q50,68 86,80" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<line x1="50" y1="8" x2="50" y2="86" stroke="#000" stroke-width="2.2" stroke-dasharray="5,4"/>'+
+    '<circle cx="36" cy="58" r="4" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<circle cx="64" cy="58" r="4" fill="none" stroke="#000" stroke-width="1.5"/>'+
+    '<circle cx="50" cy="40" r="4" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+
+  /* ── Q8: containers/scenes that empty out ── */
+  jarFull:(z)=>sw(
+    '<rect x="20" y="28" width="60" height="62" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="28" y="14" width="44" height="16" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<circle cx="50" cy="14" r="6" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="38" cy="48" r="9" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="36" cy="46" r="1.5" fill="#000"/><circle cx="40" cy="46" r="1.5" fill="#000"/><circle cx="38" cy="51" r="1.5" fill="#000"/>'+
+    '<circle cx="60" cy="48" r="9" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="58" cy="46" r="1.5" fill="#000"/><circle cx="62" cy="46" r="1.5" fill="#000"/><circle cx="60" cy="51" r="1.5" fill="#000"/>'+
+    '<circle cx="50" cy="68" r="9" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="48" cy="66" r="1.5" fill="#000"/><circle cx="52" cy="66" r="1.5" fill="#000"/><circle cx="50" cy="71" r="1.5" fill="#000"/>',z),
+
+  jarEmpty:(z)=>sw(
+    '<rect x="20" y="28" width="60" height="62" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="28" y="14" width="44" height="16" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<circle cx="50" cy="14" r="6" fill="#fff" stroke="#000" stroke-width="2.5"/>',z),
+
+  balloonStallFull:(z)=>sw(
+    '<rect x="6" y="80" width="88" height="6" fill="#000"/>'+
+    [[22,46],[40,38],[58,40],[76,48]].map(p=>'<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="13" ry="16" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="'+p[0]+'" y1="'+(p[1]+16)+'" x2="50" y2="80" stroke="#000" stroke-width="1.2"/>').join(''),z),
+  balloonStallEmpty:(z)=>sw(
+    '<rect x="6" y="80" width="88" height="6" fill="#000"/>'+
+    '<rect x="20" y="70" width="60" height="10" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="4,3"/>',z),
+
+  aquariumFull:(z)=>sw(
+    '<rect x="8" y="14" width="84" height="72" rx="3" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<line x1="8" y1="74" x2="92" y2="74" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>'+
+    [[30,34],[60,30],[42,52],[70,58],[24,62]].map(p=>'<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="8" ry="5" fill="#fff" stroke="#000" stroke-width="2"/><polygon points="'+(p[0]+8)+','+p[1]+' '+(p[0]+14)+','+(p[1]-4)+' '+(p[0]+14)+','+(p[1]+4)+'" fill="#fff" stroke="#000" stroke-width="1.5"/>').join(''),z),
+  aquariumEmpty:(z)=>sw(
+    '<rect x="8" y="14" width="84" height="72" rx="3" fill="#fff" stroke="#000" stroke-width="3.5"/>'+
+    '<line x1="8" y1="74" x2="92" y2="74" stroke="#000" stroke-width="1.5" stroke-dasharray="3,2"/>',z),
+
+  plateFullCookies:(z)=>sw(
+    '<ellipse cx="50" cy="68" rx="40" ry="14" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    [[30,52],[50,46],[70,52],[40,60],[60,60]].map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="10" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="'+(p[0]-3)+'" cy="'+(p[1]-2)+'" r="1.4" fill="#000"/><circle cx="'+(p[0]+3)+'" cy="'+(p[1]-1)+'" r="1.4" fill="#000"/><circle cx="'+p[0]+'" cy="'+(p[1]+3)+'" r="1.4" fill="#000"/>').join(''),z),
+  plateEmpty:(z)=>sw(
+    '<ellipse cx="50" cy="60" rx="40" ry="14" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="58" rx="26" ry="8" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+
+  basketFullMangoes:(z)=>sw(
+    '<path d="M6,58 L14,92 L86,92 L94,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M26,58 C26,34 74,34 74,58" fill="none" stroke="#000" stroke-width="3"/>'+
+    [[26,52],[42,44],[58,44],[74,52],[50,56]].map(p=>'<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="11" ry="9.5" fill="#fff" stroke="#000" stroke-width="2.2"/>').join('')+
+    '<line x1="8" y1="70" x2="92" y2="70" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="9" y1="80" x2="91" y2="80" stroke="#000" stroke-width="1.2"/>',z),
+  basketEmpty:(z)=>sw(
+    '<path d="M6,58 L14,92 L86,92 L94,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<path d="M26,58 C26,34 74,34 74,58" fill="none" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="60" rx="36" ry="7" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="4,3"/>'+
+    '<line x1="8" y1="70" x2="92" y2="70" stroke="#000" stroke-width="1.2"/>'+
+    '<line x1="9" y1="80" x2="91" y2="80" stroke="#000" stroke-width="1.2"/>',z),
+
+  toyboxFull:(z)=>sw(
+    '<rect x="10" y="40" width="80" height="50" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="6" y="30" width="88" height="14" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    IC.ballSz(26,11)+'<g transform="translate(14,38)">'+IC.star(24)+'</g>'+
+    '<g transform="translate(40,40)">'+IC.balloonSz(22,9)+'</g>'+
+    '<g transform="translate(60,36)">'+IC.dice(22)+'</g>',z),
+  toyboxEmpty:(z)=>sw(
+    '<rect x="10" y="40" width="80" height="50" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<rect x="6" y="30" width="88" height="14" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<line x1="18" y1="60" x2="82" y2="60" stroke="#000" stroke-width="1.3" stroke-dasharray="4,3"/>',z),
+
+  vaseFullFlowers:(z)=>sw(
+    [[30,38],[50,30],[70,38],[40,46],[60,46]].map(p=>'<g transform="translate('+(p[0]-14)+','+(p[1]-14)+')">'+IC.flower(28)+'</g>').join('')+
+    '<path d="M38,58 L34,92 L66,92 L62,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="58" rx="14" ry="5" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+  vaseEmpty:(z)=>sw(
+    '<path d="M38,58 L34,92 L66,92 L62,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+    '<ellipse cx="50" cy="58" rx="14" ry="5" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+
+  /* ── people for Q7 & Q8 scenes ── */
+  boyReach:(z,mirror)=>{const m=mirror?' style="transform:scaleX(-1)"':'';return '<svg width="70" height="100" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg"'+m+'>'+
+    '<circle cx="35" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="30" cy="12" r="2" fill="#000"/><circle cx="40" cy="12" r="2" fill="#000"/>'+
+    '<path d="M29,18 Q35,23 41,18" fill="none" stroke="#000" stroke-width="1.8"/>'+
+    '<rect x="24" y="26" width="22" height="30" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,30 L6,44 L14,48 L28,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M46,30 L58,44 L52,50 L42,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M28,56 L22,82 L30,82 L35,68 L40,82 L48,82 L42,56" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<ellipse cx="26" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<ellipse cx="44" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '</svg>';},
+  girlReach:(z)=>'<svg width="70" height="100" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="35" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,8 C18,2 14,8 20,12" fill="#fff" stroke="#000" stroke-width="1.8"/>'+
+    '<path d="M46,8 C52,2 56,8 50,12" fill="#fff" stroke="#000" stroke-width="1.8"/>'+
+    '<circle cx="30" cy="12" r="2" fill="#000"/><circle cx="40" cy="12" r="2" fill="#000"/>'+
+    '<path d="M29,18 Q35,23 41,18" fill="none" stroke="#000" stroke-width="1.8"/>'+
+    '<path d="M24,26 L20,58 L50,58 L46,26 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,30 L12,44 L18,50 L28,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M46,30 L58,44 L52,48 L42,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M26,58 L22,82 L32,82 L35,70 L38,82 L48,82 L44,58" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<ellipse cx="27" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<ellipse cx="43" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '</svg>',
+
+  boyEatingCookie:(z)=>'<svg width="68" height="80" viewBox="0 0 68 80" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
+    '<path d="M26,20 Q34,30 42,20" fill="none" stroke="#000" stroke-width="2.2"/>'+
+    '<rect x="22" y="26" width="24" height="28" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M46,28 L58,18 L62,24 L50,32" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<circle cx="62" cy="16" r="8" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="59" cy="13" r="1.3" fill="#000"/><circle cx="65" cy="13" r="1.3" fill="#000"/><circle cx="62" cy="17" r="1.3" fill="#000"/><circle cx="60" cy="19" r="1.3" fill="#000"/>'+
+    '<path d="M22,28 L10,42 L18,44 L26,34" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M26,54 L20,76 L30,76 L34,64 L38,76 L48,76 L42,54" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '</svg>',
+
+  girlHoldingBalloons:(z)=>'<svg width="68" height="86" viewBox="0 0 68 86" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,8 C18,2 14,8 20,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<path d="M44,8 C50,2 54,8 48,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
+    '<path d="M27,17 Q34,23 41,17" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<path d="M22,26 L18,56 L50,56 L46,26 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M46,30 L58,26 L60,34 L48,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M22,30 L10,30 L10,38 L24,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<ellipse cx="58" cy="14" rx="8" ry="10" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<ellipse cx="44" cy="8" rx="7" ry="9" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<line x1="58" y1="24" x2="58" y2="28" stroke="#000" stroke-width="1.3"/>'+
+    '<line x1="44" y1="17" x2="56" y2="27" stroke="#000" stroke-width="1.3"/>'+
+    '<path d="M24,56 L20,80 L30,80 L34,68 L38,80 L48,80 L44,56" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '</svg>',
+
+  girlHoldingMango:(z)=>'<svg width="68" height="80" viewBox="0 0 68 80" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,8 C18,2 14,8 20,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<path d="M44,8 C50,2 54,8 48,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
+    '<path d="M27,19 Q34,25 41,19" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<path d="M22,26 L18,56 L50,56 L46,26 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M22,30 L8,40 L12,48 L26,40" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M46,30 L58,34 L56,42 L42,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<ellipse cx="60" cy="40" rx="9" ry="8" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<path d="M24,56 L20,76 L30,76 L34,66 L38,76 L48,76 L44,56" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '</svg>',
+
+  fishSwimAway:(z)=>'<svg width="68" height="60" viewBox="0 0 68 60" xmlns="http://www.w3.org/2000/svg">'+
+    '<ellipse cx="30" cy="32" rx="22" ry="13" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M52,32 L66,18 L66,46 Z" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<circle cx="16" cy="28" r="2.5" fill="#000"/>'+
+    '<path d="M2,10 Q10,2 18,10 M-2,46 Q6,38 14,46" fill="none" stroke="#000" stroke-width="1.3" stroke-dasharray="2,3"/>'+
+    '</svg>',
+
+  boyHoldingToy:(z)=>'<svg width="68" height="80" viewBox="0 0 68 80" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
+    '<path d="M27,19 Q34,25 41,19" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<rect x="22" y="26" width="24" height="28" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M46,28 L58,30 L58,38 L46,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<g transform="translate(50,24)">'+IC.dice(20)+'</g>'+
+    '<path d="M22,28 L10,42 L18,44 L26,34" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M26,54 L20,76 L30,76 L34,64 L38,76 L48,76 L42,54" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '</svg>',
+
+  girlHoldingFlower:(z)=>'<svg width="68" height="80" viewBox="0 0 68 80" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="34" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M24,8 C18,2 14,8 20,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<path d="M44,8 C50,2 54,8 48,12" fill="#fff" stroke="#000" stroke-width="1.6"/>'+
+    '<circle cx="29" cy="12" r="2" fill="#000"/><circle cx="39" cy="12" r="2" fill="#000"/>'+
+    '<path d="M27,19 Q34,25 41,19" fill="none" stroke="#000" stroke-width="2"/>'+
+    '<path d="M22,26 L18,56 L50,56 L46,26 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<path d="M22,30 L8,40 L12,48 L26,40" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M46,30 L58,28 L58,36 L44,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<g transform="translate(48,12)">'+IC.flower(22)+'</g>'+
+    '<path d="M24,56 L20,76 L30,76 L34,66 L38,76 L48,76 L44,56" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '</svg>'
+};
+
+function ic(name,size,arg2){if(!IC[name]) return '';return IC[name](size,arg2);}
+
+/* ── DATA POOLS ── */
+const SHAPE_MATCH=[
+  {shape:'circle',   label:'Circle',    objs:[['clock','Clock'],['soccerBall','Soccer Ball'],['plate','Plate'],['button','Button']]},
+  {shape:'square',   label:'Square',    objs:[['window','Window'],['dice','Dice'],['giftBox','Gift Box'],['book','Book']]},
+  {shape:'triangle', label:'Triangle',  objs:[['iceCream','Ice Cream'],['partyHat','Party Hat'],['warningSign','Warning Sign']]},
+  {shape:'rectangle',label:'Rectangle', objs:[['door','Door'],['eraser','Eraser'],['book','Book']]}
+];
+
+const PAIR_SETS=[
+  [['lock','Lock'],['key','Key']],
+  [['toothbrush','Toothbrush'],['toothpaste','Toothpaste']],
+  [['shoe','Shoe'],['sock','Sock']],
+  [['pencil','Pencil'],['eraser','Eraser']],
+  [['umbrella','Umbrella'],['raincoat','Raincoat']]
+];
+
+const COUNT_ICONS=['apple','star','flower','balloon','fish','leaf','bird','bee'];
+const BASKET_ICONS=['apple','star','flower','balloon','fish'];
+
+/* containers: key, label, max fill level (0-1) used to draw water realistically different per object */
+const WATER_SETS=[
+  [{key:'spoonC',label:'Spoon',fill:0.9},{key:'cupC',label:'Cup',fill:0.6},{key:'bucketC',label:'Bucket',fill:0.5},'Circle the container that can hold the MOST water.'],
+  [{key:'spoonC',label:'Spoon',fill:0.9},{key:'glassC',label:'Glass',fill:0.55},{key:'jugC',label:'Jug',fill:0.45},'Tick (✓) the container that can hold the LEAST water.'],
+  [{key:'mugC',label:'Mug',fill:0.55},{key:'bucketC',label:'Bucket',fill:0.45},{key:'spoonC',label:'Spoon',fill:0.95},'Circle the container that can hold the MOST water.'],
+  [{key:'bottleC',label:'Bottle',fill:0.55},{key:'bowlC',label:'Bowl',fill:0.4},{key:'cupC',label:'Cup',fill:0.6},'Tick (✓) the container that can hold the LEAST water.'],
+  [{key:'bucketC',label:'Bucket',fill:0.5},{key:'jugC',label:'Jug',fill:0.45},{key:'mugC',label:'Mug',fill:0.55},'Circle the container that can hold the MOST water.'],
+  [{key:'glassC',label:'Glass',fill:0.55},{key:'bottleC',label:'Bottle',fill:0.5},{key:'spoonC',label:'Spoon',fill:0.95},'Tick (✓) the container that can hold the LEAST water.']
+];
+
+/* length sets: key, label, length value (px) */
+const LENGTH_SETS=[
+  [{key:'pencilLen',label:'Pencil A',len:30},{key:'pencilLen',label:'Pencil B',len:70},'Circle the pencil that is LONGER.'],
+  [{key:'ribbonLen',label:'Ribbon A',len:75},{key:'ribbonLen',label:'Ribbon B',len:35},'Tick (✓) the ribbon that is SHORTER.'],
+  [{key:'snakeLen',label:'Snake A',len:40},{key:'snakeLen',label:'Snake B',len:78},'Circle the snake that is LONGER.']
+];
+
+/* height sets: key, label, height value (px) */
+const HEIGHT_SETS=[
+  [{key:'towerH',label:'Tower A',h:35},{key:'towerH',label:'Tower B',h:75},'Circle the tower that is TALLER.'],
+  [{key:'treeH',label:'Tree A',h:70},{key:'treeH',label:'Tree B',h:32},'Tick (✓) the tree that is SHORTER.'],
+  [{key:'girlH',label:'Child A',h:68},{key:'girlH',label:'Child B',h:38},'Circle the child who is TALLER.']
+];
+
+/* size sets: key, label, radius value (px) */
+const SIZE_SETS=[
+  [{key:'ballSz',label:'Ball A',r:14},{key:'ballSz',label:'Ball B',r:34},'Circle the ball that is BIGGER.'],
+  [{key:'balloonSz',label:'Balloon A',r:32},{key:'balloonSz',label:'Balloon B',r:15},'Tick (✓) the balloon that is SMALLER.'],
+  [{key:'watermelonSz',label:'Watermelon A',r:16},{key:'watermelonSz',label:'Watermelon B',r:33},'Circle the watermelon that is BIGGER.']
+];
+
+/* weight sets for see-saw: leftIcon, rightIcon, leftHeavy(true=left side heavier/down) */
+const WEIGHT_SETS=[
+  ['watermelonSz','apple',true,'a watermelon and an apple'],
+  ['dice','balloonSz',false,'a dice and a balloon'],
+  ['book','flower',true,'a book and a flower'],
+  ['bucketC','spoonC',true,'a bucket and a spoon']
+];
+
+const SHARE_FOODS=['guava','mango','chocolate','sandwich','pizza'];
+
+/* Q8 scenarios: opening icon, action icon, closing icon, story line */
+const Q8_SCENES=[
+  ['jarFull','boyEatingCookie','jarEmpty','The child ate all the cookies from the jar.'],
+  ['balloonStallFull','girlHoldingBalloons','balloonStallEmpty','A girl bought every balloon from the stall.'],
+  ['aquariumFull','fishSwimAway','aquariumEmpty','All the fish swam away from the tank.'],
+  ['plateFullCookies','boyEatingCookie','plateEmpty','The child finished every cookie on the plate.'],
+  ['basketFullMangoes','girlHoldingMango','basketEmpty','Mother gave away all the mangoes from the basket.'],
+  ['toyboxFull','boyHoldingToy','toyboxEmpty','The child took out every toy from the toy box to play.'],
+  ['vaseFullFlowers','girlHoldingFlower','vaseEmpty','All the flowers were picked out of the vase.']
+];
+
+/* ── SECTION BUILDERS ── */
+function section1(){
+  const shapes=sh(SHAPE_MATCH).slice(0,4);
+  const leftItems=shapes.map(s=>({key:s.shape,label:s.label}));
+  const used=new Set();
+  const rightUniq=shapes.map(s=>{
+    const opts=s.objs.filter(o=>!used.has(o[0]));
+    const chosen=pk(opts.length?opts:s.objs);
+    used.add(chosen[0]);return chosen;
+  });
+  const rightShuf=sh(rightUniq);
+  let lH='',rH='';
+  leftItems.forEach(({key,label})=>{
+    lH+='<div class="matchitem"><div class="micontent"><div class="imgbox">'+ic(key,48)+'</div><span>'+label+'</span></div><span class="dot"></span></div>';
+  });
+  rightShuf.forEach(([key,label])=>{
+    rH+='<div class="matchitem"><span class="dot"></span><div class="micontent"><div class="imgbox">'+ic(key,48)+'</div><span>'+label+'</span></div></div>';
+  });
+  return '<p class="qinstr">1) Match the objects that have the same shape by drawing lines.</p>'+
+    '<div class="matchwrap"><div class="matchcol">'+lH+'</div><div class="matchcol">'+rH+'</div></div>';
+}
+
+function section2(){
+  function row(iA,iB,q){
+    const a=ri(2,5),b=ri(6,10);
+    const order=Math.random()<0.5?[a,b]:[b,a];
+    let gA='',gB='';
+    for(let k=0;k<order[0];k++) gA+=ic(iA,26);
+    for(let k=0;k<order[1];k++) gB+=ic(iB,26);
+    return '<div class="group-compare"><div class="group-box">'+gA+'</div><div class="group-box">'+gB+'</div></div>'+
+      '<div class="qrow">'+q+'</div>';
+  }
+  const icons=sh(COUNT_ICONS);
+  return '<p class="qinstr">2) Circle the group as directed.</p>'+
+    '<table style="width:100%;border-collapse:collapse;">'+
+    '<tr><td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[0],icons[1],'Circle the group that has MORE.')+'</td>'+
+    '<td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[2],icons[3],'Circle the group that has MORE.')+'</td></tr>'+
+    '<tr><td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[4],icons[5],'Circle the group that has LESS.')+'</td>'+
+    '<td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[6],icons[7],'Circle the group that has LESS.')+'</td></tr>'+
+    '</table>';
+}
+
+function section3(){
+  const counts=sh([2,3,4,5,6,7]);
+  const icons=sh(COUNT_ICONS);
+  const N=4;
+  const leftItems=Array.from({length:N},(_,i)=>({ic:icons[i],cnt:counts[i]}));
+  const rightItems=Array.from({length:N},(_,i)=>({ic:icons[i+4]||icons[i+1],cnt:counts[i]}));
+  const rightShuf=sh(rightItems);
+  let lH='',rH='';
+  leftItems.forEach(({ic:ico,cnt})=>{
+    let imgs='';for(let k=0;k<cnt;k++) imgs+=IC[ico](22);
+    lH+='<div class="matchitem"><div class="micontent"><div class="pair-box">'+imgs+'</div></div><span class="dot"></span></div>';
+  });
+  rightShuf.forEach(({ic:ico,cnt})=>{
+    let imgs='';for(let k=0;k<cnt;k++) imgs+=IC[ico](22);
+    rH+='<div class="matchitem"><span class="dot"></span><div class="micontent"><div class="pair-box">'+imgs+'</div></div></div>';
+  });
+  return '<p class="qinstr">3) Draw lines to match each group that has the same number of objects.</p>'+
+    '<div class="matchwrap"><div class="matchcol">'+lH+'</div><div class="matchcol">'+rH+'</div></div>';
+}
+
+function section4(){
+  const type=pk(['water','length','height','size','weight']);
+  if(type==='water'){
+    const set=pk(WATER_SETS);
+    const items=sh([set[0],set[1],set[2]]);
+    let cells='';
+    items.forEach(({key,label,fill})=>{
+      cells+='<div class="container-item">'+ic(key,76,fill)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
+    });
+    return '<p class="qinstr">4) Look at the water filled in each container. Solve.</p>'+
+      '<div class="container-row">'+cells+'</div>'+
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[3]+'</p>';
+  }
+  if(type==='length'){
+    const set=pk(LENGTH_SETS);
+    const items=sh([set[0],set[1]]);
+    let cells='';
+    items.forEach(({key,label,len})=>{
+      cells+='<div class="container-item">'+ic(key,90,len)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
+    });
+    return '<p class="qinstr">4) Compare the length. Solve.</p>'+
+      '<div class="container-row">'+cells+'</div>'+
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>';
+  }
+  if(type==='height'){
+    const set=pk(HEIGHT_SETS);
+    const items=sh([set[0],set[1]]);
+    let cells='';
+    items.forEach(({key,label,h})=>{
+      cells+='<div class="container-item">'+ic(key,90,h)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
+    });
+    return '<p class="qinstr">4) Compare the height. Solve.</p>'+
+      '<div class="container-row">'+cells+'</div>'+
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>';
+  }
+  if(type==='size'){
+    const set=pk(SIZE_SETS);
+    const items=sh([set[0],set[1]]);
+    let cells='';
+    items.forEach(({key,label,r})=>{
+      cells+='<div class="container-item">'+ic(key,90,r)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
+    });
+    return '<p class="qinstr">4) Compare the size. Solve.</p>'+
+      '<div class="container-row">'+cells+'</div>'+
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>';
+  }
+  // weight
+  const [leftKey,rightKey,leftHeavy,desc]=pk(WEIGHT_SETS);
+  return '<p class="qinstr">4) Look at the balance scale showing '+desc+'. Solve.</p>'+
+    '<div style="display:flex;justify-content:center;margin:6px 0;">'+IC.seesaw(160,leftKey,rightKey,leftHeavy)+'</div>'+
+    '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">Circle the side that is HEAVIER.</p>';
+}
+
+function section5(){
+  const pairs=sp(PAIR_SETS,4);
+  const leftItems=pairs.map(p=>p[0]);
+  const rightItems=sh(pairs.map(p=>p[1]));
+  let lH='',rH='';
+  leftItems.forEach(([key,label])=>{
+    lH+='<div class="matchitem"><div class="micontent"><div class="imgbox">'+ic(key,50)+'</div><span>'+label+'</span></div><span class="dot"></span></div>';
+  });
+  rightItems.forEach(([key,label])=>{
+    rH+='<div class="matchitem"><span class="dot"></span><div class="micontent"><div class="imgbox">'+ic(key,50)+'</div><span>'+label+'</span></div></div>';
+  });
+  return '<p class="qinstr">5) Draw lines to match the objects that go together.</p>'+
+    '<div class="matchwrap"><div class="matchcol">'+lH+'</div><div class="matchcol">'+rH+'</div></div>';
+}
+
+function section6(){
+  const n1=ri(2,4),n2=ri(2,4);
+  const arr=sh([...Array(n1).fill('coin1'),...Array(n2).fill('coin2')]);
+  let coins='';
+  arr.forEach(c=>{coins+=ic(c,54);});
+  return '<p class="qinstr">6) Solve the question.</p>'+
+    '<p style="text-align:center;font-size:16px;font-weight:bold;margin:4px 0;">Circle all the ₹1 coins.</p>'+
+    '<div class="coin-row">'+coins+'</div>';
+}
+
+function section7(){
+  const food=pk(SHARE_FOODS);
+  return '<p class="qinstr">7) Two friends want to share the '+food+' equally. Trace the dotted line to cut it into two equal parts.</p>'+
+    '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0;">'+
+    IC.boyReach(70)+
+    '<div style="display:inline-block;">'+ic(food,90)+'</div>'+
+    IC.girlReach(70)+
+    '</div>';
+}
+
+function section8(){
+  const scene=pk(Q8_SCENES);
+  const [openIcon,actionIcon,closeIcon,story]=scene;
+  const openSize=openIcon.includes('Stall')||openIcon==='aquariumFull'?90:78;
+  return '<p class="qinstr">8) '+story+' How many are left? Circle the correct answer.</p>'+
+    '<div style="display:flex;align-items:center;gap:12px;padding:6px 4px;flex-wrap:wrap;">'+
+    ic(openIcon,openSize)+
+    '<span style="font-size:24px;font-weight:bold;">→</span>'+
+    IC[actionIcon](68)+
+    '<span style="font-size:24px;font-weight:bold;">→</span>'+
+    ic(closeIcon,openSize)+
+    '</div>'+
+    '<div style="display:flex;gap:14px;margin-top:6px;">'+
+    ['0','1','2'].map(n=>'<div style="border:2.5px solid #000;padding:6px 20px;font-size:22px;font-weight:bold;font-family:Arial;">'+n+'</div>').join('')+
+    '</div>';
+}
+
+function section9(){
+  const icon=pk(BASKET_ICONS);
+  const counts=sh([1,3,6]);
+  const labels=['A','B','C'];
+  let baskets='';
+  counts.forEach((cnt,i)=>{
+    let imgs='';for(let k=0;k<cnt;k++) imgs+=IC[icon](28);
+    baskets+='<div class="basket-item"><div class="basket-label">'+labels[i]+'</div>'+
+      '<div class="pair-box" style="min-width:86px;min-height:86px;">'+imgs+'</div></div>';
+  });
+  return '<p class="qinstr">9) Circle the group with the MOST '+icon+'s. Put a tick (✓) on the group with the LEAST.</p>'+
+    '<div class="basket-row">'+baskets+'</div>';
+}
+
+/* ── WORKSHEET ASSEMBLY ── */
+function buildWorksheetHTML(setNum){
+  const builders=[section1,section2,section3,section4,section5,section6,section7,section8,section9];
+  let sHtml='';
+  builders.forEach(fn=>{ sHtml+='<div class="section">'+fn()+'</div>'; });
+  return '<div class="page">'+
+    '<div class="ws-header">'+
+      '<div class="ws-title">CLASS 1 — MATHEMATICS PRACTICE WORKSHEET</div>'+
+      '<div class="ws-sub">Set '+setNum+'</div>'+
+      '<div class="ws-fields"><span>Name:</span><span>Date:</span><span>Roll No.:</span><span>Marks: ____ / 40</span></div>'+
+    '</div>'+sHtml+
+    '<div class="ws-footer">Class 1 — Math FLN Practice &nbsp;|&nbsp; Set '+setNum+'</div>'+
+  '</div>';
+}
+
+/* ── APP LOGIC ── */
+let worksheetHTMLs=[],inserted=[];
+function generateSets(n){
+  n=Math.max(1,Math.min(100,n|0));
+  worksheetHTMLs=[];
+  for(let i=0;i<n;i++) worksheetHTMLs.push(buildWorksheetHTML(i+1));
+  inserted=new Array(n).fill(false);
+  const tabbar=document.getElementById('tabbar');tabbar.innerHTML='';
+  for(let i=1;i<=n;i++){
+    const btn=document.createElement('button');btn.className='tabbtn';btn.id='tabbtn-'+i;
+    btn.textContent='Set '+i;btn.addEventListener('click',()=>activateSet(i));tabbar.appendChild(btn);
+  }
+  const container=document.getElementById('setsContainer');container.innerHTML='';
+  for(let i=1;i<=n;i++){const div=document.createElement('div');div.className='worksheet';div.id='ws-'+i;container.appendChild(div);}
+  activateSet(1);
+}
+function activateSet(num){
+  document.querySelectorAll('.worksheet').forEach(w=>w.classList.remove('active'));
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
+  const div=document.getElementById('ws-'+num);if(!div) return;
+  if(!inserted[num-1]){div.innerHTML=worksheetHTMLs[num-1];inserted[num-1]=true;}
+  div.classList.add('active');
+  const btn=document.getElementById('tabbtn-'+num);if(btn) btn.classList.add('active');
+}
+document.getElementById('generateBtn').addEventListener('click',()=>{
+  const n=parseInt(document.getElementById('setCount').value,10)||1;generateSets(n);
+});
+document.getElementById('printBtn').addEventListener('click',()=>window.print());
+generateSets(parseInt(document.getElementById('setCount').value,10)||5);
+
+/* ── PDF EXPORT ── */
+function computePdfSlices(imgW,imgH,mmW,mmH){
+  const pxMM=imgW/mmW,phPx=Math.max(1,Math.round(mmH*pxMM));
+  const slices=[];let y=0;
+  while(y<imgH){const h=Math.min(phPx,imgH-y);slices.push({sy:y,sh:h,mmH:h/pxMM});y+=h;}
+  return slices;
+}
+function sliceCanvas(src,sy,sh){const c=document.createElement('canvas');c.width=src.width;c.height=sh;c.getContext('2d').drawImage(src,0,sy,src.width,sh,0,0,src.width,sh);return c;}
+async function buildPdfBlobForSet(i){
+  const rr=document.getElementById('pdfRenderRoot');rr.innerHTML=worksheetHTMLs[i-1];
+  await new Promise(r=>requestAnimationFrame(r));await new Promise(r=>requestAnimationFrame(r));
+  const pe=rr.querySelector('.page');
+  const cv=await html2canvas(pe,{scale:2,backgroundColor:'#ffffff'});
+  const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
+  const slices=computePdfSlices(cv.width,cv.height,210,297);
+  slices.forEach((s,idx)=>{const sc=sliceCanvas(cv,s.sy,s.sh);const d=sc.toDataURL('image/png');if(idx>0)pdf.addPage();pdf.addImage(d,'PNG',0,0,210,s.mmH);});
+  rr.innerHTML='';return pdf.output('blob');
+}
+async function exportAllSetsAsZip(){
+  if(!worksheetHTMLs.length){alert('Generate at least one set first.');return;}
+  const eb=document.getElementById('exportAllBtn'),gb=document.getElementById('generateBtn'),pr=document.getElementById('exportProgress');
+  const n=worksheetHTMLs.length;eb.disabled=true;gb.disabled=true;
+  try{
+    const zip=new JSZip(),pw=String(n).length;
+    for(let i=1;i<=n;i++){
+      pr.textContent='Building PDF '+i+' of '+n+' …';
+      zip.file('Set_'+String(i).padStart(pw,'0')+'.pdf',await buildPdfBlobForSet(i));
+      await new Promise(r=>setTimeout(r,0));
+    }
+    pr.textContent='Packaging ZIP …';
+    const zb=await zip.generateAsync({type:'blob'});
+    const url=URL.createObjectURL(zb);const a=document.createElement('a');a.href=url;a.download='Class1_Math_Worksheets_AllSets.zip';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    pr.textContent='Done — '+n+' PDFs in ZIP.';
+  }catch(e){console.error(e);pr.textContent='Export failed.';}
+  finally{eb.disabled=false;gb.disabled=false;}
+}
+document.getElementById('exportAllBtn').addEventListener('click',exportAllSetsAsZip);
+</script>
+</body>
+</html>
