@@ -47,6 +47,14 @@
   .basket-item{display:flex;flex-direction:column;align-items:center;gap:3px;}
   .basket-label{font-size:16px;font-weight:bold;}
   .ws-footer{margin-top:12px;border-top:1.4px solid #000;padding-top:5px;font-size:11px;text-align:center;color:#333;}
+  #answerKeyPanel{background:#fff;border-bottom:2px solid #000;padding:12px 18px;display:none;}
+  #answerKeyPanel.visible{display:block;}
+  .ak-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .ak-header strong{font-size:15px;}
+  #answerKeyContent{font-size:13px;line-height:1.55;max-width:900px;}
+  .ak-section{margin:6px 0 10px 0;padding-left:8px;border-left:3px solid #000;}
+  .ak-section .ak-q{font-weight:bold;margin-bottom:2px;}
+  .ak-section .ak-a{margin-left:12px;}
   @media print{
     body{background:#fff;}
     .no-print{display:none !important;}
@@ -68,10 +76,18 @@
   <button class="btn" id="generateBtn">Generate</button>
   <button class="btn" id="printBtn">Print current set</button>
   <button class="btn" id="exportAllBtn">Download All Sets (separate PDFs)</button>
+  <button class="btn" id="showAnswerKeyBtn">Show Answer Key</button>
   <span id="exportProgress" class="no-print"></span>
   <span style="font-size:12px;color:#555;">Black &amp; white, A4 ready.</span>
 </div>
 <div class="tabbar no-print" id="tabbar"></div>
+<div id="answerKeyPanel" class="no-print">
+  <div class="ak-header">
+    <strong>Teacher Answer Key — Set <span id="akSetNum">1</span></strong>
+    <button class="btn" id="closeAnswerKeyBtn">Close</button>
+  </div>
+  <div id="answerKeyContent"></div>
+</div>
 <div id="setsContainer"></div>
 <div id="pdfRenderRoot" style="position:fixed;left:-99999px;top:0;width:210mm;background:#fff;"></div>
 
@@ -844,11 +860,14 @@ function section5(){
 function section6(){
   const n1=ri(2,4),n2=ri(2,4);
   const arr=sh([...Array(n1).fill('coin1'),...Array(n2).fill('coin2')]);
+  const coin1Positions=[];
+  arr.forEach((c,i)=>{if(c==='coin1') coin1Positions.push(i+1);});
   let coins='';
   arr.forEach(c=>{coins+=ic(c,54);});
-  return '<p class="qinstr">6) Solve the question.</p>'+
+  const html='<p class="qinstr">6) Solve the question.</p>'+
     '<p style="text-align:center;font-size:16px;font-weight:bold;margin:4px 0;">Circle all the ₹1 coins.</p>'+
     '<div class="coin-row">'+coins+'</div>';
+  return {html,answers:{type:'coin-select',coin1Count:n1,coin2Count:n2,coin1Positions}};
 }
 
 function section7(){
@@ -865,7 +884,7 @@ function section8(){
   const scene=pk(Q8_SCENES);
   const [openIcon,actionIcon,closeIcon,story]=scene;
   const openSize=openIcon.includes('Stall')||openIcon==='aquariumFull'?90:78;
-  return '<p class="qinstr">8) '+story+' How many are left? Circle the correct answer.</p>'+
+  const html='<p class="qinstr">8) '+story+' How many are left? Circle the correct answer.</p>'+
     '<div style="display:flex;align-items:center;gap:12px;padding:6px 4px;flex-wrap:wrap;">'+
     ic(openIcon,openSize)+
     '<span style="font-size:24px;font-weight:bold;">→</span>'+
@@ -876,28 +895,39 @@ function section8(){
     '<div style="display:flex;gap:14px;margin-top:6px;">'+
     ['0','1','2'].map(n=>'<div style="border:2.5px solid #000;padding:6px 20px;font-size:22px;font-weight:bold;font-family:Arial;">'+n+'</div>').join('')+
     '</div>';
+  return {html,answers:{type:'count-left',story,answer:0}};
 }
 
 function section9(){
   const icon=pk(BASKET_ICONS);
   const counts=sh([1,3,6]);
   const labels=['A','B','C'];
-  let baskets='';
-  counts.forEach((cnt,i)=>{
+  const baskets=counts.map((cnt,i)=>({label:labels[i],count:cnt}));
+  let basketsHtml='';
+  baskets.forEach(({label,count:cnt})=>{
     let imgs='';for(let k=0;k<cnt;k++) imgs+=IC[icon](28);
-    baskets+='<div class="basket-item"><div class="basket-label">'+labels[i]+'</div>'+
+    basketsHtml+='<div class="basket-item"><div class="basket-label">'+label+'</div>'+
       '<div class="pair-box" style="min-width:86px;min-height:86px;">'+imgs+'</div></div>';
   });
-  return '<p class="qinstr">9) Circle the group with the MOST '+icon+'s. Put a tick (✓) on the group with the LEAST.</p>'+
-    '<div class="basket-row">'+baskets+'</div>';
+  const most=baskets.reduce((a,b)=>b.count>a.count?b:a).label;
+  const least=baskets.reduce((a,b)=>b.count<a.count?b:a).label;
+  const html='<p class="qinstr">9) Circle the group with the MOST '+icon+'s. Put a tick (✓) on the group with the LEAST.</p>'+
+    '<div class="basket-row">'+basketsHtml+'</div>';
+  return {html,answers:{type:'basket-compare',icon,baskets,most,least}};
 }
 
 /* ── WORKSHEET ASSEMBLY ── */
 function buildWorksheetHTML(setNum){
   const builders=[section1,section2,section3,section4,section5,section6,section7,section8,section9];
+  const key={setNum,sections:{}};
   let sHtml='';
-  builders.forEach(fn=>{ sHtml+='<div class="section">'+fn()+'</div>'; });
-  return '<div class="page">'+
+  builders.forEach((fn,i)=>{
+    const out=fn();
+    const html=typeof out==='string'?out:out.html;
+    if(out&&out.answers) key.sections[i+1]=out.answers;
+    sHtml+='<div class="section">'+html+'</div>';
+  });
+  const html='<div class="page">'+
     '<div class="ws-header">'+
       '<div class="ws-title">CLASS 1 — MATHEMATICS PRACTICE WORKSHEET</div>'+
       '<div class="ws-sub">Set '+setNum+'</div>'+
@@ -905,14 +935,71 @@ function buildWorksheetHTML(setNum){
     '</div>'+sHtml+
     '<div class="ws-footer">Class 1 — Math FLN Practice &nbsp;|&nbsp; Set '+setNum+'</div>'+
   '</div>';
+  return {html,key};
+}
+
+/* ── ANSWER KEY UI ── */
+function formatSectionAnswer(num,sec){
+  if(!sec) return '';
+  if(num===6){
+    const pos=sec.coin1Positions.join(', ');
+    return '<div class="ak-section"><div class="ak-q">6) Circle all ₹1 coins</div>'+
+      '<div class="ak-a">'+sec.coin1Count+' × ₹1, '+sec.coin2Count+' × ₹2 (left to right)<br>'+
+      'Circle positions: <strong>'+pos+'</strong></div></div>';
+  }
+  if(num===8){
+    return '<div class="ak-section"><div class="ak-q">8) How many are left?</div>'+
+      '<div class="ak-a">Scenario: '+sec.story+'<br>Answer: <strong>'+sec.answer+'</strong></div></div>';
+  }
+  if(num===9){
+    const counts=sec.baskets.map(b=>'Group '+b.label+': '+b.count).join('; ');
+    return '<div class="ak-section"><div class="ak-q">9) Most / least '+sec.icon+'s</div>'+
+      '<div class="ak-a">'+counts+'<br>Circle (MOST): <strong>Group '+sec.most+'</strong><br>Tick (LEAST): <strong>Group '+sec.least+'</strong></div></div>';
+  }
+  return '';
+}
+function renderAnswerKey(setNum){
+  const key=answerKeys[setNum-1];
+  const panel=document.getElementById('answerKeyPanel');
+  const content=document.getElementById('answerKeyContent');
+  document.getElementById('akSetNum').textContent=setNum;
+  if(!key){
+    content.innerHTML='<p>No answer key available.</p>';
+    panel.classList.add('visible');
+    return;
+  }
+  let html='';
+  for(let n=1;n<=9;n++) html+=formatSectionAnswer(n,key.sections[n]);
+  if(!html) html='<p>No answers captured yet.</p>';
+  content.innerHTML=html;
+  panel.classList.add('visible');
+}
+function hideAnswerKeyPanel(){
+  document.getElementById('answerKeyPanel').classList.remove('visible');
+}
+let answerKeyVisible=false;
+function showAnswerKey(){
+  if(!worksheetHTMLs.length){alert('Generate at least one set first.');return;}
+  answerKeyVisible=true;
+  renderAnswerKey(activeSetNum);
+}
+function refreshAnswerKeyIfVisible(){
+  if(answerKeyVisible) renderAnswerKey(activeSetNum);
 }
 
 /* ── APP LOGIC ── */
-let worksheetHTMLs=[],inserted=[];
+let worksheetHTMLs=[],answerKeys=[],inserted=[],activeSetNum=1;
 function generateSets(n){
   n=Math.max(1,Math.min(100,n|0));
   worksheetHTMLs=[];
-  for(let i=0;i<n;i++) worksheetHTMLs.push(buildWorksheetHTML(i+1));
+  answerKeys=[];
+  answerKeyVisible=false;
+  hideAnswerKeyPanel();
+  for(let i=0;i<n;i++){
+    const built=buildWorksheetHTML(i+1);
+    worksheetHTMLs.push(built.html);
+    answerKeys.push(built.key);
+  }
   inserted=new Array(n).fill(false);
   const tabbar=document.getElementById('tabbar');tabbar.innerHTML='';
   for(let i=1;i<=n;i++){
@@ -924,17 +1011,21 @@ function generateSets(n){
   activateSet(1);
 }
 function activateSet(num){
+  activeSetNum=num;
   document.querySelectorAll('.worksheet').forEach(w=>w.classList.remove('active'));
   document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
   const div=document.getElementById('ws-'+num);if(!div) return;
   if(!inserted[num-1]){div.innerHTML=worksheetHTMLs[num-1];inserted[num-1]=true;}
   div.classList.add('active');
   const btn=document.getElementById('tabbtn-'+num);if(btn) btn.classList.add('active');
+  refreshAnswerKeyIfVisible();
 }
 document.getElementById('generateBtn').addEventListener('click',()=>{
   const n=parseInt(document.getElementById('setCount').value,10)||1;generateSets(n);
 });
 document.getElementById('printBtn').addEventListener('click',()=>window.print());
+document.getElementById('showAnswerKeyBtn').addEventListener('click',showAnswerKey);
+document.getElementById('closeAnswerKeyBtn').addEventListener('click',()=>{answerKeyVisible=false;hideAnswerKeyPanel();});
 generateSets(parseInt(document.getElementById('setCount').value,10)||5);
 
 /* ── PDF EXPORT ── */
