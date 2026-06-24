@@ -68,6 +68,9 @@
   <button class="btn" id="generateBtn">Generate</button>
   <button class="btn" id="printBtn">Print current set</button>
   <button class="btn" id="exportAllBtn">Download All Sets (separate PDFs)</button>
+  <button class="btn" id="downloadAnswerKeyBtn">Download Answer Key</button>
+  <label>Set #: <input type="number" id="singleSetNum" min="1" value="1" style="width:56px;"></label>
+  <button class="btn" id="downloadSingleSetBtn">Download This Set (PDF + Answer Key)</button>
   <span id="exportProgress" class="no-print"></span>
   <span style="font-size:12px;color:#555;">Black &amp; white, A4 ready.</span>
 </div>
@@ -273,7 +276,7 @@ const IC={
     '<path d="M76,40 L94,50 L76,62 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
     '<rect x="4" y="36" width="9" height="28" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
     '<line x1="30" y1="36" x2="30" y2="64" stroke="#000" stroke-width="2"/>'+
-    '<text x="52" y="55" text-anchor="middle" font-size="10" font-weight="bold" fill="#000">PASTE</text>',z),
+    '<text x="52" y="55" text-anchor="middle" font-size="10" font-family="Arial" font-weight="bold" fill="#000">PASTE</text>',z),
 
   shoe:(z)=>sw(
     '<path d="M8,72 C8,56 18,42 34,40 L56,40 L82,52 C94,58 94,68 90,74 L8,74 Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
@@ -660,6 +663,12 @@ const COUNT_ICONS=['apple','star','flower','balloon','fish','leaf','bird','bee']
 const BASKET_ICONS=['apple','star','flower','balloon','fish'];
 
 /* containers: key, label, max fill level (0-1) used to draw water realistically different per object */
+/* Real-world relative capacity, smallest to largest. The "fill" value on each
+   WATER_SETS entry is only a visual flourish for the drawing — it is NOT the
+   basis for the MOST/LEAST answer. The answer is about which container type
+   physically holds more, regardless of how full it's drawn. */
+const CAPACITY_RANK={spoonC:1,cupC:3,glassC:3,mugC:4,bowlC:4,bottleC:5,jugC:6,bucketC:7};
+
 const WATER_SETS=[
   [{key:'spoonC',label:'Spoon',fill:0.9},{key:'cupC',label:'Cup',fill:0.6},{key:'bucketC',label:'Bucket',fill:0.5},'Circle the container that can hold the MOST water.'],
   [{key:'spoonC',label:'Spoon',fill:0.9},{key:'glassC',label:'Glass',fill:0.55},{key:'jugC',label:'Jug',fill:0.45},'Tick (✓) the container that can hold the LEAST water.'],
@@ -729,28 +738,42 @@ function section1(){
   rightShuf.forEach(([key,label])=>{
     rH+='<div class="matchitem"><span class="dot"></span><div class="micontent"><div class="imgbox">'+ic(key,48)+'</div><span>'+label+'</span></div></div>';
   });
-  return '<p class="qinstr">1) Match the objects that have the same shape by drawing lines.</p>'+
-    '<div class="matchwrap"><div class="matchcol">'+lH+'</div><div class="matchcol">'+rH+'</div></div>';
+  // leftItems[i] (shape) was matched against rightUniq[i] (object) before shuffling;
+  // find where that same object ended up after shuffle to report 1-based positions.
+  const matches=leftItems.map((L,i)=>{
+    const objLabel=rightUniq[i][1];
+    const rightPos=rightShuf.findIndex(([,lbl])=>lbl===objLabel)+1;
+    return {leftPosition:i+1,leftShape:L.label,rightPosition:rightPos,rightObject:objLabel};
+  });
+  return {
+    html:'<p class="qinstr">1) Match the objects that have the same shape by drawing lines.</p>'+
+      '<div class="matchwrap"><div class="matchcol">'+lH+'</div><div class="matchcol">'+rH+'</div></div>',
+    answer:{question:'Match the objects that have the same shape.',type:'matching',matches}
+  };
 }
 
 function section2(){
-  function row(iA,iB,q){
+  const cellAnswers=[];
+  function row(iA,iB,q,cellLabel,wantMore){
     const a=ri(2,5),b=ri(6,10);
     const order=Math.random()<0.5?[a,b]:[b,a];
     let gA='',gB='';
     for(let k=0;k<order[0];k++) gA+=ic(iA,26);
     for(let k=0;k<order[1];k++) gB+=ic(iB,26);
+    const correctSide=(wantMore?(order[0]>order[1]):(order[0]<order[1]))?'Left':'Right';
+    cellAnswers.push({cell:cellLabel,instruction:q,leftCount:order[0],rightCount:order[1],correctSide:correctSide});
     return '<div class="group-compare"><div class="group-box">'+gA+'</div><div class="group-box">'+gB+'</div></div>'+
       '<div class="qrow">'+q+'</div>';
   }
   const icons=sh(COUNT_ICONS);
-  return '<p class="qinstr">2) Circle the group as directed.</p>'+
+  const html='<p class="qinstr">2) Circle the group as directed.</p>'+
     '<table style="width:100%;border-collapse:collapse;">'+
-    '<tr><td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[0],icons[1],'Circle the group that has MORE.')+'</td>'+
-    '<td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[2],icons[3],'Circle the group that has MORE.')+'</td></tr>'+
-    '<tr><td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[4],icons[5],'Circle the group that has LESS.')+'</td>'+
-    '<td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[6],icons[7],'Circle the group that has LESS.')+'</td></tr>'+
+    '<tr><td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[0],icons[1],'Circle the group that has MORE.','TopLeft',true)+'</td>'+
+    '<td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[2],icons[3],'Circle the group that has MORE.','TopRight',true)+'</td></tr>'+
+    '<tr><td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[4],icons[5],'Circle the group that has LESS.','BottomLeft',false)+'</td>'+
+    '<td style="border:1.4px solid #000;padding:5px 8px;">'+row(icons[6],icons[7],'Circle the group that has LESS.','BottomRight',false)+'</td></tr>'+
     '</table>';
+  return {html:html,answer:{question:'Circle the group as directed (4 cells).',type:'compare-groups',cells:cellAnswers}};
 }
 
 function section3(){
@@ -769,8 +792,16 @@ function section3(){
     let imgs='';for(let k=0;k<cnt;k++) imgs+=IC[ico](22);
     rH+='<div class="matchitem"><span class="dot"></span><div class="micontent"><div class="pair-box">'+imgs+'</div></div></div>';
   });
-  return '<p class="qinstr">3) Draw lines to match each group that has the same number of objects.</p>'+
-    '<div class="matchwrap"><div class="matchcol">'+lH+'</div><div class="matchcol">'+rH+'</div></div>';
+  // counts are unique per set, so matching by count is unambiguous
+  const matches=leftItems.map((L,i)=>{
+    const rightPos=rightShuf.findIndex(R=>R.cnt===L.cnt)+1;
+    return {leftPosition:i+1,count:L.cnt,rightPosition:rightPos};
+  });
+  return {
+    html:'<p class="qinstr">3) Draw lines to match each group that has the same number of objects.</p>'+
+      '<div class="matchwrap"><div class="matchcol">'+lH+'</div><div class="matchcol">'+rH+'</div></div>',
+    answer:{question:'Match each group to the group with the same count.',type:'matching',matches}
+  };
 }
 
 function section4(){
@@ -782,9 +813,14 @@ function section4(){
     items.forEach(({key,label,fill})=>{
       cells+='<div class="container-item">'+ic(key,76,fill)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
     });
-    return '<p class="qinstr">4) Look at the water filled in each container. Solve.</p>'+
+    const wantMost=/MOST/.test(set[3]);
+    const ranked=items.map(it=>({label:it.label,rank:CAPACITY_RANK[it.key]||0}));
+    const best=wantMost?Math.max(...ranked.map(r=>r.rank)):Math.min(...ranked.map(r=>r.rank));
+    const correctLabel=ranked.find(r=>r.rank===best).label;
+    return {html:'<p class="qinstr">4) Look at the water filled in each container. Solve.</p>'+
       '<div class="container-row">'+cells+'</div>'+
-      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[3]+'</p>';
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[3]+'</p>',
+      answer:{question:set[3],type:'water-capacity',options:items.map(it=>it.label),correctAnswer:correctLabel}};
   }
   if(type==='length'){
     const set=pk(LENGTH_SETS);
@@ -793,9 +829,13 @@ function section4(){
     items.forEach(({key,label,len})=>{
       cells+='<div class="container-item">'+ic(key,90,len)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
     });
-    return '<p class="qinstr">4) Compare the length. Solve.</p>'+
+    const wantLonger=/LONGER/.test(set[2]);
+    const target=wantLonger?Math.max(items[0].len,items[1].len):Math.min(items[0].len,items[1].len);
+    const correctLabel=items.find(it=>it.len===target).label;
+    return {html:'<p class="qinstr">4) Compare the length. Solve.</p>'+
       '<div class="container-row">'+cells+'</div>'+
-      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>';
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>',
+      answer:{question:set[2],type:'length-compare',options:items.map(it=>it.label),correctAnswer:correctLabel}};
   }
   if(type==='height'){
     const set=pk(HEIGHT_SETS);
@@ -804,9 +844,13 @@ function section4(){
     items.forEach(({key,label,h})=>{
       cells+='<div class="container-item">'+ic(key,90,h)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
     });
-    return '<p class="qinstr">4) Compare the height. Solve.</p>'+
+    const wantTaller=/TALLER/.test(set[2]);
+    const target=wantTaller?Math.max(items[0].h,items[1].h):Math.min(items[0].h,items[1].h);
+    const correctLabel=items.find(it=>it.h===target).label;
+    return {html:'<p class="qinstr">4) Compare the height. Solve.</p>'+
       '<div class="container-row">'+cells+'</div>'+
-      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>';
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>',
+      answer:{question:set[2],type:'height-compare',options:items.map(it=>it.label),correctAnswer:correctLabel}};
   }
   if(type==='size'){
     const set=pk(SIZE_SETS);
@@ -815,15 +859,21 @@ function section4(){
     items.forEach(({key,label,r})=>{
       cells+='<div class="container-item">'+ic(key,90,r)+'<div style="font-size:11px;font-weight:bold;">'+label+'</div><div class="tickbox"></div></div>';
     });
-    return '<p class="qinstr">4) Compare the size. Solve.</p>'+
+    const wantBigger=/BIGGER/.test(set[2]);
+    const target=wantBigger?Math.max(items[0].r,items[1].r):Math.min(items[0].r,items[1].r);
+    const correctLabel=items.find(it=>it.r===target).label;
+    return {html:'<p class="qinstr">4) Compare the size. Solve.</p>'+
       '<div class="container-row">'+cells+'</div>'+
-      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>';
+      '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">'+set[2]+'</p>',
+      answer:{question:set[2],type:'size-compare',options:items.map(it=>it.label),correctAnswer:correctLabel}};
   }
   // weight
   const [leftKey,rightKey,leftHeavy,desc]=pk(WEIGHT_SETS);
-  return '<p class="qinstr">4) Look at the balance scale showing '+desc+'. Solve.</p>'+
+  const correctSide=leftHeavy?'Left':'Right';
+  return {html:'<p class="qinstr">4) Look at the balance scale showing '+desc+'. Solve.</p>'+
     '<div style="display:flex;justify-content:center;margin:6px 0;">'+IC.seesaw(160,leftKey,rightKey,leftHeavy)+'</div>'+
-    '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">Circle the side that is HEAVIER.</p>';
+    '<p style="text-align:center;font-size:13px;margin-top:6px;font-style:italic;">Circle the side that is HEAVIER.</p>',
+    answer:{question:'Circle the side that is HEAVIER ('+desc+').',type:'weight-compare',leftObject:leftKey,rightObject:rightKey,correctAnswer:correctSide}};
 }
 
 function section5(){
@@ -837,8 +887,17 @@ function section5(){
   rightItems.forEach(([key,label])=>{
     rH+='<div class="matchitem"><span class="dot"></span><div class="micontent"><div class="imgbox">'+ic(key,50)+'</div><span>'+label+'</span></div></div>';
   });
-  return '<p class="qinstr">5) Draw lines to match the objects that go together.</p>'+
-    '<div class="matchwrap"><div class="matchcol">'+lH+'</div><div class="matchcol">'+rH+'</div></div>';
+  // each left item's true partner is pairs[i][1]; find where that landed after shuffle
+  const matches=leftItems.map(([,leftLabel],i)=>{
+    const partnerLabel=pairs[i][1][1];
+    const rightPos=rightItems.findIndex(([,lbl])=>lbl===partnerLabel)+1;
+    return {leftPosition:i+1,leftObject:leftLabel,rightPosition:rightPos,rightObject:partnerLabel};
+  });
+  return {
+    html:'<p class="qinstr">5) Draw lines to match the objects that go together.</p>'+
+      '<div class="matchwrap"><div class="matchcol">'+lH+'</div><div class="matchcol">'+rH+'</div></div>',
+    answer:{question:'Match the objects that go together.',type:'matching',matches}
+  };
 }
 
 function section6(){
@@ -846,36 +905,47 @@ function section6(){
   const arr=sh([...Array(n1).fill('coin1'),...Array(n2).fill('coin2')]);
   let coins='';
   arr.forEach(c=>{coins+=ic(c,54);});
-  return '<p class="qinstr">6) Solve the question.</p>'+
-    '<p style="text-align:center;font-size:16px;font-weight:bold;margin:4px 0;">Circle all the ₹1 coins.</p>'+
-    '<div class="coin-row">'+coins+'</div>';
+  return {
+    html:'<p class="qinstr">6) Solve the question.</p>'+
+      '<p style="text-align:center;font-size:16px;font-weight:bold;margin:4px 0;">Circle all the ₹1 coins.</p>'+
+      '<div class="coin-row">'+coins+'</div>',
+    answer:{question:'Circle all the ₹1 coins.',type:'count',rupee1Count:n1,rupee2Count:n2,totalCoins:n1+n2,correctAnswer:n1+' coins (out of '+(n1+n2)+' total)'}
+  };
 }
 
 function section7(){
   const food=pk(SHARE_FOODS);
-  return '<p class="qinstr">7) Two friends want to share the '+food+' equally. Trace the dotted line to cut it into two equal parts.</p>'+
-    '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0;">'+
-    IC.boyReach(70)+
-    '<div style="display:inline-block;">'+ic(food,90)+'</div>'+
-    IC.girlReach(70)+
-    '</div>';
+  return {
+    html:'<p class="qinstr">7) Two friends want to share the '+food+' equally. Trace the dotted line to cut it into two equal parts.</p>'+
+      '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0;">'+
+      IC.boyReach(70)+
+      '<div style="display:inline-block;">'+ic(food,90)+'</div>'+
+      IC.girlReach(70)+
+      '</div>',
+    answer:{question:'Cut the '+food+' into two equal parts.',type:'descriptive',correctAnswer:'2 equal halves (1 each)'}
+  };
 }
 
 function section8(){
   const scene=pk(Q8_SCENES);
   const [openIcon,actionIcon,closeIcon,story]=scene;
   const openSize=openIcon.includes('Stall')||openIcon==='aquariumFull'?90:78;
-  return '<p class="qinstr">8) '+story+' How many are left? Circle the correct answer.</p>'+
-    '<div style="display:flex;align-items:center;gap:12px;padding:6px 4px;flex-wrap:wrap;">'+
-    ic(openIcon,openSize)+
-    '<span style="font-size:24px;font-weight:bold;">→</span>'+
-    IC[actionIcon](68)+
-    '<span style="font-size:24px;font-weight:bold;">→</span>'+
-    ic(closeIcon,openSize)+
-    '</div>'+
-    '<div style="display:flex;gap:14px;margin-top:6px;">'+
-    ['0','1','2'].map(n=>'<div style="border:2.5px solid #000;padding:6px 20px;font-size:22px;font-weight:bold;font-family:Arial;">'+n+'</div>').join('')+
-    '</div>';
+  return {
+    html:'<p class="qinstr">8) '+story+' How many are left? Circle the correct answer.</p>'+
+      '<div style="display:flex;align-items:center;gap:12px;padding:6px 4px;flex-wrap:wrap;">'+
+      ic(openIcon,openSize)+
+      '<span style="font-size:24px;font-weight:bold;">→</span>'+
+      IC[actionIcon](68)+
+      '<span style="font-size:24px;font-weight:bold;">→</span>'+
+      ic(closeIcon,openSize)+
+      '</div>'+
+      '<div style="display:flex;gap:14px;margin-top:6px;">'+
+      ['0','1','2'].map(n=>'<div style="border:2.5px solid #000;padding:6px 20px;font-size:22px;font-weight:bold;font-family:Arial;">'+n+'</div>').join('')+
+      '</div>',
+    // Every Q8_SCENES story ends with the container/scene fully emptied, so the
+    // correct option is always 0 — this is a property of the story data, not a guess.
+    answer:{question:story+' How many are left?',type:'multiple-choice',options:['0','1','2'],correctAnswer:'0'}
+  };
 }
 
 function section9(){
@@ -888,16 +958,28 @@ function section9(){
     baskets+='<div class="basket-item"><div class="basket-label">'+labels[i]+'</div>'+
       '<div class="pair-box" style="min-width:86px;min-height:86px;">'+imgs+'</div></div>';
   });
-  return '<p class="qinstr">9) Circle the group with the MOST '+icon+'s. Put a tick (✓) on the group with the LEAST.</p>'+
-    '<div class="basket-row">'+baskets+'</div>';
+  const mostLabel=labels[counts.indexOf(Math.max(...counts))];
+  const leastLabel=labels[counts.indexOf(Math.min(...counts))];
+  return {
+    html:'<p class="qinstr">9) Circle the group with the MOST '+icon+'s. Put a tick (✓) on the group with the LEAST.</p>'+
+      '<div class="basket-row">'+baskets+'</div>',
+    answer:{question:'Circle the MOST '+icon+'s; tick the LEAST.',type:'most-least',
+      groups:labels.map((lbl,i)=>({label:lbl,count:counts[i]})),
+      correctMost:mostLabel,correctLeast:leastLabel}
+  };
 }
 
 /* ── WORKSHEET ASSEMBLY ── */
-function buildWorksheetHTML(setNum){
+function buildWorksheet(setNum){
   const builders=[section1,section2,section3,section4,section5,section6,section7,section8,section9];
   let sHtml='';
-  builders.forEach(fn=>{ sHtml+='<div class="section">'+fn()+'</div>'; });
-  return '<div class="page">'+
+  const answers={};
+  builders.forEach((fn,idx)=>{
+    const r=fn();
+    sHtml+='<div class="section">'+r.html+'</div>';
+    answers['Q'+(idx+1)]=r.answer;
+  });
+  const html='<div class="page">'+
     '<div class="ws-header">'+
       '<div class="ws-title">CLASS 1 — MATHEMATICS PRACTICE WORKSHEET</div>'+
       '<div class="ws-sub">Set '+setNum+'</div>'+
@@ -905,14 +987,19 @@ function buildWorksheetHTML(setNum){
     '</div>'+sHtml+
     '<div class="ws-footer">Class 1 — Math FLN Practice &nbsp;|&nbsp; Set '+setNum+'</div>'+
   '</div>';
+  return {html,answers};
 }
 
 /* ── APP LOGIC ── */
-let worksheetHTMLs=[],inserted=[];
+let worksheetHTMLs=[],worksheetAnswers=[],inserted=[];
 function generateSets(n){
   n=Math.max(1,Math.min(100,n|0));
-  worksheetHTMLs=[];
-  for(let i=0;i<n;i++) worksheetHTMLs.push(buildWorksheetHTML(i+1));
+  worksheetHTMLs=[];worksheetAnswers=[];
+  for(let i=0;i<n;i++){
+    const built=buildWorksheet(i+1);
+    worksheetHTMLs.push(built.html);
+    worksheetAnswers.push(built.answers);
+  }
   inserted=new Array(n).fill(false);
   const tabbar=document.getElementById('tabbar');tabbar.innerHTML='';
   for(let i=1;i<=n;i++){
@@ -922,6 +1009,9 @@ function generateSets(n){
   const container=document.getElementById('setsContainer');container.innerHTML='';
   for(let i=1;i<=n;i++){const div=document.createElement('div');div.className='worksheet';div.id='ws-'+i;container.appendChild(div);}
   activateSet(1);
+  // keep the "single set" number input in range with the freshly generated batch
+  const singleInput=document.getElementById('singleSetNum');
+  if(singleInput){singleInput.max=String(n);if((parseInt(singleInput.value,10)||1)>n) singleInput.value='1';}
 }
 function activateSet(num){
   document.querySelectorAll('.worksheet').forEach(w=>w.classList.remove('active'));
@@ -937,6 +1027,128 @@ document.getElementById('generateBtn').addEventListener('click',()=>{
 document.getElementById('printBtn').addEventListener('click',()=>window.print());
 generateSets(parseInt(document.getElementById('setCount').value,10)||5);
 
+/* ── ANSWER KEY ── */
+// Produces a short, human-readable summary of the correct answer for a single
+// question's answer object — used in the CSV "correct_answer" column for
+// quick manual review. The full structured object is always preserved
+// separately (in JSON, and in the CSV raw_json column) for evaluation code.
+function summarizeAnswer(ans){
+  if(!ans) return '';
+  switch(ans.type){
+    case 'matching':
+      return ans.matches.map(m=>'L'+m.leftPosition+'→R'+m.rightPosition).join(', ');
+    case 'compare-groups':
+      return ans.cells.map(c=>c.cell+':'+c.correctSide).join(', ');
+    case 'water-capacity':
+    case 'length-compare':
+    case 'height-compare':
+    case 'size-compare':
+      return ans.correctAnswer;
+    case 'weight-compare':
+      return ans.correctAnswer+' side';
+    case 'count':
+      return ans.correctAnswer;
+    case 'descriptive':
+      return ans.correctAnswer;
+    case 'multiple-choice':
+      return ans.correctAnswer;
+    case 'most-least':
+      return 'Most:'+ans.correctMost+', Least:'+ans.correctLeast;
+    default:
+      return JSON.stringify(ans);
+  }
+}
+
+// Builds the full answer key (JSON-ready) for ONE set only.
+function buildAnswerKeyDataForSet(setNum){
+  return {generatedAt:new Date().toISOString(),set:setNum,answers:worksheetAnswers[setNum-1]};
+}
+
+// Builds the full answer key (JSON-ready) for sets in [start,end] (1-based, inclusive).
+// Kept for the combined multi-set JSON/CSV export from the "Download Answer Key" button.
+function buildAnswerKeyData(start,end){
+  const sets=[];
+  for(let i=start;i<=end;i++){
+    sets.push({set:i,answers:worksheetAnswers[i-1]});
+  }
+  return {generatedAt:new Date().toISOString(),setRange:[start,end],sets};
+}
+
+// Flattens a single set's answers into CSV rows: one row per question.
+function buildAnswerKeyCSVForSet(setNum){
+  const rows=[['set','question','type','question_text','correct_answer','raw_json']];
+  const answers=worksheetAnswers[setNum-1];
+  Object.keys(answers).forEach(qKey=>{
+    const ans=answers[qKey];
+    const cell=s=>'"'+String(s).replace(/"/g,'""')+'"';
+    rows.push([setNum,qKey,ans.type||'',cell(ans.question||''),cell(summarizeAnswer(ans)),cell(JSON.stringify(ans))]);
+  });
+  return rows.map(r=>r.join(',')).join('\r\n');
+}
+
+// Flattens the same range into CSV rows: one row per (set, question).
+// Kept for the combined multi-set CSV export from the "Download Answer Key" button.
+function buildAnswerKeyCSV(start,end){
+  const rows=[['set','question','type','question_text','correct_answer','raw_json']];
+  for(let i=start;i<=end;i++){
+    const answers=worksheetAnswers[i-1];
+    Object.keys(answers).forEach(qKey=>{
+      const ans=answers[qKey];
+      const cell=s=>'"'+String(s).replace(/"/g,'""')+'"';
+      rows.push([i,qKey,ans.type||'',cell(ans.question||''),cell(summarizeAnswer(ans)),cell(JSON.stringify(ans))]);
+    });
+  }
+  return rows.map(r=>r.join(',')).join('\r\n');
+}
+
+function triggerTextDownload(filename,text,mime){
+  const blob=new Blob([text],{type:mime||'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('downloadAnswerKeyBtn').addEventListener('click',()=>{
+  if(!worksheetAnswers.length){alert('Generate at least one set first.');return;}
+  const n=worksheetAnswers.length,pw=String(n).length;
+  const json=buildAnswerKeyData(1,n);
+  const csv=buildAnswerKeyCSV(1,n);
+  triggerTextDownload('AnswerKey_Sets001-'+String(n).padStart(pw,'0')+'.json',JSON.stringify(json,null,2),'application/json');
+  triggerTextDownload('AnswerKey_Sets001-'+String(n).padStart(pw,'0')+'.csv',csv,'text/csv');
+});
+
+/* ── SINGLE-SET DOWNLOAD (PDF + its own Answer Key JSON) ── */
+document.getElementById('downloadSingleSetBtn').addEventListener('click',async ()=>{
+  if(!worksheetHTMLs.length){alert('Generate at least one set first.');return;}
+  const n=worksheetHTMLs.length;
+  const input=document.getElementById('singleSetNum');
+  let setNum=parseInt(input.value,10);
+  if(!setNum || setNum<1) setNum=1;
+  if(setNum>n) setNum=n;
+  input.value=setNum;
+
+  const singleBtn=document.getElementById('downloadSingleSetBtn'),eb=document.getElementById('exportAllBtn'),gb=document.getElementById('generateBtn'),pr=document.getElementById('exportProgress');
+  singleBtn.disabled=true;eb.disabled=true;gb.disabled=true;
+  pr.textContent='Building PDF for Set '+setNum+'…';
+  const pw=String(n).length;
+  const padded=String(setNum).padStart(pw,'0');
+  try{
+    const blob=await buildPdfBlobForSet(setNum,2);
+    await downloadBlob(blob,'Set_'+padded+'.pdf');
+
+    pr.textContent='Building answer key for Set '+setNum+'…';
+    const json=buildAnswerKeyDataForSet(setNum);
+    triggerTextDownload('AnswerKey_Set'+padded+'.json',JSON.stringify(json,null,2),'application/json');
+
+    pr.textContent='Done — Set '+setNum+' PDF and its Answer Key downloaded.';
+  }catch(e){
+    console.error(e);
+    pr.textContent='Download failed: '+(e && e.message ? e.message : e);
+  }
+  finally{singleBtn.disabled=false;eb.disabled=false;gb.disabled=false;}
+});
+
 /* ── PDF EXPORT ── */
 function computePdfSlices(imgW,imgH,mmW,mmH){
   const pxMM=imgW/mmW,phPx=Math.max(1,Math.round(mmH*pxMM));
@@ -945,34 +1157,101 @@ function computePdfSlices(imgW,imgH,mmW,mmH){
   return slices;
 }
 function sliceCanvas(src,sy,sh){const c=document.createElement('canvas');c.width=src.width;c.height=sh;c.getContext('2d').drawImage(src,0,sy,src.width,sh,0,0,src.width,sh);return c;}
-async function buildPdfBlobForSet(i){
+async function buildPdfBlobForSet(i,scale){
+  scale=scale||2;
   const rr=document.getElementById('pdfRenderRoot');rr.innerHTML=worksheetHTMLs[i-1];
   await new Promise(r=>requestAnimationFrame(r));await new Promise(r=>requestAnimationFrame(r));
   const pe=rr.querySelector('.page');
-  const cv=await html2canvas(pe,{scale:2,backgroundColor:'#ffffff'});
-  const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
+  const cv=await html2canvas(pe,{scale:scale,backgroundColor:'#ffffff'});
+  const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',compress:true});
   const slices=computePdfSlices(cv.width,cv.height,210,297);
-  slices.forEach((s,idx)=>{const sc=sliceCanvas(cv,s.sy,s.sh);const d=sc.toDataURL('image/png');if(idx>0)pdf.addPage();pdf.addImage(d,'PNG',0,0,210,s.mmH);});
-  rr.innerHTML='';return pdf.output('blob');
+  slices.forEach((s,idx)=>{
+    const sc=sliceCanvas(cv,s.sy,s.sh);
+    // JPEG at high quality is 5-10x smaller than PNG for these pages and avoids
+    // memory blow-up when building many PDFs back to back.
+    const d=sc.toDataURL('image/jpeg',0.85);
+    if(idx>0)pdf.addPage();
+    pdf.addImage(d,'JPEG',0,0,210,s.mmH);
+    sc.width=0;sc.height=0; // release this slice's pixel buffer immediately
+  });
+  cv.width=0;cv.height=0; // release the full-page canvas buffer immediately
+  rr.innerHTML='';
+  const blob=pdf.output('blob');
+  return blob;
 }
+async function downloadBlob(blob,filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  // give the browser a moment to actually start the download before revoking
+  await new Promise(r=>setTimeout(r,250));
+  URL.revokeObjectURL(url);
+}
+
 async function exportAllSetsAsZip(){
   if(!worksheetHTMLs.length){alert('Generate at least one set first.');return;}
   const eb=document.getElementById('exportAllBtn'),gb=document.getElementById('generateBtn'),pr=document.getElementById('exportProgress');
-  const n=worksheetHTMLs.length;eb.disabled=true;gb.disabled=true;
+  const sb=document.getElementById('downloadSingleSetBtn');
+  const n=worksheetHTMLs.length;eb.disabled=true;gb.disabled=true;if(sb)sb.disabled=true;
+  // For large batches, drop the render scale slightly to keep memory/time in check.
+  const scale=n>40?1.5:2;
+  // KEY FIX: never hold more than CHUNK_SIZE built PDFs in memory at once.
+  // A single 100-set ZIP requires the browser to keep ~100 PDF blobs (plus the
+  // canvas currently being rendered) alive simultaneously, which is what was
+  // crashing/hanging the export. Splitting into small chunks — each with its
+  // own ZIP that is fully built, downloaded, and discarded before the next
+  // chunk starts — caps memory use regardless of how many sets you generate.
+  const CHUNK_SIZE=20;
+  const pw=String(n).length;
+  const failed=[];
+  const totalChunks=Math.ceil(n/CHUNK_SIZE);
   try{
-    const zip=new JSZip(),pw=String(n).length;
-    for(let i=1;i<=n;i++){
-      pr.textContent='Building PDF '+i+' of '+n+' …';
-      zip.file('Set_'+String(i).padStart(pw,'0')+'.pdf',await buildPdfBlobForSet(i));
-      await new Promise(r=>setTimeout(r,0));
+    for(let c=0;c<totalChunks;c++){
+      const start=c*CHUNK_SIZE+1,end=Math.min(n,(c+1)*CHUNK_SIZE);
+      const zip=new JSZip();
+      let addedInChunk=0;
+      for(let i=start;i<=end;i++){
+        pr.textContent='Building PDF '+i+' of '+n+' (part '+(c+1)+'/'+totalChunks+')…';
+        try{
+          const blob=await buildPdfBlobForSet(i,scale);
+          zip.file('Set_'+String(i).padStart(pw,'0')+'.pdf',blob);
+          // Each set gets its own answer-key JSON file, named to sit right next
+          // to its PDF in the zip (e.g. Set_001.pdf + AnswerKey_Set001.json).
+          const setJson=buildAnswerKeyDataForSet(i);
+          zip.file('AnswerKey_Set'+String(i).padStart(pw,'0')+'.json',JSON.stringify(setJson,null,2));
+          addedInChunk++;
+        }catch(setErr){
+          console.error('Set '+i+' failed:',setErr);
+          failed.push(i);
+        }
+        // Real yield so the browser can actually run GC between heavy canvas ops.
+        await new Promise(r=>setTimeout(r,20));
+      }
+      if(addedInChunk>0){
+        // Also include one combined CSV for this chunk's sets, for quick
+        // manual/spreadsheet review across the whole chunk at a glance.
+        // (Per-set JSON files above are the "separated" answer files;
+        // this CSV is just a convenience summary, not a duplicate source of truth.)
+        const csv=buildAnswerKeyCSV(start,end);
+        zip.file('AnswerKey_Sets'+String(start).padStart(pw,'0')+'-'+String(end).padStart(pw,'0')+'_summary.csv',csv);
+        pr.textContent='Packaging part '+(c+1)+' of '+totalChunks+'…';
+        // STORE = no extra compression pass; PDFs are already internally
+        // compressed, so DEFLATE here only adds CPU/memory cost for no benefit.
+        const zb=await zip.generateAsync({type:'blob',compression:'STORE'});
+        const fname='Class1_Math_Worksheets_Sets'+String(start).padStart(pw,'0')+'-'+String(end).padStart(pw,'0')+'.zip';
+        await downloadBlob(zb,fname);
+      }
+      // zip/zb for this chunk now go out of scope and can be garbage collected
+      // before the next chunk starts building.
     }
-    pr.textContent='Packaging ZIP …';
-    const zb=await zip.generateAsync({type:'blob'});
-    const url=URL.createObjectURL(zb);const a=document.createElement('a');a.href=url;a.download='Class1_Math_Worksheets_AllSets.zip';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-    pr.textContent='Done — '+n+' PDFs in ZIP.';
-  }catch(e){console.error(e);pr.textContent='Export failed.';}
-  finally{eb.disabled=false;gb.disabled=false;}
+    pr.textContent=failed.length
+      ? 'Done — '+(n-failed.length)+' of '+n+' PDFs downloaded across '+totalChunks+' ZIP file(s). Failed sets: '+failed.join(', ')
+      : 'Done — '+n+' PDFs downloaded across '+totalChunks+' ZIP file(s).';
+  }catch(e){
+    console.error(e);
+    pr.textContent='Export failed: '+(e && e.message ? e.message : e);
+  }
+  finally{eb.disabled=false;gb.disabled=false;if(sb)sb.disabled=false;}
 }
 document.getElementById('exportAllBtn').addEventListener('click',exportAllSetsAsZip);
 </script>
