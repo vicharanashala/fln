@@ -2,660 +2,911 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Class 3 Math FLN Exam Paper Generator</title>
+<title>Class 3 Math Practice Worksheet Generator</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; background: #e0e0e0; color: #000; }
+  *{box-sizing:border-box;}
+  body{font-family:Arial,Helvetica,sans-serif;background:#e9e9e9;color:#000;margin:0;padding:0;}
+  .toolbar{background:#fff;border-bottom:2px solid #000;padding:14px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;position:sticky;top:0;z-index:50;}
+  .toolbar h1{font-size:17px;margin:0;flex-shrink:0;}
+  .toolbar label{font-size:14px;flex-shrink:0;}
+  .toolbar input[type=number]{width:60px;padding:5px;border:1px solid #000;font-size:14px;}
+  .btn{background:#fff;border:1.5px solid #000;color:#000;padding:7px 14px;font-size:13px;cursor:pointer;border-radius:3px;white-space:nowrap;}
+  .btn:hover{background:#000;color:#fff;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn:disabled:hover{background:#fff;color:#000;}
+  .btn-accent{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+  .btn-accent:hover{background:#444;color:#fff;}
+  #exportProgress{font-size:12px;color:#000;min-width:140px;}
+  .tabbar{background:#f3f3f3;border-bottom:2px solid #000;padding:8px 10px 0;display:flex;flex-wrap:wrap;gap:4px;position:sticky;top:60px;z-index:49;max-height:110px;overflow-y:auto;}
+  .tabbtn{background:#ddd;border:1px solid #000;border-bottom:none;padding:5px 13px;font-size:13px;cursor:pointer;border-radius:4px 4px 0 0;}
+  .tabbtn.active{background:#fff;font-weight:bold;}
+  #setsContainer{padding:20px;display:flex;justify-content:center;}
+  .worksheet{display:none;}
+  .worksheet.active{display:block;}
+  .page{background:#fff;width:210mm;min-height:296mm;padding:9mm 11mm;border:1px solid #999;box-shadow:0 0 8px rgba(0,0,0,0.15);}
+  .ws-header{text-align:center;border-bottom:3px solid #000;padding-bottom:7px;margin-bottom:8px;}
+  .ws-title{font-size:19px;font-weight:bold;}
+  .ws-sub{font-size:14px;margin-top:2px;font-weight:bold;}
+  .ws-fields{display:flex;justify-content:space-between;font-size:12.5px;margin-top:8px;flex-wrap:wrap;gap:4px;}
+  .ws-fields span{border-bottom:1px solid #000;padding:0 4px 2px;min-width:110px;display:inline-block;}
+  .section{margin:8px 0 12px 0;}
+  .section h2{font-size:13px;background:#000;color:#fff;padding:3px 7px;margin:0 0 5px 0;display:inline-block;}
+  .instr{font-size:11.5px;font-style:italic;margin:0 0 4px 0;}
+  table.wstable{width:100%;border-collapse:collapse;margin:3px 0;}
+  table.wstable td,table.wstable th{border:1.4px solid #000;padding:4px 6px;vertical-align:middle;font-size:12px;}
+  td.rn{width:22px;text-align:center;font-weight:bold;font-size:12px;}
+  .blankline{display:inline-block;border-bottom:1.4px solid #000;width:60px;margin:0 3px;}
+  .blankline.sm{width:32px;}
+  .blankline.lg{width:110px;}
+  .compbox{display:inline-block;border:2px solid #000;width:30px;height:30px;vertical-align:middle;}
+  .calcgrid{display:flex;gap:18px;flex-wrap:wrap;margin:4px 0;align-items:flex-start;}
+  .calcbox{border:1.5px solid #000;padding:8px 14px 10px;min-width:90px;display:inline-block;vertical-align:top;}
+  .calcbox .qnum{font-size:11px;font-weight:normal;margin-bottom:2px;}
+  .calcbox .top-num{text-align:right;font-size:20px;font-weight:bold;}
+  .calcbox .op-row{display:flex;align-items:center;font-size:20px;font-weight:bold;}
+  .calcbox .op-sym{width:20px;}
+  .calcbox .op-num{text-align:right;flex:1;}
+  .calcbox .ans-line{border-top:2.5px solid #000;margin-top:5px;padding-top:5px;display:flex;align-items:center;gap:4px;font-size:14px;font-weight:bold;}
+  .ansrect{display:inline-block;border:2px solid #000;width:48px;height:30px;vertical-align:middle;}
+  .muldiv-grid{display:flex;gap:20px;flex-wrap:wrap;margin:4px 0;align-items:flex-start;}
+  .mul-box{border:1.5px solid #000;padding:8px 16px 10px;min-width:100px;}
+  .mul-box .qnum{font-size:11px;font-weight:normal;margin-bottom:3px;}
+  .mul-box .mn{text-align:right;font-size:22px;font-weight:bold;}
+  .mul-box .op-row{display:flex;align-items:center;font-size:22px;font-weight:bold;}
+  .mul-box .op-s{width:22px;}
+  .mul-box .ans-line{margin-top:6px;padding-top:0;min-width:60px;}
+  .mul-ansbox{display:block;border:2px solid #000;width:56px;height:32px;margin-left:auto;}
+  .div-box{border:1.5px solid #000;padding:10px 16px 14px;min-width:130px;}
+  .div-box .qnum{font-size:11px;font-weight:normal;margin-bottom:4px;}
+  .div-quotient-blank{display:block;border-bottom:2.5px solid #000;width:44px;height:24px;margin-left:38px;}
+  .div-bracket-row{display:flex;align-items:flex-end;margin-top:1px;}
+  .div-divisor{font-size:19px;font-weight:bold;padding-right:3px;padding-bottom:2px;}
+  .div-bracket{border-left:2.5px solid #000;border-top:2.5px solid #000;padding:2px 10px 2px 8px;font-size:19px;font-weight:bold;}
+  .div-work{margin-left:38px;margin-top:8px;}
+  .div-sub-row{display:flex;align-items:center;gap:3px;font-size:16px;font-weight:bold;}
+  .div-sub-blank{display:inline-block;border-bottom:1.4px solid #000;width:36px;height:18px;}
+  .div-hr2{border-top:1.5px solid #000;width:44px;margin:4px 0;}
+  .div-rem-blank{display:inline-block;border-bottom:1.4px solid #000;width:36px;height:18px;}
+  .clock-grid{display:flex;flex-wrap:wrap;gap:14px;margin:4px 0;}
+  .clock-item{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .clock-ansbox{border:2px solid #000;width:88px;height:26px;border-radius:13px;}
+  .ws-footer{margin-top:8px;border-top:1.4px solid #000;padding-top:4px;font-size:10.5px;text-align:center;color:#444;}
+  .lenrow{display:flex;align-items:center;gap:12px;border:1.6px solid #000;border-radius:10px;padding:7px 14px;margin:6px 0;}
+  .lenrow-num{font-size:14px;font-weight:bold;width:16px;}
+  .lenrow-main{display:flex;flex-direction:column;align-items:flex-start;gap:2px;flex-shrink:0;}
+  .lenrow-object{display:flex;align-items:flex-end;flex-shrink:0;}
+  .lenrow-object svg{display:block;flex-shrink:0;}
+  .lenrow-clips{display:flex;gap:2px;align-items:center;flex-shrink:0;}
+  .lenrow-ans{display:flex;flex-direction:column;align-items:center;gap:3px;margin-left:auto;}
+  .ans-square{border:2px solid #000;border-radius:7px;width:42px;height:42px;}
+  .ans-label{font-size:10.5px;white-space:nowrap;}
+  .wx-wrap{border:1.6px solid #000;border-radius:8px;overflow:hidden;margin-top:4px;}
+  .wx-bank{padding:6px 12px;border-bottom:1.6px solid #000;text-align:center;}
+  .wx-bank .lbl{font-weight:bold;text-decoration:underline;display:block;margin-bottom:3px;font-size:11.5px;}
+  .wx-words{display:flex;justify-content:center;gap:18px;font-size:12px;flex-wrap:wrap;}
+  .wxrow{display:flex;align-items:center;border-top:1.6px solid #000;}
+  .wxrow:first-of-type{border-top:none;}
+  .wx-pic{width:90px;display:flex;align-items:center;justify-content:center;padding:6px;border-right:1.6px solid #000;}
+  .wx-ans{flex:1;padding:8px 12px;}
+  .wx-ansbox{border:1.5px solid #000;border-radius:5px;height:30px;}
 
-  /* CONTROL BAR */
-  #controls {
-    background: #222; color: #fff; padding: 12px 20px;
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    position: sticky; top: 0; z-index: 100;
-  }
-  #controls label { font-size: 14px; }
-  #controls input[type=number] {
-    width: 70px; padding: 4px 8px; border-radius: 4px;
-    border: none; font-size: 14px;
-  }
-  #controls button {
-    padding: 6px 18px; border-radius: 4px; border: none;
-    cursor: pointer; font-size: 14px; font-weight: bold;
-  }
-  #generateBtn { background: #fff; color: #222; }
-  #printBtn { background: #4CAF50; color: #fff; }
-  #exportBtn { background: #2196F3; color: #fff; }
+  /* ── Answer Key Modal ── */
+  #akModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;align-items:center;justify-content:center;}
+  #akModal.open{display:flex;}
+  #akPanel{background:#fff;border:2px solid #000;border-radius:6px;width:min(700px,96vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+  #akPanel .ak-head{background:#000;color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  #akPanel .ak-head h2{margin:0;font-size:16px;}
+  #akPanel .ak-close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;}
+  #akPanel .ak-body{overflow-y:auto;padding:16px 18px;flex:1;}
+  .ak-section{margin-bottom:18px;}
+  .ak-section h3{font-size:13px;background:#000;color:#fff;padding:3px 8px;display:inline-block;margin:0 0 6px;}
+  .ak-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .ak-table th,.ak-table td{border:1px solid #ccc;padding:4px 8px;text-align:left;}
+  .ak-table th{background:#f0f0f0;font-weight:bold;}
+  .ak-table tr:nth-child(even) td{background:#fafafa;}
+  #akPanel .ak-foot{padding:10px 18px;border-top:1px solid #ddd;display:flex;gap:10px;flex-shrink:0;}
 
-  /* TABS */
-  #tabBar {
-    background: #333; display: flex; flex-wrap: wrap;
-    padding: 6px 8px 0; gap: 4px; position: sticky; top: 50px; z-index: 99;
+  @media print{
+    body{background:#fff;}
+    .no-print{display:none !important;}
+    #setsContainer{padding:0;display:block;}
+    .page{box-shadow:none;border:none;width:auto;min-height:0;padding:5mm 9mm;}
+    .worksheet{display:none;}
+    .worksheet.active{display:block;}
+    #akModal{display:none !important;}
   }
-  .tab {
-    padding: 5px 14px; border-radius: 4px 4px 0 0;
-    background: #555; color: #ccc; cursor: pointer;
-    font-size: 13px; border: 1px solid #666; border-bottom: none;
-    transition: background 0.15s;
-  }
-  .tab.active { background: #fff; color: #000; font-weight: bold; }
-  .tab:hover:not(.active) { background: #777; }
-
-  /* PAPER */
-  .set-page { display: none; }
-  .set-page.active { display: block; }
-
-  .paper {
-    background: #fff; max-width: 794px; margin: 20px auto;
-    padding: 40px 50px; box-shadow: 0 2px 12px #0004;
-    font-family: Arial, sans-serif; color: #000;
-  }
-
-  .paper-header {
-    text-align: center; border-bottom: 2px solid #000;
-    padding-bottom: 10px; margin-bottom: 18px;
-  }
-  .paper-header h2 { font-size: 18px; font-weight: bold; }
-  .paper-header .meta {
-    display: flex; justify-content: space-between;
-    font-size: 13px; margin-top: 8px;
-  }
-
-  /* SECTIONS */
-  .section { margin-bottom: 22px; }
-  .section-title {
-    font-weight: bold; font-size: 15px;
-    border-bottom: 1px solid #000; padding-bottom: 3px;
-    margin-bottom: 10px;
-  }
-
-  /* Inputs */
-  input.ans {
-    border: none; border-bottom: 1.5px solid #000;
-    width: 36px; text-align: center;
-    font-size: 14px; font-family: Arial; background: transparent;
-    outline: none; padding: 1px;
-  }
-  input.ans:focus { background: #fffde7; }
-  input.ans-box {
-    border: 1.5px solid #000; width: 34px; height: 26px;
-    text-align: center; font-size: 14px; font-family: Arial;
-    background: transparent; outline: none; display: inline-block;
-    vertical-align: middle;
-  }
-  input.ans-box:focus { background: #fffde7; }
-  input.ans-wide {
-    border: none; border-bottom: 1.5px solid #000;
-    width: 180px; text-align: left;
-    font-size: 14px; font-family: Arial; background: transparent;
-    outline: none; padding: 1px 4px;
-  }
-  input.ans-wide:focus { background: #fffde7; }
-
-  /* Section 1 – Missing Numbers */
-  .missing-row { font-size: 15px; line-height: 2.2; letter-spacing: 1px; }
-
-  /* Section 2 – Comparison */
-  .comp-row { font-size: 15px; margin: 6px 0; }
-
-  /* Section 3 – Shape Names */
-  .shape-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
-  .shape-row svg { flex-shrink: 0; }
-
-  /* Section 4 – Pattern */
-  .pattern-row { font-size: 14px; margin: 8px 0; line-height: 2; }
-
-  /* Section 5 – Addition / Section 6 – Subtraction */
-  .arith-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 10px; margin-top: 8px;
-  }
-  .arith-box {
-    border: 1.5px solid #000; padding: 10px 16px;
-    font-size: 22px; line-height: 1.6; min-height: 90px;
-    position: relative;
-  }
-  .arith-label {
-    font-size: 12px; position: absolute; top: 4px; left: 6px;
-  }
-  .arith-num { text-align: right; padding-right: 8px; }
-  .arith-op { border-top: 1.5px solid #000; padding-top: 4px; padding-right: 8px; text-align: right; }
-  .arith-eq { display: flex; align-items: center; gap: 6px; padding-top: 4px; }
-
-  /* Section 7 – Heavier */
-  .heavier-table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  .heavier-table td, .heavier-table th {
-    border: 1.5px solid #000; padding: 6px 10px; text-align: center;
-  }
-
-  /* Section 8 – Length */
-  .length-row { display: flex; align-items: center; gap: 12px; margin: 10px 0; font-size: 14px; }
-
-  /* Section 9 – Clock */
-  .clock-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
-  .clock-item { text-align: center; }
-  .clock-item input { margin-top: 6px; width: 120px; border-radius: 20px; }
-
-  /* Section 10 – Money */
-  .money-table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  .money-table td, .money-table th {
-    border: 1.5px solid #000; padding: 6px 8px;
-  }
-
-  /* Section 11 – Ascending/Descending */
-  .order-row { font-size: 14px; margin: 8px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-  /* PRINT */
-  @media print {
-    body { background: #fff; }
-    #controls, #tabBar { display: none !important; }
-    .set-page { display: none !important; }
-    .set-page.printing { display: block !important; }
-    .paper { box-shadow: none; margin: 0; padding: 20mm 18mm; max-width: 100%; }
-    input.ans, input.ans-box, input.ans-wide {
-      -webkit-appearance: none; background: transparent !important;
-    }
-    @page { size: A4; margin: 0; }
-  }
+  @page{size:A4;margin:5mm;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
-<div id="controls">
-  <label>Number of Sets: <input type="number" id="numSets" value="5" min="1" max="100"></label>
-  <button id="generateBtn" onclick="generate()">▶ Generate Sets</button>
-  <button id="printBtn" onclick="printCurrent()">🖨 Print Current Set</button>
-  <button id="exportBtn" onclick="exportAllDocs()">📄 Download All as HTML (Multi-Tab)</button>
-  <span id="statusMsg" style="font-size:13px;color:#aaa;"></span>
+<div class="toolbar no-print">
+  <h1>Class 3 — Math Worksheet Generator</h1>
+  <label>Sets: <input type="number" id="setCount" min="1" max="100" value="5"></label>
+  <button class="btn" id="generateBtn">Generate</button>
+  <button class="btn" id="printBtn">Print current set</button>
+  <button class="btn" id="viewAKBtn">View Answer Key (Current Set)</button>
+  <button class="btn" id="dlAKBtn">Download Answer Key (Current Set)</button>
+  <button class="btn btn-accent" id="exportAllBtn">Download All Sets (ZIP + Keys)</button>
+  <span id="exportProgress" class="no-print"></span>
 </div>
-
-<div id="tabBar"></div>
+<div class="tabbar no-print" id="tabbar"></div>
 <div id="setsContainer"></div>
+<div id="pdfRenderRoot" style="position:fixed;left:-99999px;top:0;width:210mm;background:#fff;"></div>
 
-<script>
-// ─── RNG ──────────────────────────────────────────────────────────────────
-function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
-function shuffle(arr){ let a=[...arr]; for(let i=a.length-1;i>0;i--){let j=rand(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; }
-function pick(arr){ return arr[rand(0,arr.length-1)]; }
-
-// ─── SVG DRAWINGS ─────────────────────────────────────────────────────────
-const svgShapes = {
-  triangle: `<polygon points="12,2 22,22 2,22" stroke="#000" stroke-width="1.5" fill="none"/>`,
-  circle: `<circle cx="12" cy="12" r="10" stroke="#000" stroke-width="1.5" fill="none"/>`,
-  square: `<rect x="2" y="2" width="20" height="20" stroke="#000" stroke-width="1.5" fill="none"/>`,
-  star: `<polygon points="12,2 14.5,9 22,9 16,13.5 18,21 12,17 6,21 8,13.5 2,9 9.5,9" stroke="#000" stroke-width="1.2" fill="none"/>`,
-  heart: `<path d="M12,20 C12,20 2,13 2,7 A5,5 0,0,1 12,7 A5,5 0,0,1 22,7 C22,13 12,20 12,20Z" stroke="#000" stroke-width="1.2" fill="none"/>`
-};
-const shapeNames = ['triangle','circle','square','star','heart'];
-
-function clockSVG(h, m) {
-  const cx=60,cy=60,r=54;
-  const hourAngle = ((h%12)/12)*2*Math.PI - Math.PI/2 + (m/60)*(2*Math.PI/12);
-  const minAngle = (m/60)*2*Math.PI - Math.PI/2;
-  const hx = cx + 28*Math.cos(hourAngle), hy = cy + 28*Math.sin(hourAngle);
-  const mx = cx + 42*Math.cos(minAngle), my = cy + 42*Math.sin(minAngle);
-  let ticks = '';
-  for(let i=0;i<12;i++){
-    const a = i/12*2*Math.PI - Math.PI/2;
-    const x1=cx+(r-6)*Math.cos(a), y1=cy+(r-6)*Math.sin(a);
-    const x2=cx+r*Math.cos(a), y2=cy+r*Math.sin(a);
-    ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#000" stroke-width="${i%3===0?2:1}"/>`;
-  }
-  let nums='';
-  const numPos = [[12,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12]];
-  for(let i=0;i<12;i++){
-    const a=i/12*2*Math.PI-Math.PI/2;
-    const nx=cx+(r-16)*Math.cos(a), ny=cy+(r-16)*Math.sin(a);
-    nums+=`<text x="${nx.toFixed(1)}" y="${(ny+4).toFixed(1)}" text-anchor="middle" font-size="9" font-family="Arial">${numPos[i][1]}</text>`;
-  }
-  return `<svg width="120" height="120" viewBox="0 0 120 120">
-    <circle cx="${cx}" cy="${cy}" r="${r}" stroke="#000" stroke-width="2" fill="white"/>
-    ${ticks}${nums}
-    <line x1="${cx}" y1="${cy}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="#000" stroke-width="3" stroke-linecap="round"/>
-    <line x1="${cx}" y1="${cy}" x2="${mx.toFixed(1)}" y2="${my.toFixed(1)}" stroke="#000" stroke-width="2" stroke-linecap="round"/>
-    <circle cx="${cx}" cy="${cy}" r="3" fill="#000"/>
-  </svg>`;
-}
-
-function moneyItemSVG(val) {
-  const notes={20:'₹20',50:'₹50',100:'₹100',200:'₹200',500:'₹500'};
-  const coins={1:'1',2:'2',5:'5',10:'10'};
-  if(notes[val]){
-    return `<svg width="56" height="30" viewBox="0 0 56 30"><rect x="1" y="1" width="54" height="28" rx="3" stroke="#000" stroke-width="1.5" fill="white"/><rect x="4" y="4" width="48" height="22" rx="2" stroke="#000" stroke-width="0.5" fill="none"/><text x="28" y="19" text-anchor="middle" font-size="11" font-weight="bold" font-family="Arial">${notes[val]}</text></svg>`;
-  } else {
-    return `<svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" stroke="#000" stroke-width="1.5" fill="white"/><circle cx="14" cy="14" r="9" stroke="#000" stroke-width="0.5" fill="none"/><text x="14" y="18" text-anchor="middle" font-size="9" font-weight="bold" font-family="Arial">₹${coins[val]}</text></svg>`;
-  }
-}
-
-// ─── SECTION GENERATORS ──────────────────────────────────────────────────
-
-// S1: Missing Numbers 1–100
-function genMissing(id) {
-  // 8 rows: 1-8, 16-23, 31-37, 44-50, 57-64, 70-76, 82-89, 93-100
-  const ranges = [
-    [1,2,3,4,5,6,7,8],[16,17,18,19,20,21,22,23],
-    [31,32,33,34,35,36,37],[44,45,46,47,48,49,50],
-    [57,58,59,60,61,62,63,64],[70,71,72,73,74,75,76],
-    [82,83,84,85,86,87,88,89],[93,94,95,96,97,98,99,100]
-  ];
-  let html = '';
-  ranges.forEach((row,ri) => {
-    // pick 3 to blank
-    let blanks = shuffle(row.slice(1,row.length-1)).slice(0,3).sort((a,b)=>a-b);
-    let line = row.map(n => {
-      if(blanks.includes(n)) return `<input class="ans" data-ans="${n}" value="" maxlength="3">`;
-      return `<span style="font-size:15px">${n}</span>`;
-    }).join('&nbsp;&nbsp;');
-    html += `<div class="missing-row">${line}</div>`;
-  });
-  return `<div class="section"><div class="section-title">1) Missing Numbers : 1 to 100</div>${html}</div>`;
-}
-
-// S2: Comparison (<,>,=)
-function genComparison(id) {
-  let rows = '';
-  for(let i=0;i<5;i++){
-    let a=rand(10,99), b=rand(10,99);
-    // ensure mix of < > =
-    if(i===2) b=a; // force one equal
-    rows += `<div class="comp-row">${a} &nbsp;<input class="ans-box" data-ans="${a<b?'<':a>b?'>':'='}" maxlength="1">&nbsp; ${b}</div>`;
-  }
-  return `<div class="section"><div class="section-title">2) Comparison (&lt;,&gt;,=)</div>${rows}</div>`;
-}
-
-// S3: Write the Shape Name
-function genShapeNames(id) {
-  const shapes=[
-    {name:'Triangle',sym:()=>`<svg width="24" height="24" viewBox="0 0 24 24">${svgShapes.triangle}</svg>`},
-    {name:'Circle',sym:()=>`<svg width="24" height="24" viewBox="0 0 24 24">${svgShapes.circle}</svg>`},
-    {name:'Square',sym:()=>`<svg width="24" height="24" viewBox="0 0 24 24">${svgShapes.square}</svg>`},
-    {name:'Star',sym:()=>`<svg width="24" height="24" viewBox="0 0 24 24">${svgShapes.star}</svg>`},
-    {name:'Heart',sym:()=>`<svg width="24" height="24" viewBox="0 0 24 24">${svgShapes.heart}</svg>`},
-  ];
-  let rows = '';
-  shapes.forEach((s,i) => {
-    rows += `<div class="shape-row">${i+1}. ${s.sym()} = <input class="ans-wide" data-ans="${s.name}" placeholder=""></div>`;
-  });
-  return `<div class="section"><div class="section-title">3) Write the Shape Name</div>${rows}</div>`;
-}
-
-// S4: Pattern
-function genPattern(id) {
-  // 5 pattern questions
-  const patterns = [
-    // numeric even
-    () => { let s=rand(2,4)*2; let seq=[s,s+2,s+4,s+6,s+8]; let next=[s+10,s+12,s+14,s+16,s+18]; return {text:`${seq.join(', ')}, `, blanks:next, label:`(+${2})`}; },
-    // shape AB pattern
-    () => {
-      const sA=pick(['○','□','△']), sB=pick(['★','♥','◇'].filter(x=>x!==sA));
-      let pat=[sA,sB,sA,sB,sA,sB,sA,sB]; let vis=pat.slice(0,8); let next=[sA,sB,sA];
-      return {text:vis.join(' ')+'  ', blanks:next, label:'AB pattern'};
-    },
-    // numeric fives
-    () => { let s=5; let seq=[5,10,15,20,25]; let next=[30,35,40,45,50]; return {text:`${seq.join(', ')}, `, blanks:next.slice(0,5), label:'(+5)'}; },
-    // star heart pattern
-    () => {
-      let pat=['★','♥','★','♥','★','♥','★','♥']; let next=['★','♥','★'];
-      return {text:pat.join(' ')+'  ', blanks:next, label:'★♥ pattern'};
-    },
-    // odd numbers
-    () => { let s=rand(1,3); let seq=[s,s+2,s+4,s+6,s+8]; let next=[s+10,s+12,s+14,s+16,s+18]; return {text:`${seq.join(', ')}, `, blanks:next, label:`odd/skip`}; },
-  ];
-
-  let rows = '';
-  patterns.forEach((pfn,i) => {
-    const p = pfn();
-    let blanksHtml = p.blanks.map((b,bi) => `<input class="ans-box" style="width:40px" data-ans="${b}" maxlength="3">`).join(', ');
-    rows += `<div class="pattern-row">${i+1}. ${p.text} ${blanksHtml}</div>`;
-  });
-  return `<div class="section"><div class="section-title">4) Pattern</div>${rows}</div>`;
-}
-
-// S5: Addition (2-digit)
-function genAddition(id) {
-  let boxes = '';
-  for(let i=0;i<3;i++){
-    let a=rand(10,60), b=rand(10,99-a);
-    boxes += `<div class="arith-box">
-      <span class="arith-label">${i+1}.</span>
-      <div class="arith-num">${a}</div>
-      <div class="arith-op">+ ${b}</div>
-      <div class="arith-eq">= <input class="ans-box" style="width:50px;height:34px;font-size:18px" data-ans="${a+b}" maxlength="3"></div>
-    </div>`;
-  }
-  return `<div class="section"><div class="section-title">5) Addition</div><div class="arith-grid">${boxes}</div></div>`;
-}
-
-// S6: Subtraction (2-digit)
-function genSubtraction(id) {
-  let boxes = '';
-  for(let i=0;i<3;i++){
-    let a=rand(40,99), b=rand(10,a-10);
-    boxes += `<div class="arith-box">
-      <span class="arith-label">${i+4}.</span>
-      <div class="arith-num">${a}</div>
-      <div class="arith-op">− ${b}</div>
-      <div class="arith-eq">= <input class="ans-box" style="width:50px;height:34px;font-size:18px" data-ans="${a-b}" maxlength="3"></div>
-    </div>`;
-  }
-  return `<div class="section"><div class="section-title">6) Subtraction</div><div class="arith-grid">${boxes}</div></div>`;
-}
-
-// S7: Circle the Heavier Object
-function genHeavier(id) {
-  const pairs = [
-    {light:'Feather', heavy:'Book'},
-    {light:'Apple', heavy:'Watermelon'},
-    {light:'Pencil', heavy:'Schoolbag'},
-    {light:'Football', heavy:'Bicycle'},
-    {light:'Spoon', heavy:'Chair'},
-  ];
-  let shuffled = shuffle(pairs);
-  let rows = '';
-  shuffled.forEach((p,i) => {
-    let order = rand(0,1); // 0: light first, 1: heavy first
-    let [A,B] = order===0 ? [p.light,p.heavy] : [p.heavy,p.light];
-    rows += `<tr>
-      <td style="width:30px">${i+1})</td>
-      <td><b>${A}</b></td>
-      <td style="font-weight:bold">OR</td>
-      <td><b>${B}</b></td>
-      <td><input class="ans-wide" style="width:120px" data-ans="${p.heavy}" placeholder="Answer"></td>
-    </tr>`;
-  });
-  return `<div class="section"><div class="section-title">7) Circle the Heavier Object</div>
-    <table class="heavier-table"><thead><tr><th></th><th>Object A</th><th></th><th>Object B</th><th>Heavier is:</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-}
-
-// S8: Length Measurement
-function genLength(id) {
-  const objs = [
-    {name:'pencil', clips: rand(5,12)},
-    {name:'book', clips: rand(8,15)},
-    {name:'eraser', clips: rand(2,5)},
-  ];
-  let rows = '';
-  objs.forEach((o,i) => {
-    rows += `<div class="length-row">
-      ${i+1}. The ${o.name} is <input class="ans-box" data-ans="${o.clips}" maxlength="2"> clips long.
-      <span style="font-size:12px;color:#555">(Hint: count = ${o.clips})</span>
-    </div>`;
-  });
-  return `<div class="section"><div class="section-title">8) Length Measurement (Non-standard Units)</div>${rows}</div>`;
-}
-
-// S9: Clock – Write the time
-function genClock(id) {
-  const times = [];
-  while(times.length<6){
-    let h=rand(1,12), m=pick([0,30]);
-    times.push({h,m});
-  }
-  let boxes = times.map(t => {
-    let label = `${t.h}:${t.m===0?'00':'30'}`;
-    return `<div class="clock-item">
-      ${clockSVG(t.h,t.m)}
-      <br><input class="ans-wide" style="width:100px;border-radius:16px;border:1.5px solid #000;text-align:center" data-ans="${label}" placeholder="__ : __">
-    </div>`;
-  }).join('');
-  return `<div class="section"><div class="section-title">9) Write the time that each clock shows</div>
-    <div class="clock-grid">${boxes}</div></div>`;
-}
-
-// S10: Money – Add note/coin values
-function genMoney(id) {
-  const noteVals=[20,50,100,200,500];
-  const coinVals=[1,2,5,10];
-  let rows='';
-  for(let i=0;i<5;i++){
-    let total=0, items=[];
-    let count=rand(2,3);
-    for(let j=0;j<count;j++){
-      let v = rand(0,1)===0 ? pick(noteVals) : pick(coinVals);
-      items.push(v); total+=v;
-    }
-    let imgs = items.map(v=>moneyItemSVG(v)).join(' ');
-    rows += `<tr>
-      <td style="width:30px">${i+1})</td>
-      <td style="min-width:180px">${imgs}</td>
-      <td><input class="ans-box" style="width:60px;height:34px" data-ans="${total}" maxlength="4"></td>
-    </tr>`;
-  }
-  return `<div class="section"><div class="section-title">10) Add the value of note or coin and write the sum</div>
-    <table class="money-table"><tbody>${rows}</tbody></table></div>`;
-}
-
-// S11: Ascending Order
-function genAscending(id) {
-  let rows='';
-  for(let i=0;i<2;i++){
-    let nums = shuffle([...new Set([rand(1,20),rand(1,20),rand(1,20),rand(1,20),rand(1,20)])].slice(0,5));
-    let sorted = [...nums].sort((a,b)=>a-b).join(', ');
-    rows += `<div class="order-row">${i+1}. Arrange in ascending order: ${nums.join(', ')} = <input class="ans-wide" style="width:220px" data-ans="${sorted}" placeholder=""></div>`;
-  }
-  return `<div class="section"><div class="section-title">11) Ascending Order</div>${rows}</div>`;
-}
-
-// S12: Descending Order
-function genDescending(id) {
-  let rows='';
-  for(let i=0;i<2;i++){
-    let nums = shuffle([...new Set([rand(1,30),rand(1,30),rand(1,30),rand(1,30),rand(1,30)])].slice(0,5));
-    let sorted = [...nums].sort((a,b)=>b-a).join(', ');
-    rows += `<div class="order-row">${i+1}. Arrange in descending order: ${nums.join(', ')} = <input class="ans-wide" style="width:220px" data-ans="${sorted}" placeholder=""></div>`;
-  }
-  return `<div class="section"><div class="section-title">12) Descending Order</div>${rows}</div>`;
-}
-
-// ─── CHECK ANSWERS ─────────────────────────────────────────────────────────
-function checkAnswers(container) {
-  const inputs = container.querySelectorAll('input[data-ans]');
-  let correct=0, total=inputs.length;
-  inputs.forEach(inp => {
-    const userVal = inp.value.trim();
-    const correct_ans = inp.getAttribute('data-ans').trim();
-    if(userVal === '') { inp.style.background=''; return; }
-    if(userVal === correct_ans) { inp.style.background='#c8f7c5'; correct++; }
-    else { inp.style.background='#ffc8c8'; }
-  });
-  return {correct, total};
-}
-
-// ─── BUILD SET PAGE ────────────────────────────────────────────────────────
-function buildSet(setNum) {
-  const id = `set${setNum}`;
-  const sections = [
-    genMissing(id), genComparison(id), genShapeNames(id),
-    genPattern(id), genAddition(id), genSubtraction(id),
-    genHeavier(id), genLength(id), genClock(id),
-    genMoney(id), genAscending(id), genDescending(id)
-  ];
-
-  const checkBtn = `<button onclick="
-    var res=checkAnswers(document.getElementById('page_${id}'));
-    alert('Score: '+res.correct+' / '+res.total);
-  " style="margin:8px 4px;padding:6px 16px;border:1.5px solid #000;background:#fff;cursor:pointer;font-family:Arial;font-size:13px;">✔ Check Answers</button>`;
-
-  const clearBtn = `<button onclick="
-    document.getElementById('page_${id}').querySelectorAll('input').forEach(i=>{i.value='';i.style.background='';});
-  " style="margin:8px 4px;padding:6px 16px;border:1.5px solid #000;background:#fff;cursor:pointer;font-family:Arial;font-size:13px;">✖ Clear</button>`;
-
-  return `<div class="set-page" id="page_${id}">
-    <div class="paper">
-      <div class="paper-header">
-        <h2>FLN Math Exam Paper – Class 3 &nbsp;|&nbsp; Set ${setNum}</h2>
-        <div class="meta">
-          <span>Name: ______________________________</span>
-          <span>Date: _______________</span>
-          <span>Marks: _______ / 100</span>
-        </div>
-      </div>
-      ${sections.join('\n')}
-      <div style="margin-top:16px;border-top:1px solid #ccc;padding-top:10px">
-        ${checkBtn}${clearBtn}
-        <span style="font-size:12px;color:#888;margin-left:8px">Interactive: type answers then click Check</span>
-      </div>
+<!-- Answer Key Modal -->
+<div id="akModal">
+  <div id="akPanel">
+    <div class="ak-head">
+      <h2 id="akTitle">Answer Key — Set 1</h2>
+      <button class="ak-close" id="akClose">✕</button>
     </div>
-  </div>`;
-}
-
-// ─── GENERATE ALL SETS ────────────────────────────────────────────────────
-function generate() {
-  const n = Math.min(100, Math.max(1, parseInt(document.getElementById('numSets').value)||5));
-  const tabBar = document.getElementById('tabBar');
-  const container = document.getElementById('setsContainer');
-  tabBar.innerHTML = '';
-  container.innerHTML = '';
-
-  for(let i=1;i<=n;i++){
-    // Tab
-    const tab = document.createElement('div');
-    tab.className = 'tab' + (i===1?' active':'');
-    tab.textContent = `Set ${i}`;
-    tab.onclick = () => switchTab(i);
-    tabBar.appendChild(tab);
-
-    // Page
-    container.insertAdjacentHTML('beforeend', buildSet(i));
-  }
-  if(n>0) {
-    document.getElementById('page_set1').classList.add('active');
-  }
-  document.getElementById('statusMsg').textContent = `${n} set(s) generated.`;
-  window._currentSet = 1;
-  window._totalSets = n;
-}
-
-function switchTab(n) {
-  document.querySelectorAll('.set-page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  const page = document.getElementById(`page_set${n}`);
-  if(page) page.classList.add('active');
-  const tabs = document.querySelectorAll('.tab');
-  if(tabs[n-1]) tabs[n-1].classList.add('active');
-  window._currentSet = n;
-}
-
-function printCurrent() {
-  const n = window._currentSet || 1;
-  document.querySelectorAll('.set-page').forEach(p=>p.classList.remove('printing'));
-  const page = document.getElementById(`page_set${n}`);
-  if(page) page.classList.add('printing');
-  window.print();
-}
-
-// ─── EXPORT ALL AS SINGLE HTML WITH TABS ─────────────────────────────────
-function exportAllDocs() {
-  const n = window._totalSets || 0;
-  if(!n){ alert('Please generate sets first.'); return; }
-
-  // Collect all current HTML content
-  let tabBtns = '';
-  let pages = '';
-  for(let i=1;i<=n;i++){
-    tabBtns += `<button onclick="switchE(${i})" id="etab${i}" class="${i===1?'etab active':'etab'}" style="padding:5px 14px;margin:0 2px;border-radius:4px 4px 0 0;border:1px solid #666;border-bottom:none;background:${i===1?'#fff':'#555'};color:${i===1?'#000':'#ccc'};cursor:pointer;font-size:13px">Set ${i}</button>`;
-    const pageEl = document.getElementById(`page_set${i}`);
-    if(pageEl) {
-      let html = pageEl.innerHTML;
-      pages += `<div id="epage_set${i}" style="display:${i===1?'block':'none'}">${html}</div>`;
-    }
-  }
-
-  const fullHTML = `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Class 2 FLN Math – All Sets</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#e0e0e0;color:#000}
-#topbar{background:#222;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
-#topbar button.ctrl{padding:5px 14px;border-radius:4px;border:none;cursor:pointer;font-size:13px;font-weight:bold;background:#fff;color:#222}
-#tabBar2{background:#333;padding:6px 8px 0;display:flex;flex-wrap:wrap;gap:3px;position:sticky;top:46px;z-index:99}
-.etab.active{background:#fff!important;color:#000!important;font-weight:bold}
-.paper{background:#fff;max-width:794px;margin:20px auto;padding:40px 50px;box-shadow:0 2px 12px #0004;font-family:Arial;color:#000}
-.paper-header{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:18px}
-.paper-header h2{font-size:18px;font-weight:bold}
-.paper-header .meta{display:flex;justify-content:space-between;font-size:13px;margin-top:8px}
-.section{margin-bottom:22px}
-.section-title{font-weight:bold;font-size:15px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:10px}
-.missing-row{font-size:15px;line-height:2.2;letter-spacing:1px}
-.comp-row{font-size:15px;margin:6px 0}
-.shape-row{display:flex;align-items:center;gap:10px;margin:8px 0}
-.pattern-row{font-size:14px;margin:8px 0;line-height:2}
-.arith-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
-.arith-box{border:1.5px solid #000;padding:10px 16px;font-size:22px;line-height:1.6;min-height:90px;position:relative}
-.arith-label{font-size:12px;position:absolute;top:4px;left:6px}
-.arith-num{text-align:right;padding-right:8px}
-.arith-op{border-top:1.5px solid #000;padding-top:4px;padding-right:8px;text-align:right}
-.arith-eq{display:flex;align-items:center;gap:6px;padding-top:4px}
-.heavier-table{border-collapse:collapse;width:100%;font-size:13px}
-.heavier-table td,.heavier-table th{border:1.5px solid #000;padding:6px 10px;text-align:center}
-.length-row{display:flex;align-items:center;gap:12px;margin:10px 0;font-size:14px}
-.clock-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.clock-item{text-align:center}
-.money-table{border-collapse:collapse;width:100%;font-size:13px}
-.money-table td{border:1.5px solid #000;padding:6px 8px}
-.order-row{font-size:14px;margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-input.ans{border:none;border-bottom:1.5px solid #000;width:36px;text-align:center;font-size:14px;font-family:Arial;background:transparent;outline:none;padding:1px}
-input.ans:focus{background:#fffde7}
-input.ans-box{border:1.5px solid #000;width:34px;height:26px;text-align:center;font-size:14px;font-family:Arial;background:transparent;outline:none;display:inline-block;vertical-align:middle}
-input.ans-box:focus{background:#fffde7}
-input.ans-wide{border:none;border-bottom:1.5px solid #000;width:180px;text-align:left;font-size:14px;font-family:Arial;background:transparent;outline:none;padding:1px 4px}
-input.ans-wide:focus{background:#fffde7}
-@media print{
-  #topbar,#tabBar2{display:none!important}
-  [id^="epage_set"]{display:none!important}
-  [id^="epage_set"].printing{display:block!important}
-  .paper{box-shadow:none;margin:0;padding:20mm 18mm;max-width:100%}
-  @page{size:A4;margin:0}
-}
-</style>
-</head><body>
-<div id="topbar">
-  <span style="font-size:15px;font-weight:bold">📝 Class 2 FLN Math – All Sets</span>
-  <button class="ctrl" onclick="printCurrent2()">🖨 Print Current Set</button>
+    <div class="ak-body" id="akBody"></div>
+    <div class="ak-foot no-print">
+      <button class="btn" id="akDlJson">Download JSON</button>
+      <button class="btn" id="akDlCsv">Download CSV</button>
+    </div>
+  </div>
 </div>
-<div id="tabBar2">${tabBtns}</div>
-${pages}
+
 <script>
-function switchE(n){
-  document.querySelectorAll('[id^="epage_set"]').forEach(p=>p.style.display='none');
-  document.querySelectorAll('.etab').forEach(t=>{t.style.background='#555';t.style.color='#ccc';t.classList.remove('active');});
-  var p=document.getElementById('epage_set'+n);
-  if(p)p.style.display='block';
-  var t=document.getElementById('etab'+n);
-  if(t){t.style.background='#fff';t.style.color='#000';t.classList.add('active');}
-  window._curE=n;
+/* ===== UTILS ===== */
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function sample(a,n){return shuffle(a).slice(0,n);}
+function pick(a){return a[ri(0,a.length-1)];}
+function tallyString(n){
+  const groups=[];let rem=n;
+  while(rem>=5){groups.push('||||/');rem-=5;}
+  if(rem>0)groups.push('|'.repeat(rem));
+  return groups.length?groups.join(' '):'0';
 }
-function printCurrent2(){
-  var n=window._curE||1;
-  document.querySelectorAll('[id^="epage_set"]').forEach(p=>p.classList.remove('printing'));
-  var p=document.getElementById('epage_set'+n);
-  if(p)p.classList.add('printing');
-  window.print();
-}
-function checkE(container){
-  var inputs=container.querySelectorAll('input[data-ans]');
-  var c=0,t=inputs.length;
-  inputs.forEach(function(inp){
-    var v=inp.value.trim();
-    if(!v){inp.style.background='';return;}
-    if(v===inp.getAttribute('data-ans').trim()){inp.style.background='#c8f7c5';c++;}
-    else inp.style.background='#ffc8c8';
+
+/* ===== SVG ICONS ===== */
+function sw(inner,size){return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;}
+const ICONS={
+  feather:(sz)=>sw(`<path d="M50,90 C30,70 20,40 35,15 C40,5 55,5 65,15 C80,30 70,65 50,90 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M50,90 C50,70 50,50 50,20" fill="none" stroke="#000" stroke-width="1.5"/>
+    <path d="M50,35 C42,32 36,38 38,46 M50,52 C42,50 36,57 38,64" fill="none" stroke="#000" stroke-width="1.2"/>`,sz),
+  book:(sz)=>sw(`<path d="M10,20 C25,12 40,13 50,20 L50,88 C40,81 25,80 10,88 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <path d="M90,20 C75,12 60,13 50,20 L50,88 C60,81 75,80 90,88 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="18" y1="33" x2="40" y2="30" stroke="#000" stroke-width="1.2"/>
+    <line x1="18" y1="43" x2="40" y2="40" stroke="#000" stroke-width="1.2"/>
+    <line x1="18" y1="53" x2="40" y2="50" stroke="#000" stroke-width="1.2"/>
+    <line x1="60" y1="30" x2="82" y2="33" stroke="#000" stroke-width="1.2"/>
+    <line x1="60" y1="40" x2="82" y2="43" stroke="#000" stroke-width="1.2"/>
+    <line x1="60" y1="50" x2="82" y2="53" stroke="#000" stroke-width="1.2"/>`,sz),
+  apple:(sz)=>sw(`<path d="M50,32 C25,28 12,52 22,74 C30,90 44,94 50,94 C56,94 70,90 78,74 C88,52 75,28 50,32 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M50,32 C47,22 53,14 60,10" fill="none" stroke="#000" stroke-width="2.5"/>
+    <path d="M60,12 C68,7 76,13 70,20 C63,23 58,18 60,12 Z" fill="#fff" stroke="#000" stroke-width="2"/>`,sz),
+  watermelon:(sz)=>sw(`<path d="M15,60 C15,35 35,15 50,15 C65,15 85,35 85,60 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M20,60 C20,38 34,20 50,20 C66,20 80,38 80,60 Z" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <line x1="15" y1="60" x2="85" y2="60" stroke="#000" stroke-width="2.5"/>
+    <circle cx="38" cy="45" r="2.5" fill="#000"/><circle cx="52" cy="38" r="2.5" fill="#000"/><circle cx="63" cy="47" r="2.5" fill="#000"/>`,sz),
+  pencil:(sz)=>sw(`<rect x="6" y="42" width="70" height="16" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M76,42 L96,50 L76,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="0" y="42" width="8" height="16" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="34" y1="42" x2="34" y2="58" stroke="#000" stroke-width="1.5"/>`,sz),
+  schoolbag:(sz)=>sw(`<rect x="20" y="28" width="60" height="58" rx="8" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M38,28 C38,16 62,16 62,28" fill="none" stroke="#000" stroke-width="3"/>
+    <rect x="32" y="48" width="36" height="22" rx="4" fill="#fff" stroke="#000" stroke-width="2"/>
+    <line x1="50" y1="48" x2="50" y2="70" stroke="#000" stroke-width="1.5"/>
+    <circle cx="50" cy="59" r="3" fill="#000"/>`,sz),
+  football:(sz)=>sw(`<circle cx="50" cy="50" r="40" fill="#fff" stroke="#000" stroke-width="3"/>
+    <polygon points="50,18 60,30 50,42 40,30" fill="#000"/>
+    <polygon points="18,36 32,36 36,48 24,56" fill="#000"/>
+    <polygon points="82,36 68,36 64,48 76,56" fill="#000"/>
+    <polygon points="32,78 40,66 52,68 52,80" fill="#000"/>
+    <polygon points="68,78 60,66 48,68 48,80" fill="#000"/>`,sz),
+  bicycle:(sz)=>sw(`<circle cx="22" cy="68" r="18" fill="none" stroke="#000" stroke-width="3"/>
+    <circle cx="78" cy="68" r="18" fill="none" stroke="#000" stroke-width="3"/>
+    <path d="M22,68 L46,40 L78,68 M46,40 L40,22 L54,22 M46,40 L60,68" fill="none" stroke="#000" stroke-width="3"/>
+    <line x1="34" y1="18" x2="48" y2="18" stroke="#000" stroke-width="3"/>`,sz),
+  key:(sz)=>sw(`<circle cx="35" cy="42" r="20" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="35" cy="42" r="10" fill="#fff" stroke="#000" stroke-width="2"/>
+    <rect x="52" y="39" width="38" height="6" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="76" y="45" width="6" height="10" fill="#fff" stroke="#000" stroke-width="2"/>
+    <rect x="86" y="45" width="6" height="8" fill="#fff" stroke="#000" stroke-width="2"/>`,sz),
+  chair:(sz)=>sw(`<rect x="22" y="20" width="56" height="34" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="22" y="54" width="8" height="36" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="70" y="54" width="8" height="36" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="22" y1="75" x2="78" y2="75" stroke="#000" stroke-width="2.5"/>
+    <rect x="14" y="20" width="8" height="52" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>`,sz),
+  eraser:(sz)=>sw(`<rect x="14" y="34" width="72" height="32" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>
+    <line x1="44" y1="34" x2="44" y2="66" stroke="#000" stroke-width="2"/>
+    <line x1="14" y1="50" x2="86" y2="50" stroke="#000" stroke-width="1" stroke-dasharray="3,3"/>`,sz),
+  dictionary:(sz)=>sw(`<rect x="18" y="10" width="64" height="80" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="12" y="10" width="10" height="80" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="28" y1="28" x2="72" y2="28" stroke="#000" stroke-width="1.5"/>
+    <line x1="28" y1="38" x2="72" y2="38" stroke="#000" stroke-width="1.5"/>
+    <line x1="28" y1="48" x2="72" y2="48" stroke="#000" stroke-width="1.5"/>
+    <line x1="28" y1="58" x2="60" y2="58" stroke="#000" stroke-width="1.5"/>`,sz),
+  leaf:(sz)=>sw(`<path d="M50,12 C78,28 84,62 50,92 C16,62 22,28 50,12 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M50,18 L50,86" stroke="#000" stroke-width="1.5"/>
+    <path d="M50,35 L34,28 M50,35 L66,28 M50,55 L32,50 M50,55 L68,50" fill="none" stroke="#000" stroke-width="1.2"/>`,sz),
+  stone:(sz)=>sw(`<ellipse cx="50" cy="55" rx="38" ry="28" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M26,45 C32,38 44,36 54,40" fill="none" stroke="#000" stroke-width="1.5"/>
+    <circle cx="38" cy="55" r="2" fill="#000"/><circle cx="58" cy="58" r="2" fill="#000"/>`,sz),
+  pen:(sz)=>sw(`<rect x="40" y="10" width="14" height="60" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <path d="M40,70 L50,90 L60,70 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="36" y="10" width="22" height="8" fill="#fff" stroke="#000" stroke-width="2"/>
+    <line x1="40" y1="22" x2="54" y2="22" stroke="#000" stroke-width="1.2"/>`,sz),
+  laptop:(sz)=>sw(`<rect x="12" y="20" width="76" height="48" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="20" y="28" width="60" height="34" fill="#fff" stroke="#000" stroke-width="1.5"/>
+    <rect x="6" y="68" width="88" height="8" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="36" y="68" width="28" height="4" rx="1" fill="#000"/>`,sz),
+  coin:(sz)=>sw(`<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="1.5"/>
+    <text x="50" y="56" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹</text>`,sz),
+  iron:(sz)=>sw(`<path d="M10,55 L70,55 C90,55 92,35 70,35 L10,35 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="36" y="24" width="16" height="12" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="20" y1="45" x2="60" y2="45" stroke="#000" stroke-width="1.2"/>
+    <circle cx="25" cy="50" r="2" fill="#000"/><circle cx="35" cy="50" r="2" fill="#000"/>`,sz),
+  ruler:(sz)=>sw(`<rect x="6" y="36" width="88" height="28" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    ${Array.from({length:9},(_,i)=>`<line x1="${16+i*9}" y1="36" x2="${16+i*9}" y2="${i%3===0?48:44}" stroke="#000" stroke-width="1.5"/>`).join('')}
+    ${Array.from({length:3},(_,i)=>`<text x="${20+i*27}" y="57" font-size="8" font-family="Arial" fill="#000">${i+1}</text>`).join('')}`,sz),
+  note10:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="20" font-weight="bold" font-family="Arial" fill="#000">₹10</text>`,sz),
+  note20:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="20" font-weight="bold" font-family="Arial" fill="#000">₹20</text>`,sz),
+  note50:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="20" font-weight="bold" font-family="Arial" fill="#000">₹50</text>`,sz),
+  note100:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹100</text>`,sz),
+  note200:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹200</text>`,sz),
+  note500:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹500</text>`,sz),
+  coin1:(sz)=>sw(`<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="1.5"/>
+    <text x="50" y="56" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹1</text>`,sz),
+  coin2:(sz)=>sw(`<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="1.5"/>
+    <text x="50" y="56" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹2</text>`,sz),
+  coin5:(sz)=>sw(`<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="1.5"/>
+    <text x="50" y="56" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹5</text>`,sz),
+  coin10:(sz)=>sw(`<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="1.5"/>
+    <text x="50" y="56" text-anchor="middle" font-size="16" font-weight="bold" font-family="Arial" fill="#000">₹10</text>`,sz),
+  crayon:(sz)=>sw(`<rect x="6" y="40" width="62" height="20" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M68,40 L92,50 L68,60 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <line x1="22" y1="40" x2="22" y2="60" stroke="#000" stroke-width="2"/>
+    <line x1="30" y1="40" x2="30" y2="60" stroke="#000" stroke-width="2"/>`,sz),
+  scissors:(sz)=>sw(`<circle cx="14" cy="34" r="11" fill="none" stroke="#000" stroke-width="2.8"/>
+    <circle cx="14" cy="66" r="11" fill="none" stroke="#000" stroke-width="2.8"/>
+    <line x1="25" y1="36" x2="84" y2="50" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
+    <line x1="25" y1="64" x2="84" y2="50" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>`,sz),
+  brush:(sz)=>sw(`<rect x="6" y="44" width="55" height="12" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="58" y="42" width="10" height="16" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <path d="M68,42 C80,38 92,40 96,46 C92,54 80,58 68,58 C72,52 72,48 68,42 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <path d="M82,42 L86,58 M88,41 L92,57" stroke="#000" stroke-width="1.2"/>`,sz),
+  marker:(sz)=>sw(`<rect x="2" y="42" width="62" height="16" rx="2" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M64,42 L90,46 L90,54 L64,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="80" y="46" width="8" height="8" fill="#000"/>
+    <rect x="-2" y="44" width="8" height="12" fill="#fff" stroke="#000" stroke-width="2"/>`,sz),
+  spoon:(sz)=>sw(`<ellipse cx="50" cy="22" rx="14" ry="18" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="50" y1="40" x2="50" y2="92" stroke="#000" stroke-width="4"/>`,sz),
+};
+function icon(name,sz){return ICONS[name]?ICONS[name](sz):`<svg width="${sz}" height="${sz}" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" fill="none" stroke="#000" stroke-width="3"/><text x="50" y="55" text-anchor="middle" font-size="12" fill="#000">${name}</text></svg>`;}
+function iconStretched(name,w,h){const full=icon(name,100);return full.replace('<svg width="100" height="100"',`<svg width="${w}" height="${h}" preserveAspectRatio="none"`);}
+function clipIcon(w,h){return `<svg width="${w}" height="${h}" viewBox="0 0 70 26" xmlns="http://www.w3.org/2000/svg">
+    <path d="M62,13c0,5.5-5.4,10-15,10H22c-7,0-13-4.5-13-10s6-10,13-10h18" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M48,13c0,3-3,5.5-8,5.5h-9c-4,0-7-2.5-7-5.5s3-5.5,7-5.5h9" fill="none" stroke="#000" stroke-width="2.4" stroke-linecap="round"/>
+  </svg>`;}
+
+/* weather icons */
+function wxCloudPath(){return `M26,62 C16,62 10,54 10,46 C10,38 16,32 24,32 C25,20 35,12 47,12 C58,12 67,19 70,29 C79,29 86,36 86,45 C86,54 79,62 70,62 Z`;}
+function wxSun(sz){
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="22" fill="#fff" stroke="#000" stroke-width="3.5"/>
+    <circle cx="42" cy="46" r="2.2" fill="#000"/><circle cx="58" cy="46" r="2.2" fill="#000"/>
+    <path d="M40,58 a12,10 0 0,0 20,0" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+    ${[0,45,90,135,180,225,270,315].map(a=>{const r1=28,r2=40,rad=a*Math.PI/180;const x1=50+r1*Math.cos(rad),y1=50+r1*Math.sin(rad);const x2=50+r2*Math.cos(rad),y2=50+r2*Math.sin(rad);return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#000" stroke-width="3" stroke-linecap="round"/>`;}).join('')}
+  </svg>`;}
+function wxRainy(sz){return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="${wxCloudPath()}" fill="#fff" stroke="#000" stroke-width="3.5"/>
+    <path d="M32,72 C32,68 36,64 36,64 C36,64 40,68 40,72 C40,74.5 38,76 36,76 C34,76 32,74.5 32,72 Z" fill="#fff" stroke="#000" stroke-width="2.2"/>
+    <path d="M50,76 C50,72 54,68 54,68 C54,68 58,72 58,76 C58,78.5 56,80 54,80 C52,80 50,78.5 50,76 Z" fill="#fff" stroke="#000" stroke-width="2.2"/>
+    <path d="M68,72 C68,68 72,64 72,64 C72,64 76,68 76,72 C76,74.5 74,76 72,76 C70,76 68,74.5 68,72 Z" fill="#fff" stroke="#000" stroke-width="2.2"/>
+  </svg>`;}
+function wxWindy(sz){return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="${wxCloudPath()}" fill="#fff" stroke="#000" stroke-width="3.5"/>
+    <circle cx="34" cy="42" r="1.8" fill="#000"/><circle cx="48" cy="42" r="1.8" fill="#000"/>
+    <path d="M30,52 a10,8 0 0,0 18,0" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M10,70 C20,70 26,66 30,70 C34,74 28,78 22,76" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M16,82 C28,82 36,77 41,82 C46,87 38,91 30,89" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M50,88 C62,88 70,84 75,88" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>`;}
+function wxCloudy(sz){return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14,68 C6,68 1,61 1,54 C1,47 6,42 13,42 C14,32 22,25 32,25 C41,25 48,31 50,39 C58,39 64,45 64,52 C64,59 58,65 51,65 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M40,80 C30,80 24,73 24,65 C24,57 30,52 38,52 C39,41 48,33 59,33 C69,33 78,40 80,49 C90,49 97,56 97,64 C97,72 90,80 81,80 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+  </svg>`;}
+function wxSnowy(sz){
+  function flake(cx,cy,r){let lines='';for(let a=0;a<180;a+=60){const rad=a*Math.PI/180;const x1=cx-r*Math.cos(rad),y1=cy-r*Math.sin(rad);const x2=cx+r*Math.cos(rad),y2=cy+r*Math.sin(rad);lines+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#000" stroke-width="2" stroke-linecap="round"/>`;}return lines;}
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="${wxCloudPath()}" fill="#fff" stroke="#000" stroke-width="3.5"/>
+    ${flake(36,72,7)}${flake(54,78,7)}${flake(72,72,7)}
+  </svg>`;}
+const WX_TYPES=[['Sunny',wxSun],['Rainy',wxRainy],['Windy',wxWindy],['Cloudy',wxCloudy],['Snowy',wxSnowy]];
+
+/* clock */
+function drawClock(h,m){
+  const hA=((h%12)+m/60)*30-90, mA=m*6-90;
+  const hx=50+26*Math.cos(hA*Math.PI/180), hy=50+26*Math.sin(hA*Math.PI/180);
+  const mx=50+36*Math.cos(mA*Math.PI/180), my=50+36*Math.sin(mA*Math.PI/180);
+  let ticks='';for(let i=0;i<12;i++){const a=i*30*Math.PI/180;const r1=i%3===0?36:39;ticks+=`<line x1="${(50+r1*Math.cos(a)).toFixed(1)}" y1="${(50+r1*Math.sin(a)).toFixed(1)}" x2="${(50+43*Math.cos(a)).toFixed(1)}" y2="${(50+43*Math.sin(a)).toFixed(1)}" stroke="#000" stroke-width="${i%3===0?2:1}"/>`;}
+  const nums=[12,1,2,3,4,5,6,7,8,9,10,11];
+  let labels=nums.map((n,i)=>{const a=(i*30-90)*Math.PI/180;return `<text x="${(50+31*Math.cos(a)).toFixed(1)}" y="${(50+31*Math.sin(a)+3).toFixed(1)}" text-anchor="middle" font-size="7" font-family="Arial" fill="#000">${n}</text>`;}).join('');
+  return `<svg width="86" height="86" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="47" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    ${ticks}${labels}
+    <line x1="50" y1="50" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="#000" stroke-width="4" stroke-linecap="round"/>
+    <line x1="50" y1="50" x2="${mx.toFixed(1)}" y2="${my.toFixed(1)}" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="50" cy="50" r="3" fill="#000"/>
+  </svg>`;}
+
+/* ===== SECTIONS ===== */
+
+/**
+ * Each section pushes answer objects in this canonical shape:
+ * {
+ *   questionId: string,   // unique within the set, e.g. "S01_Q1"
+ *   section: string,      // human-readable section name
+ *   sectionCode: string,  // e.g. "S01"
+ *   question: string,     // brief question description
+ *   answer: string        // the expected answer
+ * }
+ */
+
+function section1(allAns){
+  const SC='S01'; const SN='Section 1 — Missing Numbers';
+  const starts=[1,11,21,31,41,51,61,71,81,91];
+  const rows=sample(starts,4).sort((a,b)=>a-b);
+  let html='<p class="instr">Fill in the missing numbers.</p>';
+  rows.forEach((s,rowIdx)=>{
+    const nums=[];for(let i=0;i<8;i++){if(s+i<=100)nums.push(s+i);}
+    const blanks=new Set(sample([...Array(nums.length).keys()],3));
+    const blankVals=[];
+    const cells=nums.map((n,i)=>{
+      if(blanks.has(i)){blankVals.push(n);return `<td style="width:30px;text-align:center;border:1px solid #000;padding:3px;"><span style="display:inline-block;border-bottom:1.4px solid #000;width:22px;"> </span></td>`;}
+      return `<td style="width:30px;text-align:center;border:1px solid #000;padding:3px;font-size:13px;">${n}</td>`;
+    });
+    html+=`<table style="border-collapse:collapse;margin:2px 0;"><tr>${cells.join('')}</tr></table>`;
+    const qId=`${SC}_Row${rowIdx+1}`;
+    allAns.push({questionId:qId,section:SN,sectionCode:SC,question:`Row ${rowIdx+1}: sequence starting at ${s}, fill 3 blanks`,answer:blankVals.join(', ')});
   });
-  alert('Score: '+c+' / '+t);
-}
-window._curE=1;
-<\/script>
-</body></html>`;
-
-  const blob = new Blob([fullHTML], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `Class2_FLN_Math_AllSets.html`;
-  a.click(); URL.revokeObjectURL(url);
+  return html;
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────
-window.onload = () => generate();
+function section2(allAns){
+  const SC='S02'; const SN='Section 2 — Comparison (<, >, =)';
+  const types=shuffle(['eq','lt','gt','lt','gt']);
+  let rows='';
+  types.forEach((t,i)=>{
+    let a,b,sym;
+    if(t==='eq'){a=ri(10,99);b=a;sym='=';}
+    else if(t==='lt'){a=ri(10,88);b=ri(a+1,99);sym='<';}
+    else{a=ri(11,99);b=ri(10,a-1);sym='>';}
+    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:15px;font-weight:bold;">${a} &nbsp;<span class="compbox"></span>&nbsp; ${b}</td></tr>`;
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`Compare: ${a} __ ${b}`,answer:sym});
+  });
+  return `<p class="instr">Put &lt;, &gt;, or = in the box.</p><table class="wstable">${rows}</table>`;
+}
+
+function section3(allAns){
+  const SC='S03'; const SN='Section 3 — Write the Shape Name';
+  const shapes=[['△','Triangle'],['○','Circle'],['□','Square'],['★','Star'],['♡','Heart'],['◇','Diamond'],['▭','Rectangle']];
+  const chosen=sample(shapes,5);
+  let rows='';
+  chosen.forEach(([sym,name],i)=>{
+    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:22px;text-align:center;width:50px;">${sym}</td><td><span class="blankline lg"></span></td></tr>`;
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`Shape: ${sym}`,answer:name});
+  });
+  return `<p class="instr">Write the name of each shape.</p><table class="wstable" style="max-width:320px;">${rows}</table>`;
+}
+
+function section4(allAns){
+  const SC='S04'; const SN='Section 4 — Pattern';
+  function mkPat(given,cont){return {text:`${given.join(', ')}, _____, _____, _____, _____, _____`,answer:cont.join(', ')};}
+  const nPats=[
+    ()=>{const s=ri(1,4)*2;return mkPat([s,s+2,s+4,s+6,s+8],[s+10,s+12,s+14,s+16,s+18]);},
+    ()=>{const s=ri(1,5)*5;return mkPat([s,s+5,s+10,s+15,s+20],[s+25,s+30,s+35,s+40,s+45]);},
+    ()=>{const s=ri(1,4)*2-1;return mkPat([s,s+2,s+4,s+6,s+8],[s+10,s+12,s+14,s+16,s+18]);},
+    ()=>{const s=ri(1,4)*10;return mkPat([s,s+10,s+20,s+30,s+40],[s+50,s+60,s+70,s+80,s+90]);},
+    ()=>{const s=ri(1,9)*3;return mkPat([s,s+3,s+6,s+9,s+12],[s+15,s+18,s+21,s+24,s+27]);},
+  ];
+  const sPats=[
+    {text:`○ □ △ ○ □ △ ○ □ △ _____ _____ _____`,answer:'○, □, △'},
+    {text:`★ ♥ ★ ♥ ★ ♥ ★ _____ _____ _____`,answer:'♥, ★, ♥'},
+    {text:`△ △ ○ △ △ ○ △ △ ○ _____ _____ _____`,answer:'△, △, ○'},
+    {text:`□ ○ ○ □ ○ ○ □ ○ ○ _____ _____ _____`,answer:'□, ○, ○'},
+  ];
+  const all=[...sample(nPats,3).map(f=>f()),...sample(sPats,2)];
+  const mixed=shuffle(all);
+  let rows='';
+  mixed.forEach((p,i)=>{
+    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:13px;letter-spacing:1px;">${p.text}</td></tr>`;
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`Continue pattern: ${p.text.split(',')[0]}...`,answer:p.answer});
+  });
+  return `<p class="instr">Continue the pattern.</p><table class="wstable">${rows}</table>`;
+}
+
+function section5(allAns){
+  const SC='S05'; const SN='Section 5 — Addition';
+  const probs=[];for(let i=0;i<3;i++){const a=ri(10,79),b=ri(10,99-a);probs.push([a,b]);}
+  const boxes=probs.map(([a,b],i)=>{
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`${a} + ${b}`,answer:String(a+b)});
+    return `<div class="calcbox"><div class="qnum">${i+1}.</div><div class="top-num">${a}</div><div class="op-row"><span class="op-sym">+</span><span class="op-num">${b}</span></div><div class="ans-line">= <span class="ansrect"></span></div></div>`;}).join('');
+  return `<div class="calcgrid">${boxes}</div>`;
+}
+
+function section6(allAns){
+  const SC='S06'; const SN='Section 6 — Subtraction';
+  const probs=[];for(let i=0;i<3;i++){const a=ri(30,99),b=ri(10,a-10);probs.push([a,b]);}
+  const boxes=probs.map(([a,b],i)=>{
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`${a} - ${b}`,answer:String(a-b)});
+    return `<div class="calcbox"><div class="qnum">${i+1}.</div><div class="top-num">${a}</div><div class="op-row"><span class="op-sym">−</span><span class="op-num">${b}</span></div><div class="ans-line">= <span class="ansrect"></span></div></div>`;}).join('');
+  return `<div class="calcgrid">${boxes}</div>`;
+}
+
+function section7(allAns){
+  const SC='S07'; const SN='Section 7 — Circle the Heavier Object';
+  const pairs=[
+    ['feather','Feather','book','Book (Heavy)'],['apple','Apple','watermelon','Watermelon'],
+    ['pencil','Pencil','schoolbag','School Bag'],['football','Football','bicycle','Bicycle'],
+    ['key','Key','chair','Chair'],['eraser','Eraser','dictionary','Dictionary'],
+    ['leaf','Leaf','stone','Stone'],['pen','Pen','laptop','Laptop'],
+    ['coin','Coin','iron','Iron'],['pencil','Pencil','book','Book'],
+  ];
+  const chosen=sample(pairs,5);
+  let rows='';
+  chosen.forEach(([ia,na,ib,nb],i)=>{
+    rows+=`<tr><td class="rn">${i+1}</td><td style="text-align:center;padding:6px;">${icon(ia,52)}<br><span style="font-size:11px;">${na}</span></td><td style="text-align:center;font-size:13px;font-weight:bold;width:30px;">OR</td><td style="text-align:center;padding:6px;">${icon(ib,52)}<br><span style="font-size:11px;">${nb}</span></td></tr>`;
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`Heavier: ${na} or ${nb}?`,answer:nb});
+  });
+  return `<p class="instr">Circle the heavier object.</p><table class="wstable"><tr><th style="width:22px;">#</th><th>Object A</th><th style="width:30px;"></th><th>Object B</th></tr>${rows}</table>`;
+}
+
+function section8(allAns){
+  const SC='S08'; const SN='Section 8 — Length Measurement (Paper Clips)';
+  const objs=['pencil','crayon','brush','marker','scissors'];
+  const chosen=sample(objs,1);
+  const CLIP_W=34,CLIP_H=15,GAP=3;
+  let html='';
+  chosen.forEach((key,i)=>{
+    const n=ri(5,9);
+    const totalW=n*CLIP_W+(n-1)*GAP;
+    const objW=Math.max(120,totalW);
+    const clipsHTML=Array.from({length:n},()=>clipIcon(CLIP_W,CLIP_H)).join('');
+    html+=`<div class="lenrow"><div class="lenrow-num">${i+1}.</div><div class="lenrow-main"><div class="lenrow-object">${iconStretched(key,objW,56)}</div><div class="lenrow-clips" style="width:${objW}px;">${clipsHTML}</div></div><div class="lenrow-ans"><div class="ans-square"></div><div class="ans-label"><span class="blankline sm"></span> clips</div></div></div>`;
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`Length of ${key} in paper clips`,answer:String(n)});
+  });
+  return `<p class="instr">Measure each object using paper clips and write the number of clips.</p>${html}`;
+}
+
+function section9(allAns){
+  const SC='S09'; const SN='Section 9 — Write the Time (Clocks)';
+  const times=shuffle([[1,0],[2,30],[3,0],[4,30],[5,0],[6,0],[7,30],[8,0],[9,0],[10,30],[11,0],[12,0],[3,30],[6,30],[9,30]]);
+  const chosen=times.slice(0,4);
+  const items=chosen.map(([h,m],i)=>{
+    const timeStr=`${h}:${String(m).padStart(2,'0')}`;
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`Clock ${i+1} time`,answer:timeStr});
+    return `<div class="clock-item">${drawClock(h,m)}<div class="clock-ansbox"></div></div>`;
+  }).join('');
+  return `<p class="instr">Write the time shown on each clock.</p><div class="clock-grid">${items}</div>`;
+}
+
+function section10(allAns){
+  const SC='S10'; const SN='Section 10 — Add the Value of Note or Coin';
+  const noteMap={10:'note10',20:'note20',50:'note50',100:'note100',200:'note200',500:'note500'};
+  const coinMap={1:'coin1',2:'coin2',5:'coin5',10:'coin10'};
+  const allDenoms=[{v:1,type:'coin'},{v:2,type:'coin'},{v:5,type:'coin'},{v:10,type:'coin'},{v:10,type:'note'},{v:20,type:'note'},{v:50,type:'note'},{v:100,type:'note'},{v:200,type:'note'},{v:500,type:'note'}];
+  let rows='';
+  for(let i=0;i<5;i++){
+    const d1=pick(allDenoms), d2=pick(allDenoms);
+    const key1=d1.type==='coin'?coinMap[d1.v]:noteMap[d1.v];
+    const key2=d2.type==='coin'?coinMap[d2.v]:noteMap[d2.v];
+    const sz=d1.type==='coin'?50:64; const sz2=d2.type==='coin'?50:64;
+    rows+=`<tr><td class="rn">${i+1}</td><td style="text-align:center;padding:4px;">${icon(key1,sz)}<br><span style="font-size:10px;">₹${d1.v}</span></td><td style="text-align:center;font-size:16px;font-weight:bold;">+</td><td style="text-align:center;padding:4px;">${icon(key2,sz2)}<br><span style="font-size:10px;">₹${d2.v}</span></td><td style="text-align:center;">= <span style="display:inline-block;border:2px solid #000;width:50px;height:28px;vertical-align:middle;"></span></td></tr>`;
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`₹${d1.v} (${d1.type}) + ₹${d2.v} (${d2.type})`,answer:`₹${d1.v+d2.v}`});
+  }
+  return `<p class="instr">Add the value of the notes or coins and write the sum.</p><table class="wstable"><tr><th style="width:22px;">#</th><th>Amount 1</th><th style="width:24px;"></th><th>Amount 2</th><th>Sum</th></tr>${rows}</table>`;
+}
+
+function section11(allAns){
+  const SC='S11'; const SN='Section 11 — Ascending Order';
+  let rows='';
+  for(let i=0;i<2;i++){
+    const pool=[...Array(20).keys()].map(x=>x+1+i*20);
+    const nums=sample(pool,5);
+    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:12.5px;">Arrange in ascending order: <b>${nums.join(', ')}</b></td><td><span class="blankline lg"></span></td></tr>`;
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`Ascending: ${nums.join(', ')}`,answer:[...nums].sort((a,b)=>a-b).join(', ')});
+  }
+  return `<p class="instr">Arrange the numbers from smallest to largest.</p><table class="wstable">${rows}</table>`;
+}
+
+function section12(allAns){
+  const SC='S12'; const SN='Section 12 — Descending Order';
+  let rows='';
+  for(let i=0;i<2;i++){
+    const pool=[...Array(20).keys()].map(x=>x+1+i*20);
+    const nums=sample(pool,5);
+    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:12.5px;">Arrange in descending order: <b>${nums.join(', ')}</b></td><td><span class="blankline lg"></span></td></tr>`;
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`Descending: ${nums.join(', ')}`,answer:[...nums].sort((a,b)=>b-a).join(', ')});
+  }
+  return `<p class="instr">Arrange the numbers from largest to smallest.</p><table class="wstable">${rows}</table>`;
+}
+
+function section13(allAns){
+  const SC='S13'; const SN='Section 13 — Calendar Questions';
+  const mns=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const m=ri(0,11), y=ri(2024,2026), mn=mns[m];
+  const fd=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
+  let cal=`<table style="border-collapse:collapse;font-size:10px;"><tr><th colspan="7" style="border:1px solid #000;padding:3px;text-align:center;">${y} ${mn}</th></tr><tr>${['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d=>`<th style="border:1px solid #000;padding:2px 4px;">${d}</th>`).join('')}</tr>`;
+  let day=1,col=fd;
+  while(day<=dim){
+    let row='<tr>';
+    for(let c=0;c<7;c++){
+      if((col>0&&day===1)||day>dim){row+=`<td style="border:1px solid #000;padding:2px 5px;min-width:20px;">&nbsp;</td>`;col--;}
+      else{row+=`<td style="border:1px solid #000;padding:2px 5px;text-align:center;">${day}</td>`;day++;col=-1;}
+      if(col<0)col=0;
+    }
+    row+='</tr>';cal+=row;col=0;
+  }
+  cal+='</table>';
+  const qs=[
+    `1. What is the month? <span class="blankline"></span>`,
+    `2. What is the year? <span class="blankline"></span>`,
+    `3. How many Sundays? <span class="blankline sm"></span>`,
+    `4. How many Saturdays? <span class="blankline sm"></span>`,
+    `5. There are <span class="blankline sm"></span> weeks and <span class="blankline sm"></span> days.`,
+    `6. The 15th is on which day? <span class="blankline"></span>`,
+    `7. What is the last date of the month? <span class="blankline"></span>`,
+    `8. How many Mondays? <span class="blankline sm"></span>`,
+  ].map(q=>`<div style="font-size:11.5px;margin:3px 0;">${q}</div>`).join('');
+  const wkCounts=[0,0,0,0,0,0,0];
+  for(let d=1;d<=dim;d++)wkCounts[(fd+d-1)%7]++;
+  const weeks=Math.floor(dim/7),extraDays=dim%7;
+  const day15=dayNames[(fd+14)%7];
+  const calQA=[
+    ['What is the month?',mn],['What is the year?',String(y)],
+    ['How many Sundays?',String(wkCounts[0])],['How many Saturdays?',String(wkCounts[6])],
+    [`Weeks and extra days`,`${weeks} weeks ${extraDays} days`],
+    ['15th is on which day?',day15],['Last date of the month?',String(dim)],
+    ['How many Mondays?',String(wkCounts[1])],
+  ];
+  calQA.forEach(([q,a],i)=>allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:q,answer:a}));
+  return `<div style="display:flex;gap:12px;flex-wrap:wrap;">${cal}<div>${qs}</div></div>`;
+}
+
+function section14(allAns){
+  const SC='S14'; const SN='Section 14 — Tens and Ones';
+  const nums=sample([...Array(89).keys()].map(x=>x+11),3);
+  let rows1='';
+  nums.forEach((n,i)=>{
+    rows1+=`<tr><td class="rn">${i+1}</td><td style="font-size:15px;font-weight:bold;">${n}</td><td style="font-size:13px;"><span class="blankline sm"></span> tens + <span class="blankline sm"></span> ones</td></tr>`;
+    allAns.push({questionId:`${SC}_P1_Q${i+1}`,section:SN,sectionCode:SC,question:`${n} = ? tens + ? ones`,answer:`${Math.floor(n/10)} tens ${n%10} ones`});
+  });
+  let rows2='';
+  for(let i=0;i<3;i++){
+    const t=ri(1,9),o=ri(0,9);
+    rows2+=`<tr><td class="rn">${i+1}</td><td style="font-size:13px;"><b>${t}</b> tens and <b>${o}</b> ${o===1?'one':'ones'} = </td><td><span class="blankline sm"></span></td></tr>`;
+    allAns.push({questionId:`${SC}_P2_Q${i+1}`,section:SN,sectionCode:SC,question:`${t} tens and ${o} ones = ?`,answer:String(t*10+o)});
+  }
+  return `<p class="instr"><b>Part 1:</b> Write the tens and ones for each number.</p><table class="wstable" style="max-width:380px;">${rows1}</table><p class="instr" style="margin-top:8px;"><b>Part 2:</b> Write the number for each tens and ones.</p><table class="wstable" style="max-width:350px;">${rows2}</table>`;
+}
+
+function section16(allAns){
+  const SC='S15'; const SN='Section 15 — Data Collection and Interpretation';
+  const cats=[
+    ['Fruits',['Apples','Bananas','Grapes','Strawberries','Mangoes','Oranges']],
+    ['Pets',['Dog','Cat','Fish','Rabbit','Bird','Turtle']],
+    ['Sports',['Cricket','Football','Badminton','Chess','Swimming','Running']],
+    ['Colours',['Red','Blue','Green','Yellow','Orange','Purple']],
+  ];
+  const [topic,items]=pick(cats);
+  const counts=items.map(it=>[it,ri(1,10)]);
+  let rows='';
+  counts.forEach(([item,cnt])=>{
+    rows+=`<tr><td style="font-size:12px;">${item}</td><td style="text-align:center;font-size:12px;">${cnt}</td><td style="min-width:90px;height:28px;">&nbsp;</td><td style="text-align:center;min-width:40px;"><span style="display:inline-block;border-bottom:1.4px solid #000;width:32px;"> </span></td></tr>`;
+    allAns.push({questionId:`${SC}_Tally_${item.replace(/\s+/g,'_')}`,section:SN,sectionCode:SC,question:`Tally marks for ${item} (count=${cnt})`,answer:tallyString(cnt)});
+    allAns.push({questionId:`${SC}_Total_${item.replace(/\s+/g,'_')}`,section:SN,sectionCode:SC,question:`Total for ${item}`,answer:String(cnt)});
+  });
+  const [fi,fc]=counts[0];
+  const most=counts.reduce((a,b)=>b[1]>a[1]?b:a);
+  const least=counts.reduce((a,b)=>b[1]<a[1]?b:a);
+  const total=counts.reduce((s,c)=>s+c[1],0);
+  const qs=[
+    `1. How many students chose ${fi}? <span class="blankline sm"></span>`,
+    `2. Which is the favourite of most students? <span class="blankline"></span>`,
+    `3. Which is the least favourite? <span class="blankline"></span>`,
+    `4. How many more chose ${most[0]} than ${least[0]}? <span class="blankline sm"></span>`,
+    `5. Total students in survey? <span class="blankline sm"></span>`,
+  ].map(q=>`<div style="font-size:11.5px;margin:3px 0;">${q}</div>`).join('');
+  [
+    [`How many students chose ${fi}?`,String(fc)],
+    ['Favourite of most students?',most[0]],
+    ['Least favourite?',least[0]],
+    [`How many more chose ${most[0]} than ${least[0]}?`,String(most[1]-least[1])],
+    ['Total students in survey?',String(total)],
+  ].forEach(([q,a],i)=>allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:q,answer:a}));
+  return `<p class="instr">Part 1: Draw tally marks for each number. Part 2: Answer questions.</p><table class="wstable"><tr><th>${topic}</th><th>No. of Students</th><th>Tally Marks</th><th>Total</th></tr>${rows}</table><div style="margin-top:5px;">${qs}</div>`;
+}
+
+function section17(allAns){
+  const SC='S16'; const SN='Section 16 — Weather (Word Bank)';
+  const order=shuffle(WX_TYPES);
+  const rows=order.map(([name,fn],i)=>{
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`Weather picture ${i+1}`,answer:name});
+    return `<div class="wxrow"><div class="wx-pic">${fn(58)}</div><div class="wx-ans"><div class="wx-ansbox"></div></div></div>`;
+  }).join('');
+  return `<p class="instr">Look at the pictures and write the correct weather word.</p><div class="wx-wrap"><div class="wx-bank"><span class="lbl">Word Bank</span><div class="wx-words">${WX_TYPES.map(w=>w[0]).join('&nbsp;&nbsp;&nbsp;&nbsp;')}</div></div>${rows}</div>`;
+}
+
+function section18(allAns){
+  const SC='S17'; const SN='Section 17 — Multiplication';
+  const probs=[];for(let i=0;i<3;i++){const a=ri(2,9),b=ri(2,9);probs.push([a,b]);}
+  const boxes=probs.map(([a,b],i)=>{
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`${a} × ${b}`,answer:String(a*b)});
+    return `<div class="mul-box"><div class="qnum">${i+1}.</div><div class="mn" style="text-align:right;">${a}</div><div class="op-row"><span class="op-s">×</span><span style="flex:1;text-align:right;font-size:22px;font-weight:bold;">${b}</span></div><div class="ans-line"><span class="mul-ansbox"></span></div></div>`;}).join('');
+  return `<div class="muldiv-grid">${boxes}</div>`;
+}
+
+function section19(allAns){
+  const SC='S18'; const SN='Section 18 — Division';
+  const divs=[2,3,4,5,6];
+  const probs=[];
+  for(let i=0;i<3;i++){const d=pick(divs),q=ri(2,9);probs.push([d,d*q]);}
+  const boxes=probs.map(([d,n],i)=>{
+    allAns.push({questionId:`${SC}_Q${i+1}`,section:SN,sectionCode:SC,question:`${n} ÷ ${d}`,answer:String(n/d)});
+    return `<div class="div-box"><div class="qnum">${i+1}.</div><div class="div-quotient-blank"></div><div class="div-bracket-row"><span class="div-divisor">${d}</span><span class="div-bracket">${n}</span></div><div class="div-work"><div class="div-sub-row">−<span class="div-sub-blank"></span></div><div class="div-hr2"></div><div class="div-sub-row"><span class="div-rem-blank"></span></div></div></div>`;}).join('');
+  return `<div class="muldiv-grid">${boxes}</div>`;
+}
+
+const SECTIONS=[
+  {t:'Section 1 — Missing Numbers (1 to 100)',plain:'Section 1 — Missing Numbers',fn:section1},
+  {t:'Section 2 — Comparison (&lt;, &gt;, =)',plain:'Section 2 — Comparison (<, >, =)',fn:section2},
+  {t:'Section 3 — Write the Shape Name',plain:'Section 3 — Write the Shape Name',fn:section3},
+  {t:'Section 4 — Pattern',plain:'Section 4 — Pattern',fn:section4},
+  {t:'Section 5 — Addition',plain:'Section 5 — Addition',fn:section5},
+  {t:'Section 6 — Subtraction',plain:'Section 6 — Subtraction',fn:section6},
+  {t:'Section 7 — Circle the Heavier Object',plain:'Section 7 — Heavier Object',fn:section7},
+  {t:'Section 8 — Length Measurement (Non-standard Units)',plain:'Section 8 — Length Measurement',fn:section8},
+  {t:'Section 9 — Write the Time (Clocks)',plain:'Section 9 — Write the Time',fn:section9},
+  {t:'Section 10 — Add the Value of Note or Coin',plain:'Section 10 — Money (Note/Coin)',fn:section10},
+  {t:'Section 11 — Ascending Order',plain:'Section 11 — Ascending Order',fn:section11},
+  {t:'Section 12 — Descending Order',plain:'Section 12 — Descending Order',fn:section12},
+  {t:'Section 13 — Calendar Questions',plain:'Section 13 — Calendar',fn:section13},
+  {t:'Section 14 — Tens and Ones',plain:'Section 14 — Tens and Ones',fn:section14},
+  {t:'Section 15 — Data Collection and Interpretation',plain:'Section 15 — Data Collection',fn:section16},
+  {t:'Section 16 — Weather',plain:'Section 16 — Weather',fn:section17},
+  {t:'Section 17 — Multiplication',plain:'Section 17 — Multiplication',fn:section18},
+  {t:'Section 18 — Division',plain:'Section 18 — Division',fn:section19},
+];
+
+/* ===== ANSWER KEY DATA STRUCTURE =====
+ * Per-set JSON shape:
+ * {
+ *   meta: { set: N, generated: ISO, totalQuestions: N },
+ *   questions: [
+ *     { questionId, section, sectionCode, question, answer }
+ *   ]
+ * }
+ */
+function buildAnswerKeyForSet(setNum, questions) {
+  return {
+    meta: {
+      set: setNum,
+      generated: new Date().toISOString(),
+      totalQuestions: questions.length,
+      note: "questionId is unique per set and stable for evaluation matching."
+    },
+    questions
+  };
+}
+
+function buildWorksheet(n){
+  const allAns=[];
+  const secs=SECTIONS.map(s=>{
+    const html=s.fn(allAns);
+    return `<div class="section"><h2>${s.t}</h2>${html}</div>`;
+  }).join('');
+  const html=`<div class="page">
+    <div class="ws-header">
+      <div class="ws-title">CLASS 3 — MATHEMATICS PRACTICE WORKSHEET</div>
+      <div class="ws-sub">Set ${n}</div>
+      <div class="ws-fields"><span>Name:</span><span>Date:</span><span>Roll No.:</span><span>Marks: ____ / 100</span></div>
+    </div>${secs}
+    <div class="ws-footer">Class 3 — Math Practice &nbsp;|&nbsp; Set ${n}</div>
+  </div>`;
+  return {html, answerKey: buildAnswerKeyForSet(n, allAns)};
+}
+
+/* ===== CSV export (flat, evaluation-friendly) ===== */
+function csvEscape(v){const s=String(v);return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;}
+function answerKeyToCSV(ak){
+  const rows=[['set','questionId','sectionCode','section','question','answer']];
+  ak.questions.forEach(q=>{rows.push([ak.meta.set,q.questionId,q.sectionCode,q.section,q.question,q.answer]);});
+  return rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+}
+
+function downloadBlob(content,type,filename){
+  const blob=new Blob([typeof content==='string'?content:JSON.stringify(content,null,2)],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+
+/* ===== APP STATE ===== */
+let worksheetHTMLs=[], answerKeys=[], inserted=[], currentSet=1;
+
+function generateSets(n){
+  n=Math.max(1,Math.min(100,n|0));
+  worksheetHTMLs=[];answerKeys=[];inserted=new Array(n).fill(false);
+  for(let i=0;i<n;i++){
+    const {html,answerKey}=buildWorksheet(i+1);
+    worksheetHTMLs.push(html);
+    answerKeys.push(answerKey);
+  }
+  const tabbar=document.getElementById('tabbar');
+  tabbar.innerHTML='';
+  for(let i=1;i<=n;i++){
+    const btn=document.createElement('button');
+    btn.className='tabbtn';btn.id='tabbtn-'+i;btn.textContent='Set '+i;
+    btn.addEventListener('click',()=>activateSet(i));
+    tabbar.appendChild(btn);
+  }
+  const container=document.getElementById('setsContainer');
+  container.innerHTML='';
+  for(let i=1;i<=n;i++){
+    const div=document.createElement('div');div.className='worksheet';div.id='ws-'+i;
+    container.appendChild(div);
+  }
+  activateSet(1);
+}
+
+function activateSet(num){
+  currentSet=num;
+  document.querySelectorAll('.worksheet').forEach(w=>w.classList.remove('active'));
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
+  const div=document.getElementById('ws-'+num);if(!div)return;
+  if(!inserted[num-1]){div.innerHTML=worksheetHTMLs[num-1];inserted[num-1]=true;}
+  div.classList.add('active');
+  const btn=document.getElementById('tabbtn-'+num);if(btn)btn.classList.add('active');
+}
+
+/* ===== ANSWER KEY MODAL ===== */
+function renderAKModal(setNum){
+  const ak=answerKeys[setNum-1];if(!ak)return;
+  document.getElementById('akTitle').textContent=`Answer Key — Set ${setNum}`;
+  // group by sectionCode
+  const bySec={};
+  ak.questions.forEach(q=>{(bySec[q.sectionCode]=bySec[q.sectionCode]||{name:q.section,qs:[]}).qs.push(q);});
+  let html='';
+  Object.values(bySec).forEach(sec=>{
+    html+=`<div class="ak-section"><h3>${sec.name}</h3><table class="ak-table"><thead><tr><th>ID</th><th>Question</th><th>Answer</th></tr></thead><tbody>`;
+    sec.qs.forEach(q=>{html+=`<tr><td style="font-family:monospace;font-size:11px;">${q.questionId}</td><td>${q.question}</td><td><strong>${q.answer}</strong></td></tr>`;});
+    html+='</tbody></table></div>';
+  });
+  document.getElementById('akBody').innerHTML=html;
+  document.getElementById('akModal').classList.add('open');
+  // wire download buttons inside modal
+  document.getElementById('akDlJson').onclick=()=>{
+    downloadBlob(JSON.stringify(ak,null,2),'application/json',`answer_key_Set_${String(setNum).padStart(3,'0')}.json`);};
+  document.getElementById('akDlCsv').onclick=()=>{
+    downloadBlob(answerKeyToCSV(ak),'text/csv',`answer_key_Set_${String(setNum).padStart(3,'0')}.csv`);};
+}
+
+document.getElementById('akClose').addEventListener('click',()=>document.getElementById('akModal').classList.remove('open'));
+document.getElementById('akModal').addEventListener('click',e=>{if(e.target===document.getElementById('akModal'))document.getElementById('akModal').classList.remove('open');});
+
+document.getElementById('viewAKBtn').addEventListener('click',()=>{
+  if(!answerKeys.length){alert('Generate at least one set first.');return;}
+  renderAKModal(currentSet);
+});
+document.getElementById('dlAKBtn').addEventListener('click',()=>{
+  if(!answerKeys.length){alert('Generate at least one set first.');return;}
+  const ak=answerKeys[currentSet-1];
+  const pad=String(answerKeys.length).length;
+  const padded=String(currentSet).padStart(pad,'0');
+  downloadBlob(JSON.stringify(ak,null,2),'application/json',`answer_key_Set_${padded}.json`);
+  setTimeout(()=>downloadBlob(answerKeyToCSV(ak),'text/csv',`answer_key_Set_${padded}.csv`),300);
+});
+
+document.getElementById('generateBtn').addEventListener('click',()=>{
+  generateSets(parseInt(document.getElementById('setCount').value,10)||1);
+});
+document.getElementById('printBtn').addEventListener('click',()=>window.print());
+generateSets(parseInt(document.getElementById('setCount').value,10)||5);
+
+/* ===== PDF + ZIP EXPORT ===== */
+function computeSlices(iw,ih,pw,ph){
+  const pxmm=iw/pw,phPx=Math.max(1,Math.round(ph*pxmm)),sl=[];let y=0;
+  while(y<ih){const h=Math.min(phPx,ih-y);sl.push({sy:y,sh:h,mh:h/pxmm});y+=h;}
+  return sl;
+}
+function sliceCanvas(src,sy,sh){
+  const c=document.createElement('canvas');c.width=src.width;c.height=sh;
+  c.getContext('2d').drawImage(src,0,sy,src.width,sh,0,0,src.width,sh);return c;
+}
+async function buildPdfBlob(idx){
+  const root=document.getElementById('pdfRenderRoot');
+  root.innerHTML=worksheetHTMLs[idx-1];
+  await new Promise(r=>requestAnimationFrame(r));
+  await new Promise(r=>requestAnimationFrame(r));
+  await new Promise(r=>setTimeout(r,120));
+  const canvas=await html2canvas(root.querySelector('.page'),{scale:1.5,backgroundColor:'#ffffff'});
+  const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
+  const slices=computeSlices(canvas.width,canvas.height,210,297);
+  slices.forEach((sl,i)=>{
+    const sc=sliceCanvas(canvas,sl.sy,sl.sh);
+    if(i>0)pdf.addPage();
+    pdf.addImage(sc.toDataURL('image/jpeg',0.85),'JPEG',0,0,210,sl.mh);
+    sc.width=0;sc.height=0;
+  });
+  canvas.width=0;canvas.height=0;root.innerHTML='';
+  return pdf.output('blob');
+}
+
+async function exportAll(){
+  if(!worksheetHTMLs.length){alert('Generate at least one set first.');return;}
+  const eBtn=document.getElementById('exportAllBtn'),gBtn=document.getElementById('generateBtn');
+  const prog=document.getElementById('exportProgress');
+  const n=worksheetHTMLs.length;
+  eBtn.disabled=true;gBtn.disabled=true;
+  try{
+    const zip=new JSZip();
+    const pad=String(n).length;
+    for(let i=1;i<=n;i++){
+      prog.textContent=`Building PDF ${i} of ${n} …`;
+      const padded=String(i).padStart(pad,'0');
+      const folder=zip.folder(`Set_${padded}`);
+      // PDF worksheet
+      folder.file(`Set_${padded}_Worksheet.pdf`, await buildPdfBlob(i));
+      // Per-set answer keys (JSON + CSV) — in same folder as the worksheet
+      const ak=answerKeys[i-1];
+      folder.file(`Set_${padded}_AnswerKey.json`, JSON.stringify(ak,null,2));
+      folder.file(`Set_${padded}_AnswerKey.csv`, answerKeyToCSV(ak));
+      await new Promise(r=>setTimeout(r,150));
+    }
+    // Master combined answer key at root of ZIP for bulk evaluation
+    prog.textContent='Adding master answer key …';
+    const masterJson={
+      meta:{generated:new Date().toISOString(),totalSets:n,note:"All sets combined. Use questionId+set for unique identification."},
+      sets:answerKeys
+    };
+    zip.file('master_answer_key_ALL_SETS.json', JSON.stringify(masterJson,null,2));
+    // Master CSV (all sets, flat — upload entire folder and evaluate with this)
+    const masterCsvRows=[['set','questionId','sectionCode','section','question','answer']];
+    answerKeys.forEach(ak=>{
+      ak.questions.forEach(q=>{masterCsvRows.push([ak.meta.set,q.questionId,q.sectionCode,q.section,q.question,q.answer]);});
+    });
+    zip.file('master_answer_key_ALL_SETS.csv', masterCsvRows.map(r=>r.map(csvEscape).join(',')).join('\n'));
+
+    prog.textContent='Packaging ZIP …';
+    const zb=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}},
+      m=>{prog.textContent='Compressing … '+Math.round(m.percent)+'%';});
+    const url=URL.createObjectURL(zb);
+    const a=document.createElement('a');a.href=url;a.download='Class3_Math_Worksheets.zip';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    prog.textContent=`Done — ${n} sets, each with PDF + JSON + CSV answer keys.`;
+  }catch(e){console.error(e);prog.textContent='Export failed. See console.';}
+  finally{eBtn.disabled=false;gBtn.disabled=false;}
+}
+document.getElementById('exportAllBtn').addEventListener('click',exportAll);
 </script>
 </body>
 </html>
