@@ -1,0 +1,138 @@
+{
+  "exam_id": "C1_EXAM_001",
+  "class": 1,
+  "total_questions": 10,
+  "questions": [
+    {
+      "question_id": "C1_Q001",
+      "question": "5 + 3 = ___",
+      "answer": 8,
+<<<<<<< HEAD
+      "answer_type": "numeric"
+=======
+      "answer_type": "numeric",
+      "topic": "Number Sense|Number Operations|Money|Measurement|Shapes|Fractions|Patterns|Data Handling|Calendar and Time",
+      "subtopic": "The student needs to count 5 + 3 and solve the problem."
+>>>>>>> origin/main
+    },
+    {
+      "question_id": "C1_Q002",
+      "question": "Count: \u2b50 \u2b50 \u2b50 \u2b50. How many?",
+      "answer": 4,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C1_Q003",
+      "question": "9 - 4 = ___",
+      "answer": 5,
+<<<<<<< HEAD
+      "answer_type": "numeric"
+=======
+      "answer_type": "numeric",
+      "topic": "Number Sense|Number Operations|Money|Measurement|Shapes|Fractions|Patterns|Data Handling|Calendar and Time",
+      "subtopic": "Specific skill being tested",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 1|Preschool 2|Preschool 3|Class 1|Class 2|Class 3"
+>>>>>>> origin/main
+    },
+    {
+      "question_id": "C1_Q004",
+      "question": "Which is bigger? 15 or 12?",
+      "answer": 15,
+<<<<<<< HEAD
+      "answer_type": "numeric"
+=======
+      "answer_type": "numeric",
+      "topic": "Number Sense|Number Operations|Money|Measurement|Shapes|Fractions|Patterns|Data Handling|Calendar and Time",
+      "subtopic": "Differences between number operations like addition/subtraction, multiplication tables, subtraction facts and counting up to 100",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 1|Preschool 2|Preschool 3|Class 1|Class 2|Class 3"
+>>>>>>> origin/main
+    },
+    {
+      "question_id": "C1_Q005",
+      "question": "What shape is a ball?",
+      "answer": "circle",
+<<<<<<< HEAD
+      "answer_type": "text"
+=======
+      "answer_type": "text",
+      "topic": "Number Sense|Number Operations|Money|Measurement|Shapes|Fractions|Patterns|Data Handling|Calendar and Time",
+      "subtopic": "Students need to recognize that shapes like a ball are not always flat, they can have different numbers of sides.",
+      "class_level": 1,
+      "difficulty": "medium",
+      "source_level": "Preschool 1|Preschool 2|Preschool 3|Class 1|Class 2|Class 3",
+      "reasoning": "The question is asking for the number of sides a ball has, and since shapes like a ball can have different numbers of sides, understanding this distinction will be essential in understanding how shapes are valued as per Standard Indian Numeration System."
+>>>>>>> origin/main
+    },
+    {
+      "question_id": "C1_Q006",
+      "question": "2 apples + 3 apples = ___ apples",
+      "answer": 5,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C1_Q007",
+      "question": "What comes after 10?",
+      "answer": 11,
+<<<<<<< HEAD
+      "answer_type": "numeric"
+=======
+      "answer_type": "numeric",
+      "topic": "Number Sense",
+      "subtopic": "",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 1|Preschool 2|Class 1",
+      "reasoning": "The question is asking for the next number in decimal place after 10. The answer should be the first digit of the next decimal number that has not been divided by 9. Since the question does not specify which decimal places to divide by, it could be any decimal place from 5 up to 9 (since dividing by 9 is equivalent to dividing by 10). Therefore, there are no restrictions on how many digits will be asked for in the answer."
+>>>>>>> origin/main
+    },
+    {
+      "question_id": "C1_Q008",
+      "question": "How many sides does a triangle have?",
+      "answer": 3,
+<<<<<<< HEAD
+      "answer_type": "numeric"
+=======
+      "answer_type": "numeric",
+      "topic": "Number Sense",
+      "subtopic": "",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 1|Preschool 2|Preschool 3|Class 1|Class 2|Class 3"
+>>>>>>> origin/main
+    },
+    {
+      "question_id": "C1_Q009",
+      "question": "Which is heavier? (bag of stones / feather)",
+      "answer": "bag of stones",
+<<<<<<< HEAD
+      "answer_type": "text"
+=======
+      "answer_type": "text",
+      "topic": "",
+      "subtopic": "",
+      "class_level": "",
+      "difficulty": "",
+      "source_level": ""
+>>>>>>> origin/main
+    },
+    {
+      "question_id": "C1_Q010",
+      "question": "Today is (Yesterday / Today / Tomorrow)?",
+      "answer": "today",
+<<<<<<< HEAD
+      "answer_type": "text"
+=======
+      "answer_type": "text",
+      "topic": "Number Sense",
+      "subtopic": "Numbers and Place Value",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 1|Preschool 2|Preschool 3|Class 1|Class 2|Class 3"
+>>>>>>> origin/main
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "exam_id": "C2_EXAM_001",
+  "class": 2,
+  "total_questions": 10,
+  "questions": [
+    {
+      "question_id": "C2_Q001",
+      "question": "What is 25 + 14?",
+      "answer": 39,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C2_Q002",
+      "question": "What is 48 - 23?",
+      "answer": 25,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C2_Q003",
+      "question": "How many corners does a square have?",
+      "answer": 4,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C2_Q004",
+      "question": "If you share 12 candies equally among 3 children, how many does each child get?",
+      "answer": 4,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C2_Q005",
+      "question": "What is 3 times 4?",
+      "answer": 12,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C2_Q006",
+      "question": "Which is greater: 345 or 354?",
+      "answer": 354,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C2_Q007",
+      "question": "How many ₹10 notes make ₹50?",
+      "answer": 5,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C2_Q008",
+      "question": "What is half of 8?",
+      "answer": 4,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C2_Q009",
+      "question": "How many tens are there in the number 63?",
+      "answer": 6,
+      "answer_type": "numeric"
+    },
+    {
+      "question_id": "C2_Q010",
+      "question": "If you have 3 groups of 5 pencils, how many pencils do you have in total?",
+      "answer": 15,
+      "answer_type": "numeric"
+    }
+  ]
+}
