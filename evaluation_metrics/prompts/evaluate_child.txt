@@ -42,8 +42,4 @@ RESPOND ONLY WITH VALID JSON (no markdown, no explanation):
   "prerequisites_to_check": ["prerequisite skill 1"],
   "recommendation": "specific recommendation text",
   "next_level_assignment": "Class X"
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> origin/main

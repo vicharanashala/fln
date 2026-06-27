@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import json
 import os
 import requests
@@ -41,64 +40,16 @@ class ReportGenerator:
 
     def _generate_retest_report(self, eval_data, student_name):
         report = f"""
-\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557
-\u2551         FLN ASSESSMENT - RETEST NOTIFICATION              \u2551
-\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d
-=======
-# scripts/3_generate_report.py
-
-import json
-from pathlib import Path
-from datetime import datetime
-
-class ReportGenerator:
-    def __init__(self):
-        self.report = None
-    
-    def generate(self, evaluation_file, student_name="Student"):
-        """
-        Generate human-readable report card from evaluation
-        """
-        
-        print("\n" + "="*60)
-        print("REPORT CARD GENERATION")
-        print("="*60 + "\n")
-        
-        with open(evaluation_file) as f:
-            eval_data = json.load(f)
-        
-        # Handle retest case
-        if eval_data.get('decision') == 'RETEST':
-            self.report = self._generate_retest_report(eval_data, student_name)
-        else:
-            self.report = self._generate_evaluation_report(eval_data, student_name)
-        
-        # Print report
-        print(self.report)
-        
-        # Save report
-        self._save_report(eval_data, student_name)
-    
-    def _generate_retest_report(self, eval_data, student_name):
-        """Generate retest notification"""
-        
-        report = f"""
-╔════════════════════════════════════════════════════════════╗
-║         FLN ASSESSMENT - RETEST NOTIFICATION              ║
-╚════════════════════════════════════════════════════════════╝
->>>>>>> origin/main
+{'='*60}
+         FLN ASSESSMENT - RETEST NOTIFICATION
+{'='*60}
 
 Student Name: {student_name}
 Student ID: {eval_data.get('student_id')}
 Test Date: {eval_data.get('test_date')}
 
-<<<<<<< HEAD
 DECISION: RETEST REQUIRED
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-=======
-📋 DECISION: RETEST REQUIRED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
->>>>>>> origin/main
+{'-'*50}
 
 Reason: {eval_data.get('reason')}
 
@@ -106,17 +57,16 @@ The child made minor mistakes (< 10% wrong) in the EASY
 section of the test. This suggests careless errors rather 
 than gaps in understanding.
 
-<<<<<<< HEAD
 RETEST SCHEDULE
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+{'-'*50}
 Retest Date: {eval_data.get('retest_date')}
 Exam: Same assessment (different numbers)
 
 RECOMMENDATION
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+{'-'*50}
 {eval_data.get('recommendation')}
 
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+{'='*60}
 """
         return report
 
@@ -183,36 +133,11 @@ RECOMMENDATION
         boundary_level = eval_data.get('boundary_level', 'Unknown')
         can_do = self._get_can_do_list(demonstrated_level)
 
-=======
-📅 RETEST SCHEDULE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Retest Date: {eval_data.get('retest_date')}
-Exam: Same assessment (different numbers)
-
-💡 RECOMMENDATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{eval_data.get('recommendation')}
-
-════════════════════════════════════════════════════════════
-"""
-        return report
-    
-    def _generate_evaluation_report(self, eval_data, student_name):
-        """Generate full evaluation report"""
-        
-        # Build "What child can do" section
-        demonstrated_level = eval_data.get('demonstrated_level', 'Unknown')
-        boundary_level = eval_data.get('boundary_level', 'Unknown')
-        can_do = self._get_can_do_list(demonstrated_level)
-        
-        # Build areas for growth
->>>>>>> origin/main
         root_causes = eval_data.get('root_causes', [])
         root_cause = eval_data.get('root_cause', '')
         areas_for_growth = ""
         if root_causes:
             for rc in root_causes[:5]:
-<<<<<<< HEAD
                 areas_for_growth += f"\n  \u2022 {rc.get('question_id', '?')}: {rc.get('topic', '?')} \u2014 {rc.get('analysis', rc.get('error', ''))}"
         else:
             for t in eval_data.get('topics_to_focus', []):
@@ -233,60 +158,34 @@ Exam: Same assessment (different numbers)
         placement_suffix = " and is working toward " + boundary_level if demonstrated_level != boundary_level else ""
 
         return f"""
-\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557
-\u2551           FLN ASSESSMENT REPORT CARD                       \u2551
-\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d
-=======
-                areas_for_growth += f"""
-  • {rc.get('question_id', '?')}: {rc.get('topic', '?')} — {rc.get('analysis', rc.get('error', ''))}"""
-        else:
-            for t in eval_data.get('topics_to_focus', []):
-                areas_for_growth += f"""
-  • {t}"""
-        if root_cause and not root_causes:
-            areas_for_growth += f"""
-
-Root cause: {root_cause}"""
-        
-        # Build next steps
-        recommendation = eval_data.get('recommendation', 'Continue current practice')
-        
-        report = f"""
-╔════════════════════════════════════════════════════════════╗
-║           FLN ASSESSMENT REPORT CARD                       ║
-╚════════════════════════════════════════════════════════════╝
->>>>>>> origin/main
+{'='*60}
+           FLN ASSESSMENT REPORT CARD
+{'='*60}
 
 Student Name: {student_name}
 Student ID: {eval_data.get('student_id')}
 Enrolled Class: {eval_data.get('enrolled_class')}
 Test Date: {eval_data.get('test_date')}
 
-<<<<<<< HEAD
 PLACEMENT
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-=======
-📊 PLACEMENT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
->>>>>>> origin/main
+{'-'*50}
 Current Level (Demonstrated): {demonstrated_level}
 Next Frontier (Boundary): {eval_data.get('boundary_level')}
 Confidence: {eval_data.get('confidence_score', 0)*100:.0f}%
 
-<<<<<<< HEAD
 Interpretation: Your child is solid at {demonstrated_level}{placement_suffix}. With focused practice 
 on specific skills, they'll be ready for the next level soon.
 
 WHAT YOUR CHILD CAN DO
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+{'-'*50}
 {can_do}
 
 AREAS FOR GROWTH
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+{'-'*50}
 {areas_for_growth}
 
 ROOT CAUSE ANALYSIS
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+{'-'*50}
 Error Type: {eval_data.get('error_type', 'Not identified')}
 
 Topics to Focus:
@@ -295,48 +194,19 @@ Topics to Focus:
 Prerequisites to Review:
 {prereq_lines}
 
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+{'-'*50}
 {perf_lines if perf_lines else '  Not available'}
 
 NEXT STEPS FOR TEACHER
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-=======
-Interpretation: Your child is solid at {demonstrated_level}{f" and is working toward {boundary_level}" if demonstrated_level != boundary_level else ""}. With focused practice 
-on specific skills, they'll be ready for the next level soon.
-
-✓ WHAT YOUR CHILD CAN DO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{can_do}
-
-⚠️  AREAS FOR GROWTH
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{areas_for_growth}
-
-💡 ROOT CAUSE ANALYSIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Error Type: {eval_data.get('error_type', 'Not identified')}
-
-Topics to Focus:
-{chr(10).join([f"  • {t}" for t in eval_data.get('topics_to_focus', [])])}
-
-Prerequisites to Review:{chr(10) + chr(10).join([f"  • {p}" for p in eval_data.get('prerequisites_to_check', [])]) if eval_data.get('prerequisites_to_check') else '  None identified'}
-
-📈 PERFORMANCE BY DIFFICULTY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{chr(10).join([f"  {d.capitalize()}: {s.get('correct', '?')}/{s.get('attempted', '?')} correct" for d, s in eval_data.get('performance_by_difficulty', {}).items()]) if eval_data.get('performance_by_difficulty') else '  Not available'}
-
-📝 NEXT STEPS FOR TEACHER
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
->>>>>>> origin/main
+{'-'*50}
 
 {recommendation}
 
 Next Assignment: {eval_data.get('next_level_assignment')}
 
-<<<<<<< HEAD
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+{'='*60}
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+{'='*60}
 """
 
     def _get_can_do_list(self, level):
@@ -385,78 +255,16 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             f.write(self.report)
 
         print(f"\u2713 Report saved: {output_file}")
-=======
-════════════════════════════════════════════════════════════
-Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-════════════════════════════════════════════════════════════
-"""
-        return report
-    
-    def _get_can_do_list(self, level):
-        """Get skills for a given level"""
-        
-        skills = {
-            "Class 1": """
-  ✓ Count objects up to 20
-  ✓ Perform single-digit addition (up to 18)
-  ✓ Perform single-digit subtraction (up to 9)
-  ✓ Recognize and read numerals up to 99
-  ✓ Compare numbers using greater than/less than
-  ✓ Identify basic 3D shapes
-  ✓ Understand place value (tens and ones) for numbers up to 20
-  ✓ Measure using non-standard units
-""",
-            "Class 2": """
-  ✓ Count and recognize numbers up to 999
-  ✓ Perform two-digit addition and subtraction
-  ✓ Understand place value (tens, ones, hundreds)
-  ✓ Know multiplication facts for 2, 3, 4
-  ✓ Perform basic division (equal sharing)
-  ✓ Work with money up to ₹100
-  ✓ Identify 2D shapes and their properties
-  ✓ Interpret simple data (tally marks, pictures)
-  ✓ Use calendar and identify days/months
-""",
-            "Class 3": """
-  ✓ Read and write numbers up to 9999
-  ✓ Perform two-digit addition/subtraction with regrouping
-  ✓ Know multiplication facts for 5-10
-  ✓ Perform division with algorithm
-  ✓ Work with money up to ₹500
-  ✓ Measure using standard units (cm, m, g, kg, litres)
-  ✓ Understand fractions (1/4, 3/4)
-  ✓ Identify patterns in sequences
-  ✓ Record and interpret data
-"""
-        }
-        
-        return skills.get(level, "  ✓ Foundational mathematics skills")
-    
-    def _save_report(self, eval_data, student_name):
-        """Save report to file"""
-        
-        output_file = f"evaluation_reports/{eval_data['student_id']}_report_{eval_data['test_date']}.txt"
-        
-        with open(output_file, 'w') as f:
-            f.write(self.report)
-        
-        print(f"✓ Report saved: {output_file}")
->>>>>>> origin/main
         print("="*60 + "\n")
 
 
 if __name__ == "__main__":
     import sys
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> origin/main
     if len(sys.argv) < 2:
         print("Usage: python scripts/3_generate_report.py <evaluation_file> [student_name]")
         print("Example: python scripts/3_generate_report.py evaluation_reports/STU_001_evaluation_2025-01-15.json Aditya")
         sys.exit(1)
-<<<<<<< HEAD
 
     evaluation_file = sys.argv[1]
     student_name = sys.argv[2] if len(sys.argv) > 2 else "Student"
@@ -467,15 +275,3 @@ if __name__ == "__main__":
 
     generator = ReportGenerator()
     generator.generate(evaluation_file, student_name)
-=======
-    
-    evaluation_file = sys.argv[1]
-    student_name = sys.argv[2] if len(sys.argv) > 2 else "Student"
-    
-    if not Path(evaluation_file).exists():
-        print(f"✗ Evaluation file not found: {evaluation_file}")
-        sys.exit(1)
-    
-    generator = ReportGenerator()
-    generator.generate(evaluation_file, student_name)
->>>>>>> origin/main

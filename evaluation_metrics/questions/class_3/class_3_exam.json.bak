@@ -67,61 +67,31 @@
       "question_id": "C3_Q006",
       "question": "What is one-fourth of 12?",
       "answer": 3,
-      "answer_type": "numeric",
-      "topic": "Number Sense|Fractions",
-      "subtopic": "Finding a fraction of a number",
-      "class_level": 1,
-      "difficulty": "hard",
-      "source_level": "Class 1",
-      "reasoning": "This question requires the student to understand the concept of fractions and apply it to find one-fourth of a number, which is a Class 1 level skill."
+      "answer_type": "numeric"
     },
     {
       "question_id": "C3_Q007",
       "question": "If a pencil costs \u20b95, how much do 8 pencils cost?",
       "answer": 40,
-      "answer_type": "numeric",
-      "topic": "Number Sense|Number Operations|Money",
-      "subtopic": "Multiplication of numbers with money",
-      "class_level": 1,
-      "difficulty": "medium",
-      "source_level": "Class 1",
-      "reasoning": "This question requires the student to apply multiplication to find the total cost of 8 pencils, which is a medium-level difficulty question as it involves a single operation and familiar context."
+      "answer_type": "numeric"
     },
     {
       "question_id": "C3_Q008",
       "question": "What comes next in the pattern: 2, 4, 6, 8, ___?",
       "answer": 10,
-      "answer_type": "numeric",
-      "topic": "Number Sense|Patterns",
-      "subtopic": "Identifying patterns in a sequence of numbers",
-      "class_level": 1,
-      "difficulty": "easy",
-      "source_level": "Preschool 3/Balvatika",
-      "reasoning": "The question requires the student to recognize a pattern in a sequence of numbers, which is a skill typically introduced in Preschool 3/Balvatika."
+      "answer_type": "numeric"
     },
     {
       "question_id": "C3_Q009",
       "question": "How many vertices does a cube have?",
       "answer": 8,
-      "answer_type": "numeric",
-      "topic": "Shapes",
-      "subtopic": "Properties of 3D shapes",
-      "class_level": 1,
-      "difficulty": "easy",
-      "source_level": "Class 1",
-      "reasoning": "Direct recall of properties of a cube, no calculation required"
+      "answer_type": "numeric"
     },
     {
       "question_id": "C3_Q010",
       "question": "Ravi has \u20b9500. He buys a book for \u20b9175. How much money is left?",
       "answer": 325,
-      "answer_type": "numeric",
-      "topic": "Number Sense|Number Operations|Money",
-      "subtopic": "Subtracting money from a given amount",
-      "class_level": 1,
-      "difficulty": "medium",
-      "source_level": "Class 1",
-      "reasoning": "Requires one operation (subtraction) with two-digit numbers and familiar context (money)"
+      "answer_type": "numeric"
     }
   ]
 }

@@ -1,26 +1,15 @@
-<<<<<<< HEAD
 import json
 import os
 import shutil
-=======
-# scripts/0_auto_classify_questions.py (UPDATED)
-
-import json
-import os
->>>>>>> origin/main
+import time
 import requests
 from pathlib import Path
 from datetime import datetime
 
-<<<<<<< HEAD
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 def _load_env():
     env_file = BASE_DIR / ".env"
-=======
-def _load_env():
-    env_file = Path(__file__).resolve().parent.parent / ".env"
->>>>>>> origin/main
     if env_file.exists():
         for line in env_file.read_text().splitlines():
             if "=" in line and not line.startswith("#"):
@@ -41,66 +30,62 @@ class QuestionClassifier:
             return f.read()
 
     def classify(self, question_text):
-<<<<<<< HEAD
-=======
-        """Use Groq API to classify question"""
->>>>>>> origin/main
         prompt = self.prompt.replace("{question}", question_text)
+        max_retries = 5
 
-        try:
-            response = requests.post(
-                'https://api.groq.com/openai/v1/chat/completions',
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": "You are a Math FLN curriculum classifier. Return only valid JSON."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "temperature": 0.1,
-                    "max_tokens": 500,
-                    "stream": False
-                },
-                timeout=30
-            )
-<<<<<<< HEAD
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(
+                    'https://api.groq.com/openai/v1/chat/completions',
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": self.model,
+                        "messages": [
+                            {"role": "system", "content": "You are a Math FLN curriculum classifier. Return only valid JSON."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "temperature": 0.1,
+                        "max_tokens": 500,
+                        "stream": False
+                    },
+                    timeout=30
+                )
 
-            if response.status_code != 200:
-                print(f"  API Error {response.status_code}: {response.text}")
+                if response.status_code == 429:
+                    wait = (2 ** attempt) + 1
+                    print(f"  Rate limited, retrying in {wait}s...", end="", flush=True)
+                    time.sleep(wait)
+                    continue
+
+                if response.status_code != 200:
+                    print(f"  API Error {response.status_code}: {response.text}")
+                    return None
+
+                output = response.json()["choices"][0]["message"]["content"].strip()
+                if output.startswith("```"):
+                    output = output.split("```")[1]
+                    if output.startswith("json"):
+                        output = output[4:]
+                    output = output.split("```")[0]
+
+                output = output.strip()
+                classification = json.loads(output)
+                if not isinstance(classification, dict):
+                    return None
+
+                time.sleep(2)
+                return classification
+            except Exception as e:
+                print(f"  Error: {e}")
                 return None
 
-=======
-            
-            if response.status_code != 200:
-                print(f"  API Error {response.status_code}: {response.text}")
-                return None
-            
->>>>>>> origin/main
-            output = response.json()["choices"][0]["message"]["content"].strip()
-            if output.startswith("```"):
-                output = output.split("```")[1]
-                if output.startswith("json"):
-                    output = output[4:]
-                output = output.split("```")[0]
-
-            output = output.strip()
-            classification = json.loads(output)
-            if not isinstance(classification, dict):
-                return None
-            return classification
-        except Exception as e:
-            print(f"  Error: {e}")
-            return None
+        print(f"  Failed after {max_retries} retries")
+        return None
 
     def process_all(self, questions_dir="questions"):
-<<<<<<< HEAD
-=======
-        """Classify questions from both individual files and exam files"""
-        
->>>>>>> origin/main
         print("\n" + "="*60)
         print("QUESTION AUTO-CLASSIFICATION PIPELINE")
         print("="*60)
@@ -111,7 +96,6 @@ class QuestionClassifier:
                 continue
 
             print(f"\n{class_folder.name.upper()}:")
-<<<<<<< HEAD
 
             for q_file in sorted(class_folder.glob("question_*.json")):
                 with open(q_file) as f:
@@ -124,21 +108,6 @@ class QuestionClassifier:
                     continue
 
                 print(f"  \u23f3 {q_file.name}...", end="", flush=True)
-=======
-            
-            # Process individual question files
-            for q_file in sorted(class_folder.glob("question_*.json")):
-                with open(q_file) as f:
-                    question = json.load(f)
-                
-                if "topic" in question:
-                    print(f"  ✓ {q_file.name} (already classified)")
-                    self.stats["success"] += 1
-                    self.stats["processed"] += 1
-                    continue
-                
-                print(f"  ⏳ {q_file.name}...", end="", flush=True)
->>>>>>> origin/main
                 classification = self.classify(question["question"])
 
                 if classification:
@@ -148,7 +117,6 @@ class QuestionClassifier:
                         "model": self.model,
                         "date": datetime.now().isoformat()
                     }
-<<<<<<< HEAD
                     shutil.copy2(q_file, q_file.with_suffix('.json.bak'))
                     with open(q_file, 'w') as f:
                         json.dump(question, f, indent=2)
@@ -191,51 +159,6 @@ class QuestionClassifier:
                     json.dump(exam, f, indent=2)
                 print(f"  \u2713 {exam_file.name} updated")
 
-=======
-                    with open(q_file, 'w') as f:
-                        json.dump(question, f, indent=2)
-                    print(" ✓")
-                    self.stats["success"] += 1
-                else:
-                    print(" ✗")
-                    self.stats["failed"] += 1
-                
-                self.stats["processed"] += 1
-            
-            # Process exam files
-            for exam_file in sorted(class_folder.glob("*_exam.json")):
-                print(f"  ⏳ {exam_file.name}...")
-                
-                with open(exam_file) as f:
-                    exam = json.load(f)
-                
-                for question in exam["questions"]:
-                    if "topic" in question:
-                        print(f"    ✓ {question['question_id']} (already classified)")
-                        self.stats["success"] += 1
-                        self.stats["processed"] += 1
-                        continue
-                    
-                    print(f"    ⏳ {question['question_id']}...", end="", flush=True)
-                    classification = self.classify(question["question"])
-                    
-                    if classification:
-                        question.update(classification)
-                        print(" ✓")
-                        self.stats["success"] += 1
-                    else:
-                        print(" ✗")
-                        self.stats["failed"] += 1
-                    
-                    self.stats["processed"] += 1
-                
-                # Save updated exam file
-                with open(exam_file, 'w') as f:
-                    json.dump(exam, f, indent=2)
-                print(f"  ✓ {exam_file.name} updated")
-        
-        # Summary
->>>>>>> origin/main
         print("\n" + "="*60)
         print(f"SUMMARY:")
         print(f"  Processed: {self.stats['processed']}")
@@ -245,7 +168,6 @@ class QuestionClassifier:
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
     import sys
 
     if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
@@ -258,7 +180,3 @@ if __name__ == "__main__":
     questions_dir = sys.argv[1] if len(sys.argv) > 1 else "questions"
     classifier = QuestionClassifier(model="llama-3.1-8b-instant")
     classifier.process_all(questions_dir)
-=======
-    classifier = QuestionClassifier(model="llama-3.1-8b-instant")
-    classifier.process_all()
->>>>>>> origin/main

@@ -5,15 +5,10 @@ import re
 from pathlib import Path
 from datetime import datetime, timedelta
 
-<<<<<<< HEAD
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 def _load_env():
     env_file = BASE_DIR / ".env"
-=======
-def _load_env():
-    env_file = Path(__file__).resolve().parent.parent / ".env"
->>>>>>> origin/main
     if env_file.exists():
         for line in env_file.read_text().splitlines():
             if "=" in line and not line.startswith("#"):
@@ -28,7 +23,6 @@ class ChildEvaluator:
         self.api_key = api_key or os.environ.get("GROQ_API_KEY", "")
         self.prompt = self._load_prompt()
         self.result = None
-<<<<<<< HEAD
 
     def _load_prompt(self):
         try:
@@ -48,44 +42,13 @@ class ChildEvaluator:
         with open(syllabus_file) as f:
             syllabus = json.load(f)
 
-=======
-    
-    def _load_prompt(self):
-        """Load evaluation prompt"""
-        try:
-            with open("prompts/evaluate_child.txt") as f:
-                return f.read()
-        except:
-            return ""
-    
-    def evaluate(self, comparison_file, syllabus_file):
-        """Evaluate child's performance using AI"""
-        
-        print("\n" + "="*60)
-        print("CHILD EVALUATION PIPELINE")
-        print("="*60)
-        
-        with open(comparison_file) as f:
-            comparison = json.load(f)
-        
-        with open(syllabus_file) as f:
-            syllabus = json.load(f)
-        
->>>>>>> origin/main
         print(f"\nStudent: {comparison['student_id']}")
         print(f"Enrolled Class: {comparison['enrolled_class']}")
         print(f"Wrong %: {comparison['stats']['wrong_percentage']}%")
         print(f"Decision: {comparison.get('decision', 'EVALUATE')}\n")
-<<<<<<< HEAD
 
         if comparison.get('decision') == 'RETEST':
             print("\u2713 Decision: RETEST (careless mistakes in easy section)")
-=======
-        
-        # Check if retest is needed
-        if comparison.get('decision') == 'RETEST':
-            print("✓ Decision: RETEST (careless mistakes in easy section)")
->>>>>>> origin/main
             self.result = {
                 "student_id": comparison['student_id'],
                 "test_date": comparison['test_date'],
@@ -98,23 +61,12 @@ class ChildEvaluator:
             }
             self._save_evaluation()
             return self.result
-<<<<<<< HEAD
 
         print("\u23f3 Calling AI model for evaluation...\n")
 
         wrong_answers = [c for c in comparison["comparisons"] if c["status"] == "\u2717"]
         wrong_percentage = comparison['stats']['wrong_percentage']
 
-=======
-        
-        # Proceed with AI evaluation
-        print("⏳ Calling AI model for evaluation...\n")
-        
-        wrong_answers = [c for c in comparison["comparisons"] if c["status"] == "✗"]
-        wrong_percentage = comparison['stats']['wrong_percentage']
-        
-        # Build input data for prompt template
->>>>>>> origin/main
         input_data = {
             "student_id": comparison['student_id'],
             "enrolled_class": comparison['enrolled_class'],
@@ -122,7 +74,6 @@ class ChildEvaluator:
             "wrong_percentage": wrong_percentage,
             "wrong_answers": wrong_answers[:5]
         }
-<<<<<<< HEAD
 
         with open(syllabus_file) as f:
             syllabus_data = json.load(f)
@@ -130,10 +81,6 @@ class ChildEvaluator:
         prompt = self.prompt.replace("{input_data}", json.dumps(input_data, indent=2))
         prompt = prompt.replace("{syllabus_data}", json.dumps(syllabus_data, indent=2))
 
-=======
-        
-        # Compute performance by difficulty from actual comparison data
->>>>>>> origin/main
         all_comparisons = comparison["comparisons"]
         perf_by_diff = {}
         for c in all_comparisons:
@@ -141,21 +88,9 @@ class ChildEvaluator:
             if d not in perf_by_diff:
                 perf_by_diff[d] = {"attempted": 0, "correct": 0}
             perf_by_diff[d]["attempted"] += 1
-<<<<<<< HEAD
             if c["status"] == "\u2713":
                 perf_by_diff[d]["correct"] += 1
 
-=======
-            if c["status"] == "✓":
-                perf_by_diff[d]["correct"] += 1
-        
-        with open(syllabus_file) as f:
-            syllabus_data = json.load(f)
-        
-        prompt = self.prompt.replace("{input_data}", json.dumps(input_data, indent=2))
-        prompt = prompt.replace("{syllabus_data}", json.dumps(syllabus_data, indent=2))
-        
->>>>>>> origin/main
         try:
             response = requests.post(
                 'https://api.groq.com/openai/v1/chat/completions',
@@ -175,7 +110,6 @@ class ChildEvaluator:
                 },
                 timeout=300
             )
-<<<<<<< HEAD
 
             if response.status_code != 200:
                 print(f"\u2717 API Error: {response.status_code}")
@@ -186,34 +120,14 @@ class ChildEvaluator:
 
             print(f"\U0001f4dd Raw AI Output:\n{output}\n")
 
-=======
-            
-            if response.status_code != 200:
-                print(f"✗ API Error: {response.status_code}")
-                print(f"Response: {response.text}")
-                return None
-            
-            output = response.json()["choices"][0]["message"]["content"].strip()
-            
-            print(f"📝 Raw AI Output:\n{output}\n")
-            
-            # Strip markdown if present
->>>>>>> origin/main
             if output.startswith("```"):
                 output = output.split("```")[1]
                 if output.startswith("json"):
                     output = output[4:]
                 output = output.strip()
-<<<<<<< HEAD
 
             ai_eval = json.loads(output)
 
-=======
-            
-            ai_eval = json.loads(output)
-            
-            # Extract root causes summary
->>>>>>> origin/main
             root_causes = ai_eval.get("root_causes", [])
             if root_causes:
                 error_type = root_causes[0].get("error_type", "careless")
@@ -221,23 +135,14 @@ class ChildEvaluator:
             else:
                 error_type = "careless"
                 root_cause_text = "gaps in understanding"
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> origin/main
             topics = ai_eval.get("topics_to_focus", ["core concepts"])
             prerequisites = ai_eval.get("prerequisites_to_check", [])
             ai_recommendation = ai_eval.get("recommendation", "practice and reinforcement")
             ai_next_level = ai_eval.get("next_level_assignment", "")
-<<<<<<< HEAD
             if not ai_next_level or "Class X" in ai_next_level:
                 ai_next_level = ""
 
-=======
-            
-            # Build evaluation result with rule-based logic
->>>>>>> origin/main
             if wrong_percentage < 10:
                 demonstrated_level = comparison['enrolled_class']
                 boundary_level = comparison['enrolled_class']
@@ -253,12 +158,7 @@ class ChildEvaluator:
                 boundary_level = comparison['enrolled_class']
                 confidence = 0.60
                 next_level = comparison['enrolled_class']
-<<<<<<< HEAD
 
-=======
-            
-            # Build evaluation dict
->>>>>>> origin/main
             evaluation = {
                 "demonstrated_level": f"Class {demonstrated_level}",
                 "boundary_level": f"Class {boundary_level}",
@@ -272,19 +172,13 @@ class ChildEvaluator:
                 "recommendation": ai_recommendation,
                 "next_level_assignment": ai_next_level or f"Class {next_level}"
             }
-<<<<<<< HEAD
 
-=======
-            
-            # Add metadata
->>>>>>> origin/main
             evaluation["student_id"] = comparison['student_id']
             evaluation["test_date"] = comparison['test_date']
             evaluation["enrolled_class"] = comparison['enrolled_class']
             evaluation["wrong_count"] = len(wrong_answers)
             evaluation["total_questions"] = len(comparison['comparisons'])
             evaluation["wrong_percentage"] = wrong_percentage
-<<<<<<< HEAD
 
             self.result = evaluation
 
@@ -310,34 +204,6 @@ class ChildEvaluator:
             return
 
         print(f"\n\u2713 Evaluation Results:")
-=======
-            
-            self.result = evaluation
-            
-            self._print_summary()
-            self._save_evaluation()
-            
-            return evaluation
-        
-        except requests.exceptions.Timeout:
-            print(f"✗ API Timeout (>300s)")
-            return None
-        except requests.exceptions.ConnectionError:
-            print(f"✗ Cannot connect to Groq API")
-            print(f"Check your internet connection")
-            return None
-        except Exception as e:
-            print(f"✗ Unexpected Error: {str(e)}")
-            print(f"Output: {output if 'output' in locals() else 'No output'}")
-            return None
-    
-    def _print_summary(self):
-        """Print evaluation summary"""
-        if not self.result:
-            return
-        
-        print(f"\n✓ Evaluation Results:")
->>>>>>> origin/main
         print(f"  Student ID: {self.result.get('student_id')}")
         print(f"  Class Enrolled: {self.result.get('enrolled_class')}")
         print(f"  Wrong %: {self.result.get('wrong_percentage', 0):.1f}%")
@@ -350,7 +216,6 @@ class ChildEvaluator:
         print(f"  Root Cause: {self.result.get('root_cause')}")
         print(f"  Recommendation: {self.result.get('recommendation')}")
         print(f"  Next Level: {self.result.get('next_level_assignment')}")
-<<<<<<< HEAD
 
     def _save_evaluation(self):
         if not self.result:
@@ -365,38 +230,16 @@ class ChildEvaluator:
             json.dump(self.result, f, indent=2)
 
         print(f"\n\u2713 Evaluation saved: {output_file}")
-=======
-    
-    def _save_evaluation(self):
-        """Save evaluation result"""
-        if not self.result:
-            return
-        
-        # Create directory if it doesn't exist
-        Path("evaluation_reports").mkdir(exist_ok=True)
-        
-        output_file = f"evaluation_reports/{self.result['student_id']}_evaluation_{self.result['test_date']}.json"
-        
-        with open(output_file, 'w') as f:
-            json.dump(self.result, f, indent=2)
-        
-        print(f"\n✓ Evaluation saved: {output_file}")
->>>>>>> origin/main
         print("="*60 + "\n")
 
 
 if __name__ == "__main__":
     import sys
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> origin/main
     if len(sys.argv) < 2:
         print("Usage: python scripts/2_evaluate_child.py <student_id> <class_num>")
         print("Example: python scripts/2_evaluate_child.py STU_001 1")
         sys.exit(1)
-<<<<<<< HEAD
 
     student_id = sys.argv[1]
     class_num = int(sys.argv[2]) if len(sys.argv) > 2 else 1
@@ -415,27 +258,5 @@ if __name__ == "__main__":
         print(f"\u2717 Syllabus file not found: {syllabus_file}")
         sys.exit(1)
 
-=======
-    
-    student_id = sys.argv[1]
-    class_num = int(sys.argv[2]) if len(sys.argv) > 2 else 1
-    
-    # Find comparison file
-    comparison_files = list(Path("evaluation_reports").glob(f"{student_id}_comparison_*.json"))
-    
-    if not comparison_files:
-        print(f"✗ No comparison file found for {student_id}")
-        sys.exit(1)
-    
-    comparison_file = str(sorted(comparison_files, key=lambda f: f.stat().st_mtime)[-1])
-    syllabus_file = f"syllabus/class_{class_num}_syllabus.json"
-    
-    # Check syllabus file exists
-    if not Path(syllabus_file).exists():
-        print(f"✗ Syllabus file not found: {syllabus_file}")
-        sys.exit(1)
-    
-    # Run evaluation
->>>>>>> origin/main
     evaluator = ChildEvaluator(model="llama-3.1-8b-instant")
     evaluator.evaluate(comparison_file, syllabus_file)
