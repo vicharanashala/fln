@@ -1,0 +1,507 @@
+/* ==========================================================================
+   FLN Print Engine Dashboard — utilitarian console styling
+   Monospace throughout: this is an operational instrument panel,
+   not a marketing surface.
+   ========================================================================== */
+
+:root {
+  --color-bg: #f4f4f2;
+  --color-panel: #ffffff;
+  --color-header: #161616;
+  --color-text: #1d1d1b;
+  --color-muted: #6b6b66;
+  --color-border: #d6d6d1;
+  --color-accent: #1e8e5a;
+  --color-accent-dim: #bfe3cf;
+  --color-alert: #b03a2e;
+  --color-track: #e4e4e0;
+  --font-mono: "JetBrains Mono", "Roboto Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+/* ---------------- Layout shell ---------------- */
+
+.fln-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.fln-header {
+  background: var(--color-header);
+  color: #e9e9e6;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid var(--color-accent);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.fln-header__signature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fln-header__title {
+  font-size: 13px;
+  letter-spacing: 2.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.fln-header__subtitle {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #9a9a96;
+  margin-top: 2px;
+}
+
+.fln-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 0 rgba(30, 142, 90, 0.6);
+  animation: fln-pulse 1.6s infinite;
+  flex: none;
+}
+
+.fln-status-dot.is-idle {
+  background: #5a5a56;
+  animation: none;
+}
+
+.fln-status-dot.is-alert {
+  background: var(--color-alert);
+}
+
+@keyframes fln-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(30, 142, 90, 0.55); }
+  70% { box-shadow: 0 0 0 7px rgba(30, 142, 90, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(30, 142, 90, 0); }
+}
+
+.fln-header__status-text {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #cfcfca;
+}
+
+.fln-header__status-text.is-running {
+  color: #8fe0bb;
+}
+
+.fln-header__status-text.is-alert {
+  color: #f0a89e;
+}
+
+.fln-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 18px;
+  padding: 20px;
+  align-items: start;
+}
+
+@media (max-width: 880px) {
+  .fln-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fln-panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+}
+
+.fln-panel__head {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fln-panel__body {
+  padding: 16px;
+}
+
+.fln-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ---------------- Control form ---------------- */
+
+.fln-field-label {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.fln-class-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.fln-class-toggle {
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: 12px 8px;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  text-align: center;
+  border-radius: 2px;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.fln-class-toggle:hover {
+  border-color: var(--color-accent);
+}
+
+.fln-class-toggle.is-active {
+  background: var(--color-header);
+  color: #ffffff;
+  border-color: var(--color-header);
+}
+
+.fln-class-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.fln-numeric-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.fln-numeric-input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.fln-numeric-hint {
+  font-size: 11px;
+  color: var(--color-muted);
+  margin-top: 6px;
+}
+
+.fln-numeric-hint.is-alert {
+  color: var(--color-alert);
+}
+
+.fln-launch-btn {
+  width: 100%;
+  margin-top: 22px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 14px 12px;
+  border: 1px solid var(--color-header);
+  background: var(--color-header);
+  color: #ffffff;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.fln-launch-btn:hover:not(:disabled) {
+  background: #2a2a2a;
+}
+
+.fln-launch-btn:disabled {
+  background: #9c9c97;
+  border-color: #9c9c97;
+  cursor: not-allowed;
+}
+
+.fln-form-error {
+  font-size: 11px;
+  color: var(--color-alert);
+  margin-top: 10px;
+}
+
+/* ---------------- Progress meter ---------------- */
+
+.fln-progress-idle {
+  font-size: 12px;
+  color: var(--color-muted);
+  letter-spacing: 0.5px;
+}
+
+.fln-progress-readout {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.fln-progress-readout__label {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--color-muted);
+}
+
+.fln-progress-readout__value {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.fln-progress-track {
+  width: 100%;
+  height: 14px;
+  background: var(--color-track);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fln-progress-fill {
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.25s ease;
+}
+
+.fln-progress-fill.is-alert {
+  background: var(--color-alert);
+}
+
+.fln-progress-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.fln-progress-percent {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* ---------------- History log table ---------------- */
+
+.fln-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fln-history-table th {
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-border);
+  padding: 8px 10px;
+  position: sticky;
+  top: 0;
+  background: var(--color-panel);
+}
+
+.fln-history-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fln-history-table tbody tr:hover {
+  background: var(--color-bg);
+}
+
+.fln-tag {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 2px;
+  border: 1px solid var(--color-border);
+}
+
+.fln-tag.is-complete {
+  color: var(--color-accent);
+  border-color: var(--color-accent-dim);
+  background: #eef8f1;
+}
+
+.fln-tag.is-failed {
+  color: var(--color-alert);
+  border-color: #ecd3cf;
+  background: #fbeeec;
+}
+
+.fln-history-empty {
+  font-size: 12px;
+  color: var(--color-muted);
+  padding: 6px 0;
+}
+
+.fln-history-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+/* ---------------- Class worksheet download panel ---------------- */
+
+.fln-class-download-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fln-class-download-row {
+  display: grid;
+  grid-template-columns: 90px 90px 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+}
+
+@media (max-width: 640px) {
+  .fln-class-download-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fln-class-download-row__label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.fln-class-download-row__input {
+  padding: 8px 8px;
+  font-size: 13px;
+}
+
+.fln-class-download-row__btn {
+  margin-top: 0;
+  font-size: 11px;
+  padding: 10px 8px;
+}
+
+.fln-launch-btn--secondary {
+  background: var(--color-panel);
+  color: var(--color-header);
+  border-color: var(--color-header);
+}
+
+.fln-launch-btn--secondary:hover:not(:disabled) {
+  background: var(--color-bg);
+}
+
+.fln-class-download-row__error {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+/* ---------------- Class worksheet launcher + modal ---------------- */
+
+.fln-class-launcher-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .fln-class-launcher-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fln-class-launcher-grid__btn {
+  margin-top: 0;
+}
+
+.fln-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.fln-modal {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  width: min(960px, 100%);
+  height: min(720px, 90vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fln-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.fln-modal__close {
+  font-family: var(--font-mono);
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.fln-modal__iframe {
+  flex: 1;
+  border: none;
+  width: 100%;
+  height: 100%;
+}
+
+
