@@ -67,20 +67,6 @@ class ChildEvaluator:
         wrong_answers = [c for c in comparison["comparisons"] if c["status"] == "\u2717"]
         wrong_percentage = comparison['stats']['wrong_percentage']
 
-        input_data = {
-            "student_id": comparison['student_id'],
-            "enrolled_class": comparison['enrolled_class'],
-            "test_date": comparison['test_date'],
-            "wrong_percentage": wrong_percentage,
-            "wrong_answers": wrong_answers[:5]
-        }
-
-        with open(syllabus_file) as f:
-            syllabus_data = json.load(f)
-
-        prompt = self.prompt.replace("{input_data}", json.dumps(input_data, indent=2))
-        prompt = prompt.replace("{syllabus_data}", json.dumps(syllabus_data, indent=2))
-
         all_comparisons = comparison["comparisons"]
         perf_by_diff = {}
         for c in all_comparisons:
@@ -90,6 +76,21 @@ class ChildEvaluator:
             perf_by_diff[d]["attempted"] += 1
             if c["status"] == "\u2713":
                 perf_by_diff[d]["correct"] += 1
+
+        input_data = {
+            "student_id": comparison['student_id'],
+            "enrolled_class": comparison['enrolled_class'],
+            "test_date": comparison['test_date'],
+            "wrong_percentage": wrong_percentage,
+            "wrong_answers": wrong_answers,
+            "performance_by_difficulty": perf_by_diff
+        }
+
+        with open(syllabus_file) as f:
+            syllabus_data = json.load(f)
+
+        prompt = self.prompt.replace("{input_data}", json.dumps(input_data, indent=2))
+        prompt = prompt.replace("{syllabus_data}", json.dumps(syllabus_data, indent=2))
 
         try:
             response = requests.post(
@@ -154,7 +155,7 @@ class ChildEvaluator:
                 confidence = 0.75
                 next_level = comparison['enrolled_class']
             else:
-                demonstrated_level = max(1, int(comparison['enrolled_class']) - 1)
+                demonstrated_level = max(0, int(comparison['enrolled_class']) - 1)
                 boundary_level = comparison['enrolled_class']
                 confidence = 0.60
                 next_level = comparison['enrolled_class']

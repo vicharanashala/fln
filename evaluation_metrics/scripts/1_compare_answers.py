@@ -113,7 +113,7 @@ class AnswerComparator:
         wrong_medium = len(self.result["wrong_by_difficulty"]["medium"])
         wrong_hard = len(self.result["wrong_by_difficulty"]["hard"])
 
-        if wrong_pct < 10:
+        if wrong_pct <= 10:
             if wrong_easy > 0 and (wrong_medium == 0 and wrong_hard == 0):
                 return "RETEST"
             elif wrong_hard > 0 and wrong_easy == 0:
