@@ -1,0 +1,253 @@
+{
+  "class": 4,
+  "difficulty_mapping": {
+    "easy": ["Preschool 1", "Preschool 2", "Preschool 3", "Class 1"],
+    "medium": "Class 2",
+    "hard": "Class 3"
+  },
+  "topics": [
+    {
+      "topic_id": "NS",
+      "topic_name": "Number Sense",
+      "subtopics": [
+        {
+          "subtopic_id": "NS_E",
+          "subtopic_name": "Number Sense Foundations (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3, Class 1",
+          "description": "Classification, seriation, counting, numeral recognition up to 99"
+        },
+        {
+          "subtopic_id": "NS_M",
+          "subtopic_name": "Number Recognition and Place Value (Medium)",
+          "difficulty": "m",
+          "source": "Class 2",
+          "description": "Read and write numbers up to 999, place value with zero"
+        },
+        {
+          "subtopic_id": "NS_H",
+          "subtopic_name": "Large Number Place Value (Hard)",
+          "difficulty": "h",
+          "source": "Class 3",
+          "description": "Read and write numbers up to 9999, place value applications"
+        }
+      ]
+    },
+    {
+      "topic_id": "NO",
+      "topic_name": "Number Operations",
+      "subtopics": [
+        {
+          "subtopic_id": "NO_E",
+          "subtopic_name": "Basic Operations (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3, Class 1",
+          "description": "Addition facts up to 18, subtraction facts up to 9"
+        },
+        {
+          "subtopic_id": "NO_M",
+          "subtopic_name": "Operations with 2-digit Numbers (Medium)",
+          "difficulty": "m",
+          "source": "Class 2",
+          "description": "Addition and subtraction up to 99, multiplication tables 2-4, division basics"
+        },
+        {
+          "subtopic_id": "NO_H",
+          "subtopic_name": "Advanced Operations (Hard)",
+          "difficulty": "h",
+          "source": "Class 3",
+          "description": "Standard algorithms up to 999, multiplication tables 5-10, division with algorithm"
+        }
+      ]
+    },
+    {
+      "topic_id": "MON",
+      "topic_name": "Money",
+      "subtopics": [
+        {
+          "subtopic_id": "MON_E",
+          "subtopic_name": "Money Basics (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3, Class 1",
+          "description": "Recognize coins and notes, represent amounts up to ₹20"
+        },
+        {
+          "subtopic_id": "MON_M",
+          "subtopic_name": "Money Representation (Medium)",
+          "difficulty": "m",
+          "source": "Class 2",
+          "description": "Represent amounts up to ₹100"
+        },
+        {
+          "subtopic_id": "MON_H",
+          "subtopic_name": "Money Operations (Hard)",
+          "difficulty": "h",
+          "source": "Class 3",
+          "description": "Add and subtract amounts up to ₹500"
+        }
+      ]
+    },
+    {
+      "topic_id": "MEAS",
+      "topic_name": "Measurement",
+      "subtopics": [
+        {
+          "subtopic_id": "MEAS_E",
+          "subtopic_name": "Non-standard Measurement (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3, Class 1",
+          "description": "Compare and estimate using non-standard units"
+        },
+        {
+          "subtopic_id": "MEAS_M",
+          "subtopic_name": "Standard Units Comparison (Medium)",
+          "difficulty": "m",
+          "source": "Class 2",
+          "description": "Measure using non-standard units, compare weights and capacities"
+        },
+        {
+          "subtopic_id": "MEAS_H",
+          "subtopic_name": "Standard Units Measurement (Hard)",
+          "difficulty": "h",
+          "source": "Class 3",
+          "description": "Measure using cm, m, g, kg, litres, temperature with thermometer"
+        }
+      ]
+    },
+    {
+      "topic_id": "SHAPE",
+      "topic_name": "Shapes",
+      "subtopics": [
+        {
+          "subtopic_id": "SHAPE_E",
+          "subtopic_name": "2D and 3D Shapes (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3, Class 1",
+          "description": "Identify circles, squares, triangles, rectangles, 3D shapes"
+        },
+        {
+          "subtopic_id": "SHAPE_M",
+          "subtopic_name": "Shape Features (Medium)",
+          "difficulty": "m",
+          "source": "Class 2",
+          "description": "Describe 2D shapes and their properties"
+        },
+        {
+          "subtopic_id": "SHAPE_H",
+          "subtopic_name": "Lines and Geometric Properties (Hard)",
+          "difficulty": "h",
+          "source": "Class 3",
+          "description": "Draw lines (horizontal, vertical, slant), understand shape properties"
+        }
+      ]
+    },
+    {
+      "topic_id": "FRAC",
+      "topic_name": "Fractions",
+      "subtopics": [
+        {
+          "subtopic_id": "FRAC_E",
+          "subtopic_name": "Fraction Basics (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 3, Class 1",
+          "description": "Understand half and whole"
+        },
+        {
+          "subtopic_id": "FRAC_M",
+          "subtopic_name": "Half and Quarter (Medium)",
+          "difficulty": "m",
+          "source": "Class 2",
+          "description": "Identify half, quarter, and whole"
+        },
+        {
+          "subtopic_id": "FRAC_H",
+          "subtopic_name": "Fractions of Collections (Hard)",
+          "difficulty": "h",
+          "source": "Class 3",
+          "description": "One-fourth, three-fourths, fractions of collections"
+        }
+      ]
+    },
+    {
+      "topic_id": "PAT",
+      "topic_name": "Patterns",
+      "subtopics": [
+        {
+          "subtopic_id": "PAT_E",
+          "subtopic_name": "Basic Patterns (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3, Class 1",
+          "description": "Repeating, extending, and creating patterns"
+        },
+        {
+          "subtopic_id": "PAT_M",
+          "subtopic_name": "Number Patterns (Medium)",
+          "difficulty": "m",
+          "source": "Class 2",
+          "description": "Generalize patterns, multiplication table patterns"
+        },
+        {
+          "subtopic_id": "PAT_H",
+          "subtopic_name": "Advanced Patterns (Hard)",
+          "difficulty": "h",
+          "source": "Class 3",
+          "description": "Multiplication patterns, patterns up to 1000"
+        }
+      ]
+    },
+    {
+      "topic_id": "DATA",
+      "topic_name": "Data Handling",
+      "subtopics": [
+        {
+          "subtopic_id": "DATA_E",
+          "subtopic_name": "Data Collection Basics (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3, Class 1",
+          "description": "Observe, collect, sort objects and draw conclusions"
+        },
+        {
+          "subtopic_id": "DATA_M",
+          "subtopic_name": "Data Interpretation (Medium)",
+          "difficulty": "m",
+          "source": "Class 2",
+          "description": "Draw inferences from collected data"
+        },
+        {
+          "subtopic_id": "DATA_H",
+          "subtopic_name": "Data Representation (Hard)",
+          "difficulty": "h",
+          "source": "Class 3",
+          "description": "Tally marks, pictorial representation, draw conclusions"
+        }
+      ]
+    },
+    {
+      "topic_id": "CAL",
+      "topic_name": "Calendar and Time",
+      "subtopics": [
+        {
+          "subtopic_id": "CAL_E",
+          "subtopic_name": "Time Vocabulary and Days (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3, Class 1",
+          "description": "Yesterday, today, tomorrow, days, months"
+        },
+        {
+          "subtopic_id": "CAL_M",
+          "subtopic_name": "Calendar Usage (Medium)",
+          "difficulty": "m",
+          "source": "Class 2",
+          "description": "Identify days and months using a calendar"
+        },
+        {
+          "subtopic_id": "CAL_H",
+          "subtopic_name": "Dates and Day Relationships (Hard)",
+          "difficulty": "h",
+          "source": "Class 3",
+          "description": "Identify dates, find corresponding days on calendar"
+        }
+      ]
+    }
+  ]
+}

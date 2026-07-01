@@ -1,0 +1,49 @@
+{
+    "student_id": "TEST_MIXED_EVAL_MEDIUM",
+    "student_name": "Test Mixed Eval Medium Student",
+    "enrolled_class": 2,
+    "test_date": "2026-06-29",
+    "exam_id": "C2_EXAM_001",
+    "answers": {
+        "C2_Q001": {
+            "answer": 7,
+            "confidence": 0.95
+        },
+        "C2_Q002": {
+            "answer": 10,
+            "confidence": 0.92
+        },
+        "C2_Q003": {
+            "answer": "1, 2, 5, 8",
+            "confidence": 0.78
+        },
+        "C2_Q004": {
+            "answer": 0,
+            "confidence": 0.89
+        },
+        "C2_Q005": {
+            "answer": "brick",
+            "confidence": 0.98
+        },
+        "C2_Q006": {
+            "answer": 19,
+            "confidence": 0.85
+        },
+        "C2_Q007": {
+            "answer": 7,
+            "confidence": 0.91
+        },
+        "C2_Q008": {
+            "answer": "ones",
+            "confidence": 0.88
+        },
+        "C2_Q009": {
+            "answer": 68,
+            "confidence": 0.95
+        },
+        "C2_Q010": {
+            "answer": 18,
+            "confidence": 0.96
+        }
+    }
+}

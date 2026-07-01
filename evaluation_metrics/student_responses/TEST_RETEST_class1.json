@@ -1,0 +1,49 @@
+{
+    "student_id": "TEST_RETEST",
+    "student_name": "Test Retest Student",
+    "enrolled_class": 1,
+    "test_date": "2026-06-29",
+    "exam_id": "C1_EXAM_001",
+    "answers": {
+        "C1_Q001": {
+            "answer": 8,
+            "confidence": 0.95
+        },
+        "C1_Q002": {
+            "answer": 4,
+            "confidence": 0.92
+        },
+        "C1_Q003": {
+            "answer": 6,
+            "confidence": 0.78
+        },
+        "C1_Q004": {
+            "answer": 15,
+            "confidence": 0.89
+        },
+        "C1_Q005": {
+            "answer": "circle",
+            "confidence": 0.98
+        },
+        "C1_Q006": {
+            "answer": 5,
+            "confidence": 0.85
+        },
+        "C1_Q007": {
+            "answer": 11,
+            "confidence": 0.91
+        },
+        "C1_Q008": {
+            "answer": 3,
+            "confidence": 0.88
+        },
+        "C1_Q009": {
+            "answer": "bag of stones",
+            "confidence": 0.95
+        },
+        "C1_Q010": {
+            "answer": "today",
+            "confidence": 0.96
+        }
+    }
+}

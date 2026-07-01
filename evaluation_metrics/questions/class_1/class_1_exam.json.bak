@@ -1,0 +1,127 @@
+{
+  "exam_id": "C1_EXAM_001",
+  "class": 1,
+  "total_questions": 10,
+  "questions": [
+    {
+      "question_id": "C1_Q001",
+      "question": "5 + 3 = ___",
+      "answer": 8,
+      "answer_type": "numeric",
+      "topic": "Number Sense|Number Operations",
+      "subtopic": "Addition facts up to 18",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Class 1",
+      "reasoning": "Direct recall of basic addition facts"
+    },
+    {
+      "question_id": "C1_Q002",
+      "question": "Count: \u2b50 \u2b50 \u2b50 \u2b50. How many?",
+      "answer": 4,
+      "answer_type": "numeric",
+      "topic": "Number Sense",
+      "subtopic": "Counting",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 1",
+      "reasoning": "Direct recall of counting numbers, no regrouping/borrowing, single-digit numbers"
+    },
+    {
+      "question_id": "C1_Q003",
+      "question": "9 - 4 = ___",
+      "answer": 5,
+      "answer_type": "numeric",
+      "topic": "Number Sense|Number Operations",
+      "subtopic": "Subtraction facts up to 9",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Class 1",
+      "reasoning": "Direct subtraction fact recall, single-digit numbers, no regrouping/borrowing"
+    },
+    {
+      "question_id": "C1_Q004",
+      "question": "Which is bigger? 15 or 12?",
+      "answer": 15,
+      "answer_type": "numeric",
+      "topic": "Number Sense",
+      "subtopic": "Comparing numbers",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Class 1",
+      "reasoning": "Direct comparison of two single-digit numbers, no regrouping or borrowing required"
+    },
+    {
+      "question_id": "C1_Q005",
+      "question": "What shape is a ball?",
+      "answer": "circle",
+      "answer_type": "text",
+      "topic": "Shapes",
+      "subtopic": "Identifying basic shapes in daily life",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 1",
+      "reasoning": "The question requires the student to identify a basic shape, which is a fundamental concept in Preschool 1."
+    },
+    {
+      "question_id": "C1_Q006",
+      "question": "2 apples + 3 apples = ___ apples",
+      "answer": 5,
+      "answer_type": "numeric",
+      "topic": "Number Sense|Number Operations",
+      "subtopic": "Addition of single-digit numbers",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Class 1",
+      "reasoning": "This question requires direct recall of addition facts up to 18, which is a Class 1 skill."
+    },
+    {
+      "question_id": "C1_Q007",
+      "question": "What comes after 10?",
+      "answer": 11,
+      "answer_type": "numeric",
+      "topic": "Number Sense",
+      "subtopic": "Counting",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 1",
+      "reasoning": "Direct recall of counting sequence"
+    },
+    {
+      "question_id": "C1_Q008",
+      "question": "How many sides does a triangle have?",
+      "answer": 3,
+      "answer_type": "numeric",
+      "topic": "Shapes",
+      "subtopic": "Identifying properties of basic shapes",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 3/Balvatika",
+      "reasoning": "This question requires direct recall of a basic shape property, which is a characteristic of easy-level questions."
+    },
+    {
+      "question_id": "C1_Q009",
+      "question": "Which is heavier? (bag of stones / feather)",
+      "answer": "bag of stones",
+      "answer_type": "text",
+      "topic": "Measurement",
+      "subtopic": "Comparing weights",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 1",
+      "reasoning": "This question tests the ability to compare weights, which is a basic concept in measurement, and is aligned with the Preschool 1 curriculum."
+    },
+    {
+      "question_id": "C1_Q010",
+      "question": "Today is (Yesterday / Today / Tomorrow)?",
+      "answer": "today",
+      "answer_type": "text",
+      "topic": "Number Sense|Calendar and Time",
+      "subtopic": "Identifying days of the week",
+      "class_level": 1,
+      "difficulty": "easy",
+      "source_level": "Preschool 1",
+      "reasoning": "This question requires basic understanding of days of the week, which is a part of Preschool 1 curriculum."
+    }
+  ]
+}
