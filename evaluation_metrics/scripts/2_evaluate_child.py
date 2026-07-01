@@ -62,10 +62,7 @@ class ChildEvaluator:
             self._save_evaluation()
             return self.result
 
-        print("\u23f3 Calling AI model for evaluation...\n")
-
         wrong_answers = [c for c in comparison["comparisons"] if c["status"] == "\u2717"]
-        wrong_percentage = comparison['stats']['wrong_percentage']
 
         all_comparisons = comparison["comparisons"]
         perf_by_diff = {}
@@ -76,6 +73,38 @@ class ChildEvaluator:
             perf_by_diff[d]["attempted"] += 1
             if c["status"] == "\u2713":
                 perf_by_diff[d]["correct"] += 1
+
+        enrolled = int(comparison.get('enrolled_class', 1))
+        easy_pct = (perf_by_diff.get("easy", {}).get("correct", 0) / max(perf_by_diff.get("easy", {}).get("attempted", 1), 1)) * 100
+        medium_pct = (perf_by_diff.get("medium", {}).get("correct", 0) / max(perf_by_diff.get("medium", {}).get("attempted", 1), 1)) * 100
+        hard_pct = (perf_by_diff.get("hard", {}).get("correct", 0) / max(perf_by_diff.get("hard", {}).get("attempted", 1), 1)) * 100
+
+        if easy_pct >= 90 and medium_pct >= 50 and hard_pct >= 40:
+            print("\u2713 FLN PASS - meets all thresholds (easy >= 90%, medium >= 50%, hard >= 40%)")
+            self.result = {
+                "student_id": comparison['student_id'],
+                "student_name": comparison.get('student_name', 'Unknown'),
+                "test_date": comparison['test_date'],
+                "enrolled_class": comparison['enrolled_class'],
+                "decision": "PASS",
+                "fln_status": "pass",
+                "demonstrated_level": f"Class {enrolled}",
+                "boundary_level": f"Class {enrolled + 1}",
+                "confidence_score": 0.95,
+                "wrong_count": len(wrong_answers),
+                "total_questions": len(comparison['comparisons']),
+                "wrong_percentage": comparison['stats']['wrong_percentage'],
+                "performance_by_difficulty": perf_by_diff,
+                "reason": f"Easy: {easy_pct:.0f}% (need >=90%), Medium: {medium_pct:.0f}% (need >=50%), Hard: {hard_pct:.0f}% (need >=40%) - all thresholds met",
+                "recommendation": f"Child has mastered foundational concepts for Class {enrolled}. Ready to continue with Class {enrolled} curriculum.",
+                "next_level_assignment": f"Class {enrolled}"
+            }
+            self._save_evaluation()
+            return self.result
+
+        print(f"  Easy: {easy_pct:.0f}% (need >=90%), Medium: {medium_pct:.0f}% (need >=50%), Hard: {hard_pct:.0f}% (need >=40%)")
+        print("\u23f3 Calling AI model for evaluation...\n")
+        wrong_percentage = comparison['stats']['wrong_percentage']
 
         stripped_wrong = []
         for w in wrong_answers:

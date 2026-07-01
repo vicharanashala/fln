@@ -32,6 +32,8 @@ class ReportGenerator:
 
         if eval_data.get('decision') == 'RETEST':
             self.report = self._generate_retest_report(eval_data, student_name)
+        elif eval_data.get('decision') == 'PASS':
+            self.report = self._generate_pass_report(eval_data, student_name)
         else:
             self.report = self._generate_ai_report(eval_data, student_name)
 
@@ -69,6 +71,48 @@ RECOMMENDATION
 {'='*60}
 """
         return report
+
+    def _generate_pass_report(self, eval_data, student_name):
+        perf = eval_data.get('performance_by_difficulty', {})
+        perf_lines = ""
+        for d, s in perf.items():
+            pct = (s.get('correct', 0) / max(s.get('attempted', 1), 1)) * 100
+            perf_lines += f"\n  {d.capitalize()}: {s.get('correct', 0)}/{s.get('attempted', 0)} ({pct:.0f}%)"
+        return f"""
+{'='*60}
+            FLN ASSESSMENT REPORT CARD
+{'='*60}
+
+Student Name: {student_name}
+Student ID: {eval_data.get('student_id')}
+Enrolled Class: {eval_data.get('enrolled_class')}
+Test Date: {eval_data.get('test_date')}
+
+ FLN ASSESSMENT STATUS
+{'-'*50}
+Result: PASS
+Class: {eval_data.get('enrolled_class')}
+Confidence: {eval_data.get('confidence_score', 0)*100:.0f}%
+
+ PERFORMANCE BY DIFFICULTY
+{'-'*50}{perf_lines}
+
+ PERFORMANCE CHECK
+{'-'*50}
+  Easy: need >= 90% {'Met' if perf.get('easy', {}).get('correct', 0) / max(perf.get('easy', {}).get('attempted', 1), 1) * 100 >= 90 else 'Not Met'}
+  Medium: need >= 50% {'Met' if perf.get('medium', {}).get('correct', 0) / max(perf.get('medium', {}).get('attempted', 1), 1) * 100 >= 50 else 'Not Met'}
+  Hard: need >= 40% {'Met' if perf.get('hard', {}).get('correct', 0) / max(perf.get('hard', {}).get('attempted', 1), 1) * 100 >= 40 else 'Not Met'}
+
+ RESULT
+{'-'*50}
+The child has mastered the foundational concepts required for Class {eval_data.get('enrolled_class')}.
+
+ NEXT STEPS
+{'-'*50}
+{eval_data.get('recommendation')}
+
+{'='*60}
+"""
 
     def _generate_ai_report(self, eval_data, student_name):
         try:
