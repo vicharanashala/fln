@@ -77,20 +77,47 @@ class ChildEvaluator:
             if c["status"] == "\u2713":
                 perf_by_diff[d]["correct"] += 1
 
+        stripped_wrong = []
+        for w in wrong_answers:
+            sa = w.get("student_answer", "")
+            ca = w.get("correct_answer", "")
+            if isinstance(sa, (list, dict)):
+                sa = str(type(sa).__name__)
+            if isinstance(ca, (list, dict)):
+                ca = str(type(ca).__name__)
+            stripped_wrong.append({
+                "question_id": w["question_id"],
+                "topic": w.get("topic", ""),
+                "subtopic": w.get("subtopic", ""),
+                "difficulty": w.get("difficulty", ""),
+                "student_answer": sa,
+                "correct_answer": ca
+            })
+
         input_data = {
             "student_id": comparison['student_id'],
             "enrolled_class": comparison['enrolled_class'],
             "test_date": comparison['test_date'],
             "wrong_percentage": wrong_percentage,
-            "wrong_answers": wrong_answers,
+            "wrong_answers": stripped_wrong,
             "performance_by_difficulty": perf_by_diff
         }
 
         with open(syllabus_file) as f:
             syllabus_data = json.load(f)
 
+        syllabus_summary = {
+            "class": syllabus_data.get("class", ""),
+            "topics": []
+        }
+        for t in syllabus_data.get("topics", []):
+            syllabus_summary["topics"].append({
+                "topic": t.get("topic", ""),
+                "subtopics": [s.get("subtopic_name", "") for s in t.get("subtopics", [])]
+            })
+
         prompt = self.prompt.replace("{input_data}", json.dumps(input_data, indent=2))
-        prompt = prompt.replace("{syllabus_data}", json.dumps(syllabus_data, indent=2))
+        prompt = prompt.replace("{syllabus_data}", json.dumps(syllabus_summary, indent=2))
 
         try:
             response = requests.post(
@@ -144,7 +171,16 @@ class ChildEvaluator:
             if not ai_next_level or "Class X" in ai_next_level:
                 ai_next_level = ""
 
-            if wrong_percentage < 10:
+            ai_assigned_level = ai_eval.get("assigned_level")
+            ai_levels_failed = ai_eval.get("levels_failed", [])
+            ai_assign_reason = ai_eval.get("assign_reason", "")
+
+            if ai_assigned_level is not None:
+                demonstrated_level = ai_assigned_level
+                boundary_level = ai_assigned_level + 1
+                confidence = max(0.60, ai_eval.get("confidence_score", 0.6)) if isinstance(ai_eval.get("confidence_score"), (int, float)) else 0.60
+                next_level = ai_assigned_level + 1
+            elif wrong_percentage < 10:
                 demonstrated_level = comparison['enrolled_class']
                 boundary_level = comparison['enrolled_class']
                 confidence = 0.95
@@ -161,8 +197,8 @@ class ChildEvaluator:
                 next_level = comparison['enrolled_class']
 
             evaluation = {
-                "demonstrated_level": f"Class {demonstrated_level}",
-                "boundary_level": f"Class {boundary_level}",
+                "demonstrated_level": f"Level {demonstrated_level}",
+                "boundary_level": f"Level {boundary_level}",
                 "confidence_score": confidence,
                 "error_type": error_type,
                 "topics_to_focus": topics,
@@ -171,7 +207,10 @@ class ChildEvaluator:
                 "prerequisites_to_check": prerequisites,
                 "performance_by_difficulty": perf_by_diff,
                 "recommendation": ai_recommendation,
-                "next_level_assignment": ai_next_level or f"Class {next_level}"
+                "next_level_assignment": ai_next_level or f"Level {next_level}",
+                "levels_failed": ai_levels_failed,
+                "assigned_level": demonstrated_level,
+                "assign_reason": ai_assign_reason or "Minimum failure level rule applied"
             }
 
             evaluation["student_id"] = comparison['student_id']

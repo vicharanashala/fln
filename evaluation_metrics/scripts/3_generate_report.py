@@ -129,37 +129,51 @@ RECOMMENDATION
         return self._generate_template_report(eval_data, student_name)
 
     def _generate_template_report(self, eval_data, student_name):
-        demonstrated_level = eval_data.get('demonstrated_level', 'Unknown')
+        assigned_level = eval_data.get('demonstrated_level', 'Unknown')
         boundary_level = eval_data.get('boundary_level', 'Unknown')
-        can_do = self._get_can_do_list(demonstrated_level)
-
+        assign_reason = eval_data.get('assign_reason', 'Minimum failure level rule applied')
+        levels_failed = eval_data.get('levels_failed', [])
+        confidence = eval_data.get('confidence_score', 0)
         root_causes = eval_data.get('root_causes', [])
-        root_cause = eval_data.get('root_cause', '')
-        areas_for_growth = ""
-        if root_causes:
-            for rc in root_causes[:5]:
-                areas_for_growth += f"\n  \u2022 {rc.get('question_id', '?')}: {rc.get('topic', '?')} \u2014 {rc.get('analysis', rc.get('error', ''))}"
-        else:
-            for t in eval_data.get('topics_to_focus', []):
-                areas_for_growth += f"\n  \u2022 {t}"
-        if root_cause and not root_causes:
-            areas_for_growth += f"\n\nRoot cause: {root_cause}"
-
         recommendation = eval_data.get('recommendation', 'Continue current practice')
+
+        dash = " - "
+        no_areas = "\n  No specific areas identified"
+        no_perf = "\n  Not available"
+        check = "\u2713"
+        levels_failed_lines = ""
+        conceptual = []
+        careless = []
+        for rc in root_causes:
+            lvl = rc.get('fln_level', '?')
+            topic = rc.get('topic', '?')
+            etype = rc.get('error_type', '?')
+            analysis = rc.get('analysis', '')
+            line = f"  Level {lvl}{dash}{topic}{dash}Error: {etype}"
+            levels_failed_lines += f"\n{line}"
+            if etype == 'conceptual' or etype == 'prerequisite':
+                conceptual.append((lvl, topic, analysis))
+            else:
+                careless.append((lvl, topic, analysis))
+
+        growth_lines = ""
+        for lvl, topic, analysis in conceptual:
+            growth_lines += f"\n  Level {lvl}: {topic}{dash}{analysis}"
+        for lvl, topic, analysis in careless:
+            growth_lines += f"\n  Level {lvl}: {topic}{dash}{analysis} (careless)"
+
+        prereqs = eval_data.get('prerequisites_to_check', [])
+        prereq_lines = "\n".join([f"  \u2022 {p}" for p in prereqs]) if prereqs else "  None identified"
+
+        topics_focus = ', '.join(eval_data.get('topics_to_focus', []))
 
         perf_lines = ""
         for d, s in eval_data.get('performance_by_difficulty', {}).items():
             perf_lines += f"\n  {d.capitalize()}: {s.get('correct', '?')}/{s.get('attempted', '?')} correct"
 
-        prereqs = eval_data.get('prerequisites_to_check', [])
-        prereq_lines = "\n".join([f"  \u2022 {p}" for p in prereqs]) if prereqs else "  None identified"
-
-        topics_focus_lines = ''.join(['\n  \u2022 ' + t for t in eval_data.get('topics_to_focus', [])])
-        placement_suffix = " and is working toward " + boundary_level if demonstrated_level != boundary_level else ""
-
         return f"""
 {'='*60}
-           FLN ASSESSMENT REPORT CARD
+            FLN ASSESSMENT REPORT CARD
 {'='*60}
 
 Student Name: {student_name}
@@ -167,42 +181,43 @@ Student ID: {eval_data.get('student_id')}
 Enrolled Class: {eval_data.get('enrolled_class')}
 Test Date: {eval_data.get('test_date')}
 
-PLACEMENT
+ PLACEMENT
 {'-'*50}
-Current Level (Demonstrated): {demonstrated_level}
-Next Frontier (Boundary): {eval_data.get('boundary_level')}
-Confidence: {eval_data.get('confidence_score', 0)*100:.0f}%
+Assigned Level: {assigned_level}
+Reason: {assign_reason}
+Confidence: {confidence*100:.0f}%
 
-Interpretation: Your child is solid at {demonstrated_level}{placement_suffix}. With focused practice 
-on specific skills, they'll be ready for the next level soon.
+ AREAS OF WEAKNESS BY LEVEL
+{'-'*50}{levels_failed_lines}
 
-WHAT YOUR CHILD CAN DO
+Assigned to {assigned_level} as the starting point for remediation.
+
+  WHAT YOUR CHILD CAN DO
 {'-'*50}
-{can_do}
+  {check} Skills at or below {assigned_level} are being developed
 
-AREAS FOR GROWTH
+  AREAS FOR GROWTH (BY LEVEL)
+{'-'*50}{growth_lines if growth_lines else no_areas}
+
+ ROOT CAUSE ANALYSIS
 {'-'*50}
-{areas_for_growth}
-
-ROOT CAUSE ANALYSIS
-{'-'*50}
-Error Type: {eval_data.get('error_type', 'Not identified')}
-
-Topics to Focus:
-{topics_focus_lines}
-
+Topics to Focus: {topics_focus}
 Prerequisites to Review:
 {prereq_lines}
+Performance by Difficulty:{perf_lines if perf_lines else no_perf}
 
+ NEXT STEPS FOR TEACHER
 {'-'*50}
-{perf_lines if perf_lines else '  Not available'}
+SHORT-TERM (Next 1-2 weeks) - Focus on {assigned_level}:
+1. Remediate {topics_focus} using concrete objects and visual aids
+2. Practice 15-20 minutes daily on {assigned_level} skills
+3. Use worksheets and hands-on activities
 
-NEXT STEPS FOR TEACHER
-{'-'*50}
+MEDIUM-TERM (Next month):
+- Master {assigned_level} first, then reassess for next level
+- Expected next target: {boundary_level}
 
 {recommendation}
-
-Next Assignment: {eval_data.get('next_level_assignment')}
 
 {'='*60}
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
