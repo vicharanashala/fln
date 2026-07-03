@@ -1,5 +1,7 @@
 # Level 12: Tens and Ones
 
+**Class:** 1–2 | **Age Group:** 6–8 years
+
 ### **Objective**
 
 Develop an understanding of place value by identifying tens and ones in two-digit numbers.
@@ -13,4 +15,12 @@ Develop an understanding of place value by identifying tens and ones in two-digi
 ### **Learning Outcome**
 
 Students can identify the tens and ones in a two-digit number and represent numbers using groups of tens and individual ones.
+
+## Topics Covered
+
+* Tens
+* Ones
+* Place Value
+* Grouping
+* Number Representation
 

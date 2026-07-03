@@ -1,5 +1,11 @@
 # Level 19: Numbering 31-50
 
+**Class:** 1–2 | **Age Group:** 6–8 years
+
+## Objective
+
+Recognize, write, and sequence numbers from 31 to 50 and match them with their number names.
+
 ## SECTION A: NUMBERS
 Objective
 Writing, and sequencing of numbers from 31 to 50.
@@ -13,4 +19,11 @@ Children practice identifying, reading, writing, and sequencing these numbers th
 
 ## Learning Outcome
 Students can identify, read, write, and arrange numbers from 31 to 50 correctly.
+
+## Topics Covered
+
+* Number Recognition (31-50)
+* Number Writing
+* Number Sequencing
+* Number Names
 

@@ -1,5 +1,7 @@
 # Level 36: Numbers 101–1000 (Place Value)
 
+**Class:** 3–4 | **Age Group:** 8–10 years
+
 ## **Objective**
 
 Develop an understanding of three-digit numbers by identifying hundreds, tens, and ones, recognizing number patterns, and completing number sequences up to 1000\.

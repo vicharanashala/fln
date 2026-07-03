@@ -1,5 +1,7 @@
 # Level 44: Time & Calendar
 
+**Class:** 3–4 | **Age Group:** 8–10 years
+
 ## **Objective**
 
 Develop the ability to read clocks and calendars, identify dates, days, months, and apply time concepts in everyday situations.

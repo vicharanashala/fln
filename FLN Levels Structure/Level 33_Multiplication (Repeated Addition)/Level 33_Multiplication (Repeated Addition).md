@@ -1,5 +1,7 @@
 # Level 33: Multiplication (Repeated Addition)
 
+**Class:** 2–3 | **Age Group:** 7–9 years
+
 ### **Objective**
 
 Develop an understanding of multiplication as repeated addition and equal grouping using the 2, 3, and 4 multiplication tables.

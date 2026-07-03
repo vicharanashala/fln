@@ -1,5 +1,7 @@
 # **Level 55: Decimals (Introduction)**
 
+**Class:** 4 | **Age Group:** 9–10 years
+
 ## **Objective**
 
 Develop an understanding of decimals by representing tenths and hundredths using visual models, place value, and simple real-life situations.

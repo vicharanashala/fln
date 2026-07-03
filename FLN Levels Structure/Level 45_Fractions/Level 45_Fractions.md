@@ -1,5 +1,7 @@
 # Level 45: Fractions
 
+**Class:** 3–4 | **Age Group:** 8–10 years
+
 ## **Objective**
 
 Develop an understanding of fractions as equal parts of a whole through visual representations and simple fraction concepts.

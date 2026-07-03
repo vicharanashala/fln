@@ -1,6 +1,8 @@
 # Level 1: Quantity  Comparison
 
-## Concept
+**Class:** 1 | **Age Group:** 6–7 years
+
+## Objective
 
 Comparing Quantities (Equal, More, Less)
 
@@ -23,6 +25,12 @@ Compare quantities visually.
 Develop observation and comparison skills.
 
 Build a foundation for future mathematical operations.
+
+## Topics Covered
+
+* Comparing Quantities
+* Equal, More and Less
+* Visual Comparison
 
 ## Skills Developed
 

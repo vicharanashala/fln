@@ -1,5 +1,7 @@
 # Level 27: Borrow Subtraction
 
+**Class:** 2–3 | **Age Group:** 7–9 years
+
 ### **Objective**
 
 Develop fluency in subtraction involving regrouping (borrowing) within 100 and apply subtraction strategies to solve numerical and real-life problems.

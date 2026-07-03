@@ -1,5 +1,7 @@
 # Level 30: Data Handling (Tally Marks)
 
+**Class:** 2–3 | **Age Group:** 7–9 years
+
 ### **Objective**
 
 ### Develop the ability to represent, interpret, and compare data using tally marks and visual data representations.

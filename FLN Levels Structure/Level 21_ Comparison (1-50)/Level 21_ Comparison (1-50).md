@@ -1,5 +1,7 @@
 # Level 21: Comparison (1-50)
 
+**Class:** 1–2 | **Age Group:** 6–8 years
+
 ## Objective
 
 Compare numbers and identify greater than, less than, and equal quantities.
@@ -13,3 +15,11 @@ Children use their understanding of number values to identify relationships betw
 ## Learning Outcome
 
 Students can compare two numbers and determine their relationship.
+
+## Topics Covered
+
+* Greater Than
+* Less Than
+* Equal To
+* Comparison Symbols (>, <, =)
+* Number Comparison (1-50)

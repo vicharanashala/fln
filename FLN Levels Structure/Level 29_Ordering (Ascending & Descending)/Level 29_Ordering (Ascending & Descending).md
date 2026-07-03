@@ -1,5 +1,7 @@
 # Level 29: Ordering (Ascending & Descending)
 
+**Class:** 2–3 | **Age Group:** 7–9 years
+
 ### **Objective**
 
 Develop the ability to arrange numbers in ascending and descending order using number sense and place value understanding within 100.

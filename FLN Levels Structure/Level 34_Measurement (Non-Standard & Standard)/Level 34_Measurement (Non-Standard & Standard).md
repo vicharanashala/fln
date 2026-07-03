@@ -1,5 +1,7 @@
 # Level 34: Measurement (Non-Standard & Standard)
 
+**Class:** 2–3 | **Age Group:** 7–9 years
+
 ## **Objective**
 
 Develop an understanding of measuring and comparing the length, weight, and capacity of objects using both non-standard and standard measurement methods.

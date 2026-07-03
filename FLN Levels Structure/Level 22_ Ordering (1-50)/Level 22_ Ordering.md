@@ -1,10 +1,12 @@
 # Level 22: Ordering
 
+**Class:** 1–2 | **Age Group:** 6–8 years
+
 ## Objective
 
 Arrange numbers in ascending and descending order.
 
-Desciption
+## Description
 
 In this level, students learn to arrange numbers in the correct order by identifying the smallest and largest numbers within a group.
 
@@ -15,3 +17,10 @@ This level strengthens number sense, comparison skills, and understanding of num
 ## Learning Outcome
 
 Students can organize numbers from smallest to largest and largest to smallest.
+
+## Topics Covered
+
+* Ascending Order
+* Descending Order
+* Smallest and Largest Numbers
+* Number Sequencing (1-50)

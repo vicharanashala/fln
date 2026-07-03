@@ -1,13 +1,15 @@
 # Level 20: Skip Counting in 2s/3s
 
+**Class:** 1–2 | **Age Group:** 6–8 years
+
 
 ## Objective
 
 Develop understanding of number patterns through equal jumps on a number line.
 
-Desciption
+## Description
 
-students learn to identify and continue number patterns through skip counting by 2s and 3s.
+Students learn to identify and continue number patterns through skip counting by 2s and 3s.
 
 Children observe sequences where numbers increase by a fixed amount and complete the missing numbers in the pattern.
 
@@ -16,6 +18,13 @@ Children observe sequences where numbers increase by a fixed amount and complete
 Develop understanding of number patterns through equal jumps on a number line.
 
 Students can identify, continue, and create simple skip-counting patterns by 2s and 3s using number sequences and visual representations.
+
+## Topics Covered
+
+* Skip Counting by 2s
+* Skip Counting by 3s
+* Number Patterns
+* Number Sequences
 
 Example Activities
 

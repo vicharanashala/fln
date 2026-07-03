@@ -1,5 +1,7 @@
 # Level 2: Odd One Out
 
+**Class:** 1 | **Age Group:** 6–7 years
+
 ## Concept
 
 Odd One Out (Classification and Differentiation)
@@ -29,6 +31,13 @@ Recognize an item that does not belong to a group.
 Develop logical reasoning and observation skills.
 
 Make decisions based on visual information.
+
+## Topics Covered
+
+* Odd One Out
+* Classification and Differentiation
+* Similarities and Differences
+* Attribute-Based Grouping
 
 ## Skills Developed
 

@@ -1,5 +1,7 @@
 # Level 24: Numbers 51–100
 
+**Class:** 2–3 | **Age Group:** 7–9 years
+
 ### **Objective**
 
 Develop number sense and fluency with numbers from 51 to 100 through recognition, sequencing, comparison, and pattern-based activities.

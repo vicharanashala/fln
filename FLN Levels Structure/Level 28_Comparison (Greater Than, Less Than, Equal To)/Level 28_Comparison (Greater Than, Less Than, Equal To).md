@@ -1,5 +1,7 @@
 # Level 28: Comparison (Greater Than, Less Than, Equal To)
 
+**Class:** 2–3 | **Age Group:** 7–9 years
+
 ### **Objective**
 
 Develop the ability to compare numbers using mathematical symbols (\> , \< , \=) and understand numerical relationships within 100\.

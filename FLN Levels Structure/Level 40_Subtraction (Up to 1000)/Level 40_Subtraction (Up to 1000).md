@@ -1,5 +1,7 @@
 # Level 40: Subtraction (Up to 1000)
 
+**Class:** 3–4 | **Age Group:** 8–10 years
+
 ## **Objective**
 
 Develop fluency in subtracting numbers up to 1000 using place value, with and without regrouping (borrowing).

@@ -1,5 +1,7 @@
 # **Level 52: Maps & Directions**
 
+**Class:** 4 | **Age Group:** 9–10 years
+
 ## **Objective**
 
 Develop spatial reasoning and navigation skills by interpreting simple maps, identifying directions, locating positions, and following routes using visual representations.

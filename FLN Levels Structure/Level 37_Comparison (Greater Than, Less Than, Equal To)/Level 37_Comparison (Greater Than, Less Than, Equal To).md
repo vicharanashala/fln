@@ -1,5 +1,7 @@
 # Level 37: Comparison (Greater Than, Less Than, Equal To)
 
+**Class:** 3–4 | **Age Group:** 8–10 years
+
 ## **Objective**
 
 Develop the ability to compare numbers up to 1000 using place value and the symbols greater than (\>), less than (\<), and equal to (=).

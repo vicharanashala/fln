@@ -1,5 +1,7 @@
 # Level 25: Place Value (Tens & Ones)
 
+**Class:** 2–3 | **Age Group:** 7–9 years
+
 ## **Objective**
 
 Develop an understanding of place value by identifying, representing, and composing two-digit numbers using tens and ones.

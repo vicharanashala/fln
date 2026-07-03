@@ -1,5 +1,7 @@
 # Level 41: Multiplication (Tables 2–10)
 
+**Class:** 3–4 | **Age Group:** 8–10 years
+
 ## **Objective**
 
 Develop fluency in multiplication using tables from 2 to 10 and apply multiplication strategies to solve multiplication problems involving one-digit and two-digit numbers.

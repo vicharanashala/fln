@@ -1,5 +1,7 @@
 # **Level 47: Data Handling** 
 
+**Class:** 3–4 | **Age Group:** 8–10 years
+
 ## **Objective**
 
 Develop the ability to collect, represent, interpret, and compare data using tally marks, pictographs, and simple bar graphs.

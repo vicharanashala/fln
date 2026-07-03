@@ -1,12 +1,25 @@
 # Level 13: Numbers 11–30
 
+**Class:** 1–2 | **Age Group:** 6–8 years
+
 ## Objective
 
 Recognize and work with numbers 11–30.
 
+## Description
+
+In this level, children learn to identify, count, trace, and work with numbers from 11 to 30 through various activities. They also practice recognizing number names for each number.
+
 ## Learning Outcome
 
 Students identify, count and trace numbers 11–30.
+
+## Topics Covered
+
+* Number Recognition (11-30)
+* Counting
+* Number Tracing
+* Number Names
 
 ## Skills Developed
 

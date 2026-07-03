@@ -1,5 +1,7 @@
 # Level 31: Time
 
+**Class:** 2–3 | **Age Group:** 7–9 years
+
 ### **Objective**
 
 Develop the ability to read and interpret time using an analog clock.

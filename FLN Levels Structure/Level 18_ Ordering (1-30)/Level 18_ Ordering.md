@@ -1,14 +1,16 @@
 # Level 18: Ordering
 
+**Class:** 1–2 | **Age Group:** 6–8 years
+
 ## Objective
 
 Arrange numbers in  Ascending and Descending order.
 
 ## Description
 
-This will contain 2 Sections:SECTION A: ASCENDING ORDER
-
-### SECTION B: DESCENDING ORDER
+This will contain 2 Sections:
+* SECTION A: ASCENDING ORDER
+* SECTION B: DESCENDING ORDER
 
 The child has to write  the numbers in in ascending or descending form as given in the question.
 
@@ -17,3 +19,9 @@ The child will understand what is to be done by looking at the example provided.
 ## Learning Outcome
 
 Students understand sequencing.
+
+## Topics Covered
+
+* Ascending Order
+* Descending Order
+* Number Sequencing

@@ -1,5 +1,7 @@
 # **Level 49: Numbers up to 10,000**
 
+**Class:** 4 | **Age Group:** 9–10 years
+
 ## **Objective**
 
 Develop an understanding of four-digit numbers by identifying thousands, hundreds, tens, and ones, representing numbers in standard and expanded forms, and applying place value concepts to numbers up to 10,000.

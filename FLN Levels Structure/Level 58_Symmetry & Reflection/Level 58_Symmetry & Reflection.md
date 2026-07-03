@@ -1,5 +1,7 @@
 # **Level 58: Symmetry & Reflection**
 
+**Class:** 4 | **Age Group:** 9–10 years
+
 ## **Objective**
 
 Develop the ability to identify, draw, and complete symmetrical figures while understanding lines of symmetry and reflection through visual representations.

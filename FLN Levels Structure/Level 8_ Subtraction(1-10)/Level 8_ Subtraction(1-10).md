@@ -1,5 +1,7 @@
 # Level 8: Subtraction(1-10)
 
+**Class:** 1 | **Age Group:** 6–7 years
+
 # Level 8: Subtraction Through Objects & Numbers
 
 ## Objective
@@ -19,3 +21,10 @@ ___ − ___ = ___
 ## Learning Outcome
 
 Students can determine the remaining quantity after taking away objects and solve subtraction problems within 10 without borrowing.
+
+## Topics Covered
+
+* Taking Away Objects
+* Object-Based Subtraction
+* Numerical Subtraction
+* Subtraction within 10

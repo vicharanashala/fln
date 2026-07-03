@@ -1,5 +1,7 @@
 # Level 7: Addition through objects
 
+**Class:** 1 | **Age Group:** 6–7 years
+
 # Level 7: Addition Through Objects & Numbers
 
 ## Objective
@@ -19,3 +21,10 @@ ___ + ___ = ___
 ## Learning Outcome
 
 Students can combine two groups of objects, represent them using numbers, and solve addition problems within 10 without carrying.
+
+## Topics Covered
+
+* Combining Groups
+* Object-Based Addition
+* Numerical Addition
+* Addition within 10

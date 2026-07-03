@@ -1,5 +1,7 @@
 #  Level 46: Money
 
+**Class:** 3–4 | **Age Group:** 8–10 years
+
 ## **Objective**
 
 Develop an understanding of Indian currency by identifying coins and notes, counting money, making simple transactions, and calculating basic change.

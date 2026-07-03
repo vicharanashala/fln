@@ -1,5 +1,7 @@
 # Level 3: Matching + Tracing Lines
 
+**Class:** 1 | **Age Group:** 6–7 years
+
 ### SECTION A: MATCHING
 
 ## Concept
@@ -31,6 +33,13 @@ Associate quantities with corresponding groups.
 Recognize shapes and their real-world representations.
 
 Understand simple opposite concepts.
+
+## Topics Covered
+
+* Matching and Association
+* Shape Recognition
+* Opposite Concepts
+* Object Relationships
 
 ## Skills Developed
 

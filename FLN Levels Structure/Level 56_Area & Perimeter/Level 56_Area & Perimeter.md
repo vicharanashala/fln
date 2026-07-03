@@ -1,5 +1,7 @@
 # **Level 56: Area & Perimeter**
 
+**Class:** 4 | **Age Group:** 9–10 years
+
 ## **Objective**
 
 Develop an understanding of area and perimeter by measuring, calculating, and comparing the space inside shapes and the distance around shapes using standard units.

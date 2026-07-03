@@ -1,10 +1,12 @@
 # Level 23:  Review Assessment
 
+**Class:** 1–2 | **Age Group:** 6–8 years
+
 ## Objective
 
 Assess mastery of all concepts learned from Levels 12–2.
 
-Desciption
+## Description
 
 This level serves as a comprehensive review assessment of all concepts introduced from Levels 12–2.
 
@@ -12,7 +14,7 @@ This level serves as a comprehensive review assessment of all concepts introduce
 
 Students demonstrate competency in number recognition, patterns, comparison, and ordering.
 
-Topics Covered
+## Topics Covered
 
 Numbers 31–50
 

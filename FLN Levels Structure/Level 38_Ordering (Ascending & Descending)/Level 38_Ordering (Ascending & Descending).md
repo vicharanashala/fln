@@ -1,5 +1,7 @@
 # Level 38: Ordering (Ascending & Descending)
 
+**Class:** 3–4 | **Age Group:** 8–10 years
+
 ## **Objective**
 
 Develop the ability to arrange three-digit numbers in ascending and descending order using place value understanding.

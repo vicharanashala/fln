@@ -1,5 +1,7 @@
 ## **Level 59: Advanced Mastery Assessment**
 
+**Class:** 4 | **Age Group:** 9–10 years
+
 ### **Objective**
 
 Assess students' understanding and application of advanced mathematical concepts covered in Levels 49–58 through a comprehensive, integrated assessment.

@@ -1,5 +1,7 @@
 # **Level 50: Advanced Multiplication**
 
+**Class:** 4 | **Age Group:** 9–10 years
+
 ## **Objective**
 
 Develop proficiency in multiplying larger numbers by applying place value concepts and the standard multiplication algorithm to solve two-digit and three-digit multiplication problems.

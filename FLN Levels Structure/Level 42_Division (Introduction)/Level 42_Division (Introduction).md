@@ -1,5 +1,7 @@
 # Level 42: Division (Introduction)
 
+**Class:** 3–4 | **Age Group:** 8–10 years
+
 ## **Objective**
 
 Develop an understanding of division through equal sharing, equal grouping, and simple division facts using visual representations.

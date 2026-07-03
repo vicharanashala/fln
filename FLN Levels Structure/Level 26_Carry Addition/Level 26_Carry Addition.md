@@ -1,5 +1,7 @@
 # Level 26: Carry Addition
 
+**Class:** 2–3 | **Age Group:** 7–9 years
+
 ### **Objective**
 
 Develop fluency in addition involving regrouping (carry) within 100 and apply addition strategies to solve numerical and real-life problems.

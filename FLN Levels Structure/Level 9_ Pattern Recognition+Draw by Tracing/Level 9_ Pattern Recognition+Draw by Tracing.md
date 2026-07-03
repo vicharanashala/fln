@@ -1,5 +1,7 @@
 # Level 9: Pattern Recognition+Draw by Tracing
 
+**Class:** 1 | **Age Group:** 6–7 years
+
 ### Section A: Pattern Recognition
 
 ## Objective
@@ -23,6 +25,13 @@ Complete visual patterns accurately.
 Complete number patterns accurately.
 
 Predict the next item in a pattern.
+
+## Topics Covered
+
+* Visual Patterns
+* Number Patterns
+* Pattern Completion
+* Sequencing
 
 ## Skills Developed
 

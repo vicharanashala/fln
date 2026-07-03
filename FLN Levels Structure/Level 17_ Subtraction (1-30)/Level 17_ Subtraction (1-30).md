@@ -1,6 +1,8 @@
 
 # Level 17: Subtraction Through Objects & Numbers 1-30
 
+**Class:** 1–2 | **Age Group:** 6–8 years
+
 ## Objective
 
 Develop the ability to solve subtraction problems involving numbers up to 30 without borrowing.
@@ -12,3 +14,10 @@ In this level, students extend their understanding of subtraction by solving pro
 ## Learning Outcome
 
 Students can solve subtraction problems involving numbers up to 30 without borrowing and accurately determine the remaining quantity.
+
+## Topics Covered
+
+* Subtraction without Borrowing
+* Object-Based Subtraction
+* Numerical Subtraction
+* Numbers up to 30
