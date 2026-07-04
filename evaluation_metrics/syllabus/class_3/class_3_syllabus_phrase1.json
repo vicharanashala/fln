@@ -1,0 +1,593 @@
+{
+  "class": 3,
+  "difficulty_mapping": {
+    "easy": [
+      "Preschool 1",
+      "Preschool 2",
+      "Preschool 3"
+    ],
+    "medium": "Class 1",
+    "hard": "Class 2"
+  },
+  "topics": [
+    {
+      "topic_id": "NS",
+      "topic_name": "Number Sense",
+      "subtopics": [
+        {
+          "subtopic_id": "NS_CLASE",
+          "subtopic_name": "Classification (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Compare and classify objects using multiple properties"
+        },
+        {
+          "subtopic_id": "NS_SERE",
+          "subtopic_name": "Seriation (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Arrange objects by criteria"
+        },
+        {
+          "subtopic_id": "NS_COUNTE",
+          "subtopic_name": "Counting (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Count up to 10 objects"
+        },
+        {
+          "subtopic_id": "NS_NUMRE",
+          "subtopic_name": "Numeral Recognition (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Identify numerals up to 9"
+        },
+        {
+          "subtopic_id": "NS_CMPNUME",
+          "subtopic_name": "Comparing Numbers (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Compare numbers using vocabulary"
+        },
+        {
+          "subtopic_id": "NS_ODD",
+          "subtopic_name": "Odd One Out",
+          "difficulty": "e",
+          "source": "Preschool 1",
+          "description": "Identify object that does not belong based on shape, size, color, or category"
+        },
+        {
+          "subtopic_id": "NS_MATCH",
+          "subtopic_name": "Matching",
+          "difficulty": "e",
+          "source": "Preschool 1",
+          "description": "Match objects, shapes, quantities, and relationships"
+        },
+        {
+          "subtopic_id": "NS_NN5",
+          "subtopic_name": "Number Names (1-5)",
+          "difficulty": "e",
+          "source": "Preschool 2",
+          "description": "Identify number names one, two, three, four, five"
+        },
+        {
+          "subtopic_id": "NS_FGC",
+          "subtopic_name": "Finger Gesture Counting",
+          "difficulty": "e",
+          "source": "Preschool 2",
+          "description": "Connect finger representations to quantities up to 5"
+        },
+        {
+          "subtopic_id": "NS_ABB",
+          "subtopic_name": "After, Between, Before (1-5)",
+          "difficulty": "e",
+          "source": "Preschool 2",
+          "description": "Understand number sequence and position within 1-5"
+        },
+        {
+          "subtopic_id": "NS_NN10",
+          "subtopic_name": "Number Names (1-10)",
+          "difficulty": "e",
+          "source": "Preschool 3",
+          "description": "Identify number names for numbers 1 to 10"
+        },
+        {
+          "subtopic_id": "NS_CLASSM",
+          "subtopic_name": "Classification (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Compare and classify objects using multiple factors"
+        },
+        {
+          "subtopic_id": "NS_SERM",
+          "subtopic_name": "Seriation (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Arrange more than 5 objects"
+        },
+        {
+          "subtopic_id": "NS_COUNTM",
+          "subtopic_name": "Counting to 20 (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Count objects up to 20"
+        },
+        {
+          "subtopic_id": "NS_FCM",
+          "subtopic_name": "Forward and Backward Counting (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Count forward and backward up to 20"
+        },
+        {
+          "subtopic_id": "NS_NWM",
+          "subtopic_name": "Number Reading and Writing (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Read and write numerals up to 99"
+        },
+        {
+          "subtopic_id": "NS_CMPM",
+          "subtopic_name": "Comparing Numbers (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Compare numbers up to 20"
+        },
+        {
+          "subtopic_id": "NS_TENS",
+          "subtopic_name": "Tens and Ones (11-30)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Identify tens and ones using bundles, blocks, or beads for numbers 11-30"
+        },
+        {
+          "subtopic_id": "NS_N1130",
+          "subtopic_name": "Numbers 11-30",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Count, read, write, and identify number names for numbers 11-30"
+        },
+        {
+          "subtopic_id": "NS_CNTTRACE",
+          "subtopic_name": "Counting with Tracing",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Match quantities with numerals through counting and tracing activities"
+        },
+        {
+          "subtopic_id": "NS_ABB1130",
+          "subtopic_name": "After, Between, Before (11-30)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Understand after, before, and between for numbers 11-30"
+        },
+        {
+          "subtopic_id": "NS_ORD30",
+          "subtopic_name": "Ordering (1-30)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Arrange numbers up to 30 in ascending and descending order"
+        },
+        {
+          "subtopic_id": "NS_N3150",
+          "subtopic_name": "Numbers 31-50",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Write, sequence, and identify number names for numbers 31-50"
+        },
+        {
+          "subtopic_id": "NS_SKIP",
+          "subtopic_name": "Skip Counting (2s and 3s)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Skip count by 2s and 3s using frog jump patterns"
+        },
+        {
+          "subtopic_id": "NS_CMP50",
+          "subtopic_name": "Comparing Numbers (1-50)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Compare numbers up to 50 using greater than (>), less than (<), equal (=) symbols"
+        },
+        {
+          "subtopic_id": "NS_ORD50",
+          "subtopic_name": "Ordering (1-50)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Arrange numbers up to 50 in ascending and descending order"
+        },
+        {
+          "subtopic_id": "NS_CLASSH",
+          "subtopic_name": "Classification (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Classify objects into categories"
+        },
+        {
+          "subtopic_id": "NS_SERH",
+          "subtopic_name": "Seriation (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Ascending and descending order"
+        },
+        {
+          "subtopic_id": "NS_COUNTH",
+          "subtopic_name": "Counting to 100 (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Count up to 100 in groups of tens"
+        },
+        {
+          "subtopic_id": "NS_FCH",
+          "subtopic_name": "Forward and Backward Counting (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Count forward and backward up to 99"
+        },
+        {
+          "subtopic_id": "NS_NWH",
+          "subtopic_name": "Number Reading and Writing (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Read and write numbers up to 999"
+        },
+        {
+          "subtopic_id": "NS_PVH",
+          "subtopic_name": "Place Value (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Use zero in the place value system"
+        },
+        {
+          "subtopic_id": "NS_GSH",
+          "subtopic_name": "Greatest and Smallest Numbers (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Form greatest and smallest 2-digit numbers"
+        },
+        {
+          "subtopic_id": "NS_TALLY",
+          "subtopic_name": "Tally Marks",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Count and represent quantities using tally marks"
+        },
+        {
+          "subtopic_id": "NS_ORDINAL",
+          "subtopic_name": "Ordinal Positions (1st-10th)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Identify and write ordinal numbers first through tenth"
+        }
+      ]
+    },
+    {
+      "topic_id": "NO",
+      "topic_name": "Number Operations",
+      "subtopics": [
+        {
+          "subtopic_id": "NO_EAE",
+          "subtopic_name": "Early Operations (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Combining and taking away awareness"
+        },
+        {
+          "subtopic_id": "NO_ADDM",
+          "subtopic_name": "Addition (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Construct addition facts up to 18"
+        },
+        {
+          "subtopic_id": "NO_SUBM",
+          "subtopic_name": "Subtraction (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Construct subtraction facts up to 9"
+        },
+        {
+          "subtopic_id": "NO_ADD30",
+          "subtopic_name": "Addition (Up to 30)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Add numbers up to 30 without carrying"
+        },
+        {
+          "subtopic_id": "NO_SUB30",
+          "subtopic_name": "Subtraction (Up to 30)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Subtract numbers up to 30 without borrowing"
+        },
+        {
+          "subtopic_id": "NO_RELM",
+          "subtopic_name": "Addition and Subtraction Relationship (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Understand relationship between operations"
+        },
+        {
+          "subtopic_id": "NO_REPADDM",
+          "subtopic_name": "Repeated Addition (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Strategies for repeated addition"
+        },
+        {
+          "subtopic_id": "NO_ADDH",
+          "subtopic_name": "Addition (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Develop own addition strategies for numbers up to 99"
+        },
+        {
+          "subtopic_id": "NO_SUBH",
+          "subtopic_name": "Subtraction (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Develop own subtraction strategies up to 99"
+        },
+        {
+          "subtopic_id": "NO_ADD100",
+          "subtopic_name": "Addition (Up to 99, With Carry)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Add 2-digit numbers with carrying"
+        },
+        {
+          "subtopic_id": "NO_SUB100",
+          "subtopic_name": "Subtraction (Up to 99, With Borrow)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Subtract 2-digit numbers with borrowing"
+        },
+        {
+          "subtopic_id": "NO_RELH",
+          "subtopic_name": "Addition and Subtraction Relationship (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Apply relationship in problem-solving"
+        },
+        {
+          "subtopic_id": "NO_MULH",
+          "subtopic_name": "Multiplication (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Develop multiplication through repeated addition, tables 2, 3, 4"
+        },
+        {
+          "subtopic_id": "NO_DIVH",
+          "subtopic_name": "Division (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Equal sharing and equal grouping"
+        },
+        {
+          "subtopic_id": "NO_CHOOOH",
+          "subtopic_name": "Choosing Operations (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Identify correct operation for a problem"
+        }
+      ]
+    },
+    {
+      "topic_id": "MON",
+      "topic_name": "Money",
+      "subtopics": [
+        {
+          "subtopic_id": "MON_E",
+          "subtopic_name": "Money Vocabulary (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Money-related words and coins"
+        },
+        {
+          "subtopic_id": "MON_M",
+          "subtopic_name": "Money Representation (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Represent amounts up to ₹20"
+        },
+        {
+          "subtopic_id": "MON_H",
+          "subtopic_name": "Money Operations (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Represent amounts up to ₹100"
+        }
+      ]
+    },
+    {
+      "topic_id": "MEAS",
+      "topic_name": "Measurement",
+      "subtopics": [
+        {
+          "subtopic_id": "MEAS_E",
+          "subtopic_name": "Measurement Vocabulary (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Length, weight, capacity comparisons"
+        },
+        {
+          "subtopic_id": "MEAS_M",
+          "subtopic_name": "Measurement Non-standard Units (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Estimate and measure using non-standard units"
+        },
+        {
+          "subtopic_id": "MEAS_H",
+          "subtopic_name": "Standard Measurement Units (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Measure using cm, m, g, kg, litres"
+        }
+      ]
+    },
+    {
+      "topic_id": "SHAPE",
+      "topic_name": "Shapes",
+      "subtopics": [
+        {
+          "subtopic_id": "SHAPE_E",
+          "subtopic_name": "Basic and 2D Shapes (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Identify circles, squares, triangles, rectangles"
+        },
+        {
+          "subtopic_id": "SHAPE_M",
+          "subtopic_name": "3D Shapes (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Identify and describe 3D shapes"
+        },
+        {
+          "subtopic_id": "SHAPE_H",
+          "subtopic_name": "Lines and Shapes (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Draw horizontal, vertical, slant lines"
+        },
+        {
+          "subtopic_id": "SHAPE_2DPROP",
+          "subtopic_name": "Properties of 2D Shapes",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Identify edges and corners of 2D shapes"
+        },
+        {
+          "subtopic_id": "SHAPE_3DPROP",
+          "subtopic_name": "Properties of 3D Shapes",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Identify edges, faces, and corners of 3D objects"
+        }
+      ]
+    },
+    {
+      "topic_id": "FRAC",
+      "topic_name": "Fractions",
+      "subtopics": [
+        {
+          "subtopic_id": "FRAC_E",
+          "subtopic_name": "Fraction Vocabulary (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 3",
+          "description": "Half vocabulary"
+        },
+        {
+          "subtopic_id": "FRAC_M",
+          "subtopic_name": "Half and Quarter (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Identify half and whole using paper folding"
+        },
+        {
+          "subtopic_id": "FRAC_H",
+          "subtopic_name": "Fractions (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "One-fourth, three-fourths, fractions of collections"
+        }
+      ]
+    },
+    {
+      "topic_id": "PAT",
+      "topic_name": "Patterns",
+      "subtopics": [
+        {
+          "subtopic_id": "PAT_E",
+          "subtopic_name": "Basic Patterns (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Repeating and extending patterns"
+        },
+        {
+          "subtopic_id": "PAT_TRACE",
+          "subtopic_name": "Complete Patterns by Tracing",
+          "difficulty": "e",
+          "source": "Preschool 3",
+          "description": "Complete visual patterns by tracing or drawing missing elements"
+        },
+        {
+          "subtopic_id": "PAT_M",
+          "subtopic_name": "Shape and Number Patterns (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Observe, extend, create patterns"
+        },
+        {
+          "subtopic_id": "PAT_H",
+          "subtopic_name": "Advanced Number Patterns (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Multiplication patterns, patterns up to 100"
+        }
+      ]
+    },
+    {
+      "topic_id": "DATA",
+      "topic_name": "Data Handling",
+      "subtopics": [
+        {
+          "subtopic_id": "DATA_E",
+          "subtopic_name": "Observing and Collecting (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Identify objects and draw conclusions"
+        },
+        {
+          "subtopic_id": "DATA_M",
+          "subtopic_name": "Collecting and Interpreting Data (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Collect records and interpret visual information"
+        },
+        {
+          "subtopic_id": "DATA_H",
+          "subtopic_name": "Recording and Representing Data (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Tally marks, pictorial representation, draw conclusions"
+        }
+      ]
+    },
+    {
+      "topic_id": "CAL",
+      "topic_name": "Calendar and Time",
+      "subtopics": [
+        {
+          "subtopic_id": "CAL_E",
+          "subtopic_name": "Daily-Life Time and Special Days (Easy)",
+          "difficulty": "e",
+          "source": "Preschool 1-3",
+          "description": "Yesterday, today, tomorrow, days, months"
+        },
+        {
+          "subtopic_id": "CAL_M",
+          "subtopic_name": "Days and Months (Medium)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Identify days of week and months of year"
+        },
+        {
+          "subtopic_id": "CAL_H",
+          "subtopic_name": "Dates and Days (Hard)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Identify dates, find corresponding days on calendar"
+        },
+        {
+          "subtopic_id": "TIME_CLOCK",
+          "subtopic_name": "Analog Clock (Hour, Half-Hour, Quarter)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Tell time to the hour, half-hour, and quarter-hour on an analog clock"
+        }
+      ]
+    }
+  ]
+}
