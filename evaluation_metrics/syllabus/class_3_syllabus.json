@@ -46,6 +46,48 @@
           "description": "Compare numbers using vocabulary"
         },
         {
+          "subtopic_id": "NS_ODD",
+          "subtopic_name": "Odd One Out",
+          "difficulty": "e",
+          "source": "Preschool 1",
+          "description": "Identify object that does not belong based on shape, size, color, or category"
+        },
+        {
+          "subtopic_id": "NS_MATCH",
+          "subtopic_name": "Matching",
+          "difficulty": "e",
+          "source": "Preschool 1",
+          "description": "Match objects, shapes, quantities, and relationships"
+        },
+        {
+          "subtopic_id": "NS_NN5",
+          "subtopic_name": "Number Names (1-5)",
+          "difficulty": "e",
+          "source": "Preschool 2",
+          "description": "Identify number names one, two, three, four, five"
+        },
+        {
+          "subtopic_id": "NS_FGC",
+          "subtopic_name": "Finger Gesture Counting",
+          "difficulty": "e",
+          "source": "Preschool 2",
+          "description": "Connect finger representations to quantities up to 5"
+        },
+        {
+          "subtopic_id": "NS_ABB",
+          "subtopic_name": "After, Between, Before (1-5)",
+          "difficulty": "e",
+          "source": "Preschool 2",
+          "description": "Understand number sequence and position within 1-5"
+        },
+        {
+          "subtopic_id": "NS_NN10",
+          "subtopic_name": "Number Names (1-10)",
+          "difficulty": "e",
+          "source": "Preschool 3",
+          "description": "Identify number names for numbers 1 to 10"
+        },
+        {
           "subtopic_id": "NS_CLASSM",
           "subtopic_name": "Classification (Medium)",
           "difficulty": "m",
@@ -86,6 +128,69 @@
           "difficulty": "m",
           "source": "Class 1",
           "description": "Compare numbers up to 20"
+        },
+        {
+          "subtopic_id": "NS_TENS",
+          "subtopic_name": "Tens and Ones (11-30)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Identify tens and ones using bundles, blocks, or beads for numbers 11-30"
+        },
+        {
+          "subtopic_id": "NS_N1130",
+          "subtopic_name": "Numbers 11-30",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Count, read, write, and identify number names for numbers 11-30"
+        },
+        {
+          "subtopic_id": "NS_CNTTRACE",
+          "subtopic_name": "Counting with Tracing",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Match quantities with numerals through counting and tracing activities"
+        },
+        {
+          "subtopic_id": "NS_ABB1130",
+          "subtopic_name": "After, Between, Before (11-30)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Understand after, before, and between for numbers 11-30"
+        },
+        {
+          "subtopic_id": "NS_ORD30",
+          "subtopic_name": "Ordering (1-30)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Arrange numbers up to 30 in ascending and descending order"
+        },
+        {
+          "subtopic_id": "NS_N3150",
+          "subtopic_name": "Numbers 31-50",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Write, sequence, and identify number names for numbers 31-50"
+        },
+        {
+          "subtopic_id": "NS_SKIP",
+          "subtopic_name": "Skip Counting (2s and 3s)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Skip count by 2s and 3s using frog jump patterns"
+        },
+        {
+          "subtopic_id": "NS_CMP50",
+          "subtopic_name": "Comparing Numbers (1-50)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Compare numbers up to 50 using greater than (>), less than (<), equal (=) symbols"
+        },
+        {
+          "subtopic_id": "NS_ORD50",
+          "subtopic_name": "Ordering (1-50)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Arrange numbers up to 50 in ascending and descending order"
         },
         {
           "subtopic_id": "NS_CLASSH",
@@ -135,6 +240,20 @@
           "difficulty": "h",
           "source": "Class 2",
           "description": "Form greatest and smallest 2-digit numbers"
+        },
+        {
+          "subtopic_id": "NS_TALLY",
+          "subtopic_name": "Tally Marks",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Count and represent quantities using tally marks"
+        },
+        {
+          "subtopic_id": "NS_ORDINAL",
+          "subtopic_name": "Ordinal Positions (1st-10th)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Identify and write ordinal numbers first through tenth"
         }
       ]
     },
@@ -164,6 +283,20 @@
           "description": "Construct subtraction facts up to 9"
         },
         {
+          "subtopic_id": "NO_ADD30",
+          "subtopic_name": "Addition (Up to 30)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Add numbers up to 30 without carrying"
+        },
+        {
+          "subtopic_id": "NO_SUB30",
+          "subtopic_name": "Subtraction (Up to 30)",
+          "difficulty": "m",
+          "source": "Class 1",
+          "description": "Subtract numbers up to 30 without borrowing"
+        },
+        {
           "subtopic_id": "NO_RELM",
           "subtopic_name": "Addition and Subtraction Relationship (Medium)",
           "difficulty": "m",
@@ -190,6 +323,20 @@
           "difficulty": "h",
           "source": "Class 2",
           "description": "Develop own subtraction strategies up to 99"
+        },
+        {
+          "subtopic_id": "NO_ADD100",
+          "subtopic_name": "Addition (Up to 99, With Carry)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Add 2-digit numbers with carrying"
+        },
+        {
+          "subtopic_id": "NO_SUB100",
+          "subtopic_name": "Subtraction (Up to 99, With Borrow)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Subtract 2-digit numbers with borrowing"
         },
         {
           "subtopic_id": "NO_RELH",
@@ -299,6 +446,20 @@
           "difficulty": "h",
           "source": "Class 2",
           "description": "Draw horizontal, vertical, slant lines"
+        },
+        {
+          "subtopic_id": "SHAPE_2DPROP",
+          "subtopic_name": "Properties of 2D Shapes",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Identify edges and corners of 2D shapes"
+        },
+        {
+          "subtopic_id": "SHAPE_3DPROP",
+          "subtopic_name": "Properties of 3D Shapes",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Identify edges, faces, and corners of 3D objects"
         }
       ]
     },
@@ -339,6 +500,13 @@
           "difficulty": "e",
           "source": "Preschool 1-3",
           "description": "Repeating and extending patterns"
+        },
+        {
+          "subtopic_id": "PAT_TRACE",
+          "subtopic_name": "Complete Patterns by Tracing",
+          "difficulty": "e",
+          "source": "Preschool 3",
+          "description": "Complete visual patterns by tracing or drawing missing elements"
         },
         {
           "subtopic_id": "PAT_M",
@@ -407,6 +575,13 @@
           "difficulty": "h",
           "source": "Class 2",
           "description": "Identify dates, find corresponding days on calendar"
+        },
+        {
+          "subtopic_id": "TIME_CLOCK",
+          "subtopic_name": "Analog Clock (Hour, Half-Hour, Quarter)",
+          "difficulty": "h",
+          "source": "Class 2",
+          "description": "Tell time to the hour, half-hour, and quarter-hour on an analog clock"
         }
       ]
     }

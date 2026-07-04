@@ -15,10 +15,13 @@ LEVEL MAPPING (topic/subtopic → FLN level):
   # Numbers & Counting (Phase 2-3)
   Counting objects (1-10) → Level 4
   Number Recognition / Numeral Writing (1-9) → Level 4
+  Number Names (1-10) → Level 4
   Finger Gesture Counting → Level 5
   Number Rhymes / Zero Awareness → Level 4
   Number Sequence (After/Before/Between 1-10) → Level 6
+  After/Before/Between (11-30) → Level 15
   Numbers 11-30 / Counting to 20 → Level 13
+  Counting + Fun Trace (match quantities to numerals) → Level 14
   Number Reading/Writing 1-99 → Level 13 or Level 19
   Numbers 31-50 → Level 19
   Skip Counting (2s, 3s) → Level 20
@@ -26,8 +29,8 @@ LEVEL MAPPING (topic/subtopic → FLN level):
   Numbers 101-1000 → Level 36
 
   # Place Value
-  Tens and Ones (intro 11-30) → Level 12
-  Place Value (Tens/Ones 2-digit) → Level 25
+  Tens and Ones (intro 11-30 with bundles) → Level 12
+  Place Value (Tens/Ones 2-digit decompose/expanded form) → Level 25
   Place Value (Hundreds) → Level 36
 
   # Addition & Subtraction
@@ -43,7 +46,7 @@ LEVEL MAPPING (topic/subtopic → FLN level):
 
   # Comparison & Ordering
   Comparing Numbers (numeral up to 10) → Level 10
-  Comparing Numbers (1-50) → Level 21
+  Comparing Numbers (1-50 using >, <, =) → Level 21
   Comparison within 100 (>, <, =) → Level 28
   Comparison to 1000 → Level 37
   Ordering (1-30 asc/desc) → Level 18
@@ -54,6 +57,7 @@ LEVEL MAPPING (topic/subtopic → FLN level):
   # Patterns
   Pattern Recognition / Repeating Patterns → Level 9
   Creating Patterns / Shape-Number Patterns → Level 9
+  Completing Patterns by Tracing → Level 9
   Advanced Number Patterns → Level 20
 
   # Data Handling
@@ -64,21 +68,26 @@ LEVEL MAPPING (topic/subtopic → FLN level):
 
   # Time & Calendar
   Daily-Life Time Vocabulary (yesterday/today) → Level 31
-  Time (clock: hours, half-hours) → Level 31
+  Time (clock: hours, half-hours, quarter-hours) → Level 31
+  Time (quarter past, quarter to) → Level 44
   Calendar (days, months, dates) → Level 44
+  Ordinal Positions (1st to 10th) → Level 32
 
   # Measurement
   Length/Weight/Capacity Vocabulary → Level 34
   Non-standard Measurement → Level 34
   Standard Measurement (cm, m, g, kg) → Level 43
+  Unit Conversions (cm↔m, g↔kg, ml↔l) → Level 43
 
   # Money
   Money Vocabulary / Indian Coins → Level 46
-  Currency Notes / Transactions → Level 46
+  Currency Notes → Level 46
+  Transactions / Change → Level 46
 
   # Fractions
-  Fraction Vocabulary (half) → Level 45
+  Fraction Vocabulary (half, third, fourth) → Level 45
   Fractions of collections → Level 45
+  Comparing Fractions → Level 45
 
   # Multiplication & Division
   Multiplication as Repeated Addition → Level 33
@@ -88,18 +97,19 @@ LEVEL MAPPING (topic/subtopic → FLN level):
   # Shapes & Geometry
   Basic Shapes / 2D Shapes → Level 3
   3D Shapes → Level 3
-  Lines / Angles → Level 57
+  Straight Lines (horizontal, vertical, slant) → Level 3
+  Angles → Level 57
   Symmetry → Level 58
   Area & Perimeter → Level 56
+  Maps & Directions (cardinal directions, spatial reasoning) → Level 52
 
   # Advanced
-  Numbers up to 10,000 → Level 49
-  Advanced Multiplication → Level 50
-  Advanced Division → Level 51
+  Numbers up to 10,000 (4-digit place value) → Level 49
+  Advanced Multiplication (2-digit×2-digit, 3-digit×1-digit) → Level 50
+  Advanced Division (long division, remainders) → Level 51
   Factors & Multiples → Level 53
-  Fraction Operations → Level 54
-  Decimals → Level 55
-  Maps & Directions → Level 52
+  Fraction Operations (add/subtract like fractions) → Level 54
+  Decimals (tenths, hundredths) → Level 55
 
 INPUT DATA:
 {input_data}

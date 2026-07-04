@@ -1,127 +1,194 @@
 {
-  "exam_id": "C1_EXAM_001",
+  "exam_id": "C1_WORKSHEET_001",
   "class": 1,
-  "total_questions": 10,
+  "total_questions": 9,
   "questions": [
     {
-      "question_id": "C1_Q001",
-      "question": "5 + 3 = ___",
-      "answer": 8,
-      "answer_type": "numeric",
-      "topic": "Number Sense|Number Operations",
-      "subtopic": "Addition facts up to 18",
-      "class_level": 1,
-      "difficulty": "easy",
-      "source_level": "Class 1",
-      "reasoning": "Direct recall of basic addition facts"
-    },
-    {
-      "question_id": "C1_Q002",
-      "question": "Count: \u2b50 \u2b50 \u2b50 \u2b50. How many?",
-      "answer": 4,
-      "answer_type": "numeric",
-      "topic": "Number Sense",
-      "subtopic": "Counting",
-      "class_level": 1,
-      "difficulty": "easy",
-      "source_level": "Preschool 1",
-      "reasoning": "Direct recall of counting numbers, no regrouping/borrowing, single-digit numbers"
-    },
-    {
-      "question_id": "C1_Q003",
-      "question": "9 - 4 = ___",
-      "answer": 5,
-      "answer_type": "numeric",
-      "topic": "Number Sense|Number Operations",
-      "subtopic": "Subtraction facts up to 9",
-      "class_level": 1,
-      "difficulty": "easy",
-      "source_level": "Class 1",
-      "reasoning": "Direct subtraction fact recall, single-digit numbers, no regrouping/borrowing"
-    },
-    {
-      "question_id": "C1_Q004",
-      "question": "Which is bigger? 15 or 12?",
-      "answer": 15,
-      "answer_type": "numeric",
-      "topic": "Number Sense",
-      "subtopic": "Comparing numbers",
-      "class_level": 1,
-      "difficulty": "easy",
-      "source_level": "Class 1",
-      "reasoning": "Direct comparison of two single-digit numbers, no regrouping or borrowing required"
-    },
-    {
-      "question_id": "C1_Q005",
-      "question": "What shape is a ball?",
-      "answer": "circle",
+      "question_id": "Q1",
+      "question": "Match shapes",
+      "answer": [
+        {
+          "lPos": 1,
+          "shape": "Square",
+          "rPos": 3,
+          "obj": "Dice"
+        },
+        {
+          "lPos": 2,
+          "shape": "Triangle",
+          "rPos": 1,
+          "obj": "Warning Sign"
+        },
+        {
+          "lPos": 3,
+          "shape": "Circle",
+          "rPos": 2,
+          "obj": "Balloon"
+        },
+        {
+          "lPos": 4,
+          "shape": "Rectangle",
+          "rPos": 4,
+          "obj": "Eraser"
+        }
+      ],
       "answer_type": "text",
       "topic": "Shapes",
-      "subtopic": "Identifying basic shapes in daily life",
-      "class_level": 1,
-      "difficulty": "easy",
-      "source_level": "Preschool 1",
-      "reasoning": "The question requires the student to identify a basic shape, which is a fundamental concept in Preschool 1."
-    },
-    {
-      "question_id": "C1_Q006",
-      "question": "2 apples + 3 apples = ___ apples",
-      "answer": 5,
-      "answer_type": "numeric",
-      "topic": "Number Sense|Number Operations",
-      "subtopic": "Addition of single-digit numbers",
+      "subtopic": "Basic Shapes in Daily Life",
       "class_level": 1,
       "difficulty": "easy",
       "source_level": "Class 1",
-      "reasoning": "This question requires direct recall of addition facts up to 18, which is a Class 1 skill."
+      "reasoning": "Based on matching question type"
     },
     {
-      "question_id": "C1_Q007",
-      "question": "What comes after 10?",
-      "answer": 11,
-      "answer_type": "numeric",
+      "question_id": "Q2",
+      "question": "Circle MORE/LESS groups",
+      "answer": [
+        {
+          "cell": "TL",
+          "task": "MORE",
+          "lCount": 10,
+          "rCount": 4,
+          "ans": "Left"
+        },
+        {
+          "cell": "TR",
+          "task": "MORE",
+          "lCount": 3,
+          "rCount": 6,
+          "ans": "Right"
+        },
+        {
+          "cell": "BL",
+          "task": "LESS",
+          "lCount": 10,
+          "rCount": 5,
+          "ans": "Right"
+        },
+        {
+          "cell": "BR",
+          "task": "LESS",
+          "lCount": 8,
+          "rCount": 2,
+          "ans": "Right"
+        }
+      ],
+      "answer_type": "text",
       "topic": "Number Sense",
-      "subtopic": "Counting",
+      "subtopic": "Comparing Quantities",
       "class_level": 1,
-      "difficulty": "easy",
-      "source_level": "Preschool 1",
-      "reasoning": "Direct recall of counting sequence"
+      "difficulty": "medium",
+      "source_level": "Class 1",
+      "reasoning": "Based on group_circle question type"
     },
     {
-      "question_id": "C1_Q008",
-      "question": "How many sides does a triangle have?",
-      "answer": 3,
-      "answer_type": "numeric",
-      "topic": "Shapes",
-      "subtopic": "Identifying properties of basic shapes",
+      "question_id": "Q3",
+      "question": "Fill missing numbers in sequence 5,6,7,8,9,10",
+      "answer": "",
+      "answer_type": "text",
+      "topic": "Number Sense",
+      "subtopic": "Numeral Recognition and Writing (1-9)",
       "class_level": 1,
-      "difficulty": "easy",
-      "source_level": "Preschool 3/Balvatika",
-      "reasoning": "This question requires direct recall of a basic shape property, which is a characteristic of easy-level questions."
+      "difficulty": "hard",
+      "source_level": "Class 1",
+      "reasoning": "Based on fill_number question type"
     },
     {
-      "question_id": "C1_Q009",
-      "question": "Which is heavier? (bag of stones / feather)",
-      "answer": "bag of stones",
+      "question_id": "Q4",
+      "question": "Tick (\u2713) the tree that is SHORTER.",
+      "answer": "Tree B",
       "answer_type": "text",
       "topic": "Measurement",
-      "subtopic": "Comparing weights",
+      "subtopic": "Length/Weight/Capacity Comparison",
       "class_level": 1,
-      "difficulty": "easy",
-      "source_level": "Preschool 1",
-      "reasoning": "This question tests the ability to compare weights, which is a basic concept in measurement, and is aligned with the Preschool 1 curriculum."
+      "difficulty": "medium",
+      "source_level": "Class 1",
+      "reasoning": "Based on choice question type"
     },
     {
-      "question_id": "C1_Q010",
-      "question": "Today is (Yesterday / Today / Tomorrow)?",
-      "answer": "today",
+      "question_id": "Q5",
+      "question": "Match pairs",
+      "answer": [
+        {
+          "lPos": 1,
+          "left": "Lock",
+          "rPos": 3,
+          "right": "Key"
+        },
+        {
+          "lPos": 2,
+          "left": "Drum",
+          "rPos": 2,
+          "right": "Bird"
+        },
+        {
+          "lPos": 3,
+          "left": "Umbrella",
+          "rPos": 1,
+          "right": "Raincoat"
+        },
+        {
+          "lPos": 4,
+          "left": "Pencil",
+          "rPos": 4,
+          "right": "Eraser"
+        }
+      ],
       "answer_type": "text",
-      "topic": "Number Sense|Calendar and Time",
-      "subtopic": "Identifying days of the week",
+      "topic": "Shapes",
+      "subtopic": "Basic Shapes in Daily Life",
       "class_level": 1,
       "difficulty": "easy",
-      "source_level": "Preschool 1",
-      "reasoning": "This question requires basic understanding of days of the week, which is a part of Preschool 1 curriculum."
+      "source_level": "Class 1",
+      "reasoning": "Based on matching question type"
+    },
+    {
+      "question_id": "Q6",
+      "question": "Circle \u20b91 coins",
+      "answer": "",
+      "answer_type": "text",
+      "topic": "Money",
+      "subtopic": "Indian Coins",
+      "class_level": 1,
+      "difficulty": "medium",
+      "source_level": "Class 1",
+      "reasoning": "Based on cluster_loop question type"
+    },
+    {
+      "question_id": "Q7",
+      "question": "Cut giftBox in half",
+      "answer": "",
+      "answer_type": "text",
+      "topic": "Fractions",
+      "subtopic": "Fraction Vocabulary",
+      "class_level": 1,
+      "difficulty": "hard",
+      "source_level": "Class 1",
+      "reasoning": "Based on path_trace question type"
+    },
+    {
+      "question_id": "Q8",
+      "question": "How many left? (jar of bees)",
+      "answer": 0,
+      "answer_type": "text",
+      "topic": "Number Operations",
+      "subtopic": "Taking Away",
+      "class_level": 1,
+      "difficulty": "medium",
+      "source_level": "Class 1",
+      "reasoning": "Based on mcq question type"
+    },
+    {
+      "question_id": "Q9",
+      "question": "Most/Least butterfly",
+      "answer": "",
+      "answer_type": "text",
+      "topic": "Data Handling",
+      "subtopic": "Observation and Inference",
+      "class_level": 1,
+      "difficulty": "hard",
+      "source_level": "Class 1",
+      "reasoning": "Based on dual_mark question type"
     }
   ]
 }
