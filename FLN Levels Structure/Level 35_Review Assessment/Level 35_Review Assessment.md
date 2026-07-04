@@ -1,6 +1,6 @@
 # Level 35: Review Assessment
 
-**Class:** 2–3 | **Age Group:** 7–9 years
+**Class:** Review | **Age Group:** -
 
 ## **Objective**
 

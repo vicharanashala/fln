@@ -1,6 +1,6 @@
 # Level 45: Fractions
 
-**Class:** 3–4 | **Age Group:** 8–10 years
+**Class:** Class 3 | **Age Group:** Age 8-9
 
 ## **Objective**
 

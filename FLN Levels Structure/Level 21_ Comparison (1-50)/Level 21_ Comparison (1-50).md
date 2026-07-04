@@ -1,6 +1,6 @@
 # Level 21: Comparison (1-50)
 
-**Class:** 1–2 | **Age Group:** 6–8 years
+**Class:** Class 1 | **Age Group:** Age 6-7
 
 ## Objective
 

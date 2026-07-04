@@ -1,6 +1,6 @@
 # Level 2: Odd One Out
 
-**Class:** 1 | **Age Group:** 6–7 years
+**Class:** Preschool 1 | **Age Group:** Age 3-4
 
 ## Concept
 

@@ -1,6 +1,6 @@
 # Level 20: Skip Counting in 2s/3s
 
-**Class:** 1–2 | **Age Group:** 6–8 years
+**Class:** Class 1 | **Age Group:** Age 6-7
 
 
 ## Objective

@@ -1,6 +1,6 @@
 # Level 9: Pattern Recognition+Draw by Tracing
 
-**Class:** 1 | **Age Group:** 6–7 years
+**Class:** Preschool 3 | **Age Group:** Age 5-6
 
 ### Section A: Pattern Recognition
 

@@ -1,6 +1,6 @@
 # Level 8: Subtraction(1-10)
 
-**Class:** 1 | **Age Group:** 6–7 years
+**Class:** Preschool 3 | **Age Group:** Age 5-6
 
 # Level 8: Subtraction Through Objects & Numbers
 

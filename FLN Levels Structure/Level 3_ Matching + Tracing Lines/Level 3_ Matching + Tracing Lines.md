@@ -1,6 +1,6 @@
 # Level 3: Matching + Tracing Lines
 
-**Class:** 1 | **Age Group:** 6–7 years
+**Class:** Preschool 1 | **Age Group:** Age 3-4
 
 ### SECTION A: MATCHING
 

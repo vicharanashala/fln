@@ -1,6 +1,6 @@
 # Level 5: Finger Gesture Counting
 
-**Class:** 1 | **Age Group:** 6–7 years
+**Class:** Preschool 2 | **Age Group:** Age 4-5
 
 ## Objective
 Connect finger representations with numerals.

@@ -1,6 +1,6 @@
 # Level 27: Borrow Subtraction
 
-**Class:** 2–3 | **Age Group:** 7–9 years
+**Class:** Class 2 | **Age Group:** Age 7-8
 
 ### **Objective**
 

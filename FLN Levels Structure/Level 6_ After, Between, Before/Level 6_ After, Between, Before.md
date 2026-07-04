@@ -1,6 +1,6 @@
 # Level 6: After, Between, Before
 
-**Class:** 1 | **Age Group:** 6–7 years
+**Class:** Preschool 2 | **Age Group:** Age 4-5
 
 ## Objective
 Develop understanding of number sequence and position.

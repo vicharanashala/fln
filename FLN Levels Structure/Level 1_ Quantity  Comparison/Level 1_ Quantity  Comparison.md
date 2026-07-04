@@ -1,6 +1,6 @@
 # Level 1: Quantity  Comparison
 
-**Class:** 1 | **Age Group:** 6–7 years
+**Class:** Preschool 1 | **Age Group:** Age 3-4
 
 ## Objective
 

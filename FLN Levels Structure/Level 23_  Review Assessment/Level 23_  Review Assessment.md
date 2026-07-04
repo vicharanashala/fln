@@ -1,6 +1,6 @@
 # Level 23:  Review Assessment
 
-**Class:** 1–2 | **Age Group:** 6–8 years
+**Class:** Review | **Age Group:** -
 
 ## Objective
 

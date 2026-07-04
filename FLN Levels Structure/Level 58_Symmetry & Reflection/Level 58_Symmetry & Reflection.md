@@ -1,6 +1,6 @@
 # **Level 58: Symmetry & Reflection**
 
-**Class:** 4 | **Age Group:** 9–10 years
+**Class:** Class 4 | **Age Group:** Age 9-10
 
 ## **Objective**
 

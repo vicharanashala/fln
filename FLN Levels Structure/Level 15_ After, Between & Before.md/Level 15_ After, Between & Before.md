@@ -1,6 +1,6 @@
 # Level 15: After, Between & Before
 
-**Class:** 1–2 | **Age Group:** 6–8 years
+**Class:** Class 1 | **Age Group:** Age 6-7
 
 ## Objective
 Check the concept of after numbers, before numbers, and between numbers.

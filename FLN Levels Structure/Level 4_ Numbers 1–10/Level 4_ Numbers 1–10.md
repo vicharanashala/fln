@@ -1,6 +1,6 @@
 # Level 4: Numbers 1–10
 
-**Class:** 1 | **Age Group:** 6–7 years
+**Class:** Preschool 2 | **Age Group:** Age 4-5
 
 ## Objective
 Recognize, trace, and count numbers 1–10.

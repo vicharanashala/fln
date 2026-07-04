@@ -1,6 +1,6 @@
 # Level 32: Ordinal Positions (1st–10th)
 
-**Class:** 2–3 | **Age Group:** 7–9 years
+**Class:** Class 2 | **Age Group:** Age 7-8
 
 ### **Objective**
 
