@@ -221,13 +221,6 @@
           "difficulty": "hard",
           "source": "Preschool 3",
           "description": "Remove objects from a collection up to 9 and recount"
-        },
-        {
-          "subtopic_id": "NO_ADD30",
-          "subtopic_name": "Addition (Up to 30)",
-          "difficulty": "hard",
-          "source": "Class 1",
-          "description": "Add numbers up to 30 without carrying"
         }
       ]
     },

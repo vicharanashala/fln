@@ -400,13 +400,6 @@
           "difficulty": "hard",
           "source": "Class 3",
           "description": "Add 3-digit numbers with carrying"
-        },
-        {
-          "subtopic_id": "NO_SUB1000",
-          "subtopic_name": "Subtraction (Up to 999, With Borrow)",
-          "difficulty": "hard",
-          "source": "Class 3",
-          "description": "Subtract 3-digit numbers with borrowing"
         }
       ]
     },

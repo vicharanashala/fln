@@ -66,8 +66,10 @@ class ChildEvaluator:
 
         all_comparisons = comparison["comparisons"]
         perf_by_diff = {}
+        diff_map = {"e": "easy", "m": "medium", "h": "hard"}
         for c in all_comparisons:
             d = c.get("difficulty", "unknown") or "unclassified"
+            d = diff_map.get(d, d)
             if d not in perf_by_diff:
                 perf_by_diff[d] = {"attempted": 0, "correct": 0}
             perf_by_diff[d]["attempted"] += 1
@@ -306,25 +308,28 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python scripts/2_evaluate_child.py <student_id> <class_num>")
-        print("Example: python scripts/2_evaluate_child.py STU_001 1")
+        print("Usage: python scripts/2_evaluate_child.py <student_id> <class_num> [phrase]")
+        print("Example: python scripts/2_evaluate_child.py STU_001 1 phrase_2")
         sys.exit(1)
 
     student_id = sys.argv[1]
     class_num = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+    phrase = sys.argv[3] if len(sys.argv) > 3 else "phrase_1"
 
     reports_dir = BASE_DIR / "evaluation_reports"
     comparison_files = list(reports_dir.glob(f"{student_id}_comparison_*.json"))
+    comparison_files += list(reports_dir.rglob(f"*/{student_id}_comparison_*.json"))
 
     if not comparison_files:
         print(f"\u2717 No comparison file found for {student_id}")
         sys.exit(1)
 
     comparison_file = str(sorted(comparison_files, key=lambda f: f.stat().st_mtime)[-1])
-    syllabus_file = str(BASE_DIR / f"syllabus/class_{class_num}_syllabus.json")
+    syllabus_file = str(BASE_DIR / f"syllabus/class_{class_num}/class_{class_num}_syllabus_{phrase.replace('phrase_', '')}.json")
 
     if not Path(syllabus_file).exists():
         print(f"\u2717 Syllabus file not found: {syllabus_file}")
+        print(f"  Tried: {syllabus_file}")
         sys.exit(1)
 
     evaluator = ChildEvaluator(model="llama-3.1-8b-instant")

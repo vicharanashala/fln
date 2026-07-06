@@ -70,12 +70,13 @@ class AnswerComparator:
             question = self.questions_db[q_id]
             is_correct = str(student_ans["answer"]).strip() == str(question["answer"]).strip()
 
+            diff_map = {"e": "easy", "m": "medium", "h": "hard"}
             comparison = {
                 "question_id": q_id,
                 "class": question.get("class_level"),
                 "topic": question.get("topic"),
                 "subtopic": question.get("subtopic"),
-                "difficulty": question.get("difficulty", "unclassified"),
+                "difficulty": diff_map.get(question.get("difficulty", "unclassified"), question.get("difficulty", "unclassified")),
                 "student_answer": student_ans["answer"],
                 "correct_answer": question["answer"],
                 "status": "\u2713" if is_correct else "\u2717",
@@ -85,7 +86,7 @@ class AnswerComparator:
             self.result["comparisons"].append(comparison)
 
             if not is_correct:
-                difficulty = question.get("difficulty", "unknown")
+                difficulty = {"e": "easy", "m": "medium", "h": "hard"}.get(question.get("difficulty", "unknown"), question.get("difficulty", "unknown"))
                 if difficulty not in self.result["wrong_by_difficulty"]:
                     self.result["wrong_by_difficulty"][difficulty] = []
                 self.result["wrong_by_difficulty"][difficulty].append(comparison)

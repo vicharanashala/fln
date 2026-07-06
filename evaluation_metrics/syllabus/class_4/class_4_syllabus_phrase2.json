@@ -199,13 +199,6 @@
           "difficulty": "hard",
           "source": "Class 4",
           "description": "Four-digit place value, expanded form, number sequences to 10,000"
-        },
-        {
-          "subtopic_id": "NS_FACTORS",
-          "subtopic_name": "Factors and Multiples",
-          "difficulty": "hard",
-          "source": "Class 4",
-          "description": "Identify factors, multiples, factor pairs, and common factors/multiples"
         }
       ]
     },

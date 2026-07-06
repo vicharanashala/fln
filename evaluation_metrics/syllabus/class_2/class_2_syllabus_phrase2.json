@@ -288,13 +288,6 @@
           "difficulty": "hard",
           "source": "Class 2",
           "description": "Count, read, write, and sequence numbers up to 100"
-        },
-        {
-          "subtopic_id": "NS_CMP100",
-          "subtopic_name": "Comparing Numbers (Within 100)",
-          "difficulty": "hard",
-          "source": "Class 2",
-          "description": "Compare numbers up to 100 using greater than, less than, equal symbols"
         }
       ]
     },
