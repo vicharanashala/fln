@@ -155,7 +155,7 @@ The child has mastered the foundational concepts required for Class {eval_data.g
                         {"role": "user", "content": prompt}
                     ],
                     "temperature": 0.3,
-                    "max_tokens": 2000,
+                    "max_tokens": 5000,
                     "stream": False
                 },
                 timeout=300

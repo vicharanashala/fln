@@ -5,37 +5,49 @@ from datetime import datetime
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 class AnswerComparator:
-    def __init__(self):
+    def __init__(self, auto_save=True):
         self.result = None
         self.questions_db = {}
+        self.auto_save = auto_save
 
-    def _load_questions_db(self):
-        for class_folder in (BASE_DIR / "questions").iterdir():
-            if not class_folder.is_dir():
-                continue
-
-            for q_file in class_folder.glob("question_*.json"):
-                with open(q_file) as f:
-                    q = json.load(f)
-                    self.questions_db[q["question_id"]] = q
-
-            for exam_file in class_folder.glob("*_exam.json"):
-                with open(exam_file) as f:
-                    exam = json.load(f)
-                    for q in exam["questions"]:
+    def _load_questions_db(self, class_num=None):
+        if class_num:
+            class_folder = BASE_DIR / "questions" / f"class_{class_num}"
+            if class_folder.exists():
+                for q_file in class_folder.rglob("question_*.json"):
+                    with open(q_file) as f:
+                        q = json.load(f)
                         self.questions_db[q["question_id"]] = q
+                for exam_file in class_folder.rglob("*_exam_*.json"):
+                    with open(exam_file) as f:
+                        exam = json.load(f)
+                        for q in exam["questions"]:
+                            self.questions_db[q["question_id"]] = q
+        else:
+            for class_folder in (BASE_DIR / "questions").iterdir():
+                if not class_folder.is_dir():
+                    continue
+                for q_file in class_folder.rglob("question_*.json"):
+                    with open(q_file) as f:
+                        q = json.load(f)
+                        self.questions_db[q["question_id"]] = q
+                for exam_file in class_folder.rglob("*_exam_*.json"):
+                    with open(exam_file) as f:
+                        exam = json.load(f)
+                        for q in exam["questions"]:
+                            self.questions_db[q["question_id"]] = q
 
     def compare(self, student_response_file):
         print("\n" + "="*60)
         print("ANSWER COMPARISON PIPELINE")
         print("="*60)
 
-        self._load_questions_db()
-
         with open(student_response_file) as f:
             student_data = json.load(f)
 
         enrolled_class = student_data["enrolled_class"]
+
+        self._load_questions_db(class_num=enrolled_class)
         answers = student_data["answers"]
 
         print(f"\nStudent: {student_data.get('student_id')}")
@@ -104,7 +116,8 @@ class AnswerComparator:
         self.result["decision"] = self._determine_decision()
 
         self._print_summary()
-        self._save_comparison()
+        if self.auto_save:
+            self._save_comparison()
 
         return self.result
 

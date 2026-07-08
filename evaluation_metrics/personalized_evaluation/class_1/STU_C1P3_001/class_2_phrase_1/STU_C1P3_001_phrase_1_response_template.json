@@ -1,0 +1,138 @@
+{
+  "student_id": "STU_C1P3_001",
+  "student_name": "STU_C1P3_001",
+  "enrolled_class": 2,
+  "test_date": "2026-07-08",
+  "phrase": "phrase_1",
+  "exam_id": "PERSONALIZED_C1_WORKSHEET_PHRASE_3_STU_C1P3_001",
+  "answers": {
+    "Q21": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q22": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q23": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q24": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q25": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q26": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q27": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q28": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q29": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q30": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q31": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q32": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q33": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q34": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q35": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q36": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q37": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q38": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q39": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q40": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q41": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q42": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q43": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q44": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q45": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q46": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q47": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q48": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q49": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q50": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q51": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q62": {
+      "answer": "",
+      "confidence": 0.0
+    }
+  }
+}

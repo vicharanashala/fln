@@ -1,0 +1,174 @@
+{
+  "student_id": "STU_CLASS3_FAIL",
+  "student_name": "STU_CLASS3_FAIL",
+  "enrolled_class": 3,
+  "test_date": "2026-07-08",
+  "phrase": "phrase_2",
+  "exam_id": "PERSONALIZED_C3_WORKSHEET_PHRASE_1_STU_CLASS3_FAIL",
+  "answers": {
+    "Q3": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q5": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q9": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q13": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q15": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q16": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q17": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q18": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q19": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q20": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q21": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q22": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q23": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q25": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q26": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q32": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q33": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q34": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q35": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q37": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q40": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q41": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q43": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q44": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q46": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q47": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q49": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q50": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q53": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q59": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q61": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q62": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q64": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q67": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q68": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q72": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q74": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q75": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q36": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q38": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q54": {
+      "answer": "",
+      "confidence": 0.0
+    }
+  }
+}

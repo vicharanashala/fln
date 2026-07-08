@@ -18,11 +18,12 @@ def _load_env():
 _load_env()
 
 class ChildEvaluator:
-    def __init__(self, model="llama-3.1-8b-instant", api_key=None):
+    def __init__(self, model="llama-3.1-8b-instant", api_key=None, auto_save=True):
         self.model = model
         self.api_key = api_key or os.environ.get("GROQ_API_KEY", "")
         self.prompt = self._load_prompt()
         self.result = None
+        self.auto_save = auto_save
 
     def _load_prompt(self):
         try:
@@ -164,7 +165,7 @@ class ChildEvaluator:
                         {"role": "user", "content": prompt}
                     ],
                     "temperature": 0.1,
-                    "max_tokens": 1500,
+                    "max_tokens": 5000,
                     "stream": False
                 },
                 timeout=300
@@ -289,7 +290,7 @@ class ChildEvaluator:
         print(f"  Next Level: {self.result.get('next_level_assignment')}")
 
     def _save_evaluation(self):
-        if not self.result:
+        if not self.auto_save or not self.result:
             return
 
         output_dir = BASE_DIR / "evaluation_reports"
