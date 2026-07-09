@@ -54,18 +54,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
 
   // Set default locked locations according to User Role & credentials
   useEffect(() => {
-    if (user) {
-      if (user.role === UserRole.ADMIN) {
-        setSelectedState(user.stateCode || 'all');
-      } else if (user.role === UserRole.DISTRICT_ADMIN) {
-        setSelectedState(user.stateCode || 'all');
-        setSelectedDistrict(user.districtCode || 'all');
-      } else if (user.role === UserRole.BLOCK_ADMIN) {
-        setSelectedState(user.stateCode || 'all');
-        setSelectedDistrict(user.districtCode || 'all');
-        setSelectedBlock(user.blockCode || 'all');
-      }
-    }
+    // Location locks for removed roles are deprecated.
   }, [user]);
 
   // Derived geographical options based on selections & roles
@@ -148,9 +137,9 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
   };
 
   // Check locks for selectors based on user roles
-  const isStateLocked = user && [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(user.role);
-  const isDistrictLocked = user && [UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(user.role);
-  const isBlockLocked = user && [UserRole.BLOCK_ADMIN].includes(user.role);
+  const isStateLocked = false;
+  const isDistrictLocked = false;
+  const isBlockLocked = false;
 
   return (
     <div className="space-y-6" id="logbook-view">

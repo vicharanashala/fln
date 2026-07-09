@@ -48,6 +48,7 @@ export default function App() {
         if (res.ok) {
           setCurrentUser(data.user);
           setCurrentView('dashboard');
+          setActivePanel(data.user.role === UserRole.SUPERADMIN ? 'superadmin_overview' : 'teacher_roster');
         } else {
           handleLogout();
         }
@@ -84,7 +85,7 @@ export default function App() {
     setToken(userToken);
     setCurrentUser(loggedInUser);
     setCurrentView('dashboard');
-    setActivePanel('workspace');
+    setActivePanel(loggedInUser.role === UserRole.SUPERADMIN ? 'superadmin_overview' : 'teacher_roster');
     triggerToast(`Switched workspace to ${loggedInUser.name} [${loggedInUser.role.toUpperCase()}]`);
   };
 
@@ -109,16 +110,8 @@ export default function App() {
     switch (currentUser.role) {
       case UserRole.SUPERADMIN:
         return <SuperadminDashboard user={currentUser} token={token} />;
-      case UserRole.ADMIN:
-      case UserRole.DISTRICT_ADMIN:
-      case UserRole.BLOCK_ADMIN:
-        return <AdminDashboard user={currentUser} token={token} />;
-      case UserRole.SCHOOL:
-        return <SchoolDashboard user={currentUser} token={token} />;
       case UserRole.TEACHER:
         return <TeacherDashboard user={currentUser} token={token} />;
-      case UserRole.VOLUNTEER:
-        return <VolunteerDashboard user={currentUser} token={token} />;
       default:
         return <div className="p-8 text-center text-zinc-500">Unrecognized user role mapping.</div>;
     }
@@ -204,6 +197,22 @@ export default function App() {
           {/* Router switch panel */}
           {activePanel === 'workspace' && renderRoleWorkspace()}
           
+          {activePanel === 'superadmin_overview' && (
+            <SuperadminDashboard user={currentUser} token={token} activeTabProp="overview" />
+          )}
+          {activePanel === 'superadmin_teachers' && (
+            <SuperadminDashboard user={currentUser} token={token} activeTabProp="coordinators" />
+          )}
+          {activePanel === 'superadmin_analytics' && (
+            <SuperadminDashboard user={currentUser} token={token} activeTabProp="analytics" />
+          )}
+          {activePanel === 'teacher_roster' && (
+            <TeacherDashboard user={currentUser} token={token} activeTabProp="roster" />
+          )}
+          {activePanel === 'teacher_worksheets' && (
+            <TeacherDashboard user={currentUser} token={token} activeTabProp="worksheets" />
+          )}
+          
           {activePanel === 'logbook' && (
             <LogbookView token={token} user={currentUser} />
           )}
@@ -281,7 +290,7 @@ export default function App() {
           )}
 
           {/* Panel data views for all navigation items across roles */}
-          {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(activePanel) && (
+          {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'superadmin_overview', 'superadmin_teachers', 'superadmin_analytics', 'teacher_roster', 'teacher_worksheets'].includes(activePanel) && (
             <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
           )}
         </Layout>

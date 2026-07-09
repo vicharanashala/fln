@@ -932,7 +932,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'performance') {
-    const isTeacher = currentUser.role === UserRole.TEACHER || currentUser.role === UserRole.VOLUNTEER;
+    const isTeacher = currentUser.role === UserRole.TEACHER;
     const topStudents = [...STUDENTS_MOCK].sort((a, b) => b.currentLevel - a.currentLevel).slice(0, 5);
     return (
       <div className="space-y-6">
@@ -959,7 +959,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'reports') {
-    const isStateAdmin = currentUser.role === UserRole.ADMIN;
+    const isStateAdmin = false;
     if (isStateAdmin) {
       const userState = currentUser.stateCode || 'PB';
       const stateSchools = SCHOOLS_MOCK.filter(s => s.stateCode === userState);
@@ -1195,7 +1195,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
-  if (panel === 'teachers' && currentUser.role === UserRole.SCHOOL) {
+  if (panel === 'teachers' && (currentUser.role as string) === 'school') {
     return (
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Teacher Roster" desc="Manage teaching staff at your school" icon={<Users className="h-5 w-5" />} />
@@ -1389,8 +1389,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'analytics') {
-    const isAdmin = [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(currentUser.role);
-    const data = isAdmin ? DISTRICTS : SCHOOLS_MOCK;
+    const isAdmin = false;
+    const data = SCHOOLS_MOCK;
     const title = isAdmin ? 'Geographical Analytics' : 'Performance Analytics';
     const desc = isAdmin ? 'Cross-regional performance metrics and benchmarking' : 'School-level performance data and trends';
     return (

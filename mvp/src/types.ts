@@ -1,11 +1,6 @@
 export enum UserRole {
   SUPERADMIN = 'superadmin',
-  ADMIN = 'admin',
-  DISTRICT_ADMIN = 'district_admin',
-  BLOCK_ADMIN = 'block_admin',
-  SCHOOL = 'school',
-  TEACHER = 'teacher',
-  VOLUNTEER = 'volunteer'
+  TEACHER = 'teacher'
 }
 
 export interface User {

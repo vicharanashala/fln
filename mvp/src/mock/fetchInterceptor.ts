@@ -130,26 +130,10 @@ function getAuthUser(headers: HeadersInit | undefined, db: MockDatabaseSchema) {
     if (email === 'superadmin@fln.org') {
       role = UserRole.SUPERADMIN;
       name = 'Jinal Gupta';
-    } else if (email.startsWith('admin.')) {
-      role = UserRole.ADMIN;
-      name = 'State Admin';
-    } else if (email.startsWith('district.')) {
-      role = UserRole.DISTRICT_ADMIN;
-      name = 'District Officer';
-    } else if (email.startsWith('block.')) {
-      role = UserRole.BLOCK_ADMIN;
-      name = 'Block Coordinator';
-    } else if (email.startsWith('vol.')) {
-      role = UserRole.VOLUNTEER;
-      name = 'Volunteer';
-    } else if (parts.includes('.t')) {
+    } else {
       role = UserRole.TEACHER;
       name = 'Teacher';
-      schoolId = parts.split('.t')[0];
-    } else {
-      role = UserRole.SCHOOL;
-      name = 'School Principal';
-      schoolId = parts;
+      schoolId = parts.split('.t')[0] || 'gps-mt-001';
     }
 
     return {
@@ -307,10 +291,8 @@ export function setupFetchInterceptor() {
       if (path === '/api/classes' && method === 'GET') {
         if (!currentUser) return errorResponse('Unauthorized', 401);
         let filtered = db.classes;
-        if (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.TEACHER) {
+        if (currentUser.role === UserRole.TEACHER) {
           filtered = db.classes.filter(c => c.schoolId === currentUser.schoolId);
-        } else if (currentUser.role === UserRole.VOLUNTEER) {
-          filtered = db.classes.filter(c => currentUser.assignedSchools?.includes(c.schoolId));
         }
         return jsonResponse(filtered);
       }
@@ -320,10 +302,8 @@ export function setupFetchInterceptor() {
         if (!currentUser) return errorResponse('Unauthorized', 401);
         
         let filtered = db.students;
-        if (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.TEACHER) {
+        if (currentUser.role === UserRole.TEACHER) {
           filtered = db.students.filter(s => s.schoolId === currentUser.schoolId);
-        } else if (currentUser.role === UserRole.VOLUNTEER) {
-          filtered = db.students.filter(s => currentUser.assignedSchools?.includes(s.schoolId));
         }
 
         // Mask Aadhar for non-Superadmins
@@ -771,17 +751,15 @@ export function setupFetchInterceptor() {
 
       // 21. POST /api/admin/create
       if (path === '/api/admin/create' && method === 'POST') {
-        if (!currentUser) return errorResponse('Unauthorized', 401);
-        const { email, name, role, stateCode, districtCode, blockCode } = bodyData;
+        if (!currentUser || currentUser.role !== UserRole.SUPERADMIN) return errorResponse('Unauthorized', 401);
+        const { email, name, schoolId } = bodyData;
         
         const newU = {
           id: 'u_' + Math.random().toString(36).substr(2, 9),
           email,
           name,
-          role,
-          stateCode,
-          districtCode,
-          blockCode
+          role: UserRole.TEACHER,
+          schoolId: schoolId || 'gps-mt-001'
         };
         db.users.push(newU);
         saveMockDB(db);

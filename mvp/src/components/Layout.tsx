@@ -49,108 +49,31 @@ export const Layout: React.FC<LayoutProps> = ({
   const navigationItems = useMemo<NavigationItem[]>(() => {
     const list: NavigationItem[] = [];
 
-    // Dashboard (Common to all)
-    list.push({ name: 'Dashboard', view: 'workspace', icon: LayoutDashboard });
-
     switch (currentUser.role) {
-      case UserRole.TEACHER:
-        list.push({
-          name: 'Assessment',
-          view: 'assessment',
-          icon: BookOpen,
-          subItems: [
-            { name: 'Diagnostic Test', view: 'diagnostic_test' },
-            { name: 'Adaptive Test', view: 'adaptive_test' },
-            { name: 'Test History', view: 'test_history' }
-          ]
-        });
-        list.push({
-          name: 'Students',
-          view: 'students',
-          icon: GraduationCap,
-          subItems: [
-            { name: 'Student List', view: 'student_list' },
-            { name: 'Student Profile', view: 'student_profile' },
-            { name: 'Performance', view: 'performance' }
-          ]
-        });
-        list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        break;
-
-      case UserRole.VOLUNTEER:
-        list.push({
-          name: 'Assessment',
-          view: 'assessment',
-          icon: BookOpen,
-          subItems: [
-            { name: 'Diagnostic Test', view: 'diagnostic_test' },
-            { name: 'Adaptive Test', view: 'adaptive_test' },
-            { name: 'Test History', view: 'test_history' }
-          ]
-        });
-        list.push({
-          name: 'Students',
-          view: 'students',
-          icon: GraduationCap,
-          subItems: [
-            { name: 'Student List', view: 'student_list' },
-            { name: 'Student Profile', view: 'student_profile' },
-            { name: 'Performance', view: 'performance' }
-          ]
-        });
-        list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        break;
-
-      case UserRole.SCHOOL: // Principal
-        list.push({ name: 'Teachers', view: 'teachers', icon: Users });
-        list.push({ name: 'Students', view: 'students', icon: GraduationCap });
-        list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
-        list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        break;
-
-      case UserRole.BLOCK_ADMIN:
-        list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Teachers', view: 'teachers', icon: Users });
-        list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        break;
-
-      case UserRole.DISTRICT_ADMIN:
-        list.push({ name: 'Blocks', view: 'blocks', icon: MapPin });
-        list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        break;
-
-      case UserRole.ADMIN: // State Admin
-        list.push({ name: 'Districts', view: 'districts', icon: MapPin });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        break;
-
       case UserRole.SUPERADMIN:
-        list.push({ name: 'Users', view: 'users', icon: Users });
-        list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Question Bank', view: 'question_bank', icon: BookOpen });
-        list.push({ name: 'Worksheet Templates', view: 'worksheet_templates', icon: ClipboardList });
-        list.push({ name: 'Content', view: 'content', icon: BookOpen });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });
+        list.push({ name: 'Overview & Schools', view: 'superadmin_overview', icon: LayoutDashboard });
+        list.push({ name: 'Teacher Directory', view: 'superadmin_teachers', icon: Users });
+        list.push({ name: 'Regional Analytics', view: 'superadmin_analytics', icon: BarChart3 });
         list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
+        list.push({ name: 'Support Tickets', view: 'tickets', icon: HelpCircle });
+        list.push({ name: 'Assessment Calendar', view: 'calendar', icon: Calendar });
+        break;
+
+      case UserRole.TEACHER:
+        list.push({ name: 'Classroom Roster', view: 'teacher_roster', icon: GraduationCap });
+        list.push({ name: 'Worksheet Portal', view: 'teacher_worksheets', icon: ClipboardList });
+        list.push({ name: 'Evaluation Reports', view: 'reports', icon: FileText });
+        list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
+        list.push({ name: 'Support Tickets', view: 'tickets', icon: HelpCircle });
+        list.push({ name: 'Assessment Calendar', view: 'calendar', icon: Calendar });
         break;
     }
 
     // Common items at bottom
-    list.push({ name: 'Notifications', view: 'notifications', icon: Bell, badge: notifications.length > 0 ? String(notifications.length) : undefined });
-    list.push({ name: 'Settings', view: 'settings', icon: Settings });
+    list.push({ name: 'Settings & Prefs', view: 'settings', icon: Settings });
 
     return list;
-  }, [currentUser.role, notifications.length]);
+  }, [currentUser.role]);
 
   // Filter items based on search
   const filteredNavItems = useMemo(() => {

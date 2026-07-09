@@ -1,5 +1,8 @@
 import { User, UserRole, School, ClassGroup, Student, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement } from '../types';
 import { generateQuestionsForLevel } from '../utils/levelGenerator';
+import { initialTeacherLogins } from './login/teacher';
+import { initialStudentLogins } from './login/student';
+import { initialSuperadminLogins } from './login/superadmin';
 
 const MOCK_DB_KEY = 'fln_mock_db_store';
 
@@ -44,171 +47,16 @@ export function getInitialSeedData(): MockDatabaseSchema {
   ];
 
   const users: User[] = [
-    { id: 'u1', email: 'superadmin@fln.org', name: 'Jinal Gupta', role: UserRole.SUPERADMIN },
-    { id: 'u2', email: 'admin.pb@fln.org', name: 'State Coordinator Punjab', role: UserRole.ADMIN, stateCode: 'PB' },
-    { id: 'u2_hr', email: 'admin.hr@fln.org', name: 'State Coordinator Haryana', role: UserRole.ADMIN, stateCode: 'HR' },
-    { id: 'u2_rj', email: 'admin.rj@fln.org', name: 'State Coordinator Rajasthan', role: UserRole.ADMIN, stateCode: 'RJ' },
-    { id: 'u2_up', email: 'admin.up@fln.org', name: 'State Coordinator Uttar Pradesh', role: UserRole.ADMIN, stateCode: 'UP' },
-    { id: 'u3', email: 'district.ldh@fln.org', name: 'Ludhiana District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'PB', districtCode: 'LDH' },
-    { id: 'u3_amb', email: 'district.amb@fln.org', name: 'Ambala District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'HR', districtCode: 'AMB' },
-    { id: 'u3_jai', email: 'district.jai@fln.org', name: 'Jaipur District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'RJ', districtCode: 'JAI' },
-    { id: 'u3_lko', email: 'district.lko@fln.org', name: 'Lucknow District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'UP', districtCode: 'LKO' },
-    { id: 'u4', email: 'block.ldh-01@fln.org', name: 'Ludhiana Block Admin 1', role: UserRole.BLOCK_ADMIN, stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-01' },
-    { id: 'u4_lko', email: 'block.lko-01@fln.org', name: 'Lucknow Block Admin 1', role: UserRole.BLOCK_ADMIN, stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-01' },
-    { id: 'u5', email: 'gps-mt-001@fln.org', name: 'GPS Model Town Principal', role: UserRole.SCHOOL, schoolId: 'gps-mt-001' },
-    { id: 'u5_amb', email: 'gps-amb-003@fln.org', name: 'GPS Cantt Principal', role: UserRole.SCHOOL, schoolId: 'gps-amb-003' },
-    { id: 'u5_jai', email: 'gps-jai-004@fln.org', name: 'GPS Govind Dev Principal', role: UserRole.SCHOOL, schoolId: 'gps-jai-004' },
-    { id: 'u5_lko', email: 'gps-lko-005@fln.org', name: 'GPS Hazratganj Principal', role: UserRole.SCHOOL, schoolId: 'gps-lko-005' },
-    { id: 'u6', email: 'gps-mt-001.t01@fln.org', name: 'Ritu Sharma (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-mt-001' },
-    { id: 'u6_amb', email: 'gps-amb-003.t01@fln.org', name: 'Meena Kumari (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-amb-003' },
-    { id: 'u6_jai', email: 'gps-jai-004.t01@fln.org', name: 'Ram Gopal (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-jai-004' },
-    { id: 'u6_lko', email: 'gps-lko-005.t01@fln.org', name: 'Suresh Kumar (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-lko-005' },
-    { id: 'u7', email: 'vol.rahul@fln.org', name: 'Rahul Kumar (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002'] },
-    { id: 'u7_amit', email: 'vol.amit@fln.org', name: 'Amit Saini (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002', 'gps-jai-004'] },
-    { id: 'u7_sneha', email: 'vol.up_sneha@fln.org', name: 'Sneha Verma (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-lko-005'] },
-    { id: 'u7_vipin', email: 'vol.hr_vipin@fln.org', name: 'Vipin Yadav (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-amb-003'] },
-    // District admins for new districts
-    { id: 'u3_bth', email: 'district.bth@fln.org', name: 'Bathinda District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'PB', districtCode: 'BTH' },
-    { id: 'u3_asr', email: 'district.asr@fln.org', name: 'Amritsar District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'PB', districtCode: 'ASR' },
-    { id: 'u3_pkl', email: 'district.pkl@fln.org', name: 'Panchkula District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'HR', districtCode: 'PKL' },
-    { id: 'u3_uda', email: 'district.uda@fln.org', name: 'Udaipur District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'RJ', districtCode: 'UDA' },
-    { id: 'u3_knp', email: 'district.knp@fln.org', name: 'Kanpur District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'UP', districtCode: 'KNP' },
-    // Block admins for new blocks
-    { id: 'u4_bth', email: 'block.bth-01@fln.org', name: 'Bathinda Block Admin', role: UserRole.BLOCK_ADMIN, stateCode: 'PB', districtCode: 'BTH', blockCode: 'BTH-01' },
-    { id: 'u4_asr', email: 'block.asr-01@fln.org', name: 'Amritsar Block Admin', role: UserRole.BLOCK_ADMIN, stateCode: 'PB', districtCode: 'ASR', blockCode: 'ASR-01' },
-    { id: 'u4_pkl', email: 'block.pkl-01@fln.org', name: 'Panchkula Block Admin', role: UserRole.BLOCK_ADMIN, stateCode: 'HR', districtCode: 'PKL', blockCode: 'PKL-01' },
-    { id: 'u4_jai2', email: 'block.jai-02@fln.org', name: 'Jaipur Block Admin 2', role: UserRole.BLOCK_ADMIN, stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-02' },
-    { id: 'u4_uda', email: 'block.uda-01@fln.org', name: 'Udaipur Block Admin', role: UserRole.BLOCK_ADMIN, stateCode: 'RJ', districtCode: 'UDA', blockCode: 'UDA-01' },
-    { id: 'u4_lko2', email: 'block.lko-02@fln.org', name: 'Lucknow Block Admin 2', role: UserRole.BLOCK_ADMIN, stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-02' },
-    { id: 'u4_knp', email: 'block.knp-01@fln.org', name: 'Kanpur Block Admin', role: UserRole.BLOCK_ADMIN, stateCode: 'UP', districtCode: 'KNP', blockCode: 'KNP-01' },
-    { id: 'u4_ldh2', email: 'block.ldh-02@fln.org', name: 'Ludhiana Block Admin 2', role: UserRole.BLOCK_ADMIN, stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-02' },
-    { id: 'u4_amb2', email: 'block.amb-02@fln.org', name: 'Ambala Block Admin 2', role: UserRole.BLOCK_ADMIN, stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-02' },
-    // Principals for new schools
-    { id: 'u5_bth', email: 'gps-bth-006@fln.org', name: 'GPS Bathinda Principal', role: UserRole.SCHOOL, schoolId: 'gps-bth-006' },
-    { id: 'u5_asr', email: 'gps-asr-007@fln.org', name: 'GPS Amritsar Principal', role: UserRole.SCHOOL, schoolId: 'gps-asr-007' },
-    { id: 'u5_pkl', email: 'gps-pkl-008@fln.org', name: 'GPS Panchkula Principal', role: UserRole.SCHOOL, schoolId: 'gps-pkl-008' },
-    { id: 'u5_jai2', email: 'gps-jai2-009@fln.org', name: 'GPS Jaipur Rural Principal', role: UserRole.SCHOOL, schoolId: 'gps-jai2-009' },
-    { id: 'u5_uda', email: 'gps-uda-010@fln.org', name: 'GPS Udaipur Principal', role: UserRole.SCHOOL, schoolId: 'gps-uda-010' },
-    { id: 'u5_lko2', email: 'gps-lko2-011@fln.org', name: 'GPS Aliganj Principal', role: UserRole.SCHOOL, schoolId: 'gps-lko2-011' },
-    { id: 'u5_knp', email: 'gps-knp-012@fln.org', name: 'GPS Kanpur Principal', role: UserRole.SCHOOL, schoolId: 'gps-knp-012' },
-    { id: 'u5_ldh2', email: 'gps-pb-ldh2-013@fln.org', name: 'GPS Gill Village Principal', role: UserRole.SCHOOL, schoolId: 'gps-pb-ldh2-013' },
-    { id: 'u5_amb2', email: 'gps-hr-amb2-014@fln.org', name: 'GPS Ambala South Principal', role: UserRole.SCHOOL, schoolId: 'gps-hr-amb2-014' },
-    // Teachers for new schools
-    { id: 'u6_bth_a', email: 'gps-bth-006.t01@fln.org', name: 'Harpreet Kaur (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-bth-006' },
-    { id: 'u6_bth_b', email: 'gps-bth-006.t02@fln.org', name: 'Jaswant Singh (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-bth-006' },
-    { id: 'u6_asr', email: 'gps-asr-007.t01@fln.org', name: 'Gurvinder Singh (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-asr-007' },
-    { id: 'u6_pkl_a', email: 'gps-pkl-008.t01@fln.org', name: 'Kavita Sharma (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-pkl-008' },
-    { id: 'u6_pkl_b', email: 'gps-pkl-008.t02@fln.org', name: 'Rajesh Kumar (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-pkl-008' },
-    { id: 'u6_jai2', email: 'gps-jai2-009.t01@fln.org', name: 'Ravi Verma (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-jai2-009' },
-    { id: 'u6_uda_a', email: 'gps-uda-010.t01@fln.org', name: 'Madhu Saxena (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-uda-010' },
-    { id: 'u6_uda_b', email: 'gps-uda-010.t02@fln.org', name: 'Prakash Choudhary (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-uda-010' },
-    { id: 'u6_lko2', email: 'gps-lko2-011.t01@fln.org', name: 'Alok Mishra (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-lko2-011' },
-    { id: 'u6_knp', email: 'gps-knp-012.t01@fln.org', name: 'Sunita Devi (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-knp-012' },
-    { id: 'u6_ldh2', email: 'gps-pb-ldh2-013.t01@fln.org', name: 'Balwinder Kaur (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-pb-ldh2-013' },
-    { id: 'u6_amb2', email: 'gps-hr-amb2-014.t01@fln.org', name: 'Nisha Rani (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-hr-amb2-014' },
-    // Volunteers for new low-strength schools
-    { id: 'u7_asr', email: 'vol.asr@fln.org', name: 'Mandeep Kaur (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-asr-007'] },
-    { id: 'u7_jai2_vol', email: 'vol.jai2@fln.org', name: 'Deepak Sharma (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-jai2-009'] },
-    { id: 'u7_knp_vol', email: 'vol.knp@fln.org', name: 'Anita Singh (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-knp-012'] },
-    { id: 'u7_ldh2_vol', email: 'vol.ldh2@fln.org', name: 'Gurpreet Kaur (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-pb-ldh2-013'] }
+    ...initialSuperadminLogins,
+    ...initialTeacherLogins
   ];
 
   const classes: ClassGroup[] = [
-    { id: 'c1', schoolId: 'gps-mt-001', className: 'Class 2', section: 'A', teacherId: 'u6' },
-    { id: 'c2', schoolId: 'gps-mt-001', className: 'Class 3', section: 'A', teacherId: 'u6' },
-    { id: 'c3', schoolId: 'gps-vl-002', className: 'Class 2', section: 'A', teacherId: '' },
-    { id: 'c4', schoolId: 'gps-amb-003', className: 'Class 3', section: 'A', teacherId: 'u6_amb' },
-    { id: 'c5', schoolId: 'gps-jai-004', className: 'Class 4', section: 'A', teacherId: 'u6_jai' },
-    { id: 'c6', schoolId: 'gps-lko-005', className: 'Class 3', section: 'A', teacherId: 'u6_lko' },
-    { id: 'c7', schoolId: 'gps-bth-006', className: 'Class 3', section: 'A', teacherId: 'u6_bth_a' },
-    { id: 'c8', schoolId: 'gps-bth-006', className: 'Class 4', section: 'A', teacherId: 'u6_bth_b' },
-    { id: 'c9', schoolId: 'gps-asr-007', className: 'Class 2', section: 'A', teacherId: 'u6_asr' },
-    { id: 'c10', schoolId: 'gps-pkl-008', className: 'Class 3', section: 'A', teacherId: 'u6_pkl_a' },
-    { id: 'c11', schoolId: 'gps-pkl-008', className: 'Class 4', section: 'A', teacherId: 'u6_pkl_b' },
-    { id: 'c12', schoolId: 'gps-jai2-009', className: 'Class 2', section: 'A', teacherId: 'u6_jai2' },
-    { id: 'c13', schoolId: 'gps-uda-010', className: 'Class 4', section: 'A', teacherId: 'u6_uda_a' },
-    { id: 'c14', schoolId: 'gps-uda-010', className: 'Class 3', section: 'A', teacherId: 'u6_uda_b' },
-    { id: 'c15', schoolId: 'gps-lko2-011', className: 'Class 2', section: 'A', teacherId: 'u6_lko2' },
-    { id: 'c16', schoolId: 'gps-lko2-011', className: 'Class 3', section: 'A', teacherId: 'u6_lko2' },
-    { id: 'c17', schoolId: 'gps-knp-012', className: 'Class 2', section: 'A', teacherId: 'u6_knp' },
-    { id: 'c18', schoolId: 'gps-pb-ldh2-013', className: 'Class 2', section: 'A', teacherId: 'u6_ldh2' },
-    { id: 'c19', schoolId: 'gps-hr-amb2-014', className: 'Class 3', section: 'A', teacherId: 'u6_amb2' },
-    { id: 'c20', schoolId: 'gps-mt-001', className: 'Class 4', section: 'A', teacherId: 'u6' }
+    { id: 'c1', schoolId: 'gps-mt-001', className: 'Class 2', section: 'A', teacherId: 'u6' }
   ];
 
   const students: Student[] = [
-    { id: 's1', name: 'Amanpreet Singh', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u6', currentLevel: 2, currentSubLevel: 0, targetLevel: 3, aadharMasked: 'XXXX-XXXX-4521', levelHistory: [{ level: 1, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }], streak: 5 },
-    { id: 's2', name: 'Simran Kaur', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u6', currentLevel: 3, currentSubLevel: 0, targetLevel: 4, aadharMasked: 'XXXX-XXXX-9874', levelHistory: [{ level: 2, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }], streak: 3 },
-    { id: 's3', name: 'Gurpreet Singh', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u6', currentLevel: 4, currentSubLevel: 0, targetLevel: 5, aadharMasked: 'XXXX-XXXX-1122', levelHistory: [{ level: 3, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }], streak: 7 },
-    { id: 's4', name: 'Manpreet Lal', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-vl-002', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-5566', levelHistory: [{ level: 1, date: '2026-05-15', reason: 'Volunteer Diagnostic Placement' }], streak: 1 },
-    { id: 's5', name: 'Harjeet Sandhu', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-vl-002', currentLevel: 2, currentSubLevel: 0, targetLevel: 3, aadharMasked: 'XXXX-XXXX-8811', levelHistory: [{ level: 1, date: '2026-05-20', reason: 'Volunteer Diagnostic Placement' }], streak: 2 },
-    { id: 's6', name: 'Sandeep Kumar', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-amb-003', teacherId: 'u6_amb', currentLevel: 3, currentSubLevel: 0, targetLevel: 4, aadharMasked: 'XXXX-XXXX-7231', levelHistory: [{ level: 2, date: '2026-06-01', reason: 'Onboarding Diagnostic Placement' }], streak: 4 },
-    { id: 's7', name: 'Sneha Sharma', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-amb-003', teacherId: 'u6_amb', currentLevel: 5, currentSubLevel: 0, targetLevel: 6, aadharMasked: 'XXXX-XXXX-1002', levelHistory: [{ level: 3, date: '2026-06-01', reason: 'Onboarding Diagnostic Placement' }], streak: 9 },
-    { id: 's8', name: 'Rajesh Saini', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-amb-003', teacherId: 'u6_amb', currentLevel: 2, currentSubLevel: 0, targetLevel: 3, aadharMasked: 'XXXX-XXXX-3490', levelHistory: [{ level: 2, date: '2026-06-01', reason: 'Onboarding Diagnostic Placement' }], streak: 3 },
-    { id: 's9', name: 'Priya Patel', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-jai-004', teacherId: 'u6_jai', currentLevel: 4, currentSubLevel: 0, targetLevel: 5, aadharMasked: 'XXXX-XXXX-1992', levelHistory: [{ level: 3, date: '2026-06-15', reason: 'Onboarding Diagnostic Placement' }], streak: 6 },
-    { id: 's10', name: 'Amit Kumar', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-jai-004', teacherId: 'u6_jai', currentLevel: 5, currentSubLevel: 0, targetLevel: 6, aadharMasked: 'XXXX-XXXX-8822', levelHistory: [{ level: 4, date: '2026-06-15', reason: 'Onboarding Diagnostic Placement' }], streak: 11 },
-    { id: 's11', name: 'Divya Gupta', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-jai-004', teacherId: 'u6_jai', currentLevel: 3, currentSubLevel: 0, targetLevel: 4, aadharMasked: 'XXXX-XXXX-3344', levelHistory: [{ level: 2, date: '2026-06-15', reason: 'Onboarding Diagnostic Placement' }], streak: 5 },
-    { id: 's12', name: 'Kabir Mehra', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-vl-002', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-4545', levelHistory: [{ level: 1, date: '2026-06-05', reason: 'Volunteer Diagnostic Placement' }], streak: 2 },
-    { id: 's13', name: 'Jyoti Yadav', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-vl-002', currentLevel: 2, currentSubLevel: 0, targetLevel: 3, aadharMasked: 'XXXX-XXXX-2121', levelHistory: [{ level: 1, date: '2026-06-05', reason: 'Volunteer Diagnostic Placement' }], streak: 3 },
-    { id: 's14', name: 'Rajiv Malhotra', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-lko-005', teacherId: 'u6_lko', currentLevel: 3, currentSubLevel: 0, targetLevel: 4, aadharMasked: 'XXXX-XXXX-1155', levelHistory: [{ level: 2, date: '2026-06-20', reason: 'Onboarding Diagnostic Placement' }], streak: 6 },
-    { id: 's15', name: 'Neha Agrawal', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-lko-005', teacherId: 'u6_lko', currentLevel: 4, currentSubLevel: 0, targetLevel: 5, aadharMasked: 'XXXX-XXXX-2266', levelHistory: [{ level: 3, date: '2026-06-20', reason: 'Onboarding Diagnostic Placement' }], streak: 8 },
-    { id: 's16', name: 'Karan Johar', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-lko-005', teacherId: 'u6_lko', currentLevel: 5, currentSubLevel: 0, targetLevel: 6, aadharMasked: 'XXXX-XXXX-3377', levelHistory: [{ level: 4, date: '2026-06-20', reason: 'Onboarding Diagnostic Placement' }], streak: 12 },
-    
-    // ── Unplaced students (empty levelHistory) for Pending Diagnostics ──
-    { id: 's_new_1', name: 'Gurleen Kaur', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-vl-002', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-6677', levelHistory: [], streak: 0 },
-    { id: 's_new_2', name: 'Vikram Yadav', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-vl-002', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-7788', levelHistory: [], streak: 0 },
-    { id: 's_new_3', name: 'Ananya Mishra', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-amb-003', teacherId: 'u6_amb', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-8899', levelHistory: [], streak: 0 },
-    { id: 's_new_4', name: 'Rohit Sharma', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u6', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-9900', levelHistory: [], streak: 0 },
-    { id: 's_new_5', name: 'Meera Joshi', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-jai-004', teacherId: 'u6_jai', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1100', levelHistory: [], streak: 0 },
-    // ── Additional placed students at Level 8 ──
-    { id: 's17', name: 'Arjun Mehta', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u6', currentLevel: 8, currentSubLevel: 0, targetLevel: 9, aadharMasked: 'XXXX-XXXX-1201', levelHistory: [{ level: 4, date: '2026-04-15', reason: 'Onboarding Diagnostic Placement' }, { level: 6, date: '2026-05-20', reason: 'Mid-year worksheet performance' }, { level: 8, date: '2026-07-01', reason: 'End-of-year worksheet performance' }], streak: 15 },
-    { id: 's18', name: 'Kavya Reddy', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-bth-006', teacherId: 'u6_bth_a', currentLevel: 8, currentSubLevel: 1, targetLevel: 9, aadharMasked: 'XXXX-XXXX-1202', levelHistory: [{ level: 3, date: '2026-05-01', reason: 'Onboarding Diagnostic Placement' }, { level: 5, date: '2026-06-10', reason: 'Baseline worksheet' }, { level: 8, date: '2026-07-03', reason: 'Mid-year worksheet' }], streak: 10 },
-    { id: 's19', name: 'Rohan Das', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-amb-003', teacherId: 'u6_amb', currentLevel: 8, currentSubLevel: 2, targetLevel: 9, aadharMasked: 'XXXX-XXXX-1203', levelHistory: [{ level: 2, date: '2026-04-20', reason: 'Onboarding Diagnostic Placement' }, { level: 8, date: '2026-06-25', reason: 'Remedial intervention' }], streak: 6 },
-    // ── Students at Level 10 ──
-    { id: 's20', name: 'Pooja Verma', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u6', currentLevel: 10, currentSubLevel: 0, targetLevel: 11, aadharMasked: 'XXXX-XXXX-1204', levelHistory: [{ level: 5, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }, { level: 7, date: '2026-05-15', reason: 'Baseline worksheet' }, { level: 10, date: '2026-06-30', reason: 'Mid-year worksheet' }], streak: 18 },
-    { id: 's21', name: 'Vivek Saxena', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-lko-005', teacherId: 'u6_lko', currentLevel: 10, currentSubLevel: 0, targetLevel: 11, aadharMasked: 'XXXX-XXXX-1205', levelHistory: [{ level: 6, date: '2026-05-05', reason: 'Onboarding Diagnostic Placement' }, { level: 8, date: '2026-06-01', reason: 'Baseline worksheet' }, { level: 10, date: '2026-07-02', reason: 'Mid-year worksheet' }], streak: 14 },
-    // ── Students at Level 12 ──
-    { id: 's22', name: 'Anika Gupta', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-pkl-008', teacherId: 'u6_pkl_a', currentLevel: 12, currentSubLevel: 0, targetLevel: 13, aadharMasked: 'XXXX-XXXX-1206', levelHistory: [{ level: 7, date: '2026-04-25', reason: 'Onboarding Diagnostic Placement' }, { level: 10, date: '2026-06-05', reason: 'Baseline worksheet' }, { level: 12, date: '2026-07-04', reason: 'Mid-year worksheet' }], streak: 20 },
-    { id: 's23', name: 'Ishaan Kapoor', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-uda-010', teacherId: 'u6_uda_b', currentLevel: 12, currentSubLevel: 0, targetLevel: 13, aadharMasked: 'XXXX-XXXX-1207', levelHistory: [{ level: 8, date: '2026-05-10', reason: 'Onboarding Diagnostic Placement' }, { level: 12, date: '2026-06-28', reason: 'Baseline worksheet' }], streak: 11 },
-    // ── Students at Level 15 ──
-    { id: 's24', name: 'Tanvi Bhatia', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u6', currentLevel: 15, currentSubLevel: 0, targetLevel: 16, aadharMasked: 'XXXX-XXXX-1208', levelHistory: [{ level: 8, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }, { level: 11, date: '2026-05-20', reason: 'Baseline worksheet' }, { level: 15, date: '2026-07-01', reason: 'Mid-year worksheet' }], streak: 25 },
-    { id: 's25', name: 'Kabir Malhotra', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-jai-004', teacherId: 'u6_jai', currentLevel: 15, currentSubLevel: 1, targetLevel: 16, aadharMasked: 'XXXX-XXXX-1209', levelHistory: [{ level: 10, date: '2026-05-15', reason: 'Onboarding Diagnostic Placement' }, { level: 15, date: '2026-07-02', reason: 'Baseline worksheet' }], streak: 8 },
-    // ── Students at various other levels ──
-    { id: 's26', name: 'Naina Agarwal', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u6', currentLevel: 5, currentSubLevel: 0, targetLevel: 6, aadharMasked: 'XXXX-XXXX-1210', levelHistory: [{ level: 2, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }, { level: 5, date: '2026-06-20', reason: 'Baseline worksheet' }], streak: 7 },
-    { id: 's27', name: 'Reyansh Singh', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-vl-002', currentLevel: 3, currentSubLevel: 0, targetLevel: 4, aadharMasked: 'XXXX-XXXX-1211', levelHistory: [{ level: 1, date: '2026-05-15', reason: 'Volunteer Diagnostic Placement' }, { level: 3, date: '2026-06-25', reason: 'Baseline worksheet' }], streak: 4 },
-    { id: 's28', name: 'Myra Choudhary', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-bth-006', teacherId: 'u6_bth_a', currentLevel: 6, currentSubLevel: 0, targetLevel: 7, aadharMasked: 'XXXX-XXXX-1212', levelHistory: [{ level: 2, date: '2026-05-01', reason: 'Onboarding Diagnostic Placement' }, { level: 4, date: '2026-06-05', reason: 'Baseline worksheet' }, { level: 6, date: '2026-07-01', reason: 'Mid-year worksheet' }], streak: 9 },
-    { id: 's29', name: 'Advik Nair', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-asr-007', teacherId: 'u6_asr', currentLevel: 4, currentSubLevel: 1, targetLevel: 5, aadharMasked: 'XXXX-XXXX-1213', levelHistory: [{ level: 1, date: '2026-05-20', reason: 'Volunteer Diagnostic Placement' }, { level: 4, date: '2026-07-02', reason: 'Baseline worksheet' }], streak: 3 },
-    { id: 's30', name: 'Aadhya Iyer', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-pkl-008', teacherId: 'u6_pkl_a', currentLevel: 7, currentSubLevel: 0, targetLevel: 8, aadharMasked: 'XXXX-XXXX-1214', levelHistory: [{ level: 3, date: '2026-04-25', reason: 'Onboarding Diagnostic Placement' }, { level: 5, date: '2026-06-01', reason: 'Baseline worksheet' }, { level: 7, date: '2026-07-03', reason: 'Mid-year worksheet' }], streak: 12 },
-    { id: 's31', name: 'Vihaan Joshi', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-amb-003', teacherId: 'u6_amb', currentLevel: 6, currentSubLevel: 2, targetLevel: 7, aadharMasked: 'XXXX-XXXX-1215', levelHistory: [{ level: 2, date: '2026-04-20', reason: 'Onboarding Diagnostic Placement' }, { level: 6, date: '2026-06-18', reason: 'Baseline worksheet' }], streak: 5 },
-    { id: 's32', name: 'Anvi Kaur', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-lko-005', teacherId: 'u6_lko', currentLevel: 9, currentSubLevel: 0, targetLevel: 10, aadharMasked: 'XXXX-XXXX-1216', levelHistory: [{ level: 5, date: '2026-05-05', reason: 'Onboarding Diagnostic Placement' }, { level: 7, date: '2026-06-10', reason: 'Baseline worksheet' }, { level: 9, date: '2026-07-02', reason: 'Mid-year worksheet' }], streak: 13 },
-    { id: 's33', name: 'Shaurya Patel', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-lko2-011', teacherId: 'u6_lko2', currentLevel: 11, currentSubLevel: 0, targetLevel: 12, aadharMasked: 'XXXX-XXXX-1217', levelHistory: [{ level: 6, date: '2026-05-10', reason: 'Onboarding Diagnostic Placement' }, { level: 8, date: '2026-06-15', reason: 'Baseline worksheet' }, { level: 11, date: '2026-07-04', reason: 'Mid-year worksheet' }], streak: 16 },
-    { id: 's34', name: 'Krisha Sharma', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-hr-amb2-014', teacherId: 'u6_amb2', currentLevel: 7, currentSubLevel: 0, targetLevel: 8, aadharMasked: 'XXXX-XXXX-1218', levelHistory: [{ level: 3, date: '2026-05-20', reason: 'Onboarding Diagnostic Placement' }, { level: 7, date: '2026-07-01', reason: 'Baseline worksheet' }], streak: 8 },
-    { id: 's35', name: 'Dhruv Thakur', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-jai-004', teacherId: 'u6_jai', currentLevel: 11, currentSubLevel: 1, targetLevel: 12, aadharMasked: 'XXXX-XXXX-1219', levelHistory: [{ level: 6, date: '2026-05-15', reason: 'Onboarding Diagnostic Placement' }, { level: 9, date: '2026-06-20', reason: 'Baseline worksheet' }, { level: 11, date: '2026-07-03', reason: 'Mid-year worksheet' }], streak: 9 },
-    { id: 's36', name: 'Aanya Gupta', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-bth-006', teacherId: 'u6_bth_b', currentLevel: 13, currentSubLevel: 0, targetLevel: 14, aadharMasked: 'XXXX-XXXX-1220', levelHistory: [{ level: 8, date: '2026-05-01', reason: 'Onboarding Diagnostic Placement' }, { level: 11, date: '2026-06-10', reason: 'Baseline worksheet' }, { level: 13, date: '2026-07-02', reason: 'Mid-year worksheet' }], streak: 17 },
-    { id: 's37', name: 'Arush Bhat', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-uda-010', teacherId: 'u6_uda_a', currentLevel: 14, currentSubLevel: 0, targetLevel: 15, aadharMasked: 'XXXX-XXXX-1221', levelHistory: [{ level: 9, date: '2026-05-10', reason: 'Onboarding Diagnostic Placement' }, { level: 12, date: '2026-06-20', reason: 'Baseline worksheet' }, { level: 14, date: '2026-07-04', reason: 'Mid-year worksheet' }], streak: 19 },
-    { id: 's38', name: 'Sara Khan', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-pkl-008', teacherId: 'u6_pkl_b', currentLevel: 9, currentSubLevel: 2, targetLevel: 10, aadharMasked: 'XXXX-XXXX-1222', levelHistory: [{ level: 4, date: '2026-04-25', reason: 'Onboarding Diagnostic Placement' }, { level: 9, date: '2026-06-28', reason: 'Baseline worksheet' }], streak: 7 },
-    { id: 's39', name: 'Yuvan Reddy', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u6', currentLevel: 6, currentSubLevel: 0, targetLevel: 7, aadharMasked: 'XXXX-XXXX-1223', levelHistory: [{ level: 2, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }, { level: 4, date: '2026-05-25', reason: 'Baseline worksheet' }, { level: 6, date: '2026-07-01', reason: 'Mid-year worksheet' }], streak: 11 },
-    // ── Students in Bathinda (lagging district) ──
-    { id: 's40', name: 'Simranjit Kaur', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-bth-006', teacherId: 'u6_bth_a', currentLevel: 2, currentSubLevel: 2, targetLevel: 3, aadharMasked: 'XXXX-XXXX-1224', levelHistory: [{ level: 1, date: '2026-05-01', reason: 'Onboarding Diagnostic Placement' }, { level: 2, date: '2026-06-20', reason: 'Baseline worksheet' }], streak: 2 },
-    { id: 's41', name: 'Gurleen Kaur Bajwa', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-bth-006', teacherId: 'u6_bth_a', currentLevel: 1, currentSubLevel: 1, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1225', levelHistory: [{ level: 1, date: '2026-06-01', reason: 'Volunteer Diagnostic Placement' }], streak: 1 },
-    { id: 's42', name: 'Mandeep Singh', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-bth-006', teacherId: 'u6_bth_b', currentLevel: 3, currentSubLevel: 0, targetLevel: 4, aadharMasked: 'XXXX-XXXX-1226', levelHistory: [{ level: 1, date: '2026-05-10', reason: 'Onboarding Diagnostic Placement' }, { level: 3, date: '2026-06-25', reason: 'Baseline worksheet' }], streak: 4 },
-    // ── Students in Amritsar (low-strength school) ──
-    { id: 's43', name: 'Navjot Singh', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-asr-007', teacherId: 'u6_asr', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1227', levelHistory: [{ level: 1, date: '2026-06-10', reason: 'Volunteer Diagnostic Placement' }], streak: 1 },
-    { id: 's44', name: 'Harleen Kaur', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-asr-007', teacherId: 'u6_asr', currentLevel: 2, currentSubLevel: 0, targetLevel: 3, aadharMasked: 'XXXX-XXXX-1228', levelHistory: [{ level: 1, date: '2026-06-10', reason: 'Volunteer Diagnostic Placement' }, { level: 2, date: '2026-07-01', reason: 'Baseline worksheet' }], streak: 2 },
-    // ── Students in Jaipur Rural North ──
-    { id: 's45', name: 'Lakshya Sharma', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-jai2-009', teacherId: 'u6_jai2', currentLevel: 5, currentSubLevel: 0, targetLevel: 6, aadharMasked: 'XXXX-XXXX-1229', levelHistory: [{ level: 2, date: '2026-05-15', reason: 'Onboarding Diagnostic Placement' }, { level: 5, date: '2026-06-28', reason: 'Baseline worksheet' }], streak: 6 },
-    { id: 's46', name: 'Ritu Yadav', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-jai2-009', teacherId: 'u6_jai2', currentLevel: 3, currentSubLevel: 1, targetLevel: 4, aadharMasked: 'XXXX-XXXX-1230', levelHistory: [{ level: 1, date: '2026-05-20', reason: 'Volunteer Diagnostic Placement' }, { level: 3, date: '2026-07-01', reason: 'Baseline worksheet' }], streak: 3 },
-    // ── Unplaced students needing diagnostics ──
-    { id: 's_new_6', name: 'Krishna Murari', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u6', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1231', levelHistory: [], streak: 0 },
-    { id: 's_new_7', name: 'Shivani Gupta', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-pkl-008', teacherId: 'u6_pkl_a', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1232', levelHistory: [], streak: 0 },
-    { id: 's_new_8', name: 'Ravi Prakash', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-lko2-011', teacherId: 'u6_lko2', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1233', levelHistory: [], streak: 0 },
-    { id: 's_new_9', name: 'Pooja Kumari', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-uda-010', teacherId: 'u6_uda_a', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1234', levelHistory: [], streak: 0 },
-    { id: 's_new_10', name: 'Amit Verma', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-knp-012', teacherId: 'u6_knp', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1235', levelHistory: [], streak: 0 },
-    { id: 's_new_11', name: 'Priyanka Das', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-pb-ldh2-013', teacherId: 'u6_ldh2', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1236', levelHistory: [], streak: 0 },
-    { id: 's_new_12', name: 'Arjun Yadav', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-hr-amb2-014', teacherId: 'u6_amb2', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1237', levelHistory: [], streak: 0 },
-    { id: 's_new_13', name: 'Sana Sheikh', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-lko-005', teacherId: 'u6_lko', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1238', levelHistory: [], streak: 0 },
-    { id: 's_new_14', name: 'Rohini Patil', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-amb-003', teacherId: 'u6_amb', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1239', levelHistory: [], streak: 0 },
-    { id: 's_new_15', name: 'Farhan Ali', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-jai-004', teacherId: 'u6_jai', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1240', levelHistory: [], streak: 0 }
+    ...initialStudentLogins
   ];
 
   const seedQuestions = getSeedQuestions();
@@ -709,7 +557,7 @@ export function getInitialSeedData(): MockDatabaseSchema {
       schoolName: 'GPS Rural Village Moga',
       userId: 'u7',
       userEmail: 'vol.rahul@fln.org',
-      userRole: UserRole.VOLUNTEER,
+      userRole: UserRole.TEACHER,
       activityType: 'scan',
       status: 'Success',
       details: 'Uploaded evaluation scan sheet for Manpreet Lal (Class 2)'
@@ -769,7 +617,7 @@ export function getInitialSeedData(): MockDatabaseSchema {
       schoolName: 'GPS Amritsar Golden',
       userId: 'u7_asr',
       userEmail: 'vol.asr@fln.org',
-      userRole: UserRole.VOLUNTEER,
+      userRole: UserRole.TEACHER,
       activityType: 'verify',
       status: 'Success',
       details: 'Onboarded new students Navjot Singh and Harleen Kaur at Amritsar low-strength school'
@@ -830,7 +678,7 @@ export function getInitialSeedData(): MockDatabaseSchema {
       schoolName: 'GPS Rural Village Moga',
       userId: 'u7',
       userEmail: 'vol.rahul@fln.org',
-      userRole: UserRole.VOLUNTEER,
+      userRole: UserRole.TEACHER,
       activityType: 'scan',
       status: 'Success',
       details: 'ICR SCAN: Processed diagnostic answer sheet for Manpreet Lal via ICR-9000 scanner. Placed at L1.0'
@@ -939,7 +787,7 @@ export function getInitialSeedData(): MockDatabaseSchema {
       userId: 'u7',
       userEmail: 'vol.rahul@fln.org',
       userName: 'Rahul Kumar',
-      userRole: UserRole.VOLUNTEER,
+      userRole: UserRole.TEACHER,
       type: 'general',
       subject: 'Volunteer access to diagnostic tools in Moga village',
       description: 'Unable to generate diagnostic worksheets for students at GPS Rural Village Moga. Access restricted.',

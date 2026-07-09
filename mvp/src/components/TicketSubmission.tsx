@@ -110,7 +110,7 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
                   className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 focus:border-zinc-500 focus:ring-0 outline-none"
                 >
                   <option value="general">General / Process (All Roles)</option>
-                  {(userRole === UserRole.TEACHER || userRole === UserRole.VOLUNTEER) && (
+                  {userRole === UserRole.TEACHER && (
                     <option value="curriculum">Curriculum / Content Feedback</option>
                   )}
                 </select>

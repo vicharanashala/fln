@@ -173,6 +173,7 @@ const DISTRICT_NAMES: Record<string, string> = {
 interface DashboardProps {
   user: User;
   token: string;
+  activeTabProp?: string;
 }
 
 // ==========================================
@@ -223,15 +224,6 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
   if (user.role === UserRole.SUPERADMIN) {
     activeLabel = blockCode ? `Block: ${blockCode}` : districtCode ? `District: ${districtCode}` : stateCode ? `State: ${stateCode}` : 'National';
     activeMetrics = blockCode && data?.block ? data.block : districtCode && data?.district ? data.district : stateCode && data?.state ? data.state : data?.national;
-  } else if (user.role === UserRole.ADMIN) {
-    activeLabel = `State Admin`;
-    activeMetrics = data?.state;
-  } else if (user.role === UserRole.DISTRICT_ADMIN) {
-    activeLabel = `District Admin`;
-    activeMetrics = data?.district;
-  } else if (user.role === UserRole.BLOCK_ADMIN) {
-    activeLabel = `Block Admin`;
-    activeMetrics = data?.block;
   }
 
   return (
@@ -471,8 +463,18 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
 // ==========================================
 // 1. SUPERADMIN (NATIONAL) DASHBOARD
 // ==========================================
-export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
+export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token, activeTabProp }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'coordinators' | 'analytics'>('overview');
+
+  useEffect(() => {
+    if (activeTabProp) {
+      if (activeTabProp === 'coordinators' || activeTabProp === 'teachers') {
+        setActiveTab('coordinators');
+      } else {
+        setActiveTab(activeTabProp as any);
+      }
+    }
+  }, [activeTabProp]);
   
   // Overview data
   const [schools, setSchools] = useState<School[]>([]);
@@ -486,10 +488,8 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [coordName, setCoordName] = useState('');
   const [coordEmail, setCoordEmail] = useState('');
   const [coordPass, setCoordPass] = useState('');
-  const [coordRole, setCoordRole] = useState<UserRole>(UserRole.ADMIN);
-  const [coordState, setCoordState] = useState('PB');
-  const [coordDistrict, setCoordDistrict] = useState('');
-  const [coordBlock, setCoordBlock] = useState('');
+  const [coordRole] = useState<UserRole>(UserRole.TEACHER);
+  const [coordSchoolId, setCoordSchoolId] = useState('gps-mt-001');
   const [coordSuccess, setCoordSuccess] = useState('');
   const [coordError, setCoordError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -564,20 +564,17 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           email: coordEmail,
           password: coordPass,
           role: coordRole,
-          stateCode: coordState,
-          districtCode: coordDistrict,
-          blockCode: coordBlock
+          schoolId: coordSchoolId
         })
       });
 
       const data = await res.json();
       if (res.ok) {
-        setCoordSuccess(`Successfully created administrative coordinator: ${coordName} (${coordRole})`);
+        setCoordSuccess(`Successfully created registered teacher: ${coordName}`);
         setCoordName('');
         setCoordEmail('');
         setCoordPass('');
-        setCoordDistrict('');
-        setCoordBlock('');
+        setCoordSchoolId('gps-mt-001');
         fetchCoordinators();
         setTimeout(() => setCoordSuccess(''), 6000);
       } else {
@@ -608,32 +605,34 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         </div>
 
         {/* Dashboard Tabs Selector */}
-        <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 w-fit self-start">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'overview' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
-            }`}
-          >
-            📋 Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('coordinators')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'coordinators' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
-            }`}
-          >
-            👤 Coordinator Management
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'analytics' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
-            }`}
-          >
-            📊 Geographical Analytics
-          </button>
-        </div>
+        {!activeTabProp && (
+          <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 w-fit self-start">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                activeTab === 'overview' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+              }`}
+            >
+              📋 Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('coordinators')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                activeTab === 'coordinators' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+              }`}
+            >
+              👤 Coordinator Management
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                activeTab === 'analytics' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+              }`}
+            >
+              📊 Geographical Analytics
+            </button>
+          </div>
+        )}
 
         {/* DB Reset for easy demo */}
         <button
@@ -809,66 +808,24 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
               <div>
                 <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Administrative Role Tier</label>
-                <select
-                  value={coordRole}
-                  onChange={e => {
-                    setCoordRole(e.target.value as UserRole);
-                    if (e.target.value === UserRole.ADMIN) {
-                      setCoordDistrict('');
-                      setCoordBlock('');
-                    } else if (e.target.value === UserRole.DISTRICT_ADMIN) {
-                      setCoordBlock('');
-                    }
-                  }}
-                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 outline-none focus:bg-white font-medium text-zinc-850"
-                >
-                  <option value={UserRole.ADMIN}>State Admin / Coordinator</option>
-                  <option value={UserRole.DISTRICT_ADMIN}>District Admin / Officer</option>
-                  <option value={UserRole.BLOCK_ADMIN}>Block Admin / Supervisor</option>
-                </select>
+                <input
+                  type="text"
+                  value="TEACHER"
+                  disabled
+                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-100 outline-none font-medium text-zinc-500 font-mono"
+                />
               </div>
 
-              {/* Scope nodes triggers dynamically depending on role */}
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
-                  <input
-                     type="text"
-                     value={coordState}
-                     onChange={e => setCoordState(e.target.value.toUpperCase())}
-                     placeholder="e.g. PB"
-                     required
-                     className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
-                  />
-                </div>
-                
-                {coordRole !== UserRole.ADMIN && (
-                  <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
-                    <input
-                      type="text"
-                      value={coordDistrict}
-                      onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
-                      placeholder="e.g. LDH"
-                      required
-                      className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
-                    />
-                  </div>
-                )}
-
-                {coordRole === UserRole.BLOCK_ADMIN && (
-                  <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
-                    <input
-                      type="text"
-                      value={coordBlock}
-                      onChange={e => setCoordBlock(e.target.value.toUpperCase())}
-                      placeholder="e.g. LDH-01"
-                      required
-                      className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
-                    />
-                  </div>
-                )}
+              <div>
+                <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Assigned School ID</label>
+                <input
+                  type="text"
+                  value={coordSchoolId}
+                  onChange={e => setCoordSchoolId(e.target.value)}
+                  placeholder="e.g. gps-mt-001"
+                  required
+                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 outline-none focus:bg-white focus:border-zinc-500 font-medium"
+                />
               </div>
 
               <button
@@ -892,7 +849,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   header: 'Role Tier',
                   accessor: (c) => (
                     <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
-                      c.role === UserRole.SUPERADMIN ? 'bg-slate-900 text-slate-100' : c.role === UserRole.ADMIN ? 'bg-indigo-105 text-indigo-850' : c.role === UserRole.DISTRICT_ADMIN ? 'bg-emerald-105 text-emerald-850' : 'bg-amber-105 text-amber-855'
+                      c.role === UserRole.SUPERADMIN ? 'bg-slate-900 text-slate-100' : 'bg-indigo-50 text-indigo-700'
                     }`}>
                       {c.role}
                     </span>
@@ -901,7 +858,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 {
                   header: 'Assigned Scope Nodes',
                   accessor: (c) => {
-                    const nodeScope = c.role === UserRole.SUPERADMIN ? 'National (Global)' : c.role === UserRole.ADMIN ? `State: ${c.stateCode}` : c.role === UserRole.DISTRICT_ADMIN ? `State: ${c.stateCode} / District: ${c.districtCode}` : `State: ${c.stateCode} / Dist: ${c.districtCode} / Block: ${c.blockCode}`;
+                    const nodeScope = c.role === UserRole.SUPERADMIN ? 'National (Global)' : `School ID: ${c.schoolId || 'N/A'}`;
                     return <span className="font-medium text-slate-700">{nodeScope}</span>;
                   }
                 }
@@ -926,409 +883,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 // ==========================================
 // 2. STATE ADMIN / DISTRICT ADMIN / BLOCK ADMIN DASHBOARDS
 // ==========================================
-export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'access'>('overview');
-  const [schools, setSchools] = useState<School[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
-        const schData = await schRes.json();
-        if (Array.isArray(schData)) setSchools(schData);
-
-        const stdRes = await fetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
-        const stdData = await stdRes.json();
-        if (Array.isArray(stdData)) setStudents(stdData);
-
-        const uRes = await fetch('/api/admin/coordinators', { headers: { 'Authorization': `Bearer ${token}` } });
-        const uData = await uRes.json();
-        if (Array.isArray(uData)) setAllUsers(uData);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchData();
-  }, [token]);
-
-  // Determine appropriate dashboard header details
-  const stateCode = user.stateCode || 'PB';
-  const stateName = STATE_NAMES[stateCode] || stateCode;
-  const districtCode = user.districtCode || 'LDH';
-  const districtName = DISTRICT_NAMES[districtCode] || districtCode;
-  const blockCode = user.blockCode || 'LDH-01';
-
-  let panelTitle = 'Regional Oversight Center';
-  let panelSub = 'State administration and reporting node.';
-  if (user.role === UserRole.ADMIN) {
-    panelTitle = `State Oversight Center: ${stateName}`;
-    panelSub = `State Coordinator ${stateCode} · Performance Oversight Console`;
-  } else if (user.role === UserRole.DISTRICT_ADMIN) {
-    panelTitle = `District Oversight Center: ${districtName}`;
-    panelSub = `District Officer ${stateCode}-${districtCode} · Scoped Administrative Node`;
-  } else if (user.role === UserRole.BLOCK_ADMIN) {
-    panelTitle = `Block Administrative Console: ${blockCode}`;
-    panelSub = `Block Supervisor ${stateCode}-${districtCode}-${blockCode} · Localized Facility Audit Roster`;
-  }
-
-  // Filter schools based on user's regional scope
-  const scopedSchools = schools.filter(s => {
-    if (user.role === UserRole.ADMIN) {
-      return s.stateCode === stateCode;
-    }
-    if (user.role === UserRole.DISTRICT_ADMIN) {
-      return s.stateCode === stateCode && s.districtCode === districtCode;
-    }
-    if (user.role === UserRole.BLOCK_ADMIN) {
-      return s.stateCode === stateCode && s.districtCode === districtCode && s.blockCode === blockCode;
-    }
-    return true;
-  });
-
-  const scopedSchoolIds = scopedSchools.map(s => s.id);
-  const scopedStudents = students.filter(s => scopedSchoolIds.includes(s.schoolId));
-
-  // Calculate dynamic pipeline metrics
-  const studentsCount = scopedStudents.length;
-  const certifiedCount = scopedStudents.filter(s => s.currentLevel >= 5).length;
-  const conductedExams = scopedSchools.length * 3 || 0;
-  const ingestedSheets = studentsCount * 2 || 0;
-
-  // Compile performance & lagging metrics per school
-  const schoolPerformance = scopedSchools.map(sch => {
-    const schStudents = students.filter(s => s.schoolId === sch.id);
-    const total = schStudents.length;
-    const certified = schStudents.filter(s => s.currentLevel >= 5).length;
-    const rate = total > 0 ? Math.round((certified / total) * 100) : 0;
-    
-    let statusText = '';
-    let isLagging = false;
-    if (total === 0) {
-      statusText = 'No active students preseeded';
-    } else if (rate < 50) {
-      statusText = `Lagging <50% (${rate}% Certified)`;
-      isLagging = true;
-    } else {
-      statusText = `${rate}% Certified`;
-    }
-
-    const deploymentMode = sch.strength === 'low' 
-      ? 'No internet, low student strength deployment mode active' 
-      : 'High student strength classroom mode active';
-
-    return {
-      schoolId: sch.id,
-      name: sch.name,
-      district: DISTRICT_NAMES[sch.districtCode] || sch.districtCode,
-      deploymentMode,
-      statusText,
-      isLagging,
-      certifiedRate: rate
-    };
-  });
-
-  // Dynamic volunteer roster assignments
-  const preseededVolunteers = [
-    { name: 'Rahul Kumar', email: 'vol.rahul@fln.org', assignedSchools: ['gps-vl-002'], status: 'On-Site Active' },
-    { name: 'Amit Saini', email: 'vol.amit@fln.org', assignedSchools: ['gps-vl-002', 'gps-jai-004'], status: 'On-Site Active' },
-    { name: 'Sneha Verma', email: 'vol.up_sneha@fln.org', assignedSchools: ['gps-lko-005'], status: 'Field Onboarding' },
-    { name: 'Vipin Yadav', email: 'vol.hr_vipin@fln.org', assignedSchools: ['gps-amb-003'], status: 'On-Site Active' }
-  ];
-
-  const scopedVolunteers = preseededVolunteers.filter(v => 
-    v.assignedSchools.some(schId => scopedSchoolIds.includes(schId))
-  );
-
-  return (
-    <div className="space-y-6" id="admin-dashboard">
-      <div className="border-b border-zinc-200 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-semibold text-zinc-900 tracking-tight">{panelTitle}</h1>
-          <p className="text-zinc-550 text-sm mt-0.5">{panelSub}</p>
-        </div>
-
-        {/* Local Tab selectors */}
-        <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 w-fit self-start">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'overview' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
-            }`}
-          >
-            📋 Scoped Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'analytics' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
-            }`}
-          >
-            📊 Scoped & Comparative Analytics
-          </button>
-          <button
-            onClick={() => setActiveTab('access')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'access' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
-            }`}
-          >
-            🛡️ Access Control & Defaulters
-          </button>
-        </div>
-      </div>
-
-      {activeTab === 'overview' && (
-        <>
-          {/* Pipeline tracker (Conducted -> Scanned -> Evaluated -> Certified) */}
-          <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
-            <h3 className="text-lg font-display font-medium text-zinc-900">Regional Data Flow Pipeline</h3>
-            <div className="grid grid-cols-4 gap-2 text-center font-mono text-xs">
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg shadow-sm">
-                <span className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">1. Conducted</span>
-                <span className="text-lg font-bold text-zinc-905">{conductedExams} Exams</span>
-              </div>
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg shadow-sm">
-                <span className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">2. Ingested (ICR)</span>
-                <span className="text-lg font-bold text-zinc-905">{ingestedSheets} Sheets</span>
-              </div>
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg shadow-sm">
-                <span className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">3. Evaluated</span>
-                <span className="text-lg font-bold text-indigo-755">100% Scored</span>
-              </div>
-              <div className="p-4 bg-zinc-900 text-white rounded-lg border-none shadow-sm">
-                <span className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">4. Certified FLN</span>
-                <span className="text-lg font-bold text-green-400">{certifiedCount} Students</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* District rankings & lagging alerts */}
-            <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
-              <h3 className="text-base font-display font-semibold text-zinc-900">Regional Learning Gaps & Lagging Alerts</h3>
-              <div className="space-y-3">
-                {schoolPerformance.length === 0 ? (
-                  <p className="text-zinc-400 text-xs text-center py-6 font-mono">No preseeded schools found in this regional scope.</p>
-                ) : (
-                  schoolPerformance.map(perf => (
-                    <div 
-                      key={perf.schoolId} 
-                      className={`flex justify-between items-center p-3 border rounded-lg ${
-                        perf.isLagging 
-                          ? 'border-red-100 bg-red-50/50' 
-                          : 'border-zinc-150 bg-zinc-50'
-                      }`}
-                    >
-                      <div>
-                        <h5 className={`font-medium text-sm ${perf.isLagging ? 'text-red-900' : 'text-zinc-900'}`}>
-                          {perf.schoolId} ({perf.name})
-                        </h5>
-                        <p className={`text-[10px] font-mono ${perf.isLagging ? 'text-red-600' : 'text-zinc-400'}`}>
-                          {perf.deploymentMode}
-                        </p>
-                      </div>
-                      <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded border ${
-                        perf.isLagging 
-                          ? 'text-red-700 bg-red-100 border-red-200' 
-                          : 'text-zinc-700 bg-zinc-200 border-zinc-300'
-                      }`}>
-                        {perf.statusText}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Block oversight */}
-            <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
-              <h3 className="text-base font-display font-semibold text-zinc-900">Volunteer Assignments</h3>
-              <div className="space-y-3">
-                {scopedVolunteers.length === 0 ? (
-                  <p className="text-zinc-400 text-xs text-center py-6 font-mono">No active volunteers deployed in this regional node.</p>
-                ) : (
-                  scopedVolunteers.map(vol => (
-                    <div key={vol.email} className="p-3 border border-zinc-200 rounded-lg flex justify-between items-center bg-zinc-50">
-                      <div>
-                        <div className="text-xs font-bold text-zinc-800">{vol.name}</div>
-                        <div className="text-[10px] text-zinc-500 font-mono">
-                          Assigned: {vol.assignedSchools.join(', ')}
-                        </div>
-                      </div>
-                      <span className="text-xs font-mono text-green-700 bg-green-50 px-2.5 py-0.5 rounded border border-green-200">
-                        {vol.status}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {activeTab === 'analytics' && (
-        <RegionalAnalyticsView token={token} user={user} />
-      )}
-
-      {activeTab === 'access' && (
-        <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-6">
-          <div>
-            <h3 className="text-lg font-display font-medium text-zinc-900">School & Teacher Access Control</h3>
-            <p className="text-xs text-zinc-500">Monitor Teacher delay attempts, suspensions, and manual school lockout restorations.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Schools Lockdown Monitoring */}
-            <div className="space-y-3">
-              <h4 className="font-display font-bold text-zinc-800 text-xs uppercase font-mono border-b border-zinc-100 pb-2">Schools Lock Status</h4>
-              {scopedSchools.length === 0 ? (
-                <p className="text-xs text-zinc-400 font-mono">No schools found in scope.</p>
-              ) : (
-                scopedSchools.map(sch => {
-                  const isLocked = sch.isAccessLocked;
-                  const canRestore = [UserRole.SUPERADMIN, UserRole.ADMIN].includes(user.role);
-
-                  const handleRestore = async () => {
-                    try {
-                      const res = await fetch('/api/admin/restore-school', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ schoolId: sch.id })
-                      });
-                      if (res.ok) {
-                        alert(`School access restored for ${sch.name}.`);
-                        // Refresh data
-                        const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
-                        const schData = await schRes.json();
-                        if (Array.isArray(schData)) setSchools(schData);
-                        
-                        const uRes = await fetch('/api/admin/coordinators', { headers: { 'Authorization': `Bearer ${token}` } });
-                        const uData = await uRes.json();
-                        if (Array.isArray(uData)) setAllUsers(uData);
-                      } else {
-                        const err = await res.json();
-                        alert(err.error || 'Failed to restore school access.');
-                      }
-                    } catch (e) {
-                      alert('Connection failed.');
-                    }
-                  };
-
-                  return (
-                    <div key={sch.id} className="p-3 border border-zinc-200 rounded-lg flex justify-between items-center bg-zinc-50">
-                      <div>
-                        <div className="text-xs font-bold text-zinc-800">{sch.name}</div>
-                        <div className="text-[10px] text-zinc-400 font-mono">ID: {sch.id} · Strength: {sch.strength.toUpperCase()}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                          isLocked 
-                            ? 'text-red-700 bg-red-50 border-red-200' 
-                            : 'text-green-700 bg-green-50 border-green-200'
-                        }`}>
-                          {isLocked ? 'LOCKED OUT' : 'ACTIVE'}
-                        </span>
-                        {isLocked && (
-                          <button
-                            disabled={!canRestore}
-                            onClick={handleRestore}
-                            className={`font-mono text-[9px] font-bold px-2 py-1 rounded shadow-sm border transition-colors ${
-                              canRestore 
-                                ? 'bg-white hover:bg-zinc-100 text-zinc-700 hover:border-zinc-400 cursor-pointer' 
-                                : 'bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed'
-                            }`}
-                            title={!canRestore ? 'Only State Admin / Superadmin can restore School access.' : ''}
-                          >
-                            Restore
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Teachers Banned / Suspended Tracking */}
-            <div className="space-y-3">
-              <h4 className="font-display font-bold text-zinc-800 text-xs uppercase font-mono border-b border-zinc-100 pb-2">Teacher Defaulters & Bans</h4>
-              {allUsers.filter(u => u.role === UserRole.TEACHER && (user.role === UserRole.SUPERADMIN || (u.schoolId && scopedSchoolIds.includes(u.schoolId)))).length === 0 ? (
-                <p className="text-xs text-zinc-400 font-mono">No teachers registered in this scope.</p>
-              ) : (
-                allUsers.filter(u => u.role === UserRole.TEACHER && (user.role === UserRole.SUPERADMIN || (u.schoolId && scopedSchoolIds.includes(u.schoolId)))).map(tch => {
-                  const delays = tch.delayedAttemptsCount || 0;
-                  const isSuspended = tch.isBanned;
-
-                  const handleRevive = async () => {
-                    try {
-                      const res = await fetch('/api/admin/revive-teacher', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ teacherId: tch.id })
-                      });
-                      if (res.ok) {
-                        alert(`Teacher ${tch.name} revived. Suspension released.`);
-                        // Refresh data
-                        const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
-                        const schData = await schRes.json();
-                        if (Array.isArray(schData)) setSchools(schData);
-                        
-                        const uRes = await fetch('/api/admin/coordinators', { headers: { 'Authorization': `Bearer ${token}` } });
-                        const uData = await uRes.json();
-                        if (Array.isArray(uData)) setAllUsers(uData);
-                      } else {
-                        const err = await res.json();
-                        alert(err.error || 'Failed to revive teacher.');
-                      }
-                    } catch (e) {
-                      alert('Connection failed.');
-                    }
-                  };
-
-                  return (
-                    <div key={tch.id} className="p-3 border border-zinc-200 rounded-lg flex justify-between items-center bg-zinc-50">
-                      <div>
-                        <div className="text-xs font-bold text-zinc-800">{tch.name} ({tch.email})</div>
-                        <div className="text-[10px] text-zinc-400 font-mono">
-                          Delays: <strong className={delays > 0 ? 'text-amber-600' : 'text-zinc-550'}>{delays} / 3</strong>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                          isSuspended 
-                            ? 'text-red-700 bg-red-50 border-red-200' 
-                            : 'text-zinc-650 bg-zinc-100 border-zinc-300'
-                        }`}>
-                          {isSuspended ? 'SUSPENDED' : 'NORMAL'}
-                        </span>
-                        {isSuspended && (
-                          <button
-                            onClick={handleRevive}
-                            className="bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200 hover:border-zinc-400 font-mono text-[9px] font-bold px-2 py-1 rounded shadow-sm cursor-pointer transition-colors"
-                          >
-                            Revive
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+export const AdminDashboard: React.FC<DashboardProps> = () => null;
 
 
 // ==========================================
@@ -1431,7 +986,7 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 // ==========================================
 // 4. TEACHER DASHBOARD
 // ==========================================
-export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
+export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token, activeTabProp }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
@@ -1695,12 +1250,14 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           >
             📖 59 FLN Framework
           </button>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
-          >
-            {showAddForm ? 'Close Form' : 'Register New Student'}
-          </button>
+          {activeTabProp !== 'worksheets' && (
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
+            >
+              {showAddForm ? 'Close Form' : 'Register New Student'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1787,7 +1344,9 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
       {activeClass && (
         <div className="space-y-6">
-          {/* 📋 Diagnostic Paper Generator */}
+          {activeTabProp !== 'roster' && (
+            <>
+              {/* 📋 Diagnostic Paper Generator */}
           <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-4">
@@ -1948,10 +1507,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               </div>
             </div>
           </div>
+        </>
+      )}
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Class roster table */}
-          <div className="xl:col-span-2 bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+            {/* Class roster table */}
+            {activeTabProp !== 'worksheets' && (
+              <div className={`${activeTabProp === 'roster' ? 'xl:col-span-3' : 'xl:col-span-2'} bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden`}>
             <div className="p-4 border-b border-zinc-150 flex justify-between items-center bg-zinc-50/50">
               <h3 className="font-display font-medium text-zinc-900 text-sm">Classroom Student Roster ({classStudents.length})</h3>
               <button
@@ -2023,10 +1585,12 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               })()}
             </div>
           </div>
+          )}
 
 
           {/* Quick-action worksheets shortcuts */}
-          <div className="xl:col-span-1 space-y-4">
+          {activeTabProp !== 'roster' && (
+            <div className={`${activeTabProp === 'worksheets' ? 'xl:col-span-3' : 'xl:col-span-1'} space-y-4`}>
             <div className="bg-white p-5 border border-zinc-200 rounded-xl shadow-sm space-y-4">
               <h4 className="font-display font-medium text-zinc-905 text-sm">Exam Worksheets Engine</h4>
               <p className="text-xs text-zinc-505 leading-relaxed">
@@ -2053,6 +1617,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               </button>
             </div>
           </div>
+          )}
         </div>
       </div>
       )}

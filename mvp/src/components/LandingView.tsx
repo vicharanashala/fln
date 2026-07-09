@@ -82,14 +82,6 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onNavigateToLogin}
-              className="rounded-lg bg-gov-navy px-6 py-2.5 text-xs font-extrabold text-white shadow-md transition-all duration-150 hover:bg-gov-navy-light border border-gov-gold active:scale-[0.98] uppercase tracking-wider"
-            >
-              Sign In to Dashboard
-            </button>
-          </div>
         </div>
       </header>
 
@@ -131,7 +123,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
               onClick={onNavigateToLogin}
               className="flex items-center gap-2 rounded-xl bg-gov-navy px-8 py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-150 hover:bg-gov-navy-light border border-gov-gold active:scale-[0.98]"
             >
-              ACCESS DASHBOARD
+              Sign In
               <ArrowRight className="h-4 w-4 text-gov-saffron" />
             </button>
           </div>
