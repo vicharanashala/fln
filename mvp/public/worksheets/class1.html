@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Class 1 Math Practice Worksheet Generator — FLN (v3 · 3-Page A4)</title>
+<style>
+  *{box-sizing:border-box;}
+  body{font-family:Arial,Helvetica,sans-serif;background:#e9e9e9;color:#000;margin:0;padding:0;}
+  .toolbar{background:#fff;border-bottom:2px solid #000;padding:14px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;position:sticky;top:0;z-index:50;}
+  .toolbar h1{font-size:17px;margin:0;margin-right:10px;}
+  .toolbar label{font-size:14px;}
+  .toolbar input[type=number]{width:64px;padding:5px 6px;border:1px solid #000;font-family:inherit;font-size:14px;}
+  .btn{background:#fff;border:1.5px solid #000;color:#000;padding:7px 16px;font-size:14px;font-family:inherit;cursor:pointer;border-radius:3px;}
+  .btn:hover{background:#000;color:#fff;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn:disabled:hover{background:#fff;color:#000;}
+  .btn-accent{background:#000;color:#fff;border:1.5px solid #000;}
+  .btn-accent:hover{background:#333;}
+  #exportProgress{font-size:12.5px;color:#000;min-width:200px;}
+  .tabbar{background:#f3f3f3;border-bottom:2px solid #000;padding:8px 10px 0 10px;display:flex;flex-wrap:wrap;gap:4px;position:sticky;top:64px;z-index:49;max-height:120px;overflow-y:auto;}
+  .tabbtn{background:#ddd;border:1px solid #000;border-bottom:none;padding:6px 14px;font-size:13px;font-family:inherit;cursor:pointer;border-radius:4px 4px 0 0;}
+  .tabbtn.active{background:#fff;font-weight:bold;}
+  #setsContainer{padding:20px;display:flex;justify-content:center;flex-direction:column;align-items:center;gap:32px;}
+  .worksheet{display:none;}
+  .worksheet.active{display:flex;flex-direction:column;align-items:center;gap:28px;}
+
+  /* ── PAGE LAYOUT ── */
+  .page-wrapper{position:relative;display:inline-block;}
+  .page{
+    background:#fff;
+    width:210mm;
+    min-height:297mm;
+    max-height:297mm;
+    overflow:hidden;
+    padding:8mm 12mm 8mm 12mm;
+    border:1px solid #999;
+    box-shadow:0 0 10px rgba(0,0,0,0.15);
+    position:relative;
+    /* Ensure two pages print cleanly */
+    page-break-after:always;
+    break-after:page;
+  }
+  .page:last-child{page-break-after:auto;break-after:auto;}
+
+  .reg-sq{position:absolute;width:5mm;height:5mm;background:#000;z-index:10;}
+  .reg-sq.tl{top:0;left:0;}
+  .reg-sq.tr{top:0;right:0;}
+  .reg-sq.bl{bottom:0;left:0;}
+  .reg-sq.br{bottom:0;right:0;}
+  .omr-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20;display:none;}
+  .omr-overlay.visible{display:block;}
+  .omr-box{position:absolute;border:1.5px solid rgba(0,120,200,0.7);background:rgba(0,120,200,0.06);}
+  .omr-label{position:absolute;font-size:7px;color:rgba(0,80,180,0.9);font-family:monospace;white-space:nowrap;background:rgba(255,255,255,0.75);padding:0 1px;}
+
+  /* ── HEADER ── */
+  .ws-header{text-align:center;border-bottom:3px solid #000;padding-bottom:6px;margin-bottom:7px;}
+  .ws-header-cont{text-align:center;border-bottom:2px dashed #000;padding-bottom:5px;margin-bottom:7px;}
+  .ws-title{font-size:21px;font-weight:bold;letter-spacing:0.5px;}
+  .ws-sub{font-size:15px;margin-top:2px;font-weight:bold;}
+  .ws-sub-pg{font-size:13px;color:#555;margin-top:2px;}
+  .ws-fields{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;flex-wrap:wrap;gap:6px;}
+  .ws-fields span{border-bottom:1px solid #000;padding:0 4px 2px 4px;min-width:120px;display:inline-block;}
+
+  /* ── QUESTIONS ── */
+  .section{margin:8px 0 11px 0;}
+  .qinstr{font-size:14.5px;font-weight:bold;margin:0 0 6px 0;background:#f5f5f5;padding:4px 8px;border-left:4px solid #000;}
+
+  /* ── MATCHING ── */
+  .matchwrap{display:flex;justify-content:space-between;gap:20px;}
+  .matchcol{flex:1;}
+  .matchitem{display:flex;align-items:center;justify-content:space-between;margin:7px 0;}
+  .matchitem .micontent{display:flex;align-items:center;gap:8px;font-size:14px;}
+  .dot{width:12px;height:12px;border:1.6px solid #000;border-radius:50%;background:#fff;flex-shrink:0;}
+  .imgbox{border:1.5px solid #000;padding:6px;display:inline-flex;align-items:center;justify-content:center;}
+
+  /* ── GROUP COMPARE ── */
+  .group-compare{display:flex;align-items:center;gap:18px;margin:6px 0;}
+  .group-box{border:2px solid #000;padding:8px 10px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:110px;min-height:70px;justify-content:center;}
+  .qrow{margin:6px 0;font-size:13px;font-style:italic;font-weight:bold;}
+
+  /* ── COUNT PAIRS ── */
+  .pair-box{border:2px solid #000;padding:8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;justify-content:center;min-width:90px;min-height:80px;}
+
+  /* ── NUMBER SEQUENCE ── */
+  .numseq-row{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:10px 0 4px;}
+  .numseq-box{width:46px;height:46px;border:2.2px solid #000;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;background:#fff;}
+  .numseq-box.given{background:#f0f0f0;}
+  .numseq-box.blank{background:#fff;}
+  .numseq-arrow-sm{font-size:18px;font-weight:bold;color:#555;}
+
+  /* ── CONTAINERS ── */
+  .container-row{display:flex;gap:28px;align-items:flex-end;justify-content:center;margin:4px 0;}
+  .container-item{display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .tickbox{display:inline-block;border:2px solid #000;width:26px;height:26px;}
+  .q4-flexline{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;margin:4px 0;}
+  .q4-instr-side{font-size:13px;font-style:italic;font-weight:bold;max-width:150px;text-align:left;line-height:1.3;}
+
+  /* ── COINS ── */
+  .coin-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;padding:8px 0;}
+
+  /* ── BASKETS ── */
+  .basket-row{display:flex;gap:28px;justify-content:center;align-items:flex-end;flex-wrap:wrap;margin:8px 0;}
+  .basket-item{display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .basket-label{font-size:17px;font-weight:bold;}
+
+  /* ── ZERO CONCEPT COMIC STRIP ── */
+  .zero-strip{display:flex;align-items:stretch;gap:0;border:3px solid #000;border-radius:6px;overflow:hidden;margin:8px 0;}
+  .zero-panel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 5px 8px;border-right:2.5px solid #000;background:#fff;position:relative;min-height:155px;}
+  .zero-panel:last-child{border-right:none;}
+  .zero-panel-label{font-size:10px;font-weight:bold;position:absolute;top:4px;left:0;right:0;text-align:center;letter-spacing:0.5px;color:#555;text-transform:uppercase;}
+  .zero-arrow{display:flex;align-items:center;justify-content:center;padding:0 6px;font-size:28px;font-weight:bold;color:#000;background:#f0f0f0;border-right:2px solid #000;flex-shrink:0;min-width:28px;}
+  .zero-choice-row{display:flex;gap:18px;margin-top:10px;justify-content:center;}
+  .zero-choice{border:2.5px solid #000;padding:8px 28px;font-size:26px;font-weight:bold;font-family:Arial;}
+
+  /* ── FOOTER ── */
+  .ws-footer{margin-top:10px;border-top:1.4px solid #000;padding-top:5px;font-size:11px;text-align:center;color:#333;}
+  .ws-page-id{position:absolute;bottom:3mm;right:5mm;font-size:8px;font-family:monospace;color:#555;letter-spacing:0.5px;}
+
+  @media print{
+    body{background:#fff;}
+    .no-print{display:none !important;}
+    #setsContainer{padding:0;display:block;}
+    .page{box-shadow:none;border:none;padding:8mm 11mm;}
+    .page-wrapper{display:block;}
+    .worksheet{display:none;}
+    .worksheet.active{display:block;}
+    .reg-sq{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .omr-overlay{display:none !important;}
+  }
+  @page{size:A4;margin:0;}
+</style>
+<script src="./html2canvas.min.js"></script>
+<script src="./jspdf.umd.min.js"></script>
+<script src="./jszip.min.js"></script>
+</head>
+<body>
+
+<div class="toolbar no-print">
+  <h1>Class 1 — Math Worksheet (v3 · 3-Page A4)</h1>
+  <label>Sets: <input type="number" id="setCount" min="1" max="5000" value="5"></label>
+  <button class="btn" id="generateBtn">Generate</button>
+  <button class="btn" id="printBtn">Print current set</button>
+  <button class="btn" id="toggleOmrBtn">Toggle OMR Overlay</button>
+  <button class="btn btn-accent" id="exportCoordsBtn">Export Coords JSON</button>
+  <button class="btn" id="downloadAnswerKeyBtn">Download Answer Key (all)</button>
+  <label>Set #: <input type="number" id="singleSetNum" min="1" value="1" style="width:56px;"></label>
+  <button class="btn" id="downloadSingleSetBtn">Download This Set</button>
+  <button class="btn btn-accent" id="downloadAllZipBtn">Download ALL Sets as ZIP</button>
+  <span id="exportProgress" class="no-print"></span>
+</div>
+<div class="tabbar no-print" id="tabbar"></div>
+<div id="setsContainer"></div>
+<div id="pdfRenderRoot" style="position:fixed;left:-9999px;top:0;z-index:-100;pointer-events:none;width:210mm;"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════════════════════════
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function sh(a){const r=a.slice();for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
+function sp(a,n){return sh(a).slice(0,n);}
+function pk(a){return a[ri(0,a.length-1)];}
+function sw(inner,size){return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">'+inner+'</svg>';}
+function kf(cx,cy,s){s=s||1;return '<circle cx="'+(cx-6*s)+'" cy="'+(cy-3*s)+'" r="'+(2.2*s)+'" fill="#000"/><circle cx="'+(cx+6*s)+'" cy="'+(cy-3*s)+'" r="'+(2.2*s)+'" fill="#000"/><path d="M'+(cx-7*s)+','+(cy+3*s)+' Q'+cx+','+(cy+9*s)+' '+(cx+7*s)+','+(cy+3*s)+'" fill="none" stroke="#000" stroke-width="'+(1.8*s)+'"/>';}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ICON LIBRARY (identical to original, sizes passed in from callers)
+// ══════════════════════════════════════════════════════════════════════════════
+const IC={
+  circle:(z)=>sw('<circle cx="50" cy="50" r="40" fill="#fff" stroke="#000" stroke-width="4"/>',z),
+  square:(z)=>sw('<rect x="10" y="10" width="80" height="80" rx="3" fill="#fff" stroke="#000" stroke-width="4"/>',z),
+  triangle:(z)=>sw('<polygon points="50,8 92,91 8,91" fill="#fff" stroke="#000" stroke-width="4"/>',z),
+  rectangle:(z)=>sw('<rect x="5" y="22" width="90" height="56" rx="3" fill="#fff" stroke="#000" stroke-width="4"/>',z),
+  clock:(z)=>sw('<circle cx="50" cy="50" r="40" fill="#fff" stroke="#000" stroke-width="3.5"/>'+Array.from({length:12},(_,i)=>{const a=i*30*Math.PI/180;const x1=50+32*Math.sin(a),y1=50-32*Math.cos(a),x2=50+38*Math.sin(a),y2=50-38*Math.cos(a);return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#000" stroke-width="1.8"/>';}).join('')+'<line x1="50" y1="50" x2="50" y2="24" stroke="#000" stroke-width="3.5" stroke-linecap="round"/><line x1="50" y1="50" x2="66" y2="60" stroke="#000" stroke-width="2.5" stroke-linecap="round"/><circle cx="50" cy="50" r="3" fill="#000"/>'+kf(50,70,0.65),z),
+  soccerBall:(z)=>sw('<circle cx="50" cy="50" r="40" fill="#fff" stroke="#000" stroke-width="3"/><polygon points="50,12 62,36 89,36 68,54 75,80 50,63 25,80 32,54 11,36 38,36" fill="#000" stroke="#000" stroke-width="1"/><circle cx="50" cy="50" r="40" fill="none" stroke="#000" stroke-width="3"/>',z),
+  plate:(z)=>sw('<ellipse cx="50" cy="56" rx="42" ry="13" fill="#fff" stroke="#000" stroke-width="2.5"/><ellipse cx="50" cy="50" rx="42" ry="28" fill="#fff" stroke="#000" stroke-width="3"/><ellipse cx="50" cy="48" rx="20" ry="10" fill="none" stroke="#000" stroke-width="1.8"/>'+kf(50,52,0.72),z),
+  button:(z)=>sw('<circle cx="50" cy="50" r="40" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="50" cy="50" r="27" fill="none" stroke="#000" stroke-width="1.5"/><circle cx="42" cy="44" r="3.5" fill="#000"/><circle cx="58" cy="44" r="3.5" fill="#000"/><circle cx="42" cy="56" r="3.5" fill="#000"/><circle cx="58" cy="56" r="3.5" fill="#000"/>',z),
+  window:(z)=>sw('<rect x="8" y="12" width="84" height="78" rx="3" fill="#fff" stroke="#000" stroke-width="3.5"/><line x1="50" y1="12" x2="50" y2="90" stroke="#000" stroke-width="2.5"/><line x1="8" y1="51" x2="92" y2="51" stroke="#000" stroke-width="2.5"/>'+kf(30,36,0.65),z),
+  dice:(z)=>sw('<rect x="8" y="8" width="84" height="84" rx="10" fill="#fff" stroke="#000" stroke-width="3.5"/><circle cx="30" cy="30" r="6" fill="#000"/><circle cx="70" cy="30" r="6" fill="#000"/><circle cx="50" cy="50" r="6" fill="#000"/><circle cx="30" cy="70" r="6" fill="#000"/><circle cx="70" cy="70" r="6" fill="#000"/>',z),
+  giftBox:(z)=>sw('<rect x="12" y="42" width="76" height="50" rx="3" fill="#fff" stroke="#000" stroke-width="3"/><rect x="12" y="30" width="76" height="14" rx="3" fill="#fff" stroke="#000" stroke-width="3"/><line x1="50" y1="30" x2="50" y2="92" stroke="#000" stroke-width="3"/><path d="M50,30 C36,18 22,20 26,30" fill="none" stroke="#000" stroke-width="2.5"/><path d="M50,30 C64,18 78,20 74,30" fill="none" stroke="#000" stroke-width="2.5"/>'+kf(50,74,0.8),z),
+  iceCream:(z)=>sw('<path d="M22,48 C22,26 78,26 78,48 Z" fill="#fff" stroke="#000" stroke-width="3"/><path d="M22,50 L50,92 L78,50" fill="#fff" stroke="#000" stroke-width="3" stroke-linejoin="round"/><path d="M22,48 C22,26 78,26 78,48" fill="#fff" stroke="#000" stroke-width="3"/>'+kf(50,38,0.82),z),
+  partyHat:(z)=>sw('<polygon points="50,6 84,90 16,90" fill="#fff" stroke="#000" stroke-width="3.5" stroke-linejoin="round"/><ellipse cx="50" cy="90" rx="34" ry="8" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="50" cy="6" r="5" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="38" cy="56" r="3" fill="#000"/><circle cx="56" cy="66" r="3" fill="#000"/><circle cx="46" cy="75" r="3" fill="#000"/>',z),
+  warningSign:(z)=>sw('<polygon points="50,6 95,90 5,90" fill="#fff" stroke="#000" stroke-width="3.5" stroke-linejoin="round"/><line x1="50" y1="35" x2="50" y2="64" stroke="#000" stroke-width="5.5" stroke-linecap="round"/><circle cx="50" cy="75" r="4" fill="#000"/>',z),
+  door:(z)=>sw('<rect x="16" y="6" width="68" height="92" rx="3" fill="#fff" stroke="#000" stroke-width="3.5"/><rect x="24" y="14" width="52" height="36" fill="none" stroke="#000" stroke-width="2"/><rect x="24" y="56" width="52" height="34" fill="none" stroke="#000" stroke-width="2"/><circle cx="72" cy="52" r="4" fill="#000"/>'+kf(50,44,0.82),z),
+  eraser:(z)=>sw('<rect x="6" y="28" width="88" height="44" rx="7" fill="#fff" stroke="#000" stroke-width="3.5"/><line x1="34" y1="28" x2="34" y2="72" stroke="#000" stroke-width="2.5"/><rect x="6" y="28" width="28" height="44" rx="7" fill="none" stroke="#000" stroke-width="2"/>'+kf(64,56,0.78),z),
+  book:(z)=>sw('<path d="M8,18 C22,10 40,11 50,18 L50,88 C40,81 22,80 8,88 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><path d="M92,18 C78,10 60,11 50,18 L50,88 C60,81 78,80 92,88 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="16" y1="34" x2="40" y2="31" stroke="#000" stroke-width="1.3"/><line x1="16" y1="44" x2="40" y2="41" stroke="#000" stroke-width="1.3"/><line x1="16" y1="54" x2="40" y2="51" stroke="#000" stroke-width="1.3"/>'+kf(74,56,0.72),z),
+  apple:(z)=>sw('<path d="M50,28 C26,26 13,52 23,74 C31,90 45,95 50,95 C55,95 69,90 77,74 C87,52 74,26 50,28 Z" fill="#fff" stroke="#000" stroke-width="3"/><path d="M50,28 C47,18 54,10 62,7" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="64" cy="9" rx="5" ry="4" fill="#fff" stroke="#000" stroke-width="1.8"/>'+kf(50,62,0.92),z),
+  star:(z)=>sw('<polygon points="50,6 61,38 95,38 68,57 79,90 50,70 21,90 32,57 5,38 39,38" fill="#fff" stroke="#000" stroke-width="2.5"/>'+kf(50,63,0.72),z),
+  flower:(z)=>sw([0,60,120,180,240,300].map(a=>'<ellipse cx="50" cy="26" rx="10" ry="18" fill="#fff" stroke="#000" stroke-width="2.2" transform="rotate('+a+' 50 50)"/>').join('')+'<circle cx="50" cy="50" r="15" fill="#fff" stroke="#000" stroke-width="2.5"/>'+kf(50,53,0.76),z),
+  balloon:(z)=>sw('<ellipse cx="50" cy="40" rx="29" ry="34" fill="#fff" stroke="#000" stroke-width="3"/><path d="M44,74 L56,74 L50,82 Z" fill="#fff" stroke="#000" stroke-width="2"/><path d="M50,82 C46,88 55,93 50,98" fill="none" stroke="#000" stroke-width="1.8"/><line x1="42" y1="30" x2="38" y2="24" stroke="#000" stroke-width="1.5"/>'+kf(50,42,0.88),z),
+  fish:(z)=>sw('<ellipse cx="44" cy="52" rx="30" ry="18" fill="#fff" stroke="#000" stroke-width="3"/><path d="M72,52 L96,32 L96,72 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="26" cy="47" r="3.5" fill="#000"/><path d="M18,60 Q26,67 34,60" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+  leaf:(z)=>sw('<path d="M50,8 C76,26 82,60 50,94 C18,60 24,26 50,8 Z" fill="#fff" stroke="#000" stroke-width="3"/><line x1="50" y1="14" x2="50" y2="88" stroke="#000" stroke-width="1.8"/><path d="M50,32 L35,26 M50,32 L65,26 M50,52 L32,46 M50,52 L68,46 M50,70 L38,66 M50,70 L62,66" fill="none" stroke="#000" stroke-width="1.2"/>',z),
+  bird:(z)=>sw('<ellipse cx="46" cy="58" rx="24" ry="17" fill="#fff" stroke="#000" stroke-width="2.8"/><circle cx="68" cy="40" r="16" fill="#fff" stroke="#000" stroke-width="2.8"/><path d="M80,38 L97,34 L80,46 Z" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="75" cy="36" r="2.5" fill="#000"/><path d="M36,58 L22,70 M38,63 L24,74" stroke="#000" stroke-width="2.5"/><path d="M60,58 L72,70 M58,63 L70,74" stroke="#000" stroke-width="2.5"/>',z),
+  bee:(z)=>sw('<ellipse cx="50" cy="60" rx="20" ry="26" fill="#fff" stroke="#000" stroke-width="2.8"/><line x1="32" y1="54" x2="68" y2="54" stroke="#000" stroke-width="2.2"/><line x1="30" y1="64" x2="70" y2="64" stroke="#000" stroke-width="2.2"/><ellipse cx="36" cy="36" rx="16" ry="9" fill="#fff" stroke="#000" stroke-width="2" transform="rotate(-30 36 36)"/><ellipse cx="64" cy="36" rx="16" ry="9" fill="#fff" stroke="#000" stroke-width="2" transform="rotate(30 64 36)"/><circle cx="50" cy="30" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+kf(50,31,0.58),z),
+  lock:(z)=>sw('<rect x="20" y="48" width="60" height="46" rx="7" fill="#fff" stroke="#000" stroke-width="3.5"/><path d="M32,48 C32,28 68,28 68,48" fill="none" stroke="#000" stroke-width="4"/><circle cx="50" cy="68" r="8" fill="none" stroke="#000" stroke-width="3"/><line x1="50" y1="76" x2="50" y2="84" stroke="#000" stroke-width="3"/>'+kf(50,78,0.68),z),
+  key:(z)=>sw('<circle cx="28" cy="38" r="20" fill="#fff" stroke="#000" stroke-width="3.5"/><circle cx="28" cy="38" r="10" fill="none" stroke="#000" stroke-width="2.5"/><line x1="46" y1="48" x2="92" y2="74" stroke="#000" stroke-width="4.5" stroke-linecap="round"/><line x1="76" y1="66" x2="76" y2="78" stroke="#000" stroke-width="3.5" stroke-linecap="round"/><line x1="84" y1="71" x2="84" y2="83" stroke="#000" stroke-width="3.5" stroke-linecap="round"/>'+kf(28,38,0.76),z),
+  toothbrush:(z)=>sw('<rect x="43" y="6" width="14" height="54" rx="7" fill="#fff" stroke="#000" stroke-width="3"/><rect x="36" y="6" width="28" height="24" rx="5" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="43" cy="14" r="2.5" fill="#000"/><circle cx="50" cy="14" r="2.5" fill="#000"/><circle cx="57" cy="14" r="2.5" fill="#000"/><circle cx="43" cy="22" r="2.5" fill="#000"/><circle cx="50" cy="22" r="2.5" fill="#000"/><circle cx="57" cy="22" r="2.5" fill="#000"/>'+kf(50,70,0.72),z),
+  toothpaste:(z)=>sw('<rect x="10" y="36" width="68" height="28" rx="6" fill="#fff" stroke="#000" stroke-width="3"/><path d="M76,40 L94,50 L76,62 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><rect x="4" y="36" width="9" height="28" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="30" y1="36" x2="30" y2="64" stroke="#000" stroke-width="2"/><text x="52" y="55" text-anchor="middle" font-size="10" font-family="Arial" font-weight="bold" fill="#000">PASTE</text>',z),
+  shoe:(z)=>sw('<path d="M8,72 C8,56 18,42 34,40 L56,40 L82,52 C94,58 94,68 90,74 L8,74 Z" fill="#fff" stroke="#000" stroke-width="3"/><path d="M28,40 L28,26 C28,20 40,20 40,26 L40,40" fill="#fff" stroke="#000" stroke-width="2.5"/><path d="M16,62 L74,62" stroke="#000" stroke-width="1.8" stroke-dasharray="4,3"/>',z),
+  sock:(z)=>sw('<path d="M34,8 L34,60 C34,80 64,90 76,78 C88,66 78,48 64,50 L64,8 Z" fill="#fff" stroke="#000" stroke-width="3.5"/><line x1="34" y1="22" x2="64" y2="22" stroke="#000" stroke-width="3"/><line x1="34" y1="30" x2="64" y2="30" stroke="#000" stroke-width="1.8"/>'+kf(49,46,0.76),z),
+  pencil:(z)=>sw('<rect x="6" y="42" width="72" height="16" fill="#fff" stroke="#000" stroke-width="3"/><path d="M78,42 L96,50 L78,58 Z" fill="#fff" stroke="#000" stroke-width="3"/><rect x="0" y="42" width="8" height="16" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="36" y1="42" x2="36" y2="58" stroke="#000" stroke-width="2"/>'+kf(44,53,0.55),z),
+  umbrella:(z)=>sw('<path d="M50,10 C16,10 6,38 8,52 L50,52 L92,52 C94,38 84,10 50,10 Z" fill="#fff" stroke="#000" stroke-width="3"/><line x1="50" y1="52" x2="50" y2="86" stroke="#000" stroke-width="3"/><path d="M50,86 C50,94 38,96 38,88" fill="none" stroke="#000" stroke-width="2.5"/><path d="M20,52 C20,36 36,26 50,26 C64,26 80,36 80,52" fill="none" stroke="#000" stroke-width="1.5"/>',z),
+  raincoat:(z)=>sw('<path d="M30,8 C22,8 14,14 14,24 L22,32 C22,24 26,20 30,20 L30,8 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><path d="M70,8 C78,8 86,14 86,24 L78,32 C78,24 74,20 70,20 L70,8 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><rect x="24" y="18" width="52" height="76" rx="4" fill="#fff" stroke="#000" stroke-width="3"/><line x1="50" y1="30" x2="50" y2="94" stroke="#000" stroke-width="2"/><line x1="28" y1="42" x2="72" y2="42" stroke="#000" stroke-width="1.5"/>',z),
+  guava:(z)=>sw('<path d="M50,16 C26,16 12,34 12,54 C12,76 30,92 50,92 C70,92 88,76 88,54 C88,34 74,16 50,16 Z" fill="#fff" stroke="#000" stroke-width="3.5"/><path d="M50,8 C46,4 54,0 52,8" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="54" cy="10" rx="7" ry="4" fill="#fff" stroke="#000" stroke-width="1.8" transform="rotate(-20 54 10)"/><line x1="50" y1="16" x2="50" y2="92" stroke="#000" stroke-width="2.2" stroke-dasharray="5,4"/>',z),
+  mango:(z)=>sw('<path d="M50,10 C32,10 16,26 14,48 C12,70 26,88 50,90 C74,88 88,70 86,48 C84,26 68,10 50,10 Z" fill="#fff" stroke="#000" stroke-width="3.5"/><path d="M50,6 C48,0 56,-2 54,6" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="56" cy="7" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="1.8" transform="rotate(-15 56 7)"/><line x1="50" y1="10" x2="50" y2="90" stroke="#000" stroke-width="2.2" stroke-dasharray="5,4"/>',z),
+  chocolate:(z)=>sw('<rect x="8" y="22" width="84" height="56" rx="4" fill="#fff" stroke="#000" stroke-width="3.5"/><line x1="50" y1="22" x2="50" y2="78" stroke="#000" stroke-width="2.4" stroke-dasharray="5,4"/><line x1="29" y1="22" x2="29" y2="78" stroke="#000" stroke-width="1.4"/><line x1="71" y1="22" x2="71" y2="78" stroke="#000" stroke-width="1.4"/><line x1="8" y1="50" x2="92" y2="50" stroke="#000" stroke-width="1.4"/><text x="50" y="16" text-anchor="middle" font-size="9" font-weight="bold" fill="#000">CHOCO</text>',z),
+  coin1:(z)=>sw('<circle cx="50" cy="50" r="42" fill="#fff" stroke="#000" stroke-width="3"/>'+Array.from({length:20},(_,i)=>{const a=i*18*Math.PI/180;const x1=50+38*Math.cos(a),y1=50+38*Math.sin(a),x2=50+42*Math.cos(a),y2=50+42*Math.sin(a);return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#000" stroke-width="1.5"/>';}).join('')+'<circle cx="50" cy="50" r="33" fill="none" stroke="#000" stroke-width="1.5"/><text x="50" y="44" text-anchor="middle" font-size="13" font-family="Arial" font-weight="bold" fill="#000">₹</text><text x="50" y="62" text-anchor="middle" font-size="18" font-family="Arial" font-weight="bold" fill="#000">1</text>',z),
+  coin2:(z)=>sw('<circle cx="50" cy="50" r="42" fill="#fff" stroke="#000" stroke-width="3"/>'+Array.from({length:20},(_,i)=>{const a=i*18*Math.PI/180;const x1=50+38*Math.cos(a),y1=50+38*Math.sin(a),x2=50+42*Math.cos(a),y2=50+42*Math.sin(a);return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#000" stroke-width="1.5"/>';}).join('')+'<circle cx="50" cy="50" r="33" fill="none" stroke="#000" stroke-width="1.5"/><text x="50" y="44" text-anchor="middle" font-size="13" font-family="Arial" font-weight="bold" fill="#000">₹</text><text x="50" y="62" text-anchor="middle" font-size="18" font-family="Arial" font-weight="bold" fill="#000">2</text>',z),
+  kite:(z)=>sw('<polygon points="50,6 92,50 50,82 8,50" fill="#fff" stroke="#000" stroke-width="3.5" stroke-linejoin="round"/><line x1="50" y1="6" x2="50" y2="82" stroke="#000" stroke-width="1.6"/><line x1="8" y1="50" x2="92" y2="50" stroke="#000" stroke-width="1.6"/><path d="M50,82 C48,88 52,92 50,98" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"/><circle cx="38" cy="44" r="4" fill="#000"/><circle cx="62" cy="44" r="4" fill="#000"/>',z),
+  butterfly:(z)=>sw('<path d="M50,50 C34,38 10,24 14,46 C18,66 40,62 50,50 Z" fill="#fff" stroke="#000" stroke-width="2.8"/><path d="M50,50 C66,38 90,24 86,46 C82,66 60,62 50,50 Z" fill="#fff" stroke="#000" stroke-width="2.8"/><path d="M50,50 C34,58 12,76 20,88 C28,98 46,80 50,50 Z" fill="#fff" stroke="#000" stroke-width="2.8"/><path d="M50,50 C66,58 88,76 80,88 C72,98 54,80 50,50 Z" fill="#fff" stroke="#000" stroke-width="2.8"/><ellipse cx="50" cy="50" rx="4" ry="14" fill="#fff" stroke="#000" stroke-width="2.2"/><circle cx="50" cy="34" r="3" fill="#000"/><circle cx="50" cy="66" r="3" fill="#000"/>',z),
+  drum:(z)=>sw('<ellipse cx="50" cy="28" rx="38" ry="12" fill="#fff" stroke="#000" stroke-width="3"/><rect x="12" y="28" width="76" height="48" fill="#fff" stroke="#000" stroke-width="3"/><ellipse cx="50" cy="76" rx="38" ry="12" fill="#fff" stroke="#000" stroke-width="3"/><line x1="22" y1="28" x2="14" y2="76" stroke="#000" stroke-width="2.2"/><line x1="78" y1="28" x2="86" y2="76" stroke="#000" stroke-width="2.2"/><line x1="50" y1="4" x2="38" y2="28" stroke="#000" stroke-width="3" stroke-linecap="round"/><line x1="50" y1="4" x2="62" y2="28" stroke="#000" stroke-width="3" stroke-linecap="round"/><circle cx="38" cy="28" r="4" fill="#000"/><circle cx="62" cy="28" r="4" fill="#000"/>',z),
+  truck:(z)=>sw('<rect x="4" y="46" width="72" height="36" rx="3" fill="#fff" stroke="#000" stroke-width="3"/><path d="M76,58 L96,58 L96,82 L76,82 Z" fill="#fff" stroke="#000" stroke-width="3"/><rect x="80" y="62" width="12" height="10" rx="2" fill="none" stroke="#000" stroke-width="1.8"/><circle cx="22" cy="82" r="10" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="22" cy="82" r="4" fill="#000"/><circle cx="76" cy="82" r="10" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="76" cy="82" r="4" fill="#000"/><line x1="4" y1="60" x2="76" y2="60" stroke="#000" stroke-width="1.5"/>',z),
+  crown:(z)=>sw('<path d="M10,72 L10,30 L30,56 L50,18 L70,56 L90,30 L90,72 Z" fill="#fff" stroke="#000" stroke-width="3.5" stroke-linejoin="round"/><rect x="10" y="72" width="80" height="14" rx="3" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="50" cy="20" r="5" fill="#000"/><circle cx="14" cy="32" r="4" fill="#000"/><circle cx="86" cy="32" r="4" fill="#000"/>',z),
+  rocket:(z)=>sw('<path d="M50,6 C34,6 26,26 26,50 L74,50 C74,26 66,6 50,6 Z" fill="#fff" stroke="#000" stroke-width="3"/><rect x="26" y="50" width="48" height="28" rx="2" fill="#fff" stroke="#000" stroke-width="3"/><path d="M26,72 L8,90 L26,82 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><path d="M74,72 L92,90 L74,82 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="50" cy="36" r="10" fill="none" stroke="#000" stroke-width="2.5"/><circle cx="50" cy="36" r="4" fill="#000"/>',z),
+
+  cupC:(z,fill)=>{fill=(fill===undefined)?0.55:fill;const top=88-fill*72;return sw('<path d="M24,16 L32,88 L68,88 L76,16 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+(fill>0?'<path d="M'+(24+(top-16)/72*8)+','+top+' L32,88 L68,88 L'+(76-(top-16)/72*8)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+  '<line x1="24" y1="16" x2="76" y2="16" stroke="#000" stroke-width="2.5"/>'+kf(50,78,0.76),z);},
+  mugC:(z,fill)=>{fill=(fill===undefined)?0.55:fill;const top=88-fill*70;return sw('<rect x="14" y="18" width="62" height="70" rx="5" fill="#fff" stroke="#000" stroke-width="3.5"/>'+(fill>0?'<rect x="14" y="'+top+'" width="62" height="'+(88-top)+'" fill="#cfe8f5" stroke="none"/>':'')+
+  '<path d="M76,34 C94,34 94,72 76,72" fill="none" stroke="#000" stroke-width="3.5"/>'+kf(44,80,0.76),z);},
+  bucketC:(z,fill)=>{fill=(fill===undefined)?0.55:fill;const top=88-fill*66;return sw('<path d="M16,22 L24,88 L76,88 L84,22 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+(fill>0?'<path d="M'+(16+(top-22)/66*8)+','+top+' L24,88 L76,88 L'+(84-(top-22)/66*8)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+  '<path d="M16,22 C26,10 74,10 84,22" fill="none" stroke="#000" stroke-width="3"/><path d="M22,10 C26,2 74,2 78,10" fill="none" stroke="#000" stroke-width="2.5"/>'+kf(50,78,0.82),z);},
+  spoonC:(z,fill)=>{fill=(fill===undefined)?0.55:fill;return sw('<ellipse cx="50" cy="30" rx="22" ry="26" fill="#fff" stroke="#000" stroke-width="3.5"/>'+(fill>0?'<ellipse cx="50" cy="'+(30+10*(1-fill))+'" rx="'+(20*fill+2)+'" ry="'+(24*fill+2)+'" fill="#cfe8f5"/>':'')+
+  '<rect x="46" y="55" width="8" height="40" rx="4" fill="#fff" stroke="#000" stroke-width="3"/><ellipse cx="50" cy="55" rx="8" ry="5" fill="#fff" stroke="#000" stroke-width="2"/>'+kf(50,30,0.84),z);},
+  glassC:(z,fill)=>{fill=(fill===undefined)?0.55:fill;const top=90-fill*82;return sw('<path d="M22,8 L30,90 L70,90 L78,8 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+(fill>0?'<path d="M'+(22+(top-8)/82*8)+','+top+' L30,90 L70,90 L'+(78-(top-8)/82*8)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+  '<line x1="22" y1="8" x2="78" y2="8" stroke="#000" stroke-width="2.5"/>'+kf(50,78,0.76),z);},
+  jugC:(z,fill)=>{fill=(fill===undefined)?0.55:fill;const top=87-fill*69;return sw('<path d="M22,18 L27,87 L70,87 L73,18 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+(fill>0?'<path d="M'+(22+(top-18)/69*5)+','+top+' L27,87 L70,87 L'+(73-(top-18)/69*3)+','+top+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+  '<path d="M22,18 C28,8 72,8 73,18" fill="none" stroke="#000" stroke-width="2.5"/><path d="M70,32 C88,32 94,54 84,62 L70,62" fill="none" stroke="#000" stroke-width="3.5"/>'+kf(44,74,0.74),z);},
+  bottleC:(z,fill)=>{fill=(fill===undefined)?0.55:fill;const top=92-fill*60;return sw('<path d="M40,6 L60,6 L60,22 L70,34 L70,92 L30,92 L30,34 L40,22 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>'+(fill>0?'<path d="M30,'+Math.max(top,34)+' L30,92 L70,92 L70,'+Math.max(top,34)+' Z" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.5"/>':'')+
+  '<rect x="40" y="2" width="20" height="8" fill="#fff" stroke="#000" stroke-width="2.5"/>'+kf(50,72,0.7),z);},
+  bowlC:(z,fill)=>{fill=(fill===undefined)?0.55:fill;return sw('<path d="M10,40 C10,40 10,86 50,86 C90,86 90,40 90,40 Z" fill="#fff" stroke="#000" stroke-width="3.5"/><ellipse cx="50" cy="40" rx="40" ry="10" fill="#fff" stroke="#000" stroke-width="3"/>'+(fill>0?'<ellipse cx="50" cy="'+(40+2)+'" rx="'+(38*fill+2)+'" ry="'+(8*fill+1)+'" fill="#cfe8f5" stroke="#3a8fb7" stroke-width="1.2"/>':'')+kf(50,68,0.7),z);},
+
+  pencilLen:(z,len)=>{len=len||60;const x2=10+len;return sw('<rect x="10" y="40" width="'+len+'" height="20" fill="#fff" stroke="#000" stroke-width="3"/><path d="M'+x2+',40 L'+(x2+14)+',50 L'+x2+',60 Z" fill="#fff" stroke="#000" stroke-width="3"/><line x1="'+(10+len*0.35)+'" y1="40" x2="'+(10+len*0.35)+'" y2="60" stroke="#000" stroke-width="2"/>',z);},
+  ribbonLen:(z,len)=>{len=len||60;return sw('<path d="M10,50 Q'+(10+len*0.25)+',30 '+(10+len*0.5)+',50 Q'+(10+len*0.75)+',70 '+(10+len)+',50" fill="none" stroke="#000" stroke-width="6" stroke-linecap="round"/>',z);},
+  snakeLen:(z,len)=>{len=len||60;return sw('<path d="M8,55 Q'+(8+len*0.2)+',35 '+(8+len*0.4)+',55 Q'+(8+len*0.6)+',75 '+(8+len*0.8)+',55 L'+(8+len)+',55" fill="none" stroke="#000" stroke-width="7" stroke-linecap="round"/><circle cx="'+(8+len)+'" cy="55" r="5" fill="#fff" stroke="#000" stroke-width="2"/>',z);},
+  towerH:(z,h)=>{h=h||50;const top=92-h;return sw('<rect x="35" y="'+top+'" width="30" height="'+h+'" fill="#fff" stroke="#000" stroke-width="3"/>'+Array.from({length:Math.max(1,Math.floor(h/16))},(_,i)=>'<line x1="35" y1="'+(top+16*(i+1))+'" x2="65" y2="'+(top+16*(i+1))+'" stroke="#000" stroke-width="1.5"/>').join('')+'<line x1="20" y1="92" x2="80" y2="92" stroke="#000" stroke-width="2.5"/>',z);},
+  treeH:(z,h)=>{h=h||50;const top=92-h;return sw('<rect x="45" y="'+(92-h*0.25)+'" width="10" height="'+(h*0.25)+'" fill="#fff" stroke="#000" stroke-width="2.5"/><ellipse cx="50" cy="'+(top+h*0.3)+'" rx="'+(h*0.42)+'" ry="'+(h*0.42)+'" fill="#fff" stroke="#000" stroke-width="3"/><line x1="20" y1="92" x2="80" y2="92" stroke="#000" stroke-width="2.5"/>',z);},
+  girlH:(z,h)=>{h=h||50;const top=92-h;const s=h/70;return sw('<circle cx="50" cy="'+(top+10*s)+'" r="'+(10*s)+'" fill="#fff" stroke="#000" stroke-width="2.5"/><rect x="'+(50-9*s)+'" y="'+(top+18*s)+'" width="'+(18*s)+'" height="'+(28*s)+'" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="'+(50-9*s)+'" y1="92" x2="'+(50-9*s)+'" y2="'+(top+46*s)+'" stroke="#000" stroke-width="2.5"/><line x1="'+(50+9*s)+'" y1="92" x2="'+(50+9*s)+'" y2="'+(top+46*s)+'" stroke="#000" stroke-width="2.5"/><line x1="20" y1="92" x2="80" y2="92" stroke="#000" stroke-width="2.5"/>',z);},
+  ballSz:(z,r)=>{r=r||30;return sw('<circle cx="50" cy="50" r="'+r+'" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="50" cy="50" r="'+(r*0.65)+'" fill="none" stroke="#000" stroke-width="1.3"/>',z);},
+  balloonSz:(z,r)=>{r=r||30;return sw('<ellipse cx="50" cy="46" rx="'+(r*0.82)+'" ry="'+r+'" fill="#fff" stroke="#000" stroke-width="3"/><line x1="50" y1="'+(46+r)+'" x2="50" y2="94" stroke="#000" stroke-width="1.5"/>',z);},
+  watermelonSz:(z,r)=>{r=r||30;return sw('<ellipse cx="50" cy="50" rx="'+r+'" ry="'+(r*0.78)+'" fill="#fff" stroke="#000" stroke-width="3"/><path d="M'+(50-r*0.8)+',38 Q50,30 '+(50+r*0.8)+',38" fill="none" stroke="#000" stroke-width="1.3"/><path d="M'+(50-r*0.85)+',50 Q50,44 '+(50+r*0.85)+',50" fill="none" stroke="#000" stroke-width="1.3"/>',z);},
+
+  seesaw:(z,leftIcon,rightIcon,leftHeavy)=>{
+    const tilt=leftHeavy===true?-9:(leftHeavy===false?9:0);
+    const lY=leftHeavy===true?6:(leftHeavy===false?-10:-2),rY=leftHeavy===true?-10:(leftHeavy===false?6:-2);
+    return '<svg width="180" height="110" viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg">'+
+      '<polygon points="70,92 90,92 80,70" fill="#fff" stroke="#000" stroke-width="3"/>'+
+      '<g transform="rotate('+tilt+' 80 70)">'+
+        '<rect x="20" y="68" width="120" height="5" fill="#000"/>'+
+        '<line x1="28" y1="73" x2="28" y2="'+(86+lY)+'" stroke="#000" stroke-width="2.5"/>'+
+        '<line x1="132" y1="73" x2="132" y2="'+(86+rY)+'" stroke="#000" stroke-width="2.5"/>'+
+        '<rect x="8" y="'+(86+lY)+'" width="40" height="5" fill="#000"/>'+
+        '<rect x="112" y="'+(86+rY)+'" width="40" height="5" fill="#000"/>'+
+        '<g transform="translate('+(28-15)+','+(58+lY)+')">'+IC[leftIcon](32)+'</g>'+
+        '<g transform="translate('+(132-15)+','+(58+rY)+')">'+IC[rightIcon](32)+'</g>'+
+      '</g></svg>';
+  },
+
+  boyReach:(z,mirror)=>{
+    const m=mirror?' style="transform:scaleX(-1)"':'';
+    return '<svg width="'+z+'" height="'+(z*10/7)+'" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg"'+m+'>'+
+      '<circle cx="35" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+      '<circle cx="30" cy="12" r="2" fill="#000"/><circle cx="40" cy="12" r="2" fill="#000"/>'+
+      '<path d="M29,18 Q35,23 41,18" fill="none" stroke="#000" stroke-width="1.8"/>'+
+      '<rect x="24" y="26" width="22" height="30" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+      '<path d="M24,30 L6,44 L14,48 L28,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+      '<path d="M46,30 L58,44 L52,50 L42,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+      '<path d="M28,56 L22,82 L30,82 L35,68 L40,82 L48,82 L42,56" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+      '<ellipse cx="26" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+      '<ellipse cx="44" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+      '</svg>';
+  },
+  girlReach:(z)=>{
+    return '<svg width="'+z+'" height="'+(z*10/7)+'" viewBox="0 0 70 100" xmlns="http://www.w3.org/2000/svg">'+
+      '<circle cx="35" cy="14" r="12" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+      '<path d="M24,8 C18,2 14,8 20,12" fill="#fff" stroke="#000" stroke-width="1.8"/>'+
+      '<path d="M46,8 C52,2 56,8 50,12" fill="#fff" stroke="#000" stroke-width="1.8"/>'+
+      '<circle cx="30" cy="12" r="2" fill="#000"/><circle cx="40" cy="12" r="2" fill="#000"/>'+
+      '<path d="M29,18 Q35,23 41,18" fill="none" stroke="#000" stroke-width="1.8"/>'+
+      '<path d="M24,26 L20,58 L50,58 L46,26 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+      '<path d="M24,30 L12,44 L18,50 L28,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+      '<path d="M46,30 L58,44 L52,48 L42,38" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>'+
+      '<path d="M26,58 L22,82 L32,82 L35,70 L38,82 L48,82 L44,58" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+      '<ellipse cx="27" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+      '<ellipse cx="43" cy="84" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+      '</svg>';
+  },
+};
+
+function ic(name,size,arg2){if(!IC[name])return '';return IC[name](size,arg2);}
+
+// ── ZERO PANELS ──────────────────────────────────────────────────────────────
+function zeroPanel1(scene){
+  const {containerType,itemIcon,itemCount}=scene;
+  const positions=[[34,46],[54,46],[74,46],[34,62],[54,62],[74,62],[44,54],[64,54]];
+  let items='';
+  for(let i=0;i<Math.min(itemCount,positions.length);i++){
+    const[cx,cy]=positions[i];
+    items+='<g transform="translate('+(cx-9)+','+(cy-9)+')">'+IC[itemIcon](18)+'</g>';
+  }
+  return '<svg width="150" height="130" viewBox="0 0 140 120" xmlns="http://www.w3.org/2000/svg">'+
+    containerSVGContent(containerType,140,120,true,items)+'</svg>';
+}
+
+function zeroPanel2(scene){
+  const{itemIcon,charType,itemCount}=scene;
+  const W=168,H=138;
+  const scat=[[18,12],[42,8],[66,6],[90,8],[114,12],[130,22],[12,32],[136,38],[30,28],[104,26]];
+  let fly='';
+  for(let i=0;i<Math.min(itemCount,scat.length);i++){
+    const[ix,iy]=scat[i];
+    const dx=80-ix,dy=80-iy,dist=Math.sqrt(dx*dx+dy*dy)||1,nx=dx/dist,ny=dy/dist;
+    for(let d=1;d<=3;d++){
+      fly+='<line x1="'+ix.toFixed(1)+'" y1="'+iy.toFixed(1)+'" x2="'+(ix+nx*8*d).toFixed(1)+'" y2="'+(iy+ny*8*d).toFixed(1)+'" stroke="#000" stroke-width="'+(2-d*0.4).toFixed(1)+'" stroke-linecap="round" opacity="'+(0.7-d*0.15).toFixed(2)+'"/>';
+    }
+    fly+='<g transform="translate('+(ix-8)+','+(iy-8)+')">'+IC[itemIcon](16)+'</g>';
+  }
+  const isBoy=charType==='boy';
+  const child=
+    '<circle cx="80" cy="58" r="13" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+    '<circle cx="75" cy="56" r="1.8" fill="#000"/><circle cx="85" cy="56" r="1.8" fill="#000"/>'+
+    '<path d="M75,63 Q80,68 85,63" fill="none" stroke="#000" stroke-width="1.8"/>'+
+    (isBoy?'<path d="M68,50 Q80,43 92,50" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>':
+      '<path d="M67,50 C65,40 76,38 80,42 C84,38 95,40 93,50" fill="#fff" stroke="#000" stroke-width="2"/>')+
+    (isBoy?'<rect x="70" y="71" width="20" height="24" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>':
+      '<path d="M68,71 L62,95 L98,95 L92,71 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>')+
+    '<line x1="70" y1="77" x2="36" y2="68" stroke="#000" stroke-width="3" stroke-linecap="round"/>'+
+    '<circle cx="34" cy="67" r="5" fill="#fff" stroke="#000" stroke-width="2.2"/>'+
+    '<line x1="90" y1="77" x2="124" y2="68" stroke="#000" stroke-width="3" stroke-linecap="round"/>'+
+    '<circle cx="126" cy="67" r="5" fill="#fff" stroke="#000" stroke-width="2.2"/>'+
+    '<line x1="76" y1="95" x2="72" y2="118" stroke="#000" stroke-width="3" stroke-linecap="round"/>'+
+    '<line x1="84" y1="95" x2="88" y2="118" stroke="#000" stroke-width="3" stroke-linecap="round"/>'+
+    '<ellipse cx="70" cy="119" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>'+
+    '<ellipse cx="90" cy="119" rx="8" ry="4" fill="#fff" stroke="#000" stroke-width="2"/>';
+  return '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+fly+child+'</svg>';
+}
+
+function zeroPanel3(scene){
+  const{containerType}=scene;
+  return '<svg width="150" height="130" viewBox="0 0 140 120" xmlns="http://www.w3.org/2000/svg">'+
+    containerSVGContent(containerType,140,120,false,'')+
+    '<text x="70" y="96" text-anchor="middle" font-size="42" font-weight="900" font-family="Arial,sans-serif" fill="#000" letter-spacing="-1">0</text>'+
+    '<text x="70" y="113" text-anchor="middle" font-size="10" font-weight="bold" font-family="Arial,sans-serif" fill="#000" letter-spacing="2">ZERO</text>'+
+    '</svg>';
+}
+
+function containerSVGContent(type,W,H,showFill,inner){
+  const cx=W/2,cy=H/2;
+  switch(type){
+    case 'plate':
+      return '<ellipse cx="'+cx+'" cy="'+(H*0.68)+'" rx="52" ry="16" fill="#fff" stroke="#000" stroke-width="2.5"/>'+
+        '<ellipse cx="'+cx+'" cy="'+(H*0.54)+'" rx="52" ry="30" fill="#fff" stroke="#000" stroke-width="3"/>'+inner+
+        '<ellipse cx="'+cx+'" cy="'+(H*0.54)+'" rx="52" ry="30" fill="none" stroke="#000" stroke-width="3"/>';
+    case 'basket':
+      return '<path d="M'+(cx-50)+','+(H*0.46)+' L'+(cx-42)+','+(H*0.86)+' L'+(cx+42)+','+(H*0.86)+' L'+(cx+50)+','+(H*0.46)+' Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+        '<path d="M'+(cx-30)+','+(H*0.46)+' C'+(cx-30)+','+(H*0.26)+' '+(cx+30)+','+(H*0.26)+' '+(cx+30)+','+(H*0.46)+'" fill="none" stroke="#000" stroke-width="3"/>'+inner+
+        '<line x1="'+(cx-48)+'" y1="'+(H*0.60)+'" x2="'+(cx+48)+'" y2="'+(H*0.60)+'" stroke="#000" stroke-width="1.3"/>'+
+        '<line x1="'+(cx-46)+'" y1="'+(H*0.72)+'" x2="'+(cx+46)+'" y2="'+(H*0.72)+'" stroke="#000" stroke-width="1.3"/>';
+    case 'jar':
+      return '<rect x="'+(cx-36)+'" y="'+(H*0.28)+'" width="72" height="'+(H*0.58)+'" rx="5" fill="#fff" stroke="#000" stroke-width="3"/>'+
+        '<rect x="'+(cx-26)+'" y="'+(H*0.12)+'" width="52" height="'+(H*0.18)+'" rx="5" fill="#fff" stroke="#000" stroke-width="3"/>'+inner+
+        '<rect x="'+(cx-36)+'" y="'+(H*0.28)+'" width="72" height="'+(H*0.58)+'" rx="5" fill="none" stroke="#000" stroke-width="3"/>';
+    case 'box':
+      return '<rect x="'+(cx-48)+'" y="'+(H*0.34)+'" width="96" height="'+(H*0.54)+'" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+
+        '<rect x="'+(cx-52)+'" y="'+(H*0.24)+'" width="104" height="'+(H*0.12)+'" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>'+inner+
+        '<rect x="'+(cx-48)+'" y="'+(H*0.34)+'" width="96" height="'+(H*0.54)+'" rx="4" fill="none" stroke="#000" stroke-width="3"/>';
+    case 'fishbowl':
+      return '<circle cx="'+cx+'" cy="'+(H*0.48)+'" r="'+(H*0.36)+'" fill="#fff" stroke="#000" stroke-width="3"/>'+
+        '<ellipse cx="'+cx+'" cy="'+(H*0.82)+'" rx="16" ry="6" fill="#fff" stroke="#000" stroke-width="2"/>'+inner+
+        '<circle cx="'+cx+'" cy="'+(H*0.48)+'" r="'+(H*0.36)+'" fill="none" stroke="#000" stroke-width="3"/>';
+    case 'vase':
+      return '<path d="M'+(cx-22)+','+(H*0.46)+' L'+(cx-28)+','+(H*0.86)+' L'+(cx+28)+','+(H*0.86)+' L'+(cx+22)+','+(H*0.46)+' Z" fill="#fff" stroke="#000" stroke-width="3"/>'+
+        '<ellipse cx="'+cx+'" cy="'+(H*0.46)+'" rx="22" ry="6" fill="#fff" stroke="#000" stroke-width="2"/>'+inner+
+        '<ellipse cx="'+cx+'" cy="'+(H*0.46)+'" rx="22" ry="6" fill="none" stroke="#000" stroke-width="2"/>';
+    default:
+      return '<rect x="'+(cx-50)+'" y="'+(H*0.30)+'" width="100" height="'+(H*0.54)+'" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>'+inner+
+        '<rect x="'+(cx-50)+'" y="'+(H*0.30)+'" width="100" height="'+(H*0.54)+'" rx="4" fill="none" stroke="#000" stroke-width="3"/>';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DATA TABLES
+// ══════════════════════════════════════════════════════════════════════════════
+const SHAPE_MATCH=[
+  {shape:'circle',   label:'Circle',    objs:[['clock','Clock'],['soccerBall','Soccer Ball'],['plate','Plate'],['button','Button'],['balloon','Balloon']]},
+  {shape:'square',   label:'Square',    objs:[['window','Window'],['dice','Dice'],['giftBox','Gift Box'],['book','Book'],['chocolate','Chocolate']]},
+  {shape:'triangle', label:'Triangle',  objs:[['iceCream','Ice Cream'],['partyHat','Party Hat'],['warningSign','Warning Sign'],['mango','Mango']]},
+  {shape:'rectangle',label:'Rectangle', objs:[['door','Door'],['eraser','Eraser'],['book','Book'],['pencil','Pencil']]}
+];
+
+const PAIR_SETS=[
+  [['lock','Lock'],['key','Key']],[['toothbrush','Toothbrush'],['toothpaste','Toothpaste']],
+  [['shoe','Shoe'],['sock','Sock']],[['pencil','Pencil'],['eraser','Eraser']],
+  [['umbrella','Umbrella'],['raincoat','Raincoat']],[['kite','Kite'],['balloon','Balloon']],
+  [['drum','Drum'],['bird','Bird']],[['crown','Crown'],['giftBox','Gift Box']],
+  [['rocket','Rocket'],['star','Star']],
+];
+
+const COUNT_ICONS=['apple','star','flower','balloon','fish','leaf','bird','bee','mango','guava','soccerBall','giftBox','kite','butterfly','drum','truck','crown','rocket'];
+const BASKET_ICONS=['apple','star','flower','balloon','fish','leaf','bird','guava','mango','kite','butterfly','crown','rocket','bee'];
+
+const CAPACITY_RANK={spoonC:1,cupC:3,glassC:3,mugC:4,bowlC:4,bottleC:5,jugC:6,bucketC:7};
+
+const WATER_SETS=[
+  [{key:'spoonC',label:'Spoon',fill:0.9},{key:'cupC',label:'Cup',fill:0.6},{key:'bucketC',label:'Bucket',fill:0.5},'Circle the container that can hold the MOST water.'],
+  [{key:'spoonC',label:'Spoon',fill:0.9},{key:'glassC',label:'Glass',fill:0.55},{key:'jugC',label:'Jug',fill:0.45},'Tick (✓) the container that can hold the LEAST water.'],
+  [{key:'mugC',label:'Mug',fill:0.55},{key:'bucketC',label:'Bucket',fill:0.45},{key:'spoonC',label:'Spoon',fill:0.95},'Circle the container that can hold the MOST water.'],
+  [{key:'bottleC',label:'Bottle',fill:0.55},{key:'bowlC',label:'Bowl',fill:0.4},{key:'cupC',label:'Cup',fill:0.6},'Tick (✓) the container that can hold the LEAST water.'],
+  [{key:'bucketC',label:'Bucket',fill:0.5},{key:'jugC',label:'Jug',fill:0.45},{key:'mugC',label:'Mug',fill:0.55},'Circle the container that can hold the MOST water.'],
+  [{key:'glassC',label:'Glass',fill:0.55},{key:'bottleC',label:'Bottle',fill:0.5},{key:'spoonC',label:'Spoon',fill:0.95},'Tick (✓) the container that can hold the LEAST water.']
+];
+
+const LENGTH_SETS=[
+  [{key:'pencilLen',label:'Pencil A',len:30},{key:'pencilLen',label:'Pencil B',len:70},'Circle the pencil that is LONGER.'],
+  [{key:'ribbonLen',label:'Ribbon A',len:75},{key:'ribbonLen',label:'Ribbon B',len:35},'Tick (✓) the ribbon that is SHORTER.'],
+  [{key:'snakeLen',label:'Snake A',len:40},{key:'snakeLen',label:'Snake B',len:78},'Circle the snake that is LONGER.']
+];
+
+const HEIGHT_SETS=[
+  [{key:'towerH',label:'Tower A',h:35},{key:'towerH',label:'Tower B',h:75},'Circle the tower that is TALLER.'],
+  [{key:'treeH',label:'Tree A',h:70},{key:'treeH',label:'Tree B',h:32},'Tick (✓) the tree that is SHORTER.'],
+  [{key:'girlH',label:'Child A',h:68},{key:'girlH',label:'Child B',h:38},'Circle the child who is TALLER.']
+];
+
+const SIZE_SETS=[
+  [{key:'ballSz',label:'Ball A',r:14},{key:'ballSz',label:'Ball B',r:34},'Circle the ball that is BIGGER.'],
+  [{key:'balloonSz',label:'Balloon A',r:32},{key:'balloonSz',label:'Balloon B',r:15},'Tick (✓) the balloon that is SMALLER.'],
+  [{key:'watermelonSz',label:'Watermelon A',r:16},{key:'watermelonSz',label:'Watermelon B',r:33},'Circle the watermelon that is BIGGER.']
+];
+
+const WEIGHT_SETS=[
+  ['watermelonSz','apple',true,'a watermelon and an apple'],
+  ['dice','balloonSz',false,'a dice and a balloon'],
+  ['book','flower',true,'a book and a flower'],
+  ['bucketC','spoonC',true,'a bucket and a spoon']
+];
+
+const SHARE_FOODS=['guava','mango','chocolate','apple','giftBox'];
+
+const ZERO_SCENES=[
+  {containerType:'plate',itemIcon:'apple',itemCount:5,charType:'boy',containerLabel:'plate of apples'},
+  {containerType:'basket',itemIcon:'mango',itemCount:6,charType:'girl',containerLabel:'basket of mangoes'},
+  {containerType:'jar',itemIcon:'flower',itemCount:4,charType:'girl',containerLabel:'jar of flowers'},
+  {containerType:'fishbowl',itemIcon:'fish',itemCount:5,charType:'boy',containerLabel:'fishbowl'},
+  {containerType:'box',itemIcon:'giftBox',itemCount:4,charType:'boy',containerLabel:'box of gifts'},
+  {containerType:'vase',itemIcon:'flower',itemCount:5,charType:'girl',containerLabel:'vase of flowers'},
+  {containerType:'basket',itemIcon:'apple',itemCount:6,charType:'boy',containerLabel:'basket of apples'},
+  {containerType:'plate',itemIcon:'mango',itemCount:4,charType:'girl',containerLabel:'plate of mangoes'},
+  {containerType:'basket',itemIcon:'butterfly',itemCount:5,charType:'girl',containerLabel:'basket of butterflies'},
+  {containerType:'box',itemIcon:'star',itemCount:6,charType:'boy',containerLabel:'box of stars'},
+  {containerType:'jar',itemIcon:'bee',itemCount:4,charType:'boy',containerLabel:'jar of bees'},
+  {containerType:'plate',itemIcon:'bird',itemCount:5,charType:'girl',containerLabel:'plate of birds'},
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION BUILDERS — LARGER ICONS
+// ══════════════════════════════════════════════════════════════════════════════
+
+function section1(){
+  const shapes=sh(SHAPE_MATCH).slice(0,4);
+  const leftItems=shapes.map(s=>({key:s.shape,label:s.label}));
+  const used=new Set();
+  const rightUniq=shapes.map(s=>{const opts=s.objs.filter(o=>!used.has(o[0]));const chosen=pk(opts.length?opts:s.objs);used.add(chosen[0]);return chosen;});
+  const rightShuf=sh(rightUniq);
+  let lH='',rH='';
+  leftItems.forEach(({key,label},i)=>{
+    lH+='<div class="matchitem" data-omr="q1-left-'+(i+1)+'">'+
+      '<div class="micontent"><div class="imgbox">'+ic(key,62)+'</div><span>'+label+'</span></div>'+
+      '<span class="dot" data-omr-dot="q1-left-'+(i+1)+'"></span></div>';
+  });
+  rightShuf.forEach(([key,label],i)=>{
+    rH+='<div class="matchitem" data-omr="q1-right-'+(i+1)+'">'+
+      '<span class="dot" data-omr-dot="q1-right-'+(i+1)+'"></span>'+
+      '<div class="micontent"><div class="imgbox">'+ic(key,62)+'</div><span>'+label+'</span></div></div>';
+  });
+  const matches=leftItems.map((L,i)=>{const objLabel=rightUniq[i][1];const rightPos=rightShuf.findIndex(([,lbl])=>lbl===objLabel)+1;return{lPos:i+1,shape:L.label,rPos:rightPos,obj:objLabel};});
+  return {
+    html:'<p class="qinstr">1) Match the objects that have the same shape.</p>'+
+      '<div class="matchwrap"><div class="matchcol" id="q1-left-col">'+lH+'</div>'+
+      '<div class="matchcol" id="q1-right-col">'+rH+'</div></div>',
+    answer:{q:'Match shapes',type:'matching',matches},
+    coordHints:{type:'matching',lCol:'q1-left-col',rCol:'q1-right-col'}
+  };
+}
+
+function section2(){
+  const cellAnswers=[];
+  function row(iA,iB,wantMore,cellLabel){
+    const a=ri(2,5),b=ri(6,10);
+    const order=Math.random()<0.5?[a,b]:[b,a];
+    let gA='',gB='';
+    for(let k=0;k<order[0];k++) gA+=ic(iA,34);
+    for(let k=0;k<order[1];k++) gB+=ic(iB,34);
+    const correctSide=(wantMore?(order[0]>order[1]):(order[0]<order[1]))?'Left':'Right';
+    cellAnswers.push({cell:cellLabel,task:wantMore?'MORE':'LESS',lCount:order[0],rCount:order[1],ans:correctSide});
+    return '<div class="group-compare" data-omr="q2-'+cellLabel+'">'+
+      '<div class="group-box" data-omr-region="q2-'+cellLabel+'-left">'+gA+'</div>'+
+      '<div class="group-box" data-omr-region="q2-'+cellLabel+'-right">'+gB+'</div></div>'+
+      '<div class="qrow">Circle the group that has '+(wantMore?'MORE':'LESS')+'.</div>';
+  }
+  const icons=sh(COUNT_ICONS).slice(0,8);
+  const html='<p class="qinstr">2) Circle the group as directed.</p>'+
+    '<table style="width:100%;border-collapse:collapse;">'+
+    '<tr><td style="border:1.4px solid #000;padding:6px 8px;">'+row(icons[0],icons[1],true,'TL')+'</td>'+
+    '<td style="border:1.4px solid #000;padding:6px 8px;">'+row(icons[2],icons[3],true,'TR')+'</td></tr>'+
+    '<tr><td style="border:1.4px solid #000;padding:6px 8px;">'+row(icons[4],icons[5],false,'BL')+'</td>'+
+    '<td style="border:1.4px solid #000;padding:6px 8px;">'+row(icons[6],icons[7],false,'BR')+'</td></tr>'+
+    '</table>';
+  return {html,answer:{q:'Circle MORE/LESS groups',type:'group_circle',cells:cellAnswers},coordHints:{type:'group_circle',cells:cellAnswers}};
+}
+
+function section3(){
+  // Fill in the missing numbers in a counting sequence (1–10 range only).
+  // Compact single-row layout — far shorter than the old matching task,
+  // and a different skill (counting/sequencing, write-in) from the
+  // "draw a line to match" style already used in Q1 and Q5.
+  const LEN=6;
+  const maxStart=10-(LEN-1); // ensures last box never exceeds 10
+  const start=ri(1,Math.max(1,maxStart));
+  const seq=Array.from({length:LEN},(_,i)=>start+i);
+  // Pick 2 non-adjacent-edge positions to blank out (never first or last box,
+  // so the sequence direction is always clear).
+  const blankCount=2;
+  const candidates=sh([1,2,3,4]); // interior indices only (0-based, within LEN=6)
+  const blanks=new Set(candidates.slice(0,blankCount));
+  let boxes='';
+  seq.forEach((n,i)=>{
+    if(blanks.has(i)){
+      boxes+='<div class="numseq-box blank" data-omr="q3-blank-'+i+'"></div>';
+    }else{
+      boxes+='<div class="numseq-box given">'+n+'</div>';
+    }
+    if(i<seq.length-1) boxes+='<span class="numseq-arrow-sm">→</span>';
+  });
+  const blankAnswers=[...blanks].sort((a,b)=>a-b).map(i=>({pos:i,value:seq[i]}));
+  return {
+    html:'<p class="qinstr">3) Fill in the missing numbers.</p>'+
+      '<div class="numseq-row" id="q3-row">'+boxes+'</div>',
+    answer:{q:'Fill missing numbers in sequence '+seq.join(',') ,type:'fill_number',sequence:seq,blanks:blankAnswers},
+    coordHints:{type:'fill_number',rowId:'q3-row',blanks:blankAnswers}
+  };
+}
+
+function section4(){
+  const type=pk(['water','length','height','size','weight']);
+  if(type==='water'){
+    const set=pk(WATER_SETS);const items=sh([set[0],set[1],set[2]]);
+    let cells='';
+    items.forEach(({key,label,fill},i)=>{
+      cells+='<div class="container-item" data-omr="q4-item-'+(i+1)+'" data-omr-label="'+label+'">'+
+        ic(key,96,fill)+'<div style="font-size:12px;font-weight:bold;">'+label+'</div>'+
+        '<div class="tickbox"></div></div>';
+    });
+    const wantMost=/MOST/.test(set[3]);
+    const ranked=items.map(it=>({label:it.label,rank:CAPACITY_RANK[it.key]||0}));
+    const best=wantMost?Math.max(...ranked.map(r=>r.rank)):Math.min(...ranked.map(r=>r.rank));
+    const correctLabel=ranked.find(r=>r.rank===best).label;
+    return {
+      html:'<p class="qinstr">4) Look at the water. Solve.</p>'+
+        '<div class="q4-flexline"><div class="container-row" id="q4-row">'+cells+'</div>'+
+        '<p class="q4-instr-side">'+set[3]+'</p></div>',
+      answer:{q:set[3],type:'choice',ans:correctLabel},coordHints:{type:'choice',rowId:'q4-row'}
+    };
+  }
+  if(type==='length'){
+    const set=pk(LENGTH_SETS);const items=sh([set[0],set[1]]);
+    let cells='';
+    items.forEach(({key,label,len},i)=>{
+      cells+='<div class="container-item" data-omr="q4-item-'+(i+1)+'" data-omr-label="'+label+'">'+
+        ic(key,84,len)+'<div style="font-size:12px;font-weight:bold;">'+label+'</div>'+
+        '<div class="tickbox"></div></div>';
+    });
+    const wantLonger=/LONGER/.test(set[2]);
+    const target=wantLonger?Math.max(items[0].len,items[1].len):Math.min(items[0].len,items[1].len);
+    const correctLabel=items.find(it=>it.len===target).label;
+    return {
+      html:'<p class="qinstr">4) Compare the length. Solve.</p>'+
+        '<div class="q4-flexline"><div class="container-row" id="q4-row">'+cells+'</div>'+
+        '<p class="q4-instr-side">'+set[2]+'</p></div>',
+      answer:{q:set[2],type:'choice',ans:correctLabel},coordHints:{type:'choice',rowId:'q4-row'}
+    };
+  }
+  if(type==='height'){
+    const set=pk(HEIGHT_SETS);const items=sh([set[0],set[1]]);
+    let cells='';
+    items.forEach(({key,label,h},i)=>{
+      cells+='<div class="container-item" data-omr="q4-item-'+(i+1)+'" data-omr-label="'+label+'">'+
+        ic(key,84,h)+'<div style="font-size:12px;font-weight:bold;">'+label+'</div>'+
+        '<div class="tickbox"></div></div>';
+    });
+    const wantTaller=/TALLER/.test(set[2]);
+    const target=wantTaller?Math.max(items[0].h,items[1].h):Math.min(items[0].h,items[1].h);
+    const correctLabel=items.find(it=>it.h===target).label;
+    return {
+      html:'<p class="qinstr">4) Compare the height. Solve.</p>'+
+        '<div class="q4-flexline"><div class="container-row" id="q4-row">'+cells+'</div>'+
+        '<p class="q4-instr-side">'+set[2]+'</p></div>',
+      answer:{q:set[2],type:'choice',ans:correctLabel},coordHints:{type:'choice',rowId:'q4-row'}
+    };
+  }
+  if(type==='size'){
+    const set=pk(SIZE_SETS);const items=sh([set[0],set[1]]);
+    let cells='';
+    items.forEach(({key,label,r},i)=>{
+      cells+='<div class="container-item" data-omr="q4-item-'+(i+1)+'" data-omr-label="'+label+'">'+
+        ic(key,84,r)+'<div style="font-size:12px;font-weight:bold;">'+label+'</div>'+
+        '<div class="tickbox"></div></div>';
+    });
+    const wantBigger=/BIGGER/.test(set[2]);
+    const target=wantBigger?Math.max(items[0].r,items[1].r):Math.min(items[0].r,items[1].r);
+    const correctLabel=items.find(it=>it.r===target).label;
+    return {
+      html:'<p class="qinstr">4) Compare the size. Solve.</p>'+
+        '<div class="q4-flexline"><div class="container-row" id="q4-row">'+cells+'</div>'+
+        '<p class="q4-instr-side">'+set[2]+'</p></div>',
+      answer:{q:set[2],type:'choice',ans:correctLabel},coordHints:{type:'choice',rowId:'q4-row'}
+    };
+  }
+  const[leftKey,rightKey,leftHeavy,desc]=pk(WEIGHT_SETS);
+  const correctSide=leftHeavy?'Left':'Right';
+  return {
+    html:'<p class="qinstr">4) Which is HEAVIER? ('+desc+')</p>'+
+      '<div class="q4-flexline"><div id="q4-seesaw">'+IC.seesaw(180,leftKey,rightKey,leftHeavy)+'</div>'+
+      '<p class="q4-instr-side">Circle the side that is HEAVIER.</p></div>',
+    answer:{q:'Heavier side ('+desc+')',type:'choice',ans:correctSide},coordHints:{type:'weight_choice'}
+  };
+}
+
+function section5(){
+  const pairs=sp(PAIR_SETS,4);
+  const leftItems=pairs.map(p=>p[0]);
+  const rightItems=sh(pairs.map(p=>p[1]));
+  let lH='',rH='';
+  leftItems.forEach(([key,label],i)=>{
+    lH+='<div class="matchitem" data-omr="q5-left-'+(i+1)+'">'+
+      '<div class="micontent"><div class="imgbox">'+ic(key,64)+'</div><span>'+label+'</span></div>'+
+      '<span class="dot" data-omr-dot="q5-left-'+(i+1)+'"></span></div>';
+  });
+  rightItems.forEach(([key,label],i)=>{
+    rH+='<div class="matchitem" data-omr="q5-right-'+(i+1)+'">'+
+      '<span class="dot" data-omr-dot="q5-right-'+(i+1)+'"></span>'+
+      '<div class="micontent"><div class="imgbox">'+ic(key,64)+'</div><span>'+label+'</span></div></div>';
+  });
+  const matches=leftItems.map(([,leftLabel],i)=>{const partnerLabel=pairs[i][1][1];const rPos=rightItems.findIndex(([,lbl])=>lbl===partnerLabel)+1;return{lPos:i+1,left:leftLabel,rPos,right:partnerLabel};});
+  return {
+    html:'<p class="qinstr">5) Match objects that go together.</p>'+
+      '<div class="matchwrap"><div class="matchcol" id="q5-left-col">'+lH+'</div>'+
+      '<div class="matchcol" id="q5-right-col">'+rH+'</div></div>',
+    answer:{q:'Match pairs',type:'matching',matches},coordHints:{type:'matching',lCol:'q5-left-col',rCol:'q5-right-col'}
+  };
+}
+
+function section6(){
+  const n1=ri(2,4),n2=ri(2,4);
+  const arr=sh([...Array(n1).fill('coin1'),...Array(n2).fill('coin2')]);
+  let coins='';
+  arr.forEach((c,i)=>{coins+='<span data-omr="q6-coin-'+(i+1)+'" data-omr-type="'+c+'">'+ic(c,70)+'</span>';});
+  return {
+    html:'<p class="qinstr">6) Circle all the ₹1 coins.</p>'+
+      '<div class="coin-row" id="q6-row">'+coins+'</div>',
+    answer:{q:'Circle ₹1 coins',type:'cluster_loop',r1:n1,r2:n2,total:n1+n2,circle:n1},
+    coordHints:{type:'cluster_loop',rowId:'q6-row',target:'coin1',count:n1}
+  };
+}
+
+function foodWithTrace(foodKey,size){
+  return '<div style="position:relative;display:inline-block;" data-omr="q7-food">'+ic(foodKey,size)+
+    '<svg style="position:absolute;top:0;left:0;pointer-events:none;" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">'+
+      '<line x1="'+Math.round(size/2)+'" y1="4" x2="'+Math.round(size/2)+'" y2="'+Math.round(size-4)+'" stroke="#000" stroke-width="2.5" stroke-dasharray="6,5" stroke-linecap="round"/>'+
+      '<polygon points="'+Math.round(size/2)+','+Math.round(size-10)+' '+Math.round(size/2-6)+','+Math.round(size-22)+' '+Math.round(size/2+6)+','+Math.round(size-22)+'" fill="#000" opacity="0.7"/>'+
+    '</svg></div>';
+}
+
+function section7(){
+  const food=pk(SHARE_FOODS);
+  return {
+    html:'<p class="qinstr">7) Two friends want to share equally. Trace the dotted line to cut into two equal parts.</p>'+
+      '<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:6px 0;" id="q7-area">'+
+      IC.boyReach(86)+foodWithTrace(food,108)+IC.girlReach(86)+'</div>',
+    answer:{q:'Cut '+food+' in half',type:'path_trace',obj:food,path:'center_vertical',
+      icr:{detect:'pencil_trace_on_dashed_line',region:'q7-food',axis:'vertical_center',expected:'line_present'}},
+    coordHints:{type:'path_trace',areaId:'q7-area',foodId:'q7-food'}
+  };
+}
+
+function section8(){
+  const scene=pk(ZERO_SCENES);
+  const p1=zeroPanel1(scene),p2=zeroPanel2(scene),p3=zeroPanel3(scene);
+  return {
+    html:'<p class="qinstr">8) Look at the pictures. Circle the number that shows how many are left.</p>'+
+      '<div class="zero-strip" id="q8-strip">'+
+        '<div class="zero-panel"><div class="zero-panel-label">BEFORE</div>'+p1+'</div>'+
+        '<div class="zero-arrow">→</div>'+
+        '<div class="zero-panel" style="background:#fafafa;flex:1.2;"><div class="zero-panel-label">ACTION</div>'+p2+'</div>'+
+        '<div class="zero-arrow">→</div>'+
+        '<div class="zero-panel"><div class="zero-panel-label">AFTER</div>'+p3+'</div>'+
+      '</div>'+
+      '<div class="zero-choice-row" id="q8-choices">'+
+        ['0','1','2'].map((n,i)=>'<div class="zero-choice" data-omr="q8-c'+i+'">'+n+'</div>').join('')+
+      '</div>',
+    answer:{q:'How many left? ('+scene.containerLabel+')',type:'mcq',opts:['0','1','2'],ans:'0'},
+    coordHints:{type:'mcq',choicesId:'q8-choices',correct:0}
+  };
+}
+
+function section9(){
+  const icons=sh(BASKET_ICONS);const icon=icons[0];const counts=sh([1,3,6]);const labels=['A','B','C'];
+  let baskets='';
+  counts.forEach((cnt,i)=>{
+    let imgs='';for(let k=0;k<cnt;k++) imgs+=IC[icon](40);
+    baskets+='<div class="basket-item" data-omr="q9-group-'+labels[i]+'" data-omr-count="'+cnt+'">'+
+      '<div class="basket-label">'+labels[i]+'</div>'+
+      '<div class="pair-box" style="min-width:96px;min-height:96px;">'+imgs+'</div></div>';
+  });
+  const mostLabel=labels[counts.indexOf(Math.max(...counts))];
+  const leastLabel=labels[counts.indexOf(Math.min(...counts))];
+  return {
+    html:'<p class="qinstr">9) Circle the group with MOST. Put ✓ on the group with LEAST.</p>'+
+      '<div class="basket-row" id="q9-row">'+baskets+'</div>',
+    answer:{q:'Most/Least '+icon,type:'dual_mark',groups:labels.map((l,i)=>({l,cnt:counts[i]})),circle:mostLabel,tick:leastLabel},
+    coordHints:{type:'dual_mark',rowId:'q9-row',circle:mostLabel,tick:leastLabel}
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// WORKSHEET BUILDER — 2 PAGES
+// Q1-Q4 → Page 1   |   Q5-Q9 → Page 2
+// ══════════════════════════════════════════════════════════════════════════════
+const PX_PER_MM=96/25.4;
+
+function buildWorksheet(setNum){
+  const builders=[section1,section2,section3,section4,section5,section6,section7,section8,section9];
+  const sections=[],answers={},coordHintsByQ={};
+  builders.forEach((fn,idx)=>{
+    const r=fn();
+    sections.push(r.html);
+    answers['Q'+(idx+1)]=r.answer;
+    coordHintsByQ['Q'+(idx+1)]=r.coordHints;
+  });
+
+  const reg='<div class="reg-sq tl"></div><div class="reg-sq tr"></div>'+
+    '<div class="reg-sq bl"></div><div class="reg-sq br"></div>';
+  const pid='SET-'+String(setNum).padStart(5,'0');
+
+  const headerP1=
+    '<div class="ws-header">'+
+      '<div class="ws-title">CLASS 1 — MATHEMATICS PRACTICE WORKSHEET</div>'+
+      '<div class="ws-sub">Set '+setNum+' &nbsp;·&nbsp; Page 1 of 3</div>'+
+      '<div class="ws-fields"><span>Name:</span><span>Date:</span><span>Roll No.:</span><span>Marks: ____ / 40</span></div>'+
+    '</div>';
+
+  const headerP2=
+    '<div class="ws-header-cont">'+
+      '<div class="ws-title">CLASS 1 — MATHEMATICS (Continued)</div>'+
+      '<div class="ws-sub">Set '+setNum+' &nbsp;·&nbsp; Page 2 of 3</div>'+
+    '</div>';
+
+  const headerP3=
+    '<div class="ws-header-cont">'+
+      '<div class="ws-title">CLASS 1 — MATHEMATICS (Continued)</div>'+
+      '<div class="ws-sub">Set '+setNum+' &nbsp;·&nbsp; Page 3 of 3</div>'+
+    '</div>';
+
+  // Page 1: Q1–Q4
+  const page1Html=
+    '<div class="page-wrapper">'+reg+
+    '<div class="page" id="page1-set-'+setNum+'">'+
+      headerP1+
+      '<div class="section">'+sections[0]+'</div>'+
+      '<div class="section">'+sections[1]+'</div>'+
+      '<div class="section">'+sections[2]+'</div>'+
+      '<div class="section">'+sections[3]+'</div>'+
+      '<div class="ws-footer">Class 1 · Math FLN Practice · Set '+setNum+' · Page 1 of 3</div>'+
+      '<div class="ws-page-id">'+pid+'-P1</div>'+
+    '</div></div>';
+
+  // Page 2: Q5–Q8
+  const page2Html=
+    '<div class="page-wrapper">'+reg+
+    '<div class="page" id="page2-set-'+setNum+'">'+
+      headerP2+
+      '<div class="section">'+sections[4]+'</div>'+
+      '<div class="section">'+sections[5]+'</div>'+
+      '<div class="section">'+sections[6]+'</div>'+
+      '<div class="section">'+sections[7]+'</div>'+
+      '<div class="ws-footer">Class 1 · Math FLN Practice · Set '+setNum+' · Page 2 of 3</div>'+
+      '<div class="ws-page-id">'+pid+'-P2</div>'+
+    '</div></div>';
+
+  // Page 3: Q9
+  const page3Html=
+    '<div class="page-wrapper">'+reg+
+    '<div class="page" id="page3-set-'+setNum+'">'+
+      headerP3+
+      '<div class="section">'+sections[8]+'</div>'+
+      '<div class="ws-footer">Class 1 · Math FLN Practice · Set '+setNum+' · Page 3 of 3</div>'+
+      '<div class="ws-page-id">'+pid+'-P3</div>'+
+    '</div></div>';
+
+  const html = page1Html + page2Html + page3Html;
+  return {html,answers,coordHintsByQ};
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// OMR COORDINATE CAPTURE
+// ══════════════════════════════════════════════════════════════════════════════
+function captureCoords(pageEl){
+  if(!pageEl) return {};
+  const pageRect=pageEl.getBoundingClientRect();
+  const coords={};
+  const pw=pageEl.closest('.page-wrapper');
+  if(pw){
+    const wRect=pw.getBoundingClientRect();
+    ['tl','tr','bl','br'].forEach(cls=>{
+      const sq=pw.querySelector('.reg-sq.'+cls);
+      if(sq){const r=sq.getBoundingClientRect();coords['reg_sq_'+cls]={x_min:mmV(r.left-wRect.left),y_min:mmV(r.top-wRect.top),x_max:mmV(r.right-wRect.left),y_max:mmV(r.bottom-wRect.top)};}
+    });
+  }
+  pageEl.querySelectorAll('[data-omr]').forEach(el=>{
+    const key=el.getAttribute('data-omr');const r=el.getBoundingClientRect();
+    coords[key]={x_min:mmV(r.left-pageRect.left),y_min:mmV(r.top-pageRect.top),x_max:mmV(r.right-pageRect.left),y_max:mmV(r.bottom-pageRect.top)};
+  });
+  return coords;
+}
+function mmV(px){return +((px/PX_PER_MM).toFixed(2));}
+
+function buildOmrOverlay(pageEl,coords){
+  const existing=pageEl.querySelector('.omr-overlay');if(existing)existing.remove();
+  const overlay=document.createElement('div');overlay.className='omr-overlay';
+  Object.entries(coords).forEach(([key,c])=>{
+    if(key.startsWith('reg_sq')) return;
+    const box=document.createElement('div');box.className='omr-box';
+    box.style.left=(c.x_min*PX_PER_MM)+'px';box.style.top=(c.y_min*PX_PER_MM)+'px';
+    box.style.width=((c.x_max-c.x_min)*PX_PER_MM)+'px';box.style.height=((c.y_max-c.y_min)*PX_PER_MM)+'px';
+    const label=document.createElement('div');label.className='omr-label';label.textContent=key;label.style.top='-10px';label.style.left='0';
+    box.appendChild(label);overlay.appendChild(box);
+  });
+  pageEl.style.position='relative';pageEl.appendChild(overlay);return overlay;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ANSWER KEY & JSON
+// ══════════════════════════════════════════════════════════════════════════════
+function buildMasterJSON(setNum,liveCoords){
+  const answers=worksheetAnswers[setNum-1];
+  const hints=worksheetCoordHints[setNum-1];
+  const questions={};
+  Object.keys(answers).forEach(qKey=>{
+    const ans=answers[qKey];const hint=hints[qKey]||{};
+    let icr={};
+    switch(ans.type){
+      case 'matching':icr={detect:'drawn_line_between_dots',pairs:(ans.matches||[]).map(m=>({from:qKey.toLowerCase()+'-left-'+(m.lPos||1),to:qKey.toLowerCase()+'-right-'+(m.rPos||1)})),match_method:'dot_center_distance',threshold_mm:6};break;
+      case 'group_circle':icr={detect:'freehand_circle',cells:(ans.cells||[]).map(c=>({region:'q2-'+c.cell+'-'+(c.ans||'left').toLowerCase(),expected:'circled'}))};break;
+      case 'choice':icr={detect:'circle_or_tick',expected_label:ans.ans,options:(hints.items||[])};break;
+      case 'cluster_loop':icr={detect:'loop_around_items',target_type:'coin1',expected_count:ans.circle||ans.r1,total_items:ans.total};break;
+      case 'path_trace':icr={detect:'pencil_line_on_dashed_path',region:'q7-food',axis:'vertical_center',expected:'line_present'};break;
+      case 'mcq':icr={detect:'circle_mark',choices:['q8-c0','q8-c1','q8-c2'],expected_choice:'q8-c0',expected_value:'0'};break;
+      case 'dual_mark':icr={detect_circle:{region:'q9-group-'+(ans.circle||'A')},detect_tick:{region:'q9-group-'+(ans.tick||'C')},method:'symbol_recognition'};break;
+      case 'fill_number':icr={detect:'handwritten_digit_in_box',blanks:(ans.blanks||[]).map(b=>({region:'q3-blank-'+b.pos,expected_value:b.value}))};break;
+    }
+    const entry={type:ans.type,question:ans.q,expected_answer:ans.ans||ans.matches||ans.circle||null,icr,coord_hint:hint};
+    if(liveCoords){const prefix=qKey.toLowerCase()+'-';const coords={};Object.entries(liveCoords).forEach(([k,v])=>{if(k.startsWith(prefix))coords[k]=v;});if(Object.keys(coords).length)entry.coords_mm=coords;}
+    questions[qKey]=entry;
+  });
+  const regCoords=liveCoords?{tl:liveCoords['reg_sq_tl']||null,tr:liveCoords['reg_sq_tr']||null,bl:liveCoords['reg_sq_bl']||null,br:liveCoords['reg_sq_br']||null}:null;
+  return {meta:{set:setNum,pid:'SET-'+String(setNum).padStart(5,'0'),gen:new Date().toISOString(),qs:9,coord_unit:'mm',icr_version:'1.0',layout:'3-page-A4'},registration_marks:regCoords,questions};
+}
+
+function buildCSV(start,end){
+  const rows=[['set','q','type','question','answer']];
+  for(let i=start;i<=end;i++){
+    const answers=worksheetAnswers[i-1]||{};
+    Object.keys(answers).forEach(qKey=>{
+      const a=answers[qKey];const ans=a.ans||JSON.stringify(a.matches||a.cells||'');
+      rows.push([i,qKey,a.type||'','"'+(a.q||'').replace(/"/g,'""')+'"','"'+String(ans).replace(/"/g,'""')+'"']);
+    });
+  }
+  return rows.map(r=>r.join(',')).join('\r\n');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RUNTIME STATE & CORE API
+// ══════════════════════════════════════════════════════════════════════════════
+let worksheetHTMLs=[],worksheetAnswers=[],worksheetCoordHints=[],inserted=[],omrOverlayVisible=false;
+
+function generateSets(n){
+  n=Math.max(1,Math.min(5000,n|0));
+  worksheetHTMLs=[];worksheetAnswers=[];worksheetCoordHints=[];
+  for(let i=0;i<n;i++){
+    const built=buildWorksheet(i+1);
+    worksheetHTMLs.push(built.html);worksheetAnswers.push(built.answers);worksheetCoordHints.push(built.coordHintsByQ);
+  }
+  inserted=new Array(n).fill(false);
+  const tabbar=document.getElementById('tabbar');
+  if(tabbar){tabbar.innerHTML='';for(let i=1;i<=n;i++){const btn=document.createElement('button');btn.className='tabbtn';btn.id='tabbtn-'+i;btn.textContent='Set '+i;btn.addEventListener('click',()=>activateSet(i));tabbar.appendChild(btn);}}
+  const container=document.getElementById('setsContainer');
+  if(container){container.innerHTML='';for(let i=1;i<=n;i++){const div=document.createElement('div');div.className='worksheet';div.id='ws-'+i;container.appendChild(div);}}
+  activateSet(1);
+  const si=document.getElementById('singleSetNum');if(si){si.max=String(n);if((parseInt(si.value,10)||1)>n)si.value='1';}
+}
+
+function activeSetNum(){const active=document.querySelector('.worksheet.active');if(!active)return 1;return parseInt(active.id.replace('ws-',''),10)||1;}
+
+function activateSet(num){
+  document.querySelectorAll('.worksheet').forEach(w=>w.classList.remove('active'));
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
+  const div=document.getElementById('ws-'+num);if(!div)return;
+  if(!inserted[num-1]){div.innerHTML=worksheetHTMLs[num-1];inserted[num-1]=true;}
+  div.classList.add('active');
+  const btn=document.getElementById('tabbtn-'+num);if(btn)btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DOWNLOAD HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+function triggerTextDownload(filename,text,mime){
+  const blob=new Blob([text],{type:mime||'text/plain'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+async function downloadBlob(blob,filename){
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  await new Promise(r=>setTimeout(r,300));URL.revokeObjectURL(url);
+}
+async function getLiveCoords(setNum){
+  const mainPage=document.querySelector('#ws-'+setNum+' .page');if(mainPage)return captureCoords(mainPage);
+  const rr=document.getElementById('pdfRenderRoot');rr.innerHTML=worksheetHTMLs[setNum-1];
+  await new Promise(r=>setTimeout(r,80));const pe=rr.querySelector('.page');const coords=captureCoords(pe);rr.innerHTML='';return coords;
+}
+
+async function renderSetToPdf(setNum,scale){
+  scale=scale||2;
+  const rr=document.getElementById('pdfRenderRoot');
+  rr.innerHTML=worksheetHTMLs[setNum-1];
+  await new Promise(r=>setTimeout(r,160));
+
+  const pages=rr.querySelectorAll('.page');
+  if(!pages.length) throw new Error('No page elements for set '+setNum);
+
+  const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',compress:true});
+  const coords={};
+
+  for(let pi=0;pi<pages.length;pi++){
+    const pe=pages[pi];
+    const c=captureCoords(pe);Object.assign(coords,c);
+    // .page is hard-capped to exactly 210mm x 297mm (max-height + overflow:hidden),
+    // so a direct full-bleed capture maps 1:1 onto the A4 PDF page — no
+    // stretching, no cropping of content, and no shrinkage of image/text quality.
+    const cv=await html2canvas(pe,{scale,backgroundColor:'#ffffff',useCORS:true,windowWidth:pe.scrollWidth});
+    const imgData=cv.toDataURL('image/jpeg',0.92);
+    if(pi>0) pdf.addPage('a4','p');
+    pdf.addImage(imgData,'JPEG',0,0,210,297);
+    cv.width=0;cv.height=0;
+  }
+  rr.innerHTML='';
+  return {pdfBlob:pdf.output('blob'),coords};
+}
+
+function allBtns(){return [document.getElementById('generateBtn'),document.getElementById('downloadSingleSetBtn'),document.getElementById('downloadAnswerKeyBtn'),document.getElementById('downloadAllZipBtn'),document.getElementById('exportCoordsBtn')].filter(Boolean);}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TOOLBAR BUTTON EVENTS
+// ══════════════════════════════════════════════════════════════════════════════
+document.getElementById('generateBtn').addEventListener('click',()=>{
+  const n=parseInt(document.getElementById('setCount').value,10)||1;generateSets(n);
+});
+document.getElementById('printBtn').addEventListener('click',()=>window.print());
+
+document.getElementById('toggleOmrBtn').addEventListener('click',()=>{
+  omrOverlayVisible=!omrOverlayVisible;
+  const num=activeSetNum();const div=document.getElementById('ws-'+num);if(!div)return;
+  const pageEl=div.querySelector('.page');if(!pageEl)return;
+  let overlay=pageEl.querySelector('.omr-overlay');
+  if(omrOverlayVisible){const c=captureCoords(pageEl);overlay=buildOmrOverlay(pageEl,c);overlay.classList.add('visible');document.getElementById('toggleOmrBtn').textContent='Hide OMR Overlay';}
+  else{if(overlay)overlay.classList.remove('visible');document.getElementById('toggleOmrBtn').textContent='Toggle OMR Overlay';}
+});
+
+document.getElementById('exportCoordsBtn').addEventListener('click',async()=>{
+  if(!worksheetHTMLs.length){alert('Generate first.');return;}
+  const num=activeSetNum();const coords=await getLiveCoords(num);const masterJson=buildMasterJSON(num,coords);
+  const pw=String(worksheetHTMLs.length).length;
+  triggerTextDownload('MasterKey_Set'+String(num).padStart(pw,'0')+'.json',JSON.stringify(masterJson,null,2),'application/json');
+});
+
+document.getElementById('downloadAnswerKeyBtn').addEventListener('click',()=>{
+  if(!worksheetAnswers.length){alert('Generate first.');return;}
+  const n=worksheetAnswers.length,pw=String(n).length;
+  const allSets={meta:{gen:new Date().toISOString(),totalSets:n,layout:'3-page-A4'},sets:worksheetAnswers.map((_,i)=>buildMasterJSON(i+1,null))};
+  triggerTextDownload('AnswerKey_Sets001-'+String(n).padStart(pw,'0')+'.json',JSON.stringify(allSets,null,2),'application/json');
+  triggerTextDownload('AnswerKey_Sets001-'+String(n).padStart(pw,'0')+'.csv',buildCSV(1,n),'text/csv');
+});
+
+document.getElementById('downloadSingleSetBtn').addEventListener('click',async()=>{
+  if(!worksheetHTMLs.length){alert('Generate first.');return;}
+  const n=worksheetHTMLs.length;const input=document.getElementById('singleSetNum');
+  let setNum=Math.max(1,Math.min(n,parseInt(input.value,10)||1));input.value=setNum;
+  const pw=String(n).length,padded=String(setNum).padStart(pw,'0');
+  allBtns().forEach(b=>b.disabled=true);const pr=document.getElementById('exportProgress');pr.textContent='Building Set '+setNum+'…';
+  try{
+    const{pdfBlob,coords}=await renderSetToPdf(setNum,2);
+    await downloadBlob(pdfBlob,'Set_'+padded+'.pdf');
+    const masterJson=buildMasterJSON(setNum,coords);
+    triggerTextDownload('MasterKey_Set'+padded+'.json',JSON.stringify(masterJson,null,2),'application/json');
+    triggerTextDownload('AnswerKey_Set'+padded+'.csv',buildCSV(setNum,setNum),'text/csv');
+    pr.textContent='Done — Set '+setNum+' downloaded (3 pages).';
+  }catch(e){console.error(e);pr.textContent='Failed: '+(e.message||e);}
+  finally{allBtns().forEach(b=>b.disabled=false);}
+});
+
+const ZIP_CHUNK_SIZE=300;
+document.getElementById('downloadAllZipBtn').addEventListener('click',async()=>{
+  if(!worksheetHTMLs.length){alert('Generate first.');return;}
+  const n=worksheetHTMLs.length,pw=String(n).length;
+  const pr=document.getElementById('exportProgress');
+  allBtns().forEach(b=>b.disabled=true);
+  const totalParts=Math.ceil(n/ZIP_CHUNK_SIZE);const t0=performance.now();
+  try{
+    for(let part=1;part<=totalParts;part++){
+      const partStart=(part-1)*ZIP_CHUNK_SIZE+1,partEnd=Math.min(part*ZIP_CHUNK_SIZE,n);
+      const zip=new JSZip();
+      for(let i=partStart;i<=partEnd;i++){
+        pr.textContent=(totalParts>1?'Part '+part+'/'+totalParts+' — ':'')+' Rendering Set '+i+'/'+n+'…';
+        const{pdfBlob,coords}=await renderSetToPdf(i,2);
+        const padded=String(i).padStart(pw,'0');
+        zip.file('Class1_Set_'+padded+'.pdf',pdfBlob);
+        const masterJson=buildMasterJSON(i,coords);
+        zip.file('MasterKey_Set_'+padded+'.json',JSON.stringify(masterJson,null,2));
+        zip.file('AnswerKey_Set_'+padded+'.csv',buildCSV(i,i));
+        if(i%5===0||i===partEnd){const el=Math.round((performance.now()-t0)/1000);pr.textContent='Rendered '+i+'/'+n+' sets… ('+el+'s elapsed)';await new Promise(r=>setTimeout(r,0));}
+      }
+      pr.textContent='Compressing ZIP…';
+      const zipBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}},(m)=>{pr.textContent='Compressing: '+Math.round(m.percent)+'%…';});
+      const partLabel=totalParts>1?'_part'+part+'of'+totalParts+'_Sets'+String(partStart).padStart(pw,'0')+'-'+String(partEnd).padStart(pw,'0'):'_Sets001-'+String(n).padStart(pw,'0');
+      await downloadBlob(zipBlob,'Class1_Math_2pA4'+partLabel+'.zip');
+    }
+    const totalEl=Math.round((performance.now()-t0)/1000);
+    pr.textContent=totalParts>1?'✓ Done — '+n+' sets as '+totalParts+' ZIP parts ('+totalEl+'s).':'✓ Done — '+n+' 3-page worksheets packaged ('+totalEl+'s).';
+  }catch(e){console.error(e);pr.textContent='Failed: '+(e.message||e);}
+  finally{allBtns().forEach(b=>b.disabled=false);}
+});
+
+// ── GLOBAL API (for Puppeteer / headless) ────────────────────────────────────
+window.generateSets=generateSets;
+window.captureCoords=captureCoords;
+window.buildMasterJSON=buildMasterJSON;
+window.buildCSV=buildCSV;
+window.activateSet=activateSet;
+window.buildWorksheet=buildWorksheet;
+window.renderSetToPdf=renderSetToPdf;
+Object.defineProperty(window,'worksheetHTMLs',{get:()=>worksheetHTMLs});
+Object.defineProperty(window,'worksheetAnswers',{get:()=>worksheetAnswers});
+Object.defineProperty(window,'worksheetCoordHints',{get:()=>worksheetCoordHints});
+
+// ── AUTO-INIT ────────────────────────────────────────────────────────────────
+(function(){const el=document.getElementById('setCount');generateSets(el?parseInt(el.value,10)||5:5);})();
+</script>
+</body>
+</html>
