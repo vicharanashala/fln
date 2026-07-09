@@ -1,0 +1,34 @@
+{
+  "student_id": "s1",
+  "student_name": "s1",
+  "enrolled_class": 2,
+  "test_date": "2026-07-08",
+  "phrase": "phrase_2",
+  "exam_id": "PERSONALIZED_C2_WORKSHEET_PHRASE_1_s1",
+  "answers": {
+    "Q1": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q2": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q38": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q39": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q51": {
+      "answer": "",
+      "confidence": 0.0
+    },
+    "Q52": {
+      "answer": "",
+      "confidence": 0.0
+    }
+  }
+}

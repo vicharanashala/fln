@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+evaluation_reports/
+.env
+student_responses/
+

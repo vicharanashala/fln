@@ -1,0 +1,18 @@
+[
+  { "id": "ldh", "name": "Ludhiana", "stateCode": "PB", "stateName": "Punjab", "blocksCount": 14, "schoolsCount": 42, "studentsCount": 698, "teachersCount": 60, "avgScore": 74, "completionRate": 82, "lagging": false },
+  { "id": "mog", "name": "Moga", "stateCode": "PB", "stateName": "Punjab", "blocksCount": 8, "schoolsCount": 30, "studentsCount": 362, "teachersCount": 30, "avgScore": 48, "completionRate": 54, "lagging": true },
+  { "id": "jal", "name": "Jalandhar", "stateCode": "PB", "stateName": "Punjab", "blocksCount": 11, "schoolsCount": 36, "studentsCount": 562, "teachersCount": 46, "avgScore": 69, "completionRate": 76, "lagging": false },
+  { "id": "asr", "name": "Amritsar", "stateCode": "PB", "stateName": "Punjab", "blocksCount": 9, "schoolsCount": 30, "studentsCount": 444, "teachersCount": 38, "avgScore": 66, "completionRate": 73, "lagging": false },
+  { "id": "bath", "name": "Bathinda", "stateCode": "PB", "stateName": "Punjab", "blocksCount": 8, "schoolsCount": 16, "studentsCount": 210, "teachersCount": 18, "avgScore": 38, "completionRate": 42, "lagging": true },
+  { "id": "ptl", "name": "Patiala", "stateCode": "PB", "stateName": "Punjab", "blocksCount": 10, "schoolsCount": 32, "studentsCount": 454, "teachersCount": 36, "avgScore": 61, "completionRate": 68, "lagging": false },
+  { "id": "amb", "name": "Ambala", "stateCode": "HR", "stateName": "Haryana", "blocksCount": 7, "schoolsCount": 32, "studentsCount": 456, "teachersCount": 38, "avgScore": 72, "completionRate": 79, "lagging": false },
+  { "id": "kkl", "name": "Karnal", "stateCode": "HR", "stateName": "Haryana", "blocksCount": 6, "schoolsCount": 16, "studentsCount": 240, "teachersCount": 20, "avgScore": 65, "completionRate": 72, "lagging": false },
+  { "id": "gur", "name": "Gurugram", "stateCode": "HR", "stateName": "Haryana", "blocksCount": 8, "schoolsCount": 28, "studentsCount": 480, "teachersCount": 42, "avgScore": 78, "completionRate": 86, "lagging": false },
+  { "id": "jai", "name": "Jaipur", "stateCode": "RJ", "stateName": "Rajasthan", "blocksCount": 12, "schoolsCount": 40, "studentsCount": 572, "teachersCount": 46, "avgScore": 55, "completionRate": 62, "lagging": false },
+  { "id": "jdp", "name": "Jodhpur", "stateCode": "RJ", "stateName": "Rajasthan", "blocksCount": 9, "schoolsCount": 18, "studentsCount": 224, "teachersCount": 18, "avgScore": 44, "completionRate": 48, "lagging": true },
+  { "id": "udp", "name": "Udaipur", "stateCode": "RJ", "stateName": "Rajasthan", "blocksCount": 8, "schoolsCount": 20, "studentsCount": 312, "teachersCount": 26, "avgScore": 63, "completionRate": 70, "lagging": false },
+  { "id": "lko", "name": "Lucknow", "stateCode": "UP", "stateName": "Uttar Pradesh", "blocksCount": 10, "schoolsCount": 46, "studentsCount": 694, "teachersCount": 54, "avgScore": 68, "completionRate": 75, "lagging": false },
+  { "id": "vrn", "name": "Varanasi", "stateCode": "UP", "stateName": "Uttar Pradesh", "blocksCount": 8, "schoolsCount": 22, "studentsCount": 348, "teachersCount": 28, "avgScore": 62, "completionRate": 69, "lagging": false },
+  { "id": "agr", "name": "Agra", "stateCode": "UP", "stateName": "Uttar Pradesh", "blocksCount": 7, "schoolsCount": 14, "studentsCount": 178, "teachersCount": 14, "avgScore": 41, "completionRate": 44, "lagging": true },
+  { "id": "knp", "name": "Kanpur", "stateCode": "UP", "stateName": "Uttar Pradesh", "blocksCount": 9, "schoolsCount": 24, "studentsCount": 362, "teachersCount": 28, "avgScore": 58, "completionRate": 64, "lagging": false }
+]

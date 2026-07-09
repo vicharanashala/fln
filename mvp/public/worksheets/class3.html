@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Class 3 Math Practice Worksheet Generator</title>
+<style>
+  *{box-sizing:border-box;}
+  body{font-family:Arial,Helvetica,sans-serif;background:#e9e9e9;color:#000;margin:0;padding:0;}
+  .toolbar{background:#fff;border-bottom:2px solid #000;padding:10px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;position:sticky;top:0;z-index:50;}
+  .toolbar h1{font-size:15px;margin:0;flex-shrink:0;}
+  .toolbar label{font-size:13px;flex-shrink:0;}
+  .toolbar input[type=number]{width:68px;padding:5px;border:1px solid #000;font-size:13px;}
+  .btn{background:#fff;border:1.5px solid #000;color:#000;padding:6px 12px;font-size:12px;cursor:pointer;border-radius:3px;white-space:nowrap;}
+  .btn:hover{background:#000;color:#fff;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn:disabled:hover{background:#fff;color:#000;}
+  .btn-accent{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+  .btn-accent:hover{background:#444;color:#fff;}
+  .btn-omr{background:#005f8e;color:#fff;border-color:#005f8e;}
+  .btn-omr:hover{background:#007ab8;color:#fff;}
+  .btn-coord{background:#5a2d82;color:#fff;border-color:#5a2d82;}
+  .btn-coord:hover{background:#7a3daa;color:#fff;}
+  .toolbar-sep{width:1px;height:28px;background:#ccc;flex-shrink:0;}
+  #exportProgress{font-size:11px;color:#000;min-width:160px;}
+  .tabbar{background:#f3f3f3;border-bottom:2px solid #000;padding:8px 10px 0;display:flex;flex-wrap:wrap;gap:4px;position:sticky;top:64px;z-index:49;max-height:110px;overflow-y:auto;}
+  .tabbtn{background:#ddd;border:1px solid #000;border-bottom:none;padding:5px 13px;font-size:13px;cursor:pointer;border-radius:4px 4px 0 0;}
+  .tabbtn.active{background:#fff;font-weight:bold;}
+  #setsContainer{padding:20px;display:flex;justify-content:center;}
+  .worksheet{display:none;}
+  .worksheet.active{display:block;}
+
+  /* ── Page wrapper for registration squares ── */
+  .page-wrapper{position:relative;display:inline-block;}
+  .reg-sq{position:absolute;width:14px;height:14px;background:#000;z-index:10;}
+  .reg-sq.tl{top:0;left:0;}
+  .reg-sq.tr{top:0;right:0;}
+  .reg-sq.bl{bottom:0;left:0;}
+  .reg-sq.br{bottom:0;right:0;}
+
+  .page{background:#fff;width:210mm;min-height:296mm;padding:9mm 11mm;border:1px solid #999;box-shadow:0 0 8px rgba(0,0,0,0.15);position:relative;}
+  .ws-header{text-align:center;border-bottom:3px solid #000;padding-bottom:7px;margin-bottom:8px;}
+  .ws-title{font-size:19px;font-weight:bold;}
+  .ws-sub{font-size:14px;margin-top:2px;font-weight:bold;}
+  .ws-fields{display:flex;justify-content:space-between;font-size:12.5px;margin-top:8px;flex-wrap:wrap;gap:4px;}
+  .ws-fields span{border-bottom:1px solid #000;padding:0 4px 2px;min-width:110px;display:inline-block;}
+  .section{margin:8px 0 12px 0;}
+  .section h2{font-size:13px;background:#000;color:#fff;padding:3px 7px;margin:0 0 5px 0;display:inline-block;}
+  .instr{font-size:11.5px;font-style:italic;margin:0 0 4px 0;}
+  table.wstable{width:100%;border-collapse:collapse;margin:3px 0;}
+  table.wstable td,table.wstable th{border:1.4px solid #000;padding:4px 6px;vertical-align:middle;font-size:12px;}
+  td.rn{width:22px;text-align:center;font-weight:bold;font-size:12px;}
+  .blankline{display:inline-block;border-bottom:1.4px solid #000;width:60px;margin:0 3px;}
+  .blankline.sm{width:32px;}
+  .blankline.lg{width:110px;}
+  .compbox{display:inline-block;border:2px solid #000;width:30px;height:30px;vertical-align:middle;}
+  .calcgrid{display:flex;gap:18px;flex-wrap:wrap;margin:4px 0;align-items:flex-start;}
+  .calcbox{border:1.5px solid #000;padding:8px 14px 10px;min-width:90px;display:inline-block;vertical-align:top;}
+  .calcbox .qnum{font-size:11px;font-weight:normal;margin-bottom:2px;}
+  .calcbox .top-num{text-align:right;font-size:20px;font-weight:bold;}
+  .calcbox .op-row{display:flex;align-items:center;font-size:20px;font-weight:bold;}
+  .calcbox .op-sym{width:20px;}
+  .calcbox .op-num{text-align:right;flex:1;}
+  .calcbox .ans-line{border-top:2.5px solid #000;margin-top:5px;padding-top:5px;display:flex;align-items:center;gap:4px;font-size:14px;font-weight:bold;}
+  .ansrect{display:inline-block;border:2px solid #000;width:48px;height:30px;vertical-align:middle;}
+  .muldiv-grid{display:flex;gap:20px;flex-wrap:wrap;margin:4px 0;align-items:flex-start;}
+  .mul-box{border:1.5px solid #000;padding:8px 16px 10px;min-width:100px;}
+  .mul-box .qnum{font-size:11px;font-weight:normal;margin-bottom:3px;}
+  .mul-box .mn{text-align:right;font-size:22px;font-weight:bold;}
+  .mul-box .op-row{display:flex;align-items:center;font-size:22px;font-weight:bold;}
+  .mul-box .op-s{width:22px;}
+  .mul-box .ans-line{margin-top:6px;padding-top:0;min-width:60px;}
+  .mul-ansbox{display:block;border:2px solid #000;width:56px;height:32px;margin-left:auto;}
+ .div-box{border:1.5px solid #000;padding:10px 16px 14px;min-width:130px;}
+  .div-box .qnum{font-size:11px;font-weight:normal;margin-bottom:4px;}
+  .div-q-row{display:flex;align-items:flex-end;}
+  .div-spacer{font-size:19px;font-weight:bold;padding-right:3px;visibility:hidden;}
+  .div-quotient-blank{display:block;border-bottom:2.5px solid #000;width:44px;height:24px;}
+  .div-bracket-row{display:flex;align-items:flex-end;margin-top:1px;}
+  .div-divisor{font-size:19px;font-weight:bold;padding-right:3px;padding-bottom:2px;}
+  .div-bracket{border-left:2.5px solid #000;border-top:2.5px solid #000;padding:2px 10px 2px 8px;font-size:19px;font-weight:bold;}
+  .div-work-row{display:flex;align-items:flex-end;margin-top:8px;}
+  .div-work{display:flex;flex-direction:column;}
+  .div-sub-row{display:flex;align-items:center;gap:3px;font-size:16px;font-weight:bold;}
+  .div-sub-blank{display:inline-block;border-bottom:1.4px solid #000;width:36px;height:18px;}
+  .div-hr2{border-top:1.5px solid #000;width:44px;margin:4px 0;}
+  .div-rem-blank{display:inline-block;border-bottom:1.4px solid #000;width:36px;height:18px;}
+  .clock-grid{display:flex;flex-wrap:wrap;gap:14px;margin:4px 0;}
+  .clock-item{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .clock-ansbox{border:2px solid #000;width:88px;height:26px;border-radius:13px;}
+  .ws-footer{margin-top:8px;border-top:1.4px solid #000;padding-top:4px;font-size:10.5px;text-align:center;color:#444;}
+  /* ── Page-ID stamp ── */
+  .page-id-stamp{position:absolute;bottom:4mm;right:8mm;font-family:monospace;font-size:8px;color:#555;letter-spacing:1px;z-index:5;}
+  .lenrow{display:flex;align-items:center;gap:12px;border:1.6px solid #000;border-radius:10px;padding:7px 14px;margin:6px 0;}
+  .lenrow-num{font-size:14px;font-weight:bold;width:16px;}
+  .lenrow-main{display:flex;flex-direction:column;align-items:flex-start;gap:2px;flex-shrink:0;}
+  .lenrow-object{display:flex;align-items:flex-end;flex-shrink:0;}
+  .lenrow-object svg{display:block;flex-shrink:0;}
+  .lenrow-clips{display:flex;gap:2px;align-items:center;flex-shrink:0;}
+  .lenrow-ans{display:flex;flex-direction:column;align-items:center;gap:3px;margin-left:auto;}
+  .ans-square{border:2px solid #000;border-radius:7px;width:42px;height:42px;}
+  .ans-label{font-size:10.5px;white-space:nowrap;}
+  .wx-wrap{border:1.6px solid #000;border-radius:8px;overflow:hidden;margin-top:4px;}
+  .wx-bank{padding:6px 12px;border-bottom:1.6px solid #000;text-align:center;}
+  .wx-bank .lbl{font-weight:bold;text-decoration:underline;display:block;margin-bottom:3px;font-size:11.5px;}
+  .wx-words{display:flex;justify-content:center;gap:18px;font-size:12px;flex-wrap:wrap;}
+  .wxrow{display:flex;align-items:center;border-top:1.6px solid #000;}
+  .wxrow:first-of-type{border-top:none;}
+  .wx-pic{width:90px;display:flex;align-items:center;justify-content:center;padding:6px;border-right:1.6px solid #000;}
+  .wx-ans{flex:1;padding:8px 12px;}
+  .wx-ansbox{border:1.5px solid #000;border-radius:5px;height:30px;}
+
+  /* ── Answer Key Modal ── */
+  #akModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;align-items:center;justify-content:center;}
+  #akModal.open{display:flex;}
+  #akPanel{background:#fff;border:2px solid #000;border-radius:6px;width:min(700px,96vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+  #akPanel .ak-head{background:#000;color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  #akPanel .ak-head h2{margin:0;font-size:16px;}
+  #akPanel .ak-close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;}
+  #akPanel .ak-body{overflow-y:auto;padding:16px 18px;flex:1;}
+  .ak-section{margin-bottom:18px;}
+  .ak-section h3{font-size:13px;background:#000;color:#fff;padding:3px 8px;display:inline-block;margin:0 0 6px;}
+  .ak-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .ak-table th,.ak-table td{border:1px solid #ccc;padding:4px 8px;text-align:left;}
+  .ak-table th{background:#f0f0f0;font-weight:bold;}
+  .ak-table tr:nth-child(even) td{background:#fafafa;}
+  #akPanel .ak-foot{padding:10px 18px;border-top:1px solid #ddd;display:flex;gap:10px;flex-shrink:0;}
+
+  /* ── OMR Overlay ── */
+  .omr-overlay{position:absolute;inset:0;pointer-events:none;z-index:100;}
+  .omr-box{position:absolute;background:rgba(0,120,255,0.18);border:1.5px solid rgba(0,100,255,0.7);border-radius:2px;}
+  .omr-label{position:absolute;top:0;left:0;font-size:7px;font-family:monospace;background:rgba(0,80,200,0.85);color:#fff;padding:0 2px;white-space:nowrap;border-radius:1px;line-height:1.3;}
+
+  @media print{
+    body{background:#fff;}
+    .no-print{display:none !important;}
+    #setsContainer{padding:0;display:block;}
+    .page{box-shadow:none;border:none;width:auto;min-height:0;padding:5mm 9mm;}
+    .worksheet{display:none;}
+    .worksheet.active{display:block;}
+    #akModal{display:none !important;}
+    .omr-overlay{display:none !important;}
+  }
+  @page{size:A4;margin:5mm;}
+</style>
+<script src="./html2canvas.min.js"></script>
+<script src="./jspdf.umd.min.js"></script>
+<script src="./jszip.min.js"></script>
+</head>
+<body>
+
+<div class="toolbar no-print">
+  <h1>Class 3 — Math Worksheet Generator</h1>
+  <label>Sets: <input type="number" id="setCount" min="1" max="5000" value="5"></label>
+  <button class="btn" id="generateBtn">Generate</button>
+  <button class="btn" id="printBtn">Print current set</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn" id="viewAKBtn">View Answer Key (Current Set)</button>
+  <button class="btn" id="dlAKBtn">Download Answer Key (Current Set)</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-omr" id="omrToggleBtn">Toggle OMR Overlay</button>
+  <button class="btn btn-coord" id="exportCoordsBtn">Export Coords JSON</button>
+  <div class="toolbar-sep"></div>
+  <label>Set #: <input type="number" id="singleSetNum" min="1" value="1" style="width:54px;"></label>
+  <button class="btn" id="dlSingleSetBtn">Download This Set</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn btn-accent" id="exportAllBtn">Download All Sets (ZIP + Keys)</button>
+  <span id="exportProgress" class="no-print"></span>
+</div>
+<div class="tabbar no-print" id="tabbar"></div>
+<div id="setsContainer"></div>
+<div id="pdfRenderRoot" style="position:fixed;left:-99999px;top:0;width:210mm;background:#fff;"></div>
+
+<!-- Answer Key Modal -->
+<div id="akModal">
+  <div id="akPanel">
+    <div class="ak-head">
+      <h2 id="akTitle">Answer Key — Set 1</h2>
+      <button class="ak-close" id="akClose">✕</button>
+    </div>
+    <div class="ak-body" id="akBody"></div>
+    <div class="ak-foot no-print">
+      <button class="btn" id="akDlJson">Download JSON</button>
+      <button class="btn" id="akDlCsv">Download CSV</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== UTILS ===== */
+function mkItem(question,data,icr){ return {question,data,icr}; }
+function newSecObj(name,note){ return {section:name, note:note||null, items:[]}; }
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function sample(a,n){return shuffle(a).slice(0,n);}
+function pick(a){return a[ri(0,a.length-1)];}
+function tallyString(n){
+  const groups=[];let rem=n;
+  while(rem>=5){groups.push('||||/');rem-=5;}
+  if(rem>0)groups.push('|'.repeat(rem));
+  return groups.length?groups.join(' '):'0';
+}
+
+/* ===== SVG ICONS ===== */
+function sw(inner,size){return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;}
+const ICONS={
+  feather:(sz)=>sw(`<path d="M50,90 C30,70 20,40 35,15 C40,5 55,5 65,15 C80,30 70,65 50,90 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M50,90 C50,70 50,50 50,20" fill="none" stroke="#000" stroke-width="1.5"/>
+    <path d="M50,35 C42,32 36,38 38,46 M50,52 C42,50 36,57 38,64" fill="none" stroke="#000" stroke-width="1.2"/>`,sz),
+  book:(sz)=>sw(`<path d="M10,20 C25,12 40,13 50,20 L50,88 C40,81 25,80 10,88 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <path d="M90,20 C75,12 60,13 50,20 L50,88 C60,81 75,80 90,88 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="18" y1="33" x2="40" y2="30" stroke="#000" stroke-width="1.2"/>
+    <line x1="18" y1="43" x2="40" y2="40" stroke="#000" stroke-width="1.2"/>
+    <line x1="18" y1="53" x2="40" y2="50" stroke="#000" stroke-width="1.2"/>
+    <line x1="60" y1="30" x2="82" y2="33" stroke="#000" stroke-width="1.2"/>
+    <line x1="60" y1="40" x2="82" y2="43" stroke="#000" stroke-width="1.2"/>
+    <line x1="60" y1="50" x2="82" y2="53" stroke="#000" stroke-width="1.2"/>`,sz),
+  apple:(sz)=>sw(`<path d="M50,32 C25,28 12,52 22,74 C30,90 44,94 50,94 C56,94 70,90 78,74 C88,52 75,28 50,32 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M50,32 C47,22 53,14 60,10" fill="none" stroke="#000" stroke-width="2.5"/>
+    <path d="M60,12 C68,7 76,13 70,20 C63,23 58,18 60,12 Z" fill="#fff" stroke="#000" stroke-width="2"/>`,sz),
+  watermelon:(sz)=>sw(`<path d="M15,60 C15,35 35,15 50,15 C65,15 85,35 85,60 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M20,60 C20,38 34,20 50,20 C66,20 80,38 80,60 Z" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <line x1="15" y1="60" x2="85" y2="60" stroke="#000" stroke-width="2.5"/>
+    <circle cx="38" cy="45" r="2.5" fill="#000"/><circle cx="52" cy="38" r="2.5" fill="#000"/><circle cx="63" cy="47" r="2.5" fill="#000"/>`,sz),
+  pencil:(sz)=>sw(`<rect x="6" y="42" width="70" height="16" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M76,42 L96,50 L76,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="0" y="42" width="8" height="16" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="34" y1="42" x2="34" y2="58" stroke="#000" stroke-width="1.5"/>`,sz),
+  schoolbag:(sz)=>sw(`<rect x="20" y="28" width="60" height="58" rx="8" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M38,28 C38,16 62,16 62,28" fill="none" stroke="#000" stroke-width="3"/>
+    <rect x="32" y="48" width="36" height="22" rx="4" fill="#fff" stroke="#000" stroke-width="2"/>
+    <line x1="50" y1="48" x2="50" y2="70" stroke="#000" stroke-width="1.5"/>
+    <circle cx="50" cy="59" r="3" fill="#000"/>`,sz),
+  football:(sz)=>sw(`<circle cx="50" cy="50" r="40" fill="#fff" stroke="#000" stroke-width="3"/>
+    <polygon points="50,18 60,30 50,42 40,30" fill="#000"/>
+    <polygon points="18,36 32,36 36,48 24,56" fill="#000"/>
+    <polygon points="82,36 68,36 64,48 76,56" fill="#000"/>
+    <polygon points="32,78 40,66 52,68 52,80" fill="#000"/>
+    <polygon points="68,78 60,66 48,68 48,80" fill="#000"/>`,sz),
+  bicycle:(sz)=>sw(`<circle cx="22" cy="68" r="18" fill="none" stroke="#000" stroke-width="3"/>
+    <circle cx="78" cy="68" r="18" fill="none" stroke="#000" stroke-width="3"/>
+    <path d="M22,68 L46,40 L78,68 M46,40 L40,22 L54,22 M46,40 L60,68" fill="none" stroke="#000" stroke-width="3"/>
+    <line x1="34" y1="18" x2="48" y2="18" stroke="#000" stroke-width="3"/>`,sz),
+  key:(sz)=>sw(`<circle cx="35" cy="42" r="20" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="35" cy="42" r="10" fill="#fff" stroke="#000" stroke-width="2"/>
+    <rect x="52" y="39" width="38" height="6" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="76" y="45" width="6" height="10" fill="#fff" stroke="#000" stroke-width="2"/>
+    <rect x="86" y="45" width="6" height="8" fill="#fff" stroke="#000" stroke-width="2"/>`,sz),
+  chair:(sz)=>sw(`<rect x="22" y="20" width="56" height="34" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="22" y="54" width="8" height="36" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="70" y="54" width="8" height="36" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="22" y1="75" x2="78" y2="75" stroke="#000" stroke-width="2.5"/>
+    <rect x="14" y="20" width="8" height="52" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>`,sz),
+  eraser:(sz)=>sw(`<rect x="14" y="34" width="72" height="32" rx="4" fill="#fff" stroke="#000" stroke-width="3"/>
+    <line x1="44" y1="34" x2="44" y2="66" stroke="#000" stroke-width="2"/>
+    <line x1="14" y1="50" x2="86" y2="50" stroke="#000" stroke-width="1" stroke-dasharray="3,3"/>`,sz),
+  dictionary:(sz)=>sw(`<rect x="18" y="10" width="64" height="80" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="12" y="10" width="10" height="80" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="28" y1="28" x2="72" y2="28" stroke="#000" stroke-width="1.5"/>
+    <line x1="28" y1="38" x2="72" y2="38" stroke="#000" stroke-width="1.5"/>
+    <line x1="28" y1="48" x2="72" y2="48" stroke="#000" stroke-width="1.5"/>
+    <line x1="28" y1="58" x2="60" y2="58" stroke="#000" stroke-width="1.5"/>`,sz),
+  leaf:(sz)=>sw(`<path d="M50,12 C78,28 84,62 50,92 C16,62 22,28 50,12 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M50,18 L50,86" stroke="#000" stroke-width="1.5"/>
+    <path d="M50,35 L34,28 M50,35 L66,28 M50,55 L32,50 M50,55 L68,50" fill="none" stroke="#000" stroke-width="1.2"/>`,sz),
+  stone:(sz)=>sw(`<ellipse cx="50" cy="55" rx="38" ry="28" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M26,45 C32,38 44,36 54,40" fill="none" stroke="#000" stroke-width="1.5"/>
+    <circle cx="38" cy="55" r="2" fill="#000"/><circle cx="58" cy="58" r="2" fill="#000"/>`,sz),
+  pen:(sz)=>sw(`<rect x="40" y="10" width="14" height="60" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <path d="M40,70 L50,90 L60,70 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="36" y="10" width="22" height="8" fill="#fff" stroke="#000" stroke-width="2"/>
+    <line x1="40" y1="22" x2="54" y2="22" stroke="#000" stroke-width="1.2"/>`,sz),
+  laptop:(sz)=>sw(`<rect x="12" y="20" width="76" height="48" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="20" y="28" width="60" height="34" fill="#fff" stroke="#000" stroke-width="1.5"/>
+    <rect x="6" y="68" width="88" height="8" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="36" y="68" width="28" height="4" rx="1" fill="#000"/>`,sz),
+  coin:(sz)=>sw(`<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="1.5"/>
+    <text x="50" y="56" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹</text>`,sz),
+  iron:(sz)=>sw(`<path d="M10,55 L70,55 C90,55 92,35 70,35 L10,35 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="36" y="24" width="16" height="12" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="20" y1="45" x2="60" y2="45" stroke="#000" stroke-width="1.2"/>
+    <circle cx="25" cy="50" r="2" fill="#000"/><circle cx="35" cy="50" r="2" fill="#000"/>`,sz),
+  ruler:(sz)=>sw(`<rect x="6" y="36" width="88" height="28" rx="3" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    ${Array.from({length:9},(_,i)=>`<line x1="${16+i*9}" y1="36" x2="${16+i*9}" y2="${i%3===0?48:44}" stroke="#000" stroke-width="1.5"/>`).join('')}
+    ${Array.from({length:3},(_,i)=>`<text x="${20+i*27}" y="57" font-size="8" font-family="Arial" fill="#000">${i+1}</text>`).join('')}`,sz),
+  note10:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="20" font-weight="bold" font-family="Arial" fill="#000">₹10</text>`,sz),
+  note20:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="20" font-weight="bold" font-family="Arial" fill="#000">₹20</text>`,sz),
+  note50:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="20" font-weight="bold" font-family="Arial" fill="#000">₹50</text>`,sz),
+  note100:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹100</text>`,sz),
+  note200:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹200</text>`,sz),
+  note500:(sz)=>sw(`<rect x="4" y="24" width="92" height="52" rx="4" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <rect x="10" y="30" width="80" height="40" rx="2" fill="none" stroke="#000" stroke-width="1"/>
+    <text x="50" y="55" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹500</text>`,sz),
+  coin1:(sz)=>sw(`<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="1.5"/>
+    <text x="50" y="56" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹1</text>`,sz),
+  coin2:(sz)=>sw(`<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="1.5"/>
+    <text x="50" y="56" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹2</text>`,sz),
+  coin5:(sz)=>sw(`<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="1.5"/>
+    <text x="50" y="56" text-anchor="middle" font-size="18" font-weight="bold" font-family="Arial" fill="#000">₹5</text>`,sz),
+  coin10:(sz)=>sw(`<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="1.5"/>
+    <text x="50" y="56" text-anchor="middle" font-size="16" font-weight="bold" font-family="Arial" fill="#000">₹10</text>`,sz),
+  crayon:(sz)=>sw(`<rect x="6" y="40" width="62" height="20" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M68,40 L92,50 L68,60 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <line x1="22" y1="40" x2="22" y2="60" stroke="#000" stroke-width="2"/>
+    <line x1="30" y1="40" x2="30" y2="60" stroke="#000" stroke-width="2"/>`,sz),
+  scissors:(sz)=>sw(`<circle cx="14" cy="34" r="11" fill="none" stroke="#000" stroke-width="2.8"/>
+    <circle cx="14" cy="66" r="11" fill="none" stroke="#000" stroke-width="2.8"/>
+    <line x1="25" y1="36" x2="84" y2="50" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
+    <line x1="25" y1="64" x2="84" y2="50" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>`,sz),
+  brush:(sz)=>sw(`<rect x="6" y="44" width="55" height="12" rx="3" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="58" y="42" width="10" height="16" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <path d="M68,42 C80,38 92,40 96,46 C92,54 80,58 68,58 C72,52 72,48 68,42 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <path d="M82,42 L86,58 M88,41 L92,57" stroke="#000" stroke-width="1.2"/>`,sz),
+  marker:(sz)=>sw(`<rect x="2" y="42" width="62" height="16" rx="2" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M64,42 L90,46 L90,54 L64,58 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <rect x="80" y="46" width="8" height="8" fill="#000"/>
+    <rect x="-2" y="44" width="8" height="12" fill="#fff" stroke="#000" stroke-width="2"/>`,sz),
+  spoon:(sz)=>sw(`<ellipse cx="50" cy="22" rx="14" ry="18" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    <line x1="50" y1="40" x2="50" y2="92" stroke="#000" stroke-width="4"/>`,sz),
+};
+function icon(name,sz){return ICONS[name]?ICONS[name](sz):`<svg width="${sz}" height="${sz}" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" fill="none" stroke="#000" stroke-width="3"/><text x="50" y="55" text-anchor="middle" font-size="12" fill="#000">${name}</text></svg>`;}
+function iconStretched(name,w,h){const full=icon(name,100);return full.replace('<svg width="100" height="100"',`<svg width="${w}" height="${h}" preserveAspectRatio="none"`);}
+function clipIcon(w,h){return `<svg width="${w}" height="${h}" viewBox="0 0 70 26" xmlns="http://www.w3.org/2000/svg">
+    <path d="M62,13c0,5.5-5.4,10-15,10H22c-7,0-13-4.5-13-10s6-10,13-10h18" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M48,13c0,3-3,5.5-8,5.5h-9c-4,0-7-2.5-7-5.5s3-5.5,7-5.5h9" fill="none" stroke="#000" stroke-width="2.4" stroke-linecap="round"/>
+  </svg>`;}
+
+/* weather icons */
+function wxCloudPath(){return `M26,62 C16,62 10,54 10,46 C10,38 16,32 24,32 C25,20 35,12 47,12 C58,12 67,19 70,29 C79,29 86,36 86,45 C86,54 79,62 70,62 Z`;}
+function wxSun(sz){
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="22" fill="#fff" stroke="#000" stroke-width="3.5"/>
+    <circle cx="42" cy="46" r="2.2" fill="#000"/><circle cx="58" cy="46" r="2.2" fill="#000"/>
+    <path d="M40,58 a12,10 0 0,0 20,0" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+    ${[0,45,90,135,180,225,270,315].map(a=>{const r1=28,r2=40,rad=a*Math.PI/180;const x1=50+r1*Math.cos(rad),y1=50+r1*Math.sin(rad);const x2=50+r2*Math.cos(rad),y2=50+r2*Math.sin(rad);return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#000" stroke-width="3" stroke-linecap="round"/>`;}).join('')}
+  </svg>`;}
+function wxRainy(sz){return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="${wxCloudPath()}" fill="#fff" stroke="#000" stroke-width="3.5"/>
+    <path d="M32,72 C32,68 36,64 36,64 C36,64 40,68 40,72 C40,74.5 38,76 36,76 C34,76 32,74.5 32,72 Z" fill="#fff" stroke="#000" stroke-width="2.2"/>
+    <path d="M50,76 C50,72 54,68 54,68 C54,68 58,72 58,76 C58,78.5 56,80 54,80 C52,80 50,78.5 50,76 Z" fill="#fff" stroke="#000" stroke-width="2.2"/>
+    <path d="M68,72 C68,68 72,64 72,64 C72,64 76,68 76,72 C76,74.5 74,76 72,76 C70,76 68,74.5 68,72 Z" fill="#fff" stroke="#000" stroke-width="2.2"/>
+  </svg>`;}
+function wxWindy(sz){return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="${wxCloudPath()}" fill="#fff" stroke="#000" stroke-width="3.5"/>
+    <circle cx="34" cy="42" r="1.8" fill="#000"/><circle cx="48" cy="42" r="1.8" fill="#000"/>
+    <path d="M30,52 a10,8 0 0,0 18,0" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M10,70 C20,70 26,66 30,70 C34,74 28,78 22,76" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M16,82 C28,82 36,77 41,82 C46,87 38,91 30,89" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M50,88 C62,88 70,84 75,88" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>`;}
+function wxCloudy(sz){return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14,68 C6,68 1,61 1,54 C1,47 6,42 13,42 C14,32 22,25 32,25 C41,25 48,31 50,39 C58,39 64,45 64,52 C64,59 58,65 51,65 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+    <path d="M40,80 C30,80 24,73 24,65 C24,57 30,52 38,52 C39,41 48,33 59,33 C69,33 78,40 80,49 C90,49 97,56 97,64 C97,72 90,80 81,80 Z" fill="#fff" stroke="#000" stroke-width="3"/>
+  </svg>`;}
+function wxSnowy(sz){
+  function flake(cx,cy,r){let lines='';for(let a=0;a<180;a+=60){const rad=a*Math.PI/180;const x1=cx-r*Math.cos(rad),y1=cy-r*Math.sin(rad);const x2=cx+r*Math.cos(rad),y2=cy+r*Math.sin(rad);lines+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#000" stroke-width="2" stroke-linecap="round"/>`;}return lines;}
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="${wxCloudPath()}" fill="#fff" stroke="#000" stroke-width="3.5"/>
+    ${flake(36,72,7)}${flake(54,78,7)}${flake(72,72,7)}
+  </svg>`;}
+const WX_TYPES=[['Sunny',wxSun],['Rainy',wxRainy],['Windy',wxWindy],['Cloudy',wxCloudy],['Snowy',wxSnowy]];
+
+/* clock */
+function drawClock(h,m){
+  const hA=((h%12)+m/60)*30-90, mA=m*6-90;
+  const hx=50+26*Math.cos(hA*Math.PI/180), hy=50+26*Math.sin(hA*Math.PI/180);
+  const mx=50+36*Math.cos(mA*Math.PI/180), my=50+36*Math.sin(mA*Math.PI/180);
+  let ticks='';for(let i=0;i<12;i++){const a=i*30*Math.PI/180;const r1=i%3===0?36:39;ticks+=`<line x1="${(50+r1*Math.cos(a)).toFixed(1)}" y1="${(50+r1*Math.sin(a)).toFixed(1)}" x2="${(50+43*Math.cos(a)).toFixed(1)}" y2="${(50+43*Math.sin(a)).toFixed(1)}" stroke="#000" stroke-width="${i%3===0?2:1}"/>`;}
+  const nums=[12,1,2,3,4,5,6,7,8,9,10,11];
+  let labels=nums.map((n,i)=>{const a=(i*30-90)*Math.PI/180;return `<text x="${(50+31*Math.cos(a)).toFixed(1)}" y="${(50+31*Math.sin(a)+3).toFixed(1)}" text-anchor="middle" font-size="7" font-family="Arial" fill="#000">${n}</text>`;}).join('');
+  return `<svg width="86" height="86" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="47" fill="#fff" stroke="#000" stroke-width="2.5"/>
+    ${ticks}${labels}
+    <line x1="50" y1="50" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="#000" stroke-width="4" stroke-linecap="round"/>
+    <line x1="50" y1="50" x2="${mx.toFixed(1)}" y2="${my.toFixed(1)}" stroke="#000" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="50" cy="50" r="3" fill="#000"/>
+  </svg>`;}
+
+/* ===== ICR DETECTION LOOKUP ===== */
+/* Maps sectionCode → default ICR detection method */
+const ICR_DETECT_MAP = {
+  S01: { detect: 'fill_in_blank_number',      note: 'Handwritten digit(s) in blank underline region' },
+  S02: { detect: 'symbol_written_in_box',     note: 'Written <, >, or = inside the comparison square' },
+  S03: { detect: 'handwritten_word_in_blank', note: 'Shape name written on blank line' },
+  S04: { detect: 'fill_in_blank_sequence',    note: 'Continuation values written in blank spaces' },
+  S05: { detect: 'fill_in_blank_number',      note: 'Sum written inside answer rectangle' },
+  S06: { detect: 'fill_in_blank_number',      note: 'Difference written inside answer rectangle' },
+  S07: { detect: 'freehand_circle',           note: 'Student circles one of the two object images' },
+  S08: { detect: 'fill_in_blank_number',      note: 'Clip count written inside answer square' },
+  S09: { detect: 'handwritten_time_in_box',   note: 'Time (H:MM) written inside rounded answer box' },
+  S10: { detect: 'fill_in_blank_number',      note: 'Sum of currency written inside answer rectangle' },
+  S11: { detect: 'fill_in_blank_sequence',    note: 'Ascending-order numbers written on blank line' },
+  S12: { detect: 'fill_in_blank_sequence',    note: 'Descending-order numbers written on blank line' },
+  S13: { detect: 'fill_in_blank_word_or_number', note: 'Calendar answer written on blank line' },
+  S14: { detect: 'fill_in_blank_number',      note: 'Tens/ones digit written in blank' },
+  S15: { detect: 'tally_marks_and_number',    note: 'Tally marks drawn in tally cell, total number in total cell' },
+  S16: { detect: 'handwritten_word_in_box',   note: 'Weather word written inside answer box from word bank' },
+  S17: { detect: 'fill_in_blank_number',      note: 'Product written inside answer rectangle' },
+  S18: { detect: 'fill_in_blank_number',      note: 'Quotient written above division bracket' },
+};
+
+/* ===== SECTIONS ===== */
+function section1(secObj){
+  const starts=[1,11,21,31,41,51,61,71,81,91];
+  const rows=sample(starts,4).sort((a,b)=>a-b);
+  let html='<p class="instr">Fill in the missing numbers.</p>';
+  rows.forEach((s,rowIdx)=>{
+    const nums=[];for(let i=0;i<8;i++){if(s+i<=100)nums.push(s+i);}
+    const blanks=new Set(sample([...Array(nums.length).keys()],3));
+    const blankList=[];
+    const cells=nums.map((n,i)=>{
+      if(blanks.has(i)){
+        blankList.push({position:i+1,value:n});
+        const id=`q1-row${rowIdx+1}-b${i+1}`;
+        return `<td style="width:30px;text-align:center;border:1px solid #000;padding:3px;"><span data-omr="${id}" style="display:inline-block;border-bottom:1.4px solid #000;width:22px;"> </span></td>`;
+      }
+      return `<td style="width:30px;text-align:center;border:1px solid #000;padding:3px;font-size:13px;">${n}</td>`;
+    });
+    html+=`<table style="border-collapse:collapse;margin:2px 0;" data-omr="q1-row-${rowIdx+1}"><tr>${cells.join('')}</tr></table>`;
+    secObj.items.push(mkItem(rowIdx+1,
+      {question:rowIdx+1,range:`${s}-${s+nums.length-1}`,blanks:blankList},
+      {detect:'handwritten_digit_multi',blanks:blankList.map(b=>({pos:b.position,expected:b.value}))}));
+  });
+  return html;
+}
+
+/* ===== EXAMPLE: SECTION 2 (q2) ===== */
+function section2(secObj){
+  const types=shuffle(['eq','lt','gt','lt','gt']);
+  let rows='';
+  types.forEach((t,i)=>{
+    let a,b,sym;
+    if(t==='eq'){a=ri(10,99);b=a;sym='=';}
+    else if(t==='lt'){a=ri(10,88);b=ri(a+1,99);sym='<';}
+    else{a=ri(11,99);b=ri(10,a-1);sym='>';}
+    const id=`q2-ans-${i+1}`;
+    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:15px;font-weight:bold;">${a} &nbsp;<span data-omr="${id}" class="compbox"></span>&nbsp; ${b}</td></tr>`;
+    secObj.items.push(mkItem(i+1,{question:i+1,left:a,right:b,answer:sym},
+      {detect:'handwritten_symbol',expected:sym,options:['<','>','=']}));
+  });
+  return `<p class="instr">Put &lt;, &gt;, or = in the box.</p><table class="wstable">${rows}</table>`;
+}
+
+function section3(secObj){
+  const shapes=[
+    ['△','Triangle',3],
+    ['□','Square',4],
+    ['▭','Rectangle',4],
+    ['◇','Rhombus',4],
+    ['⬠','Pentagon',5],
+    ['⬡','Hexagon',6],
+    ['⬣','Heptagon',7],
+    ['⯃','Octagon',8],
+    ['⏢','Trapezium',4],
+    ['◹','Parallelogram',4],
+  ];
+  const chosen=sample(shapes,5);
+  let rows='';
+  chosen.forEach(([sym,name,sides],i)=>{
+    const id=`q3-ans-${i+1}`;
+    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:22px;text-align:center;width:50px;">${sym}</td><td style="font-size:12px;">${name}</td><td><span data-omr="${id}" class="blankline sm"></span></td></tr>`;
+    secObj.items.push(mkItem(i+1,{question:i+1,symbol:sym,shape:name,answer:sides},{detect:'handwritten_digit',expected:sides}));
+  });
+  return `<p class="instr">Write the number of sides for each shape.</p><table class="wstable" style="max-width:340px;"><tr><th style="width:22px;">#</th><th>Shape</th><th>Name</th><th>Sides</th></tr>${rows}</table>`;
+}
+
+function section4(secObj){
+  function mkPat(given,cont){return {text:`${given.join(', ')}, _____, _____, _____, _____, _____`,answer:cont.join(', '),answerArr:cont};}
+  const nPats=[
+    ()=>{const s=ri(1,4)*2;return mkPat([s,s+2,s+4,s+6,s+8],[s+10,s+12,s+14,s+16,s+18]);},
+    ()=>{const s=ri(1,5)*5;return mkPat([s,s+5,s+10,s+15,s+20],[s+25,s+30,s+35,s+40,s+45]);},
+    ()=>{const s=ri(1,4)*2-1;return mkPat([s,s+2,s+4,s+6,s+8],[s+10,s+12,s+14,s+16,s+18]);},
+    ()=>{const s=ri(1,4)*10;return mkPat([s,s+10,s+20,s+30,s+40],[s+50,s+60,s+70,s+80,s+90]);},
+    ()=>{const s=ri(1,9)*3;return mkPat([s,s+3,s+6,s+9,s+12],[s+15,s+18,s+21,s+24,s+27]);},
+  ];
+  const sPats=[
+    {text:`○ □ △ ○ □ △ ○ □ △ _____ _____ _____`,answer:'○, □, △',answerArr:['○','□','△']},
+    {text:`★ ♥ ★ ♥ ★ ♥ ★ _____ _____ _____`,answer:'♥, ★, ♥',answerArr:['♥','★','♥']},
+    {text:`△ △ ○ △ △ ○ △ △ ○ _____ _____ _____`,answer:'△, △, ○',answerArr:['△','△','○']},
+    {text:`□ ○ ○ □ ○ ○ □ ○ ○ _____ _____ _____`,answer:'□, ○, ○',answerArr:['□','○','○']},
+  ];
+  const all=[...sample(nPats,3).map(f=>f()),...sample(sPats,2)];
+  const mixed=shuffle(all);
+  let rows='';
+  mixed.forEach((p,i)=>{
+    const id=`q4-ans-${i+1}`;
+    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:13px;letter-spacing:1px;" data-omr="${id}">${p.text}</td></tr>`;
+    secObj.items.push(mkItem(i+1,{question:i+1,pattern:p.text.split(',')[0]+'...',answer:p.answer},{detect:'fill_in_blank_sequence',expected:p.answerArr}));
+  });
+  return `<p class="instr">Continue the pattern.</p><table class="wstable">${rows}</table>`;
+}
+
+/* ===== EXAMPLE: SECTION 5 (q5, Addition) ===== */
+function section5(secObj){
+  const probs=[];for(let i=0;i<3;i++){const a=ri(10,79),b=ri(10,99-a);probs.push([a,b]);}
+  const boxes=probs.map(([a,b],i)=>{
+    const id=`q5-ans-${i+1}`;
+    secObj.items.push(mkItem(i+1,{question:i+1,addend1:a,addend2:b,answer:a+b,expression:`${a} + ${b} = ${a+b}`},
+      {detect:'handwritten_digit',expected:a+b}));
+    return `<div class="calcbox"><div class="qnum">${i+1}.</div><div class="top-num">${a}</div><div class="op-row"><span class="op-sym">+</span><span class="op-num">${b}</span></div><div class="ans-line">= <span data-omr="${id}" class="ansrect"></span></div></div>`;}).join('');
+  return `<div class="calcgrid">${boxes}</div>`;
+}
+
+function section6(secObj){
+  const probs=[];for(let i=0;i<3;i++){const a=ri(30,99),b=ri(10,a-10);probs.push([a,b]);}
+  const boxes=probs.map(([a,b],i)=>{
+    const id=`q6-ans-${i+1}`;
+    secObj.items.push(mkItem(i+1,{question:i+1,minuend:a,subtrahend:b,answer:a-b,expression:`${a} - ${b} = ${a-b}`},{detect:'handwritten_digit',expected:a-b}));
+    return `<div class="calcbox"><div class="qnum">${i+1}.</div><div class="top-num">${a}</div><div class="op-row"><span class="op-sym">−</span><span class="op-num">${b}</span></div><div class="ans-line">= <span data-omr="${id}" class="ansrect"></span></div></div>`;}).join('');
+  return `<div class="calcgrid">${boxes}</div>`;
+}
+
+function section7(secObj){
+  const pairs=[
+    ['feather','Feather','book','Book (Heavy)'],['apple','Apple','watermelon','Watermelon'],
+    ['pencil','Pencil','schoolbag','School Bag'],['football','Football','bicycle','Bicycle'],
+    ['key','Key','chair','Chair'],['eraser','Eraser','dictionary','Dictionary'],
+    ['leaf','Leaf','stone','Stone'],['pen','Pen','laptop','Laptop'],
+    ['coin','Coin','iron','Iron'],['pencil','Pencil','book','Book'],
+  ];
+  const chosen=sample(pairs,5);
+  let rows='';
+  chosen.forEach(([ia,na,ib,nb],i)=>{
+    const idA=`q7-ans-${i+1}-A`, idB=`q7-ans-${i+1}-B`;
+    rows+=`<tr><td class="rn">${i+1}</td>
+      <td data-omr="${idA}" style="text-align:center;padding:6px;">${icon(ia,52)}<br><span style="font-size:11px;">${na}</span></td>
+      <td style="text-align:center;font-size:13px;font-weight:bold;width:30px;">OR</td>
+      <td data-omr="${idB}" style="text-align:center;padding:6px;">${icon(ib,52)}<br><span style="font-size:11px;">${nb}</span></td></tr>`;
+    secObj.items.push(mkItem(i+1,{question:i+1,objectA:na,objectB:nb,answer:nb,note:'Left or Right box to circle'},{detect:'circle_mark',expected_side:'Right',options:['Left','Right']}));
+  });
+  return `<p class="instr">Circle the heavier object.</p><table class="wstable"><tr><th style="width:22px;">#</th><th>Object A</th><th style="width:30px;"></th><th>Object B</th></tr>${rows}</table>`;
+}
+
+function section8(secObj){
+  const objs=['pencil','crayon','brush','marker','scissors'];
+  const chosen=sample(objs,1);
+  const CLIP_W=34,CLIP_H=15,GAP=3;
+  let html='';
+  chosen.forEach((key,i)=>{
+    const n=ri(5,9);
+    const totalW=n*CLIP_W+(n-1)*GAP;
+    const objW=Math.max(120,totalW);
+    const clipsHTML=Array.from({length:n},()=>clipIcon(CLIP_W,CLIP_H)).join('');
+    const id=`q8-ans-${i+1}`;
+    html+=`<div class="lenrow"><div class="lenrow-num">${i+1}.</div><div class="lenrow-main"><div class="lenrow-object">${iconStretched(key,objW,56)}</div><div class="lenrow-clips" style="width:${objW}px;">${clipsHTML}</div></div><div class="lenrow-ans"><div data-omr="${id}" class="ans-square"></div><div class="ans-label"><span class="blankline sm"></span> clips</div></div></div>`;
+    secObj.items.push(mkItem(i+1,{question:i+1,object:key,answer:n},{detect:'handwritten_digit',expected:n}));
+  });
+  return `<p class="instr">Measure each object using paper clips and write the number of clips.</p>${html}`;
+}
+
+function section9(secObj){
+  const times=shuffle([[1,0],[2,30],[3,0],[4,30],[5,0],[6,0],[7,30],[8,0],[9,0],[10,30],[11,0],[12,0],[3,30],[6,30],[9,30]]);
+  const chosen=times.slice(0,4);
+  const items=chosen.map(([h,m],i)=>{
+    const timeStr=`${h}:${String(m).padStart(2,'0')}`;
+    const id=`q9-ans-${i+1}`;
+    secObj.items.push(mkItem(i+1,{question:i+1,hour:h,minute:m,answer:timeStr},{detect:'handwritten_time',expected:timeStr}));
+    return `<div class="clock-item">${drawClock(h,m)}<div data-omr="${id}" class="clock-ansbox"></div></div>`;
+  }).join('');
+  return `<p class="instr">Write the time shown on each clock.</p><div class="clock-grid">${items}</div>`;
+}
+
+function section10(secObj){
+  const noteMap={10:'note10',20:'note20',50:'note50',100:'note100',200:'note200',500:'note500'};
+  const coinMap={1:'coin1',2:'coin2',5:'coin5',10:'coin10'};
+  const allDenoms=[{v:1,type:'coin'},{v:2,type:'coin'},{v:5,type:'coin'},{v:10,type:'coin'},{v:10,type:'note'},{v:20,type:'note'},{v:50,type:'note'},{v:100,type:'note'},{v:200,type:'note'},{v:500,type:'note'}];
+  let rows='';
+  for(let i=0;i<5;i++){
+    const d1=pick(allDenoms), d2=pick(allDenoms);
+    const key1=d1.type==='coin'?coinMap[d1.v]:noteMap[d1.v];
+    const key2=d2.type==='coin'?coinMap[d2.v]:noteMap[d2.v];
+    const sz=d1.type==='coin'?50:64; const sz2=d2.type==='coin'?50:64;
+    const id=`q10-ans-${i+1}`;
+    rows+=`<tr><td class="rn">${i+1}</td><td style="text-align:center;padding:4px;">${icon(key1,sz)}<br><span style="font-size:10px;">₹${d1.v}</span></td><td style="text-align:center;font-size:16px;font-weight:bold;">+</td><td style="text-align:center;padding:4px;">${icon(key2,sz2)}<br><span style="font-size:10px;">₹${d2.v}</span></td><td style="text-align:center;">= <span data-omr="${id}" style="display:inline-block;border:2px solid #000;width:50px;height:28px;vertical-align:middle;"></span></td></tr>`;
+    secObj.items.push(mkItem(i+1,{question:i+1,amount1:d1.v,type1:d1.type,amount2:d2.v,type2:d2.type,answer:d1.v+d2.v},{detect:'handwritten_digit',expected:d1.v+d2.v}));
+  }
+  return `<p class="instr">Add the value of the notes or coins and write the sum.</p><table class="wstable"><tr><th style="width:22px;">#</th><th>Amount 1</th><th style="width:24px;"></th><th>Amount 2</th><th>Sum</th></tr>${rows}</table>`;
+}
+
+function section11(secObj){
+  let rows='';
+  for(let i=0;i<2;i++){
+    const pool=[...Array(20).keys()].map(x=>x+1+i*20);
+    const nums=sample(pool,5);
+    const id=`q11-ans-${i+1}`;
+    const sorted=[...nums].sort((a,b)=>a-b);
+    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:12.5px;">Arrange in ascending order: <b>${nums.join(', ')}</b></td><td><span data-omr="${id}" class="blankline lg"></span></td></tr>`;
+    secObj.items.push(mkItem(i+1,{question:i+1,given:nums,answer:sorted.join(', ')},{detect:'handwritten_sequence',expected:sorted}));
+  }
+  return `<p class="instr">Arrange the numbers from smallest to largest.</p><table class="wstable">${rows}</table>`;
+}
+
+function section12(secObj){
+  let rows='';
+  for(let i=0;i<2;i++){
+    const pool=[...Array(20).keys()].map(x=>x+1+i*20);
+    const nums=sample(pool,5);
+    const id=`q12-ans-${i+1}`;
+    const sorted=[...nums].sort((a,b)=>b-a);
+    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:12.5px;">Arrange in descending order: <b>${nums.join(', ')}</b></td><td><span data-omr="${id}" class="blankline lg"></span></td></tr>`;
+    secObj.items.push(mkItem(i+1,{question:i+1,given:nums,answer:sorted.join(', ')},{detect:'handwritten_sequence',expected:sorted}));
+  }
+  return `<p class="instr">Arrange the numbers from largest to smallest.</p><table class="wstable">${rows}</table>`;
+}
+
+function section13(secObj){
+  const mns=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const m=ri(0,11), y=ri(2024,2026), mn=mns[m];
+  const fd=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
+  let cal=`<table style="border-collapse:collapse;font-size:10px;"><tr><th colspan="7" style="border:1px solid #000;padding:3px;text-align:center;">${y} ${mn}</th></tr><tr>${['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d=>`<th style="border:1px solid #000;padding:2px 4px;">${d}</th>`).join('')}</tr>`;
+  let day=1,col=fd;
+  while(day<=dim){
+    let row='<tr>';
+    for(let c=0;c<7;c++){
+      if((col>0&&day===1)||day>dim){row+=`<td style="border:1px solid #000;padding:2px 5px;min-width:20px;">&nbsp;</td>`;col--;}
+      else{row+=`<td style="border:1px solid #000;padding:2px 5px;text-align:center;">${day}</td>`;day++;col=-1;}
+      if(col<0)col=0;
+    }
+    row+='</tr>';cal+=row;col=0;
+  }
+  cal+='</table>';
+  const wkCounts=[0,0,0,0,0,0,0];
+  for(let d=1;d<=dim;d++)wkCounts[(fd+d-1)%7]++;
+  const weeks=Math.floor(dim/7),extraDays=dim%7;
+  const day15=dayNames[(fd+14)%7];
+  const qs=[
+    `1. What is the month? <span data-omr="q13-ans-1" class="blankline"></span>`,
+    `2. What is the year? <span data-omr="q13-ans-2" class="blankline"></span>`,
+    `3. How many Sundays? <span data-omr="q13-ans-3" class="blankline sm"></span>`,
+    `4. How many Saturdays? <span data-omr="q13-ans-4" class="blankline sm"></span>`,
+    `5. There are <span data-omr="q13-ans-5a" class="blankline sm"></span> weeks and <span data-omr="q13-ans-5b" class="blankline sm"></span> days.`,
+    `6. The 15th is on which day? <span data-omr="q13-ans-6" class="blankline"></span>`,
+    `7. What is the last date of the month? <span data-omr="q13-ans-7" class="blankline"></span>`,
+    `8. How many Mondays? <span data-omr="q13-ans-8" class="blankline sm"></span>`,
+  ].map(q=>`<div style="font-size:11.5px;margin:3px 0;">${q}</div>`).join('');
+
+  secObj.items.push(mkItem(1,{question:1,ask:'What is the month?',answer:mn},{detect:'handwritten_word',expected:mn}));
+  secObj.items.push(mkItem(2,{question:2,ask:'What is the year?',answer:String(y)},{detect:'handwritten_digit',expected:y}));
+  secObj.items.push(mkItem(3,{question:3,ask:'How many Sundays?',answer:String(wkCounts[0])},{detect:'handwritten_digit',expected:wkCounts[0]}));
+  secObj.items.push(mkItem(4,{question:4,ask:'How many Saturdays?',answer:String(wkCounts[6])},{detect:'handwritten_digit',expected:wkCounts[6]}));
+  secObj.items.push(mkItem(5,{question:5,ask:'Weeks and extra days',weeks:weeks,extraDays:extraDays},{detect:'handwritten_digit_multi',fields:['weeks','extraDays'],expected:{weeks,extraDays}}));
+  secObj.items.push(mkItem(6,{question:6,ask:'15th is on which day?',answer:day15},{detect:'handwritten_word',expected:day15}));
+  secObj.items.push(mkItem(7,{question:7,ask:'Last date of the month?',answer:String(dim)},{detect:'handwritten_digit',expected:dim}));
+  secObj.items.push(mkItem(8,{question:8,ask:'How many Mondays?',answer:String(wkCounts[1])},{detect:'handwritten_digit',expected:wkCounts[1]}));
+
+  return `<div style="display:flex;gap:12px;flex-wrap:wrap;">${cal}<div>${qs}</div></div>`;
+}
+
+function section14(secObj){
+  const nums=sample([...Array(89).keys()].map(x=>x+11),3);
+  let rows1='';
+  nums.forEach((n,i)=>{
+    const idTens=`q14-p1-${i+1}-tens`, idOnes=`q14-p1-${i+1}-ones`;
+    rows1+=`<tr><td class="rn">${i+1}</td><td style="font-size:15px;font-weight:bold;">${n}</td><td style="font-size:13px;"><span data-omr="${idTens}" class="blankline sm"></span> tens + <span data-omr="${idOnes}" class="blankline sm"></span> ones</td></tr>`;
+    secObj.items.push(mkItem(i+1,{question:i+1,part:1,number:n,tens:Math.floor(n/10),ones:n%10},{detect:'handwritten_digit_multi',fields:['tens','ones'],expected:{tens:Math.floor(n/10),ones:n%10}}));
+  });
+  let rows2='';
+  for(let i=0;i<3;i++){
+    const t=ri(1,9),o=ri(0,9);
+    const id=`q14-p2-${i+1}-number`;
+    rows2+=`<tr><td class="rn">${i+1}</td><td style="font-size:13px;"><b>${t}</b> tens and <b>${o}</b> ${o===1?'one':'ones'} = </td><td><span data-omr="${id}" class="blankline sm"></span></td></tr>`;
+    secObj.items.push(mkItem(i+4,{question:i+4,part:2,tens:t,ones:o,number:t*10+o},{detect:'handwritten_digit',expected:t*10+o}));
+  }
+  return `<p class="instr"><b>Part 1:</b> Write the tens and ones for each number.</p><table class="wstable" style="max-width:380px;">${rows1}</table><p class="instr" style="margin-top:8px;"><b>Part 2:</b> Write the number for each tens and ones.</p><table class="wstable" style="max-width:350px;">${rows2}</table>`;
+}
+
+function section16(secObj){
+  const cats=[
+    ['Fruits',['Apples','Bananas','Grapes','Strawberries','Mangoes','Oranges']],
+    ['Pets',['Dog','Cat','Fish','Rabbit','Bird','Turtle']],
+    ['Sports',['Cricket','Football','Badminton','Chess','Swimming','Running']],
+    ['Colours',['Red','Blue','Green','Yellow','Orange','Purple']],
+  ];
+  const [topic,items]=pick(cats);
+  const counts=items.map(it=>[it,ri(1,10)]);
+  let rows='';
+  counts.forEach(([item,cnt])=>{
+    const tId=`q15-tally-${item.replace(/\s+/g,'_')}`;
+    const totId=`q15-total-${item.replace(/\s+/g,'_')}`;
+    rows+=`<tr><td style="font-size:12px;">${item}</td><td style="text-align:center;font-size:12px;">${cnt}</td><td data-omr="${tId}" style="min-width:90px;height:28px;">&nbsp;</td><td style="text-align:center;min-width:40px;"><span data-omr="${totId}" style="display:inline-block;border-bottom:1.4px solid #000;width:32px;"> </span></td></tr>`;
+    secObj.items.push(mkItem(null,{item,count:cnt,field:'tally'},{detect:'tally_marks',expected:tallyString(cnt)}));
+    secObj.items.push(mkItem(null,{item,count:cnt,field:'total'},{detect:'handwritten_digit',expected:cnt}));
+  });
+  const [fi,fc]=counts[0];
+  const most=counts.reduce((a,b)=>b[1]>a[1]?b:a);
+  const least=counts.reduce((a,b)=>b[1]<a[1]?b:a);
+  const total=counts.reduce((s,c)=>s+c[1],0);
+  const qs=[
+    `1. How many students chose ${fi}? <span data-omr="q15-ans-1" class="blankline sm"></span>`,
+    `2. Which is the favourite of most students? <span data-omr="q15-ans-2" class="blankline"></span>`,
+    `3. Which is the least favourite? <span data-omr="q15-ans-3" class="blankline"></span>`,
+    `4. How many more chose ${most[0]} than ${least[0]}? <span data-omr="q15-ans-4" class="blankline sm"></span>`,
+    `5. Total students in survey? <span data-omr="q15-ans-5" class="blankline sm"></span>`,
+  ].map(q=>`<div style="font-size:11.5px;margin:3px 0;">${q}</div>`).join('');
+  [
+    [1,`How many students chose ${fi}?`,fc],
+    [2,'Favourite of most students?',most[0]],
+    [3,'Least favourite?',least[0]],
+    [4,`How many more chose ${most[0]} than ${least[0]}?`,most[1]-least[1]],
+    [5,'Total students in survey?',total],
+  ].forEach(([qn,ask,ans])=>secObj.items.push(mkItem(qn,{question:qn,ask,answer:ans},{detect:'handwritten_text_or_digit',expected:ans})));
+  return `<p class="instr">Part 1: Draw tally marks for each number. Part 2: Answer questions.</p><table class="wstable"><tr><th>${topic}</th><th>No. of Students</th><th>Tally Marks</th><th>Total</th></tr>${rows}</table><div style="margin-top:5px;">${qs}</div>`;
+}
+
+
+function section18(secObj){
+  const probs=[];for(let i=0;i<3;i++){const a=ri(2,9),b=ri(2,9);probs.push([a,b]);}
+  const boxes=probs.map(([a,b],i)=>{
+    const id=`q16-ans-${i+1}`;
+    secObj.items.push(mkItem(i+1,{question:i+1,factor1:a,factor2:b,answer:a*b},{detect:'handwritten_digit',expected:a*b}));
+    return `<div class="mul-box"><div class="qnum">${i+1}.</div><div class="mn" style="text-align:right;">${a}</div><div class="op-row"><span class="op-s">×</span><span style="flex:1;text-align:right;font-size:22px;font-weight:bold;">${b}</span></div><div class="ans-line"><span data-omr="${id}" class="mul-ansbox"></span></div></div>`;}).join('');
+  return `<div class="muldiv-grid">${boxes}</div>`;
+}
+
+function section19(secObj){
+  const divs=[2,3,4,5,6];
+  const probs=[];
+  for(let i=0;i<3;i++){const d=pick(divs),q=ri(2,9);probs.push([d,d*q]);}
+  const boxes=probs.map(([d,n],i)=>{
+    const id=`q17-ans-${i+1}`;
+    secObj.items.push(mkItem(i+1,{question:i+1,dividend:n,divisor:d,answer:n/d},{detect:'handwritten_digit',expected:n/d}));
+    return `<div class="div-box">
+      <div class="qnum">${i+1}.</div>
+      <div class="div-q-row"><span class="div-spacer">${d}</span><div data-omr="${id}" class="div-quotient-blank"></div></div>
+      <div class="div-bracket-row"><span class="div-divisor">${d}</span><span class="div-bracket">${n}</span></div>
+      <div class="div-work-row"><span class="div-spacer">${d}</span><div class="div-work">
+        <div class="div-sub-row">−<span class="div-sub-blank"></span></div>
+        <div class="div-hr2"></div>
+        <div class="div-sub-row"><span class="div-rem-blank"></span></div>
+      </div></div>
+    </div>`;}).join('');
+  return `<div class="muldiv-grid">${boxes}</div>`;
+}
+const SECTIONS=[
+  {t:'Section 1 — Missing Numbers (1 to 100)',plain:'Section 1 — Missing Numbers',fn:section1},
+  {t:'Section 2 — Comparison (&lt;, &gt;, =)',plain:'Section 2 — Comparison (<, >, =)',fn:section2},
+  {t:'Section 3 — Write the Shape Name',plain:'Section 3 — Write the Shape Name',fn:section3},
+  {t:'Section 4 — Pattern',plain:'Section 4 — Pattern',fn:section4},
+  {t:'Section 5 — Addition',plain:'Section 5 — Addition',fn:section5},
+  {t:'Section 6 — Subtraction',plain:'Section 6 — Subtraction',fn:section6},
+  {t:'Section 7 — Circle the Heavier Object',plain:'Section 7 — Heavier Object',fn:section7},
+  {t:'Section 8 — Length Measurement (Non-standard Units)',plain:'Section 8 — Length Measurement',fn:section8},
+  {t:'Section 9 — Write the Time (Clocks)',plain:'Section 9 — Write the Time',fn:section9},
+  {t:'Section 10 — Add the Value of Note or Coin',plain:'Section 10 — Money (Note/Coin)',fn:section10},
+  {t:'Section 11 — Ascending Order',plain:'Section 11 — Ascending Order',fn:section11},
+  {t:'Section 12 — Descending Order',plain:'Section 12 — Descending Order',fn:section12},
+  {t:'Section 13 — Calendar Questions',plain:'Section 13 — Calendar',fn:section13},
+  {t:'Section 14 — Tens and Ones',plain:'Section 14 — Tens and Ones',fn:section14},
+ {t:'Section 15 — Data Collection and Interpretation',plain:'Section 15 — Data Collection',fn:section16},
+  {t:'Section 16 — Multiplication',plain:'Section 16 — Multiplication',fn:section18},
+  {t:'Section 17 — Division',plain:'Section 17 — Division',fn:section19},
+];
+
+
+/* ===== ANSWER KEY BUILDER (replace existing buildAnswerKeyForSet) ===== */
+function buildAnswerKeyForSet(setNum, secObjs){
+  return {
+    meta:{
+      set:setNum,
+      pid:`SET-${String(setNum).padStart(5,'0')}`,
+      gen:new Date().toISOString(),
+      sections:secObjs.length,
+      coord_unit:'mm',
+      icr_version:'1.0',
+      layout:'multi-page-A4'
+    },
+    registration_marks:null,
+    coords_mm:null,
+    sections:secObjs
+  };
+}
+
+/* ===== CSV EXPORT ===== */
+/* ===== CSV EXPORT (replace existing answerKeyToCSV) ===== */
+function csvEscape(v){const s=String(v);return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;}
+function answerKeyToCSV(ak){
+  const rows=[['set','section','question','data','icr_detect','icr_expected']];
+  ak.sections.forEach(sec=>{
+    sec.items.forEach(item=>{
+      rows.push([
+        ak.meta.set,
+        sec.section,
+        item.question,
+        JSON.stringify(item.data),
+        item.icr?item.icr.detect:'',
+        item.icr?JSON.stringify(item.icr.expected!==undefined?item.icr.expected:item.icr):''
+      ]);
+    });
+  });
+  return rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+}
+
+/* ===== buildCSV (replace existing buildCSV) ===== */
+function buildCSV(start,end){
+  if(!answerKeys.length)return '';
+  const s=Math.max(1,start||1), e=Math.min(answerKeys.length,end||answerKeys.length);
+  const rows=[['set','section','question','data','icr_detect','icr_expected']];
+  for(let i=s-1;i<e;i++){
+    const ak=answerKeys[i];
+    ak.sections.forEach(sec=>{
+      sec.items.forEach(item=>{
+        rows.push([
+          ak.meta.set,
+          sec.section,
+          item.question,
+          JSON.stringify(item.data),
+          item.icr?item.icr.detect:'',
+          item.icr?JSON.stringify(item.icr.expected!==undefined?item.icr.expected:item.icr):''
+        ]);
+      });
+    });
+  }
+  return rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+}
+
+function downloadBlob(content,type,filename){
+  const blob=new Blob([typeof content==='string'?content:JSON.stringify(content,null,2)],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+
+/* ===== APP STATE ===== */
+let worksheetHTMLs=[], answerKeys=[], inserted=[], currentSet=1;
+let omrOverlayActive=false;
+
+/* ===== PAGE ID STAMP ===== */
+function pageIdStamp(setNum,total){
+  const pad=String(total||setNum).length;
+  const id='SET-'+String(setNum).padStart(Math.max(5,pad),'0');
+  return `<div class="page-id-stamp no-print-label">${id}</div>`;
+}
+
+/* ===== BUILD WORKSHEET (replace existing buildWorksheet) ===== */
+function buildWorksheet(n,totalSets){
+  const secObjs=[];
+  const secs=SECTIONS.map(s=>{
+    const secObj=newSecObj(s.plain.replace(/^Section \d+ — /,''), null);
+    const html=s.fn(secObj);
+    secObjs.push(secObj);
+    return `<div class="section"><h2>${s.t}</h2>${html}</div>`;
+  }).join('');
+  const stamp=pageIdStamp(n,totalSets||n);
+  const html=`<div class="page-wrapper">
+    <div class="reg-sq tl"></div>
+    <div class="reg-sq tr"></div>
+    <div class="reg-sq bl"></div>
+    <div class="reg-sq br"></div>
+    <div class="page">
+      <div class="ws-header">
+        <div class="ws-title">CLASS 3 — MATHEMATICS PRACTICE WORKSHEET</div>
+        <div class="ws-sub">Set ${n}</div>
+        <div class="ws-fields"><span>Name:</span><span>Date:</span><span>Roll No.:</span><span>Marks: ____ / 100</span></div>
+      </div>${secs}
+      <div class="ws-footer">Class 3 — Math Practice &nbsp;|&nbsp; Set ${n}</div>
+      ${stamp}
+    </div>
+  </div>`;
+  return {html, answerKey: buildAnswerKeyForSet(n, secObjs)};
+}
+
+
+/* ===== COORD CAPTURE (replace existing captureCoords) ===== */
+function captureCoords(pageEl){
+  const PX_PER_MM=96/25.4;
+  const wrapper=pageEl.closest?(pageEl.classList.contains('page-wrapper')?pageEl:pageEl.closest('.page-wrapper')):pageEl;
+  const wrapRect=wrapper?wrapper.getBoundingClientRect():pageEl.getBoundingClientRect();
+  function box(rect){
+    return {
+      x_min:parseFloat(((rect.left-wrapRect.left)/PX_PER_MM).toFixed(2)),
+      y_min:parseFloat(((rect.top -wrapRect.top )/PX_PER_MM).toFixed(2)),
+      x_max:parseFloat(((rect.right-wrapRect.left)/PX_PER_MM).toFixed(2)),
+      y_max:parseFloat(((rect.bottom-wrapRect.top )/PX_PER_MM).toFixed(2))
+    };
+  }
+  const registration_marks={};
+  if(wrapper){
+    ['tl','tr','bl','br'].forEach(c=>{const el=wrapper.querySelector('.reg-sq.'+c); if(el) registration_marks[c]=box(el.getBoundingClientRect());});
+  }
+  const page=pageEl.classList.contains('page')?pageEl:pageEl.querySelector('.page');
+  const omrEls=(page||pageEl).querySelectorAll('[data-omr]');
+  const coords_mm={};
+  omrEls.forEach(el=>{
+    const id=el.getAttribute('data-omr');
+    const m=id.match(/^(q\d+)-(.+)$/);
+    if(!m) return;
+    const qKey=m[1];
+    coords_mm[qKey]=coords_mm[qKey]||{};
+    coords_mm[qKey][id]=box(el.getBoundingClientRect());
+  });
+  return {registration_marks, coords_mm};
+}
+
+/* ===== OMR OVERLAY ===== */
+function showOMROverlay(wsDiv){
+  // Remove any existing overlay
+  wsDiv.querySelectorAll('.omr-overlay').forEach(o=>o.remove());
+  const page = wsDiv.querySelector('.page');
+  if(!page) return;
+  const wrapper = wsDiv.querySelector('.page-wrapper');
+
+  const overlay = document.createElement('div');
+  overlay.className='omr-overlay';
+  // Position overlay over the page
+  const pageRect = page.getBoundingClientRect();
+  const wrapRect = (wrapper||page).getBoundingClientRect();
+
+  const omrEls = page.querySelectorAll('[data-omr]');
+  omrEls.forEach(el=>{
+    const id = el.getAttribute('data-omr');
+    const elRect = el.getBoundingClientRect();
+    const box = document.createElement('div');
+    box.className='omr-box';
+    box.style.left   = (elRect.left - pageRect.left)+'px';
+    box.style.top    = (elRect.top  - pageRect.top )+'px';
+    box.style.width  = elRect.width +'px';
+    box.style.height = Math.max(elRect.height,10)+'px';
+    const lbl=document.createElement('div');
+    lbl.className='omr-label';
+    lbl.textContent=id;
+    box.appendChild(lbl);
+    overlay.appendChild(box);
+  });
+  page.style.position='relative';
+  page.appendChild(overlay);
+}
+
+function removeOMROverlay(wsDiv){
+  wsDiv.querySelectorAll('.omr-overlay').forEach(o=>o.remove());
+}
+
+/* ===== GENERATE SETS ===== */
+function generateSets(n){
+  n=Math.max(1,Math.min(5000,n|0));
+  worksheetHTMLs=[];answerKeys=[];inserted=new Array(n).fill(false);
+  omrOverlayActive=false;
+  const total=n;
+  for(let i=0;i<n;i++){
+    const {html,answerKey}=buildWorksheet(i+1,total);
+    worksheetHTMLs.push(html);
+    answerKeys.push(answerKey);
+  }
+  // Update single-set max
+  document.getElementById('singleSetNum').max=n;
+
+  const tabbar=document.getElementById('tabbar');
+  tabbar.innerHTML='';
+  for(let i=1;i<=n;i++){
+    const btn=document.createElement('button');
+    btn.className='tabbtn';btn.id='tabbtn-'+i;btn.textContent='Set '+i;
+    btn.addEventListener('click',()=>activateSet(i));
+    tabbar.appendChild(btn);
+  }
+  const container=document.getElementById('setsContainer');
+  container.innerHTML='';
+  for(let i=1;i<=n;i++){
+    const div=document.createElement('div');div.className='worksheet';div.id='ws-'+i;
+    container.appendChild(div);
+  }
+  activateSet(1);
+}
+
+function activateSet(num){
+  currentSet=num;
+  // Remove overlay if active (it gets rebuilt on toggle)
+  omrOverlayActive=false;
+  document.querySelectorAll('.worksheet').forEach(w=>w.classList.remove('active'));
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
+  const div=document.getElementById('ws-'+num);if(!div)return;
+  if(!inserted[num-1]){div.innerHTML=worksheetHTMLs[num-1];inserted[num-1]=true;}
+  div.classList.add('active');
+  const btn=document.getElementById('tabbtn-'+num);if(btn)btn.classList.add('active');
+  document.getElementById('singleSetNum').value=num;
+}
+
+/* ===== OMR TOGGLE ===== */
+document.getElementById('omrToggleBtn').addEventListener('click',()=>{
+  const wsDiv=document.getElementById('ws-'+currentSet);
+  if(!wsDiv||!inserted[currentSet-1]){alert('Generate and view a set first.');return;}
+  if(!omrOverlayActive){showOMROverlay(wsDiv);omrOverlayActive=true;document.getElementById('omrToggleBtn').textContent='Hide OMR Overlay';}
+  else{removeOMROverlay(wsDiv);omrOverlayActive=false;document.getElementById('omrToggleBtn').textContent='Toggle OMR Overlay';}
+});
+
+/* ===== EXPORT COORDS (replace existing exportCoordsBtn handler) ===== */
+document.getElementById('exportCoordsBtn').addEventListener('click',()=>{
+  const wsDiv=document.getElementById('ws-'+currentSet);
+  if(!wsDiv||!inserted[currentSet-1]){alert('Generate and view a set first.');return;}
+  const pageEl=wsDiv.querySelector('.page');
+  if(!pageEl){alert('Page not found.');return;}
+  const {registration_marks,coords_mm}=captureCoords(pageEl);
+  const ak=JSON.parse(JSON.stringify(answerKeys[currentSet-1]));
+  ak.registration_marks=registration_marks;
+  ak.coords_mm=coords_mm;
+  const pad=String(answerKeys.length).length;
+  const padded=String(currentSet).padStart(pad,'0');
+  downloadBlob(JSON.stringify(ak,null,2),'application/json',`coords_Set_${padded}.json`);
+});
+
+/* ===== ANSWER KEY MODAL (replace existing renderAKModal) ===== */
+function renderAKModal(setNum){
+  const ak=answerKeys[setNum-1];if(!ak)return;
+  document.getElementById('akTitle').textContent=`Answer Key — Set ${setNum}`;
+  let html='';
+  ak.sections.forEach(sec=>{
+    html+=`<div class="ak-section"><h3>${sec.section}</h3><table class="ak-table"><thead><tr><th>Q#</th><th>Data</th><th>Expected</th><th>ICR Detect</th></tr></thead><tbody>`;
+    sec.items.forEach(item=>{
+      const expected=item.icr?(item.icr.expected!==undefined?item.icr.expected:JSON.stringify(item.icr)):'';
+      html+=`<tr><td style="font-family:monospace;font-size:11px;">${item.question!==null?item.question:'-'}</td><td style="font-size:10px;">${JSON.stringify(item.data)}</td><td><strong>${typeof expected==='object'?JSON.stringify(expected):expected}</strong></td><td style="font-size:10px;color:#555;">${item.icr?item.icr.detect:''}</td></tr>`;
+    });
+    html+='</tbody></table></div>';
+  });
+  document.getElementById('akBody').innerHTML=html;
+  document.getElementById('akModal').classList.add('open');
+  document.getElementById('akDlJson').onclick=()=>{
+    downloadBlob(JSON.stringify(ak,null,2),'application/json',`answer_key_Set_${String(setNum).padStart(3,'0')}.json`);};
+  document.getElementById('akDlCsv').onclick=()=>{
+    downloadBlob(answerKeyToCSV(ak),'text/csv',`answer_key_Set_${String(setNum).padStart(3,'0')}.csv`);};
+}
+document.getElementById('akClose').addEventListener('click',()=>document.getElementById('akModal').classList.remove('open'));
+document.getElementById('akModal').addEventListener('click',e=>{if(e.target===document.getElementById('akModal'))document.getElementById('akModal').classList.remove('open');});
+document.getElementById('viewAKBtn').addEventListener('click',()=>{
+  if(!answerKeys.length){alert('Generate at least one set first.');return;}
+  renderAKModal(currentSet);
+});
+document.getElementById('dlAKBtn').addEventListener('click',()=>{
+  if(!answerKeys.length){alert('Generate at least one set first.');return;}
+  const ak=answerKeys[currentSet-1];
+  const pad=String(answerKeys.length).length;
+  const padded=String(currentSet).padStart(pad,'0');
+  downloadBlob(JSON.stringify(ak,null,2),'application/json',`answer_key_Set_${padded}.json`);
+  setTimeout(()=>downloadBlob(answerKeyToCSV(ak),'text/csv',`answer_key_Set_${padded}.csv`),300);
+});
+
+document.getElementById('generateBtn').addEventListener('click',()=>{
+  generateSets(parseInt(document.getElementById('setCount').value,10)||1);
+});
+document.getElementById('printBtn').addEventListener('click',()=>window.print());
+
+/* ===== PDF HELPERS ===== */
+function computeSlices(iw,ih,pw,ph,atomicBounds){
+  const pxmm=iw/pw, maxH=Math.max(1,Math.round(ph*pxmm));
+  atomicBounds=(atomicBounds||[]).slice().sort((a,b)=>a.bottom-b.bottom);
+
+  // Safe cut points: very top, very bottom, and the bottom edge of every
+  // "atomic" (indivisible) question block — never the inside of one.
+  const safeSet=new Set([0, ih]);
+  atomicBounds.forEach(b=>{ if(b.bottom>0 && b.bottom<ih) safeSet.add(Math.round(b.bottom)); });
+  const safePoints=[...safeSet].sort((a,b)=>a-b);
+
+  function isInsideAtomic(y){
+    for(const b of atomicBounds){ if(y>b.top+0.5 && y<b.bottom-0.5) return true; }
+    return false;
+  }
+
+  const sl=[]; let y=0;
+  while(y<ih){
+    const idealEnd=Math.min(y+maxH, ih);
+    // Pick the largest safe break point that still fits on this page —
+    // this fills each page as fully as possible without cutting a question.
+    let chosen=null;
+    for(let i=safePoints.length-1;i>=0;i--){
+      const p=safePoints[i];
+      if(p>y && p<=idealEnd){ chosen=p; break; }
+    }
+    if(chosen===null || isInsideAtomic(chosen)){
+      // Only happens if a single question is taller than a full page —
+      // unavoidable edge case; fall back to a plain page-height cut.
+      chosen=idealEnd;
+    }
+    const h=chosen-y;
+    sl.push({sy:y, sh:h, mh:h/pxmm});
+    y=chosen;
+  }
+  return sl;
+}
+
+function sliceCanvas(src,sy,sh){
+  const c=document.createElement('canvas');c.width=src.width;c.height=sh;
+  c.getContext('2d').drawImage(src,0,sy,src.width,sh,0,0,src.width,sh);return c;
+}
+
+async function buildPdfBlob(idx){
+  const root=document.getElementById('pdfRenderRoot');
+  root.innerHTML=worksheetHTMLs[idx-1];
+  await new Promise(r=>requestAnimationFrame(r));
+  await new Promise(r=>requestAnimationFrame(r));
+  await new Promise(r=>setTimeout(r,120));
+
+  const pageEl=root.querySelector('.page');
+  const pageRect=pageEl.getBoundingClientRect();
+
+  // Locate every indivisible "question unit" on the page so pagination can
+  // avoid cutting through the middle of one.
+  const ATOMIC_SELECTOR=[
+    'tr',
+    '.calcbox',
+    '.mul-box',
+    '.div-box',
+    '.clock-item',
+    '.lenrow',
+    '.wxrow',
+    'div[style*="font-size:11.5px;margin:3px 0;"]'
+  ].join(',');
+  const atomicBoundsCss=Array.from(pageEl.querySelectorAll(ATOMIC_SELECTOR))
+    .map(el=>{const r=el.getBoundingClientRect();return {top:r.top-pageRect.top, bottom:r.bottom-pageRect.top};})
+    .filter(b=>b.bottom>b.top);
+
+  const canvas=await html2canvas(pageEl,{scale:1.5,backgroundColor:'#ffffff'});
+  const cssToCanvas=canvas.width/pageRect.width;
+  const atomicBoundsPx=atomicBoundsCss.map(b=>({top:b.top*cssToCanvas, bottom:b.bottom*cssToCanvas}));
+
+  const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
+  const slices=computeSlices(canvas.width,canvas.height,210,297,atomicBoundsPx);
+  slices.forEach((sl,i)=>{
+    const sc=sliceCanvas(canvas,sl.sy,sl.sh);
+    if(i>0)pdf.addPage();
+    pdf.addImage(sc.toDataURL('image/jpeg',0.85),'JPEG',0,0,210,sl.mh);
+    sc.width=0;sc.height=0;
+  });
+  canvas.width=0;canvas.height=0;root.innerHTML='';
+  return pdf.output('blob');
+}
+/* ===== SINGLE SET DOWNLOAD ===== */
+document.getElementById('dlSingleSetBtn').addEventListener('click',async()=>{
+  if(!worksheetHTMLs.length){alert('Generate sets first.');return;}
+  const n=parseInt(document.getElementById('singleSetNum').value,10)||1;
+  if(n<1||n>worksheetHTMLs.length){alert(`Set ${n} does not exist. Generate ${n} sets first.`);return;}
+  const btn=document.getElementById('dlSingleSetBtn');
+  btn.disabled=true;btn.textContent='Rendering…';
+  const prog=document.getElementById('exportProgress');
+  prog.textContent=`Rendering Set ${n} PDF…`;
+  try{
+    const pad=String(worksheetHTMLs.length).length;
+    const padded=String(n).padStart(pad,'0');
+    const pdfBlob=await buildPdfBlob(n);
+    const ak=answerKeys[n-1];
+    // Download PDF
+    const pdfUrl=URL.createObjectURL(pdfBlob);
+    const a1=document.createElement('a');a1.href=pdfUrl;a1.download=`Set_${padded}_Worksheet.pdf`;
+    document.body.appendChild(a1);a1.click();document.body.removeChild(a1);
+    setTimeout(()=>URL.revokeObjectURL(pdfUrl),4000);
+    // Download JSON key
+    setTimeout(()=>downloadBlob(JSON.stringify(ak,null,2),'application/json',`Set_${padded}_AnswerKey.json`),400);
+    // Download CSV key
+    setTimeout(()=>downloadBlob(answerKeyToCSV(ak),'text/csv',`Set_${padded}_AnswerKey.csv`),800);
+    prog.textContent=`Set ${n}: PDF + JSON + CSV downloaded.`;
+  }catch(e){console.error(e);prog.textContent='Download failed. See console.';}
+  finally{btn.disabled=false;btn.textContent='Download This Set';}
+});
+
+//* ===== MASTER JSON builder (replace existing buildMasterJSON — unchanged logic, just confirming compatibility) ===== */
+function buildMasterJSON(start,end){
+  if(!answerKeys.length)return null;
+  const s=Math.max(1,start||1),e=Math.min(answerKeys.length,end||answerKeys.length);
+  return {
+    meta:{generated:new Date().toISOString(),totalSets:e-s+1,setsRange:`${s}-${e}`,note:"Combined answer keys. Each set's sections[].items[] hold question data+icr."},
+    sets:answerKeys.slice(s-1,e)
+  };
+}
+
+/* ===== CHUNKED ZIP EXPORT ===== */
+const CHUNK_SIZE=300; // sets per ZIP
+
+async function exportAll(){
+  if(!worksheetHTMLs.length){alert('Generate at least one set first.');return;}
+  const eBtn=document.getElementById('exportAllBtn'),gBtn=document.getElementById('generateBtn');
+  const prog=document.getElementById('exportProgress');
+  const n=worksheetHTMLs.length;
+  const numChunks=Math.ceil(n/CHUNK_SIZE);
+  eBtn.disabled=true;gBtn.disabled=true;
+  const t0=Date.now();
+  try{
+    for(let chunkIdx=0;chunkIdx<numChunks;chunkIdx++){
+      const chunkStart=chunkIdx*CHUNK_SIZE+1;
+      const chunkEnd=Math.min((chunkIdx+1)*CHUNK_SIZE,n);
+      const zip=new JSZip();
+      const pad=String(n).length;
+
+      for(let i=chunkStart;i<=chunkEnd;i++){
+        const elapsed=((Date.now()-t0)/1000).toFixed(0);
+        const pct=Math.round((i-1)/n*100);
+        prog.textContent=`[Part ${chunkIdx+1}/${numChunks}] Set ${i}/${n} (${pct}%) — ${elapsed}s`;
+        const padded=String(i).padStart(pad,'0');
+        const folder=zip.folder(`Set_${padded}`);
+        folder.file(`Set_${padded}_Worksheet.pdf`, await buildPdfBlob(i));
+        const ak=answerKeys[i-1];
+        folder.file(`Set_${padded}_AnswerKey.json`, JSON.stringify(ak,null,2));
+        folder.file(`Set_${padded}_AnswerKey.csv`, answerKeyToCSV(ak));
+        await new Promise(r=>setTimeout(r,80));
+      }
+
+      // Per-chunk master keys
+      const chunkMasterJson=buildMasterJSON(chunkStart,chunkEnd);
+      zip.file(`master_answer_key_Sets_${String(chunkStart).padStart(pad,'0')}-${String(chunkEnd).padStart(pad,'0')}.json`, JSON.stringify(chunkMasterJson,null,2));
+      zip.file(`master_answer_key_Sets_${String(chunkStart).padStart(pad,'0')}-${String(chunkEnd).padStart(pad,'0')}.csv`, buildCSV(chunkStart,chunkEnd));
+
+      const chunkElapsed=((Date.now()-t0)/1000).toFixed(0);
+      prog.textContent=`Compressing Part ${chunkIdx+1}/${numChunks} … (${chunkElapsed}s)`;
+      const zb=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}},
+        m=>{prog.textContent=`Part ${chunkIdx+1}/${numChunks}: compressing ${Math.round(m.percent)}% — ${((Date.now()-t0)/1000).toFixed(0)}s`;});
+
+      const suffix=numChunks>1?`_Part${chunkIdx+1}of${numChunks}`:'';
+      const url=URL.createObjectURL(zb);
+      const a=document.createElement('a');a.href=url;a.download=`Class3_Math_Worksheets${suffix}.zip`;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
+
+      // Small pause between chunks
+      if(chunkIdx<numChunks-1)await new Promise(r=>setTimeout(r,500));
+    }
+    const total=((Date.now()-t0)/1000).toFixed(1);
+    prog.textContent=`Done — ${n} sets in ${numChunks} ZIP(s), ${total}s total.`;
+  }catch(e){console.error(e);prog.textContent='Export failed. See console.';}
+  finally{eBtn.disabled=false;gBtn.disabled=false;}
+}
+document.getElementById('exportAllBtn').addEventListener('click',exportAll);
+
+/* ===== GLOBAL API EXPOSURE ===== */
+window.generateSets = generateSets;
+window.activateSet  = activateSet;
+window.captureCoords= captureCoords;
+window.buildMasterJSON = buildMasterJSON;
+window.buildCSV     = buildCSV;
+window.buildPdfBlob = buildPdfBlob;
+// Raw arrays
+Object.defineProperty(window,'worksheetHTMLs',{get:()=>worksheetHTMLs});
+Object.defineProperty(window,'answerKeys',     {get:()=>answerKeys});
+
+/* ===== INIT ===== */
+generateSets(parseInt(document.getElementById('setCount').value,10)||5);
+</script>
+</body>
+</html>

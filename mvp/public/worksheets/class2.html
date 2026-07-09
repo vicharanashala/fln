@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Class 2 Math Practice Worksheet Generator — v3 (Smart Page Breaks)</title>
+<style>
+  :root{
+    --black:#000;
+    --white:#fff;
+    --gray:#555;
+    --line:#000;
+    --accent:#1a56db;
+    --accent-light:#e8f0fe;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:Arial, Helvetica, sans-serif;
+    background:#e9e9e9;
+    color:#000;
+    margin:0;
+    padding:0;
+  }
+  .toolbar{
+    background:#fff;
+    border-bottom:2px solid #000;
+    padding:14px 18px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:14px;
+    position:sticky;
+    top:0;
+    z-index:50;
+  }
+  .toolbar h1{font-size:18px;margin:0;margin-right:10px;letter-spacing:0.5px;}
+  .toolbar label{font-size:14px;}
+  .toolbar input[type=number]{
+    width:64px;padding:5px 6px;border:1px solid #000;
+    font-family:inherit;font-size:14px;
+  }
+  .btn{
+    background:#fff;border:1.5px solid #000;color:#000;
+    padding:7px 16px;font-size:14px;font-family:inherit;
+    cursor:pointer;border-radius:3px;white-space:nowrap;
+  }
+  .btn:hover{background:#000;color:#fff;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn:disabled:hover{background:#fff;color:#000;}
+  .btn.accent{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn.accent:hover{background:#1240a8;border-color:#1240a8;}
+  .btn.green{background:#166534;color:#fff;border-color:#166534;}
+  .btn.green:hover{background:#14532d;}
+  #exportProgress{font-size:12.5px;color:#000;min-width:160px;}
+  .tabbar{
+    background:#f3f3f3;border-bottom:2px solid #000;
+    padding:8px 10px 0 10px;display:flex;flex-wrap:wrap;gap:4px;
+    position:sticky;top:64px;z-index:49;max-height:120px;overflow-y:auto;
+  }
+  .tabbtn{
+    background:#ddd;border:1px solid #000;border-bottom:none;
+    padding:6px 14px;font-size:13px;font-family:inherit;
+    cursor:pointer;border-radius:4px 4px 0 0;
+  }
+  .tabbtn.active{background:#fff;font-weight:bold;}
+  #setsContainer{padding:20px;display:flex;justify-content:center;}
+  .worksheet{display:none;}
+  .worksheet.active{display:block;}
+
+  /* PAGE / REGISTRATION */
+  .page-wrapper{position:relative;display:inline-block;}
+  .page{
+    background:#fff;width:210mm;min-height:296mm;
+    padding:14mm 14mm;border:1px solid #999;
+    box-shadow:0 0 10px rgba(0,0,0,0.15);
+    position:relative;
+  }
+  .reg-sq{position:absolute;width:5mm;height:5mm;background:#000;z-index:10;}
+  .reg-sq.tl{top:0;left:0;}
+  .reg-sq.tr{top:0;right:0;}
+  .reg-sq.bl{bottom:0;left:0;}
+  .reg-sq.br{bottom:0;right:0;}
+  .omr-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20;display:none;}
+  .omr-overlay.visible{display:block;}
+  .omr-box{position:absolute;border:1.5px solid rgba(0,120,200,0.7);background:rgba(0,120,200,0.06);}
+  .omr-label{position:absolute;font-size:7px;color:rgba(0,80,180,0.9);font-family:monospace;white-space:nowrap;background:rgba(255,255,255,0.75);padding:0 1px;}
+  .ws-page-id{position:absolute;bottom:3mm;right:5mm;font-size:8px;font-family:monospace;color:#555;letter-spacing:0.5px;}
+
+  .ws-header{text-align:center;border-bottom:3px solid #000;padding-bottom:8px;margin-bottom:10px;}
+  .ws-title{font-size:20px;font-weight:bold;letter-spacing:0.5px;}
+  .ws-sub{font-size:15px;margin-top:2px;font-weight:bold;}
+  .ws-fields{
+    display:flex;justify-content:space-between;font-size:13px;
+    margin-top:10px;flex-wrap:wrap;gap:6px;
+  }
+  .ws-fields span{border-bottom:1px solid #000;padding:0 4px 2px 4px;min-width:120px;display:inline-block;}
+  .section{margin:16px 0 22px 0;}
+  .section h2{
+    font-size:14.5px;background:#000;color:#fff;
+    padding:4px 8px;margin:0 0 8px 0;display:inline-block;
+  }
+  .section .instr{font-size:12.5px;color:#000;font-style:italic;margin:0 0 6px 0;}
+  .seqline{font-size:15px;margin:6px 0;letter-spacing:1px;font-family:Arial,sans-serif;}
+  .seqline .qn{font-weight:bold;margin-right:6px;}
+  table.wstable{width:100%;border-collapse:collapse;margin:6px 0;}
+  table.wstable td,table.wstable th{
+    border:1.4px solid #000;padding:6px 8px;
+    vertical-align:middle;font-size:13px;
+  }
+  table.wstable td.rownum{width:26px;text-align:center;font-weight:bold;}
+  .objcell{display:flex;flex-wrap:wrap;gap:3px;align-items:center;}
+  .icon-wrap{position:relative;display:inline-block;line-height:0;}
+  .crossout{position:absolute;top:0;left:0;}
+  .ansbox{display:inline-block;border:2px solid #000;width:46px;height:36px;vertical-align:middle;}
+  .ansbox.small{width:34px;height:30px;}
+  .dashedbox{display:inline-block;border:2px dashed #000;width:42px;height:42px;vertical-align:middle;}
+  .opsym{font-size:20px;font-weight:bold;margin:0 6px;}
+  .eqcell{display:flex;align-items:center;flex-wrap:wrap;gap:2px;}
+  .compcell{display:flex;align-items:center;gap:10px;}
+  .compbox{display:inline-block;border:2px solid #000;width:34px;height:34px;}
+  .blankline{display:inline-block;border-bottom:1.4px solid #000;width:50px;margin:0 4px;}
+  .matchwrap{display:flex;justify-content:space-between;gap:30px;}
+  .matchcol{flex:1;}
+  .matchitem{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0;font-size:13px;width:100%;}
+  .matchitem .micontent{display:flex;align-items:center;gap:8px;}
+  .matchitem .dot{width:10px;height:10px;border:1.4px solid #000;border-radius:50%;background:#fff;flex-shrink:0;}
+  .objline{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;}
+  .objitem{display:flex;flex-direction:column;align-items:center;font-size:11.5px;gap:2px;}
+  .sizebox-row{display:flex;gap:18px;align-items:flex-end;}
+  .sizebox{display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .numbox{width:30px;height:26px;border:2px solid #000;}
+  .compare-row{display:flex;align-items:flex-end;gap:24px;justify-content:center;}
+  .compare-cell{border:1.4px solid #000;padding:8px 14px;display:flex;align-items:flex-end;justify-content:center;min-width:90px;min-height:90px;}
+  .ws-footer{margin-top:18px;border-top:1.4px solid #000;padding-top:6px;font-size:11px;text-align:center;color:#333;}
+
+  /* ANSWER KEY STYLES */
+  .ak-page{
+    background:#fff;width:210mm;padding:14mm 14mm;
+    border:1px solid #999;box-shadow:0 0 10px rgba(0,0,0,0.15);
+    font-family:Arial,sans-serif;
+  }
+  .ak-header{
+    text-align:center;border-bottom:3px solid #000;
+    padding-bottom:8px;margin-bottom:14px;
+  }
+  .ak-title{font-size:18px;font-weight:bold;letter-spacing:1px;}
+  .ak-sub{font-size:14px;margin-top:4px;color:#333;}
+  .ak-section{margin:14px 0;}
+  .ak-section h3{
+    font-size:13px;font-weight:bold;background:#222;color:#fff;
+    padding:3px 8px;margin:0 0 6px 0;display:inline-block;
+  }
+  table.aktable{width:100%;border-collapse:collapse;font-size:12px;margin:4px 0;}
+  table.aktable td,table.aktable th{
+    border:1px solid #666;padding:4px 6px;vertical-align:top;
+  }
+  table.aktable th{background:#f0f0f0;font-weight:bold;text-align:left;}
+  .ak-ans{
+    background:#fffde7;border:1.5px solid #f9a825;
+    padding:2px 6px;border-radius:3px;font-weight:bold;
+    display:inline-block;margin:1px 2px;
+  }
+  .ak-footer{margin-top:14px;border-top:1px solid #ccc;padding-top:6px;font-size:10px;text-align:center;color:#555;}
+
+  @media print{
+    body{background:#fff;}
+    .no-print{display:none !important;}
+    #setsContainer{padding:0;display:block;}
+    .page,.ak-page{box-shadow:none;border:none;width:auto;min-height:0;padding:8mm 10mm;}
+    .page-wrapper{display:block;}
+    .worksheet{display:none;}
+    .worksheet.active{display:block;}
+    .reg-sq{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .omr-overlay{display:none !important;}
+  }
+  @page{size:A4;margin:8mm;}
+</style>
+
+<script src="./html2canvas.min.js"></script>
+<script src="./jspdf.umd.min.js"></script>
+<script src="./jszip.min.js"></script>
+</head>
+<body>
+
+<div class="toolbar no-print">
+  <h1>Class 2 — Math Worksheet Generator (FLN) · v3</h1>
+  <label>Number of sets:
+    <input type="number" id="setCount" min="1" max="5000" value="5">
+  </label>
+  <button class="btn" id="generateBtn">Generate</button>
+  <button class="btn" id="printBtn">Print current set</button>
+  <button class="btn accent" id="viewAKBtn">View Answer Key</button>
+  <button class="btn green" id="dlAKBtn">⬇ Download Answer Key (current set)</button>
+  <button class="btn" id="toggleOmrBtn">Toggle OMR Overlay</button>
+  <button class="btn accent" id="exportCoordsBtn">Export Coords JSON</button>
+  <label>Set #: <input type="number" id="singleSetNum" min="1" value="1" style="width:56px;"></label>
+  <button class="btn" id="downloadSingleSetBtn">Download This Set</button>
+  <button class="btn" id="exportAllBtn">⬇ Download All Sets + Answer Keys (ZIP)</button>
+  <span id="exportProgress" class="no-print"></span>
+  <span style="font-size:12px;color:#555;">All worksheets are black &amp; white, ready to print on A4.</span>
+</div>
+
+<div class="tabbar no-print" id="tabbar"></div>
+<div id="setsContainer"></div>
+<div id="pdfRenderRoot" style="position:fixed;left:-99999px;top:0;width:210mm;background:#fff;"></div>
+
+<!-- Answer Key Modal -->
+<div id="akModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:200;overflow:auto;">
+  <div style="background:#fff;max-width:900px;margin:30px auto;border-radius:6px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+    <div style="background:#000;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;" class="no-print">
+      <span style="font-size:16px;font-weight:bold;">Answer Key Preview</span>
+      <button onclick="closeAKModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;">✕</button>
+    </div>
+    <div id="akModalContent" style="padding:20px;"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function sample(arr,n){ return shuffle(arr).slice(0,n); }
+function pick(arr){ return arr[randInt(0,arr.length-1)]; }
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+let uidCounter=1;
+function nextUid(){ return uidCounter++; }
+
+/* ============================================================
+   SVG ICON LIBRARY
+   ============================================================ */
+function svgWrap(inner,size){
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">'+inner+'</svg>';
+}
+function starPoints(cx,cy,outerR,innerR,n){
+  const pts=[];
+  for(let i=0;i<n*2;i++){
+    const r=i%2===0?outerR:innerR;
+    const angle=(Math.PI/n)*i-Math.PI/2;
+    pts.push((cx+r*Math.cos(angle)).toFixed(1)+','+(cy+r*Math.sin(angle)).toFixed(1));
+  }
+  return pts.join(' ');
+}
+
+const ICONS={
+  apple:(size)=>svgWrap('<path d="M50,32 C25,28 12,52 22,74 C30,90 44,94 50,94 C56,94 70,90 78,74 C88,52 75,28 50,32 Z" fill="#fff" stroke="#000" stroke-width="3"/><path d="M50,32 C47,22 53,14 60,10" fill="none" stroke="#000" stroke-width="3"/><path d="M60,12 C68,7 76,13 70,20 C63,23 58,18 60,12 Z" fill="#fff" stroke="#000" stroke-width="2"/>',size),
+  star:(size)=>svgWrap('<polygon points="'+starPoints(50,50,42,18,5)+'" fill="#fff" stroke="#000" stroke-width="3"/>',size),
+  flower:(size)=>svgWrap([0,60,120,180,240,300].map(a=>'<ellipse cx="50" cy="28" rx="11" ry="18" fill="#fff" stroke="#000" stroke-width="2.5" transform="rotate('+a+' 50 50)"/>').join('')+'<circle cx="50" cy="50" r="13" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="44" cy="46" r="2" fill="#000"/><circle cx="56" cy="46" r="2" fill="#000"/><circle cx="50" cy="56" r="2" fill="#000"/>',size),
+  butterfly:(size)=>svgWrap('<path d="M50,40 C30,10 0,15 8,40 C2,58 28,55 50,42 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><path d="M50,40 C70,10 100,15 92,40 C98,58 72,55 50,42 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><path d="M50,45 C34,60 12,62 16,78 C20,90 38,82 50,60 Z" fill="#fff" stroke="#000" stroke-width="2"/><path d="M50,45 C66,60 88,62 84,78 C80,90 62,82 50,60 Z" fill="#fff" stroke="#000" stroke-width="2"/><ellipse cx="50" cy="50" rx="3.5" ry="24" fill="#000"/><path d="M48,28 C44,18 38,16 34,10" fill="none" stroke="#000" stroke-width="2"/><path d="M52,28 C56,18 62,16 66,10" fill="none" stroke="#000" stroke-width="2"/>',size),
+  leaf:(size)=>svgWrap('<path d="M50,12 C78,28 84,62 50,92 C16,62 22,28 50,12 Z" fill="#fff" stroke="#000" stroke-width="3"/><path d="M50,18 L50,86" stroke="#000" stroke-width="1.5"/><path d="M50,35 L34,28 M50,35 L66,28 M50,55 L32,50 M50,55 L68,50 M50,72 L38,70 M50,72 L62,70" fill="none" stroke="#000" stroke-width="1.2"/>',size),
+  fish:(size)=>svgWrap('<ellipse cx="42" cy="52" rx="32" ry="20" fill="#fff" stroke="#000" stroke-width="3"/><path d="M72,52 L96,34 L96,70 Z" fill="#fff" stroke="#000" stroke-width="3"/><path d="M38,32 L50,16 L56,36 Z" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="24" cy="46" r="3.5" fill="#000"/><path d="M16,58 Q24,64 32,58" fill="none" stroke="#000" stroke-width="1.5"/>',size),
+  pencil:(size)=>svgWrap('<rect x="6" y="42" width="70" height="16" fill="#fff" stroke="#000" stroke-width="3"/><path d="M76,42 L96,50 L76,58 Z" fill="#fff" stroke="#000" stroke-width="3"/><rect x="0" y="42" width="8" height="16" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="34" y1="42" x2="34" y2="58" stroke="#000" stroke-width="1.5"/><line x1="86" y1="46" x2="86" y2="54" stroke="#000" stroke-width="1.2"/>',size),
+  candle:(size)=>svgWrap('<rect x="38" y="35" width="24" height="60" fill="#fff" stroke="#000" stroke-width="3"/><line x1="38" y1="48" x2="62" y2="48" stroke="#000" stroke-width="1.2"/><line x1="38" y1="63" x2="62" y2="63" stroke="#000" stroke-width="1.2"/><line x1="38" y1="78" x2="62" y2="78" stroke="#000" stroke-width="1.2"/><line x1="50" y1="35" x2="50" y2="22" stroke="#000" stroke-width="2"/><path d="M50,8 C44,16 44,24 50,24 C56,24 56,16 50,8 Z" fill="#fff" stroke="#000" stroke-width="2.5"/>',size),
+  tree:(size)=>svgWrap('<path d="M50,8 C28,8 16,28 24,42 C16,44 12,58 26,60 C18,64 16,78 34,78 L66,78 C84,78 82,64 74,60 C88,58 84,44 76,42 C84,28 72,8 50,8 Z" fill="#fff" stroke="#000" stroke-width="3"/><rect x="44" y="78" width="12" height="16" fill="#fff" stroke="#000" stroke-width="3"/>',size),
+  pumpkin:(size)=>svgWrap('<path d="M50,30 C25,30 18,55 25,72 C32,90 68,90 75,72 C82,55 75,30 50,30 Z" fill="#fff" stroke="#000" stroke-width="3"/><path d="M35,32 C32,52 32,72 38,88 M50,30 C48,52 48,72 50,90 M65,32 C68,52 68,72 62,88" fill="none" stroke="#000" stroke-width="1.5"/><rect x="46" y="16" width="8" height="14" fill="#fff" stroke="#000" stroke-width="2.5"/>',size),
+  balloon:(size)=>svgWrap('<ellipse cx="50" cy="38" rx="28" ry="32" fill="#fff" stroke="#000" stroke-width="3"/><path d="M46,70 L54,70 L50,80 Z" fill="#fff" stroke="#000" stroke-width="2"/><path d="M50,80 C46,86 54,90 50,96" fill="none" stroke="#000" stroke-width="1.5"/><path d="M38,26 C40,20 46,18 50,20" fill="none" stroke="#000" stroke-width="1.5"/>',size),
+  giraffe:(size)=>svgWrap('<path d="M40,10 C36,10 34,14 35,18 L40,40 L34,40 L40,46 L46,46 L50,20 C50,14 46,10 40,10 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><ellipse cx="40" cy="12" rx="6" ry="5" fill="#fff" stroke="#000" stroke-width="2"/><path d="M38,46 C30,50 26,60 28,72 C18,72 16,84 24,90 L60,90 C70,84 66,72 56,72 C58,60 54,50 46,46 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="30" y1="78" x2="30" y2="90" stroke="#000" stroke-width="2.5"/><line x1="40" y1="80" x2="40" y2="90" stroke="#000" stroke-width="2.5"/><line x1="50" y1="78" x2="50" y2="90" stroke="#000" stroke-width="2.5"/><circle cx="38" cy="20" r="2" fill="#000"/><circle cx="38" cy="55" r="2" fill="#000"/><circle cx="48" cy="60" r="2" fill="#000"/><circle cx="44" cy="70" r="2" fill="#000"/>',size),
+  glassWater:(size,opts)=>{
+    const level=(opts&&typeof opts.level==='number')?opts.level:0.5;
+    const uid=nextUid();
+    const topY=90-(90-15)*level;
+    let hatch='';
+    for(let i=0;i<22;i++){const x=i*9-60;hatch+='<line x1="'+x+'" y1="100" x2="'+(x+30)+'" y2="0" stroke="#4af" stroke-width="1.5"/>';}
+    return svgWrap('<defs><clipPath id="gw'+uid+'"><path d="M30,15 L70,15 L62,90 L38,90 Z"/></clipPath><clipPath id="wl'+uid+'"><rect x="20" y="'+topY+'" width="60" height="90"/></clipPath></defs><g clip-path="url(#gw'+uid+')"><rect x="20" y="'+topY+'" width="60" height="90" fill="#cceeff"/></g><g clip-path="url(#gw'+uid+')"><g clip-path="url(#wl'+uid+')">'+hatch+'</g></g><path d="M30,15 L70,15 L62,90 L38,90 Z" fill="none" stroke="#000" stroke-width="3"/><line x1="30" y1="15" x2="70" y2="15" stroke="#000" stroke-width="2"/>',size);
+  },
+  circle:(size)=>svgWrap('<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3.5"/>',size),
+  triangle:(size)=>svgWrap('<polygon points="50,12 90,88 10,88" fill="#fff" stroke="#000" stroke-width="3.5"/>',size),
+  square:(size)=>svgWrap('<rect x="14" y="14" width="72" height="72" fill="#fff" stroke="#000" stroke-width="3.5"/>',size),
+  rectangle:(size)=>svgWrap('<rect x="6" y="28" width="88" height="44" fill="#fff" stroke="#000" stroke-width="3.5"/>',size),
+  oval:(size)=>svgWrap('<ellipse cx="50" cy="50" rx="44" ry="26" fill="#fff" stroke="#000" stroke-width="3.5"/>',size),
+  heart:(size)=>svgWrap('<path d="M50,85 C20,60 5,35 25,18 C38,8 50,18 50,30 C50,18 62,8 75,18 C95,35 80,60 50,85 Z" fill="#fff" stroke="#000" stroke-width="3.5"/>',size),
+  car:(size)=>svgWrap('<rect x="10" y="50" width="80" height="22" rx="4" fill="#fff" stroke="#000" stroke-width="3"/><path d="M22,50 L32,30 L68,30 L78,50 Z" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="28" cy="74" r="9" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="72" cy="74" r="9" fill="#fff" stroke="#000" stroke-width="3"/>',size),
+  bus:(size)=>svgWrap('<rect x="10" y="20" width="80" height="48" rx="4" fill="#fff" stroke="#000" stroke-width="3"/><line x1="10" y1="38" x2="90" y2="38" stroke="#000" stroke-width="2"/><rect x="18" y="44" width="14" height="14" fill="#fff" stroke="#000" stroke-width="1.5"/><rect x="40" y="44" width="14" height="14" fill="#fff" stroke="#000" stroke-width="1.5"/><rect x="62" y="44" width="14" height="14" fill="#fff" stroke="#000" stroke-width="1.5"/><circle cx="26" cy="74" r="8" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="74" cy="74" r="8" fill="#fff" stroke="#000" stroke-width="3"/>',size),
+  bicycle:(size)=>svgWrap('<circle cx="22" cy="68" r="18" fill="none" stroke="#000" stroke-width="3"/><circle cx="78" cy="68" r="18" fill="none" stroke="#000" stroke-width="3"/><path d="M22,68 L46,40 L78,68 M46,40 L40,22 L54,22 M46,40 L60,68" fill="none" stroke="#000" stroke-width="3"/><line x1="34" y1="18" x2="48" y2="18" stroke="#000" stroke-width="3"/>',size),
+  train:(size)=>svgWrap('<rect x="14" y="28" width="60" height="42" rx="4" fill="#fff" stroke="#000" stroke-width="3"/><rect x="22" y="36" width="14" height="14" fill="#fff" stroke="#000" stroke-width="1.5"/><rect x="44" y="36" width="14" height="14" fill="#fff" stroke="#000" stroke-width="1.5"/><rect x="76" y="40" width="12" height="20" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="26" cy="76" r="7" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="50" cy="76" r="7" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="70" cy="76" r="7" fill="#fff" stroke="#000" stroke-width="2.5"/><rect x="18" y="14" width="10" height="14" fill="#fff" stroke="#000" stroke-width="2"/>',size),
+  auto:(size)=>svgWrap('<path d="M14,72 L14,46 C14,36 22,30 32,30 L62,30 C70,30 76,36 76,46 L76,72" fill="#fff" stroke="#000" stroke-width="3"/><line x1="14" y1="50" x2="76" y2="50" stroke="#000" stroke-width="2"/><circle cx="26" cy="78" r="8" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="64" cy="78" r="8" fill="#fff" stroke="#000" stroke-width="3"/>',size),
+  tulip:(size)=>svgWrap('<path d="M35,55 C30,30 38,12 50,28 C62,12 70,30 65,55 C56,46 44,46 35,55 Z" fill="#fff" stroke="#000" stroke-width="3"/><line x1="50" y1="55" x2="50" y2="92" stroke="#000" stroke-width="3"/><path d="M50,75 C40,72 34,80 38,88" fill="none" stroke="#000" stroke-width="2.5"/>',size),
+  rose:(size)=>svgWrap('<path d="M50,55 C30,55 25,35 40,30 C30,28 30,15 45,18 C40,10 55,8 58,20 C68,15 75,28 65,35 C75,40 70,55 50,55 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="50" y1="55" x2="50" y2="92" stroke="#000" stroke-width="3"/><path d="M50,75 L62,80" stroke="#000" stroke-width="2.5"/>',size),
+  sunflower:(size)=>svgWrap(Array.from({length:12},(_,i)=>'<ellipse cx="50" cy="20" rx="6" ry="16" fill="#fff" stroke="#000" stroke-width="2" transform="rotate('+(i*30)+' 50 50)"/>').join('')+'<circle cx="50" cy="50" r="16" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="44" cy="46" r="1.6" fill="#000"/><circle cx="56" cy="46" r="1.6" fill="#000"/><circle cx="50" cy="55" r="1.6" fill="#000"/><circle cx="44" cy="56" r="1.6" fill="#000"/><circle cx="56" cy="56" r="1.6" fill="#000"/><line x1="50" y1="66" x2="50" y2="92" stroke="#000" stroke-width="3"/>',size),
+  daisy:(size)=>svgWrap([0,45,90,135,180,225,270,315].map(a=>'<ellipse cx="50" cy="26" rx="8" ry="14" fill="#fff" stroke="#000" stroke-width="2" transform="rotate('+a+' 50 50)"/>').join('')+'<circle cx="50" cy="50" r="10" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="50" y1="60" x2="50" y2="92" stroke="#000" stroke-width="3"/>',size),
+  lotus:(size)=>svgWrap([-40,-20,0,20,40].map(a=>'<path d="M50,70 C42,40 46,20 50,12 C54,20 58,40 50,70 Z" fill="#fff" stroke="#000" stroke-width="2.2" transform="rotate('+a+' 50 70)"/>').join('')+'<path d="M20,82 C35,75 65,75 80,82" fill="none" stroke="#000" stroke-width="2.5"/>',size),
+  rod:(size)=>svgWrap('<rect x="32" y="6" width="36" height="88" fill="#fff" stroke="#000" stroke-width="3"/>'+Array.from({length:9},(_,i)=>'<line x1="32" y1="'+(6+(i+1)*8.8)+'" x2="68" y2="'+(6+(i+1)*8.8)+'" stroke="#000" stroke-width="1"/>').join(''),size),
+  unit:(size)=>svgWrap('<rect x="28" y="28" width="44" height="44" fill="#fff" stroke="#000" stroke-width="3"/>',size),
+  coin:(size)=>svgWrap('<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="50" cy="50" r="29" fill="none" stroke="#000" stroke-width="1.5"/><circle cx="50" cy="50" r="11" fill="#fff" stroke="#000" stroke-width="1.5"/>'+Array.from({length:16},(_,i)=>{const a=(Math.PI/8)*i;const x1=50+34*Math.cos(a),y1=50+34*Math.sin(a);const x2=50+38*Math.cos(a),y2=50+38*Math.sin(a);return'<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#000" stroke-width="1.5"/>';}).join(''),size),
+  trafficSign:(size)=>svgWrap('<rect x="46" y="55" width="8" height="40" fill="#fff" stroke="#000" stroke-width="2.5"/><polygon points="50,8 86,66 14,66" fill="#fff" stroke="#000" stroke-width="3" stroke-linejoin="round"/><line x1="50" y1="28" x2="50" y2="48" stroke="#000" stroke-width="3.5"/><circle cx="50" cy="57" r="2.4" fill="#000"/>',size),
+  chessboard:(size)=>{
+    const n=6,cell=72/n,ox=14,oy=14;let sq='';
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++){const fill=(r+c)%2===0?'#000':'#fff';sq+='<rect x="'+(ox+c*cell)+'" y="'+(oy+r*cell)+'" width="'+cell+'" height="'+cell+'" fill="'+fill+'"/>';}
+    return svgWrap('<rect x="'+ox+'" y="'+oy+'" width="72" height="72" fill="#fff" stroke="#000" stroke-width="3"/>'+sq,size);
+  },
+  book:(size)=>svgWrap('<path d="M10,25 C25,15 40,16 50,23 L50,86 C40,79 25,78 10,86 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><path d="M90,25 C75,15 60,16 50,23 L50,86 C60,79 75,78 90,86 Z" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="18" y1="36" x2="40" y2="33" stroke="#000" stroke-width="1.2"/><line x1="18" y1="46" x2="40" y2="43" stroke="#000" stroke-width="1.2"/><line x1="18" y1="56" x2="40" y2="53" stroke="#000" stroke-width="1.2"/><line x1="60" y1="33" x2="82" y2="36" stroke="#000" stroke-width="1.2"/><line x1="60" y1="43" x2="82" y2="46" stroke="#000" stroke-width="1.2"/><line x1="60" y1="53" x2="82" y2="56" stroke="#000" stroke-width="1.2"/>',size),
+  ball:(size)=>svgWrap('<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/><path d="M50,12 C44,30 44,70 50,88" fill="none" stroke="#000" stroke-width="1.8"/><path d="M50,12 C56,30 56,70 50,88" fill="none" stroke="#000" stroke-width="1.8"/><path d="M14,38 C30,46 70,46 86,38" fill="none" stroke="#000" stroke-width="1.8"/><path d="M14,62 C30,54 70,54 86,62" fill="none" stroke="#000" stroke-width="1.8"/>',size),
+  clock:(size)=>svgWrap('<circle cx="50" cy="50" r="38" fill="#fff" stroke="#000" stroke-width="3"/>'+Array.from({length:12},(_,i)=>{const a=(Math.PI/6)*i;const x1=50+32*Math.cos(a),y1=50+32*Math.sin(a);const x2=50+37*Math.cos(a),y2=50+37*Math.sin(a);return'<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#000" stroke-width="2"/>';}).join('')+'<line x1="50" y1="50" x2="50" y2="27" stroke="#000" stroke-width="3"/><line x1="50" y1="50" x2="67" y2="58" stroke="#000" stroke-width="2.5"/><circle cx="50" cy="50" r="3" fill="#000"/>',size),
+  partyHat:(size)=>svgWrap('<polygon points="50,8 76,85 24,85" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="50" cy="8" r="6" fill="#fff" stroke="#000" stroke-width="2.5"/><path d="M30,85 L38,76 L46,85 L54,76 L62,85 L70,85" fill="none" stroke="#000" stroke-width="2"/><circle cx="44" cy="50" r="2.5" fill="#000"/><circle cx="58" cy="62" r="2.5" fill="#000"/><circle cx="46" cy="70" r="2.5" fill="#000"/>',size),
+  sandwich:(size)=>svgWrap('<polygon points="50,14 90,86 10,86" fill="#fff" stroke="#000" stroke-width="3"/><line x1="22" y1="62" x2="78" y2="62" stroke="#000" stroke-width="2"/><line x1="30" y1="44" x2="70" y2="44" stroke="#000" stroke-width="1.5"/><circle cx="38" cy="53" r="1.8" fill="#000"/><circle cx="50" cy="56" r="1.8" fill="#000"/><circle cx="62" cy="53" r="1.8" fill="#000"/>',size),
+  window:(size)=>svgWrap('<rect x="14" y="14" width="72" height="72" fill="#fff" stroke="#000" stroke-width="3"/><line x1="50" y1="14" x2="50" y2="86" stroke="#000" stroke-width="2.5"/><line x1="14" y1="50" x2="86" y2="50" stroke="#000" stroke-width="2.5"/><rect x="8" y="86" width="84" height="6" fill="#fff" stroke="#000" stroke-width="2"/>',size),
+  frame:(size)=>svgWrap('<rect x="12" y="12" width="76" height="76" fill="#fff" stroke="#000" stroke-width="3"/><rect x="22" y="22" width="56" height="56" fill="#fff" stroke="#000" stroke-width="1.5"/><path d="M28,62 L42,42 L52,55 L62,38 L74,62 Z" fill="none" stroke="#000" stroke-width="1.5"/><circle cx="65" cy="32" r="5" fill="none" stroke="#000" stroke-width="1.5"/>',size),
+  door:(size)=>svgWrap('<rect x="22" y="8" width="56" height="88" rx="3" fill="#fff" stroke="#000" stroke-width="3"/><rect x="30" y="18" width="40" height="30" fill="none" stroke="#000" stroke-width="1.5"/><rect x="30" y="54" width="40" height="34" fill="none" stroke="#000" stroke-width="1.5"/><circle cx="68" cy="55" r="3" fill="#000"/>',size),
+  brick:(size)=>svgWrap('<rect x="8" y="32" width="84" height="36" fill="#fff" stroke="#000" stroke-width="3"/><line x1="8" y1="50" x2="92" y2="50" stroke="#000" stroke-width="1" stroke-dasharray="3,3"/><line x1="30" y1="32" x2="30" y2="50" stroke="#000" stroke-width="1" stroke-dasharray="3,3"/><line x1="60" y1="50" x2="60" y2="68" stroke="#000" stroke-width="1" stroke-dasharray="3,3"/>',size),
+  egg:(size)=>svgWrap('<path d="M50,10 C30,10 20,45 25,65 C30,90 70,90 75,65 C80,45 70,10 50,10 Z" fill="#fff" stroke="#000" stroke-width="3"/><path d="M40,25 C38,30 36,35 37,40" fill="none" stroke="#000" stroke-width="1.2"/>',size),
+  mirror:(size)=>svgWrap('<ellipse cx="50" cy="38" rx="30" ry="34" fill="#fff" stroke="#000" stroke-width="3"/><ellipse cx="50" cy="38" rx="22" ry="26" fill="none" stroke="#000" stroke-width="1"/><rect x="44" y="68" width="12" height="28" fill="#fff" stroke="#000" stroke-width="2.5"/><line x1="38" y1="22" x2="44" y2="34" stroke="#000" stroke-width="1.2"/>',size)
+};
+
+function renderIcon(name,size,opts){ return ICONS[name](size,opts); }
+function iconWithCross(name,size,crossed){
+  const ic=renderIcon(name,size);
+  if(!crossed) return '<span class="icon-wrap">'+ic+'</span>';
+  return '<span class="icon-wrap">'+ic+'<svg class="crossout" width="'+size+'" height="'+size+'" viewBox="0 0 100 100"><line x1="6" y1="6" x2="94" y2="94" stroke="#000" stroke-width="9"/><line x1="94" y1="6" x2="6" y2="94" stroke="#000" stroke-width="9"/></svg></span>';
+}
+
+/* ============================================================
+   DATA POOLS
+   ============================================================ */
+const COUNT_ICONS=['apple','star','flower','butterfly','leaf','fish','pencil','balloon','pumpkin'];
+const SIZE_OBJECTS=['pencil','candle','tree','fish','leaf','pumpkin'];
+const SIZE_PLURAL={pencil:'pencils',candle:'candles',tree:'trees',fish:'fish',leaf:'leaves',pumpkin:'pumpkins'};
+const SIZE_ORIENT={pencil:'horizontal',candle:'vertical',tree:'vertical',fish:'horizontal',leaf:'horizontal',pumpkin:'vertical'};
+const COMPARE_OBJECTS=['giraffe','candle','balloon','pumpkin','glassWater','apple','tree','pencil'];
+const PATTERN_SHAPES=['triangle','square','circle','star','heart'];
+const MATCH_SHAPES=[['circle','Circle'],['triangle','Triangle'],['square','Square'],['rectangle','Rectangle'],['oval','Oval']];
+const MATCH_POOLS={
+  circle:[['coin','Coin'],['clock','Clock'],['ball','Ball']],
+  triangle:[['trafficSign','Traffic Sign'],['partyHat','Party Hat'],['sandwich','Sandwich']],
+  square:[['chessboard','Chessboard'],['window','Window'],['frame','Picture Frame']],
+  rectangle:[['book','Book'],['door','Door'],['brick','Brick']],
+  oval:[['balloon','Balloon'],['egg','Egg'],['mirror','Hand Mirror']]
+};
+const VEHICLES=[['car','Car'],['bus','Bus'],['bicycle','Bicycle'],['train','Train'],['auto','Auto']];
+const FLOWERS_NAMED=[['tulip','Tulip'],['lotus','Lotus'],['rose','Rose'],['sunflower','Sunflower'],['daisy','Daisy']];
+
+/* ============================================================
+   SECTION BUILDERS
+   ============================================================ */
+function section1(){
+  const ranges=[[1,10],[11,20],[21,30],[31,40],[41,50]];
+  let out='';
+  const answers=[];
+  ranges.forEach((r,idx)=>{
+    const nums=[]; for(let n=r[0];n<=r[1];n++) nums.push(n);
+    const blankPositions=sample([...Array(nums.length).keys()],3);
+    const display=nums.map((n,i)=>blankPositions.includes(i)?'<span class="blankline" data-omr="q1-r'+(idx+1)+'-b'+(i+1)+'" style="width:34px;"></span>':n).join('&nbsp;&nbsp;');
+    const blanks=blankPositions.sort((a,b)=>a-b).map(p=>({position:p+1,value:nums[p]}));
+    answers.push({question:idx+1,range:r[0]+'-'+r[1],blanks});
+    out+='<div class="seqline" data-omr="q1-row-'+(idx+1)+'"><span class="qn">'+(idx+1)+'.</span>'+display+'</div>';
+  });
+  return {html:out, answers:{section:'Fill in Missing Numbers', items:answers}};
+}
+
+function section2(){
+  const icons=sample(COUNT_ICONS,5);
+  let rows='';
+  const answers=[];
+  icons.forEach((icon,i)=>{
+    const count=randInt(3,15);
+    let imgs=''; for(let k=0;k<count;k++) imgs+=renderIcon(icon,26);
+    rows+='<tr><td class="rownum">'+(i+1)+'</td><td><div class="objcell">'+imgs+'</div></td><td style="width:60px;text-align:center;"><span class="ansbox" data-omr="q2-ans-'+(i+1)+'"></span></td></tr>';
+    answers.push({question:i+1,object:icon,count});
+  });
+  return {
+    html:'<table class="wstable"><tr><th style="width:26px;">#</th><th>Count the objects</th><th style="width:60px;">Write the number</th></tr>'+rows+'</table>',
+    answers:{section:'Count Objects', items:answers}
+  };
+}
+
+function section3(){
+  let out='';
+  const answers=[];
+  const A=randInt(2,49);
+  out+='<div class="seqline"><span class="qn">1.</span> <span class="blankline" data-omr="q3-ans-1" style="width:40px;"></span> , '+A+' &nbsp;(before)</div>';
+  answers.push({question:1,type:'before',given:A,answer:A-1});
+  const B=randInt(1,49);
+  out+='<div class="seqline"><span class="qn">2.</span> '+B+' , <span class="blankline" data-omr="q3-ans-2" style="width:40px;"></span> &nbsp;(after)</div>';
+  answers.push({question:2,type:'after',given:B,answer:B+1});
+  const C=randInt(1,48);
+  out+='<div class="seqline"><span class="qn">3.</span> '+C+' , <span class="blankline" data-omr="q3-ans-3" style="width:40px;"></span> , '+(C+2)+' &nbsp;(between)</div>';
+  answers.push({question:3,type:'between',given:[C,C+2],answer:C+1});
+  const D=randInt(2,48);
+  out+='<div class="seqline"><span class="qn">4.</span> <span class="blankline" data-omr="q3-ans-4" style="width:40px;"></span> , '+D+' , '+(D+1)+' &nbsp;(before)</div>';
+  answers.push({question:4,type:'before',given:[D,D+1],answer:D-1});
+  const E=randInt(1,47);
+  out+='<div class="seqline"><span class="qn">5.</span> '+E+' , '+(E+1)+' , <span class="blankline" data-omr="q3-ans-5" style="width:40px;"></span> &nbsp;(after)</div>';
+  answers.push({question:5,type:'after',given:[E,E+1],answer:E+2});
+  return {html:out, answers:{section:'Before After Between', items:answers}};
+}
+
+function section4(){
+  const syms=shuffle(['<','>','=','<','>']);
+  let out='';
+  const answers=[];
+  syms.forEach((sym,i)=>{
+    let left,right;
+    if(sym==='='){ left=randInt(1,50); right=left; }
+    else if(sym==='<'){ left=randInt(1,48); right=randInt(left+1,50); }
+    else { left=randInt(2,50); right=randInt(1,left-1); }
+    out+='<div class="seqline"><span class="qn">'+(i+1)+'.</span> '+left+' <span class="compbox" data-omr="q4-ans-'+(i+1)+'" style="vertical-align:middle;"></span> '+right+'</div>';
+    answers.push({question:i+1,left,right,answer:sym});
+  });
+  return {html:out, answers:{section:'Compare Numbers', items:answers}};
+}
+
+function section5(){
+  const objs=sample(SIZE_OBJECTS,5);
+  let rows='';
+  const answers=[];
+  objs.forEach((obj,i)=>{
+    const orient=SIZE_ORIENT[obj];
+    const word=orient==='vertical'?'tallest':'longest';
+    const instr='Arrange the 4 '+SIZE_PLURAL[obj]+' from shortest to '+word+'.';
+    const scales=shuffle([0.5,0.68,0.84,1.0]);
+    const scaledOrder=scales.map((s,idx)=>({displayPos:idx,scale:s}));
+    const sorted=[...scaledOrder].sort((a,b)=>a.scale-b.scale);
+    const rankMap={};
+    sorted.forEach((item,rank)=>{ rankMap[item.displayPos]=rank+1; });
+    let cells='';
+    scales.forEach((s,idx)=>{
+      const sz=Math.round(70*s);
+      cells+='<div class="sizebox"><div style="height:74px;display:flex;align-items:flex-end;">'+renderIcon(obj,sz)+'</div><span class="numbox" data-omr="q5-r'+(i+1)+'-pos'+(idx+1)+'"></span></div>';
+    });
+    rows+='<tr><td class="rownum">'+(i+1)+'</td><td>'+instr+'</td><td><div class="sizebox-row">'+cells+'</div></td></tr>';
+    answers.push({
+      question:i+1,object:obj,
+      note:'Boxes left to right. Write 1=shortest, 4='+word+'.',
+      ranking:scales.map((s,pos)=>({displayPosition:pos+1,scale:s.toFixed(2),correctRank:rankMap[pos]}))
+    });
+  });
+  return {
+    html:'<table class="wstable"><tr><th style="width:26px;">#</th><th style="width:30%;">Instruction</th><th>Arrange and number 1-4</th></tr>'+rows+'</table>',
+    answers:{section:'Size Ordering', items:answers}
+  };
+}
+
+function section6(){
+  const icons=sample(COUNT_ICONS,5);
+  let rows='';
+  const answers=[];
+  icons.forEach((icon,i)=>{
+    const a=randInt(1,9),b=randInt(1,9);
+    let imgsA=''; for(let k=0;k<a;k++) imgsA+=renderIcon(icon,22);
+    let imgsB=''; for(let k=0;k<b;k++) imgsB+=renderIcon(icon,22);
+    rows+='<tr><td class="rownum">'+(i+1)+'</td><td><div class="eqcell"><div class="objcell">'+imgsA+'</div><span class="opsym">+</span><div class="objcell">'+imgsB+'</div><span class="opsym">=</span><span class="ansbox" data-omr="q6-ans-'+(i+1)+'"></span></div></td></tr>';
+    answers.push({question:i+1,object:icon,addend1:a,addend2:b,answer:a+b,expression:a+' + '+b+' = '+(a+b)});
+  });
+  return {
+    html:'<table class="wstable"><tr><th style="width:26px;">#</th><th>Add and write the answer</th></tr>'+rows+'</table>',
+    answers:{section:'Addition', items:answers}
+  };
+}
+
+function section7(){
+  const icons=sample(COUNT_ICONS,5);
+  let rows='';
+  const answers=[];
+  icons.forEach((icon,i)=>{
+    const total=randInt(5,9);
+    const crossCount=randInt(1,total-1);
+    const positions=new Set(sample([...Array(total).keys()],crossCount));
+    let imgs='';
+    for(let k=0;k<total;k++) imgs+=iconWithCross(icon,24,positions.has(k));
+    rows+='<tr><td class="rownum">'+(i+1)+'</td><td><div class="eqcell"><div class="objcell">'+imgs+'</div><span class="opsym">=</span><span class="ansbox" data-omr="q7-ans-'+(i+1)+'"></span></div></td></tr>';
+    answers.push({question:i+1,object:icon,total,crossedOut:crossCount,remaining:total-crossCount,expression:total+' - '+crossCount+' = '+(total-crossCount)});
+  });
+  return {
+    html:'<p class="instr">Count all the objects, cross out the ones being subtracted, then write how many are left.</p><table class="wstable"><tr><th style="width:26px;">#</th><th>Subtract and write the answer</th></tr>'+rows+'</table>',
+    answers:{section:'Subtraction', items:answers}
+  };
+}
+
+function tensOnesBlocks(number){
+  const tens=Math.floor(number/10);
+  const ones=number%10;
+  let imgs='';
+  for(let t=0;t<tens;t++) imgs+=renderIcon('rod',34);
+  for(let o=0;o<ones;o++) imgs+=renderIcon('unit',22);
+  return imgs;
+}
+function section8(){
+  let rows='';
+  const answers=[];
+  for(let i=0;i<5;i++){
+    const number=randInt(11,99);
+    const reveal=i<3;
+    const instr=reveal?'Show the number <b>'+number+'</b> using tens and ones.':'Look at the blocks. Write the number.';
+    const blocks=tensOnesBlocks(number);
+    const answer='Tens: <span class="blankline" data-omr="q8-r'+(i+1)+'-tens"></span>&nbsp;&nbsp;Ones: <span class="blankline" data-omr="q8-r'+(i+1)+'-ones"></span>&nbsp;&nbsp;Number: <span class="blankline" data-omr="q8-r'+(i+1)+'-number" style="width:64px;"></span>';
+    rows+='<tr><td class="rownum">'+(i+1)+'</td><td style="width:24%;">'+instr+'</td><td><div class="objcell">'+blocks+'</div></td><td style="width:30%;font-size:12px;">'+answer+'</td></tr>';
+    answers.push({question:i+1,number,tens:Math.floor(number/10),ones:number%10});
+  }
+  return {
+    html:'<table class="wstable"><tr><th style="width:26px;">#</th><th>Instruction</th><th>Tens and Ones blocks</th><th>Answer</th></tr>'+rows+'</table>',
+    answers:{section:'Tens and Ones', items:answers}
+  };
+}
+
+function section9(){
+  const left=shuffle(MATCH_SHAPES);
+  const rightItems=MATCH_SHAPES.map(([shapeKey])=>pick(MATCH_POOLS[shapeKey]));
+  const right=shuffle(rightItems);
+  let leftHtml='',rightHtml='';
+  const matchPairs=[];
+  const shapeToObj={};
+  MATCH_SHAPES.forEach(([shapeKey],idx)=>{ shapeToObj[shapeKey]=rightItems[idx]; });
+  left.forEach(([key,label],i)=>{
+    leftHtml+='<div class="matchitem" data-omr="q9-left-'+(i+1)+'"><div class="micontent">'+renderIcon(key,40)+'<span>'+label+'</span></div><span class="dot" data-omr-dot="q9-left-'+(i+1)+'"></span></div>';
+    matchPairs.push({shape:label,shapeKey:key,matchesTo:shapeToObj[key][1],matchKey:shapeToObj[key][0]});
+  });
+  right.forEach(([key,label],i)=>{
+    rightHtml+='<div class="matchitem" data-omr="q9-right-'+(i+1)+'"><span class="dot" data-omr-dot="q9-right-'+(i+1)+'"></span><div class="micontent">'+renderIcon(key,40)+'<span>'+label+'</span></div></div>';
+  });
+  matchPairs.forEach((m,i)=>{
+    const rPos=right.findIndex(([,lbl])=>lbl===m.matchesTo)+1;
+    m.lPos=i+1; m.rPos=rPos;
+  });
+  return {
+    html:'<p class="instr">Draw a line from each shape on the left to a matching real-life object on the right.</p><div class="matchwrap"><div class="matchcol" id="q9-left-col">'+leftHtml+'</div><div class="matchcol" id="q9-right-col">'+rightHtml+'</div></div>',
+    answers:{section:'Match Shapes', items:matchPairs, note:'Left column order shown; connect each shape to its object'}
+  };
+}
+
+function buildPatternRow(){
+  const types=['AB','AAB','ABB','ABC'];
+  const type=pick(types);
+  const lettersUsed=Array.from(new Set(type.split('')));
+  const shapesChosen=sample(PATTERN_SHAPES,lettersUsed.length);
+  const letterToShape={};
+  lettersUsed.forEach((L,i)=>letterToShape[L]=shapesChosen[i]);
+  const seq=[]; let li=0;
+  while(seq.length<6){ seq.push(letterToShape[type[li%type.length]]); li++; }
+  const names=shapesChosen.map(cap);
+  let namesStr;
+  if(names.length===2) namesStr=names[0]+' and '+names[1];
+  else namesStr=names.slice(0,-1).join(', ')+' and '+names[names.length-1];
+  const label='Continue the '+type+' pattern using '+namesStr+'.';
+  const next1=letterToShape[type[li%type.length]];
+  li++;
+  const next2=letterToShape[type[li%type.length]];
+  return {seq,label,type,next1:cap(next1),next2:cap(next2)};
+}
+
+function section10(){
+  let rows='';
+  const answers=[];
+  for(let i=0;i<3;i++){
+    const {seq,label,type,next1,next2}=buildPatternRow();
+    const shapesHtml=seq.map(s=>renderIcon(s,34)).join('');
+    const blanksHtml='<span class="dashedbox" data-omr="q10-r'+(i+1)+'-next1"></span><span class="dashedbox" data-omr="q10-r'+(i+1)+'-next2"></span>';
+    rows+='<tr><td class="rownum">'+(i+1)+'</td><td style="width:30%;">'+label+'</td><td><div class="objcell">'+shapesHtml+blanksHtml+'</div></td></tr>';
+    answers.push({question:i+1,type:'pattern',patternType:type,given:seq.map(cap),answer:[next1,next2]});
+  }
+  for(let i=3;i<5;i++){
+    const cat=pick(['vehicle','flower']);
+    const pool=cat==='vehicle'?VEHICLES:FLOWERS_NAMED;
+    const items=shuffle(pool);
+    let line='';
+    items.forEach(([key,label],idx)=>{
+      line+='<div class="objitem" data-omr="q10-r'+(i+1)+'-item'+(idx+1)+'">'+renderIcon(key,38)+'<span>'+label+'</span></div>';
+    });
+    let question;
+    const thirdItem=items[2][1];
+    const fourthItem=items[3][1];
+    if(i===3){
+      question='Which '+(cat==='vehicle'?'vehicle':'flower')+' is in the 3rd position? <span class="ansbox small" data-omr="q10-r'+(i+1)+'-ans"></span> &nbsp;<span style="font-size:11px;color:#555;">(answer: write its name)</span>';
+      answers.push({question:i+1,type:'position',category:cat,order:items.map(x=>x[1]),ask:'3rd position',answer:thirdItem});
+    } else {
+      question='Circle the '+(cat==='vehicle'?'vehicle':'flower')+' in the 4th position.';
+      answers.push({question:i+1,type:'position',category:cat,order:items.map(x=>x[1]),ask:'4th position',answer:fourthItem});
+    }
+    rows+='<tr><td class="rownum">'+(i+1)+'</td><td colspan="2"><div class="objline">'+line+'</div><div style="margin-top:8px;font-size:13px;">'+question+'</div></td></tr>';
+  }
+  return {
+    html:'<table class="wstable"><tr><th style="width:26px;">#</th><th colspan="2">Pattern / Position</th></tr>'+rows+'</table>',
+    answers:{section:'Patterns and Position', items:answers}
+  };
+}
+
+const COMPARE_PHRASES={
+  giraffe:{adjBig:'taller',adjSmall:'shorter',noun:'giraffe'},
+  candle:{adjBig:'taller',adjSmall:'shorter',noun:'candle'},
+  balloon:{adjBig:'bigger',adjSmall:'smaller',noun:'balloon'},
+  pumpkin:{adjBig:'bigger',adjSmall:'smaller',noun:'pumpkin'},
+  apple:{adjBig:'bigger',adjSmall:'smaller',noun:'apple'},
+  tree:{adjBig:'taller',adjSmall:'shorter',noun:'tree'},
+  pencil:{adjBig:'longer',adjSmall:'shorter',noun:'pencil'},
+  glassWater:{adjBig:'with more water',adjSmall:'with less water',noun:'glass'}
+};
+function section11(){
+  const objs=sample(COMPARE_OBJECTS,5);
+  let rows='';
+  const answers=[];
+  objs.forEach((obj,i)=>{
+    const cfg=COMPARE_PHRASES[obj];
+    const askBig=Math.random()<0.5;
+    const adj=askBig?cfg.adjBig:cfg.adjSmall;
+    const instr=obj==='glassWater'?('Circle the glass '+adj+'.'):('Circle the '+adj+' '+cfg.noun+'.');
+    let iconA,iconB;
+    let levelA,levelB,scaleA,scaleB;
+    if(obj==='glassWater'){
+      const levels=shuffle([0.25,0.85]);
+      levelA=levels[0]; levelB=levels[1];
+      iconA=renderIcon(obj,72,{level:levelA});
+      iconB=renderIcon(obj,72,{level:levelB});
+    } else {
+      const scales=shuffle([0.55,1.0]);
+      scaleA=scales[0]; scaleB=scales[1];
+      iconA=renderIcon(obj,Math.round(70*scaleA));
+      iconB=renderIcon(obj,Math.round(70*scaleB));
+    }
+    const order=shuffle([{icon:iconA,id:'A',scale:scaleA,level:levelA},{icon:iconB,id:'B',scale:scaleB,level:levelB}]);
+    const displayed=[order[0],order[1]];
+    let correctCircle;
+    if(obj==='glassWater'){
+      correctCircle=askBig
+        ? (displayed[0].level>displayed[1].level?'Left':'Right')
+        : (displayed[0].level<displayed[1].level?'Left':'Right');
+    } else {
+      correctCircle=askBig
+        ? (displayed[0].scale>displayed[1].scale?'Left':'Right')
+        : (displayed[0].scale<displayed[1].scale?'Left':'Right');
+    }
+    rows+='<tr><td class="rownum">'+(i+1)+'</td><td style="width:30%;">'+instr+'</td><td><div class="compare-row" data-omr="q11-row-'+(i+1)+'"><div class="compare-cell" data-omr="q11-r'+(i+1)+'-left">'+displayed[0].icon+'</div><div class="compare-cell" data-omr="q11-r'+(i+1)+'-right">'+displayed[1].icon+'</div></div></td></tr>';
+    answers.push({question:i+1,object:obj,instruction:instr,answer:correctCircle,note:'Left or Right box to circle'});
+  });
+  return {
+    html:'<table class="wstable"><tr><th style="width:26px;">#</th><th>Instruction</th><th>Compare</th></tr>'+rows+'</table>',
+    answers:{section:'Compare Objects', items:answers}
+  };
+}
+
+/* ============================================================
+   WORKSHEET ASSEMBLY
+   ============================================================ */
+const SECTION_TITLES=[
+  'Section 1 — Fill in the Missing Numbers',
+  'Section 2 — Count the Objects and Write the Numeral',
+  'Section 3 — Before, After, Between',
+  'Section 4 — Compare the Numbers ( < , > , = )',
+  'Section 5 — Size Ordering',
+  'Section 6 — Addition',
+  'Section 7 — Subtraction',
+  'Section 8 — Tens and Ones',
+  'Section 9 — Match the Shapes',
+  'Section 10 — Complete the Pattern',
+  'Section 11 — Compare the Objects'
+];
+
+function buildWorksheetAndKey(setNum){
+  const builders=[section1,section2,section3,section4,section5,section6,section7,section8,section9,section10,section11];
+  let sectionsHtml='';
+  const answerKey={
+    set:setNum,
+    generated:new Date().toISOString(),
+    totalSections:11,
+    sections:[]
+  };
+  builders.forEach((fn,idx)=>{
+    const result=fn();
+    sectionsHtml+='<div class="section" data-section="'+(idx+1)+'" style="page-break-inside:avoid;"><h2>'+SECTION_TITLES[idx]+'</h2>'+result.html+'</div>';
+    answerKey.sections.push(result.answers);
+  });
+
+  const reg='<div class="reg-sq tl"></div><div class="reg-sq tr"></div>'+
+    '<div class="reg-sq bl"></div><div class="reg-sq br"></div>';
+  const pid='SET-'+String(setNum).padStart(5,'0');
+
+  const worksheetHtml='<div class="page-wrapper">'+reg+
+    '<div class="page" id="page-set-'+setNum+'">'+
+    '<div class="ws-header">'+
+      '<div class="ws-title">CLASS 2 — MATHEMATICS PRACTICE WORKSHEET</div>'+
+      '<div class="ws-sub">Set '+setNum+'</div>'+
+      '<div class="ws-fields"><span>Name:</span><span>Date:</span><span>Roll No.:</span><span>Marks: ____ / 100</span></div>'+
+    '</div>'+sectionsHtml+
+    '<div class="ws-footer">Class 2 — Math FLN Practice &nbsp;|&nbsp; Set '+setNum+'</div>'+
+    '<div class="ws-page-id">'+pid+'</div>'+
+  '</div></div>';
+  return {worksheetHtml, answerKey};
+}
+
+/* ============================================================
+   ANSWER KEY HTML RENDERER
+   ============================================================ */
+function renderAnswerKeyHTML(ak){
+  const s=ak.sections;
+  let html=`<div class="ak-page">
+  <div class="ak-header">
+    <div class="ak-title">ANSWER KEY — CLASS 2 MATHEMATICS</div>
+    <div class="ak-sub">Set ${ak.set} &nbsp;|&nbsp; Generated: ${new Date(ak.generated).toLocaleString()}</div>
+  </div>`;
+
+  html+=`<div class="ak-section"><h3>Section 1 — Fill in the Missing Numbers</h3>
+  <table class="aktable"><tr><th>#</th><th>Range</th><th>Blank Position(s)</th><th>Answer(s)</th></tr>`;
+  s[0].items.forEach(q=>{
+    const ans=q.blanks.map(b=>`Pos ${b.position} → <span class="ak-ans">${b.value}</span>`).join(' &nbsp; ');
+    html+=`<tr><td>${q.question}</td><td>${q.range}</td><td>${q.blanks.map(b=>'Pos '+b.position).join(', ')}</td><td>${ans}</td></tr>`;
+  });
+  html+=`</table></div>`;
+
+  html+=`<div class="ak-section"><h3>Section 2 — Count the Objects</h3>
+  <table class="aktable"><tr><th>#</th><th>Object</th><th>Count</th></tr>`;
+  s[1].items.forEach(q=>{
+    html+=`<tr><td>${q.question}</td><td>${cap(q.object)}</td><td><span class="ak-ans">${q.count}</span></td></tr>`;
+  });
+  html+=`</table></div>`;
+
+  html+=`<div class="ak-section"><h3>Section 3 — Before, After, Between</h3>
+  <table class="aktable"><tr><th>#</th><th>Type</th><th>Given</th><th>Answer</th></tr>`;
+  s[2].items.forEach(q=>{
+    html+=`<tr><td>${q.question}</td><td>${cap(q.type)}</td><td>${Array.isArray(q.given)?q.given.join(', '):q.given}</td><td><span class="ak-ans">${q.answer}</span></td></tr>`;
+  });
+  html+=`</table></div>`;
+
+  html+=`<div class="ak-section"><h3>Section 4 — Compare Numbers</h3>
+  <table class="aktable"><tr><th>#</th><th>Left</th><th>Symbol</th><th>Right</th></tr>`;
+  s[3].items.forEach(q=>{
+    html+=`<tr><td>${q.question}</td><td>${q.left}</td><td><span class="ak-ans">${q.answer}</span></td><td>${q.right}</td></tr>`;
+  });
+  html+=`</table></div>`;
+
+  html+=`<div class="ak-section"><h3>Section 5 — Size Ordering (1=shortest/smallest, 4=longest/tallest)</h3>
+  <table class="aktable"><tr><th>#</th><th>Object</th><th>Display Pos 1</th><th>Display Pos 2</th><th>Display Pos 3</th><th>Display Pos 4</th></tr>`;
+  s[4].items.forEach(q=>{
+    html+=`<tr><td>${q.question}</td><td>${cap(q.object)}</td>${q.ranking.map(r=>`<td><span class="ak-ans">${r.correctRank}</span></td>`).join('')}</tr>`;
+  });
+  html+=`</table><p style="font-size:11px;color:#555;">Write rank number in box below each object. 1=shortest/smallest.</p></div>`;
+
+  html+=`<div class="ak-section"><h3>Section 6 — Addition</h3>
+  <table class="aktable"><tr><th>#</th><th>Expression</th><th>Answer</th></tr>`;
+  s[5].items.forEach(q=>{
+    html+=`<tr><td>${q.question}</td><td>${q.expression}</td><td><span class="ak-ans">${q.answer}</span></td></tr>`;
+  });
+  html+=`</table></div>`;
+
+  html+=`<div class="ak-section"><h3>Section 7 — Subtraction</h3>
+  <table class="aktable"><tr><th>#</th><th>Total</th><th>Crossed out</th><th>Expression</th><th>Answer</th></tr>`;
+  s[6].items.forEach(q=>{
+    html+=`<tr><td>${q.question}</td><td>${q.total}</td><td>${q.crossedOut}</td><td>${q.expression}</td><td><span class="ak-ans">${q.remaining}</span></td></tr>`;
+  });
+  html+=`</table></div>`;
+
+  html+=`<div class="ak-section"><h3>Section 8 — Tens and Ones</h3>
+  <table class="aktable"><tr><th>#</th><th>Number</th><th>Tens</th><th>Ones</th></tr>`;
+  s[7].items.forEach(q=>{
+    html+=`<tr><td>${q.question}</td><td><span class="ak-ans">${q.number}</span></td><td><span class="ak-ans">${q.tens}</span></td><td><span class="ak-ans">${q.ones}</span></td></tr>`;
+  });
+  html+=`</table></div>`;
+
+  html+=`<div class="ak-section"><h3>Section 9 — Match Shapes</h3>
+  <table class="aktable"><tr><th>Shape</th><th>Matches to (real-life object)</th></tr>`;
+  s[8].items.forEach(q=>{
+    html+=`<tr><td>${q.shape}</td><td><span class="ak-ans">${q.matchesTo}</span></td></tr>`;
+  });
+  html+=`</table></div>`;
+
+  html+=`<div class="ak-section"><h3>Section 10 — Patterns and Position</h3>
+  <table class="aktable"><tr><th>#</th><th>Type</th><th>Detail</th><th>Answer</th></tr>`;
+  s[9].items.forEach(q=>{
+    if(q.type==='pattern'){
+      html+=`<tr><td>${q.question}</td><td>Pattern (${q.patternType})</td><td>Given: ${q.given.join(', ')}</td><td>Next 2: <span class="ak-ans">${q.answer[0]}</span> <span class="ak-ans">${q.answer[1]}</span></td></tr>`;
+    } else {
+      html+=`<tr><td>${q.question}</td><td>Position</td><td>Order: ${q.order.join(' → ')}</td><td><span class="ak-ans">${q.answer}</span></td></tr>`;
+    }
+  });
+  html+=`</table></div>`;
+
+  html+=`<div class="ak-section"><h3>Section 11 — Compare Objects</h3>
+  <table class="aktable"><tr><th>#</th><th>Object</th><th>Instruction</th><th>Circle which?</th></tr>`;
+  s[10].items.forEach(q=>{
+    html+=`<tr><td>${q.question}</td><td>${cap(q.object)}</td><td>${q.instruction}</td><td><span class="ak-ans">${q.answer}</span></td></tr>`;
+  });
+  html+=`</table></div>`;
+
+  html+=`<div class="ak-footer">Class 2 Math FLN — Answer Key Set ${ak.set} | Auto-generated | For evaluator use only</div></div>`;
+  return html;
+}
+
+/* ============================================================
+   ICR / MASTER JSON BUILDER
+   ============================================================ */
+function icrForSection(sIdx,item){
+  switch(sIdx){
+    case 0: return {detect:'handwritten_digit',blanks:item.blanks.map(b=>({pos:b.position,expected:b.value}))};
+    case 1: return {detect:'handwritten_digit',expected:item.count};
+    case 2: return {detect:'handwritten_digit',expected:item.answer};
+    case 3: return {detect:'handwritten_symbol',expected:item.answer,options:['<','>','=']};
+    case 4: return {detect:'handwritten_digit_per_box',expected:item.ranking.map(r=>r.correctRank)};
+    case 5: return {detect:'handwritten_digit',expected:item.answer};
+    case 6: return {detect:'handwritten_digit',expected:item.remaining};
+    case 7: return {detect:'handwritten_digit_multi',fields:['tens','ones','number'],expected:{tens:item.tens,ones:item.ones,number:item.number}};
+    case 8: return {detect:'drawn_line_between_dots',from_label:item.shape,to_label:item.matchesTo};
+    case 9: return item.type==='pattern'
+      ? {detect:'drawn_or_written_shape',expected:item.answer}
+      : {detect:(item.ask==='3rd position'?'handwritten_text':'circle_mark'),expected:item.answer};
+    case 10: return {detect:'circle_mark',expected_side:item.answer,options:['Left','Right']};
+    default: return {detect:'unspecified'};
+  }
+}
+function buildMasterJSON(setNum,liveCoords){
+  const ak=worksheetAnswers[setNum-1];
+  const sections=ak.sections.map((sec,sIdx)=>{
+    const items=sec.items.map(item=>({
+      question:item.question!==undefined?item.question:null,
+      data:item,
+      icr:icrForSection(sIdx,item)
+    }));
+    return {section:sec.section,note:sec.note||null,items};
+  });
+  const regCoords=liveCoords?{tl:liveCoords['reg_sq_tl']||null,tr:liveCoords['reg_sq_tr']||null,bl:liveCoords['reg_sq_bl']||null,br:liveCoords['reg_sq_br']||null}:null;
+  const coordsBySection=liveCoords?(()=>{
+    const grouped={};
+    Object.entries(liveCoords).forEach(([k,v])=>{
+      const m=k.match(/^q(\d+)-/);
+      if(m){ const key='q'+m[1]; (grouped[key]=grouped[key]||{})[k]=v; }
+    });
+    return grouped;
+  })():null;
+  return {
+    meta:{set:setNum,pid:'SET-'+String(setNum).padStart(5,'0'),gen:new Date().toISOString(),sections:11,coord_unit:'mm',icr_version:'1.0',layout:'multi-page-A4'},
+    registration_marks:regCoords,
+    coords_mm:coordsBySection,
+    sections
+  };
+}
+
+/* ============================================================
+   OMR COORDINATE CAPTURE
+   ============================================================ */
+const PX_PER_MM=96/25.4;
+function mmV(px){ return +((px/PX_PER_MM).toFixed(2)); }
+
+function captureCoords(pageEl){
+  if(!pageEl) return {};
+  const pageRect=pageEl.getBoundingClientRect();
+  const coords={};
+  const pw=pageEl.closest('.page-wrapper');
+  if(pw){
+    const wRect=pw.getBoundingClientRect();
+    ['tl','tr','bl','br'].forEach(cls=>{
+      const sq=pw.querySelector('.reg-sq.'+cls);
+      if(sq){
+        const r=sq.getBoundingClientRect();
+        coords['reg_sq_'+cls]={x_min:mmV(r.left-wRect.left),y_min:mmV(r.top-wRect.top),x_max:mmV(r.right-wRect.left),y_max:mmV(r.bottom-wRect.top)};
+      }
+    });
+  }
+  pageEl.querySelectorAll('[data-omr]').forEach(el=>{
+    const key=el.getAttribute('data-omr');
+    const r=el.getBoundingClientRect();
+    coords[key]={x_min:mmV(r.left-pageRect.left),y_min:mmV(r.top-pageRect.top),x_max:mmV(r.right-pageRect.left),y_max:mmV(r.bottom-pageRect.top)};
+  });
+  pageEl.querySelectorAll('[data-omr-dot]').forEach(el=>{
+    const key=el.getAttribute('data-omr-dot');
+    const r=el.getBoundingClientRect();
+    coords['dot:'+key]={x_min:mmV(r.left-pageRect.left),y_min:mmV(r.top-pageRect.top),x_max:mmV(r.right-pageRect.left),y_max:mmV(r.bottom-pageRect.top)};
+  });
+  return coords;
+}
+
+function buildOmrOverlay(pageEl,coords){
+  const existing=pageEl.querySelector('.omr-overlay');
+  if(existing) existing.remove();
+  const overlay=document.createElement('div');
+  overlay.className='omr-overlay';
+  Object.entries(coords).forEach(([key,c])=>{
+    if(key.startsWith('reg_sq')) return;
+    const box=document.createElement('div');
+    box.className='omr-box';
+    box.style.left=(c.x_min*PX_PER_MM)+'px';
+    box.style.top=(c.y_min*PX_PER_MM)+'px';
+    box.style.width=((c.x_max-c.x_min)*PX_PER_MM)+'px';
+    box.style.height=((c.y_max-c.y_min)*PX_PER_MM)+'px';
+    const label=document.createElement('div');
+    label.className='omr-label';
+    label.textContent=key;
+    label.style.top='-10px';
+    label.style.left='0';
+    box.appendChild(label);
+    overlay.appendChild(box);
+  });
+  pageEl.style.position='relative';
+  pageEl.appendChild(overlay);
+  return overlay;
+}
+
+/* ============================================================
+   CSV EXPORT
+   ============================================================ */
+function flattenAnswerForCSV(item){
+  if(item.answer!==undefined) return item.answer;
+  if(item.blanks) return JSON.stringify(item.blanks.map(b=>b.value));
+  if(item.count!==undefined) return item.count;
+  if(item.remaining!==undefined) return item.remaining;
+  if(item.matchesTo!==undefined) return item.matchesTo;
+  if(item.ranking) return JSON.stringify(item.ranking.map(r=>r.correctRank));
+  if(item.number!==undefined) return 'T'+item.tens+'O'+item.ones+'='+item.number;
+  return JSON.stringify(item);
+}
+function buildCSV(start,end){
+  const rows=[['set','section','q','question_type','answer']];
+  for(let i=start;i<=end;i++){
+    const ak=worksheetAnswers[i-1];
+    if(!ak) continue;
+    ak.sections.forEach(sec=>{
+      sec.items.forEach(item=>{
+        const ans=flattenAnswerForCSV(item);
+        rows.push([i,'"'+sec.section.replace(/"/g,'""')+'"',item.question!==undefined?item.question:'','"'+(item.type||'')+'"','"'+String(ans).replace(/"/g,'""')+'"']);
+      });
+    });
+  }
+  return rows.map(r=>r.join(',')).join('\r\n');
+}
+function triggerTextDownload(filename,text,mime){
+  const blob=new Blob([text],{type:mime||'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   APP STATE
+   ============================================================ */
+let worksheetHTMLs=[];
+let worksheetAnswers=[];
+let inserted=[];
+let currentSet=1;
+let omrOverlayVisible=false;
+
+function generateSets(n){
+  n=Math.max(1,Math.min(5000,n|0));
+  worksheetHTMLs=[];
+  worksheetAnswers=[];
+  for(let i=0;i<n;i++){
+    const {worksheetHtml,answerKey}=buildWorksheetAndKey(i+1);
+    worksheetHTMLs.push(worksheetHtml);
+    worksheetAnswers.push(answerKey);
+  }
+  inserted=new Array(n).fill(false);
+
+  const tabbar=document.getElementById('tabbar');
+  tabbar.innerHTML='';
+  for(let i=1;i<=n;i++){
+    const btn=document.createElement('button');
+    btn.className='tabbtn';
+    btn.id='tabbtn-'+i;
+    btn.textContent='Set '+i;
+    btn.addEventListener('click',()=>activateSet(i));
+    tabbar.appendChild(btn);
+  }
+  const container=document.getElementById('setsContainer');
+  container.innerHTML='';
+  for(let i=1;i<=n;i++){
+    const div=document.createElement('div');
+    div.className='worksheet';
+    div.id='ws-'+i;
+    container.appendChild(div);
+  }
+  activateSet(1);
+  const si=document.getElementById('singleSetNum');
+  if(si){ si.max=String(n); if((parseInt(si.value,10)||1)>n) si.value='1'; }
+}
+
+function activateSet(num){
+  currentSet=num;
+  document.querySelectorAll('.worksheet').forEach(w=>w.classList.remove('active'));
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
+  const div=document.getElementById('ws-'+num);
+  if(!div) return;
+  if(!inserted[num-1]){
+    div.innerHTML=worksheetHTMLs[num-1];
+    inserted[num-1]=true;
+  }
+  div.classList.add('active');
+  const btn=document.getElementById('tabbtn-'+num);
+  if(btn) btn.classList.add('active');
+}
+
+/* ============================================================
+   ANSWER KEY MODAL
+   ============================================================ */
+function closeAKModal(){
+  document.getElementById('akModal').style.display='none';
+}
+document.getElementById('akModal').addEventListener('click',function(e){
+  if(e.target===this) closeAKModal();
+});
+
+document.getElementById('viewAKBtn').addEventListener('click',()=>{
+  if(!worksheetAnswers.length){ alert('Generate sets first.'); return; }
+  const ak=worksheetAnswers[currentSet-1];
+  document.getElementById('akModalContent').innerHTML=renderAnswerKeyHTML(ak);
+  document.getElementById('akModal').style.display='block';
+});
+
+/* ============================================================
+   DOWNLOAD ANSWER KEY (current set)
+   ============================================================ */
+document.getElementById('dlAKBtn').addEventListener('click',async()=>{
+  if(!worksheetAnswers.length){ alert('Generate sets first.'); return; }
+  const ak=worksheetAnswers[currentSet-1];
+  const setNum=String(currentSet).padStart(String(worksheetAnswers.length).length,'0');
+  const zip=new JSZip();
+  zip.file('Set_'+setNum+'_AnswerKey.json', JSON.stringify(ak,null,2));
+  const akHtmlFull=`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Answer Key Set ${currentSet}</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
+    .ak-page{background:#fff;max-width:900px;margin:0 auto;padding:20mm;border:1px solid #ccc;}
+    .ak-header{text-align:center;border-bottom:3px solid #000;padding-bottom:8px;margin-bottom:14px;}
+    .ak-title{font-size:18px;font-weight:bold;}
+    .ak-sub{font-size:13px;color:#555;margin-top:4px;}
+    .ak-section{margin:14px 0;}
+    .ak-section h3{font-size:13px;font-weight:bold;background:#222;color:#fff;padding:3px 8px;display:inline-block;margin:0 0 6px 0;}
+    table.aktable{width:100%;border-collapse:collapse;font-size:12px;}
+    table.aktable td,table.aktable th{border:1px solid #666;padding:4px 6px;vertical-align:top;}
+    table.aktable th{background:#f0f0f0;font-weight:bold;}
+    .ak-ans{background:#fffde7;border:1.5px solid #f9a825;padding:2px 6px;border-radius:3px;font-weight:bold;display:inline-block;margin:1px 2px;}
+    .ak-footer{margin-top:14px;border-top:1px solid #ccc;padding-top:6px;font-size:10px;text-align:center;color:#555;}
+    @media print{body{background:#fff;padding:0;}.ak-page{border:none;padding:8mm;}}
+  </style></head><body>${renderAnswerKeyHTML(ak)}</body></html>`;
+  zip.file('Set_'+setNum+'_AnswerKey.html', akHtmlFull);
+  const blob=await zip.generateAsync({type:'blob'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='Set_'+setNum+'_AnswerKey.zip';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+});
+
+/* ============================================================
+   OMR OVERLAY TOGGLE + COORDS EXPORT
+   ============================================================ */
+document.getElementById('toggleOmrBtn').addEventListener('click',()=>{
+  omrOverlayVisible=!omrOverlayVisible;
+  const div=document.getElementById('ws-'+currentSet);
+  if(!div) return;
+  const pageEl=div.querySelector('.page');
+  if(!pageEl) return;
+  let overlay=pageEl.querySelector('.omr-overlay');
+  if(omrOverlayVisible){
+    const c=captureCoords(pageEl);
+    overlay=buildOmrOverlay(pageEl,c);
+    overlay.classList.add('visible');
+    document.getElementById('toggleOmrBtn').textContent='Hide OMR Overlay';
+  } else {
+    if(overlay) overlay.classList.remove('visible');
+    document.getElementById('toggleOmrBtn').textContent='Toggle OMR Overlay';
+  }
+});
+
+async function getLiveCoords(setNum){
+  const mainPage=document.querySelector('#ws-'+setNum+' .page');
+  if(mainPage) return captureCoords(mainPage);
+  const rr=document.getElementById('pdfRenderRoot');
+  rr.innerHTML=worksheetHTMLs[setNum-1];
+  await new Promise(r=>setTimeout(r,80));
+  const pe=rr.querySelector('.page');
+  const coords=captureCoords(pe);
+  rr.innerHTML='';
+  return coords;
+}
+
+document.getElementById('exportCoordsBtn').addEventListener('click',async()=>{
+  if(!worksheetHTMLs.length){ alert('Generate first.'); return; }
+  const coords=await getLiveCoords(currentSet);
+  const masterJson=buildMasterJSON(currentSet,coords);
+  const pw=String(worksheetHTMLs.length).length;
+  triggerTextDownload('MasterKey_Set'+String(currentSet).padStart(pw,'0')+'.json',JSON.stringify(masterJson,null,2),'application/json');
+});
+
+/* ============================================================
+   PDF EXPORT — single render + smart DOM-measured slice
+   Strategy:
+     1. Render the entire .page element ONCE into one tall canvas
+        (one html2canvas call per worksheet = fast, no repeated re-renders).
+     2. Measure every "breakable block" (header, each .section, footer)
+        in DOM coordinates relative to .page.
+     3. Convert those pixel boundaries to canvas-pixel coordinates.
+     4. Pack blocks greedily onto A4 pages: if a block fits in the
+        remaining space of the current page, keep it there; otherwise
+        start a new page. Never split a block across pages.
+     5. For each page, crop the single full canvas and add to jsPDF.
+        One ImageData crop per page — minimal memory, no extra canvases.
+   ============================================================ */
+
+const PDF_A4_W_MM  = 210;
+const PDF_A4_H_MM  = 297;
+const PDF_MARGIN_MM = 14;   // matches .page { padding: 14mm }
+const PDF_RENDER_SCALE = 1.2; // 1.2× gives ~114dpi — sharp enough, 40% faster than 1.5×
+
+async function buildPdfBlobForSet(setIndex) {
+  const renderRoot = document.getElementById('pdfRenderRoot');
+
+  /* ── 1. Inject HTML and wait for full layout + SVG paint ── */
+  renderRoot.innerHTML = worksheetHTMLs[setIndex - 1];
+  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => setTimeout(r, 120));
+
+  const pageEl = renderRoot.querySelector('.page');
+
+  /* ── 2. Capture OMR coords before we do anything else ── */
+  const coords = captureCoords(pageEl);
+
+  /* ── 3. Collect breakable blocks and measure their DOM positions ── */
+  const pageRect = pageEl.getBoundingClientRect();
+
+  // blocks = array of { top_px, bottom_px } relative to pageEl top-left
+  // We measure every direct child that is either the header, a section, or the footer.
+  // The ws-page-id div is tiny — lump it with the footer band.
+  const blockEls = [
+    pageEl.querySelector('.ws-header'),
+    ...Array.from(pageEl.querySelectorAll('.section')),
+    pageEl.querySelector('.ws-footer'),
+  ].filter(Boolean);
+
+  const domBlocks = blockEls.map(el => {
+    const r = el.getBoundingClientRect();
+    return {
+      top:    r.top    - pageRect.top,   // px relative to page
+      bottom: r.bottom - pageRect.top,
+    };
+  });
+
+  /* ── 4. Single html2canvas render of the whole page ── */
+  const fullCanvas = await html2canvas(pageEl, {
+    scale:           PDF_RENDER_SCALE,
+    backgroundColor: '#ffffff',
+    useCORS:         true,
+    logging:         false,
+    // Remove the box-shadow/border that the on-screen .page has
+    // so the PDF canvas is pure content
+    onclone: (doc) => {
+      const p = doc.querySelector('.page');
+      if (p) { p.style.boxShadow = 'none'; p.style.border = 'none'; }
+    }
+  });
+
+  const S = PDF_RENDER_SCALE; // shorthand
+  const canvasW = fullCanvas.width;   // px at render scale
+
+  // px-per-mm in canvas space
+  const canvasPxPerMM = canvasW / PDF_A4_W_MM;
+
+  /* ── 5. Convert DOM block boundaries to canvas-px boundaries ── */
+  const canvasBlocks = domBlocks.map(b => ({
+    top:    Math.round(b.top    * S),
+    bottom: Math.round(b.bottom * S),
+  }));
+
+  /* ── 6. Usable page height in canvas-px ── */
+  const usableHeightMM = PDF_A4_H_MM - 2 * PDF_MARGIN_MM;
+  const pageHeightPx   = Math.round(usableHeightMM * canvasPxPerMM);
+  const marginTopPx    = Math.round(PDF_MARGIN_MM   * canvasPxPerMM);
+
+  /* ── 7. Greedy packing: decide which canvas-px rows go on which PDF page ── */
+  // Each PDF page is represented as { startPx, endPx }
+  // startPx / endPx are absolute canvas-y coordinates to crop.
+  const pages = [];   // [{ startPx, endPx }]
+  let pageStartPx = 0;
+  let cursorPx    = 0; // next block will start at or after this px
+
+  for (let i = 0; i < canvasBlocks.length; i++) {
+    const blk = canvasBlocks[i];
+    const blkHeight = blk.bottom - blk.top;
+
+    // How many canvas-px are already used on the current page?
+    const usedPx = cursorPx - pageStartPx;
+
+    // Will this block fit on the current page?
+    if (usedPx + blkHeight <= pageHeightPx || usedPx === 0) {
+      // Fits (or it's the very first block on an empty page — always place it)
+      cursorPx = blk.bottom;
+    } else {
+      // Doesn't fit — close current page and start a new one
+      pages.push({ startPx: pageStartPx, endPx: cursorPx });
+      pageStartPx = blk.top;   // new page starts right at the top of this block
+      cursorPx    = blk.bottom;
+    }
+  }
+  // Close the last page
+  pages.push({ startPx: pageStartPx, endPx: cursorPx });
+
+  /* ── 8. Build jsPDF by cropping the single canvas per page ── */
+  const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+  const ctx  = fullCanvas.getContext('2d');
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = canvasW;
+  const tmpCtx = tmpCanvas.getContext('2d');
+
+  pages.forEach((pg, idx) => {
+    const sliceH  = pg.endPx - pg.startPx;          // canvas-px height of this slice
+    const sliceMM = sliceH / canvasPxPerMM;           // mm height of content
+
+    // Resize temp canvas to match this slice
+    tmpCanvas.height = sliceH;
+    tmpCtx.clearRect(0, 0, canvasW, sliceH);
+    tmpCtx.drawImage(fullCanvas, 0, pg.startPx, canvasW, sliceH, 0, 0, canvasW, sliceH);
+
+    const imgData = tmpCanvas.toDataURL('image/jpeg', 0.88);
+
+    if (idx > 0) pdf.addPage();
+    // Place with top margin; image fills full width
+    pdf.addImage(imgData, 'JPEG', 0, PDF_MARGIN_MM, PDF_A4_W_MM, sliceMM);
+
+    // Immediately clear the temp canvas to free memory
+    tmpCtx.clearRect(0, 0, canvasW, sliceH);
+  });
+
+  /* ── 9. Tear down ── */
+  tmpCanvas.width = 1; tmpCanvas.height = 1; // release GPU texture
+  fullCanvas.width = 1; fullCanvas.height = 1;
+  renderRoot.innerHTML = '';
+
+  return { pdfBlob: pdf.output('blob'), coords };
+}
+
+/* ============================================================
+   BUTTON HELPERS
+   ============================================================ */
+function allBtns(){
+  return [document.getElementById('generateBtn'),document.getElementById('downloadSingleSetBtn'),
+    document.getElementById('dlAKBtn'),document.getElementById('exportAllBtn'),
+    document.getElementById('exportCoordsBtn')].filter(Boolean);
+}
+
+/* ============================================================
+   SINGLE-SET DOWNLOAD
+   ============================================================ */
+document.getElementById('downloadSingleSetBtn').addEventListener('click',async()=>{
+  if(!worksheetHTMLs.length){ alert('Generate first.'); return; }
+  const n=worksheetHTMLs.length;
+  const input=document.getElementById('singleSetNum');
+  let setNum=Math.max(1,Math.min(n,parseInt(input.value,10)||1));
+  input.value=setNum;
+  const pw=String(n).length, padded=String(setNum).padStart(pw,'0');
+  allBtns().forEach(b=>b.disabled=true);
+  const pr=document.getElementById('exportProgress');
+  pr.textContent='Building Set '+setNum+'…';
+  try{
+    const {pdfBlob,coords}=await buildPdfBlobForSet(setNum);
+    const url=URL.createObjectURL(pdfBlob);
+    const a=document.createElement('a'); a.href=url; a.download='Set_'+padded+'.pdf';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    await new Promise(r=>setTimeout(r,200)); URL.revokeObjectURL(url);
+
+    const masterJson=buildMasterJSON(setNum,coords);
+    triggerTextDownload('MasterKey_Set'+padded+'.json',JSON.stringify(masterJson,null,2),'application/json');
+    triggerTextDownload('AnswerKey_Set'+padded+'.csv',buildCSV(setNum,setNum),'text/csv');
+    pr.textContent='Done — Set '+setNum+' downloaded.';
+  }catch(e){
+    console.error(e);
+    pr.textContent='Failed: '+(e.message||e);
+  } finally{
+    allBtns().forEach(b=>b.disabled=false);
+  }
+});
+
+/* ============================================================
+   EXPORT ALL SETS + ANSWER KEYS as ZIP
+   ============================================================ */
+const ZIP_CHUNK_SIZE=300;
+async function exportAllSetsAsZip(){
+  if(!worksheetHTMLs.length){ alert('Generate at least one set first.'); return; }
+  const progressEl=document.getElementById('exportProgress');
+  const n=worksheetHTMLs.length;
+  allBtns().forEach(b=>b.disabled=true);
+  const totalParts=Math.ceil(n/ZIP_CHUNK_SIZE);
+  const t0=performance.now();
+  const padWidth=String(n).length;
+
+  try{
+    for(let part=1; part<=totalParts; part++){
+      const partStart=(part-1)*ZIP_CHUNK_SIZE+1;
+      const partEnd=Math.min(part*ZIP_CHUNK_SIZE,n);
+      const zip=new JSZip();
+
+      for(let i=partStart;i<=partEnd;i++){
+        progressEl.textContent=(totalParts>1?'Part '+part+'/'+totalParts+' — ':'')+'Building Set '+i+' of '+n+' …';
+
+        const {pdfBlob,coords}=await buildPdfBlobForSet(i);
+        const fileName='Set_'+String(i).padStart(padWidth,'0');
+        zip.file(fileName+'.pdf', pdfBlob);
+
+        const masterJson=buildMasterJSON(i,coords);
+        zip.file(fileName+'_MasterKey.json', JSON.stringify(masterJson,null,2));
+        zip.file(fileName+'_AnswerKey.csv', buildCSV(i,i));
+
+        const ak=worksheetAnswers[i-1];
+        const akHtmlFull=`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Answer Key Set ${i}</title>
+<style>
+  body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
+  .ak-page{background:#fff;max-width:900px;margin:0 auto;padding:20mm;border:1px solid #ccc;}
+  .ak-header{text-align:center;border-bottom:3px solid #000;padding-bottom:8px;margin-bottom:14px;}
+  .ak-title{font-size:18px;font-weight:bold;}
+  .ak-sub{font-size:13px;color:#555;margin-top:4px;}
+  .ak-section{margin:14px 0;}
+  .ak-section h3{font-size:13px;font-weight:bold;background:#222;color:#fff;padding:3px 8px;display:inline-block;margin:0 0 6px 0;}
+  table.aktable{width:100%;border-collapse:collapse;font-size:12px;}
+  table.aktable td,table.aktable th{border:1px solid #666;padding:4px 6px;vertical-align:top;}
+  table.aktable th{background:#f0f0f0;font-weight:bold;}
+  .ak-ans{background:#fffde7;border:1.5px solid #f9a825;padding:2px 6px;border-radius:3px;font-weight:bold;display:inline-block;margin:1px 2px;}
+  .ak-footer{margin-top:14px;border-top:1px solid #ccc;padding-top:6px;font-size:10px;text-align:center;color:#555;}
+  @media print{body{background:#fff;padding:0;}.ak-page{border:none;padding:8mm;}}
+</style></head><body>${renderAnswerKeyHTML(ak)}</body></html>`;
+        zip.file(fileName+'_AnswerKey.html', akHtmlFull);
+
+        if(i%5===0||i===partEnd){
+          const el=Math.round((performance.now()-t0)/1000);
+          progressEl.textContent='Rendered '+i+'/'+n+' sets… ('+el+'s elapsed)';
+          await new Promise(r=>setTimeout(r,0));
+        }
+      }
+
+      progressEl.textContent='Compressing ZIP…';
+      const zipBlob=await zip.generateAsync(
+        {type:'blob',compression:'DEFLATE',compressionOptions:{level:4}},
+        meta=>{ progressEl.textContent='Compressing: '+Math.round(meta.percent)+'%…'; }
+      );
+      const partLabel=totalParts>1
+        ? '_part'+part+'of'+totalParts+'_Sets'+String(partStart).padStart(padWidth,'0')+'-'+String(partEnd).padStart(padWidth,'0')
+        : '_Sets001-'+String(n).padStart(padWidth,'0');
+      const url=URL.createObjectURL(zipBlob);
+      const a=document.createElement('a');
+      a.href=url; a.download='Class2_Math'+partLabel+'.zip';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      await new Promise(r=>setTimeout(r,300)); URL.revokeObjectURL(url);
+    }
+    const totalEl=Math.round((performance.now()-t0)/1000);
+    progressEl.textContent=totalParts>1
+      ? 'Done — '+n+' sets as '+totalParts+' ZIP parts ('+totalEl+'s).'
+      : 'Done — '+n+' worksheets packaged ('+totalEl+'s).';
+  } catch(err){
+    console.error(err);
+    progressEl.textContent='Export failed — open browser console (F12) for details.';
+  } finally{
+    allBtns().forEach(b=>b.disabled=false);
+  }
+}
+
+document.getElementById('generateBtn').addEventListener('click',()=>{
+  const n=parseInt(document.getElementById('setCount').value,10)||1;
+  generateSets(n);
+});
+document.getElementById('printBtn').addEventListener('click',()=>window.print());
+document.getElementById('exportAllBtn').addEventListener('click',exportAllSetsAsZip);
+
+/* ============================================================
+   GLOBAL API EXPOSURE
+   ============================================================ */
+window.generateSets=generateSets;
+window.captureCoords=captureCoords;
+window.buildMasterJSON=buildMasterJSON;
+window.buildCSV=buildCSV;
+window.activateSet=activateSet;
+window.buildWorksheetAndKey=buildWorksheetAndKey;
+window.buildPdfBlobForSet=buildPdfBlobForSet;
+Object.defineProperty(window,'worksheetHTMLs',{get:()=>worksheetHTMLs});
+Object.defineProperty(window,'worksheetAnswers',{get:()=>worksheetAnswers});
+
+generateSets(parseInt(document.getElementById('setCount').value,10)||5);
+</script>
+</body>
+</html>
