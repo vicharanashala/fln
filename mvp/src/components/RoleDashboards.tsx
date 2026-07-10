@@ -629,7 +629,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token, onI
               activeTab === 'worksheets' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
             }`}
           >
-            📋 Worksheets
+            📋 Exam
           </button>
         </div>
 

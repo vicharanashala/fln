@@ -14,6 +14,14 @@
       "password": "Fln@2026",
       "role": "teacher",
       "schoolId": "gps-mt-001"
+    },
+    {
+      "id": "u_vy2i4yjhg",
+      "name": "Ritesh",
+      "email": "ritesh12@gmail.com",
+      "password": "Teacher@123",
+      "role": "teacher",
+      "schoolId": "sch_3kom5v"
     }
   ],
   "schools": [
@@ -25,6 +33,15 @@
       "blockCode": "LDH-01",
       "strength": "high",
       "teachersCount": 1
+    },
+    {
+      "id": "sch_3kom5v",
+      "name": "DPS",
+      "stateCode": "PB",
+      "districtCode": "LDH",
+      "blockCode": "LDH-01",
+      "strength": "low",
+      "teachersCount": 1
     }
   ],
   "classes": [
@@ -34,6 +51,13 @@
       "className": "Class 2",
       "section": "A",
       "teacherId": "u6"
+    },
+    {
+      "id": "c_1783680800036",
+      "schoolId": "sch_3kom5v",
+      "className": "Class 1",
+      "section": "A",
+      "teacherId": "u_vy2i4yjhg"
     }
   ],
   "students": [
@@ -1437,6 +1461,18 @@
     }
   ],
   "logbook": [
+    {
+      "id": "log_1783680800039",
+      "timestamp": "2026-07-10T10:53:20.039Z",
+      "schoolId": "",
+      "schoolName": "National Framework",
+      "userId": "u1",
+      "userEmail": "superadmin@fln.org",
+      "userRole": "superadmin",
+      "activityType": "verify",
+      "status": "Success",
+      "details": "Superadmin created user: Ritesh (teacher) for scope */*/*"
+    },
     {
       "id": "log_1783680589579",
       "timestamp": "2026-07-10T10:49:49.579Z",
