@@ -1,0 +1,15 @@
+{
+  "name": "fln-platform",
+  "version": "0.1.0",
+  "description": "FLN Assessment & Personalized Worksheet Platform",
+  "private": true,
+  "scripts": {
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

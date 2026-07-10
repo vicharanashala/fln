@@ -1,0 +1,23 @@
+{
+  "name": "fln-server",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^3.0.7",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^7.6.3",
+    "morgan": "^1.10.0",
+    "openai": "^6.46.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
