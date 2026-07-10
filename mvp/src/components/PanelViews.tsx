@@ -196,14 +196,11 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   });
 
   const panel = activePanel;
+  const [reportPreviewHtml, setReportPreviewHtml] = useState<string | null>(null);
+  const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
+  const [reportPreviewTitle, setReportPreviewTitle] = useState('');
 
-  const handleDownloadPDF = (student: Student, r: EvaluationReport, examResponses: any[]) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Please allow popups to download/print the PDF report card.');
-      return;
-    }
-
+  const handleViewReport = (student: Student, r: EvaluationReport, examResponses: any[]) => {
     const conceptBadges = Object.entries(r.conceptMastery)
       .map(([t, m]) => `<span class="badge ${m === 'Strong' ? 'badge-pass' : 'badge-fail'}">${t}: ${m}</span>`)
       .join(' ');
@@ -311,20 +308,33 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           Generated automatically by NATIONAL FLN PORTAL. Confidential Student Academic Record.
         </div>
 
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-            }, 300);
-          }
-        </script>
       </body>
       </html>
     `;
 
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
+    setReportPreviewTitle(`Assessment Report - ${student.name}`);
+    setReportPreviewHtml(htmlContent);
+    setIsReportPreviewOpen(true);
+  };
+
+  const renderReportPreviewModal = () => {
+    if (!isReportPreviewOpen || !reportPreviewHtml) return null;
+    return (
+      <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="bg-white rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-4 bg-slate-50">
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold text-slate-900 truncate">{reportPreviewTitle}</h2>
+              <p className="text-xs text-slate-500 mt-1">Preview the evaluation report directly in your browser.</p>
+            </div>
+            <button onClick={() => { setIsReportPreviewOpen(false); setReportPreviewHtml(null); }} className="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full px-4 py-2 transition">
+              Close
+            </button>
+          </div>
+          <iframe title={reportPreviewTitle} srcDoc={reportPreviewHtml} className="w-full h-full border-none bg-white" />
+        </div>
+      </div>
+    );
   };
 
   // ===================== TEACHER PANELS =====================
@@ -388,7 +398,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
     ];
 
-    return (
+    return (<>
+      {renderReportPreviewModal()}
       <div className="space-y-6">
         {/* Student selector header */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
@@ -690,9 +701,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                       ))}</div>
                       
                       <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
-                        <button onClick={() => setExpandedReportId(expandedReportId === r.id ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                          {expandedReportId === r.id ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
-                        </button>
                         <button onClick={() => {
                           const examResponses = s.id === 's1' ? [
                             { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
@@ -711,9 +719,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                             { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
                             { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
                           ];
-                          handleDownloadPDF(s, r, examResponses);
+                          handleViewReport(s, r, examResponses);
                         }} className="text-xs font-semibold text-emerald-650 hover:text-emerald-800 flex items-center gap-1">
-                          📥 Download PDF Report
+                          🖼️ View Report in Browser
                         </button>
                       </div>
 
@@ -843,6 +851,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           </div>
         )}
       </div>
+      {renderReportPreviewModal()}
+    </>
     );
   }
 
@@ -1027,7 +1037,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         </div>
       );
     }
-    return (
+    return (<>
+      {renderReportPreviewModal()}
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricCard title="Total Reports" value={REPORTS_MOCK.length} subtext="All evaluations" icon={FileText} />
@@ -1077,12 +1088,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
                 <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
                   <div className="flex gap-3">
-                    <button onClick={() => setExpandedReportId(isExpanded ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                      {isExpanded ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
-                    </button>
                     {student && (
-                      <button onClick={() => handleDownloadPDF(student, r, examResponses)} className="text-xs font-semibold text-emerald-650 hover:text-emerald-800 flex items-center gap-1">
-                        📥 Download PDF Report
+                      <button onClick={() => handleViewReport(student, r, examResponses)} className="text-xs font-semibold text-emerald-650 hover:text-emerald-800 flex items-center gap-1">
+                        🖼️ View Report in Browser
                       </button>
                     )}
                   </div>
@@ -1119,6 +1127,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           })}
         </div>
       </div>
+      {renderReportPreviewModal()}
+    </>
     );
   }
 
