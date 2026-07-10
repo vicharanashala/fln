@@ -19,7 +19,7 @@ import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
-import { ShieldCheck, Settings, Bell } from 'lucide-react';
+import { ShieldCheck, Bell } from 'lucide-react';
 
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('fln_token'));
@@ -216,42 +216,6 @@ export default function App() {
             <AssessmentCalendar />
           )}
 
-          {/* Unified fallback settings panel */}
-          {activePanel === 'settings' && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                <Settings className="h-6 w-6 text-slate-500" />
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900 font-sans">Portal Preferences & Account Settings</h2>
-                  <p className="text-xs text-slate-505">Configure user settings, localization preferences, and SSO authorization status.</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-sans">
-                <div className="space-y-4">
-                  <h3 className="font-bold text-slate-800 text-xs uppercase font-mono">User Profile Details</h3>
-                  <div className="p-4 bg-slate-50 rounded-lg space-y-2 border border-slate-150">
-                    <div><span className="text-slate-450 font-semibold text-xs">Full Name:</span> <strong className="text-slate-800">{currentUser.name}</strong></div>
-                    <div><span className="text-slate-450 font-semibold text-xs">Email ID:</span> <strong className="text-slate-850 font-mono">{currentUser.email}</strong></div>
-                    <div><span className="text-slate-450 font-semibold text-xs">Assigned Scope:</span> <strong className="text-slate-800 font-mono">{currentUser.schoolId || currentUser.districtCode || currentUser.stateCode || 'National Oversight'}</strong></div>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <h3 className="font-bold text-slate-800 text-xs uppercase font-mono">Accessibility Configuration</h3>
-                  <div className="p-4 bg-slate-50 rounded-lg space-y-3 border border-slate-150">
-                    <label className="flex items-center gap-2 font-medium">
-                      <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-650" />
-                      <span>Enable High-Contrast Border Outlines</span>
-                    </label>
-                    <label className="flex items-center gap-2 font-medium">
-                      <input type="checkbox" className="rounded border-slate-300 text-indigo-650" />
-                      <span>Audio voice narration on hover (SLA §2.3)</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Dynamic notifications list panel */}
           {activePanel === 'notifications' && (
             <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
@@ -281,7 +245,7 @@ export default function App() {
           )}
 
           {/* Panel data views for all navigation items across roles */}
-          {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(activePanel) && (
+          {!['workspace', 'logbook', 'tickets', 'calendar', 'notifications'].includes(activePanel) && (
             <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
           )}
         </Layout>
