@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { schools as schoolsApi, users } from '../../services/api';
 import GenerateQuestionPaper from './GenerateQuestionPaper';
+import WorksheetHistory from './WorksheetHistory';
 import LogbookPage from './LogbookPage';
 
 function BlockAdminOverview() {
@@ -87,6 +88,7 @@ function BlockAdminDashboard() {
     <Routes>
       <Route path="/" element={<BlockAdminOverview />} />
       <Route path="/generate" element={<GenerateQuestionPaper />} />
+      <Route path="/history" element={<WorksheetHistory />} />
       <Route path="/logbook" element={<LogbookPage />} />
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>

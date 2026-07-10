@@ -4,6 +4,7 @@ import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { classesApi, students, worksheets, evaluations, announcements, tickets } from '../../services/api';
 import GenerateQuestionPaper from './GenerateQuestionPaper';
+import WorksheetHistory from './WorksheetHistory';
 
 function TeacherOverview() {
   const { user } = useAuth();
@@ -170,6 +171,7 @@ function TeacherDashboard() {
       <Route path="/" element={<TeacherOverview />} />
       <Route path="/students" element={<TeacherStudents />} />
       <Route path="/generate" element={<GenerateQuestionPaper />} />
+      <Route path="/history" element={<WorksheetHistory />} />
       <Route path="/reports" element={<TeacherReports />} />
       <Route path="/tickets" element={<TeacherTickets />} />
       <Route path="*" element={<Navigate to="/dashboard" />} />

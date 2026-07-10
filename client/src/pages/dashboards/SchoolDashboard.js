@@ -4,6 +4,7 @@ import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { classesApi, students as studentsApi, schools as schoolsApi } from '../../services/api';
 import GenerateQuestionPaper from './GenerateQuestionPaper';
+import WorksheetHistory from './WorksheetHistory';
 
 function SchoolOverview() {
   const navigate = useNavigate();
@@ -70,6 +71,7 @@ function SchoolDashboard() {
     <Routes>
       <Route path="/" element={<SchoolOverview />} />
       <Route path="/generate" element={<GenerateQuestionPaper />} />
+      <Route path="/history" element={<WorksheetHistory />} />
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>
   );

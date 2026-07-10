@@ -4,6 +4,7 @@ import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { classesApi, worksheets, students as studentsApi } from '../../services/api';
 import html2pdf from 'html2pdf.js';
+import { buildWorksheetHTML } from '../../utils/worksheetHtml';
 
 function GenerateQuestionPaper() {
   const { user } = useAuth();
@@ -86,107 +87,6 @@ function GenerateQuestionPaper() {
       }
     }
     setGenerating(false);
-  };
-
-  const buildWorksheetHTML = (worksheet) => {
-    const questions = worksheet.worksheetJson?.questions || [];
-    const schoolName = worksheet.school?.name || worksheet.class?.schoolName || '______________';
-    const studentName = worksheet.student?.name || '______________';
-    const studentId = worksheet.student?.studentId || '______________';
-    const grade = worksheet.worksheetJson?.class || worksheet.class?.grade || '______________';
-    const subject = worksheet.worksheetJson?.subject || 'Mathematics';
-    const level = worksheet.level || '______________';
-    const date = new Date(worksheet.createdAt).toLocaleDateString();
-    const wsId = worksheet.worksheetId;
-
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Worksheet - ${wsId}</title>
-  <style>
-    @page { size: A4; margin: 1.5cm; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #000; padding: 0; }
-    .worksheet { max-width: 190mm; margin: 0 auto; }
-    .header { text-align: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 2px solid #1a1a2e; }
-    .header h1 { font-size: 16pt; font-weight: 700; color: #1a1a2e; margin-bottom: 0.15rem; }
-    .header .school-name { font-size: 11pt; font-weight: 600; color: #e94560; margin-bottom: 0.25rem; }
-    .header .subtitle { font-size: 9pt; color: #6b7280; }
-    .info-grid { display: flex; flex-wrap: wrap; border: 1px solid #d1d5db; border-radius: 6px; margin-bottom: 1.25rem; overflow: hidden; }
-    .info-item { flex: 1 1 33.33%; padding: 0.5rem 0.75rem; border-right: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db; font-size: 9pt; }
-    .info-item:nth-child(3n) { border-right: none; }
-    .info-item:nth-last-child(-n+3) { border-bottom: none; }
-    .info-label { font-weight: 600; color: #374151; }
-    .info-value { color: #1a1a2e; }
-    .questions-section { }
-    .question { margin-bottom: 1.25rem; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; page-break-inside: avoid; }
-    .question-header { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.35rem; }
-    .question-number { font-weight: 700; font-size: 10pt; color: #e94560; min-width: 1.5rem; }
-    .question-topic { font-size: 7pt; color: #9ca3af; background: #f3f4f6; padding: 0.1rem 0.4rem; border-radius: 3px; }
-    .question-text { font-size: 11pt; margin-bottom: 0.5rem; padding-left: 0.25rem; }
-    .answer-space { border-bottom: 1px dashed #d1d5db; height: 2.5rem; margin: 0.5rem 0 0 0.25rem; }
-    .footer { text-align: center; font-size: 7pt; color: #9ca3af; margin-top: 1.5rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; }
-    @media print {
-      .question { page-break-inside: avoid; }
-      .no-print { display: none; }
-    }
-  </style>
-</head>
-<body>
-  <div class="worksheet">
-    <div class="header">
-      <div class="school-name">${schoolName}</div>
-      <h1>FLN Assessment Worksheet</h1>
-      <div class="subtitle">Assessment Cycle: ${worksheet.assessmentCycle} | Worksheet ID: ${wsId}</div>
-    </div>
-
-    <div class="info-grid">
-      <div class="info-item">
-        <div class="info-label">Student Name</div>
-        <div class="info-value">${studentName}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Grade</div>
-        <div class="info-value">${grade}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Subject</div>
-        <div class="info-value">${subject}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Student ID</div>
-        <div class="info-value">${studentId}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">FLN Level</div>
-        <div class="info-value">${level}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Date</div>
-        <div class="info-value">${date}</div>
-      </div>
-    </div>
-
-    <div class="questions-section">
-      ${questions.map((q, i) => `
-        <div class="question">
-          <div class="question-header">
-            <span class="question-number">Q${i + 1}.</span>
-            ${q.topic ? `<span class="question-topic">${q.topic}</span>` : ''}
-          </div>
-          <div class="question-text">${q.question}</div>
-          <div class="answer-space"></div>
-        </div>
-      `).join('')}
-    </div>
-
-    <div class="footer">
-      Generated by FLN Assessment Platform | ${new Date().toLocaleDateString()}
-    </div>
-  </div>
-</body>
-</html>`;
   };
 
   const handlePrint = (worksheet) => {

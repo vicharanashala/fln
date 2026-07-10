@@ -6,6 +6,7 @@ const GenerationLock = require('../models/GenerationLock');
 const EvaluationReport = require('../models/EvaluationReport');
 const Logbook = require('../models/Logbook');
 const aiService = require('../services/aiService');
+const worksheetService = require('../services/worksheetService');
 
 exports.generateForClass = async (req, res) => {
   try {
@@ -140,6 +141,119 @@ exports.generateForClass = async (req, res) => {
   }
 };
 
+exports.getHistory = async (req, res) => {
+  try {
+    const { search, grade, level, assessmentCycle, sort, startDate, endDate, subject } = req.query;
+    const teacherId = req.user._id;
+
+    const query = { isActive: true };
+
+    // Scope to teacher's generated worksheets
+    query.generatedBy = teacherId;
+
+    // Filter by assessment cycle
+    if (assessmentCycle) {
+      query.assessmentCycle = assessmentCycle;
+    }
+
+    // Filter by FLN level
+    if (level) {
+      query.level = level;
+    }
+
+    // Date range filter
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
+
+    // Search by student name or studentId
+    let studentIds = null;
+    if (search) {
+      const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const matchedStudents = await Student.find({
+        $or: [{ name: searchRegex }, { studentId: searchRegex }]
+      }).select('_id');
+      studentIds = matchedStudents.map(s => s._id);
+      if (studentIds.length === 0) {
+        return res.json({ worksheets: [], total: 0 });
+      }
+      query.student = { $in: studentIds };
+    }
+
+    // Grade filter: find classes with matching grade, then filter worksheets
+    if (grade) {
+      const matchedClasses = await Class.find({ grade: parseInt(grade) }).select('_id');
+      const classIds = matchedClasses.map(c => c._id);
+      if (classIds.length === 0) {
+        return res.json({ worksheets: [], total: 0 });
+      }
+      query.class = { $in: classIds };
+    }
+
+    // Build sort
+    let sortOption = { createdAt: -1 };
+    if (sort === 'oldest') {
+      sortOption = { createdAt: 1 };
+    }
+
+    const worksheets = await Worksheet.find(query)
+      .populate('student', 'name studentId currentLevel')
+      .populate('class', 'name grade section')
+      .populate('school', 'name')
+      .populate('generatedBy', 'name')
+      .sort(sortOption)
+      .limit(200);
+
+    res.json({ worksheets, total: worksheets.length });
+  } catch (error) {
+    console.error('Worksheet history error:', error);
+    res.status(500).json({ error: 'Failed to fetch worksheet history' });
+  }
+};
+
+exports.regenerateWorksheet = async (req, res) => {
+  try {
+    const worksheet = await Worksheet.findOne({ _id: req.params.id, isActive: true });
+    if (!worksheet) {
+      return res.status(404).json({ error: 'Worksheet not found' });
+    }
+
+    const newWorksheet = await worksheetService.regenerateForWorksheet(worksheet);
+
+    const populated = await Worksheet.findById(newWorksheet._id)
+      .populate('student', 'name studentId currentLevel')
+      .populate('class', 'name grade section')
+      .populate('school', 'name')
+      .populate('generatedBy', 'name');
+
+    res.json({ worksheet: populated });
+  } catch (error) {
+    console.error('Worksheet regeneration error:', error);
+    res.status(500).json({ error: 'Failed to regenerate worksheet' });
+  }
+};
+
+exports.deleteWorksheet = async (req, res) => {
+  try {
+    const worksheet = await Worksheet.findOne({ _id: req.params.id, isActive: true });
+    if (!worksheet) {
+      return res.status(404).json({ error: 'Worksheet not found' });
+    }
+    worksheet.isActive = false;
+    await worksheet.save();
+    res.json({ message: 'Worksheet deleted successfully' });
+  } catch (error) {
+    console.error('Worksheet delete error:', error);
+    res.status(500).json({ error: 'Failed to delete worksheet' });
+  }
+};
+
 exports.getWorksheetsByStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -159,9 +273,11 @@ exports.getWorksheetsByStudent = async (req, res) => {
 
 exports.getWorksheet = async (req, res) => {
   try {
-    const worksheet = await Worksheet.findById(req.params.id)
+    const worksheet = await Worksheet.findOne({ _id: req.params.id, isActive: true })
       .populate('student', 'name studentId currentLevel')
-      .populate('class', 'name grade section');
+      .populate('class', 'name grade section')
+      .populate('school', 'name')
+      .populate('generatedBy', 'name');
     if (!worksheet) {
       return res.status(404).json({ error: 'Worksheet not found' });
     }

@@ -57,6 +57,9 @@ export const worksheets = {
   generateForClass: (data) => API.post('/worksheets/generate-class', data),
   getByStudent: (id) => API.get(`/worksheets/student/${id}`),
   get: (id) => API.get(`/worksheets/${id}`),
+  history: (params) => API.get('/worksheets/history', { params }),
+  regenerate: (id) => API.post(`/worksheets/${id}/regenerate`),
+  delete: (id) => API.delete(`/worksheets/${id}`),
 };
 
 export const evaluations = {
