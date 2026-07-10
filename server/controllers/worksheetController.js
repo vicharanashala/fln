@@ -147,7 +147,9 @@ exports.getWorksheetsByStudent = async (req, res) => {
       return res.json({ worksheets: [] });
     }
     const worksheets = await Worksheet.find({ student: studentId })
+      .populate('student', 'name studentId currentLevel')
       .populate('class', 'name grade section')
+      .populate('school', 'name')
       .sort({ createdAt: -1 });
     res.json({ worksheets });
   } catch (error) {

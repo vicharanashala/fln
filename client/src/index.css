@@ -71,6 +71,7 @@ input, select, textarea { font-family: inherit; }
 .btn-secondary:hover { background: #e5e7eb; }
 .btn-outline { background: transparent; border: 1px solid #e5e7eb; color: #374151; }
 .btn-outline:hover { background: #f9fafb; }
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.75rem; }
 .btn-danger { background: #ef4444; color: #fff; }
 .btn-success { background: #10b981; color: #fff; }
 
