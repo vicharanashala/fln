@@ -3,8 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { classesApi, worksheets, students as studentsApi } from '../../services/api';
-import html2pdf from 'html2pdf.js';
-import { buildWorksheetHTML } from '../../utils/worksheetHtml';
+import { handlePrint, handleDownloadPDF } from '../../utils/worksheetActions';
+import { validateGeneration, getErrorMessage } from '../../utils/validation';
+import Toast from '../../components/Toast';
+import Spinner from '../../components/Spinner';
 
 function GenerateQuestionPaper() {
   const { user } = useAuth();
@@ -20,6 +22,8 @@ function GenerateQuestionPaper() {
   const [error, setError] = useState('');
   const [worksheetsList, setWorksheetsList] = useState([]);
   const [lockStatus, setLockStatus] = useState(null);
+  const [toast, setToast] = useState({ message: '', type: 'success' });
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const roleLabel = {
     teacher: 'Teacher',
@@ -38,7 +42,7 @@ function GenerateQuestionPaper() {
         }
         setClassList(classes);
       } catch (err) {
-        console.error('Failed to fetch classes:', err);
+        setToast({ message: getErrorMessage(err), type: 'error' });
       }
     };
     fetchData();
@@ -53,92 +57,55 @@ function GenerateQuestionPaper() {
   }, [selectedClass]);
 
   const handleGenerate = async () => {
-    if (!selectedClass || !assessmentCycle) {
-      setError('Please select a class and assessment cycle');
+    setFieldErrors({});
+    const validationErrors = validateGeneration({ selectedClass, assessmentCycle, classList });
+    if (validationErrors.length > 0) {
+      const errors = {};
+      validationErrors.forEach(err => { errors.general = err; });
+      setError(validationErrors.join('. '));
       return;
     }
     setGenerating(true);
     setError('');
     setGenerated(null);
+    setLockStatus(null);
     try {
       const res = await worksheets.generateForClass({
         classId: selectedClass,
         assessmentCycle
       });
       setGenerated(res.data);
-      // Fetch the generated worksheets
-      try {
-        const studentRes = await studentsApi.list({ classId: selectedClass });
-        const students = studentRes.data.students || [];
-        const wsPromises = students.map(s =>
-          worksheets.getByStudent(s._id).then(r => r.data.worksheets || []).catch(() => [])
-        );
-        const wsArrays = await Promise.all(wsPromises);
-        setWorksheetsList(wsArrays.flat().filter(ws => ws.assessmentCycle === assessmentCycle));
-      } catch (fetchErr) {
-        console.error('Failed to fetch generated worksheets:', fetchErr);
-      }
+      setToast({ message: `Successfully generated ${res.data.count} question papers`, type: 'success' });
+      const studentRes = await studentsApi.list({ classId: selectedClass });
+      const students = studentRes.data.students || [];
+      const wsPromises = students.map(s =>
+        worksheets.getByStudent(s._id).then(r => r.data.worksheets || []).catch(() => [])
+      );
+      const wsArrays = await Promise.all(wsPromises);
+      setWorksheetsList(wsArrays.flat().filter(ws => ws.assessmentCycle === assessmentCycle));
     } catch (err) {
+      setGenerating(false);
       if (err.response?.status === 409) {
         setLockStatus(err.response.data);
-        setError(`⚠ This class is already locked by ${err.response.data.lockedBy} (${err.response.data.lockedByRole}) for this assessment cycle.`);
+        setError(`This class is already locked by ${err.response.data.lockedBy} (${err.response.data.lockedByRole}) for this assessment cycle.`);
       } else {
-        setError(err.response?.data?.error || 'Failed to generate question paper');
+        setError(getErrorMessage(err));
       }
     }
     setGenerating(false);
   };
 
-  const handlePrint = (worksheet) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Please allow pop-ups to print worksheets');
-      return;
-    }
-    const html = buildWorksheetHTML(worksheet);
-    printWindow.document.write(html);
-    printWindow.document.close();
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-    }, 500);
-  };
-
-  const handleDownloadPDF = async (worksheet) => {
-    const container = document.createElement('div');
-    container.innerHTML = buildWorksheetHTML(worksheet);
-    container.style.position = 'fixed';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    container.style.width = '210mm';
-    container.style.background = '#fff';
-    document.body.appendChild(container);
-
-    try {
-      const element = container.querySelector('.worksheet');
-      const opt = {
-        margin:       [0.4, 0.4, 0.4, 0.4],
-        filename:     `worksheet-${worksheet.worksheetId}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-      };
-      await html2pdf().set(opt).from(element).save();
-    } finally {
-      document.body.removeChild(container);
-    }
-  };
-
   return (
     <Layout>
+      <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'success' })} />
+
       <div className="page-header">
         <h1>Generate Question Paper</h1>
         <p>Role: <strong>{roleLabel[user.role] || user.role}</strong> — Generate AI-personalized question papers for your class</p>
       </div>
 
       {error && (
-        <div className="error-message">
+        <div className="error-message" role="alert">
           {error}
           {lockStatus && (
             <div style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
@@ -150,16 +117,21 @@ function GenerateQuestionPaper() {
       )}
 
       {generated && (
-        <div className="success-message">
-          ✅ Successfully generated {generated.count} question papers for <strong>{generated.class}</strong>
+        <div className="success-message" role="status">
+          Successfully generated {generated.count} question papers for <strong>{generated.class}</strong>
           ({generated.assessmentCycle} cycle)
         </div>
       )}
 
       <div style={{ background: '#fff', borderRadius: 12, padding: '2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
         <div className="form-group">
-          <label>Select Class</label>
-          <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+          <label htmlFor="class-select">Select Class</label>
+          <select
+            id="class-select"
+            value={selectedClass}
+            onChange={e => { setSelectedClass(e.target.value); setFieldErrors({}); }}
+            aria-describedby="class-desc"
+          >
             <option value="">Choose a class...</option>
             {classList.map(c => (
               <option key={c._id} value={c._id}>
@@ -168,13 +140,17 @@ function GenerateQuestionPaper() {
             ))}
           </select>
           {selectedClass && (
-            <small style={{ color: '#6b7280' }}>{studentCount} student(s) in this class</small>
+            <small id="class-desc" style={{ color: '#6b7280' }}>{studentCount} student(s) in this class</small>
           )}
         </div>
 
         <div className="form-group">
-          <label>Assessment Cycle</label>
-          <select value={assessmentCycle} onChange={e => setAssessmentCycle(e.target.value)}>
+          <label htmlFor="cycle-select">Assessment Cycle</label>
+          <select
+            id="cycle-select"
+            value={assessmentCycle}
+            onChange={e => setAssessmentCycle(e.target.value)}
+          >
             <option value="practice">Practice Worksheet</option>
             <option value="baseline">Baseline Assessment</option>
             <option value="mid_year">Mid-Year Assessment</option>
@@ -187,23 +163,29 @@ function GenerateQuestionPaper() {
           onClick={handleGenerate}
           disabled={generating || !selectedClass}
           style={{ fontSize: '1rem', padding: '0.875rem 2rem', width: '100%', justifyContent: 'center' }}
+          aria-busy={generating}
         >
           {generating ? (
-            <span>⏳ AI is generating {studentCount} personalized question papers...</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+              <span className="spinner" style={{ width: 20, height: 20 }}>
+                <span className="spinner-blade" style={{ width: 20, height: 20, borderWidth: 2 }} />
+              </span>
+              AI is generating {studentCount} personalized question papers...
+            </span>
           ) : (
-            <>📄 Generate Question Paper{studentCount > 0 ? ` (${studentCount} students)` : ''}</>
+            <>Generate Question Paper{studentCount > 0 ? ` (${studentCount} students)` : ''}</>
           )}
         </button>
 
         <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f0fdf4', borderRadius: 8, fontSize: '0.85rem', color: '#065f46' }}>
-          <strong>⏱ Exam Timing:</strong> 1-hour print window → 45-min exam (30 min + 15 min buffer) → 1-hour submission window
+          <strong>Exam Timing:</strong> 1-hour print window → 45-min exam (30 min + 15 min buffer) → 1-hour submission window
         </div>
       </div>
 
       {worksheetsList.length > 0 && (
         <>
           <h2 style={{ marginBottom: '1rem' }}>Recent Worksheets</h2>
-          <div className="data-table">
+          <div className="data-table table-wrapper">
             <table>
               <thead>
                 <tr>
@@ -226,12 +208,12 @@ function GenerateQuestionPaper() {
                     <td><span className={`badge ${ws.status === 'evaluated' ? 'badge-success' : 'badge-warning'}`}>{ws.status}</span></td>
                     <td>{new Date(ws.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-outline btn-sm" onClick={() => handlePrint(ws)}>
-                          🖨 Print
+                      <div className="btn-group">
+                        <button className="btn btn-outline btn-sm" onClick={() => handlePrint(ws)} title="Print worksheet" aria-label="Print worksheet">
+                          Print
                         </button>
-                        <button className="btn btn-primary btn-sm" onClick={() => handleDownloadPDF(ws)}>
-                          ⬇ PDF
+                        <button className="btn btn-primary btn-sm" onClick={() => handleDownloadPDF(ws)} title="Download PDF" aria-label="Download worksheet as PDF">
+                          PDF
                         </button>
                       </div>
                     </td>

@@ -219,6 +219,10 @@ exports.getHistory = async (req, res) => {
 
 exports.regenerateWorksheet = async (req, res) => {
   try {
+    if (!req.params.id) {
+      return res.status(400).json({ error: 'Worksheet ID is required' });
+    }
+
     const worksheet = await Worksheet.findOne({ _id: req.params.id, isActive: true });
     if (!worksheet) {
       return res.status(404).json({ error: 'Worksheet not found' });
