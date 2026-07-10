@@ -3053,6 +3053,30 @@
   ],
   "logbook": [
     {
+      "id": "log_1783599057281",
+      "timestamp": "2026-07-09T12:10:57.281Z",
+      "schoolId": "gps-amb-003",
+      "schoolName": "GPS",
+      "userId": "u6_amb",
+      "userEmail": "gps-amb-003.t01@fln.org",
+      "userRole": "teacher",
+      "activityType": "download",
+      "status": "Success",
+      "details": "Bulk diagnostic generated: Class 3, 2 papers"
+    },
+    {
+      "id": "log_1783591447976",
+      "timestamp": "2026-07-09T10:04:07.976Z",
+      "schoolId": "gps-amb-003",
+      "schoolName": "GPS",
+      "userId": "u6_amb",
+      "userEmail": "gps-amb-003.t01@fln.org",
+      "userRole": "teacher",
+      "activityType": "download",
+      "status": "Success",
+      "details": "Bulk diagnostic generated: Class 3, 2 papers"
+    },
+    {
       "id": "log_1783576498381",
       "timestamp": "2026-07-09T05:54:58.381Z",
       "schoolId": "gps-amb-003",
