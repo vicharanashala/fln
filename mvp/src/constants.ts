@@ -542,26 +542,7 @@ export const INITIAL_TICKETS: any[] = [
     role: 'teacher',
     submittedAt: '2026-07-04 04:30 PM'
   },
-  {
-    id: 'tkt-102',
-    title: 'Delayed attempt false alarm warning',
-    description: 'Due to severe power outages on July 3,Mattewal-3 submitted scans 10 minutes past the submission window. We received a delayed attempt alert. Can this be whitelisted?',
-    type: 'process',
-    status: 'in-progress',
-    submittedBy: 'Priya Patel (Principal)',
-    role: 'school',
-    submittedAt: '2026-07-03 06:15 PM'
-  },
-  {
-    id: 'tkt-103',
-    title: 'Missing regional coin SVG for Money strand',
-    description: 'We require standard regional currency line illustrations for Punjab local worksheets. Category-based fallback is currently using general rupee coin vectors.',
-    type: 'content',
-    status: 'resolved',
-    submittedBy: 'Rajesh Sharma (State Admin)',
-    role: 'admin',
-    submittedAt: '2026-06-25 10:00 AM'
-  }
+
 ];
 
 export const INITIAL_NOTIFICATIONS: any[] = [
@@ -664,70 +645,6 @@ export const INITIAL_LOGS: any[] = [
     level: 'superadmin'
   },
   {
-    id: 'log-003',
-    time: '2026-07-05 11:15 AM',
-    type: 'State Allocation',
-    details: 'Resource allocation limits whitelisted for Ludhiana and Amritsar blocks.',
-    level: 'admin',
-    scope: 'Punjab'
-  },
-  {
-    id: 'log-004',
-    time: '2026-07-04 02:00 PM',
-    type: 'Baseline Schedule',
-    details: 'Punjab state FLN testing schedule approved.',
-    level: 'admin',
-    scope: 'Punjab'
-  },
-  {
-    id: 'log-005',
-    time: '2026-07-05 03:20 PM',
-    type: 'District Sync',
-    details: 'Ingestion status reports aggregated for Amritsar district.',
-    level: 'district_admin',
-    scope: 'Amritsar'
-  },
-  {
-    id: 'log-006',
-    time: '2026-07-04 05:00 PM',
-    type: 'District Rank Update',
-    details: 'District-wide class 3 and 4 score matrices updated.',
-    level: 'district_admin',
-    scope: 'Ludhiana'
-  },
-  {
-    id: 'log-007',
-    time: '2026-07-05 01:10 PM',
-    type: 'Block Inspection',
-    details: 'Manual inspection scheduled for 4 schools with low score strength.',
-    level: 'block_admin',
-    scope: 'Sirhind'
-  },
-  {
-    id: 'log-008',
-    time: '2026-07-04 10:45 AM',
-    type: 'Volunteer Registration',
-    details: 'Approved registration for 3 new student mentors in Mattewal block.',
-    level: 'block_admin',
-    scope: 'Mattewal'
-  },
-  {
-    id: 'log-009',
-    time: '2026-07-05 09:15 AM',
-    type: 'School Roll Call',
-    details: 'All class registers synchronized for GPS Mattewal-3.',
-    level: 'school',
-    scope: 'gps-mt-001'
-  },
-  {
-    id: 'log-010',
-    time: '2026-07-04 11:30 AM',
-    type: 'Lock Applied',
-    details: 'Class 4A testing results frozen by School Principal.',
-    level: 'school',
-    scope: 'gps-mt-001'
-  },
-  {
     id: 'log-011',
     time: '2026-07-05 10:15 AM',
     type: 'ICR Ingest',
@@ -743,21 +660,5 @@ export const INITIAL_LOGS: any[] = [
     level: 'teacher',
     scope: 'gps-mt-001'
   },
-  {
-    id: 'log-013',
-    time: '2026-07-05 08:30 AM',
-    type: 'Worksheets Printed',
-    details: 'Offline diagnostic materials printed for Sirhind low-strength school.',
-    level: 'volunteer',
-    scope: 'gps-sh-002'
-  },
-  {
-    id: 'log-014',
-    time: '2026-07-04 11:30 AM',
-    type: 'Student Enrolled',
-    details: 'Collected and enrolled details for Aarav Gupta with masked Aadhar.',
-    level: 'volunteer',
-    scope: 'gps-mt-001'
-  }
 ];
 

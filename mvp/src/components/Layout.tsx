@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { User, UserRole, Announcement } from '../types';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
-  LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound, Clock
+  LayoutDashboard, BookOpen, ShieldCheck, HelpCircle, Users,
+  School, GraduationCap, BarChart3, FileText, ClipboardList
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -13,7 +13,6 @@ interface NavigationItem {
   badge?: string;
   subItems?: { name: string; view: string }[];
 }
-
 interface LayoutProps {
   currentUser: User;
   onRoleSwitch: (role: UserRole) => void;
@@ -23,6 +22,8 @@ interface LayoutProps {
   onMarkNotificationRead: (id: string) => void;
   onClearNotifications: () => void;
   onLogout: () => void;
+  isImpersonating?: boolean;
+  onStopImpersonating?: () => void;
   children: React.ReactNode;
 }
 
@@ -35,6 +36,8 @@ export const Layout: React.FC<LayoutProps> = ({
   onMarkNotificationRead,
   onClearNotifications,
   onLogout,
+  isImpersonating,
+  onStopImpersonating,
   children
 }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -59,8 +62,7 @@ export const Layout: React.FC<LayoutProps> = ({
           view: 'assessment',
           icon: BookOpen,
           subItems: [
-            { name: 'Diagnostic Test', view: 'diagnostic_test' },
-            { name: 'Adaptive Test', view: 'adaptive_test' },
+            { name: 'Diagnostic Status', view: 'diagnostic_test' },
             { name: 'Test History', view: 'test_history' }
           ]
         });
@@ -69,86 +71,31 @@ export const Layout: React.FC<LayoutProps> = ({
           view: 'students',
           icon: GraduationCap,
           subItems: [
-            { name: 'Student List', view: 'student_list' },
-            { name: 'Student Profile', view: 'student_profile' },
-            { name: 'Performance', view: 'performance' }
-          ]
-        });
-        list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        break;
-
-      case UserRole.VOLUNTEER:
-        list.push({
-          name: 'Assessment',
-          view: 'assessment',
-          icon: BookOpen,
-          subItems: [
-            { name: 'Diagnostic Test', view: 'diagnostic_test' },
-            { name: 'Adaptive Test', view: 'adaptive_test' },
-            { name: 'Test History', view: 'test_history' }
+            { name: 'Student List', view: 'student_list' }
           ]
         });
         list.push({
-          name: 'Students',
-          view: 'students',
-          icon: GraduationCap,
+          name: 'Worksheets',
+          view: 'worksheets',
+          icon: ClipboardList,
           subItems: [
-            { name: 'Student List', view: 'student_list' },
-            { name: 'Student Profile', view: 'student_profile' },
-            { name: 'Performance', view: 'performance' }
+            { name: 'Baseline Test', view: 'baseline_test' },
+            { name: 'All Cycles', view: 'worksheets' }
           ]
         });
-        list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        break;
-
-      case UserRole.SCHOOL: // Principal
-        list.push({ name: 'Teachers', view: 'teachers', icon: Users });
-        list.push({ name: 'Students', view: 'students', icon: GraduationCap });
-        list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
-        list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        break;
-
-      case UserRole.BLOCK_ADMIN:
-        list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Teachers', view: 'teachers', icon: Users });
-        list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        break;
-
-      case UserRole.DISTRICT_ADMIN:
-        list.push({ name: 'Blocks', view: 'blocks', icon: MapPin });
-        list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        break;
-
-      case UserRole.ADMIN: // State Admin
-        list.push({ name: 'Districts', view: 'districts', icon: MapPin });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
-        list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         break;
 
       case UserRole.SUPERADMIN:
         list.push({ name: 'Users', view: 'users', icon: Users });
         list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Question Bank', view: 'question_bank', icon: BookOpen });
-        list.push({ name: 'Worksheet Templates', view: 'worksheet_templates', icon: ClipboardList });
-        list.push({ name: 'Content', view: 'content', icon: BookOpen });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });
         list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
         break;
     }
 
     // Common items at bottom
-    list.push({ name: 'Notifications', view: 'notifications', icon: Bell, badge: notifications.length > 0 ? String(notifications.length) : undefined });
-    list.push({ name: 'Settings', view: 'settings', icon: Settings });
-
     return list;
   }, [currentUser.role, notifications.length]);
 
@@ -511,6 +458,25 @@ export const Layout: React.FC<LayoutProps> = ({
 
         {/* Central main display viewport */}
         <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50/50">
+
+          {/* Impersonation Banner Alert */}
+          {isImpersonating && (
+            <div className="mb-6 bg-amber-500 text-white rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md border border-amber-600">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">🛡️</span>
+                <div>
+                  <h4 className="font-bold text-sm">Superadmin Impersonation Active</h4>
+                  <p className="text-xs text-amber-50">Currently viewing the portal as <strong>{currentUser.name}</strong> ({currentUser.email}). Actions you take will reflect as this user.</p>
+                </div>
+              </div>
+              <button
+                onClick={onStopImpersonating}
+                className="px-4 py-2 bg-white text-amber-700 hover:bg-amber-50 rounded-lg text-xs font-bold transition-colors shadow-sm self-start sm:self-auto shrink-0"
+              >
+                Exit Impersonation
+              </button>
+            </div>
+          )}
           
           {/* Breadcrumbs */}
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider mb-2 select-none">

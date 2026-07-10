@@ -25,33 +25,18 @@ interface LogbookPanelProps {
 }
 
 const ROLE_RANKS: Record<UserRole, number> = {
-  superadmin: 7,
-  admin: 6,
-  district_admin: 5,
-  block_admin: 4,
-  school: 3,
-  teacher: 2,
-  volunteer: 1
+  superadmin: 3,
+  teacher: 2
 };
 
 const ROLE_LABELS: Record<UserRole, string> = {
   superadmin: 'Superadmin (National)',
-  admin: 'State Admin',
-  district_admin: 'District Admin',
-  block_admin: 'Block Admin',
-  school: 'School (Principal)',
-  teacher: 'Teacher',
-  volunteer: 'Volunteer'
+  teacher: 'Teacher'
 };
 
 const ROLE_COLOR_CLASSES: Record<UserRole, string> = {
   superadmin: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-900/50',
-  admin: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/50',
-  district_admin: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/50',
-  block_admin: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-400 dark:border-yellow-900/50',
-  school: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50',
-  teacher: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/50',
-  volunteer: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+  teacher: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/50'
 };
 
 export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs }) => {

@@ -10,10 +10,7 @@ import { LoginView } from './components/LoginView';
 import { Layout } from './components/Layout';
 import { 
   SuperadminDashboard, 
-  AdminDashboard, 
-  SchoolDashboard, 
-  TeacherDashboard, 
-  VolunteerDashboard 
+  TeacherDashboard 
 } from './components/RoleDashboards';
 import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
@@ -104,25 +101,38 @@ export default function App() {
     setAnnouncements([]);
   };
 
+  const handleImpersonate = (teacherUser: User) => {
+    setCurrentUser(teacherUser);
+    setActivePanel('workspace');
+    triggerToast(`Impersonating ${teacherUser.name} [TEACHER]`);
+  };
+
+  const handleStopImpersonating = () => {
+    if (token === 'superadmin@fln.org') {
+      const superadminUser: User = {
+        id: 'u1',
+        email: 'superadmin@fln.org',
+        name: 'Jinal Gupta',
+        role: UserRole.SUPERADMIN
+      };
+      setCurrentUser(superadminUser);
+      setActivePanel('workspace');
+      triggerToast('Returned to Superadmin Dashboard');
+    }
+  };
+
   const renderRoleWorkspace = () => {
     if (!currentUser || !token) return null;
     switch (currentUser.role) {
       case UserRole.SUPERADMIN:
-        return <SuperadminDashboard user={currentUser} token={token} />;
-      case UserRole.ADMIN:
-      case UserRole.DISTRICT_ADMIN:
-      case UserRole.BLOCK_ADMIN:
-        return <AdminDashboard user={currentUser} token={token} />;
-      case UserRole.SCHOOL:
-        return <SchoolDashboard user={currentUser} token={token} />;
+        return <SuperadminDashboard user={currentUser} token={token} onImpersonate={handleImpersonate} />;
       case UserRole.TEACHER:
         return <TeacherDashboard user={currentUser} token={token} />;
-      case UserRole.VOLUNTEER:
-        return <VolunteerDashboard user={currentUser} token={token} />;
       default:
-        return <div className="p-8 text-center text-zinc-500">Unrecognized user role mapping.</div>;
+        return <div className="p-8 text-center text-zinc-550">Unrecognized user role mapping.</div>;
     }
   };
+
 
   const handleRoleSwitch = async (newRole: UserRole) => {
     if (!currentUser || !token) return;
@@ -187,6 +197,8 @@ export default function App() {
           onMarkNotificationRead={handleMarkNotificationRead}
           onClearNotifications={handleClearNotifications}
           onLogout={handleLogout}
+          isImpersonating={token === 'superadmin@fln.org' && currentUser.role !== UserRole.SUPERADMIN}
+          onStopImpersonating={handleStopImpersonating}
         >
           {/* Urgent Announcements Strip inside Layout Content */}
           {activeUrgentAnnouncements.length > 0 && (

@@ -1,6 +1,6 @@
 import { loadMockDB, saveMockDB, getInitialSeedData, MockDatabaseSchema } from './dbStore';
 import { generateQuestionsForLevel } from '../utils/levelGenerator';
-import { UserRole, Student, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Question } from '../types';
+import { UserRole, Student, School, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Question } from '../types';
 
 // Deterministic mock grading for Diagnostic
 function evaluateDiagnosticMock(
@@ -122,43 +122,14 @@ function getAuthUser(headers: HeadersInit | undefined, db: MockDatabaseSchema) {
   if (found) return found;
 
   if (email.endsWith('@fln.org')) {
-    const parts = email.split('@')[0];
-    let role = UserRole.TEACHER;
-    let name = 'User';
-    let schoolId: string | undefined = undefined;
-
     if (email === 'superadmin@fln.org') {
-      role = UserRole.SUPERADMIN;
-      name = 'Jinal Gupta';
-    } else if (email.startsWith('admin.')) {
-      role = UserRole.ADMIN;
-      name = 'State Admin';
-    } else if (email.startsWith('district.')) {
-      role = UserRole.DISTRICT_ADMIN;
-      name = 'District Officer';
-    } else if (email.startsWith('block.')) {
-      role = UserRole.BLOCK_ADMIN;
-      name = 'Block Coordinator';
-    } else if (email.startsWith('vol.')) {
-      role = UserRole.VOLUNTEER;
-      name = 'Volunteer';
-    } else if (parts.includes('.t')) {
-      role = UserRole.TEACHER;
-      name = 'Teacher';
-      schoolId = parts.split('.t')[0];
-    } else {
-      role = UserRole.SCHOOL;
-      name = 'School Principal';
-      schoolId = parts;
+      return {
+        id: 'u_' + Math.random().toString(36).substr(2, 9),
+        email,
+        name: 'Jinal Gupta',
+        role: UserRole.SUPERADMIN
+      };
     }
-
-    return {
-      id: 'u_' + Math.random().toString(36).substr(2, 9),
-      email,
-      name,
-      role,
-      schoolId
-    };
   }
 
   return null;
@@ -215,7 +186,7 @@ export function setupFetchInterceptor() {
           return errorResponse('Password does not meet complexity requirements (min 8 chars).');
         }
 
-        const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+        const user = db.users.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim());
         if (!user) {
           return errorResponse('Invalid email or password', 401);
         }
@@ -307,10 +278,8 @@ export function setupFetchInterceptor() {
       if (path === '/api/classes' && method === 'GET') {
         if (!currentUser) return errorResponse('Unauthorized', 401);
         let filtered = db.classes;
-        if (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.TEACHER) {
-          filtered = db.classes.filter(c => c.schoolId === currentUser.schoolId);
-        } else if (currentUser.role === UserRole.VOLUNTEER) {
-          filtered = db.classes.filter(c => currentUser.assignedSchools?.includes(c.schoolId));
+        if (currentUser.role === UserRole.TEACHER) {
+          filtered = db.classes.filter(c => c.teacherId === currentUser.id);
         }
         return jsonResponse(filtered);
       }
@@ -320,10 +289,8 @@ export function setupFetchInterceptor() {
         if (!currentUser) return errorResponse('Unauthorized', 401);
         
         let filtered = db.students;
-        if (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.TEACHER) {
-          filtered = db.students.filter(s => s.schoolId === currentUser.schoolId);
-        } else if (currentUser.role === UserRole.VOLUNTEER) {
-          filtered = db.students.filter(s => currentUser.assignedSchools?.includes(s.schoolId));
+        if (currentUser.role === UserRole.TEACHER) {
+          filtered = db.students.filter(s => s.teacherId === currentUser.id);
         }
 
         // Mask Aadhar for non-Superadmins
@@ -530,12 +497,14 @@ export function setupFetchInterceptor() {
         const school = db.schools.find(s => s.id === classObj.schoolId);
         if (!school) return errorResponse('School not found.', 404);
 
-        // Enforce pairwise lockouts
+        // If a worksheet already exists for this class and cycle, return it directly.
+        // This ensures the teacher sees their locked/printed state instead of generating a new one.
         const conflicting = db.worksheets.find(w => w.classId === classId && w.cycle === cycle);
-        if (conflicting && conflicting.locks.locked) {
-          if (conflicting.locks.lockedByRole !== currentUser.role) {
-            return errorResponse(`Lock Active: Parallel generation is locked.`, 423);
+        if (conflicting) {
+          if (conflicting.locks.locked && conflicting.locks.lockedByRole !== currentUser.role) {
+            return errorResponse(`Lock Active: Parallel generation is locked by ${conflicting.locks.lockedByRole}.`, 423);
           }
+          return jsonResponse(conflicting);
         }
 
         const classStudents = db.students.filter(
@@ -571,6 +540,7 @@ export function setupFetchInterceptor() {
           cycle,
           date: now.toISOString().split('T')[0],
           questions: compiledQuestions,
+          printed: false,
           locks: {
             locked: true,
             lockedByRole: currentUser.role,
@@ -602,11 +572,115 @@ export function setupFetchInterceptor() {
         const ws = db.worksheets.find(w => w.id === worksheetId);
         if (!ws) return errorResponse('Worksheet not found.', 404);
 
+        // Mark as printed (lock the print button)
+        ws.printed = true;
+        saveMockDB(db);
+
         // In mock mode, simulate PDF generation by returning a virtual URL
         return jsonResponse({
           success: true,
           pdfUrl: `/output/mock_worksheet_${worksheetId}.pdf`
         });
+      }
+
+      // 17b. GET /api/worksheets (list all — superadmin)
+      if (path === '/api/worksheets' && method === 'GET') {
+        if (!currentUser || currentUser.role !== UserRole.SUPERADMIN) return errorResponse('Unauthorized', 401);
+        const enriched = db.worksheets.map(ws => {
+          const school = db.schools.find(s => s.id === ws.schoolId);
+          const cls = db.classes.find(c => c.id === ws.classId);
+          const teacher = db.users.find(u => u.email === ws.generatedByEmail);
+          return { ...ws, schoolName: school?.name || 'N/A', teacherName: teacher?.name || 'N/A', className: cls?.className || ws.className };
+        });
+        return jsonResponse(enriched);
+      }
+
+      // 17b2. GET /api/worksheets/:id (single worksheet — anyone authenticated)
+      const singleWsMatch = path.match(/^\/api\/worksheets\/(ws_.+|WS_.+)$/);
+      if (singleWsMatch && method === 'GET') {
+        if (!currentUser) return errorResponse('Unauthorized', 401);
+        const wsId = singleWsMatch[1];
+        const ws = db.worksheets.find(w => w.id === wsId);
+        if (!ws) return errorResponse('Worksheet not found.', 404);
+        return jsonResponse(ws);
+      }
+
+      // 17b3. GET /api/worksheets/class/:classId (get active worksheet for a class)
+      const classWsMatch = path.match(/^\/api\/worksheets\/class\/(.+)$/);
+      if (classWsMatch && method === 'GET') {
+        if (!currentUser) return errorResponse('Unauthorized', 401);
+        const classId = classWsMatch[1];
+        // Find the most recent worksheet for this class (usually Baseline)
+        const ws = db.worksheets.find(w => w.classId === classId && w.cycle === 'Baseline');
+        if (!ws) return errorResponse('Worksheet not found.', 404);
+        return jsonResponse(ws);
+      }
+
+      // 17c. POST /api/worksheets/unlock (superadmin only)
+      if (path === '/api/worksheets/unlock' && method === 'POST') {
+        if (!currentUser || currentUser.role !== UserRole.SUPERADMIN) return errorResponse('Unauthorized', 401);
+        const { teacherEmail, cycle, reason } = bodyData;
+        const targetWorksheets = db.worksheets.filter(w => 
+          w.generatedByEmail === teacherEmail && (!cycle || w.cycle === cycle)
+        );
+        if (targetWorksheets.length === 0) return errorResponse('Worksheets not found.', 404);
+        
+        targetWorksheets.forEach(ws => {
+          ws.printed = false;
+          ws.locks.locked = false;
+          ws.locks.lockedByRole = null;
+          ws.locks.lockedByEmail = null;
+          ws.locks.timestamp = null;
+          ws.reprintRequest = null;  // clear any pending reprint request
+        });
+        
+        // Log the unlock
+        const ws = targetWorksheets[0]; // For logging context
+        db.logbook.unshift({
+          id: 'log_unlock_' + Date.now(),
+          timestamp: new Date().toISOString(),
+          schoolId: ws.schoolId,
+          schoolName: db.schools.find(s => s.id === ws.schoolId)?.name || 'Unknown School',
+          userId: currentUser.id,
+          userEmail: currentUser.email,
+          userRole: currentUser.role,
+          activityType: 'print',
+          status: 'Success',
+          details: `Superadmin approved re-print for teacher ${teacherEmail}${cycle ? ` (${cycle})` : ' (All Cycles)'}. Reason: ${reason || 'Administrative decision'}`
+        });
+        saveMockDB(db);
+        return jsonResponse({ success: true });
+      }
+
+      // 17d. POST /api/worksheets/request-reprint (teacher only — raise a reprint request)
+      if (path === '/api/worksheets/request-reprint' && method === 'POST') {
+        if (!currentUser) return errorResponse('Unauthorized', 401);
+        const { worksheetId, reason } = bodyData;
+        if (!reason || !reason.trim()) return errorResponse('A reason is required for reprint requests.', 400);
+        const ws = db.worksheets.find(w => w.id === worksheetId);
+        if (!ws) return errorResponse('Worksheet not found.', 404);
+        if (!ws.printed) return errorResponse('Worksheet has not been printed yet.', 400);
+        ws.reprintRequest = {
+          requested: true,
+          reason: reason.trim(),
+          requestedAt: new Date().toISOString(),
+          teacherEmail: currentUser.email,
+          teacherName: currentUser.name
+        };
+        db.logbook.unshift({
+          id: 'log_reprint_req_' + Date.now(),
+          timestamp: new Date().toISOString(),
+          schoolId: ws.schoolId,
+          schoolName: db.schools.find(s => s.id === ws.schoolId)?.name || 'Unknown School',
+          userId: currentUser.id,
+          userEmail: currentUser.email,
+          userRole: currentUser.role,
+          activityType: 'print',
+          status: 'Failed',
+          details: `Reprint request raised by ${currentUser.name} for worksheet ${ws.id} (${ws.className} ${ws.cycle}). Reason: ${reason}`
+        });
+        saveMockDB(db);
+        return jsonResponse({ success: true, message: 'Reprint request submitted to Superadmin.' });
       }
 
       // 18. POST /api/evaluation/submit
@@ -772,7 +846,20 @@ export function setupFetchInterceptor() {
       // 21. POST /api/admin/create
       if (path === '/api/admin/create' && method === 'POST') {
         if (!currentUser) return errorResponse('Unauthorized', 401);
-        const { email, name, role, stateCode, districtCode, blockCode } = bodyData;
+        const { email, name, role, stateCode, districtCode, blockCode, schoolName, className } = bodyData;
+
+        // Create the school
+        const schoolId = 'sch_' + Math.random().toString(36).substr(2, 6);
+        const newSchool: School = {
+          id: schoolId,
+          name: schoolName || 'New School',
+          stateCode: stateCode || 'PB',
+          districtCode: districtCode || 'LDH',
+          blockCode: blockCode || 'LDH-01',
+          strength: 'low',
+          teachersCount: 1
+        };
+        db.schools.push(newSchool);
         
         const newU = {
           id: 'u_' + Math.random().toString(36).substr(2, 9),
@@ -781,9 +868,22 @@ export function setupFetchInterceptor() {
           role,
           stateCode,
           districtCode,
-          blockCode
+          blockCode,
+          schoolId
         };
         db.users.push(newU);
+
+        // Assign teacher to the selected class (create a class group entry if needed)
+        if (className) {
+          db.classes.push({
+            id: 'c_' + Date.now(),
+            schoolId,
+            className,
+            section: 'A',
+            teacherId: newU.id
+          });
+        }
+
         saveMockDB(db);
         return jsonResponse(newU);
       }

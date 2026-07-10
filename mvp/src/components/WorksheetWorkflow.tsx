@@ -27,23 +27,20 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
   const [evaluationResult, setEvaluationResult] = useState<{ report: EvaluationReport } | null>(null);
 
   // Poll/fetch worksheet for this class
-  const fetchWorksheets = async () => {
-    try {
-      const res = await fetch('/api/classes', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        // Fetch all generated worksheets
-        const wsRes = await fetch('/api/logbook', { // logbook fetches can reveal ws stats, or list directly
+  useEffect(() => {
+    const fetchExistingWorksheet = async () => {
+      try {
+        const res = await fetch(`/api/worksheets/class/${classGroup.id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        // Simply pull directly from DB log details or find general worksheets
-        const activeWsRes = await fetch('/api/students', { // student lists
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-      }
-    } catch (_) {}
-  };
+        if (res.ok) {
+          const data = await res.json();
+          setWorksheet(data);
+        }
+      } catch (_) {}
+    };
+    fetchExistingWorksheet();
+  }, [classGroup.id, token]);
 
   const generateWorksheets = async (cycle: 'Baseline' | 'Mid-year' | 'End-of-year') => {
     setLoading(true);
@@ -123,6 +120,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
       const data = await res.json();
       if (res.ok && data.success) {
         setPdfUrl(data.pdfUrl);
+        setWorksheet(prev => prev ? { ...prev, printed: true } : prev);
       } else {
         setError(data.error || 'Failed to generate PDF.');
       }
@@ -131,6 +129,19 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
     } finally {
       setPdfGenerating(false);
     }
+  };
+
+  const refreshWorksheetStatus = async () => {
+    if (!worksheet) return;
+    try {
+      const res = await fetch(`/api/worksheets/${worksheet.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setWorksheet(data);
+      }
+    } catch (_) {}
   };
 
   // Check which timing window is active based on mock or system timings
@@ -153,7 +164,15 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
     return { label: 'Exam Cycle Closed (Delayed Uploads Restricted)', color: 'text-red-700 bg-red-50 border-red-200' };
   };
 
-  const timingStatus = getTimingStatus();
+  useEffect(() => {
+    // When worksheet is printed, poll the server every 8 seconds to see if Superadmin has unlocked it
+    if (worksheet?.printed) {
+      const intervalId = setInterval(refreshWorksheetStatus, 8000);
+      return () => clearInterval(intervalId);
+    }
+    // Cleanup if worksheet becomes null or printed flag changes
+    return undefined;
+  }, [worksheet?.id, worksheet?.printed]);
 
   return (
     <div className="space-y-6" id="worksheet-workflow">
@@ -250,7 +269,8 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                 <div className="flex gap-2">
                   <button
                     onClick={() => setIsIframeModalOpen(true)}
-                    className="bg-zinc-900 hover:bg-zinc-800 text-white font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-900 flex items-center gap-1.5 cursor-pointer"
+                    disabled={worksheet.printed}
+                    className="bg-zinc-900 hover:bg-zinc-800 text-white font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-900 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
                     🌐 Interactive Generator
                   </button>
@@ -266,16 +286,23 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                   )}
                   <button
                     onClick={generateWorksheetPdf}
-                    disabled={pdfGenerating}
+                    disabled={pdfGenerating || worksheet.printed}
                     className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-200 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
-                    {pdfGenerating ? 'Generating PDF...' : pdfUrl ? '🔄 Regenerate PDF' : '📄 Generate Worksheet PDF'}
+                    {worksheet.printed ? '✅ Already Printed' : pdfGenerating ? 'Generating PDF...' : pdfUrl ? '🔄 Regenerate PDF' : '📄 Generate Worksheet PDF'}
                   </button>
                   <button
                     onClick={() => window.print()}
+                    disabled={worksheet.printed}
+                    className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-200 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  >
+                    {worksheet.printed ? '✅ Printed' : '🖨 Bulk Print A4'}
+                  </button>
+                  <button
+                    onClick={refreshWorksheetStatus}
                     className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-200 flex items-center gap-1.5 cursor-pointer"
                   >
-                    🖨 Bulk Print A4
+                    🔄 Refresh Status
                   </button>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement } from './db';
+import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, ClassGroup } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
@@ -25,7 +25,7 @@ async function startServer() {
   app.use('/worksheets', express.static(path.join(ROOT_DIR, 'public', 'worksheets')));
   // --- Auth Middleware & Helper ---
   // A simple token-based auth helper. Token is email address for easy stateless authentication.
-  function getAuthUser(req: express.Request): User | null {
+  function getAuthUser(req: express.Request): (Omit<User, 'password'>) | null {
     const authHeader = req.headers.authorization;
     if (!authHeader) return null;
     const email = authHeader.replace('Bearer ', '').trim();
@@ -33,50 +33,24 @@ async function startServer() {
     // Find preseeded user in database
     const users = (dbStore as any).data?.users || [];
     const found = users.find((u: User) => u.email.toLowerCase() === email.toLowerCase());
-    if (found) return found;
+    if (found) return sanitizeUser(found);
 
-    // Direct fallback mapping if not pre-seeded but conforms to email format
-    if (email.endsWith('@fln.org')) {
-      const parts = email.split('@')[0];
-      let role = UserRole.TEACHER;
-      let name = 'User';
-      let schoolId = undefined;
-
-      if (email === 'superadmin@fln.org') {
-        role = UserRole.SUPERADMIN;
-        name = 'Jinal Gupta';
-      } else if (email.startsWith('admin.')) {
-        role = UserRole.ADMIN;
-        name = 'State Admin';
-      } else if (email.startsWith('district.')) {
-        role = UserRole.DISTRICT_ADMIN;
-        name = 'District Officer';
-      } else if (email.startsWith('block.')) {
-        role = UserRole.BLOCK_ADMIN;
-        name = 'Block Coordinator';
-      } else if (email.startsWith('vol.')) {
-        role = UserRole.VOLUNTEER;
-        name = 'Volunteer';
-      } else if (parts.includes('.t')) {
-        role = UserRole.TEACHER;
-        name = 'Teacher';
-        schoolId = parts.split('.t')[0];
-      } else {
-        role = UserRole.SCHOOL;
-        name = 'School Principal';
-        schoolId = parts;
-      }
-
+    // Only superadmin can auto-create on login; teachers must be pre-seeded or created via /api/admin/create
+    if (email === 'superadmin@fln.org') {
       return {
         id: 'u_' + Math.random().toString(36).substr(2, 9),
         email,
-        name,
-        role,
-        schoolId
+        name: 'Jinal Gupta',
+        role: UserRole.SUPERADMIN
       };
     }
 
     return null;
+  }
+
+  function sanitizeUser(u: User): Omit<User, 'password'> {
+    const { password: _, ...rest } = u;
+    return rest;
   }
 
   // --- API Endpoints ---
@@ -99,14 +73,13 @@ async function startServer() {
     // Check if the user is preloaded
     const users = await dbStore.getUsers();
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) {
+    if (!user || user.password !== password) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // In a real production app we'd hash and compare, here we return JWT-like email token
     return res.json({
       token: user.email,
-      user
+      user: sanitizeUser(user)
     });
   });
 
@@ -177,7 +150,7 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const { type, subject, description } = req.body;
-    if (type === 'curriculum' && user.role !== UserRole.TEACHER && user.role !== UserRole.VOLUNTEER) {
+    if (type === 'curriculum' && user.role !== UserRole.TEACHER) {
       return res.status(400).json({ error: 'Curriculum feedback can only be submitted by Teachers or Volunteers.' });
     }
 
@@ -238,7 +211,7 @@ async function startServer() {
       return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
     }
 
-    const { name, email, password, role, stateCode, districtCode, blockCode } = req.body;
+    const { name, email, password, role, stateCode, districtCode, blockCode, schoolName, className } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
@@ -256,17 +229,44 @@ async function startServer() {
       return res.status(400).json({ error: 'User with this email already exists.' });
     }
 
+    // Create the school
+    const schoolId = 'sch_' + Math.random().toString(36).substr(2, 6);
+    const newSchool: School = {
+      id: schoolId,
+      name: schoolName || 'New School',
+      stateCode: stateCode || 'PB',
+      districtCode: districtCode || 'LDH',
+      blockCode: blockCode || 'LDH-01',
+      strength: 'low',
+      teachersCount: 1
+    };
+    await dbStore.addSchool(newSchool);
+
     const newUser: User = {
       id: 'u_' + Math.random().toString(36).substr(2, 9),
       name,
       email: email.toLowerCase(),
+      password,
       role: role as UserRole,
       stateCode: stateCode ? stateCode.toUpperCase() : undefined,
       districtCode: districtCode ? districtCode.toUpperCase() : undefined,
-      blockCode: blockCode ? blockCode.toUpperCase() : undefined
+      blockCode: blockCode ? blockCode.toUpperCase() : undefined,
+      schoolId
     };
 
     await dbStore.addUser(newUser);
+
+    // Assign teacher to the selected class
+    if (className) {
+      const newClass: ClassGroup = {
+        id: 'c_' + Date.now(),
+        schoolId,
+        className,
+        section: 'A',
+        teacherId: newUser.id
+      };
+      await dbStore.addClass(newClass);
+    }
 
     // Add Log entry
     await dbStore.addLog({
@@ -279,7 +279,7 @@ async function startServer() {
       userRole: user.role,
       activityType: 'verify',
       status: 'Success',
-      details: `Superadmin created dynamic coordinator: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
+      details: `Superadmin created user: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
     });
 
     res.json(newUser);
@@ -297,10 +297,10 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const classes = await dbStore.getClasses();
-    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
+    if (user.role === UserRole.SUPERADMIN) {
       return res.json(classes);
     }
-    const filtered = classes.filter(c => c.schoolId === user.schoolId || (user.assignedSchools && user.assignedSchools.includes(c.schoolId || '')));
+    const filtered = classes.filter(c => c.teacherId === user.id);
     res.json(filtered);
   });
 
@@ -322,11 +322,8 @@ async function startServer() {
     if (user.role === UserRole.SUPERADMIN) {
       return res.json(students);
     }
-    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
-      return res.json(maskedStudents.filter(s => s.schoolId === user.schoolId));
-    }
-    if (user.role === UserRole.VOLUNTEER) {
-      return res.json(maskedStudents.filter(s => user.assignedSchools?.includes(s.schoolId)));
+    if (user.role === UserRole.TEACHER) {
+      return res.json(maskedStudents.filter(s => s.teacherId === user.id));
     }
 
     res.json(maskedStudents);
@@ -713,7 +710,7 @@ async function startServer() {
 
     // Check if School is locked out entirely (§6.5)
     if (school.isAccessLocked) {
-      if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
+      if (user.role === UserRole.TEACHER) {
         return res.status(403).json({ error: 'School Access Suspended: All teachers have defaulted. Management is reassigned to Block Admin / Volunteer.' });
       }
     }
@@ -799,6 +796,7 @@ async function startServer() {
       cycle,
       date: todayStr,
       questions: compiledQuestions,
+      printed: false,
       locks: {
         locked: true,
         lockedByRole: user.role,
@@ -851,6 +849,9 @@ async function startServer() {
     const ws = worksheets.find(w => w.id === worksheetId);
     if (!ws) return res.status(404).json({ error: 'Worksheet not found.' });
 
+    // Mark as printed (lock the print button)
+    await dbStore.updateWorksheet(worksheetId, { printed: true });
+
     const students = await dbStore.getStudents();
     const classStudents = students.filter(
       s => s.classGroup === ws.className && s.section === ws.section && s.schoolId === ws.schoolId
@@ -884,6 +885,54 @@ async function startServer() {
       console.error('Worksheet PDF generation failed:', err);
       res.status(500).json({ success: false, error: err.message });
     }
+  });
+
+  // GET /api/worksheets — list all worksheets with teacher/school info (superadmin only)
+  app.get('/api/worksheets', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.SUPERADMIN) return res.status(401).json({ error: 'Unauthorized' });
+
+    const worksheets = await dbStore.getWorksheets();
+    const schools = await dbStore.getSchools();
+    const users = await dbStore.getUsers();
+
+    const enriched = worksheets.map(ws => {
+      const school = schools.find(s => s.id === ws.schoolId);
+      const teacher = users.find(u => u.email === ws.generatedByEmail);
+      return { ...ws, schoolName: school?.name || 'N/A', teacherName: teacher?.name || 'N/A' };
+    });
+
+    res.json(enriched);
+  });
+
+  // GET /api/worksheets/:id — single worksheet (any authenticated user)
+  app.get('/api/worksheets/:id', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const worksheets = await dbStore.getWorksheets();
+    const ws = worksheets.find(w => w.id === req.params.id);
+    if (!ws) return res.status(404).json({ error: 'Worksheet not found.' });
+
+    res.json(ws);
+  });
+
+  // POST /api/worksheets/unlock — superadmin unlocks a printed worksheet
+  app.post('/api/worksheets/unlock', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.SUPERADMIN) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { worksheetId } = req.body;
+    if (!worksheetId) return res.status(400).json({ error: 'worksheetId is required.' });
+
+    const ws = await dbStore.updateWorksheet(worksheetId, {
+      printed: false,
+      locks: { locked: false, lockedByRole: null, lockedByEmail: null, timestamp: null }
+    });
+
+    if (!ws) return res.status(404).json({ error: 'Worksheet not found.' });
+
+    res.json({ success: true });
   });
 
   // Generate Personalized Level-Wise Worksheet PDF for a student
@@ -1197,8 +1246,8 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const users = await dbStore.getUsers();
-    // Return all users for audit and coordination
-    res.json(users);
+    // Return all users for audit and coordination (without passwords)
+    res.json(users.map(sanitizeUser));
   });
 
   // Revive Banned Teacher (§6.5)
@@ -1206,8 +1255,7 @@ async function startServer() {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const allowed = [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN];
-    if (!allowed.includes(user.role)) {
+    if (user.role !== UserRole.SUPERADMIN) {
       return res.status(403).json({ error: 'Forbidden: Insufficient privileges.' });
     }
 
@@ -1252,8 +1300,7 @@ async function startServer() {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const allowed = [UserRole.SUPERADMIN, UserRole.ADMIN];
-    if (!allowed.includes(user.role)) {
+    if (user.role !== UserRole.SUPERADMIN) {
       return res.status(403).json({ error: 'Forbidden: Insufficient privileges.' });
     }
 
@@ -1358,18 +1405,10 @@ async function startServer() {
     const classes = await dbStore.getClasses();
     let isAuthorized = false;
 
-    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
+    if (user.role === UserRole.SUPERADMIN) {
       isAuthorized = true;
     } else if (user.role === UserRole.TEACHER) {
       isAuthorized = classes.some(c => c.className === `Class ${classNumber}` && (c.teacherId === user.id || c.schoolId === user.schoolId));
-    } else if (user.role === UserRole.VOLUNTEER) {
-      isAuthorized = classes.some(c => c.className === `Class ${classNumber}` && user.assignedSchools?.includes(c.schoolId));
-    } else if (user.role === UserRole.SCHOOL) {
-      isAuthorized = classes.some(c => c.className === `Class ${classNumber}` && c.schoolId === user.schoolId);
-    } else if (user.role === UserRole.BLOCK_ADMIN) {
-      const schools = await dbStore.getSchools();
-      const allowedSchools = schools.filter(s => s.blockCode === user.blockCode).map(s => s.id);
-      isAuthorized = classes.some(c => c.className === `Class ${classNumber}` && allowedSchools.includes(c.schoolId));
     }
 
     if (!isAuthorized) {
@@ -1488,18 +1527,10 @@ async function startServer() {
 
       // Role-based Authorization validation for single generation
       let isAuthorized = false;
-      if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
+      if (user.role === UserRole.SUPERADMIN) {
         isAuthorized = true;
       } else if (user.role === UserRole.TEACHER) {
         isAuthorized = student.teacherId === user.id || student.schoolId === user.schoolId;
-      } else if (user.role === UserRole.VOLUNTEER) {
-        isAuthorized = user.assignedSchools?.includes(student.schoolId) || false;
-      } else if (user.role === UserRole.SCHOOL) {
-        isAuthorized = student.schoolId === user.schoolId;
-      } else if (user.role === UserRole.BLOCK_ADMIN) {
-        const schools = await dbStore.getSchools();
-        const school = schools.find(s => s.id === student.schoolId);
-        isAuthorized = school?.blockCode === user.blockCode;
       }
 
       if (!isAuthorized) {

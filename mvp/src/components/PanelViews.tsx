@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
-import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, CheckCircle2, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 
@@ -27,15 +27,8 @@ const REPORTS_MOCK: EvaluationReport[] = [
   { id: 'r4', studentId: 's6', worksheetId: 'ws4', score: 7, totalQuestions: 10, conceptMastery: { 'Multiplication': 'Strong', 'Division': 'Satisfactory', 'Measurement': 'Satisfactory' }, narrative: 'Multiplication skills are strong. Division concepts are developing well with occasional errors.', recommendedLevel: 38, recommendedSubLevel: 1, timestamp: '2026-03-01T14:00:00Z' },
 ];
 
-const TEACHERS_MOCK = [
-  { id: 't1', name: 'Ritu Sharma', email: 'gps-mt-001.t01@fln.org', schoolId: 'gps-mt-001', classes: ['Class 2-A', 'Class 3-A'], studentsCount: 42, delayedAttempts: 0, status: 'Active' },
-  { id: 't2', name: 'Amit Kumar', email: 'gps-mt-001.t02@fln.org', schoolId: 'gps-mt-001', classes: ['Class 1-A'], studentsCount: 28, delayedAttempts: 1, status: 'Active' },
-  { id: 't3', name: 'Sunita Devi', email: 'gps-bth-006.t01@fln.org', schoolId: 'gps-bth-006', classes: ['Class 2-B', 'Class 4-A'], studentsCount: 35, delayedAttempts: 3, status: 'Suspended' },
-  { id: 't4', name: 'Rajesh Kumar', email: 'gps-pkl-008.t01@fln.org', schoolId: 'gps-pkl-008', classes: ['Class 3-B'], studentsCount: 30, delayedAttempts: 0, status: 'Active' },
-];
-
 const SCHOOLS_MOCK: School[] = [
-  { id: 'gps-mt-001', name: 'GPS Model Town', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-01', strength: 'high', teachersCount: 8, isAccessLocked: false },
+  { id: 'gps-mt-001', name: 'GPS Model Town', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-01', strength: 'high', teachersCount: 3, isAccessLocked: false },
   { id: 'gps-vl-002', name: 'GPS Village Lohara', stateCode: 'PB', districtCode: 'MOG', blockCode: 'MOG-01', strength: 'low', teachersCount: 2, isAccessLocked: false },
   { id: 'gps-amb-003', name: 'GPS Ambala Cantt', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-01', strength: 'high', teachersCount: 6, isAccessLocked: false },
   { id: 'gps-jai-004', name: 'GPS Govind Dev Ji', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-01', strength: 'high', teachersCount: 7, isAccessLocked: true },
@@ -53,36 +46,11 @@ const SCHOOLS_MOCK: School[] = [
 
 const USERS_MOCK = [
   { name: 'Jinal Gupta', email: 'superadmin@fln.org', role: 'Super Admin', scope: 'National', status: 'Active' },
-  { name: 'State Coordinator Punjab', email: 'admin.pb@fln.org', role: 'State Admin', scope: 'PB', status: 'Active' },
-  { name: 'State Coordinator Haryana', email: 'admin.hr@fln.org', role: 'State Admin', scope: 'HR', status: 'Active' },
-  { name: 'Ludhiana District Officer', email: 'district.ldh@fln.org', role: 'District Admin', scope: 'PB-LDH', status: 'Active' },
-  { name: 'Ambala District Officer', email: 'district.amb@fln.org', role: 'District Admin', scope: 'HR-AMB', status: 'Active' },
-  { name: 'Ludhiana Block Admin 1', email: 'block.ldh-01@fln.org', role: 'Block Admin', scope: 'PB-LDH-LDH-01', status: 'Active' },
-  { name: 'GPS Model Town Principal', email: 'gps-mt-001@fln.org', role: 'Principal', scope: 'gps-mt-001', status: 'Active' },
   { name: 'Ritu Sharma', email: 'gps-mt-001.t01@fln.org', role: 'Teacher', scope: 'gps-mt-001', status: 'Active' },
-  { name: 'Rahul Kumar', email: 'vol.rahul@fln.org', role: 'Volunteer', scope: 'Moga Villages', status: 'Active' },
-];
-
-const QUESTION_BANK = [
-  { id: 'QB-001', topic: 'Number Sense', level: 4, question: 'Count the number of apples: 🍎🍎🍎🍎', type: 'MCQ', difficulty: 'Easy' },
-  { id: 'QB-002', topic: 'Number Sense', level: 8, question: 'What comes after 15?', type: 'Text', difficulty: 'Easy' },
-  { id: 'QB-003', topic: 'Addition', level: 12, question: 'What is 7 + 5?', type: 'Number', difficulty: 'Easy' },
-  { id: 'QB-004', topic: 'Subtraction', level: 16, question: 'What is 23 - 8?', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-005', topic: 'Multiplication', level: 41, question: 'What is 6 × 7?', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-006', topic: 'Division', level: 42, question: 'Divide 24 by 6', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-007', topic: 'Fractions', level: 45, question: 'Which is larger: 1/2 or 1/4?', type: 'MCQ', difficulty: 'Hard' },
-  { id: 'QB-008', topic: 'Place Value', level: 36, question: 'What is the value of 7 in 372?', type: 'Text', difficulty: 'Medium' },
-  { id: 'QB-009', topic: 'Measurement', level: 43, question: 'How many cm in 1 meter?', type: 'Number', difficulty: 'Easy' },
-  { id: 'QB-010', topic: 'Money', level: 46, question: 'You have ₹50. You buy a toy for ₹35. How much change?', type: 'Number', difficulty: 'Hard' },
-];
-
-const WS_TEMPLATES = [
-  { id: 'WST-001', name: 'Baseline Assessment L1-L5', grade: 'Preschool 1-2', questions: 8, duration: '30 min', status: 'Published' },
-  { id: 'WST-002', name: 'Number Sense L6-L11', grade: 'Class 1', questions: 10, duration: '45 min', status: 'Published' },
-  { id: 'WST-003', name: 'Operations L12-L23', grade: 'Class 2', questions: 12, duration: '45 min', status: 'Draft' },
-  { id: 'WST-004', name: 'Adv. Operations L24-L35', grade: 'Class 2 Review', questions: 10, duration: '60 min', status: 'Published' },
-  { id: 'WST-005', name: 'Multiplication & Division L36-L48', grade: 'Class 3-4', questions: 15, duration: '60 min', status: 'Draft' },
-  { id: 'WST-006', name: 'Fractions & Decimals L49-L59', grade: 'Class 4+', questions: 12, duration: '60 min', status: 'Review' },
+  { name: 'Amit Kumar', email: 'gps-mt-001.t02@fln.org', role: 'Teacher', scope: 'gps-mt-001', status: 'Active' },
+  { name: 'Priya Singh', email: 'gps-mt-001.t03@fln.org', role: 'Teacher', scope: 'gps-mt-001', status: 'Active' },
+  { name: 'Sunita Devi', email: 'gps-bth-006.t01@fln.org', role: 'Teacher', scope: 'gps-bth-006', status: 'Active' },
+  { name: 'Rajesh Kumar', email: 'gps-pkl-008.t01@fln.org', role: 'Teacher', scope: 'gps-pkl-008', status: 'Active' },
 ];
 
 const DIAGNOSTIC_HISTORY = [
@@ -125,40 +93,11 @@ const DISTRICTS = [
   { code: 'KNP', name: 'Kanpur', state: 'UP', schools: 1, students: 32, certifiedRate: 56 },
 ];
 
-const BLOCKS = [
-  { code: 'LDH-01', district: 'LDH', schools: 2, students: 70, certifiedRate: 71 },
-  { code: 'LDH-02', district: 'LDH', schools: 1, students: 22, certifiedRate: 45 },
-  { code: 'MOG-01', district: 'MOG', schools: 1, students: 28, certifiedRate: 45 },
-  { code: 'BTH-01', district: 'BTH', schools: 1, students: 35, certifiedRate: 72 },
-  { code: 'ASR-01', district: 'ASR', schools: 1, students: 30, certifiedRate: 60 },
-  { code: 'AMB-01', district: 'AMB', schools: 1, students: 35, certifiedRate: 60 },
-  { code: 'AMB-02', district: 'AMB', schools: 1, students: 30, certifiedRate: 50 },
-  { code: 'PKL-01', district: 'PKL', schools: 1, students: 30, certifiedRate: 80 },
-  { code: 'JAI-01', district: 'JAI', schools: 1, students: 30, certifiedRate: 55 },
-  { code: 'JAI-02', district: 'JAI', schools: 1, students: 25, certifiedRate: 45 },
-  { code: 'UDA-01', district: 'UDA', schools: 1, students: 25, certifiedRate: 40 },
-  { code: 'LKO-01', district: 'LKO', schools: 1, students: 28, certifiedRate: 65 },
-  { code: 'LKO-02', district: 'LKO', schools: 1, students: 20, certifiedRate: 58 },
-  { code: 'KNP-01', district: 'KNP', schools: 1, students: 32, certifiedRate: 56 },
-];
 
-const CONTENT_ITEMS = [
-  { id: 'c1', title: 'Number Line 1-10', type: 'Visual Aid', level: 'L1-L4', language: 'English, Punjabi', status: 'Approved' },
-  { id: 'c2', title: 'Addition with Objects', type: 'Lesson Plan', level: 'L7-L12', language: 'English, Hindi', status: 'Approved' },
-  { id: 'c3', title: 'Place Value Chart', type: 'Poster', level: 'L24-L30', language: 'English, Punjabi', status: 'Draft' },
-  { id: 'c4', title: 'Multiplication Tables Song', type: 'Audio', level: 'L36-L41', language: 'English', status: 'Review' },
-  { id: 'c5', title: 'Fraction Pizza Activity', type: 'Worksheet', level: 'L45-L48', language: 'English, Hindi', status: 'Approved' },
-  { id: 'c6', title: 'Money Math Games', type: 'Activity', level: 'L46-L48', language: 'English', status: 'Draft' },
-];
 
-const SYSTEM_LOGS_MOCK = [
-  { action: 'Database Backup', status: 'Success', timestamp: '2026-07-07 02:00', details: 'Full backup completed (1.2 GB)' },
-  { action: 'User Sync', status: 'Success', timestamp: '2026-07-07 01:00', details: 'Synced 142 users from state databases' },
-  { action: 'SSL Certificate Renewal', status: 'Success', timestamp: '2026-07-06 12:00', details: 'Wildcard cert renewed, expires 2027-07' },
-  { action: 'API Rate Limit Check', status: 'Warning', timestamp: '2026-07-06 10:30', details: '3 endpoints nearing threshold' },
-  { action: 'Email Service', status: 'Failed', timestamp: '2026-07-06 08:15', details: 'SMTP relay timeout, retry queued' },
-  { action: 'Cache Invalidation', status: 'Success', timestamp: '2026-07-06 06:00', details: 'CDN cache purged for /api/analytics' },
-];
+
+
+
 
 function PageHeader({ title, desc, icon }: { title: string; desc: string; icon?: React.ReactNode }) {
   return (
@@ -857,7 +796,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             <div className="space-y-3">{pending.map(s => (
               <div key={s.id} className="flex justify-between items-center p-3 border border-slate-200 rounded-lg">
                 <div><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400">{s.classGroup} - {s.section}</div></div>
-                <span className="text-[10px] font-mono font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">Run Diagnostic</span>
+                <span className="text-[10px] font-mono font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">Awaiting</span>
               </div>
             ))}</div>
           )}
@@ -875,27 +814,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  if (panel === 'adaptive_test') {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
-        <PageHeader title="Adaptive Assessment" desc="Computer-adaptive testing that adjusts to student ability" icon={<SlidersHorizontal className="h-5 w-5" />} />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard title="Active Sessions" value="3" subtext="Students currently testing" icon={Users} />
-          <MetricCard title="Avg Adaptive Score" value="72%" subtext="Across all levels" icon={BarChart3} />
-          <MetricCard title="Completion Rate" value="85%" subtext="Tests finished on time" icon={CheckCircle2} />
-        </div>
-        <div className="border border-slate-200 rounded-lg p-5 bg-slate-50 space-y-3">
-          <h4 className="text-sm font-semibold text-slate-800">How Adaptive Testing Works</h4>
-          <p className="text-xs text-slate-600 leading-relaxed">The system selects questions dynamically based on the student's previous answers. Correct answers lead to harder questions; incorrect answers adjust to easier ones. This pinpoints the exact FLN level.</p>
-          <div className="flex gap-4 pt-2">
-            <button className="bg-slate-900 text-white text-xs font-medium px-4 py-2 rounded-lg hover:bg-slate-800">Start New Adaptive Test</button>
-            <button className="border border-slate-200 text-slate-700 text-xs font-medium px-4 py-2 rounded-lg hover:bg-slate-50">View Session Logs</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (panel === 'test_history') {
     return (
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
@@ -906,6 +824,98 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             <div className="text-right"><div className="font-mono font-bold">{h.score}/{h.total}</div><div className="text-xs text-slate-400">Placed L{h.placedLevel}</div></div>
           </div>
         ))}</div>
+      </div>
+    );
+  }
+
+  if (panel === 'baseline_test') {
+    const baselineClasses = [...new Set(WORKSHEETS_MOCK.filter(w => w.cycle === 'Baseline').map(w => w.class))];
+    const baselineWorksheets = WORKSHEETS_MOCK.filter(w => w.cycle === 'Baseline');
+    const evaluatedBL = baselineWorksheets.filter(w => w.status === 'Evaluated');
+    const pendingBL = baselineWorksheets.filter(w => w.status === 'Pending');
+    const allClassGroups = [...new Set(STUDENTS_MOCK.map(s => `${s.classGroup}-${s.section}`))];
+    const classesWithBaseline = baselineClasses;
+    const classesWithoutBaseline = allClassGroups.filter(c => !classesWithBaseline.includes(c));
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <MetricCard title="Total Classes" value={allClassGroups.length} subtext="Across school" icon={ClipboardList} />
+          <MetricCard title="Baseline Done" value={evaluatedBL.length} subtext="Evaluated" icon={CheckCircle2} />
+          <MetricCard title="In Progress" value={baselineWorksheets.filter(w => w.status !== 'Evaluated' && w.status !== 'Pending').length} subtext="Awaiting evaluation" icon={FileText} />
+          <MetricCard title="Not Started" value={classesWithoutBaseline.length} subtext="No baseline generated" icon={Calendar} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <PageHeader title="Baseline Results" desc="Evaluated baseline assessments" />
+            <div className="space-y-3 mt-4">{evaluatedBL.length > 0 ? evaluatedBL.map(w => (
+              <div key={w.id} className="flex justify-between items-center p-4 border border-slate-200 rounded-lg">
+                <div>
+                  <div className="font-semibold text-sm">{w.class}</div>
+                  <div className="text-xs text-slate-400">{w.date} · {w.questions} questions</div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-mono font-bold px-2 py-1 rounded text-green-700 bg-green-50 border border-green-200">Evaluated</span>
+                  <div className="text-xs text-slate-400 mt-1">Avg: {w.avgScore}</div>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-8 text-slate-400 text-sm">No baseline evaluations completed yet.</div>
+            )}</div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <PageHeader title="Pending Baseline" desc="Classes awaiting baseline assessment" />
+            <div className="space-y-3 mt-4">
+              {pendingBL.length > 0 && (
+                <div className="space-y-3">{pendingBL.map(w => (
+                  <div key={w.id} className="flex justify-between items-center p-4 border border-amber-200 bg-amber-50/30 rounded-lg">
+                    <div>
+                      <div className="font-semibold text-sm">{w.class}</div>
+                      <div className="text-xs text-slate-400">Generated · {w.date}</div>
+                    </div>
+                    <span className="text-xs font-mono font-bold px-2 py-1 rounded text-amber-700 bg-amber-50 border border-amber-200">Pending</span>
+                  </div>
+                ))}</div>
+              )}
+              {classesWithoutBaseline.map(c => (
+                <div key={c} className="flex justify-between items-center p-4 border border-slate-200 rounded-lg">
+                  <div>
+                    <div className="font-semibold text-sm">{c}</div>
+                    <div className="text-xs text-slate-400">No baseline generated</div>
+                  </div>
+                  <span className="text-xs font-mono font-bold px-2 py-1 rounded text-slate-400 bg-slate-50 border border-slate-200">Not Started</span>
+                </div>
+              ))}
+              {pendingBL.length === 0 && classesWithoutBaseline.length === 0 && (
+                <div className="text-center py-8 text-slate-400 text-sm">All classes have completed baseline assessment.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {evaluatedBL.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <PageHeader title="Student Baseline Scores" desc="Individual student performance on baseline tests" />
+            <div className="space-y-2 mt-4">{STUDENTS_MOCK.filter(s => ['s1','s2','s3','s4','s5','s6','s7'].includes(s.id)).map(s => {
+              const rep = REPORTS_MOCK.find(r => r.studentId === s.id);
+              if (!rep) return null;
+              const pct = Math.round((rep.score / rep.totalQuestions) * 100);
+              return (
+                <div key={s.id} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium text-sm">{s.name}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{s.classGroup}-{s.section}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${pct >= 80 ? 'bg-green-50 text-green-700 border border-green-200' : pct >= 60 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{rep.score}/{rep.totalQuestions} ({pct}%)</span>
+                    <span className="text-xs text-slate-400 font-mono">L{rep.recommendedLevel}.{rep.recommendedSubLevel ?? 0}</span>
+                  </div>
+                </div>
+              );
+            })}</div>
+          </div>
+        )}
       </div>
     );
   }
@@ -931,35 +941,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  if (panel === 'performance') {
-    const isTeacher = currentUser.role === UserRole.TEACHER || currentUser.role === UserRole.VOLUNTEER;
-    const topStudents = [...STUDENTS_MOCK].sort((a, b) => b.currentLevel - a.currentLevel).slice(0, 5);
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <MetricCard title="Total Students" value={STUDENTS_MOCK.length} subtext="Active roster" icon={Users} />
-          <MetricCard title="Avg Level" value={`L${Math.round(STUDENTS_MOCK.reduce((a, s) => a + s.currentLevel, 0) / STUDENTS_MOCK.length)}`} subtext="Class average" icon={BarChart3} />
-          <MetricCard title="Certified" value={`${STUDENTS_MOCK.filter(s => s.currentLevel >= 5).length}`} subtext="Level 5+ achieved" icon={Award} />
-          <MetricCard title="Pending Diagnostic" value={STUDENTS_MOCK.filter(s => s.levelHistory.length === 0).length} subtext="Need placement" icon={ShieldAlert} />
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-          <PageHeader title={isTeacher ? "Class Performance" : "School Performance"} desc="FLN level distribution and trends" />
-          <div className="space-y-3">
-            <h4 className="text-xs font-mono font-bold text-slate-500 uppercase">Top Performing Students</h4>
-            <div className="space-y-2">{topStudents.map(s => (
-              <div key={s.id} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg">
-                <div className="flex items-center gap-3"><span className="text-sm font-semibold">{s.name}</span><span className="text-xs text-slate-400">{s.classGroup}</span></div>
-                <div className="flex items-center gap-4"><div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / 59) * 100}%` }} /></div><span className="font-mono font-bold text-sm">L{s.currentLevel}</span></div>
-              </div>
-            ))}</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (panel === 'reports') {
-    const isStateAdmin = currentUser.role === UserRole.ADMIN;
+    const isStateAdmin = false;
     if (isStateAdmin) {
       const userState = currentUser.stateCode || 'PB';
       const stateSchools = SCHOOLS_MOCK.filter(s => s.stateCode === userState);
@@ -1122,93 +1105,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  // ===================== VOLUNTEER PANELS =====================
-  if (panel === 'assigned_schools') {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {['gps-vl-002', 'gps-jai-004', 'gps-lko-005', 'gps-amb-003'].map(id => {
-          const sch = SCHOOLS_MOCK.find(s => s.id === id);
-          if (!sch) return null;
-          const count = STUDENTS_MOCK.filter(s => s.schoolId === id).length;
-          return (
-            <div key={id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-3 hover:border-slate-400 transition-all">
-              <div className="flex justify-between"><h3 className="font-bold text-slate-900">{sch.name}</h3><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sch.strength === 'low' ? 'text-amber-700 bg-amber-50 border border-amber-200' : 'text-emerald-700 bg-emerald-50 border border-emerald-200'}`}>{sch.strength === 'low' ? 'Low-Strength' : 'High-Strength'}</span></div>
-              <div className="text-xs text-slate-400">{sch.stateCode} / {sch.districtCode} / {sch.blockCode}</div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs pt-2 border-t border-slate-100"><div><div className="font-bold text-slate-800">{count}</div><div className="text-slate-400">Students</div></div><div><div className="font-bold text-slate-800">{sch.teachersCount}</div><div className="text-slate-400">Teachers</div></div><div><div className="font-bold text-green-600">{sch.isAccessLocked ? 'Locked' : 'Active'}</div><div className="text-slate-400">Status</div></div></div>
-              <button className="w-full text-xs font-medium bg-slate-900 text-white py-2 rounded-lg hover:bg-slate-800">Visit School</button>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  if (panel === 'student_progress') {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Student Progress Tracking" desc="Monitor FLN level advancement across assigned schools" icon={<GraduationCap className="h-5 w-5" />} />
-        <div className="space-y-3">{STUDENTS_MOCK.sort((a, b) => b.currentLevel - a.currentLevel).map(s => (
-          <div key={s.id} className="flex items-center gap-4 p-3 border border-slate-200 rounded-lg">
-            <div className="flex-1"><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400">{s.classGroup} · Streak: {s.streak}</div></div>
-            <div className="w-40"><div className="flex justify-between text-[10px] text-slate-500 mb-1"><span>L{s.currentLevel}</span><span>Target L{s.targetLevel}</span></div><div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / s.targetLevel) * 100}%` }} /></div></div>
-            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.levelHistory.length > 0 ? 'text-green-700 bg-green-50 border border-green-200' : 'text-amber-700 bg-amber-50 border border-amber-200'}`}>{s.levelHistory.length > 0 ? 'Placed' : 'Pending'}</span>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
-
-  if (panel === 'attendance') {
-    const examAttendance = STUDENTS_MOCK.map(s => {
-      const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
-      const examsGiven = reports.length;
-      const lastExam = examsGiven > 0 ? new Date(Math.max(...reports.map(r => new Date(r.timestamp).getTime()))).toLocaleDateString() : 'N/A';
-      const avgScore = examsGiven > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / examsGiven) : 0;
-      return { student: s.name, class: `${s.classGroup} - ${s.section}`, examsGiven, lastExam, avgScore, placed: s.levelHistory.length > 0 };
-    });
-    const totalExams = examAttendance.reduce((a, e) => a + e.examsGiven, 0);
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <MetricCard title="Total Students" value={examAttendance.length} subtext="Assigned roster" icon={Users} />
-          <MetricCard title="Exams Conducted" value={totalExams} subtext="Across all students" icon={FileText} />
-          <MetricCard title="Avg Exams/Student" value={`${(totalExams / examAttendance.length).toFixed(1)}`} subtext="Participation rate" icon={BarChart3} />
-          <MetricCard title="Placed Students" value={examAttendance.filter(e => e.placed).length} subtext="Have level history" icon={Award} />
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-          <PageHeader title="Exam Attendance Records" desc="Track which students have appeared for assessments and their performance" icon={<Calendar className="h-5 w-5" />} />
-          <div className="space-y-2 mt-4">{examAttendance.map(a => (
-            <div key={a.student} className="flex items-center gap-4 p-3 border border-slate-100 rounded-lg">
-              <div className="flex items-center gap-3 w-8">{a.examsGiven > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <XCircle className="w-4 h-4 text-slate-300" />}</div>
-              <div className="flex-1 min-w-0"><span className="text-sm font-medium">{a.student}</span><span className="text-xs text-slate-400 ml-2">{a.class}</span></div>
-              <div className="flex items-center gap-6 text-sm shrink-0">
-                <div className="text-center"><div className="font-bold text-slate-900">{a.examsGiven}</div><div className="text-[9px] text-slate-400 font-mono uppercase">Exams</div></div>
-                <div className="text-center"><div className={`font-bold ${a.avgScore >= 70 ? 'text-emerald-600' : a.avgScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{a.examsGiven > 0 ? `${a.avgScore}%` : '—'}</div><div className="text-[9px] text-slate-400 font-mono uppercase">Avg Score</div></div>
-                <div className="text-center"><div className="text-xs text-slate-500 font-mono">{a.lastExam}</div><div className="text-[9px] text-slate-400 font-mono uppercase">Last Exam</div></div>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${a.placed ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-amber-700 bg-amber-50 border border-amber-200'}`}>{a.placed ? 'Placed' : 'Pending'}</span>
-              </div>
-            </div>
-          ))}</div>
-        </div>
-      </div>
-    );
-  }
-
-  // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
-  if (panel === 'teachers' && currentUser.role === UserRole.SCHOOL) {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Teacher Roster" desc="Manage teaching staff at your school" icon={<Users className="h-5 w-5" />} />
-        <div className="space-y-3">{TEACHERS_MOCK.filter(t => t.schoolId === currentUser.schoolId).map(t => (
-          <div key={t.id} className="flex justify-between items-center p-3 border border-slate-200 rounded-lg">
-            <div><div className="font-semibold text-sm">{t.name}</div><div className="text-xs text-slate-400">{t.email} · {t.classes.join(', ')}</div></div>
-            <div className="text-right"><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${t.status === 'Active' ? 'text-green-700 bg-green-50 border border-green-200' : 'text-red-700 bg-red-50 border border-red-200'}`}>{t.status}</span><div className="text-xs text-slate-400 mt-1">{t.studentsCount} students</div></div>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
-
   // ===================== BLOCK/DISTRICT/STATE ADMIN + SUPERADMIN SHARED PANELS =====================
   if (panel === 'schools') {
     const uniqueStates = [...new Set(SCHOOLS_MOCK.map(s => s.stateCode))];
@@ -1231,105 +1127,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  if (panel === 'districts') {
-    const userState = currentUser.stateCode || 'PB';
-    const stateDistricts = DISTRICTS.filter(d => d.state === userState);
-    const [expandedDist, setExpandedDist] = useState<string | null>(null);
-    const distSchools = expandedDist ? SCHOOLS_MOCK.filter(s => s.districtCode === expandedDist) : [];
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <MetricCard title="State Districts" value={stateDistricts.length} subtext={`${userState} jurisdiction`} icon={MapPin} />
-          <MetricCard title="Total Schools" value={stateDistricts.reduce((a, d) => a + d.schools, 0)} subtext="Registered facilities" icon={SchoolIcon} />
-          <MetricCard title="Total Students" value={stateDistricts.reduce((a, d) => a + d.students, 0)} subtext="Across all districts" icon={Users} />
-          <MetricCard title="Avg Certification" value={`${Math.round(stateDistricts.reduce((a, d) => a + d.certifiedRate, 0) / stateDistricts.length)}%`} subtext="State weighted average" icon={Award} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* District list */}
-          <div className={`${expandedDist ? 'lg:col-span-1' : 'lg:col-span-3'} bg-white border border-slate-200 rounded-xl p-5 shadow-sm`}>
-            <PageHeader title="District Overview" desc={`${userState} — Performance metrics by district`} icon={<MapPin className="h-5 w-5" />} />
-            <div className="space-y-2 mt-4">{stateDistricts.map(d => {
-              const isExpanded = expandedDist === d.code;
-              const schoolList = SCHOOLS_MOCK.filter(s => s.districtCode === d.code);
-              const studentCount = schoolList.reduce((a, s) => a + (STUDENTS_MOCK.filter(st => st.schoolId === s.id).length), 0);
-              return (
-                <div key={d.code}>
-                  <button onClick={() => setExpandedDist(isExpanded ? null : d.code)} className={`w-full flex items-center gap-4 p-3 border rounded-lg text-left hover:bg-slate-50 transition-all ${isExpanded ? 'border-indigo-300 bg-indigo-50' : 'border-slate-100'}`}>
-                    <div className="w-16"><span className="font-bold text-sm">{d.code}</span><span className="text-[10px] text-slate-400 ml-1">({d.state})</span></div>
-                    <div className="flex-1"><span className="text-sm font-semibold">{d.name}</span></div>
-                    <div className="flex gap-4 text-xs text-slate-500">
-                      <span><strong className="text-slate-800">{studentCount}</strong> students</span>
-                      <span><strong className="text-slate-800">{schoolList.length}</strong> schools</span>
-                    </div>
-                    <div className="w-24"><div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.certifiedRate}%` }} /></div><div className="text-[10px] text-slate-400 mt-0.5 text-right">{d.certifiedRate}% certified</div></div>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
-              );
-            })}</div>
-          </div>
-
-          {/* Schools in selected district */}
-          {expandedDist && (
-            <div className="lg:col-span-2 space-y-4">
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-slate-900">Schools in {expandedDist}</h3>
-                  <button onClick={() => setExpandedDist(null)} className="text-xs text-slate-400 hover:text-slate-600 font-mono">Close</button>
-                </div>
-                <div className="grid grid-cols-1 gap-4">{distSchools.map(sch => {
-                  const students = STUDENTS_MOCK.filter(st => st.schoolId === sch.id);
-                  const certified = students.filter(st => st.currentLevel >= 5).length;
-                  const avgLevel = students.length > 0 ? Math.round(students.reduce((a, st) => a + st.currentLevel, 0) / students.length) : 0;
-                  return (
-                    <div key={sch.id} className="border border-slate-200 rounded-xl p-5 hover:border-slate-400 transition-all">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-bold text-slate-900">{sch.name}</h4>
-                          <p className="text-xs text-slate-400">{sch.id} · {sch.blockCode} · {sch.stateCode}/{sch.districtCode}</p>
-                        </div>
-                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sch.strength === 'high' ? 'text-indigo-700 bg-indigo-50 border border-indigo-200' : 'text-amber-700 bg-amber-50 border border-amber-200'}`}>{sch.strength}</span>
-                      </div>
-                      <div className="grid grid-cols-4 gap-4 mt-4 pt-3 border-t border-slate-100">
-                        <div className="text-center"><div className="text-lg font-bold text-slate-900">{students.length}</div><div className="text-[10px] text-slate-400">Students</div></div>
-                        <div className="text-center"><div className="text-lg font-bold text-slate-900">{sch.teachersCount}</div><div className="text-[10px] text-slate-400">Teachers</div></div>
-                        <div className="text-center"><div className="text-lg font-bold text-emerald-600">{certified}</div><div className="text-[10px] text-slate-400">Certified</div></div>
-                        <div className="text-center"><div className="text-lg font-bold text-slate-900">L{avgLevel}</div><div className="text-[10px] text-slate-400">Avg Level</div></div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="flex justify-between text-[10px] text-slate-500 mb-1"><span>Certification Rate</span><span>{students.length > 0 ? Math.round(certified / students.length * 100) : 0}%</span></div>
-                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${students.length > 0 ? (certified / students.length) * 100 : 0}%` }} /></div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-1.5">{students.map(st => (
-                        <span key={st.id} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${st.levelHistory.length > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{st.name.split(' ')[0]} L{st.currentLevel}</span>
-                      ))}</div>
-                    </div>
-                  );
-                })}</div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (panel === 'blocks') {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Block Administration" desc="All blocks under your district jurisdiction" icon={<MapPin className="h-5 w-5" />} />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{BLOCKS.map(b => (
-          <div key={b.code} className="border border-slate-200 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between"><span className="font-bold text-sm">{b.code}</span><span className="text-xs text-slate-400">Dist: {b.district}</span></div>
-            <div className="flex gap-4 text-xs"><span>🏫 {b.schools} schools</span><span>👨‍🎓 {b.students} students</span></div>
-            <div><div className="flex justify-between text-[10px] mb-0.5"><span>Certification</span><span>{b.certifiedRate}%</span></div><div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${b.certifiedRate}%` }} /></div></div>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
-
   // ===================== SUPERADMIN PANELS =====================
   if (panel === 'users') {
     return (
@@ -1345,51 +1142,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  if (panel === 'question_bank') {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Question Bank" desc="Curated repository of FLN assessment questions across all 59 levels" icon={<BookOpen className="h-5 w-5" />} />
-        <div className="space-y-2">{QUESTION_BANK.map(q => (
-          <div key={q.id} className="p-3 border border-slate-100 rounded-lg">
-            <div className="flex justify-between items-start"><div><span className="text-[10px] font-mono font-bold text-slate-400">{q.id}</span><span className="text-sm font-medium ml-2">{q.question}</span></div><div className="flex gap-1 shrink-0"><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">{q.topic}</span><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">L{q.level}</span><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{q.difficulty}</span></div></div>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
-
-  if (panel === 'worksheet_templates') {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Worksheet Templates" desc="Pre-designed assessment templates for each grade and cycle" icon={<ClipboardList className="h-5 w-5" />} />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{WS_TEMPLATES.map(t => (
-          <div key={t.id} className="border border-slate-200 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between"><span className="font-bold text-sm">{t.name}</span><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${t.status === 'Published' ? 'text-green-700 bg-green-50 border border-green-200' : t.status === 'Draft' ? 'text-amber-700 bg-amber-50 border border-amber-200' : 'text-blue-700 bg-blue-50 border border-blue-200'}`}>{t.status}</span></div>
-            <div className="text-xs text-slate-400">{t.id} · Grade: {t.grade}</div>
-            <div className="flex gap-3 text-xs text-slate-500"><span>📝 {t.questions} questions</span><span>⏱ {t.duration}</span></div>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
-
-  if (panel === 'content') {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Content Library" desc="Educational resources, lesson plans, and teaching aids" icon={<BookMarked className="h-5 w-5" />} />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{CONTENT_ITEMS.map(c => (
-          <div key={c.id} className="border border-slate-200 rounded-lg p-4 space-y-2 hover:border-slate-400 transition-all">
-            <div className="flex justify-between"><span className="font-bold text-sm">{c.title}</span><span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${c.status === 'Approved' ? 'text-green-700 bg-green-50 border border-green-200' : c.status === 'Draft' ? 'text-amber-700 bg-amber-50 border border-amber-200' : 'text-blue-700 bg-blue-50 border border-blue-200'}`}>{c.status}</span></div>
-            <div className="text-xs text-slate-400">{c.type} · Level {c.level}</div>
-            <div className="text-xs text-slate-500">Languages: {c.language}</div>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
-
   if (panel === 'analytics') {
-    const isAdmin = [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(currentUser.role);
+    const isAdmin = false;
     const data = isAdmin ? DISTRICTS : SCHOOLS_MOCK;
     const title = isAdmin ? 'Geographical Analytics' : 'Performance Analytics';
     const desc = isAdmin ? 'Cross-regional performance metrics and benchmarking' : 'School-level performance data and trends';
@@ -1411,40 +1165,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
               <div className="w-32"><div className="flex justify-between text-[10px] mb-0.5"><span>{d.certifiedRate || 0}%</span></div><div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.certifiedRate || 0}%` }} /></div></div>
             </div>
           ))}</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (panel === 'system_settings') {
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <PageHeader title="System Configuration" desc="Core platform settings and infrastructure" icon={<Settings className="h-5 w-5" />} />
-          <div className="space-y-3">{[
-            { label: 'Platform Name', value: 'National FLN Assessment Portal' },
-            { label: 'Version', value: 'v2.4.1 (Build 2026.07)' },
-            { label: 'Environment', value: 'Production' },
-            { label: 'Database', value: 'PostgreSQL 15.2 / Redis 7.0' },
-            { label: 'API Rate Limit', value: '1000 req/min per user' },
-            { label: 'Session Timeout', value: '120 minutes' },
-            { label: 'Auth Provider', value: 'Email + Password (SLA §3.2)' },
-            { label: 'AI Model', value: 'Gemini 1.5 Pro (Fine-tuned FLN)' },
-          ].map(c => (
-            <div key={c.label} className="flex justify-between text-sm py-2 border-b border-slate-50"><span className="text-slate-500">{c.label}</span><span className="font-medium text-slate-800 font-mono text-xs">{c.value}</span></div>
-          ))}</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <PageHeader title="System Health" desc="Recent operational logs and status" icon={<Database className="h-5 w-5" />} />
-          <div className="space-y-2">{SYSTEM_LOGS_MOCK.map(l => (
-            <div key={l.action} className="flex items-center gap-3 p-2 border border-slate-100 rounded text-xs">
-              <span className={`w-2 h-2 rounded-full shrink-0 ${l.status === 'Success' ? 'bg-green-500' : l.status === 'Warning' ? 'bg-amber-500' : 'bg-red-500'}`} />
-              <span className="font-medium w-32">{l.action}</span>
-              <span className="text-slate-400 flex-1">{l.details}</span>
-              <span className="text-slate-400 font-mono">{l.timestamp}</span>
-            </div>
-          ))}</div>
-          <button className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 mt-2"><RefreshCw className="w-3 h-3" /> Refresh Status</button>
         </div>
       </div>
     );

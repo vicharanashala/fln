@@ -1,11 +1,6 @@
 export enum UserRole {
   SUPERADMIN = 'superadmin',
-  ADMIN = 'admin',
-  DISTRICT_ADMIN = 'district_admin',
-  BLOCK_ADMIN = 'block_admin',
-  SCHOOL = 'school',
-  TEACHER = 'teacher',
-  VOLUNTEER = 'volunteer'
+  TEACHER = 'teacher'
 }
 
 export interface User {
@@ -81,6 +76,14 @@ export interface Worksheet {
   cycle: 'Baseline' | 'Mid-year' | 'End-of-year';
   date: string;
   questions: Question[];
+  printed: boolean;
+  reprintRequest?: {
+    requested: boolean;
+    reason: string;
+    requestedAt: string;
+    teacherEmail: string;
+    teacherName: string;
+  } | null;
   locks: {
     locked: boolean;
     lockedByRole: UserRole | null;
