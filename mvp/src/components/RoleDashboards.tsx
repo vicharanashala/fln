@@ -1451,6 +1451,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   // Level-wise bulk generation state
   const [levelBulkProgress, setLevelBulkProgress] = useState<{ total: number; completed: number; errors: string[] } | null>(null);
   const [levelBulkLoading, setLevelBulkLoading] = useState(false);
+  const [levelBulkResults, setLevelBulkResults] = useState<{ name: string; pdfUrl: string }[]>([]);
 
   // New Student state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1926,27 +1927,105 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             )}
           </div>
 
-          {/* 📄 Level-Wise Paper Generator - Disabled (Coming Soon) */}
-          <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4 opacity-60">
+          {/* 📄 Level-Wise Paper Generator */}
+          <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h3 className="font-display font-semibold text-zinc-900 text-sm">📄 Level-Wise Paper Generator</h3>
                 <p className="text-xs text-zinc-500 mt-0.5">Generate personalized level-wise question PDFs for placed students.</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-zinc-200 text-zinc-500 border border-zinc-300">
+                <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-green-50 text-green-700 border border-green-200">
                   {classStudents.filter(s => s.levelHistory.length > 0).length} Placed
                 </span>
                 <button
                   type="button"
-                  disabled
-                  className="bg-zinc-400 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg cursor-not-allowed flex items-center gap-1.5"
-                  title="Coming Soon"
+                  onClick={async () => {
+                    const placed = classStudents.filter(s => s.levelHistory.length > 0);
+                    if (placed.length === 0) {
+                      alert('No placed students in this class to generate level-wise papers for.');
+                      return;
+                    }
+                    setLevelBulkLoading(true);
+                    setLevelBulkProgress({ total: placed.length, completed: 0, errors: [] });
+                    setLevelBulkResults([]);
+                    for (const s of placed) {
+                      try {
+                        const res = await fetch('/api/worksheets/generate-level-pdf', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                          },
+                          body: JSON.stringify({ studentId: s.id })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.pdfUrl) {
+                          setLevelBulkResults(prev => [...prev, { name: s.name, pdfUrl: data.pdfUrl }]);
+                        } else {
+                          setLevelBulkProgress(prev => prev ? { ...prev, errors: [...prev.errors, `${s.name}: ${data.error || 'Failed'}`] } : prev);
+                        }
+                      } catch {
+                        setLevelBulkProgress(prev => prev ? { ...prev, errors: [...prev.errors, `${s.name}: Network error`] } : prev);
+                      }
+                      setLevelBulkProgress(prev => prev ? { ...prev, completed: (prev.completed + 1) } : prev);
+                    }
+                    setLevelBulkLoading(false);
+                  }}
+                  disabled={levelBulkLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  🚧 Coming Soon
+                  {levelBulkLoading ? (
+                    <><span className="animate-spin text-sm">⏳</span> Generating...</>
+                  ) : (
+                    <>Generate Level-Wise Papers</>
+                  )}
                 </button>
               </div>
             </div>
+
+            {/* Inline level-wise progress */}
+            {levelBulkProgress && (
+              <div className="pt-2 border-t border-zinc-100 space-y-3">
+                <div className="flex justify-between text-xs font-mono text-zinc-500">
+                  <span>Progress: {levelBulkProgress.completed} / {levelBulkProgress.total} papers</span>
+                  <span className={`font-semibold ${levelBulkLoading ? 'text-blue-600' : 'text-green-600'}`}>
+                    {levelBulkLoading ? 'Generating...' : 'Done'}
+                  </span>
+                </div>
+                <div className="w-full bg-zinc-100 rounded-full h-2.5 overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-500 ${!levelBulkLoading ? 'bg-green-500' : 'bg-blue-500'}`}
+                    style={{ width: `${levelBulkProgress.total > 0 ? Math.round((levelBulkProgress.completed / levelBulkProgress.total) * 100) : 0}%` }} />
+                </div>
+                {levelBulkProgress.errors.length > 0 && (
+                  <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                    Errors: {levelBulkProgress.errors.join('; ')}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Results list */}
+            {levelBulkResults.length > 0 && !levelBulkLoading && (
+              <div className="pt-2 border-t border-zinc-100">
+                <h4 className="text-xs font-mono font-bold text-zinc-600 uppercase mb-2">Generated PDFs ({levelBulkResults.length})</h4>
+                <div className="space-y-2">
+                  {levelBulkResults.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg">
+                      <span className="text-xs font-medium text-zinc-800">{r.name}</span>
+                      <a
+                        href={r.pdfUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-mono font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        Open PDF
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -2084,6 +2163,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
   // Level-wise bulk generation state
   const [levelBulkProgress, setLevelBulkProgress] = useState<{ total: number; completed: number; errors: string[] } | null>(null);
   const [levelBulkLoading, setLevelBulkLoading] = useState(false);
+  const [levelBulkResults, setLevelBulkResults] = useState<{ name: string; pdfUrl: string }[]>([]);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [name, setName] = useState('');
@@ -2535,6 +2615,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                     }
                     setLevelBulkLoading(true);
                     setLevelBulkProgress({ total: placed.length, completed: 0, errors: [] });
+                    setLevelBulkResults([]);
                     for (const s of placed) {
                       try {
                         const res = await fetch('/api/worksheets/generate-level-pdf', {
@@ -2547,7 +2628,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                         });
                         const data = await res.json();
                         if (res.ok && data.pdfUrl) {
-                          window.open(data.pdfUrl, '_blank');
+                          setLevelBulkResults(prev => [...prev, { name: s.name, pdfUrl: data.pdfUrl }]);
                         } else {
                           setLevelBulkProgress(prev => prev ? { ...prev, errors: [...prev.errors, `${s.name}: ${data.error || 'Failed'}`] } : prev);
                         }
@@ -2588,6 +2669,28 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                     Errors: {levelBulkProgress.errors.join('; ')}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Results list */}
+            {levelBulkResults.length > 0 && !levelBulkLoading && (
+              <div className="pt-2 border-t border-zinc-100">
+                <h4 className="text-xs font-mono font-bold text-zinc-600 uppercase mb-2">Generated PDFs ({levelBulkResults.length})</h4>
+                <div className="space-y-2">
+                  {levelBulkResults.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg">
+                      <span className="text-xs font-medium text-zinc-800">{r.name}</span>
+                      <a
+                        href={r.pdfUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-mono font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        Open PDF
+                      </a>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
