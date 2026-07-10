@@ -168,6 +168,33 @@ export interface Announcement {
   createdAt: string;
 }
 
+export interface IcrBox {
+  text: string;
+  vertices: Array<{ x: number; y: number }>;
+}
+
+export interface IcrScan {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  paperId?: string;
+  fileName: string;
+  imagePath: string;
+  originalBytes: number;
+  optimizedBytes: number;
+  iterations: number;
+  durationMs: number;
+  endedAtHeight: number;
+  sizeCleared: boolean;
+  extractedText: string;
+  boxes: IcrBox[];
+  imageWidth: number;
+  imageHeight: number;
+  engine: 'groq' | 'gemini';
+  createdAt: string;
+  createdByEmail: string;
+}
+
 interface DatabaseSchema {
   users: User[];
   schools: School[];
@@ -180,6 +207,7 @@ interface DatabaseSchema {
   tickets: Ticket[];
   logbook: LogEntry[];
   announcements: Announcement[];
+  icrScans: IcrScan[];
 }
 
 export class DBStore {
@@ -244,6 +272,11 @@ export class DBStore {
 
       if (!this.data.announcements) {
         this.data.announcements = [];
+        modified = true;
+      }
+
+      if (!this.data.icrScans) {
+        this.data.icrScans = [];
         modified = true;
       }
       if (!this.data.tickets) {
@@ -382,6 +415,23 @@ export class DBStore {
     this.data!.announcements.unshift(ann);
     await this.save();
     return ann;
+  }
+
+  async addIcrScan(scan: IcrScan) {
+    this.data!.icrScans.unshift(scan);
+    await this.save();
+    return scan;
+  }
+
+  async getIcrScans(filter?: { studentId?: string; createdByEmail?: string }) {
+    let scans = this.data!.icrScans;
+    if (filter?.studentId) scans = scans.filter(s => s.studentId === filter.studentId);
+    if (filter?.createdByEmail) scans = scans.filter(s => s.createdByEmail === filter.createdByEmail);
+    return scans;
+  }
+
+  async getIcrScan(id: string) {
+    return this.data!.icrScans.find(s => s.id === id);
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -2182,7 +2232,8 @@ export class DBStore {
       evaluationReports,
       tickets,
       logbook,
-      announcements
+      announcements,
+      icrScans: []
     };
   }
 }

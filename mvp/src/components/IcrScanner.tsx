@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Student, ClassGroup, Question, EvaluationReport, User } from '../types';
+import { optimizeImageForOcr, formatBytes } from '../utils/imageOptimizer';
 
 interface IcrScannerProps {
   token: string;
@@ -24,6 +25,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const [isScanning, setIsScanning] = useState(false);
   const [scanPhase, setScanPhase] = useState<'idle' | 'feeding' | 'scanning' | 'done'>('idle');
   const [extractedAnswers, setExtractedAnswers] = useState<{ [questionId: string]: string }>({});
+  const [extractedText, setExtractedText] = useState('');
+  const [scanMeta, setScanMeta] = useState<{ scanId: string; imageUrl: string } | null>(null);
+  const [optMetrics, setOptMetrics] = useState<{ iterations: number; durationMs: number; endedAtHeight: number; originalBytes: number; optimizedBytes: number; sizeCleared: boolean } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [report, setReport] = useState<EvaluationReport | null>(null);
 
   useEffect(() => {
@@ -80,44 +85,88 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     }
   };
 
-  const startScan = () => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError('');
+    setExtractedText('');
+    setScanMeta(null);
+    setOptMetrics(null);
     setIsScanning(true);
     setScanPhase('feeding');
 
-    // Phase 1: Paper feeds into scanner (1s)
-    setTimeout(() => {
+    try {
+      const optimized = await optimizeImageForOcr(file);
+      setOptMetrics({
+        iterations: optimized.iterations,
+        durationMs: optimized.durationMs,
+        endedAtHeight: optimized.endedAtHeight,
+        originalBytes: optimized.originalBytes,
+        optimizedBytes: optimized.optimizedBytes,
+        sizeCleared: optimized.sizeCleared
+      });
       setScanPhase('scanning');
 
-      // Phase 2: Scanning bar moves (2s)
-      setTimeout(() => {
-        setScanPhase('done');
-        simulateIcrExtraction();
+      const formData = new FormData();
+      formData.append('ocrImage', optimized.blob, `ocr_${file.name.split('.')[0]}.jpg`);
+      formData.append('studentId', selectedStudent?.id || '');
+      formData.append('studentName', selectedStudent?.name || '');
+      formData.append('paperId', paper?.id || '');
+      formData.append('originalBytes', String(optimized.originalBytes));
+      formData.append('iterations', String(optimized.iterations));
+      formData.append('durationMs', String(optimized.durationMs));
+      formData.append('endedAtHeight', String(optimized.endedAtHeight));
+      formData.append('sizeCleared', String(optimized.sizeCleared));
 
-        // Phase 3: Done, move to verify
-        setTimeout(() => {
-          setIsScanning(false);
-          setStep('verify');
-        }, 800);
-      }, 2000);
-    }, 1000);
+      const res = await fetch('/api/icr/extract', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      setScanPhase('done');
+      const raw = await res.text();
+      let data: any = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        throw new Error(`Server returned non-JSON (status ${res.status}): ${raw.slice(0, 200)}`);
+      }
+      if (!res.ok) throw new Error((data && data.error) || `OCR request failed (status ${res.status})`);
+
+      const text: string = data.text || '';
+      const scanId: string = data.scanId || '';
+      const imageUrl: string = data.imageUrl || '';
+      setExtractedText(text);
+      setScanMeta({ scanId, imageUrl });
+      simulateIcrExtraction(text);
+
+      setTimeout(() => {
+        setIsScanning(false);
+        setStep('verify');
+      }, 800);
+    } catch (err: any) {
+      setError(err?.message || 'Image processing or OCR failed.');
+      setIsScanning(false);
+      setScanPhase('idle');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
-  const simulateIcrExtraction = () => {
+  const simulateIcrExtraction = (ocrText: string) => {
     if (!paper) return;
+    const lines = ocrText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     const extracted: { [key: string]: string } = {};
-    paper.questions.forEach((q) => {
-      if (q.answer_type === 'choice') {
-        const randomIdx = Math.floor(Math.random() * (q.choices?.length || 1));
-        extracted[q.question_id] = q.choices?.[randomIdx] || '';
-      } else {
-        const correct = q.answer;
-        const shouldCorrect = Math.random() > 0.3;
-        if (q.answer_type === 'number') {
-          extracted[q.question_id] = shouldCorrect ? correct : String(parseInt(correct, 10) + (Math.random() > 0.5 ? 1 : -1));
-        } else {
-          extracted[q.question_id] = shouldCorrect ? correct : correct.split('').reverse().join('');
-        }
+    paper.questions.forEach((q, idx) => {
+      const matched = lines.find(l => l.toLowerCase().startsWith(`q${idx + 1}`));
+      let value = '';
+      if (matched) {
+        const parts = matched.split(/[:.\-=]/);
+        value = (parts[1] || matched.replace(/^q\d+/i, '')).trim();
       }
+      extracted[q.question_id] = value;
     });
     setExtractedAnswers(extracted);
   };
@@ -160,6 +209,9 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const resetScanner = () => {
     setPaper(null);
     setExtractedAnswers({});
+    setExtractedText('');
+    setScanMeta(null);
+    setOptMetrics(null);
     setReport(null);
     setStep('select');
     setError('');
@@ -342,12 +394,24 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
           </div>
 
           <div className="text-center">
-            <button
-              onClick={startScan}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-3 px-10 rounded-xl transition-colors shadow-lg hover:shadow-emerald-200/50"
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="icr-scanner-file"
+            />
+            <label
+              htmlFor="icr-scanner-file"
+              className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-3 px-10 rounded-xl transition-colors shadow-lg hover:shadow-emerald-200/50 cursor-pointer"
             >
-              Start Scan
-            </button>
+              ???? Upload / Capture Answer Sheet
+            </label>
+            <p className="text-[10px] font-mono text-zinc-400 mt-2">
+              Optimized client-side ??? grayscale, contrast-boosted, size-capped via recursive loop.
+            </p>
           </div>
         </div>
       )}
@@ -419,6 +483,65 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
       {step === 'verify' && paper && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-4">
+            {optMetrics && (
+              <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="px-4 py-2.5 bg-zinc-100 border-b border-zinc-200">
+                  <h4 className="text-[10px] font-mono font-bold uppercase text-zinc-500 tracking-wider">
+                    Client Optimization
+                  </h4>
+                </div>
+                <ul className="divide-y divide-zinc-100 text-xs font-mono text-zinc-700">
+                  <li className="flex justify-between px-4 py-2"><span>Original</span><span>{formatBytes(optMetrics.originalBytes)}</span></li>
+                  <li className="flex justify-between px-4 py-2"><span>Optimized</span><span className="text-emerald-700 font-bold">{formatBytes(optMetrics.optimizedBytes)}</span></li>
+                  <li className="flex justify-between px-4 py-2"><span>Height floor</span><span>{optMetrics.endedAtHeight}px</span></li>
+                  <li className="flex justify-between px-4 py-2"><span>Loop iterations</span><span>{optMetrics.iterations}</span></li>
+                  <li className="flex justify-between px-4 py-2"><span>Canvas overhead</span><span>{optMetrics.durationMs} ms</span></li>
+                  <li className="flex justify-between px-4 py-2">
+                    <span>Size guard</span>
+                    <span className={optMetrics.sizeCleared ? 'text-emerald-700' : 'text-amber-700'}>
+                      {optMetrics.sizeCleared ? 'cleared ???' : 'at floor'}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            )}
+            {extractedText && (
+              <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="px-4 py-2.5 bg-zinc-100 border-b border-zinc-200 flex justify-between items-center">
+                  <h4 className="text-[10px] font-mono font-bold uppercase text-zinc-500 tracking-wider">OCR Output</h4>
+                  <span className="text-[10px] font-mono text-zinc-400">{extractedText.length} chars</span>
+                </div>
+                <pre className="p-4 text-xs font-mono text-zinc-800 whitespace-pre-wrap break-words max-h-72 overflow-auto leading-relaxed">{extractedText}</pre>
+              </div>
+            )}
+            {scanMeta && scanMeta.imageUrl && (
+              <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="px-4 py-2.5 bg-zinc-100 border-b border-zinc-200 flex justify-between items-center">
+                  <h4 className="text-[10px] font-mono font-bold uppercase text-zinc-500 tracking-wider">Processed Image</h4>
+                  {scanMeta.scanId && (
+                    <span className="text-[10px] font-mono text-zinc-400">scan {scanMeta.scanId.slice(0, 16)}???</span>
+                  )}
+                </div>
+                <div className="p-3 bg-zinc-900 flex justify-center">
+                  <img
+                    src={scanMeta.imageUrl}
+                    alt="Processed answer sheet"
+                    className="max-w-full h-auto rounded shadow-lg"
+                    style={{ maxHeight: '70vh' }}
+                  />
+                </div>
+                <div className="px-4 py-2 bg-zinc-50 border-t border-zinc-200 flex justify-between items-center text-[10px] font-mono text-zinc-500">
+                  <span>Stored in data/db.json ?? Re-checkable via /api/icr/scans/{scanMeta.scanId}</span>
+                  <a
+                    href={scanMeta.imageUrl}
+                    download
+                    className="text-emerald-700 hover:text-emerald-800 underline"
+                  >
+                    Download
+                  </a>
+                </div>
+              </div>
+            )}
             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center shadow-md">
