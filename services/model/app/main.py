@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import os
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -99,4 +100,7 @@ def serve(host: str = "127.0.0.1", port: int = 8090) -> None:
 
 
 if __name__ == "__main__":
-    serve()
+    serve(
+        host=os.getenv("SMARTFLN_MODEL_HOST", "127.0.0.1"),
+        port=int(os.getenv("SMARTFLN_MODEL_PORT", "8090")),
+    )

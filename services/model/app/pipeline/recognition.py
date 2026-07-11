@@ -8,6 +8,7 @@ import os
 import re
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 from PIL import Image
@@ -278,9 +279,11 @@ def _load_trocr():
     from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
     model_name = os.getenv("SMARTFLN_TROCR_MODEL", "microsoft/trocr-base-handwritten")
-    local_files_only = os.getenv("SMARTFLN_TROCR_LOCAL_FILES_ONLY", "true").strip().lower() != "false"
-    processor = TrOCRProcessor.from_pretrained(model_name, local_files_only=local_files_only)
-    model = VisionEncoderDecoderModel.from_pretrained(model_name, local_files_only=local_files_only)
+    local_files_only = os.getenv("SMARTFLN_TROCR_LOCAL_FILES_ONLY", "false").strip().lower() == "true"
+    cache_dir = Path(os.getenv("SMARTFLN_TROCR_CACHE_DIR", Path(__file__).resolve().parents[2] / "models" / "cache"))
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    processor = TrOCRProcessor.from_pretrained(model_name, local_files_only=local_files_only, cache_dir=str(cache_dir))
+    model = VisionEncoderDecoderModel.from_pretrained(model_name, local_files_only=local_files_only, cache_dir=str(cache_dir))
     model.eval()
 
     _TROCR_PROCESSOR = processor

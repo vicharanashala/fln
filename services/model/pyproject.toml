@@ -27,3 +27,7 @@ paddle = [
 [tool.smartfln]
 workspace = "services/model"
 status = "mvp-pipeline"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["data*", "models*", "notebooks*", "samples*", "templates*", "tests*"]

@@ -111,12 +111,32 @@ For free local pretrained handwriting OCR:
 ```text
 SMARTFLN_MODEL_OCR_PROVIDER=trocr
 SMARTFLN_TROCR_MODEL=microsoft/trocr-base-handwritten
-SMARTFLN_TROCR_LOCAL_FILES_ONLY=true
+SMARTFLN_TROCR_LOCAL_FILES_ONLY=false
 SMARTFLN_TROCR_BEAMS=2
 ```
 
 TrOCR is the preferred free/local MVP model for handwritten answer boxes. It works best on single-line crops, so SmartFLN crops each answer ROI down to the detected ink line before inference.
 The TrOCR path also removes pale answer-box ruling lines, uses beam search, and applies conservative type-specific cleanup for common primary-school OCR confusions.
+
+On Windows, install and cache the local TrOCR stack from this folder:
+
+```powershell
+.\scripts\install_trocr.ps1 -Python "C:\Path\To\python.exe"
+```
+
+Then run the model service:
+
+```powershell
+.\scripts\start_trocr_service.ps1
+```
+
+The MVP backend should be started with:
+
+```text
+SMARTFLN_MODEL_SERVICE_URL=http://127.0.0.1:8090
+```
+
+After the model is cached, `start_trocr_service.ps1` uses `SMARTFLN_TROCR_LOCAL_FILES_ONLY=true` so runtime OCR does not depend on downloading weights again.
 
 When no external OCR engine is configured, the MVP uses a local template-assisted visual checker. It detects ink inside each fixed answer ROI and returns the cropped answer image for review. It does not use the answer key as a prediction. Production scoring must use OpenAI, PaddleOCR/EasyOCR, or a trained HTR model to read real student handwriting.
 
