@@ -159,4 +159,27 @@ export interface Announcement {
   isUrgent: boolean;
   authorEmail: string;
   createdAt: string;
+  readByMe?: boolean;
+}
+
+export interface AnnouncementRead {
+  id: string;
+  announcementId: string;
+  userId: string;
+  userEmail: string;
+  readAt: string;
+}
+
+export interface AnnouncementReadStats {
+  announcementId: string;
+  totalRecipients: number;
+  readCount: number;
+  unreadCount: number;
+  readPercent: number;
+  firstViewedAt: string | null;
+  lastViewedAt: string | null;
+  byRole: Record<string, { read: number; total: number }>;
+  byDistrict: Record<string, { read: number; total: number }>;
+  readUsers: { id: string; name: string; email: string; role: string }[];
+  unreadUsers: { id: string; name: string; email: string; role: string }[];
 }

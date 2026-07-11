@@ -3602,6 +3602,13 @@
       "userId": "u6",
       "userEmail": "gps-mt-001.t01@fln.org",
       "readAt": "2026-07-11T06:35:25.975Z"
+    },
+    {
+      "id": "read_ann1_u6_amb",
+      "announcementId": "ann1",
+      "userId": "u6_amb",
+      "userEmail": "gps-amb-003.t01@fln.org",
+      "readAt": "2026-07-11T16:58:06.533Z"
     }
   ]
 }

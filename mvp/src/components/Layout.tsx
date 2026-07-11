@@ -146,7 +146,7 @@ export const Layout: React.FC<LayoutProps> = ({
     }
 
     // Common items at bottom
-    list.push({ name: 'Notifications', view: 'notifications', icon: Bell, badge: notifications.length > 0 ? String(notifications.length) : undefined });
+    list.push({ name: 'Notifications', view: 'notifications', icon: Bell, badge: notifications.filter(n => !n.readByMe).length > 0 ? String(notifications.filter(n => !n.readByMe).length) : undefined });
     list.push({ name: 'Settings', view: 'settings', icon: Settings });
 
     return list;
@@ -270,10 +270,10 @@ export const Layout: React.FC<LayoutProps> = ({
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative rounded-lg p-2 text-slate-505 hover:bg-slate-100 transition"
             >
-              <Bell className="h-4.5 w-4.5" />
-              {notifications.length > 0 && (
+            <Bell className="h-4.5 w-4.5" />
+              {notifications.filter(n => !n.readByMe).length > 0 && (
                 <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
-                  {notifications.length}
+                  {notifications.filter(n => !n.readByMe).length}
                 </span>
               )}
             </button>
@@ -296,10 +296,12 @@ export const Layout: React.FC<LayoutProps> = ({
                       <div
                         key={n.id}
                         onClick={() => onMarkNotificationRead(n.id)}
-                        className="p-3 rounded-lg border border-transparent transition hover:bg-slate-50 cursor-pointer"
+                        className={`p-3 rounded-lg border border-transparent transition hover:bg-slate-50 cursor-pointer ${n.readByMe ? 'opacity-60' : ''}`}
                       >
                         <div className="flex items-start justify-between">
-                          <span className="text-xs font-bold text-slate-900">{n.title}</span>
+                          <span className="text-xs font-bold text-slate-900">
+                            {n.readByMe ? '✓ ' : '● '}{n.title}
+                          </span>
                           <span className="text-[10px] text-slate-400">{new Date(n.createdAt).toLocaleDateString()}</span>
                         </div>
                         <p className="mt-1 text-[11px] text-slate-600 leading-relaxed">{n.message}</p>

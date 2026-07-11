@@ -96,12 +96,26 @@ export default function App() {
     triggerToast('Logged out of active session.');
   };
 
+const markAnnouncementAsRead = async (id: string) => {
+    try {
+      await fetch(`/api/announcements/${id}/read`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Failed to persist read receipt:', err);
+    }
+  };
+
   const handleMarkNotificationRead = (id: string) => {
-    setAnnouncements(prev => prev.filter(a => a.id !== id));
+    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, readByMe: true } : a));
+    markAnnouncementAsRead(id);
   };
 
   const handleClearNotifications = () => {
-    setAnnouncements([]);
+    const unread = announcements.filter(a => !a.readByMe);
+    setAnnouncements(prev => prev.map(a => ({ ...a, readByMe: true })));
+    unread.forEach(a => markAnnouncementAsRead(a.id));
   };
 
   const renderRoleWorkspace = () => {
