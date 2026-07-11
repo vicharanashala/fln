@@ -80,6 +80,37 @@ function loadImage(src: string) {
   });
 }
 
+function decodeCanvasQr(canvas: HTMLCanvasElement, crop?: { x: number; y: number; width: number; height: number; scale?: number }) {
+  const sourceContext = canvas.getContext('2d', { willReadFrequently: true });
+  if (!sourceContext) return null;
+
+  if (!crop) {
+    const imageData = sourceContext.getImageData(0, 0, canvas.width, canvas.height);
+    return jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+  }
+
+  const scale = crop.scale || 1;
+  const workCanvas = document.createElement('canvas');
+  workCanvas.width = Math.max(1, Math.round(crop.width * scale));
+  workCanvas.height = Math.max(1, Math.round(crop.height * scale));
+  const workContext = workCanvas.getContext('2d', { willReadFrequently: true });
+  if (!workContext) return null;
+  workContext.imageSmoothingEnabled = false;
+  workContext.drawImage(
+    canvas,
+    Math.max(0, crop.x),
+    Math.max(0, crop.y),
+    Math.min(canvas.width - crop.x, crop.width),
+    Math.min(canvas.height - crop.y, crop.height),
+    0,
+    0,
+    workCanvas.width,
+    workCanvas.height
+  );
+  const imageData = workContext.getImageData(0, 0, workCanvas.width, workCanvas.height);
+  return jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+}
+
 async function decodeQrFromImage(imageDataUrl: string) {
   const BarcodeDetectorCtor = (window as any).BarcodeDetector;
   const image = await loadImage(imageDataUrl);
@@ -100,10 +131,22 @@ async function decodeQrFromImage(imageDataUrl: string) {
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) throw new Error('Could not prepare the image for QR decoding.');
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-  const decoded = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
 
-  if (decoded?.data) return decoded.data;
+  const fullDecoded = decodeCanvasQr(canvas);
+  if (fullDecoded?.data) return fullDecoded.data;
+
+  const regions = [
+    { x: canvas.width * 0.58, y: 0, width: canvas.width * 0.42, height: canvas.height * 0.28, scale: 3 },
+    { x: canvas.width * 0.68, y: 0, width: canvas.width * 0.32, height: canvas.height * 0.22, scale: 4 },
+    { x: canvas.width * 0.72, y: canvas.height * 0.02, width: canvas.width * 0.24, height: canvas.height * 0.18, scale: 5 },
+    { x: canvas.width * 0.45, y: 0, width: canvas.width * 0.55, height: canvas.height * 0.35, scale: 3 }
+  ];
+
+  for (const region of regions) {
+    const decoded = decodeCanvasQr(canvas, region);
+    if (decoded?.data) return decoded.data;
+  }
+
   throw new Error('No QR code detected. Upload a clear image of the newly generated paper with the QR visible.');
 }
 

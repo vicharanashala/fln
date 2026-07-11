@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
-import { PDFDocument, PDFPage, rgb, StandardFonts } from 'pdf-lib';
+import QRCode from 'qrcode';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { Question } from './db';
 
 export interface ScanTemplateStudent {
@@ -32,196 +33,6 @@ function toTopLeftRect(pageHeight: number, x: number, y: number, width: number, 
     width: Math.round(width * 100) / 100,
     height: Math.round(height * 100) / 100
   };
-}
-
-function createGaloisTables() {
-  const exp = new Array(512).fill(0);
-  const log = new Array(256).fill(0);
-  let value = 1;
-  for (let index = 0; index < 255; index += 1) {
-    exp[index] = value;
-    log[value] = index;
-    value <<= 1;
-    if (value & 0x100) value ^= 0x11d;
-  }
-  for (let index = 255; index < 512; index += 1) exp[index] = exp[index - 255];
-  return { exp, log };
-}
-
-const GF = createGaloisTables();
-
-function gfMultiply(left: number, right: number) {
-  if (left === 0 || right === 0) return 0;
-  return GF.exp[GF.log[left] + GF.log[right]];
-}
-
-function polyMultiply(left: number[], right: number[]) {
-  const result = new Array(left.length + right.length - 1).fill(0);
-  left.forEach((leftValue, leftIndex) => {
-    right.forEach((rightValue, rightIndex) => {
-      result[leftIndex + rightIndex] ^= gfMultiply(leftValue, rightValue);
-    });
-  });
-  return result;
-}
-
-function rsGenerator(degree: number) {
-  let generator = [1];
-  for (let index = 0; index < degree; index += 1) {
-    generator = polyMultiply(generator, [1, GF.exp[index]]);
-  }
-  return generator;
-}
-
-function reedSolomon(data: number[], degree: number) {
-  const generator = rsGenerator(degree);
-  const remainder = new Array(degree).fill(0);
-  data.forEach(byte => {
-    const factor = byte ^ remainder.shift();
-    remainder.push(0);
-    for (let index = 0; index < degree; index += 1) {
-      remainder[index] ^= gfMultiply(generator[index + 1], factor);
-    }
-  });
-  return remainder;
-}
-
-function appendBits(bits: number[], value: number, length: number) {
-  for (let index = length - 1; index >= 0; index -= 1) bits.push((value >> index) & 1);
-}
-
-function encodeQrCodewords(text: string) {
-  const raw = Array.from(Buffer.from(text, 'utf-8'));
-  if (raw.length > 53) throw new Error('QR payload is too large for the MVP QR template.');
-
-  const dataCodewordCount = 55;
-  const bits: number[] = [];
-  appendBits(bits, 0b0100, 4);
-  appendBits(bits, raw.length, 8);
-  raw.forEach(byte => appendBits(bits, byte, 8));
-
-  const capacity = dataCodewordCount * 8;
-  appendBits(bits, 0, Math.min(4, capacity - bits.length));
-  while (bits.length % 8 !== 0) bits.push(0);
-
-  const data: number[] = [];
-  for (let index = 0; index < bits.length; index += 8) {
-    data.push(parseInt(bits.slice(index, index + 8).join(''), 2));
-  }
-  const pads = [0xec, 0x11];
-  let padIndex = 0;
-  while (data.length < dataCodewordCount) {
-    data.push(pads[padIndex % 2]);
-    padIndex += 1;
-  }
-  return [...data, ...reedSolomon(data, 15)];
-}
-
-function createQrMatrix(text: string) {
-  const size = 29;
-  const modules = Array.from({ length: size }, () => new Array(size).fill(false));
-  const reserved = Array.from({ length: size }, () => new Array(size).fill(false));
-
-  const setModule = (x: number, y: number, dark: boolean, lock = true) => {
-    if (x < 0 || y < 0 || x >= size || y >= size) return;
-    modules[y][x] = Boolean(dark);
-    if (lock) reserved[y][x] = true;
-  };
-
-  const finder = (x: number, y: number) => {
-    for (let dy = -1; dy < 8; dy += 1) {
-      for (let dx = -1; dx < 8; dx += 1) {
-        const dark = dx >= 0 && dx <= 6 && dy >= 0 && dy <= 6
-          && (dx === 0 || dx === 6 || dy === 0 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4));
-        setModule(x + dx, y + dy, dark, true);
-      }
-    }
-  };
-
-  const alignment = (cx: number, cy: number) => {
-    for (let dy = -2; dy <= 2; dy += 1) {
-      for (let dx = -2; dx <= 2; dx += 1) {
-        const distance = Math.max(Math.abs(dx), Math.abs(dy));
-        setModule(cx + dx, cy + dy, distance === 2 || distance === 0, true);
-      }
-    }
-  };
-
-  finder(0, 0);
-  finder(size - 7, 0);
-  finder(0, size - 7);
-  alignment(22, 22);
-
-  for (let index = 8; index < size - 8; index += 1) {
-    setModule(index, 6, index % 2 === 0, true);
-    setModule(6, index, index % 2 === 0, true);
-  }
-  setModule(8, size - 8, true, true);
-
-  for (let index = 0; index < 9; index += 1) {
-    if (index !== 6) {
-      setModule(8, index, false, true);
-      setModule(index, 8, false, true);
-    }
-  }
-  for (let index = 0; index < 8; index += 1) {
-    setModule(size - 1 - index, 8, false, true);
-    setModule(8, size - 1 - index, false, true);
-  }
-
-  const codewords = encodeQrCodewords(text);
-  const dataBits = codewords.flatMap(byte => Array.from({ length: 8 }, (_, index) => (byte >> (7 - index)) & 1));
-  let bitIndex = 0;
-  let upward = true;
-  let right = size - 1;
-  while (right > 0) {
-    if (right === 6) right -= 1;
-    for (let vertical = 0; vertical < size; vertical += 1) {
-      const y = upward ? size - 1 - vertical : vertical;
-      for (let column = 0; column < 2; column += 1) {
-        const x = right - column;
-        if (reserved[y][x]) continue;
-        let dark = bitIndex < dataBits.length ? dataBits[bitIndex] === 1 : false;
-        bitIndex += 1;
-        if ((x + y) % 2 === 0) dark = !dark;
-        setModule(x, y, dark, true);
-      }
-    }
-    upward = !upward;
-    right -= 2;
-  }
-
-  const qrFormat = 0x77c4;
-  const fmtBit = (index: number) => ((qrFormat >> index) & 1) === 1;
-  for (let index = 0; index < 6; index += 1) setModule(8, index, fmtBit(index), true);
-  setModule(8, 7, fmtBit(6), true);
-  setModule(8, 8, fmtBit(7), true);
-  setModule(7, 8, fmtBit(8), true);
-  for (let index = 9; index < 15; index += 1) setModule(14 - index, 8, fmtBit(index), true);
-  for (let index = 0; index < 8; index += 1) setModule(size - 1 - index, 8, fmtBit(index), true);
-  for (let index = 8; index < 15; index += 1) setModule(8, size - 15 + index, fmtBit(index), true);
-
-  return modules;
-}
-
-function drawQrCode(page: PDFPage, payload: string, x: number, y: number, size: number) {
-  const matrix = createQrMatrix(payload);
-  const quietZone = 4;
-  const totalCells = matrix.length + quietZone * 2;
-  const cell = size / totalCells;
-  page.drawRectangle({ x, y, width: size, height: size, color: rgb(1, 1, 1) });
-  matrix.forEach((row, rowIndex) => {
-    row.forEach((dark, colIndex) => {
-      if (!dark) return;
-      page.drawRectangle({
-        x: x + (colIndex + quietZone) * cell,
-        y: y + (matrix.length - rowIndex - 1 + quietZone) * cell,
-        width: cell,
-        height: cell,
-        color: rgb(0, 0, 0)
-      });
-    });
-  });
 }
 
 function wrapText(text: string, maxChars: number) {
@@ -307,7 +118,7 @@ export async function generateScanTemplatePaper({
   const allTemplates: any[] = [];
   let firstQuestions: Question[] = [];
 
-  students.forEach((student, studentIndex) => {
+  for (const [studentIndex, student] of students.entries()) {
     const studentId = student.studentId || `STUDENT_${studentIndex + 1}`;
     const paperId = `P${classNumber}-${Date.now().toString(36)}-${studentIndex + 1}`;
     const questions = buildQuestions(classNumber, studentId);
@@ -316,7 +127,7 @@ export async function generateScanTemplatePaper({
     const page = pdf.addPage([pageWidth, pageHeight]);
     const fiducialSize = 28;
     const fiducialInset = 12;
-    const qrSize = 78;
+    const qrSize = 92;
     const qrX = pageWidth - qrSize - 44;
     const qrY = pageHeight - qrSize - 34;
     const payload = `${studentId}|${paperId}|${testId}|1`;
@@ -335,7 +146,15 @@ export async function generateScanTemplatePaper({
     page.drawText(`Student: ${student.name}    Student ID: ${studentId}`, { x: 54, y: pageHeight - 72, size: 9, font, color: rgb(0, 0, 0) });
     page.drawText(`Paper ID: ${paperId}    Test ID: ${testId}    Page: 1`, { x: 54, y: pageHeight - 88, size: 8, font, color: rgb(0, 0, 0) });
 
-    drawQrCode(page, payload, qrX, qrY, qrSize);
+    const qrPng = await QRCode.toBuffer(payload, {
+      errorCorrectionLevel: 'M',
+      type: 'png',
+      margin: 4,
+      scale: 8,
+      color: { dark: '#000000', light: '#FFFFFF' }
+    });
+    const qrImage = await pdf.embedPng(qrPng);
+    page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
     page.drawText('QR SCHEMA: student|paper|test|page', { x: qrX, y: qrY - 9, size: 4.7, font: boldFont, color: rgb(0, 0, 0) });
     page.drawText(payload.slice(0, 34), { x: qrX, y: qrY - 17, size: 4.5, font, color: rgb(0, 0, 0) });
     page.drawText(payload.slice(34, 68), { x: qrX, y: qrY - 24, size: 4.5, font, color: rgb(0, 0, 0) });
@@ -345,7 +164,7 @@ export async function generateScanTemplatePaper({
     const boxWidth = pageWidth - 116;
     const boxHeight = 116;
     const gap = 18;
-    let topY = pageHeight - 140;
+    let topY = pageHeight - 154;
 
     questions.forEach((q, idx) => {
       const label = `Q${idx + 1}`;
@@ -434,7 +253,7 @@ export async function generateScanTemplatePaper({
     });
 
     if (onProgress) onProgress(studentIndex + 1, students.length);
-  });
+  }
 
   const fileName = `class${classNumber}_scan_template_${randomUUID()}.pdf`;
   const filePath = path.join(outputDir, fileName);
