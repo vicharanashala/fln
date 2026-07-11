@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
@@ -8,6 +9,8 @@ import { generateQuestionsForLevel } from './levelGenerator';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import multer from 'multer';
+import { GoogleGenAI, Type } from '@google/genai';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -18,7 +21,14 @@ async function startServer() {
   await dbStore.init();
 
   const app = express();
-  app.use(express.json());
+  app.use((req, res, next) => {
+    if (req.path === '/api/icr/extract') return next();
+    express.json()(req, res, next);
+  });
+  app.use((req, res, next) => {
+    if (req.path === '/api/icr/extract') return next();
+    express.urlencoded({ extended: true })(req, res, next);
+  });
 
   // Serve Puppeteer output PDF sheets statically
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
@@ -88,7 +98,7 @@ async function startServer() {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    // Verify Password Rules (§3.2 A-3)
+    // Verify Password Rules (┬º3.2 A-3)
     const hasUppercase = /[A-Z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
@@ -243,7 +253,7 @@ async function startServer() {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
 
-    // Verify Password complexity (§3.2 A-3)
+    // Verify Password complexity (┬º3.2 A-3)
     const hasUppercase = /[A-Z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
@@ -311,7 +321,7 @@ async function startServer() {
 
     const students = await dbStore.getStudents();
     
-    // Mask Aadhar for non-Superadmins (§13.2 R-6)
+    // Mask Aadhar for non-Superadmins (┬º13.2 R-6)
     const maskedStudents = students.map(s => {
       if (user.role !== UserRole.SUPERADMIN) {
         return { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) };
@@ -342,7 +352,7 @@ async function startServer() {
       return res.status(400).json({ error: 'Missing required student details.' });
     }
 
-    // Enforce Aadhar formatting & masking (§13.2 R-6)
+    // Enforce Aadhar formatting & masking (┬º13.2 R-6)
     const rawAadhar = aadharNumber.replace(/[^0-9]/g, '');
     if (rawAadhar.length < 4) {
       return res.status(400).json({ error: 'Invalid identity document.' });
@@ -706,26 +716,26 @@ async function startServer() {
     const school = schools.find(s => s.id === classObj.schoolId);
     if (!school) return res.status(404).json({ error: 'School not found.' });
 
-    // Check if Teacher is banned due to Delayed Attempts (§6.5)
+    // Check if Teacher is banned due to Delayed Attempts (┬º6.5)
     if (user.role === UserRole.TEACHER && user.isBanned) {
       return res.status(403).json({ error: 'Generation Denied: Teacher account is suspended/banned due to 3 Delayed Attempts within the academic year.' });
     }
 
-    // Check if School is locked out entirely (§6.5)
+    // Check if School is locked out entirely (┬º6.5)
     if (school.isAccessLocked) {
       if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
         return res.status(403).json({ error: 'School Access Suspended: All teachers have defaulted. Management is reassigned to Block Admin / Volunteer.' });
       }
     }
 
-    // Check for Generation Lock (§13.2 R-11)
+    // Check for Generation Lock (┬º13.2 R-11)
     const existingWorksheets = await dbStore.getWorksheets();
     const conflicting = existingWorksheets.find(w => w.classId === classId && w.cycle === cycle);
 
     if (conflicting && conflicting.locks.locked) {
       // Enforce pairwise lockouts
       if (school.strength === 'high') {
-        // Teacher ↔ School pair
+        // Teacher Γåö School pair
         if (conflicting.locks.lockedByRole !== user.role) {
           return res.status(423).json({
             error: `Lock Active: Generation has already been triggered by ${conflicting.locks.lockedByRole} (${conflicting.locks.lockedByEmail}). Parallel generation is locked.`,
@@ -733,7 +743,7 @@ async function startServer() {
           });
         }
       } else {
-        // Volunteer ↔ Block Admin pair
+        // Volunteer Γåö Block Admin pair
         if (conflicting.locks.lockedByRole !== user.role) {
           return res.status(423).json({
             error: `Lock Active: Generation has already been triggered by ${conflicting.locks.lockedByRole} (${conflicting.locks.lockedByEmail}). Parallel generation is locked.`,
@@ -767,7 +777,7 @@ async function startServer() {
       });
     }
 
-    // Setup strict Timing Windows (§1.4 Sequential timings)
+    // Setup strict Timing Windows (┬º1.4 Sequential timings)
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
     
@@ -938,7 +948,7 @@ async function startServer() {
     const student = students.find(s => s.id === studentId);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
 
-    // Handle Timings & Delayed Attempt Escalation (§6.5)
+    // Handle Timings & Delayed Attempt Escalation (┬º6.5)
     const now = new Date();
     const submissionDeadline = new Date(ws.timing.submissionWindowEnd);
     const isDelayed = now.getTime() > submissionDeadline.getTime();
@@ -1023,7 +1033,7 @@ async function startServer() {
       }
       await dbStore.updateWorksheet(ws.id, { delayLogs: ws.delayLogs });
 
-      // Increment Teacher's delay count & enforce Defaulter status (§6.5)
+      // Increment Teacher's delay count & enforce Defaulter status (┬º6.5)
       const users = await dbStore.getUsers();
       const teacherUser = users.find(u => u.email.toLowerCase() === user.email.toLowerCase());
       if (teacherUser && teacherUser.role === UserRole.TEACHER) {
@@ -1081,7 +1091,7 @@ async function startServer() {
     res.json(filtered);
   });
 
-  // Roll up Analytics for Dashboards scoped by Role (§14)
+  // Roll up Analytics for Dashboards scoped by Role (┬º14)
   app.get('/api/analytics', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -1201,7 +1211,7 @@ async function startServer() {
     res.json(users);
   });
 
-  // Revive Banned Teacher (§6.5)
+  // Revive Banned Teacher (┬º6.5)
   app.post('/api/admin/revive-teacher', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -1247,7 +1257,7 @@ async function startServer() {
     res.json({ success: true, message: 'Teacher successfully revived.' });
   });
 
-  // Restore School Access (§6.5)
+  // Restore School Access (┬º6.5)
   app.post('/api/admin/restore-school', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -1292,9 +1302,9 @@ async function startServer() {
     res.json({ success: true, message: 'School access manually restored.' });
   });
 
-  // ══════════════════════════════════════════
+  // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
   // DATABASE RESET (Development convenience)
-  // ══════════════════════════════════════════
+  // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
   app.post('/api/reset', async (req, res) => {
     await dbStore.reset();
     res.json({ success: true, message: 'Database reset to fresh seed data.' });
@@ -1306,9 +1316,9 @@ async function startServer() {
     res.json({ success: true, message: 'Database reset to fresh seed data. Navigate back to / to continue.' });
   });
 
-  // ══════════════════════════════════════════
+  // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
   // BULK DIAGNOSTIC GENERATION ENDPOINTS
-  // ══════════════════════════════════════════
+  // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
 
   interface BulkDiagnosticJob {
     jobId: string;
@@ -1557,6 +1567,282 @@ async function startServer() {
     }
   });
 
+  // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  // ICR EXTRACTION PIPELINE
+  // ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  // Receives an optimized JPEG (already resized/filtered on the client),
+  // sends it to the configured OCR engine, and returns both raw
+  // reading-order text + bounding boxes for each detected region.
+  //
+  // Engine is controlled by OCR_ENGINE env var:
+  //   - "groq"  ΓåÆ Groq Cloud Vision (llama-4-scout) [LOCAL DEV ONLY]
+  //   - "gemini" (default) ΓåÆ Google Gemini Vision [PRODUCTION / GITHUB]
+  const icrUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 8 * 1024 * 1024 }
+  });
+
+  const GROQ_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+  const GEMINI_MODEL = 'gemini-2.5-flash';
+
+  async function callGroqOcr(base64: string, mimeType: string, prompt: string, apiKey: string): Promise<string> {
+    const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } }
+          ]
+        }],
+        temperature: 0.1
+      })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(`${data.error.message} (Code: ${data.error.code})`);
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+      return data.choices[0].message.content || '';
+    }
+    return '';
+  }
+
+  async function callGroqLayout(base64: string, mimeType: string, apiKey: string): Promise<{ image_width: number; image_height: number; regions: any[] }> {
+    const prompt = `Detect every visible text region in this image. Return ONLY a JSON object of the form:
+{
+  "image_width": <approx pixels>,
+  "image_height": <approx pixels>,
+  "regions": [
+    { "text": "<exact text in region>", "box_2d": [ymin, xmin, ymax, xmax] }
+  ]
+}
+box_2d is normalized to 0-1000 percentage of image dimensions (top-left origin).
+Read top-to-bottom, left-to-right. Do not invent text. Return ONLY valid JSON.`;
+    const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } }
+          ]
+        }],
+        temperature: 0.1,
+        response_format: { type: 'json_object' }
+      })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(`${data.error.message} (Code: ${data.error.code})`);
+    const text = data.choices?.[0]?.message?.content || '{}';
+    return JSON.parse(text);
+  }
+
+  app.post('/api/icr/extract', icrUpload.single('ocrImage'), async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!req.file) return res.status(400).json({ error: 'No image file uploaded.' });
+
+    const settings = await dbStore.getSettings();
+    const engine = (process.env.OCR_ENGINE || 'gemini').toLowerCase();
+    const base64 = req.file.buffer.toString('base64');
+    const mimeType = req.file.mimetype || 'image/jpeg';
+
+    try {
+      const serverStart = performance.now();
+      const textPrompt = `You are an OCR/ICR engine. The image is a handwritten answer sheet or any text-bearing document.
+
+Return the full extracted text preserving the natural top-to-bottom, left-to-right reading order. Do not summarize. If a region is illegible, write [unclear] in its place. Keep line breaks where they appear.`;
+
+      let extractedText = '';
+      let boxes: Array<{ text: string; vertices: Array<{ x: number; y: number }> }> = [];
+      let imageWidth = 0;
+      let imageHeight = 0;
+
+      if (engine === 'groq') {
+        // ΓöÇΓöÇΓöÇΓöÇΓöÇ GROQ ENGINE (LOCAL DEV ONLY) ΓöÇΓöÇΓöÇΓöÇΓöÇ
+        const groqKey = process.env.GROQ_API_KEY;
+        if (!groqKey) {
+          return res.status(500).json({ error: 'GROQ_API_KEY is not configured on the server.' });
+        }
+        extractedText = (await callGroqOcr(base64, mimeType, textPrompt, groqKey)).trim();
+        try {
+          const layout = await callGroqLayout(base64, mimeType, groqKey);
+          imageWidth = Number(layout.image_width) || 0;
+          imageHeight = Number(layout.image_height) || 0;
+          if (Array.isArray(layout.regions)) {
+            boxes = layout.regions
+              .filter((r: any) => r && Array.isArray(r.box_2d) && r.box_2d.length === 4)
+              .map((r: any) => {
+                const [ymin, xmin, ymax, xmax] = r.box_2d.map((v: number) => Number(v));
+                return {
+                  text: String(r.text || ''),
+                  vertices: [
+                    { x: xmin, y: ymin },
+                    { x: xmax, y: ymin },
+                    { x: xmax, y: ymax },
+                    { x: xmin, y: ymax }
+                  ]
+                };
+              });
+          }
+        } catch (layoutErr: any) {
+          console.warn('ICR layout detection (groq) failed, returning text only:', layoutErr?.message || layoutErr);
+        }
+      } else {
+        // ΓöÇΓöÇΓöÇΓöÇΓöÇ GEMINI ENGINE (PRODUCTION / GITHUB DEFAULT) ΓöÇΓöÇΓöÇΓöÇΓöÇ
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+          return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
+        }
+        const ai = new GoogleGenAI({ apiKey });
+
+        const textResponse = await ai.models.generateContent({
+          model: GEMINI_MODEL,
+          contents: {
+            parts: [
+              { text: textPrompt },
+              { inlineData: { mimeType, data: base64 } }
+            ]
+          },
+          config: { temperature: 0 }
+        });
+        extractedText = (textResponse.text || '').trim();
+
+        try {
+          const layoutPrompt = `Detect every visible text region in this image. For each region, return:
+- "text": the exact text in that region (preserve original characters; if uncertain, use your best read)
+- "box_2d": the bounding box in normalized coordinates as [ymin, xmin, ymax, xmax] where each value is between 0 and 1000 representing percentage of image dimensions (top-left origin). y=0 is the top, y=1000 is the bottom; x=0 is the left, x=1000 is the right.
+Read top-to-bottom, left-to-right within each line. Do not invent text. Return ONLY valid JSON.`;
+
+          const layoutResponse = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: {
+              parts: [
+                { text: layoutPrompt },
+                { inlineData: { mimeType, data: base64 } }
+              ]
+            },
+            config: {
+              responseMimeType: 'application/json',
+              temperature: 0,
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  image_width: { type: Type.INTEGER },
+                  image_height: { type: Type.INTEGER },
+                  regions: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        text: { type: Type.STRING },
+                        box_2d: { type: Type.ARRAY, items: { type: Type.NUMBER } }
+                      },
+                      required: ["text", "box_2d"]
+                    }
+                  }
+                },
+                required: ["regions"]
+              }
+            }
+          });
+
+          const layoutJson = JSON.parse(layoutResponse.text || '{}');
+          imageWidth = Number(layoutJson.image_width) || 0;
+          imageHeight = Number(layoutJson.image_height) || 0;
+          if (Array.isArray(layoutJson.regions)) {
+            boxes = layoutJson.regions
+              .filter((r: any) => r && Array.isArray(r.box_2d) && r.box_2d.length === 4)
+              .map((r: any) => {
+                const [ymin, xmin, ymax, xmax] = r.box_2d.map((v: number) => Number(v));
+                return {
+                  text: String(r.text || ''),
+                  vertices: [
+                    { x: xmin, y: ymin },
+                    { x: xmax, y: ymin },
+                    { x: xmax, y: ymax },
+                    { x: xmin, y: ymax }
+                  ]
+                };
+              });
+          }
+        } catch (layoutErr: any) {
+          console.warn('ICR layout detection (gemini) failed, returning text only:', layoutErr?.message || layoutErr);
+        }
+      }
+
+      // ΓöÇΓöÇΓöÇΓöÇΓöÇ Persist optimized image + scan metadata ΓöÇΓöÇΓöÇΓöÇΓöÇ
+      const meta = req.body && typeof req.body === 'object' ? req.body : {};
+
+      res.json({
+        success: true,
+        engine,
+        text: extractedText,
+        boxes,
+        imageWidth,
+        imageHeight,
+        optimization: {
+          enabled: settings.icrOptimizationEnabled !== false,
+          originalBytes: Number(meta.originalBytes) || 0,
+          optimizedBytes: req.file.buffer.length,
+          iterations: Number(meta.iterations) || 0,
+          durationMs: Number(meta.durationMs) || 0,
+          endedAtHeight: Number(meta.endedAtHeight) || 0,
+          sizeCleared: meta.sizeCleared === true || meta.sizeCleared === 'true'
+        },
+        timing: {
+          clientOptimizeMs: Number(meta.durationMs) || 0,
+          serverOcrMs: Math.round(performance.now() - serverStart)
+        },
+        meta: {
+          fileBytes: req.file.size,
+          mimeType: req.file.mimetype,
+          originalName: req.file.originalname
+        }
+      });
+    } catch (err: any) {
+      console.error('ICR extract failed:', err);
+      res.status(500).json({ error: err?.message || 'ICR extraction failed.' });
+    }
+  });
+
+  // ───── App settings (superadmin only) ─────
+  app.get('/api/settings', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const settings = await dbStore.getSettings();
+    res.json(settings);
+  });
+
+  app.post('/api/settings', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.SUPERADMIN) {
+      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
+    }
+    const { icrOptimizationEnabled } = req.body || {};
+    if (typeof icrOptimizationEnabled !== 'boolean') {
+      return res.status(400).json({ error: 'icrOptimizationEnabled must be a boolean.' });
+    }
+    const updated = await dbStore.updateSettings(
+      { icrOptimizationEnabled },
+      user.email
+    );
+    res.json(updated);
+  });
+
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -1578,3 +1864,4 @@ async function startServer() {
 }
 
 startServer();
+

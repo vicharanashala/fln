@@ -1417,39 +1417,143 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'system_settings') {
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <PageHeader title="System Configuration" desc="Core platform settings and infrastructure" icon={<Settings className="h-5 w-5" />} />
-          <div className="space-y-3">{[
-            { label: 'Platform Name', value: 'National FLN Assessment Portal' },
-            { label: 'Version', value: 'v2.4.1 (Build 2026.07)' },
-            { label: 'Environment', value: 'Production' },
-            { label: 'Database', value: 'PostgreSQL 15.2 / Redis 7.0' },
-            { label: 'API Rate Limit', value: '1000 req/min per user' },
-            { label: 'Session Timeout', value: '120 minutes' },
-            { label: 'Auth Provider', value: 'Email + Password (SLA §3.2)' },
-            { label: 'AI Model', value: 'Gemini 1.5 Pro (Fine-tuned FLN)' },
-          ].map(c => (
-            <div key={c.label} className="flex justify-between text-sm py-2 border-b border-slate-50"><span className="text-slate-500">{c.label}</span><span className="font-medium text-slate-800 font-mono text-xs">{c.value}</span></div>
-          ))}</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <PageHeader title="System Health" desc="Recent operational logs and status" icon={<Database className="h-5 w-5" />} />
-          <div className="space-y-2">{SYSTEM_LOGS_MOCK.map(l => (
-            <div key={l.action} className="flex items-center gap-3 p-2 border border-slate-100 rounded text-xs">
-              <span className={`w-2 h-2 rounded-full shrink-0 ${l.status === 'Success' ? 'bg-green-500' : l.status === 'Warning' ? 'bg-amber-500' : 'bg-red-500'}`} />
-              <span className="font-medium w-32">{l.action}</span>
-              <span className="text-slate-400 flex-1">{l.details}</span>
-              <span className="text-slate-400 font-mono">{l.timestamp}</span>
-            </div>
-          ))}</div>
-          <button className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 mt-2"><RefreshCw className="w-3 h-3" /> Refresh Status</button>
-        </div>
-      </div>
-    );
+    return <SystemSettingsPanel token={token} />;
   }
 
   // Fallback for any unmatched panel — renders the roles workspace (dashboard) as the content
   return null;
+};
+
+interface SystemSettingsPanelProps {
+  token: string;
+}
+
+const SystemSettingsPanel: React.FC<SystemSettingsPanelProps> = ({ token }) => {
+  const [icrOptimizationEnabled, setIcrOptimizationEnabled] = useState<boolean>(true);
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<string>('');
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/settings', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setIcrOptimizationEnabled(data.icrOptimizationEnabled !== false);
+        setUpdatedAt(data.updatedAt || '');
+      } catch {
+        /* default to enabled */
+      }
+    };
+    load();
+  }, [token]);
+
+  const togglePipeline = async (next: boolean) => {
+    setSettingsBusy(true);
+    setIcrOptimizationEnabled(next);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ icrOptimizationEnabled: next })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Update failed');
+      setIcrOptimizationEnabled(data.icrOptimizationEnabled !== false);
+      setUpdatedAt(data.updatedAt || '');
+    } catch (err: any) {
+      setIcrOptimizationEnabled(!next);
+    } finally {
+      setSettingsBusy(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <PageHeader title="System Configuration" desc="Core platform settings and infrastructure" icon={<Settings className="h-5 w-5" />} />
+        <div className="space-y-3">{[
+          { label: 'Platform Name', value: 'National FLN Assessment Portal' },
+          { label: 'Version', value: 'v2.4.1 (Build 2026.07)' },
+          { label: 'Environment', value: 'Production' },
+          { label: 'Database', value: 'PostgreSQL 15.2 / Redis 7.0' },
+          { label: 'API Rate Limit', value: '1000 req/min per user' },
+          { label: 'Session Timeout', value: '120 minutes' },
+          { label: 'Auth Provider', value: 'Email + Password (SLA §3.2)' },
+          { label: 'AI Model', value: 'Gemini 1.5 Pro (Fine-tuned FLN)' },
+        ].map(c => (
+          <div key={c.label} className="flex justify-between text-sm py-2 border-b border-slate-50"><span className="text-slate-500">{c.label}</span><span className="font-medium text-slate-800 font-mono text-xs">{c.value}</span></div>
+        ))}</div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <PageHeader title="ICR Image Optimization Pipeline" desc="Run client-side image pre-processing before OCR" icon={<Database className="h-5 w-5" />} />
+        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <div>
+            <div className="text-xs text-slate-500">
+              When enabled, the user's browser resizes the image (1800px), applies grayscale + contrast filters,
+              and compresses to JPEG q=0.82 before sending to OCR. Reduces upload bytes and server load.
+            </div>
+            {updatedAt && (
+              <div className="text-[10px] font-mono text-slate-400 mt-2">Last updated: {new Date(updatedAt).toLocaleString()}</div>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={settingsBusy}
+            onClick={() => togglePipeline(!icrOptimizationEnabled)}
+            aria-pressed={icrOptimizationEnabled}
+            style={{
+              position: 'relative',
+              display: 'inline-block',
+              backgroundColor: icrOptimizationEnabled ? '#059669' : '#cbd5e1',
+              transition: 'background-color 200ms ease',
+              width: '44px',
+              height: '24px',
+              flexShrink: 0,
+              borderRadius: '9999px'
+            }}
+            className={`focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${settingsBusy ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '0',
+                width: '20px',
+                height: '20px',
+                backgroundColor: '#ffffff',
+                borderRadius: '9999px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                transform: `translateY(-50%) translateX(${icrOptimizationEnabled ? '22px' : '2px'})`,
+                transition: 'transform 200ms ease'
+              }}
+            />
+          </button>
+        </div>
+        <div className="text-[10px] text-slate-400 leading-relaxed border-t border-slate-100 pt-3">
+          Toggle takes effect on the next ICR upload. When disabled, the raw camera photo is sent
+          directly to the OCR engine — useful for debugging but increases server bandwidth.
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4 lg:col-span-2">
+        <PageHeader title="System Health" desc="Recent operational logs and status" icon={<Database className="h-5 w-5" />} />
+        <div className="space-y-2">{SYSTEM_LOGS_MOCK.map(l => (
+          <div key={l.action} className="flex items-center gap-3 p-2 border border-slate-100 rounded text-xs">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${l.status === 'Success' ? 'bg-green-500' : l.status === 'Warning' ? 'bg-amber-500' : 'bg-red-500'}`} />
+            <span className="font-medium w-32">{l.action}</span>
+            <span className="text-slate-400 flex-1">{l.details}</span>
+            <span className="text-slate-400 font-mono">{l.timestamp}</span>
+          </div>
+        ))}</div>
+        <button className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 mt-2"><RefreshCw className="w-3 h-3" /> Refresh Status</button>
+      </div>
+    </div>
+  );
 };

@@ -173,15 +173,22 @@ export function setupFetchInterceptor() {
     init?: RequestInit
   ): Promise<Response> {
     const url = typeof input === 'string' ? input : (input as Request).url;
-    
+
     // Only intercept /api/ routes
     if (!url.includes('/api/')) {
       return originalFetch(input, init);
     }
 
+    // Pass through multipart/form-data uploads (ICR file uploads) ??? body
+    // is a FormData object that JSON.parse cannot handle. The real Express
+    // server has the multer route that handles these.
+    if (init?.body instanceof FormData) {
+      return originalFetch(input, init);
+    }
+
     const method = (init?.method || 'GET').toUpperCase();
     const headers = init?.headers;
-    const bodyData = init?.body ? JSON.parse(init.body as string) : {};
+    const bodyData = init?.body && typeof init.body === 'string' ? JSON.parse(init.body) : {};
 
     const db = loadMockDB();
     const currentUser = getAuthUser(headers, db);

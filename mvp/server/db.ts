@@ -168,6 +168,12 @@ export interface Announcement {
   createdAt: string;
 }
 
+export interface Settings {
+  icrOptimizationEnabled: boolean;
+  updatedAt: string;
+  updatedByEmail: string;
+}
+
 interface DatabaseSchema {
   users: User[];
   schools: School[];
@@ -180,6 +186,7 @@ interface DatabaseSchema {
   tickets: Ticket[];
   logbook: LogEntry[];
   announcements: Announcement[];
+  settings: Settings;
 }
 
 export class DBStore {
@@ -244,6 +251,15 @@ export class DBStore {
 
       if (!this.data.announcements) {
         this.data.announcements = [];
+        modified = true;
+      }
+
+      if (!this.data.settings) {
+        this.data.settings = {
+          icrOptimizationEnabled: true,
+          updatedAt: new Date().toISOString(),
+          updatedByEmail: 'system'
+        };
         modified = true;
       }
       if (!this.data.tickets) {
@@ -382,6 +398,30 @@ export class DBStore {
     this.data!.announcements.unshift(ann);
     await this.save();
     return ann;
+  }
+
+  async getSettings(): Promise<Settings> {
+    if (!this.data!.settings) {
+      this.data!.settings = {
+        icrOptimizationEnabled: true,
+        updatedAt: new Date().toISOString(),
+        updatedByEmail: 'system'
+      };
+      await this.save();
+    }
+    return this.data!.settings;
+  }
+
+  async updateSettings(updates: Partial<Settings>, updatedByEmail: string): Promise<Settings> {
+    const current = await this.getSettings();
+    this.data!.settings = {
+      ...current,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+      updatedByEmail
+    };
+    await this.save();
+    return this.data!.settings;
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -2182,7 +2222,12 @@ export class DBStore {
       evaluationReports,
       tickets,
       logbook,
-      announcements
+      announcements,
+      settings: {
+        icrOptimizationEnabled: true,
+        updatedAt: new Date().toISOString(),
+        updatedByEmail: 'system'
+      }
     };
   }
 }
