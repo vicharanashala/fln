@@ -424,15 +424,17 @@ async function startServer() {
 
     let questions: Question[];
     let pdfUrl = '';
+    let templateUrl = '';
 
     try {
       // Generate the official PDF worksheet paper via Puppeteer
       const result = await generateDiagnosticPaper({
         classNumber,
-        students: [{ name: student.name }]
+        students: [{ name: student.name, studentId: student.id }]
       });
       questions = result.questions;
       pdfUrl = `/output/${result.fileName}`;
+      templateUrl = result.templateUrl || '';
     } catch (err: any) {
       console.error("Puppeteer paper generation failed, using level generator mock:", err);
       const startLevel = (classNumber - 1) * 12 + 1;
@@ -457,7 +459,8 @@ async function startServer() {
         studentId: student.id,
         studentName: student.name,
         questions,
-        pdfUrl
+        pdfUrl,
+        templateUrl
       }
     });
   });
@@ -485,6 +488,7 @@ async function startServer() {
       res.json({
         success: true,
         pdfUrl,
+        templateUrl: result.templateUrl || '',
         totalSets: result.totalSets,
         studentOrder: result.studentOrder
       });
@@ -635,7 +639,7 @@ async function startServer() {
     });
 
     // Create a special Evaluation Report with dynamic mock concept mastery
-    const conceptMastery: { [key: string]: string } = {
+    const conceptMastery: EvaluationReport['conceptMastery'] = {
       'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
       'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
       'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
@@ -1320,6 +1324,7 @@ async function startServer() {
     fileName: string;
     filePath: string;
     pdfUrl: string;
+    templateUrl: string;
     error: string;
     startedAt: string;
     completedAt: string;
@@ -1387,6 +1392,7 @@ async function startServer() {
       fileName: '',
       filePath: '',
       pdfUrl: '',
+      templateUrl: '',
       error: '',
       startedAt: new Date().toISOString(),
       completedAt: ''
@@ -1399,7 +1405,7 @@ async function startServer() {
       try {
         const result = await generateDiagnosticPaper({
           classNumber: job.classNumber,
-          students: paperStudents.map(s => ({ name: s.name })),
+          students: paperStudents.map(s => ({ name: s.name, studentId: s.studentId })),
           onProgress: (setNum, total) => {
             job.completed = setNum;
           }
@@ -1408,6 +1414,7 @@ async function startServer() {
         job.fileName = result.fileName;
         job.filePath = result.filePath;
         job.pdfUrl = `/output/${result.fileName}`;
+        job.templateUrl = result.templateUrl || '';
         job.status = 'completed';
         job.completedAt = new Date().toISOString();
         job.completed = job.totalSets;
@@ -1453,6 +1460,7 @@ async function startServer() {
       completed: job.completed,
       status: job.status,
       pdfUrl: job.pdfUrl,
+      templateUrl: job.templateUrl,
       error: job.error,
       downloadUrl: job.status === 'completed' ? `/api/diagnostic/bulk/${job.jobId}/download` : null
     });
@@ -1512,15 +1520,17 @@ async function startServer() {
 
       let questions: Question[];
       let pdfUrl = '';
+      let templateUrl = '';
       let useMock = false;
 
       try {
         const result = await generateDiagnosticPaper({
           classNumber,
-          students: [{ name: student.name }]
+          students: [{ name: student.name, studentId: student.id }]
         });
         questions = result.questions;
         pdfUrl = `/output/${result.fileName}`;
+        templateUrl = result.templateUrl || '';
       } catch (err: any) {
         console.error("Puppeteer paper generation failed, using generateQuestionsForLevel mock:", err);
         useMock = true;
@@ -1549,7 +1559,8 @@ async function startServer() {
           studentId: student.id,
           studentName: student.name,
           questions,
-          pdfUrl
+          pdfUrl,
+          templateUrl
         }
       });
     } catch (err: any) {

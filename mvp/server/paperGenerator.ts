@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { Question } from './db';
 import { renderBatch } from './worksheetRenderer';
 import { mergeAndStamp } from './pdfMerge';
+import { generateScanTemplatePaper, ScanTemplateStudent } from './scanTemplatePaper';
 
 // Resolve __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -22,6 +23,9 @@ export interface PaperGenerationResult {
   totalSets: number;
   studentOrder: Array<{ setNum: number; studentName: string }>;
   questions: Question[];
+  templateFileName?: string;
+  templatePath?: string;
+  templateUrl?: string;
 }
 
 export interface WorksheetPdfResult {
@@ -40,12 +44,19 @@ export async function generateDiagnosticPaper({
   onProgress
 }: {
   classNumber: number;
-  students: Array<{ name: string }>;
+  students: ScanTemplateStudent[];
   onProgress?: (setNum: number, total: number) => void;
 }): Promise<PaperGenerationResult> {
   if (!Array.isArray(students) || students.length === 0) {
     throw new Error("students must be a non-empty array.");
   }
+
+  return generateScanTemplatePaper({
+    classNumber,
+    students,
+    outputDir: OUTPUT_DIR,
+    onProgress
+  });
 
   const classLevel = `CLASS_${classNumber}`;
   const results = await renderBatch(classLevel, students.length, onProgress);
@@ -137,7 +148,7 @@ export async function generateLevelWorksheet({
   try {
     const page = await browser.newPage();
     const htmlPath = path.join(process.cwd(), "public", "worksheets", "levels_main.html");
-    await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0', timeout: 30000 });
+    await page.goto(`file://${htmlPath}`, { waitUntil: 'load', timeout: 30000 });
 
     const data = await page.evaluate(({ levelId, subIdx }) => {
       // @ts-ignore
@@ -230,7 +241,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#fff;color:var(
       </div>
     </body></html>`;
 
-    await printPage.setContent(wrappedHtml, { waitUntil: 'networkidle0', timeout: 15000 });
+    await printPage.setContent(wrappedHtml, { waitUntil: 'load', timeout: 15000 });
     await printPage.setViewport({ width: 794, height: 1123 });
 
     const pdfBuffer = await printPage.pdf({
