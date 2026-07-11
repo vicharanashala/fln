@@ -34,51 +34,194 @@ function toTopLeftRect(pageHeight: number, x: number, y: number, width: number, 
   };
 }
 
-function hashPayload(payload: string) {
-  let hash = 2166136261;
-  for (let i = 0; i < payload.length; i += 1) {
-    hash ^= payload.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
+function createGaloisTables() {
+  const exp = new Array(512).fill(0);
+  const log = new Array(256).fill(0);
+  let value = 1;
+  for (let index = 0; index < 255; index += 1) {
+    exp[index] = value;
+    log[value] = index;
+    value <<= 1;
+    if (value & 0x100) value ^= 0x11d;
   }
-  return hash >>> 0;
+  for (let index = 255; index < 512; index += 1) exp[index] = exp[index - 255];
+  return { exp, log };
 }
 
-function qrBit(payload: string, row: number, col: number) {
-  const seed = hashPayload(`${payload}:${row}:${col}`);
-  return ((seed >>> ((row + col) % 16)) & 1) === 1;
+const GF = createGaloisTables();
+
+function gfMultiply(left: number, right: number) {
+  if (left === 0 || right === 0) return 0;
+  return GF.exp[GF.log[left] + GF.log[right]];
 }
 
-function drawQrFinder(page: PDFPage, x: number, y: number, cell: number) {
-  page.drawRectangle({ x, y, width: cell * 7, height: cell * 7, color: rgb(1, 1, 1) });
-  page.drawRectangle({ x, y, width: cell * 7, height: cell * 7, borderColor: rgb(0, 0, 0), borderWidth: cell });
-  page.drawRectangle({ x: x + cell * 2, y: y + cell * 2, width: cell * 3, height: cell * 3, color: rgb(0, 0, 0) });
+function polyMultiply(left: number[], right: number[]) {
+  const result = new Array(left.length + right.length - 1).fill(0);
+  left.forEach((leftValue, leftIndex) => {
+    right.forEach((rightValue, rightIndex) => {
+      result[leftIndex + rightIndex] ^= gfMultiply(leftValue, rightValue);
+    });
+  });
+  return result;
 }
 
-function drawQrPlaceholder(page: PDFPage, payload: string, x: number, y: number, size: number) {
-  const cells = 25;
-  const cell = size / cells;
-  page.drawRectangle({ x, y, width: size, height: size, color: rgb(1, 1, 1), borderColor: rgb(0, 0, 0), borderWidth: 0.8 });
-  drawQrFinder(page, x + cell, y + size - cell * 8, cell);
-  drawQrFinder(page, x + size - cell * 8, y + size - cell * 8, cell);
-  drawQrFinder(page, x + cell, y + cell, cell);
+function rsGenerator(degree: number) {
+  let generator = [1];
+  for (let index = 0; index < degree; index += 1) {
+    generator = polyMultiply(generator, [1, GF.exp[index]]);
+  }
+  return generator;
+}
 
-  for (let row = 0; row < cells; row += 1) {
-    for (let col = 0; col < cells; col += 1) {
-      const inTopLeft = row >= 1 && row <= 7 && col >= 1 && col <= 7;
-      const inTopRight = row >= 1 && row <= 7 && col >= cells - 8 && col <= cells - 2;
-      const inBottomLeft = row >= cells - 8 && row <= cells - 2 && col >= 1 && col <= 7;
-      if (inTopLeft || inTopRight || inBottomLeft) continue;
-      if (qrBit(payload, row, col)) {
-        page.drawRectangle({
-          x: x + col * cell,
-          y: y + (cells - row - 1) * cell,
-          width: cell,
-          height: cell,
-          color: rgb(0, 0, 0)
-        });
+function reedSolomon(data: number[], degree: number) {
+  const generator = rsGenerator(degree);
+  const remainder = new Array(degree).fill(0);
+  data.forEach(byte => {
+    const factor = byte ^ remainder.shift();
+    remainder.push(0);
+    for (let index = 0; index < degree; index += 1) {
+      remainder[index] ^= gfMultiply(generator[index + 1], factor);
+    }
+  });
+  return remainder;
+}
+
+function appendBits(bits: number[], value: number, length: number) {
+  for (let index = length - 1; index >= 0; index -= 1) bits.push((value >> index) & 1);
+}
+
+function encodeQrCodewords(text: string) {
+  const raw = Array.from(Buffer.from(text, 'utf-8'));
+  if (raw.length > 53) throw new Error('QR payload is too large for the MVP QR template.');
+
+  const dataCodewordCount = 55;
+  const bits: number[] = [];
+  appendBits(bits, 0b0100, 4);
+  appendBits(bits, raw.length, 8);
+  raw.forEach(byte => appendBits(bits, byte, 8));
+
+  const capacity = dataCodewordCount * 8;
+  appendBits(bits, 0, Math.min(4, capacity - bits.length));
+  while (bits.length % 8 !== 0) bits.push(0);
+
+  const data: number[] = [];
+  for (let index = 0; index < bits.length; index += 8) {
+    data.push(parseInt(bits.slice(index, index + 8).join(''), 2));
+  }
+  const pads = [0xec, 0x11];
+  let padIndex = 0;
+  while (data.length < dataCodewordCount) {
+    data.push(pads[padIndex % 2]);
+    padIndex += 1;
+  }
+  return [...data, ...reedSolomon(data, 15)];
+}
+
+function createQrMatrix(text: string) {
+  const size = 29;
+  const modules = Array.from({ length: size }, () => new Array(size).fill(false));
+  const reserved = Array.from({ length: size }, () => new Array(size).fill(false));
+
+  const setModule = (x: number, y: number, dark: boolean, lock = true) => {
+    if (x < 0 || y < 0 || x >= size || y >= size) return;
+    modules[y][x] = Boolean(dark);
+    if (lock) reserved[y][x] = true;
+  };
+
+  const finder = (x: number, y: number) => {
+    for (let dy = -1; dy < 8; dy += 1) {
+      for (let dx = -1; dx < 8; dx += 1) {
+        const dark = dx >= 0 && dx <= 6 && dy >= 0 && dy <= 6
+          && (dx === 0 || dx === 6 || dy === 0 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4));
+        setModule(x + dx, y + dy, dark, true);
       }
     }
+  };
+
+  const alignment = (cx: number, cy: number) => {
+    for (let dy = -2; dy <= 2; dy += 1) {
+      for (let dx = -2; dx <= 2; dx += 1) {
+        const distance = Math.max(Math.abs(dx), Math.abs(dy));
+        setModule(cx + dx, cy + dy, distance === 2 || distance === 0, true);
+      }
+    }
+  };
+
+  finder(0, 0);
+  finder(size - 7, 0);
+  finder(0, size - 7);
+  alignment(22, 22);
+
+  for (let index = 8; index < size - 8; index += 1) {
+    setModule(index, 6, index % 2 === 0, true);
+    setModule(6, index, index % 2 === 0, true);
   }
+  setModule(8, size - 8, true, true);
+
+  for (let index = 0; index < 9; index += 1) {
+    if (index !== 6) {
+      setModule(8, index, false, true);
+      setModule(index, 8, false, true);
+    }
+  }
+  for (let index = 0; index < 8; index += 1) {
+    setModule(size - 1 - index, 8, false, true);
+    setModule(8, size - 1 - index, false, true);
+  }
+
+  const codewords = encodeQrCodewords(text);
+  const dataBits = codewords.flatMap(byte => Array.from({ length: 8 }, (_, index) => (byte >> (7 - index)) & 1));
+  let bitIndex = 0;
+  let upward = true;
+  let right = size - 1;
+  while (right > 0) {
+    if (right === 6) right -= 1;
+    for (let vertical = 0; vertical < size; vertical += 1) {
+      const y = upward ? size - 1 - vertical : vertical;
+      for (let column = 0; column < 2; column += 1) {
+        const x = right - column;
+        if (reserved[y][x]) continue;
+        let dark = bitIndex < dataBits.length ? dataBits[bitIndex] === 1 : false;
+        bitIndex += 1;
+        if ((x + y) % 2 === 0) dark = !dark;
+        setModule(x, y, dark, true);
+      }
+    }
+    upward = !upward;
+    right -= 2;
+  }
+
+  const qrFormat = 0x77c4;
+  const fmtBit = (index: number) => ((qrFormat >> index) & 1) === 1;
+  for (let index = 0; index < 6; index += 1) setModule(8, index, fmtBit(index), true);
+  setModule(8, 7, fmtBit(6), true);
+  setModule(8, 8, fmtBit(7), true);
+  setModule(7, 8, fmtBit(8), true);
+  for (let index = 9; index < 15; index += 1) setModule(14 - index, 8, fmtBit(index), true);
+  for (let index = 0; index < 8; index += 1) setModule(size - 1 - index, 8, fmtBit(index), true);
+  for (let index = 8; index < 15; index += 1) setModule(8, size - 15 + index, fmtBit(index), true);
+
+  return modules;
+}
+
+function drawQrCode(page: PDFPage, payload: string, x: number, y: number, size: number) {
+  const matrix = createQrMatrix(payload);
+  const quietZone = 4;
+  const totalCells = matrix.length + quietZone * 2;
+  const cell = size / totalCells;
+  page.drawRectangle({ x, y, width: size, height: size, color: rgb(1, 1, 1) });
+  matrix.forEach((row, rowIndex) => {
+    row.forEach((dark, colIndex) => {
+      if (!dark) return;
+      page.drawRectangle({
+        x: x + (colIndex + quietZone) * cell,
+        y: y + (matrix.length - rowIndex - 1 + quietZone) * cell,
+        width: cell,
+        height: cell,
+        color: rgb(0, 0, 0)
+      });
+    });
+  });
 }
 
 function wrapText(text: string, maxChars: number) {
@@ -166,7 +309,7 @@ export async function generateScanTemplatePaper({
 
   students.forEach((student, studentIndex) => {
     const studentId = student.studentId || `STUDENT_${studentIndex + 1}`;
-    const paperId = `PAPER-${classNumber}-${studentId}-${Date.now()}`;
+    const paperId = `P${classNumber}-${Date.now().toString(36)}-${studentIndex + 1}`;
     const questions = buildQuestions(classNumber, studentId);
     if (studentIndex === 0) firstQuestions = questions;
 
@@ -176,7 +319,7 @@ export async function generateScanTemplatePaper({
     const qrSize = 78;
     const qrX = pageWidth - qrSize - 44;
     const qrY = pageHeight - qrSize - 34;
-    const payload = `SID:${studentId}|PAPER:${paperId}|TEST:${testId}|PAGE:1`;
+    const payload = `${studentId}|${paperId}|${testId}|1`;
 
     [
       { x: fiducialInset, y: pageHeight - fiducialInset - fiducialSize },
@@ -191,7 +334,7 @@ export async function generateScanTemplatePaper({
     page.drawText(`Student: ${student.name}    Student ID: ${studentId}`, { x: 54, y: pageHeight - 72, size: 9, font, color: rgb(0, 0, 0) });
     page.drawText(`Paper ID: ${paperId}    Test ID: ${testId}    Page: 1`, { x: 54, y: pageHeight - 88, size: 8, font, color: rgb(0, 0, 0) });
 
-    drawQrPlaceholder(page, payload, qrX, qrY, qrSize);
+    drawQrCode(page, payload, qrX, qrY, qrSize);
     page.drawText('QR PAYLOAD', { x: qrX, y: qrY - 9, size: 5, font: boldFont, color: rgb(0, 0, 0) });
     page.drawText(`SID:${studentId}`.slice(0, 26), { x: qrX, y: qrY - 17, size: 4.8, font, color: rgb(0, 0, 0) });
     page.drawText(`PAPER:${paperId}`.slice(0, 30), { x: qrX, y: qrY - 25, size: 4.8, font, color: rgb(0, 0, 0) });
