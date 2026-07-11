@@ -76,10 +76,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
             </svg>
           </div>
           <h2 className="mt-4 text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl uppercase">
-            NATIONAL FLN PORTAL LOGIN
+            FLN Portal Login
           </h2>
           <p className="mt-1 text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Foundational Literacy and Numeracy (FLN) National Assessment Scheme
+            Foundational Literacy and Numeracy (FLN) assessment scheme
           </p>
           <span className="mt-2 inline-block rounded bg-amber-100 px-3 py-1 text-[10px] font-extrabold text-amber-800 uppercase tracking-widest border border-amber-200">
             AUTHORIZED DEPARTMENTAL SIGN-IN

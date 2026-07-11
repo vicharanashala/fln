@@ -256,7 +256,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       </head>
       <body>
         <div class="header">
-          <div class="title">NATIONAL FLN PORTAL</div>
+          <div class="title">FLN Portal</div>
           <div class="subtitle">Foundation Level Diagnostic Evaluation Report</div>
         </div>
 
@@ -308,7 +308,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         </table>
 
         <div class="footer">
-          Generated automatically by NATIONAL FLN PORTAL. Confidential Student Academic Record.
+          Generated automatically by the FLN Portal. Confidential Student Academic Record.
         </div>
 
         <script>

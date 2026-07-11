@@ -30,7 +30,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
       {/* 1. Accessibility / Top strip (neutral branding) */}
       <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <span className="font-bold">NATIONAL FLN PORTAL</span>
+          <span className="font-bold">FLN Portal</span>
           <span className="text-gray-500">|</span>
           <span className="text-gray-300 hidden sm:inline">Foundational Literacy & Numeracy</span>
         </div>
@@ -52,7 +52,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
         </div>
       </div>
 
-      {/* 3. Main Government Banner Header */}
+      {/* 3. Main portal banner header */}
       <header className="border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
@@ -65,7 +65,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
             <div className="border-l-2 border-slate-200 pl-3">
               <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
                 <span className="text-lg font-extrabold tracking-tight text-slate-900 uppercase">
-                  NATIONAL FLN PORTAL
+                  FLN Portal
                 </span>
                 <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
                   Official Portal
@@ -198,48 +198,12 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
         </div>
       </main>
 
-      {/* Related Resources Panel */}
-      <div className="bg-indigo-700 text-white border-t border-slate-200 mt-20">
-        <div className="mx-auto max-w-7xl px-6 py-10 grid grid-cols-1 sm:grid-cols-4 gap-8 text-xs">
-          <div>
-            <h4 className="font-bold uppercase tracking-wider text-amber-200 mb-3">National Portals</h4>
-            <ul className="space-y-2 text-slate-300">
-              <li><a href="https://india.gov.in" target="_blank" className="hover:text-white hover:underline">india.gov.in (National Portal)</a></li>
-              <li><a href="https://mygov.in" target="_blank" className="hover:text-white hover:underline">mygov.in (MyGov India)</a></li>
-              <li><a href="https://education.gov.in" target="_blank" className="hover:text-white hover:underline">Ministry of Education Portal</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold uppercase tracking-wider text-amber-200 mb-3">State Resources</h4>
-            <ul className="space-y-2 text-slate-300">
-              <li><a href="#" className="hover:text-white hover:underline">Punjab School Education Board</a></li>
-              <li><a href="#" className="hover:text-white hover:underline">SCERT Punjab e-Learning</a></li>
-              <li><a href="#" className="hover:text-white hover:underline">e-Punjab School Portal</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold uppercase tracking-wider text-amber-200 mb-3">Key Schemes</h4>
-            <ul className="space-y-2 text-slate-300">
-              <li><a href="#" className="hover:text-white hover:underline">National FLN Guidelines</a></li>
-              <li><a href="#" className="hover:text-white hover:underline">Samagra Shiksha Abhiyan</a></li>
-              <li><a href="#" className="hover:text-white hover:underline">PM POSHAN Scheme</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold uppercase tracking-wider text-amber-200 mb-3">Platform Information</h4>
-            <p className="text-slate-400 leading-relaxed">
-              Designed as a secure Foundational Literacy & Numeracy Adaptive evaluation platform, in synchronization with NCERT diagnostic directives.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Footer */}
       <footer className="bg-[#111827] text-slate-400 py-8 border-t border-gray-800 text-center text-xs">
         <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-left">
-            <p>© 2026 NATIONAL FLN Assessment Platform. Handcrafted in compliance with the Ministry of Education directives.</p>
-            <p className="mt-1 text-slate-500">Technical Support & Platform Host: National Informatics Centre (NIC) Server Grid.</p>
+            <p>© 2026 FLN Assessment Platform. Handcrafted for educational diagnostics.</p>
+            <p className="mt-1 text-slate-500">Technical Support & Platform Host: Secure Education Services.</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded bg-gray-800 text-amber-400 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider">

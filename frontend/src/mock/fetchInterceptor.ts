@@ -37,7 +37,7 @@ function evaluateDiagnosticMock(
 
   const accuracy = Math.round((score / questions.length) * 100);
   const narrative = `============================================================
-            NATIONAL FLN PORTAL ASSESSMENT REPORT
+            FLN Assessment Report
 ============================================================
 Student Name: ${studentName}
 Diagnostic Accuracy: ${accuracy}% (${score} / ${questions.length} correct)

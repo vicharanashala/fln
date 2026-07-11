@@ -133,7 +133,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
             <div className="border border-zinc-300 rounded-xl bg-white p-8 max-h-[600px] overflow-y-auto shadow-sm print:border-none print:shadow-none" id="printable-diagnostic">
             <div className="border-b-2 border-zinc-800 pb-4 text-center space-y-1">
               <h1 className="text-2xl font-display font-bold text-zinc-900 uppercase tracking-tight">FLN Mathematics Diagnostic Paper</h1>
-              <p className="text-xs font-mono text-zinc-500">Ministry of Education Assessment Portal · National Level</p>
+              <p className="text-xs font-mono text-zinc-500">FLN Assessment Portal · Diagnostic Level</p>
               <div className="grid grid-cols-3 gap-2 pt-4 text-left text-xs font-mono text-zinc-700 border-t border-zinc-200 mt-4">
                 <div>Student Name: <strong className="text-zinc-900">{student.name}</strong></div>
                 <div>Class: <strong>{student.classGroup}</strong></div>
