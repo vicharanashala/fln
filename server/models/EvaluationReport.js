@@ -4,7 +4,7 @@ const evaluationReportSchema = new mongoose.Schema({
   worksheet: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Worksheet',
-    required: true
+    default: null
   },
   student: {
     type: mongoose.Schema.Types.ObjectId,

@@ -3,24 +3,7 @@ const Student = require('../models/Student');
 const Class = require('../models/Class');
 const EvaluationReport = require('../models/EvaluationReport');
 const aiService = require('./aiService');
-
-function generateMockQuestions(level) {
-  const questionBank = {
-    Level1: [
-      { question_id: 'Q1', question: 'Count the apples', answer: '5', answer_type: 'text', topic: 'Number Sense', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Counting objects up to 5' },
-      { question_id: 'Q2', question: 'Identify the circle', answer: 'circle', answer_type: 'text', topic: 'Shapes', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Basic shape recognition' },
-      { question_id: 'Q3', question: 'What comes after 3?', answer: '4', answer_type: 'text', topic: 'Number Sense', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Number sequence' },
-      { question_id: 'Q4', question: 'Match the same color', answer: 'red', answer_type: 'text', topic: 'Shapes', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Color matching' },
-      { question_id: 'Q5', question: 'Count fingers on one hand', answer: '5', answer_type: 'text', topic: 'Number Sense', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Counting body parts' },
-      { question_id: 'Q6', question: 'Which is bigger? 2 or 5', answer: '5', answer_type: 'text', topic: 'Number Sense', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Number comparison' },
-      { question_id: 'Q7', question: 'Draw a line under the triangle', answer: 'triangle', answer_type: 'text', topic: 'Shapes', difficulty: 'medium', source_level: 'Preschool 1', class_level: 1, reasoning: 'Shape identification' },
-      { question_id: 'Q8', question: 'How many sides does a square have?', answer: '4', answer_type: 'text', topic: 'Shapes', difficulty: 'medium', source_level: 'Preschool 1', class_level: 1, reasoning: 'Shape properties' },
-      { question_id: 'Q9', question: 'Write numbers 1 to 5', answer: '12345', answer_type: 'text', topic: 'Number Sense', difficulty: 'medium', source_level: 'Preschool 1', class_level: 1, reasoning: 'Number writing' },
-      { question_id: 'Q10', question: 'Count the stars (5 stars shown)', answer: '5', answer_type: 'text', topic: 'Number Sense', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Object counting' }
-    ]
-  };
-  return questionBank[level] || questionBank.Level1;
-}
+const { generateMockQuestions } = require('../data/mockQuestions');
 
 async function regenerateForWorksheet(originalWorksheet) {
   const student = await Student.findById(originalWorksheet.student);

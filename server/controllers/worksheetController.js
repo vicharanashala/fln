@@ -7,6 +7,7 @@ const EvaluationReport = require('../models/EvaluationReport');
 const Logbook = require('../models/Logbook');
 const aiService = require('../services/aiService');
 const worksheetService = require('../services/worksheetService');
+const { generateMockQuestions } = require('../data/mockQuestions');
 
 exports.generateForClass = async (req, res) => {
   try {
@@ -114,6 +115,12 @@ exports.generateForClass = async (req, res) => {
       worksheets.push(worksheet);
     }
 
+    // Populate worksheets with student info
+    const populatedWorksheets = await Worksheet.find({ _id: { $in: worksheets.map(w => w._id) } })
+      .populate('student', 'name studentId currentLevel')
+      .populate('class', 'name grade')
+      .select('worksheetId student level assessmentCycle worksheetJson createdAt');
+
     // Log the generation
     await Logbook.create({
       action: 'generate_worksheet',
@@ -130,6 +137,18 @@ exports.generateForClass = async (req, res) => {
       count: worksheets.length,
       class: classData.name,
       assessmentCycle,
+      worksheets: populatedWorksheets.map(w => ({
+        _id: w._id,
+        worksheetId: w.worksheetId,
+        student: w.student,
+        level: w.level,
+        assessmentCycle: w.assessmentCycle,
+        questionPreview: w.worksheetJson?.questions?.slice(0, 3).map(q => ({
+          question: q.question,
+          topic: q.topic,
+          difficulty: q.difficulty
+        }))
+      })),
       teacherId: teacherRole === 'teacher' ? teacherId : undefined,
       schoolId: teacherRole === 'school' ? teacherId : undefined,
       volunteerId: teacherRole === 'volunteer' ? teacherId : undefined,
@@ -291,20 +310,4 @@ exports.getWorksheet = async (req, res) => {
   }
 };
 
-function generateMockQuestions(level) {
-  const questionBank = {
-    Level1: [
-      { question_id: 'Q1', question: 'Count the apples', answer: '5', answer_type: 'text', topic: 'Number Sense', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Counting objects up to 5' },
-      { question_id: 'Q2', question: 'Identify the circle', answer: 'circle', answer_type: 'text', topic: 'Shapes', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Basic shape recognition' },
-      { question_id: 'Q3', question: 'What comes after 3?', answer: '4', answer_type: 'text', topic: 'Number Sense', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Number sequence' },
-      { question_id: 'Q4', question: 'Match the same color', answer: 'red', answer_type: 'text', topic: 'Shapes', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Color matching' },
-      { question_id: 'Q5', question: 'Count fingers on one hand', answer: '5', answer_type: 'text', topic: 'Number Sense', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Counting body parts' },
-      { question_id: 'Q6', question: 'Which is bigger? 2 or 5', answer: '5', answer_type: 'text', topic: 'Number Sense', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Number comparison' },
-      { question_id: 'Q7', question: 'Draw a line under the triangle', answer: 'triangle', answer_type: 'text', topic: 'Shapes', difficulty: 'medium', source_level: 'Preschool 1', class_level: 1, reasoning: 'Shape identification' },
-      { question_id: 'Q8', question: 'How many sides does a square have?', answer: '4', answer_type: 'text', topic: 'Shapes', difficulty: 'medium', source_level: 'Preschool 1', class_level: 1, reasoning: 'Shape properties' },
-      { question_id: 'Q9', question: 'Write numbers 1 to 5', answer: '12345', answer_type: 'text', topic: 'Number Sense', difficulty: 'medium', source_level: 'Preschool 1', class_level: 1, reasoning: 'Number writing' },
-      { question_id: 'Q10', question: 'Count the stars (5 stars shown)', answer: '5', answer_type: 'text', topic: 'Number Sense', difficulty: 'easy', source_level: 'Preschool 1', class_level: 1, reasoning: 'Object counting' }
-    ]
-  };
-  return questionBank[level] || questionBank.Level1;
-}
+

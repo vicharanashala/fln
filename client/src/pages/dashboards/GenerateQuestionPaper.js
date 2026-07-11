@@ -21,6 +21,7 @@ function GenerateQuestionPaper() {
   const [generated, setGenerated] = useState(null);
   const [error, setError] = useState('');
   const [worksheetsList, setWorksheetsList] = useState([]);
+  const [personalizationInfo, setPersonalizationInfo] = useState(null);
   const [lockStatus, setLockStatus] = useState(null);
   const [toast, setToast] = useState({ message: '', type: 'success' });
   const [fieldErrors, setFieldErrors] = useState({});
@@ -75,7 +76,8 @@ function GenerateQuestionPaper() {
         assessmentCycle
       });
       setGenerated(res.data);
-      setToast({ message: `Successfully generated ${res.data.count} question papers`, type: 'success' });
+      setPersonalizationInfo(res.data.worksheets || null);
+      setToast({ message: `Successfully generated ${res.data.count} personalized question papers`, type: 'success' });
       const studentRes = await studentsApi.list({ classId: selectedClass });
       const students = studentRes.data.students || [];
       const wsPromises = students.map(s =>
@@ -118,8 +120,40 @@ function GenerateQuestionPaper() {
 
       {generated && (
         <div className="success-message" role="status">
-          Successfully generated {generated.count} question papers for <strong>{generated.class}</strong>
+          Successfully generated {generated.count} personalized question papers for <strong>{generated.class}</strong>
           ({generated.assessmentCycle} cycle)
+        </div>
+      )}
+
+      {personalizationInfo && personalizationInfo.length > 0 && (
+        <div style={{ background: '#fff', borderRadius: 12, padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
+          <h3 style={{ marginBottom: '1rem' }}>Personalized Worksheets Generated</h3>
+          <div className="data-table table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>FLN Level</th>
+                  <th>Question Preview</th>
+                </tr>
+              </thead>
+              <tbody>
+                {personalizationInfo.map(ws => (
+                  <tr key={ws._id}>
+                    <td><strong>{ws.student?.name || 'N/A'}</strong></td>
+                    <td><span className="badge badge-info">{ws.level}</span></td>
+                    <td style={{ fontSize: '0.85rem', maxWidth: 400 }}>
+                      {ws.questionPreview?.slice(0, 2).map((q, i) => (
+                        <div key={i} style={{ marginBottom: '0.25rem' }}>
+                          {i + 1}. {q.question} <span style={{ color: '#6b7280' }}>({q.topic}, {q.difficulty})</span>
+                        </div>
+                      ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

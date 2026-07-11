@@ -5,6 +5,7 @@ const User = require('./models/User');
 const School = require('./models/School');
 const Class = require('./models/Class');
 const Student = require('./models/Student');
+const EvaluationReport = require('./models/EvaluationReport');
 
 async function seed() {
   try {
@@ -124,20 +125,21 @@ async function seed() {
     console.log('Classes created');
 
     // Create Students
-    const students = [
-      { name: 'Aarav Singh', age: 8, class: class3A._id, section: 'A', identityType: 'aadhar', identityNumber: '123456789012', currentLevel: 'Level3' },
-      { name: 'Priya Sharma', age: 8, class: class3A._id, section: 'A', identityType: 'aadhar', identityNumber: '234567890123', currentLevel: 'Level2' },
-      { name: 'Arjun Patel', age: 9, class: class3A._id, section: 'A', identityType: 'aadhar', identityNumber: '345678901234', currentLevel: 'Level4' },
-      { name: 'Sanya Gupta', age: 8, class: class3A._id, section: 'A', identityType: 'birth_certificate', identityNumber: 'BC-2020-001', currentLevel: 'Level1' },
-      { name: 'Rohit Verma', age: 9, class: class3A._id, section: 'A', identityType: 'aadhar', identityNumber: '456789012345', currentLevel: 'Level3' },
-      { name: 'Neha Joshi', age: 10, class: class4A._id, section: 'A', identityType: 'aadhar', identityNumber: '567890123456', currentLevel: 'Level5' },
-      { name: 'Karan Mehta', age: 10, class: class4A._id, section: 'A', identityType: 'aadhar', identityNumber: '678901234567', currentLevel: 'Level4' },
-      { name: 'Ishita Kapoor', age: 9, class: class4A._id, section: 'A', identityType: 'birth_certificate', identityNumber: 'BC-2019-002', currentLevel: 'Level3' },
-      { name: 'Vikram Singh', age: 10, class: class4A._id, section: 'A', identityType: 'aadhar', identityNumber: '789012345678', currentLevel: 'Level6' },
-      { name: 'Ananya Reddy', age: 9, class: class4A._id, section: 'A', identityType: 'aadhar', identityNumber: '890123456789', currentLevel: 'Level4' }
+    const studentSeeds = [
+      { name: 'Aarav Singh', age: 8, class: class3A._id, section: 'A', identityType: 'aadhar', identityNumber: '123456789012', currentLevel: 'Level3', weaknesses: ['Addition with carryover', 'Number names'] },
+      { name: 'Priya Sharma', age: 8, class: class3A._id, section: 'A', identityType: 'aadhar', identityNumber: '234567890123', currentLevel: 'Level2', weaknesses: ['Number recognition 6-10', 'Subtraction basics'] },
+      { name: 'Arjun Patel', age: 9, class: class3A._id, section: 'A', identityType: 'aadhar', identityNumber: '345678901234', currentLevel: 'Level4', weaknesses: ['Multiplication tables', 'Money word problems'] },
+      { name: 'Sanya Gupta', age: 8, class: class3A._id, section: 'A', identityType: 'birth_certificate', identityNumber: 'BC-2020-001', currentLevel: 'Level1', weaknesses: ['Counting beyond 3', 'Shape identification'] },
+      { name: 'Rohit Verma', age: 9, class: class3A._id, section: 'A', identityType: 'aadhar', identityNumber: '456789012345', currentLevel: 'Level3', weaknesses: ['Subtraction with borrowing', 'Measuring length'] },
+      { name: 'Neha Joshi', age: 10, class: class4A._id, section: 'A', identityType: 'aadhar', identityNumber: '567890123456', currentLevel: 'Level5', weaknesses: ['Division word problems', 'Fraction comparison'] },
+      { name: 'Karan Mehta', age: 10, class: class4A._id, section: 'A', identityType: 'aadhar', identityNumber: '678901234567', currentLevel: 'Level4', weaknesses: ['3D shapes', 'Multiplication of two-digit numbers'] },
+      { name: 'Ishita Kapoor', age: 9, class: class4A._id, section: 'A', identityType: 'birth_certificate', identityNumber: 'BC-2019-002', currentLevel: 'Level3', weaknesses: ['Place value up to 100', 'Time reading'] },
+      { name: 'Vikram Singh', age: 10, class: class4A._id, section: 'A', identityType: 'aadhar', identityNumber: '789012345678', currentLevel: 'Level6', weaknesses: ['Decimal addition', 'Long division'] },
+      { name: 'Ananya Reddy', age: 9, class: class4A._id, section: 'A', identityType: 'aadhar', identityNumber: '890123456789', currentLevel: 'Level4', weaknesses: ['Area and perimeter', 'Multiplication tables 6-10'] }
     ];
 
-    for (const s of students) {
+    const createdStudents = [];
+    for (const s of studentSeeds) {
       const studentId = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
       const student = await Student.create({
         studentId,
@@ -151,7 +153,29 @@ async function seed() {
         currentLevel: s.currentLevel,
         levelHistory: [{ level: s.currentLevel, assessedAt: new Date(), assessmentCycle: 'baseline' }]
       });
+      createdStudents.push({ document: student, weaknesses: s.weaknesses, level: s.currentLevel });
       console.log(`Student created: ${student.name} (${student.studentId}) - Level ${student.currentLevel}`);
+    }
+
+    // Create EvaluationReport with personalized weaknesses per student
+    for (const { document: student, weaknesses, level } of createdStudents) {
+      await EvaluationReport.create({
+        student: student._id,
+        assessmentCycle: 'baseline',
+        totalQuestions: 10,
+        correctAnswers: 5,
+        score: 50,
+        questionResults: [],
+        strengths: [],
+        weaknesses,
+        mistakePatterns: [],
+        narrativeSummary: `Initial assessment for ${student.name}`,
+        previousLevel: level,
+        recommendedLevel: level,
+        assignedLevel: level,
+        evaluatedAt: new Date()
+      });
+      console.log(`  EvaluationReport created for ${student.name} — weaknesses: ${weaknesses.join(', ')}`);
     }
 
     console.log('\n✅ Seeding complete!');
