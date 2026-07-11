@@ -1,0 +1,5 @@
+node_modules
+dist
+output
+# Runtime data written by the AI pipeline / server
+*.local
