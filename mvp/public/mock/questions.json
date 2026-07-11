@@ -1,4 +1,0 @@
-[
-  { "question_id": "L1.0_Q1", "question": "Group A has 8 balls. Group B has 5 balls. Which group has MORE balls? (Write A or B)", "answer": "A", "answer_type": "choice", "topic": "Number Sense", "difficulty": "easy" },
-  { "question_id": "L2.0_Q1", "question": "Find the ODD one out in this list: [Circle, Triangle, Apple, Square].", "answer": "apple", "answer_type": "text", "topic": "Number Sense", "difficulty": "medium" }
-]
