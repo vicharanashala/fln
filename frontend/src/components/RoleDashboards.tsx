@@ -706,11 +706,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           {
             header: 'Deployment',
             accessor: (s) => (
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold ${
-                s.strength === 'high' ? 'bg-indigo-50 text-indigo-700' : 'bg-amber-50 text-amber-700'
-              }`}>
-                {s.strength === 'high' ? 'High-Strength' : 'Low-Strength'}
-              </span>
+              <span className="text-[10px] font-mono text-zinc-500">{s.teachersCount ? `${s.teachersCount} teachers` : '—'}</span>
             )
           },
           {
@@ -1127,9 +1123,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       statusText = `${rate}% Certified`;
     }
 
-    const deploymentMode = sch.strength === 'low' 
-      ? 'No internet, low student strength deployment mode active' 
-      : 'High student strength classroom mode active';
+    const deploymentMode = `${sch.teachersCount || 0} teachers assigned`;
 
     return {
       schoolId: sch.id,
@@ -1336,7 +1330,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                     <div key={sch.id} className="p-3 border border-zinc-200 rounded-lg flex justify-between items-center bg-zinc-50">
                       <div>
                         <div className="text-xs font-bold text-zinc-800">{sch.name}</div>
-                        <div className="text-[10px] text-zinc-400 font-mono">ID: {sch.id} · Strength: {sch.strength.toUpperCase()}</div>
+                        <div className="text-[10px] text-zinc-400 font-mono">ID: {sch.id} · Teachers: {sch.teachersCount ?? 0}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
@@ -1490,7 +1484,7 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     <div className="space-y-6" id="school-dashboard">
       <div className="border-b border-zinc-200 pb-4">
         <h1 className="text-3xl font-display font-semibold text-zinc-900 tracking-tight">School Administration</h1>
-        <p className="text-zinc-550 text-sm mt-0.5">GPS Model Town Ludhiana (ID: {user.schoolId}) · High Student Strength Mode</p>
+        <p className="text-zinc-550 text-sm mt-0.5">GPS Model Town Ludhiana (ID: {user.schoolId})</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -2462,7 +2456,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
       <div className="border-b border-zinc-200 pb-4 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-display font-semibold text-zinc-900 tracking-tight">Classroom Workspace</h1>
-          <p className="text-zinc-550 text-sm mt-0.5 font-medium">Volunteer: {user.name} · Assigned Scope: Low-Strength Villages</p>
+          <p className="text-zinc-550 text-sm mt-0.5 font-medium">Volunteer: {user.name}</p>
         </div>
         <div className="flex gap-2">
           <button

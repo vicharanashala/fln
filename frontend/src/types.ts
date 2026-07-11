@@ -28,7 +28,7 @@ export interface School {
   stateCode: string;
   districtCode: string;
   blockCode: string;
-  strength: 'high' | 'low';
+  strength?: string;
   teachersCount: number;
   isAccessLocked?: boolean;
 }

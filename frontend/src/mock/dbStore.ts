@@ -27,20 +27,20 @@ function getSeedQuestions(): Question[] {
 
 export function getInitialSeedData(): MockDatabaseSchema {
   const schools: School[] = [
-    { id: 'gps-mt-001', name: 'GPS Model Town Ludhiana', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-01', strength: 'high', teachersCount: 2 },
-    { id: 'gps-vl-002', name: 'GPS Rural Village Moga', stateCode: 'PB', districtCode: 'MOG', blockCode: 'MOG-02', strength: 'low', teachersCount: 0 },
-    { id: 'gps-amb-003', name: 'GPS Cantt Ambala', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-01', strength: 'high', teachersCount: 1 },
-    { id: 'gps-jai-004', name: 'GPS Govind Dev Jaipur', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-01', strength: 'low', teachersCount: 1 },
-    { id: 'gps-lko-005', name: 'GPS Hazratganj Lucknow', stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-01', strength: 'high', teachersCount: 1 },
-    { id: 'gps-bth-006', name: 'GPS Bathinda City', stateCode: 'PB', districtCode: 'BTH', blockCode: 'BTH-01', strength: 'high', teachersCount: 2 },
-    { id: 'gps-asr-007', name: 'GPS Amritsar Golden', stateCode: 'PB', districtCode: 'ASR', blockCode: 'ASR-01', strength: 'low', teachersCount: 1 },
-    { id: 'gps-pkl-008', name: 'GPS Panchkula Sector', stateCode: 'HR', districtCode: 'PKL', blockCode: 'PKL-01', strength: 'high', teachersCount: 2 },
-    { id: 'gps-jai2-009', name: 'GPS Jaipur Rural North', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-02', strength: 'low', teachersCount: 1 },
-    { id: 'gps-uda-010', name: 'GPS Udaipur City', stateCode: 'RJ', districtCode: 'UDA', blockCode: 'UDA-01', strength: 'high', teachersCount: 2 },
-    { id: 'gps-lko2-011', name: 'GPS Lucknow Aliganj', stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-02', strength: 'high', teachersCount: 1 },
-    { id: 'gps-knp-012', name: 'GPS Kanpur Cantt', stateCode: 'UP', districtCode: 'KNP', blockCode: 'KNP-01', strength: 'low', teachersCount: 1 },
-    { id: 'gps-pb-ldh2-013', name: 'GPS Gill Village Ludhiana', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-02', strength: 'low', teachersCount: 1 },
-    { id: 'gps-hr-amb2-014', name: 'GPS Ambala City South', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-02', strength: 'high', teachersCount: 2 }
+    { id: 'gps-mt-001', name: 'GPS Model Town Ludhiana', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-01', strength: 'standard', teachersCount: 2 },
+    { id: 'gps-vl-002', name: 'GPS Rural Village Moga', stateCode: 'PB', districtCode: 'MOG', blockCode: 'MOG-02', strength: 'standard', teachersCount: 0 },
+    { id: 'gps-amb-003', name: 'GPS Cantt Ambala', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-01', strength: 'standard', teachersCount: 1 },
+    { id: 'gps-jai-004', name: 'GPS Govind Dev Jaipur', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-01', strength: 'standard', teachersCount: 1 },
+    { id: 'gps-lko-005', name: 'GPS Hazratganj Lucknow', stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-01', strength: 'standard', teachersCount: 1 },
+    { id: 'gps-bth-006', name: 'GPS Bathinda City', stateCode: 'PB', districtCode: 'BTH', blockCode: 'BTH-01', strength: 'standard', teachersCount: 2 },
+    { id: 'gps-asr-007', name: 'GPS Amritsar Golden', stateCode: 'PB', districtCode: 'ASR', blockCode: 'ASR-01', strength: 'standard', teachersCount: 1 },
+    { id: 'gps-pkl-008', name: 'GPS Panchkula Sector', stateCode: 'HR', districtCode: 'PKL', blockCode: 'PKL-01', strength: 'standard', teachersCount: 2 },
+    { id: 'gps-jai2-009', name: 'GPS Jaipur Rural North', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-02', strength: 'standard', teachersCount: 1 },
+    { id: 'gps-uda-010', name: 'GPS Udaipur City', stateCode: 'RJ', districtCode: 'UDA', blockCode: 'UDA-01', strength: 'standard', teachersCount: 2 },
+    { id: 'gps-lko2-011', name: 'GPS Lucknow Aliganj', stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-02', strength: 'standard', teachersCount: 1 },
+    { id: 'gps-knp-012', name: 'GPS Kanpur Cantt', stateCode: 'UP', districtCode: 'KNP', blockCode: 'KNP-01', strength: 'standard', teachersCount: 1 },
+    { id: 'gps-pb-ldh2-013', name: 'GPS Gill Village Ludhiana', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-02', strength: 'standard', teachersCount: 1 },
+    { id: 'gps-hr-amb2-014', name: 'GPS Ambala City South', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-02', strength: 'standard', teachersCount: 2 }
   ];
 
   const users: User[] = [
@@ -106,7 +106,7 @@ export function getInitialSeedData(): MockDatabaseSchema {
     { id: 'u6_knp', email: 'gps-knp-012.t01@fln.org', name: 'Sunita Devi (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-knp-012' },
     { id: 'u6_ldh2', email: 'gps-pb-ldh2-013.t01@fln.org', name: 'Balwinder Kaur (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-pb-ldh2-013' },
     { id: 'u6_amb2', email: 'gps-hr-amb2-014.t01@fln.org', name: 'Nisha Rani (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-hr-amb2-014' },
-    // Volunteers for new low-strength schools
+    // Volunteers for new schools
     { id: 'u7_asr', email: 'vol.asr@fln.org', name: 'Mandeep Kaur (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-asr-007'] },
     { id: 'u7_jai2_vol', email: 'vol.jai2@fln.org', name: 'Deepak Sharma (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-jai2-009'] },
     { id: 'u7_knp_vol', email: 'vol.knp@fln.org', name: 'Anita Singh (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-knp-012'] },
@@ -192,7 +192,7 @@ export function getInitialSeedData(): MockDatabaseSchema {
     { id: 's40', name: 'Simranjit Kaur', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-bth-006', teacherId: 'u6_bth_a', currentLevel: 2, currentSubLevel: 2, targetLevel: 3, aadharMasked: 'XXXX-XXXX-1224', levelHistory: [{ level: 1, date: '2026-05-01', reason: 'Onboarding Diagnostic Placement' }, { level: 2, date: '2026-06-20', reason: 'Baseline worksheet' }], streak: 2 },
     { id: 's41', name: 'Gurleen Kaur Bajwa', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-bth-006', teacherId: 'u6_bth_a', currentLevel: 1, currentSubLevel: 1, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1225', levelHistory: [{ level: 1, date: '2026-06-01', reason: 'Volunteer Diagnostic Placement' }], streak: 1 },
     { id: 's42', name: 'Mandeep Singh', age: 10, classGroup: 'Class 4', section: 'A', schoolId: 'gps-bth-006', teacherId: 'u6_bth_b', currentLevel: 3, currentSubLevel: 0, targetLevel: 4, aadharMasked: 'XXXX-XXXX-1226', levelHistory: [{ level: 1, date: '2026-05-10', reason: 'Onboarding Diagnostic Placement' }, { level: 3, date: '2026-06-25', reason: 'Baseline worksheet' }], streak: 4 },
-    // ── Students in Amritsar (low-strength school) ──
+    // ── Students in Amritsar (Amritsar school) ──
     { id: 's43', name: 'Navjot Singh', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-asr-007', teacherId: 'u6_asr', currentLevel: 1, currentSubLevel: 0, targetLevel: 2, aadharMasked: 'XXXX-XXXX-1227', levelHistory: [{ level: 1, date: '2026-06-10', reason: 'Volunteer Diagnostic Placement' }], streak: 1 },
     { id: 's44', name: 'Harleen Kaur', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-asr-007', teacherId: 'u6_asr', currentLevel: 2, currentSubLevel: 0, targetLevel: 3, aadharMasked: 'XXXX-XXXX-1228', levelHistory: [{ level: 1, date: '2026-06-10', reason: 'Volunteer Diagnostic Placement' }, { level: 2, date: '2026-07-01', reason: 'Baseline worksheet' }], streak: 2 },
     // ── Students in Jaipur Rural North ──
@@ -772,7 +772,7 @@ export function getInitialSeedData(): MockDatabaseSchema {
       userRole: UserRole.VOLUNTEER,
       activityType: 'verify',
       status: 'Success',
-      details: 'Onboarded new students Navjot Singh and Harleen Kaur at Amritsar low-strength school'
+      details: 'Onboarded new students Navjot Singh and Harleen Kaur at Amritsar school'
     },
     {
       id: 'log8',
@@ -960,7 +960,7 @@ export function getInitialSeedData(): MockDatabaseSchema {
     {
       id: 'ann2',
       title: 'Bathinda District Performance Alert',
-      message: 'Bathinda district is flagged as lagging with only 38% average certification rate. All block admins must prioritize remedial interventions in low-strength schools.',
+      message: 'Bathinda district is flagged as lagging with only 38% average certification rate. All block admins must prioritize remedial interventions in affected schools.',
       isUrgent: true,
       authorEmail: 'admin.pb@fln.org',
       createdAt: '2026-07-06T08:00:00Z'
