@@ -168,6 +168,14 @@ export interface Announcement {
   createdAt: string;
 }
 
+export interface AnnouncementRead {
+  id: string;
+  announcementId: string;
+  userId: string;
+  userEmail: string;
+  readAt: string;
+}
+
 interface DatabaseSchema {
   users: User[];
   schools: School[];
@@ -180,6 +188,7 @@ interface DatabaseSchema {
   tickets: Ticket[];
   logbook: LogEntry[];
   announcements: Announcement[];
+  announcementReads: AnnouncementRead[];
 }
 
 export class DBStore {
@@ -246,6 +255,10 @@ export class DBStore {
         this.data.announcements = [];
         modified = true;
       }
+      if (!this.data.announcementReads) {
+        this.data.announcementReads = [];
+        modified = true;
+      }
       if (!this.data.tickets) {
         this.data.tickets = [];
         modified = true;
@@ -288,7 +301,7 @@ export class DBStore {
   async getTickets() { return this.data!.tickets; }
   async getLogbook() { return this.data!.logbook; }
   async getAnnouncements() { return this.data!.announcements; }
-
+  async getAnnouncementReads() { return this.data!.announcementReads; }
   // --- Write / Update Helpers ---
 
   async addUser(user: User) {
@@ -382,6 +395,15 @@ export class DBStore {
     this.data!.announcements.unshift(ann);
     await this.save();
     return ann;
+  }
+  async addAnnouncementRead(read: AnnouncementRead) {
+    const exists = this.data!.announcementReads.find(
+      r => r.announcementId === read.announcementId && r.userId === read.userId
+    );
+    if (exists) return exists;
+    this.data!.announcementReads.push(read);
+    await this.save();
+    return read;
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -2182,7 +2204,8 @@ export class DBStore {
       evaluationReports,
       tickets,
       logbook,
-      announcements
+      announcements,
+      announcementReads: []
     };
   }
 }
