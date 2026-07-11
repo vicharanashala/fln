@@ -201,7 +201,7 @@ export const FLN_LEVELS: any[] = (() => {
 export const INITIAL_SCHOOLS: any[] = [
   {
     id: 'gps-mt-001',
-    name: 'Govt Primary School, Mattewal-3',
+    name: 'Primary School, Mattewal-3',
     district: 'Ludhiana',
     block: 'Ludhiana Block-1',
     state: 'Punjab',
@@ -213,7 +213,7 @@ export const INITIAL_SCHOOLS: any[] = [
   },
   {
     id: 'gps-sh-002',
-    name: 'Govt Primary School, Sirhind-1',
+    name: 'Primary School, Sirhind-1',
     district: 'Bathinda',
     block: 'Bathinda Block-2',
     state: 'Punjab',
@@ -225,7 +225,7 @@ export const INITIAL_SCHOOLS: any[] = [
   },
   {
     id: 'gps-jp-003',
-    name: 'Govt Primary School, Jaipur Rural-5',
+    name: 'Primary School, Jaipur Rural-5',
     district: 'Jaipur',
     block: 'Jaipur Block-A',
     state: 'Rajasthan',
@@ -237,7 +237,7 @@ export const INITIAL_SCHOOLS: any[] = [
   },
   {
     id: 'gps-ud-004',
-    name: 'Govt Primary School, Udaipur Tribal-2',
+    name: 'Primary School, Udaipur Tribal-2',
     district: 'Udaipur',
     block: 'Udaipur Block-B',
     state: 'Rajasthan',

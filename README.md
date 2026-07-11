@@ -7,7 +7,7 @@ A large-scale, personalized assessment system that helps teachers measure, track
 ## Table of Contents
 - [What is FLN?](#what-is-fln)
 - [Why FLN Matters](#why-fln-matters)
-- [Government Initiatives](#government-initiatives)
+- [Initiatives](#initiatives)
 - [What This Software Does](#what-this-software-does)
 - [How It Works (Workflow)](#how-it-works-workflow)
 - [Tech Stack](#tech-stack)
@@ -32,7 +32,7 @@ The National Education Policy (NEP) 2020 explicitly recognized this and stated t
 
 This is the problem our project aims to help solve: giving schools and teachers a reliable, scalable, and personalized way to **assess** where each child stands on FLN, **act** on that data quickly, and **track** progress until every child clears the foundational bar.
 
-## Government Initiatives
+## Initiatives
 
 Some of the key national and state-level efforts this project aligns with:
 
