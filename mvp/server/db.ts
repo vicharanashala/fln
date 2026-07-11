@@ -139,11 +139,16 @@ export interface Ticket {
   userEmail: string;
   userName: string;
   userRole: UserRole;
-  type: 'general' | 'curriculum';
+  type: 'general' | 'curriculum' | 'DEFAULTER_APPEAL';
   subject: string;
   description: string;
-  status: 'Open' | 'Reviewed' | 'Resolved';
+  status: 'Open' | 'Reviewed' | 'Resolved' | 'APPROVED' | 'REJECTED';
   createdAt: string;
+  metadata?: {
+    schoolId?: string;
+    reasonForDelay?: string;
+    logbookContext?: LogEntry[];
+  };
 }
 
 export interface LogEntry {

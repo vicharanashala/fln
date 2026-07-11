@@ -222,6 +222,83 @@ async function startServer() {
     res.json(updated);
   });
 
+  app.post('/api/tickets/appeal', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { teacherId, schoolId, reasonForDelay, timestamp } = req.body;
+    
+    if (user.role !== UserRole.TEACHER && user.id !== teacherId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const allLogs = await dbStore.getLogbook();
+    const teacherLogs = allLogs.filter(log => log.userId === teacherId).slice(-10);
+
+    const newTicket: Ticket = {
+      id: 'tkt_' + Date.now(),
+      userId: user.id,
+      userEmail: user.email,
+      userName: user.name,
+      userRole: user.role,
+      type: 'DEFAULTER_APPEAL',
+      subject: 'Grace Appeal for Delayed Submissions',
+      description: reasonForDelay,
+      status: 'Open',
+      createdAt: timestamp || new Date().toISOString(),
+      metadata: {
+        schoolId,
+        reasonForDelay,
+        logbookContext: teacherLogs
+      }
+    };
+
+    await dbStore.addTicket(newTicket);
+    res.json(newTicket);
+  });
+
+  app.patch('/api/admin/tickets/:ticketId/resolve', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    
+    const allowed = [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN];
+    if (!allowed.includes(user.role)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const { status } = req.body;
+    if (status !== 'APPROVED' && status !== 'REJECTED') {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const tickets = await dbStore.getTickets();
+    const ticket = tickets.find(t => t.id === req.params.ticketId);
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+
+    await dbStore.updateTicket(ticket.id, { status });
+
+    if (status === 'APPROVED' && ticket.type === 'DEFAULTER_APPEAL') {
+      const users = await dbStore.getUsers();
+      const teacher = users.find(u => u.id === ticket.userId);
+      if (teacher) {
+        await dbStore.updateUser(teacher.id, {
+          delayedAttemptsCount: 0,
+          isBanned: false
+        });
+
+        if (teacher.schoolId) {
+          const schoolTeachers = users.filter(u => u.role === UserRole.TEACHER && u.schoolId === teacher.schoolId);
+          const anyBanned = schoolTeachers.some(t => t.isBanned && t.id !== teacher.id);
+          if (!anyBanned) {
+            await dbStore.updateSchool(teacher.schoolId, { isAccessLocked: false });
+          }
+        }
+      }
+    }
+
+    res.json({ success: true, ticketId: ticket.id, status });
+  });
+
   // Logbook
   app.get('/api/logbook', async (req, res) => {
     const user = getAuthUser(req);

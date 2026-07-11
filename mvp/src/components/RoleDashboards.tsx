@@ -1443,6 +1443,12 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [showIcrScanner, setShowIcrScanner] = useState(false);
   const [showBulkDiagnostic, setShowBulkDiagnostic] = useState(false);
 
+  // Grace Appeal state
+  const [appealReason, setAppealReason] = useState('');
+  const [appealLoading, setAppealLoading] = useState(false);
+  const [appealSuccess, setAppealSuccess] = useState(false);
+  const [appealError, setAppealError] = useState('');
+
   // Inline bulk generation state
   const [bulkJob, setBulkJob] = useState<{ jobId: string; total: number; completed: number; status: string; pdfUrl: string; downloadUrl: string | null; error: string } | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -1584,6 +1590,77 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       setRegError('Network error. Check connection settings.');
     }
   };
+
+  if (user.isBanned) {
+    return (
+      <div className="max-w-2xl mx-auto p-8 mt-12 bg-white rounded-2xl border border-red-200 shadow-sm text-center">
+        <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Account Suspended</h2>
+        <p className="text-slate-600 mb-8">
+          Your account has been temporarily suspended due to 3 delayed attempts in uploading diagnostic results. 
+          If you experienced technical difficulties or internet outages, please submit a Grace Appeal to restore your access.
+        </p>
+
+        {appealSuccess ? (
+          <div className="p-6 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-800">
+            <h3 className="font-bold text-lg mb-1">Appeal Submitted Successfully</h3>
+            <p className="text-sm">Your appeal is now under review by the Block Admin. You will be notified once a decision is made.</p>
+          </div>
+        ) : (
+          <form className="space-y-4 text-left" onSubmit={async (e) => {
+            e.preventDefault();
+            setAppealLoading(true);
+            setAppealError('');
+            try {
+              const res = await fetch('/api/tickets/appeal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                  teacherId: user.id,
+                  schoolId: user.schoolId,
+                  reasonForDelay: appealReason,
+                  timestamp: new Date().toISOString()
+                })
+              });
+              if (res.ok) {
+                setAppealSuccess(true);
+              } else {
+                const data = await res.json();
+                setAppealError(data.error || 'Failed to submit appeal.');
+              }
+            } catch (err) {
+              setAppealError('Network error. Check connection settings.');
+            } finally {
+              setAppealLoading(false);
+            }
+          }}>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Reason for Delay</label>
+              <textarea
+                required
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-h-[120px]"
+                placeholder="Please explain the circumstances (e.g., power failure, internet outage)..."
+                value={appealReason}
+                onChange={e => setAppealReason(e.target.value)}
+              />
+            </div>
+            {appealError && <div className="text-red-600 text-sm font-medium">{appealError}</div>}
+            <button
+              type="submit"
+              disabled={appealLoading}
+              className="w-full py-3 px-4 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {appealLoading ? 'Submitting...' : 'Submit Grace Appeal'}
+            </button>
+          </form>
+        )}
+      </div>
+    );
+  }
 
   if (showBulkDiagnostic) {
     return (

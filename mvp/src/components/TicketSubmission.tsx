@@ -15,6 +15,9 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const [activeTab, setActiveTab] = useState<'general' | 'appeals'>('general');
+  const [expandedAppeals, setExpandedAppeals] = useState<string[]>([]);
+
   const fetchTickets = async () => {
     try {
       const res = await fetch('/api/tickets', {
@@ -68,10 +71,16 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
     }
   };
 
-  const handleResolve = async (ticketId: string, nextStatus: 'Reviewed' | 'Resolved') => {
+  const handleResolve = async (ticketId: string, nextStatus: string) => {
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/resolve`, {
-        method: 'POST',
+      const endpoint = (nextStatus === 'APPROVED' || nextStatus === 'REJECTED') 
+        ? `/api/admin/tickets/${ticketId}/resolve` 
+        : `/api/tickets/${ticketId}/resolve`;
+        
+      const method = (nextStatus === 'APPROVED' || nextStatus === 'REJECTED') ? 'PATCH' : 'POST';
+
+      const res = await fetch(endpoint, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -80,22 +89,57 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
       });
       if (res.ok) {
         fetchTickets();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to update ticket');
       }
     } catch (err) {
       console.error('Failed to update ticket:', err);
+      alert('Failed to connect to server.');
     }
   };
 
+  const toggleExpand = (id: string) => {
+    if (expandedAppeals.includes(id)) {
+      setExpandedAppeals(expandedAppeals.filter(x => x !== id));
+    } else {
+      setExpandedAppeals([...expandedAppeals, id]);
+    }
+  };
+
+  const isAdminRole = [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(userRole);
+  
+  const displayTickets = tickets.filter(t => activeTab === 'general' ? t.type !== 'DEFAULTER_APPEAL' : t.type === 'DEFAULTER_APPEAL');
+
   return (
     <div className="space-y-6" id="ticket-submission">
-      <div className="border-b border-zinc-200 pb-4">
-        <h2 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">Pedagogical & Process Feedback Tickets</h2>
-        <p className="text-zinc-500 text-sm mt-1">Submit feedback on syllabus, exam timings, or report inconsistencies. Superadmins review all entries.</p>
+      <div className="border-b border-zinc-200 pb-4 flex justify-between items-end">
+        <div>
+          <h2 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">Pedagogical & Process Feedback Tickets</h2>
+          <p className="text-zinc-500 text-sm mt-1">Submit feedback on syllabus, exam timings, or report inconsistencies. Superadmins review all entries.</p>
+        </div>
       </div>
+      
+      {isAdminRole && (
+        <div className="flex gap-4 border-b border-zinc-200">
+          <button 
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'general' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+            onClick={() => setActiveTab('general')}
+          >
+            General Feedback
+          </button>
+          <button 
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'appeals' ? 'border-red-600 text-red-600' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+            onClick={() => setActiveTab('appeals')}
+          >
+            Defaulter Appeals
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Create ticket form or Admin Notice */}
-        {userRole !== UserRole.SUPERADMIN ? (
+        {userRole !== UserRole.SUPERADMIN && activeTab === 'general' ? (
           <div className="lg:col-span-1 bg-white p-6 border border-zinc-200 rounded-xl shadow-sm h-fit">
             <h3 className="text-lg font-display font-medium text-zinc-900 mb-4">Raise a New Ticket</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -150,13 +194,17 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
         ) : (
           <div className="lg:col-span-1 bg-zinc-900 text-white p-6 border border-zinc-800 rounded-xl shadow-sm h-fit space-y-4">
             <h3 className="text-base font-display font-semibold text-zinc-100 flex items-center gap-2">
-              🛡️ Superadmin Authority
+              🛡️ {activeTab === 'general' ? 'Superadmin Authority' : 'Appeals Authority'}
             </h3>
             <p className="text-zinc-400 text-xs leading-relaxed">
-              Superadmins act as the final resolution and compliance audit authority. Creating new feedback tickets is restricted at this level.
+              {activeTab === 'general' 
+                ? 'Superadmins act as the final resolution and compliance audit authority. Creating new feedback tickets is restricted at this level.'
+                : 'Review teacher grace appeals for locked out accounts. You can inspect their recent logbook activity to verify their technical difficulty claims.'}
             </p>
             <div className="p-3.5 bg-zinc-800/80 rounded-lg border border-zinc-700/50 text-[11px] text-zinc-300 leading-normal">
-              💡 Select any incoming ticket from the <strong>Global Review Queue</strong> to review historical comments, modify statuses, or input final resolutions.
+              💡 {activeTab === 'general' 
+                ? 'Select any incoming ticket from the Global Review Queue to review historical comments, modify statuses, or input final resolutions.'
+                : 'Approving an appeal automatically clears the teacher\'s strike count and restores their structural access to the platform.'}
             </div>
           </div>
         )}
@@ -164,27 +212,32 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
         {/* Tickets listing */}
         <div className="lg:col-span-2 space-y-4">
           <h3 className="text-lg font-display font-medium text-zinc-900">
-            {userRole === UserRole.SUPERADMIN ? 'Global Review Queue' : 'Your Submitted Tickets'}
+            {activeTab === 'appeals' ? 'Pending Defaulter Appeals' : (userRole === UserRole.SUPERADMIN ? 'Global Review Queue' : 'Your Submitted Tickets')}
           </h3>
 
-          {tickets.length === 0 ? (
+          {displayTickets.length === 0 ? (
             <div className="p-8 border border-dashed border-zinc-200 rounded-xl bg-zinc-50 text-center text-zinc-400 text-sm">
-              No active feedback tickets found.
+              No active {activeTab === 'appeals' ? 'appeals' : 'feedback tickets'} found.
             </div>
           ) : (
             <div className="space-y-3">
-              {tickets.map((t) => (
+              {displayTickets.map((t) => (
                 <div key={t.id} className="bg-white p-5 border border-zinc-200 rounded-xl shadow-sm space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${
-                          t.type === 'curriculum' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-blue-100 text-blue-800 border border-blue-200'
+                          t.type === 'curriculum' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 
+                          t.type === 'DEFAULTER_APPEAL' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-blue-100 text-blue-800 border border-blue-200'
                         }`}>
                           {t.type}
                         </span>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${
-                          t.status === 'Open' ? 'bg-red-100 text-red-800' : t.status === 'Reviewed' ? 'bg-indigo-100 text-indigo-800' : 'bg-green-100 text-green-800'
+                          t.status === 'Open' ? 'bg-red-100 text-red-800' : 
+                          t.status === 'Reviewed' ? 'bg-indigo-100 text-indigo-800' : 
+                          t.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
+                          t.status === 'REJECTED' ? 'bg-zinc-100 text-zinc-800' :
+                          'bg-green-100 text-green-800'
                         }`}>
                           {t.status}
                         </span>
@@ -196,29 +249,76 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
                     </span>
                   </div>
 
-                  <p className="text-zinc-600 text-xs leading-relaxed">{t.description}</p>
+                  <p className="text-zinc-600 text-xs leading-relaxed bg-zinc-50 p-3 rounded-lg border border-zinc-100">{t.description}</p>
+                  
+                  {t.type === 'DEFAULTER_APPEAL' && (
+                    <div className="mt-4">
+                      <button 
+                        onClick={() => toggleExpand(t.id)}
+                        className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      >
+                        {expandedAppeals.includes(t.id) ? 'Hide Logbook Metadata' : 'View Logbook Metadata'}
+                      </button>
+                      
+                      {expandedAppeals.includes(t.id) && t.metadata?.logbookContext && (
+                        <div className="mt-3 space-y-2 border-l-2 border-indigo-200 pl-3">
+                          {t.metadata.logbookContext.length === 0 ? (
+                            <div className="text-xs text-zinc-500 italic">No recent logbook activity found.</div>
+                          ) : (
+                            t.metadata.logbookContext.map(log => (
+                              <div key={log.id} className="text-[10px] bg-slate-50 p-2 rounded flex justify-between">
+                                <span className="font-mono text-slate-500">{new Date(log.timestamp).toLocaleString()}</span>
+                                <span className={`font-medium ${log.status === 'Success' ? 'text-green-600' : log.status === 'Failed' ? 'text-red-600' : 'text-amber-600'}`}>{log.status}</span>
+                                <span className="text-slate-700 w-1/2 truncate" title={log.details}>{log.details}</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex justify-between items-center pt-3 border-t border-zinc-100 text-[10px] text-zinc-400">
                     <div>
                       Filed by: <span className="font-medium text-zinc-700">{t.userName}</span> ({t.userRole})
+                      {t.metadata?.schoolId && <span className="ml-2">School: {t.metadata.schoolId}</span>}
                     </div>
 
-                    {userRole === UserRole.SUPERADMIN && t.status !== 'Resolved' && (
+                    {(isAdminRole) && t.status !== 'Resolved' && t.status !== 'APPROVED' && t.status !== 'REJECTED' && (
                       <div className="flex gap-2">
-                        {t.status === 'Open' && (
-                          <button
-                            onClick={() => handleResolve(t.id, 'Reviewed')}
-                            className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-medium px-2 py-1 rounded"
-                          >
-                            Mark Reviewed
-                          </button>
+                        {t.type === 'DEFAULTER_APPEAL' ? (
+                          <>
+                            <button
+                              onClick={() => handleResolve(t.id, 'APPROVED')}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2 py-1 rounded cursor-pointer"
+                            >
+                              Approve Appeal
+                            </button>
+                            <button
+                              onClick={() => handleResolve(t.id, 'REJECTED')}
+                              className="bg-zinc-200 hover:bg-zinc-300 text-zinc-800 font-medium px-2 py-1 rounded cursor-pointer"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {t.status === 'Open' && (
+                              <button
+                                onClick={() => handleResolve(t.id, 'Reviewed')}
+                                className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-medium px-2 py-1 rounded cursor-pointer"
+                              >
+                                Mark Reviewed
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleResolve(t.id, 'Resolved')}
+                              className="bg-green-600 hover:bg-green-700 text-white font-medium px-2 py-1 rounded cursor-pointer"
+                            >
+                              Resolve Issue
+                            </button>
+                          </>
                         )}
-                        <button
-                          onClick={() => handleResolve(t.id, 'Resolved')}
-                          className="bg-green-600 hover:bg-green-700 text-white font-medium px-2 py-1 rounded"
-                        >
-                          Resolve Issue
-                        </button>
                       </div>
                     )}
                   </div>
