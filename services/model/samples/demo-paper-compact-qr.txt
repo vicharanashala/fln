@@ -1,0 +1,1 @@
+stu_demo_001|demo-paper-compact|asm_demo_compact_math

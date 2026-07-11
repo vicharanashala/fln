@@ -21,6 +21,12 @@ interface QuestionTemplateEntry {
   questionId: string;
   questionLabel: string;
   questionType: 'text' | 'multiple_choice' | 'match_pair' | 'fill_blank';
+  prompt: string;
+  answerKey: string;
+  answerType: Question['answer_type'];
+  choices?: string[];
+  marks: number;
+  autoScoreEligible: boolean;
   questionBox: RoiRect;
   answerBoxes: RoiRect[];
   anchor: RoiRect;
@@ -217,6 +223,12 @@ export async function generateScanTemplatePaper({
         questionId: q.question_id,
         questionLabel: label,
         questionType,
+        prompt: q.question,
+        answerKey: q.answer,
+        answerType: q.answer_type,
+        choices: q.choices,
+        marks: 1,
+        autoScoreEligible: questionType === 'text' || questionType === 'fill_blank',
         questionBox: toTopLeftRect(pageHeight, left, boxY, boxWidth, boxHeight),
         answerBoxes,
         anchor: toTopLeftRect(pageHeight, anchorX, anchorY, 10, 10)

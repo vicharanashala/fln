@@ -1,0 +1,29 @@
+[project]
+name = "smartfln-model"
+version = "0.1.0"
+description = "SmartFLN computer vision and handwriting recognition workspace"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=1.26",
+  "pillow>=10"
+]
+
+[project.optional-dependencies]
+vision = [
+  "opencv-python-headless>=4.9"
+]
+ocr = [
+  "easyocr>=1.7",
+  "pytesseract>=0.3",
+  "transformers>=4.40,<5",
+  "torch>=2.3",
+  "sentencepiece>=0.2",
+  "protobuf>=4.25"
+]
+paddle = [
+  "paddleocr>=2.7"
+]
+
+[tool.smartfln]
+workspace = "services/model"
+status = "mvp-pipeline"

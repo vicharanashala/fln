@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SmartFLN Model Inference Contract",
+  "type": "object",
+  "required": ["scanPageId", "assessmentId", "studentId", "crops"],
+  "properties": {
+    "scanPageId": { "type": "string" },
+    "assessmentId": { "type": "string" },
+    "studentId": { "type": "string" },
+    "crops": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["questionId", "questionType", "prompt", "imageDataUrl"],
+        "properties": {
+          "questionId": { "type": "string" },
+          "questionType": {
+            "type": "string",
+            "enum": ["mcq", "numeric", "short_text", "matching"]
+          },
+          "prompt": { "type": "string" },
+          "answerKey": {},
+          "imageDataUrl": { "type": "string" }
+        }
+      }
+    }
+  }
+}

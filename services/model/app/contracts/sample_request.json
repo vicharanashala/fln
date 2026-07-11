@@ -1,0 +1,14 @@
+{
+  "scanPageId": "sp_demo",
+  "assessmentId": "asm_demo_math_baseline",
+  "studentId": "stu_demo_001",
+  "crops": [
+    {
+      "questionId": "q_demo_2",
+      "questionType": "numeric",
+      "prompt": "Solve 2 + 3.",
+      "answerKey": "5",
+      "imageDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+    }
+  ]
+}

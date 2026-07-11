@@ -18,7 +18,7 @@ async function startServer() {
   await dbStore.init();
 
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '25mb' }));
 
   // Serve Puppeteer output PDF sheets statically
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
@@ -922,6 +922,285 @@ async function startServer() {
       console.error('Level worksheet generation failed:', err);
       res.status(500).json({ success: false, error: err.message });
     }
+  });
+
+  type ScanQrIdentity = { studentId?: string; paperId?: string; testId?: string; pageNumber?: number; raw: string };
+
+  function parseScanQrPayload(rawText: string): ScanQrIdentity {
+    const raw = String(rawText || '').trim();
+    const parsed: ScanQrIdentity = { raw };
+    if (!raw) return parsed;
+
+    if (raw.startsWith('{')) {
+      try {
+        const payload = JSON.parse(raw);
+        return {
+          studentId: payload.student_id || payload.studentId,
+          paperId: payload.paper_id || payload.paperId || payload.paperPageId,
+          testId: payload.test_id || payload.testId || payload.assessmentId,
+          pageNumber: Number(payload.page || payload.pageNumber || 1),
+          raw
+        };
+      } catch {
+        return parsed;
+      }
+    }
+
+    if (raw.includes('|') && !raw.includes(':')) {
+      const [studentId, paperId, testId, page] = raw.split('|').map(part => part.trim());
+      return { studentId, paperId, testId, pageNumber: Number(page) || 1, raw };
+    }
+
+    raw.split('|').forEach(part => {
+      const [rawKey, ...rest] = part.split(':');
+      const key = rawKey.trim().toUpperCase();
+      const value = rest.join(':').trim();
+      if (key === 'SID' || key === 'STUDENT' || key === 'STUDENT_ID') parsed.studentId = value;
+      if (key === 'PAPER' || key === 'PAPER_ID') parsed.paperId = value;
+      if (key === 'TEST' || key === 'TEST_ID') parsed.testId = value;
+      if (key === 'PAGE' || key === 'PAGE_NUMBER') parsed.pageNumber = Number(value) || 1;
+    });
+    return parsed;
+  }
+
+  function latestTemplateForPaper(paperId: string) {
+    const outputDir = path.join(ROOT_DIR, 'output');
+    if (!fs.existsSync(outputDir)) return null;
+    const templateFiles = fs.readdirSync(outputDir)
+      .filter(name => name.endsWith('.template.json'))
+      .map(name => ({ name, fullPath: path.join(outputDir, name), mtime: fs.statSync(path.join(outputDir, name)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+
+    for (const file of templateFiles) {
+      try {
+        const template = JSON.parse(fs.readFileSync(file.fullPath, 'utf-8'));
+        const paperTemplate = (template.papers || []).find((paper: any) => paper.paperId === paperId);
+        if (paperTemplate) return { file, template, paperTemplate };
+      } catch {
+        // Ignore malformed generated artifacts.
+      }
+    }
+    return null;
+  }
+
+  function questionFromScanTemplate(q: any, student: Student): Question {
+    const questionType = q.questionType || 'text';
+    const fallbackAnswers: Record<string, string> = {
+      text: '48',
+      multiple_choice: 'B',
+      match_pair: 'One-1, Three-3, Five-5',
+      fill_blank: '4'
+    };
+    return {
+      question_id: q.questionId,
+      question: q.prompt || `${q.questionLabel} ${questionType.replace('_', ' ')}`,
+      answer: q.answerKey || fallbackAnswers[questionType] || '',
+      answer_type: q.answerType || (questionType === 'multiple_choice' ? 'choice' : 'text'),
+      choices: q.choices,
+      topic: questionType,
+      subtopic: 'scan-template',
+      difficulty: 'medium',
+      source_level: student.currentLevel || 1
+    };
+  }
+
+  app.post('/api/ocr/scan/template', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const identity = parseScanQrPayload(req.body?.qrText || '');
+    if (!identity.studentId || !identity.paperId || !identity.testId) {
+      return res.status(400).json({ error: 'QR must include student ID, paper ID, and test ID.', detectedQr: identity });
+    }
+
+    const templateMatch = latestTemplateForPaper(identity.paperId);
+    if (!templateMatch) {
+      return res.status(404).json({ error: `No scan template JSON found for paper ${identity.paperId}. Generate the paper again from this MVP instance.` });
+    }
+
+    const students = await dbStore.getStudents();
+    const student = students.find(s => s.id === identity.studentId);
+    if (!student) return res.status(404).json({ error: `Student ${identity.studentId} was not found.` });
+
+    const questions = (templateMatch.paperTemplate.questions || []).map((q: any) => questionFromScanTemplate(q, student));
+    res.json({
+      detectedQr: {
+        studentId: identity.studentId,
+        paperId: identity.paperId,
+        testId: identity.testId,
+        pageNumber: identity.pageNumber || 1,
+        raw: identity.raw
+      },
+      student,
+      paper: {
+        id: identity.paperId,
+        testId: identity.testId,
+        pageNumber: identity.pageNumber || 1,
+        page: templateMatch.paperTemplate.page,
+        templateVersion: templateMatch.paperTemplate.templateVersion || templateMatch.template.templateVersion,
+        qrSchema: templateMatch.paperTemplate.qrSchema || templateMatch.template.qrSchema,
+        questions: templateMatch.paperTemplate.questions || [],
+        questionModels: questions,
+        templateUrl: `/output/${templateMatch.file.name}`
+      }
+    });
+  });
+
+  app.post('/api/ocr/trocr', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { imageDataUrl, questionId, questionType, prompt, expectedAnswer, studentId, paperId, testId } = req.body || {};
+    if (!imageDataUrl || !questionId) {
+      return res.status(400).json({ error: 'imageDataUrl and questionId are required.' });
+    }
+
+    const serviceUrl = process.env.SMARTFLN_MODEL_SERVICE_URL || process.env.SMARTFLN_TROCR_URL || process.env.TROCR_SERVICE_URL || '';
+    if (!serviceUrl) {
+      return res.json({
+        questionId,
+        extractedText: '',
+        confidence: 0,
+        modelName: 'microsoft/trocr-base-handwritten',
+        modelStatus: 'not_configured',
+        needsReview: true,
+        error: 'TrOCR service is not configured. Set SMARTFLN_MODEL_SERVICE_URL to the dev-2 model service, for example http://127.0.0.1:8090.'
+      });
+    }
+
+    try {
+      const inferUrl = serviceUrl.endsWith('/v1/infer') ? serviceUrl : `${serviceUrl.replace(/\/$/, '')}/v1/infer`;
+      const modelQuestionType =
+        questionType === 'fill_blank' ? 'numeric' :
+          questionType === 'multiple_choice' ? 'mcq' :
+            questionType === 'match_pair' ? 'matching' :
+              'short_text';
+      const trocrRes = await fetch(inferUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanPageId: paperId || questionId,
+          assessmentId: testId || paperId || 'scan-template',
+          studentId: studentId || 'unknown',
+          crops: [{
+            questionId,
+            questionType: modelQuestionType,
+            prompt: prompt || '',
+            answerKey: expectedAnswer || '',
+            imageDataUrl
+          }]
+        })
+      });
+      const data = await trocrRes.json().catch(() => ({}));
+      if (!trocrRes.ok) {
+        return res.json({
+          questionId,
+          extractedText: '',
+          confidence: 0,
+          modelName: 'microsoft/trocr-base-handwritten',
+          modelStatus: 'service_error',
+          needsReview: true,
+          error: data.error || data.message || `TrOCR service returned HTTP ${trocrRes.status}`
+        });
+      }
+      const result = Array.isArray(data.results) ? data.results.find((item: any) => item.questionId === questionId) || data.results[0] : data;
+      const confidence = Math.max(0, Math.min(1, Number(result.confidence ?? result.score ?? result.diagnostics?.scoring?.confidence ?? 0)));
+      res.json({
+        questionId,
+        extractedText: String(result.recognizedAnswer ?? result.extractedText ?? result.text ?? result.recognized_text ?? ''),
+        confidence,
+        modelName: result.modelName || result.model_name || 'microsoft/trocr-base-handwritten',
+        modelStatus: result.providerStatus || result.modelStatus || result.status || 'ok',
+        modelVersion: result.modelVersion || '',
+        needsReview: Boolean(result.needsReview ?? confidence < 0.4),
+        diagnostics: result.diagnostics || {}
+      });
+    } catch (error: any) {
+      res.json({
+        questionId,
+        extractedText: '',
+        confidence: 0,
+        modelName: 'microsoft/trocr-base-handwritten',
+        modelStatus: 'unreachable',
+        needsReview: true,
+        error: error.message || 'TrOCR service is unreachable.'
+      });
+    }
+  });
+
+  app.post('/api/ocr/scan/finalize', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { studentId, paperId, testId, reviewItems } = req.body || {};
+    if (!studentId || !paperId || !Array.isArray(reviewItems)) {
+      return res.status(400).json({ error: 'studentId, paperId, and reviewItems are required.' });
+    }
+
+    const students = await dbStore.getStudents();
+    const student = students.find(s => s.id === studentId);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+    const unresolved = reviewItems.some((item: any) => item.needsReview && !item.finalMark);
+    if (unresolved) return res.status(400).json({ error: 'Every volunteer-review answer must be marked before saving.' });
+
+    const answers: { [questionId: string]: string } = {};
+    reviewItems.forEach((item: any) => {
+      answers[item.questionId] = JSON.stringify({
+        finalMark: item.finalMark,
+        marks: Number(item.marks || 0),
+        confidence: Number(item.confidence || 0),
+        ocrOutput: item.extractedText || '',
+        expectedAnswer: item.expectedAnswer || '',
+        reviewStatus: item.needsReview ? 'volunteer_reviewed' : 'auto_evaluated',
+        modelName: item.modelName || '',
+        questionType: item.questionType || '',
+        roi: item.roi || null
+      });
+    });
+
+    const score = reviewItems.reduce((sum: number, item: any) => sum + Number(item.marks || 0), 0);
+    const submission: AnswerSubmission = {
+      id: 'sub_scan_' + Date.now(),
+      worksheetId: paperId,
+      studentId: student.id,
+      studentName: student.name,
+      schoolId: student.schoolId,
+      classId: student.classGroup,
+      submittedAt: new Date().toISOString(),
+      isDelayed: false,
+      answers
+    };
+    await dbStore.addAnswerSubmission(submission);
+
+    const report: EvaluationReport = {
+      id: 'rep_scan_' + Date.now(),
+      studentId: student.id,
+      worksheetId: paperId,
+      score,
+      totalQuestions: reviewItems.length,
+      conceptMastery: { OCR: score >= reviewItems.length * 0.7 ? 'Strong' : 'Needs Practice' },
+      narrative: `OCR scan saved for ${student.name}. Test ${testId || paperId} scored ${score}/${reviewItems.length}; confidence, OCR output, marks, and review status were stored per question.`,
+      recommendedLevel: student.currentLevel,
+      recommendedSubLevel: student.currentSubLevel || 0,
+      timestamp: new Date().toISOString()
+    };
+    await dbStore.addEvaluationReport(report);
+
+    await dbStore.addLog({
+      id: 'log_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      schoolId: student.schoolId,
+      schoolName: 'GPS',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'scan',
+      status: 'Success',
+      details: `OCR scan finalized for ${student.name}.`
+    });
+
+    res.json({ submission, report });
   });
 
   // Submit Completed Worksheet (ICR Structured Ingestion) & Scoring Engine
