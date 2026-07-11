@@ -3595,5 +3595,13 @@
       "createdAt": "2026-07-04T10:00:00Z"
     }
   ],
-  "announcementReads": []
+  "announcementReads": [
+    {
+      "id": "read_ann1_u6",
+      "announcementId": "ann1",
+      "userId": "u6",
+      "userEmail": "gps-mt-001.t01@fln.org",
+      "readAt": "2026-07-11T06:35:25.975Z"
+    }
+  ]
 }

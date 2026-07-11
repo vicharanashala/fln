@@ -122,7 +122,13 @@ async function startServer() {
   // Announcements
   app.get('/api/announcements', async (req, res) => {
     const anns = await dbStore.getAnnouncements();
-    res.json(anns);
+    const user = getAuthUser(req);
+    if (!user) return res.json(anns);
+
+    const reads = await dbStore.getAnnouncementReads();
+    const readIds = new Set(reads.filter(r => r.userId === user.id).map(r => r.announcementId));
+    const withReadStatus = anns.map(a => ({ ...a, readByMe: readIds.has(a.id) }));
+    res.json(withReadStatus);
   });
 
   app.post('/api/announcements/create', async (req, res) => {
@@ -156,6 +162,79 @@ async function startServer() {
     });
 
     res.json(newAnn);
+  });
+
+  app.post('/api/announcements/:id/read', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const anns = await dbStore.getAnnouncements();
+    const ann = anns.find(a => a.id === req.params.id);
+    if (!ann) return res.status(404).json({ error: 'Announcement not found.' });
+
+    const read = await dbStore.addAnnouncementRead({
+      id: 'read_' + req.params.id + '_' + user.id,
+      announcementId: req.params.id,
+      userId: user.id,
+      userEmail: user.email,
+      readAt: new Date().toISOString()
+    });
+
+    res.json(read);
+  });
+
+  app.get('/api/announcements/:id/reads', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.SUPERADMIN) {
+      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
+    }
+
+    const anns = await dbStore.getAnnouncements();
+    const ann = anns.find(a => a.id === req.params.id);
+    if (!ann) return res.status(404).json({ error: 'Announcement not found.' });
+
+    const allUsers = await dbStore.getUsers();
+    const reads = await dbStore.getAnnouncementReads();
+    const annReads = reads.filter(r => r.announcementId === req.params.id);
+    const readUserIds = new Set(annReads.map(r => r.userId));
+
+    const recipients = allUsers.filter(u => u.role !== UserRole.SUPERADMIN);
+    const readUsers = recipients.filter(u => readUserIds.has(u.id));
+    const unreadUsers = recipients.filter(u => !readUserIds.has(u.id));
+
+    const timestamps = annReads.map(r => new Date(r.readAt).getTime());
+    const firstViewedAt = timestamps.length ? new Date(Math.min(...timestamps)).toISOString() : null;
+    const lastViewedAt = timestamps.length ? new Date(Math.max(...timestamps)).toISOString() : null;
+
+    const byRole: Record<string, { read: number; total: number }> = {};
+    for (const r of recipients) {
+      if (!byRole[r.role]) byRole[r.role] = { read: 0, total: 0 };
+      byRole[r.role].total++;
+      if (readUserIds.has(r.id)) byRole[r.role].read++;
+    }
+
+    const byDistrict: Record<string, { read: number; total: number }> = {};
+    for (const r of recipients) {
+      const d = r.districtCode;
+      if (!d) continue;
+      if (!byDistrict[d]) byDistrict[d] = { read: 0, total: 0 };
+      byDistrict[d].total++;
+      if (readUserIds.has(r.id)) byDistrict[d].read++;
+    }
+
+    res.json({
+      announcementId: req.params.id,
+      totalRecipients: recipients.length,
+      readCount: readUsers.length,
+      unreadCount: unreadUsers.length,
+      readPercent: recipients.length ? Math.round((readUsers.length / recipients.length) * 1000) / 10 : 0,
+      firstViewedAt,
+      lastViewedAt,
+      byRole,
+      byDistrict,
+      readUsers: readUsers.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role })),
+      unreadUsers: unreadUsers.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role }))
+    });
   });
 
   // Tickets (In-App Feedback)
