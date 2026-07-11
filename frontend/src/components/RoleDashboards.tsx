@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, UserRole, Student, ClassGroup, School, LogEntry, Ticket } from '../types';
 import { DiagnosticWorkflow } from './DiagnosticWorkflow';
 import { BulkDiagnosticWorkflow } from './BulkDiagnosticWorkflow';
@@ -496,6 +496,55 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [loading, setLoading] = useState(false);
   const [coordinatorsList, setCoordinatorsList] = useState<User[]>([]);
 
+  const [stateFilter, setStateFilter] = useState('');
+  const [districtFilter, setDistrictFilter] = useState('');
+  const [schoolFilter, setSchoolFilter] = useState('');
+
+  const stateFilterOptions = useMemo(() => {
+    return Array.from(new Set(coordinatorsList.map(c => c.stateCode).filter(Boolean)))
+      .sort();
+  }, [coordinatorsList]);
+
+  const districtFilterOptions = useMemo(() => {
+    return Array.from(new Set(
+      coordinatorsList
+        .filter(c => !stateFilter || c.stateCode === stateFilter)
+        .map(c => c.districtCode)
+        .filter(Boolean)
+    )).sort();
+  }, [coordinatorsList, stateFilter]);
+
+  const schoolFilterOptions = useMemo(() => {
+    return Array.from(new Set(
+      coordinatorsList
+        .filter(c => (!stateFilter || c.stateCode === stateFilter) && (!districtFilter || c.districtCode === districtFilter))
+        .map(c => c.schoolId)
+        .filter(Boolean)
+    )).sort();
+  }, [coordinatorsList, stateFilter, districtFilter]);
+
+  const filteredCoordinators = useMemo(() => {
+    return coordinatorsList.filter(c => {
+      if (stateFilter && c.stateCode !== stateFilter) return false;
+      if (districtFilter && c.districtCode !== districtFilter) return false;
+      if (schoolFilter && c.schoolId !== schoolFilter) return false;
+      return true;
+    });
+  }, [coordinatorsList, stateFilter, districtFilter, schoolFilter]);
+
+  const schoolNameById = useMemo(() => {
+    return schools.reduce<Record<string, string>>((map, school) => {
+      map[school.id] = school.name;
+      return map;
+    }, {});
+  }, [schools]);
+
+  const resetCoordinatorFilters = () => {
+    setStateFilter('');
+    setDistrictFilter('');
+    setSchoolFilter('');
+  };
+
   const fetchGlobalData = async () => {
     try {
       const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -884,7 +933,70 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
           {/* Coordinators lists */}
           <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-lg font-display font-medium text-zinc-900">Registered Coordinators Index</h3>
+            <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-end gap-3 justify-between">
+              <div>
+                <h3 className="text-lg font-display font-medium text-zinc-900">Registered Coordinators Index</h3>
+                <p className="text-xs text-zinc-500">Filter coordinator records by state, district, and school.</p>
+              </div>
+              <button
+                onClick={resetCoordinatorFilters}
+                className="text-xs font-semibold text-indigo-700 hover:underline"
+              >
+                Reset filters
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">State</label>
+                <select
+                  value={stateFilter}
+                  onChange={(e) => {
+                    setStateFilter(e.target.value);
+                    setDistrictFilter('');
+                    setSchoolFilter('');
+                  }}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                >
+                  <option value="">All states</option>
+                  {stateFilterOptions.map(code => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">District</label>
+                <select
+                  value={districtFilter}
+                  onChange={(e) => {
+                    setDistrictFilter(e.target.value);
+                    setSchoolFilter('');
+                  }}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                >
+                  <option value="">All districts</option>
+                  {districtFilterOptions.map(code => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">School</label>
+                <select
+                  value={schoolFilter}
+                  onChange={(e) => setSchoolFilter(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                >
+                  <option value="">All schools</option>
+                  {schoolFilterOptions.map(id => (
+                    <option key={id} value={id}>{schoolNameById[id] ? `${schoolNameById[id]} (${id})` : id}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
             {(() => {
               const coordinatorColumns: Column<User>[] = [
                 { header: 'Coordinator Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-900' },
@@ -908,7 +1020,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 }
               ];
               return (
-                <Table data={coordinatorsList} columns={coordinatorColumns} searchPlaceholder="Search coordinators..." searchKey="name" />
+                <Table data={filteredCoordinators} columns={coordinatorColumns} searchPlaceholder="Search coordinators..." searchKey="name" />
               );
             })()}
           </div>
