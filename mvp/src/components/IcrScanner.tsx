@@ -381,7 +381,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, onBack }) => {
 
       for (const question of paper.questions as TemplateQuestion[]) {
         const textBased = isTextQuestion(question.questionType);
-        const roi = textBased ? question.answerBoxes?.[0] : (question.answerBoxes?.[0] || question.questionBox);
+        const roi = textBased ? question.answerBoxes?.[0] : question.questionBox;
         const maxMarks = Number(question.marks || 1);
         const cropImageDataUrl = roi ? cropRoiFromImage(loadedImage, paper.page, roi, pageFrame) : '';
         const baseItem: ReviewItem = {
