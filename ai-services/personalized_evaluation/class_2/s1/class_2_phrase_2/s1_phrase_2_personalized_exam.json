@@ -1,0 +1,85 @@
+{
+  "exam_id": "PERSONALIZED_C2_WORKSHEET_PHRASE_1_s1",
+  "class": 2,
+  "phrase": "phrase_2",
+  "is_personalized": true,
+  "original_student_id": "s1",
+  "original_exam": "C2_WORKSHEET_PHRASE_1",
+  "original_phrase": "phrase_1",
+  "generated_date": "2026-07-08",
+  "total_questions": 6,
+  "questions": [
+    {
+      "question_id": "Q1",
+      "question": "Draw a line to match each object. Left: \u2606 \u2606 \u2606. Right: \u25cb \u25cb \u25cb. Match one star to one circle.",
+      "answer": "matched",
+      "answer_type": "text",
+      "topic": "Number Sense",
+      "subtopic": "One-to-One Correspondence",
+      "class_level": 2,
+      "difficulty": "e",
+      "source_level": "Preschool 1",
+      "reasoning": "Covers subtopic: One-to-One Correspondence - Match objects one-to-one"
+    },
+    {
+      "question_id": "Q2",
+      "question": "Circle the objects that are big. (Images: big ball, small ball, big book, small pencil)",
+      "answer": "big ball, big book",
+      "answer_type": "text",
+      "topic": "Number Sense",
+      "subtopic": "Classification",
+      "class_level": 2,
+      "difficulty": "e",
+      "source_level": "Preschool 1",
+      "reasoning": "Covers subtopic: Classification - Compare objects by one property"
+    },
+    {
+      "question_id": "Q38",
+      "question": "In the number 46, how many tens and how many ones?",
+      "answer": "4 tens and 6 ones",
+      "answer_type": "text",
+      "topic": "Number Sense",
+      "subtopic": "Place Value (2-Digit)",
+      "class_level": 2,
+      "difficulty": "hard",
+      "source_level": "Class 2",
+      "reasoning": "Covers subtopic: Place Value (2-Digit) - Represent 2-digit numbers as tens and ones, understand place value"
+    },
+    {
+      "question_id": "Q39",
+      "question": "Write the number that comes after 99.",
+      "answer": 100,
+      "answer_type": "numeric",
+      "topic": "Number Sense",
+      "subtopic": "Numbers up to 100",
+      "class_level": 2,
+      "difficulty": "hard",
+      "source_level": "Class 2",
+      "reasoning": "Covers subtopic: Numbers up to 100 - Count, read, write, and sequence numbers up to 100"
+    },
+    {
+      "question_id": "Q51",
+      "question": "Add: 47 + 25 = ?",
+      "answer": 72,
+      "answer_type": "numeric",
+      "topic": "Number Operations",
+      "subtopic": "Addition (Up to 99, With Carry)",
+      "class_level": 2,
+      "difficulty": "hard",
+      "source_level": "Class 2",
+      "reasoning": "Covers subtopic: Addition (Up to 99, With Carry) - Add 2-digit numbers with carrying"
+    },
+    {
+      "question_id": "Q52",
+      "question": "Subtract: 63 - 28 = ?",
+      "answer": 35,
+      "answer_type": "numeric",
+      "topic": "Number Operations",
+      "subtopic": "Subtraction (Up to 99, With Borrow)",
+      "class_level": 2,
+      "difficulty": "hard",
+      "source_level": "Class 2",
+      "reasoning": "Covers subtopic: Subtraction (Up to 99, With Borrow) - Subtract 2-digit numbers with borrowing"
+    }
+  ]
+}
