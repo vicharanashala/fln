@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement } from './db';
+import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
@@ -1071,6 +1071,29 @@ async function startServer() {
       });
     }
 
+    // Auto-detect intervention outcomes
+    const interventions = await dbStore.getInterventions();
+    const activeInterventions = interventions.filter(
+      i => i.studentId === studentId && i.status === 'active' && !i.outcome
+    );
+    for (const intv of activeInterventions) {
+      const improved = evaluation.recommendedLevel > intv.currentLevel;
+      await dbStore.updateIntervention(intv.id, {
+        status: 'completed',
+        endDate: now.toISOString().split('T')[0],
+        outcome: {
+          improved,
+          previousLevel: intv.currentLevel,
+          newLevel: evaluation.recommendedLevel,
+          improvementDetails: improved
+            ? `Auto-detected: Student improved from Level ${intv.currentLevel} to Level ${evaluation.recommendedLevel} after intervention targeting ${intv.weakCompetencies.join(', ')}.`
+            : `Auto-detected: Student remained at Level ${intv.currentLevel} after intervention. Further remediation may be needed.`,
+          assessmentId: report.id,
+          detectedAt: now.toISOString()
+        }
+      });
+    }
+
     res.json({ submission, report, evaluation });
   });
 
@@ -1555,6 +1578,192 @@ async function startServer() {
     } catch (err: any) {
       res.status(500).json({ error: err?.message || 'Failed to generate diagnostic.' });
     }
+  });
+
+  // --- Intervention Tracking & Best Practices Repository ---
+
+  // Create a new intervention
+  app.post('/api/interventions', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.TEACHER) {
+      return res.status(403).json({ error: 'Only teachers can record interventions.' });
+    }
+    const { studentId, weakCompetencies, strategyType, strategyDescription, duration, startDate } = req.body;
+    if (!studentId || !weakCompetencies?.length || !strategyType || !strategyDescription) {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+    const students = await dbStore.getStudents();
+    const student = students.find(s => s.id === studentId);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+    const intervention: Intervention = {
+      id: 'int_' + randomUUID().slice(0, 8),
+      studentId,
+      studentName: student.name,
+      teacherId: user.id,
+      teacherName: user.name,
+      schoolId: user.schoolId || student.schoolId,
+      classId: student.classGroup,
+      className: student.classGroup,
+      section: student.section,
+      weakCompetencies,
+      currentLevel: student.currentLevel,
+      strategyType,
+      strategyDescription,
+      duration: duration || '2 weeks',
+      startDate: startDate || new Date().toISOString().split('T')[0],
+      status: 'active',
+      isPromoted: false,
+      createdAt: new Date().toISOString()
+    };
+    await dbStore.addIntervention(intervention);
+    await dbStore.addLog({
+      id: 'log_' + randomUUID().slice(0, 8),
+      timestamp: new Date().toISOString(),
+      schoolId: user.schoolId || '',
+      schoolName: '',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'verify',
+      status: 'Success',
+      details: `INTERVENTION: Recorded remedial intervention for ${student.name} — Strategy: ${strategyType}`
+    });
+    res.json(intervention);
+  });
+
+  // List interventions (role-scoped)
+  app.get('/api/interventions', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    let interventions = await dbStore.getInterventions();
+
+    if (user.role === UserRole.TEACHER) {
+      interventions = interventions.filter(i => i.teacherId === user.id);
+    } else if (user.role === UserRole.SCHOOL) {
+      interventions = interventions.filter(i => i.schoolId === user.schoolId);
+    } else if (user.role === UserRole.VOLUNTEER) {
+      const assignedSchools = user.assignedSchools || [];
+      interventions = interventions.filter(i => assignedSchools.includes(i.schoolId));
+    } else if (user.role === UserRole.BLOCK_ADMIN) {
+      const schools = await dbStore.getSchools();
+      const blockSchools = schools.filter(s => s.blockCode === user.blockCode).map(s => s.id);
+      interventions = interventions.filter(i => blockSchools.includes(i.schoolId));
+    }
+    // District Admin, Admin, Superadmin see all
+    res.json(interventions);
+  });
+
+  // Get single intervention
+  app.get('/api/interventions/:id', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const interventions = await dbStore.getInterventions();
+    const intervention = interventions.find(i => i.id === req.params.id);
+    if (!intervention) return res.status(404).json({ error: 'Intervention not found.' });
+    res.json(intervention);
+  });
+
+  // Promote intervention to Best Practice (teacher only)
+  app.post('/api/interventions/:id/promote', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.TEACHER) {
+      return res.status(403).json({ error: 'Only teachers can promote interventions.' });
+    }
+    const interventions = await dbStore.getInterventions();
+    const intervention = interventions.find(i => i.id === req.params.id);
+    if (!intervention) return res.status(404).json({ error: 'Intervention not found.' });
+    if (intervention.teacherId !== user.id) {
+      return res.status(403).json({ error: 'You can only promote your own interventions.' });
+    }
+    if (!intervention.outcome?.improved) {
+      return res.status(400).json({ error: 'Only interventions with confirmed improvement can be promoted.' });
+    }
+    if (intervention.isPromoted) {
+      return res.status(400).json({ error: 'This intervention is already promoted.' });
+    }
+
+    const bp: BestPractice = {
+      id: 'bp_' + randomUUID().slice(0, 8),
+      interventionId: intervention.id,
+      teacherId: intervention.teacherId,
+      teacherName: intervention.teacherName,
+      schoolId: intervention.schoolId,
+      weakCompetencies: intervention.weakCompetencies,
+      strategyType: intervention.strategyType,
+      strategyDescription: intervention.strategyDescription,
+      levelBefore: intervention.outcome.previousLevel,
+      levelAfter: intervention.outcome.newLevel || intervention.outcome.previousLevel,
+      levelJump: (intervention.outcome.newLevel || 0) - intervention.outcome.previousLevel,
+      duration: intervention.duration,
+      tags: [
+        ...intervention.weakCompetencies,
+        intervention.strategyType.replace('_', ' '),
+        intervention.className
+      ],
+      viewCount: 0,
+      createdAt: new Date().toISOString()
+    };
+
+    await dbStore.addBestPractice(bp);
+    await dbStore.updateIntervention(intervention.id, { isPromoted: true, promotedAt: new Date().toISOString() });
+
+    await dbStore.addLog({
+      id: 'log_' + randomUUID().slice(0, 8),
+      timestamp: new Date().toISOString(),
+      schoolId: user.schoolId || '',
+      schoolName: '',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'verify',
+      status: 'Success',
+      details: `BEST PRACTICE: Teacher ${user.name} promoted intervention for ${intervention.studentName} to Best Practices Repository`
+    });
+    res.json(bp);
+  });
+
+  // Search/list Best Practices Repository (all roles)
+  app.get('/api/best-practices', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    let bestPractices = await dbStore.getBestPractices();
+    const { search, competency, strategy, sort } = req.query;
+
+    if (search && typeof search === 'string') {
+      const q = search.toLowerCase();
+      bestPractices = bestPractices.filter(bp =>
+        bp.strategyDescription.toLowerCase().includes(q) ||
+        bp.teacherName.toLowerCase().includes(q) ||
+        bp.weakCompetencies.some(c => c.toLowerCase().includes(q)) ||
+        bp.tags.some(t => t.toLowerCase().includes(q))
+      );
+    }
+    if (competency && typeof competency === 'string') {
+      bestPractices = bestPractices.filter(bp => bp.weakCompetencies.includes(competency));
+    }
+    if (strategy && typeof strategy === 'string') {
+      bestPractices = bestPractices.filter(bp => bp.strategyType === strategy);
+    }
+    if (sort === 'level_jump') {
+      bestPractices.sort((a, b) => b.levelJump - a.levelJump);
+    } else {
+      bestPractices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    res.json(bestPractices);
+  });
+
+  // Get single Best Practice (increment view count)
+  app.get('/api/best-practices/:id', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const bestPractices = await dbStore.getBestPractices();
+    const bp = bestPractices.find(b => b.id === req.params.id);
+    if (!bp) return res.status(404).json({ error: 'Best practice not found.' });
+    await dbStore.updateBestPractice(bp.id, { viewCount: (bp.viewCount || 0) + 1 });
+    res.json({ ...bp, viewCount: (bp.viewCount || 0) + 1 });
   });
 
   // Vite integration

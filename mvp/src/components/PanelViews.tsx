@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
+import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket, Intervention } from '../types';
 import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
+import { InterventionForm } from './InterventionForm';
+import { InterventionList } from './InterventionList';
+import { InterventionDetailView } from './InterventionDetailView';
+import { BestPracticesRepository } from './BestPracticesRepository';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -183,11 +187,67 @@ function EmptyStudents() {
   return <Table data={STUDENTS_MOCK} columns={cols} searchPlaceholder="Search students..." searchKey="name" />;
 }
 
+const InterventionsPanel: React.FC<{ currentUser: User; token: string }> = ({ currentUser, token }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [selectedIntervention, setSelectedIntervention] = useState<Intervention | null>(null);
+
+  if (selectedIntervention) {
+    return (
+      <InterventionDetailView
+        intervention={selectedIntervention}
+        token={token}
+        user={currentUser}
+        onBack={() => setSelectedIntervention(null)}
+      />
+    );
+  }
+
+  if (showForm) {
+    return (
+      <InterventionForm
+        user={currentUser}
+        token={token}
+        onSuccess={() => setShowForm(false)}
+        onCancel={() => setShowForm(false)}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 font-sans">Intervention Tracking</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Record and track remedial actions for struggling students</p>
+        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          className="px-4 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition"
+        >
+          + Record Intervention
+        </button>
+      </div>
+      <InterventionList
+        user={currentUser}
+        token={token}
+        onSelectIntervention={setSelectedIntervention}
+      />
+    </div>
+  );
+};
+
 export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token }) => {
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
   const [distFilter, setDistFilter] = useState('all');
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
+  const [sel, setSel] = useState(STUDENTS_MOCK[0].id);
+  const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<'all' | 'assessment' | 'level_change'>('all');
+  const [expandedDistRpt, setExpandedDistRpt] = useState<string | null>(null);
+  const [expandedDist, setExpandedDist] = useState<string | null>(null);
 
   const filteredSchools = SCHOOLS_MOCK.filter(s => {
     if (stateFilter !== 'all' && s.stateCode !== stateFilter) return false;
@@ -338,11 +398,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'student_profile') {
-    const [sel, setSel] = useState(STUDENTS_MOCK[0].id);
-    const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showDropdown, setShowDropdown] = useState(false);
-    const [activityFilter, setActivityFilter] = useState<'all' | 'assessment' | 'level_change'>('all');
     const s = STUDENTS_MOCK.find(x => x.id === sel) || STUDENTS_MOCK[0];
 
     const filteredStudents = STUDENTS_MOCK.filter(x =>
@@ -964,7 +1019,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       const userState = currentUser.stateCode || 'PB';
       const stateSchools = SCHOOLS_MOCK.filter(s => s.stateCode === userState);
       const stateDistricts = [...new Set(stateSchools.map(s => s.districtCode))];
-      const [expandedDistRpt, setExpandedDistRpt] = useState<string | null>(null);
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1234,7 +1288,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'districts') {
     const userState = currentUser.stateCode || 'PB';
     const stateDistricts = DISTRICTS.filter(d => d.state === userState);
-    const [expandedDist, setExpandedDist] = useState<string | null>(null);
     const distSchools = expandedDist ? SCHOOLS_MOCK.filter(s => s.districtCode === expandedDist) : [];
     return (
       <div className="space-y-6">
@@ -1448,6 +1501,16 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         </div>
       </div>
     );
+  }
+
+  // --- Intervention Tracking Panel ---
+  if (panel === 'interventions') {
+    return <InterventionsPanel currentUser={currentUser} token={token} />;
+  }
+
+  // --- Best Practices Repository Panel ---
+  if (panel === 'best_practices') {
+    return <BestPracticesRepository user={currentUser} token={token} />;
   }
 
   // Fallback for any unmatched panel — renders the roles workspace (dashboard) as the content

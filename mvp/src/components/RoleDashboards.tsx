@@ -1787,6 +1787,24 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
       {activeClass && (
         <div className="space-y-6">
+          {/* 💊 Intervention Quick Action */}
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-lg">
+                  💊
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Intervention Tracking</h3>
+                  <p className="text-[10px] text-slate-500">Record remedial actions for struggling students</p>
+                </div>
+              </div>
+              <div className="text-[10px] font-mono text-slate-400 bg-white px-3 py-1.5 rounded-full border border-slate-200">
+                Use sidebar → Interventions
+              </div>
+            </div>
+          </div>
+
           {/* 📋 Diagnostic Paper Generator */}
           <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
