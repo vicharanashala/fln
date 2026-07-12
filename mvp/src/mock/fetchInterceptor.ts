@@ -315,6 +315,75 @@ export function setupFetchInterceptor() {
         return jsonResponse(filtered);
       }
 
+      // 10.5 GET /api/classes/:classId/growth
+      const matchGrowth = path.match(/^\/api\/classes\/([^\/]+)\/growth$/);
+      if (matchGrowth && method === 'GET') {
+        if (!currentUser) return errorResponse('Unauthorized', 401);
+        const classId = matchGrowth[1];
+        
+        const classObj = db.classes.find(c => c.id === classId);
+        if (!classObj) return errorResponse('Class not found.', 404);
+        
+        const classStudents = db.students.filter(
+          s => s.classGroup === classObj.className && s.section === classObj.section && s.schoolId === classObj.schoolId
+        );
+
+        const growthData = classStudents.map(student => {
+          const reports = db.evaluationReports.filter(r => r.studentId === student.id).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          
+          let history: any[] = [];
+          if (reports.length === 0) {
+            // Mock some default history if no reports exist to show a trend
+            const baseDate = new Date();
+            baseDate.setMonth(baseDate.getMonth() - 6);
+            
+            let currentLvi = 30 + Math.random() * 20;
+            let currentLit = 35 + Math.random() * 15;
+            let currentNum = 25 + Math.random() * 25;
+            
+            for (let i = 1; i <= 4; i++) {
+              history.push({
+                phase: `Phase ${i}`,
+                evaluationDate: new Date(baseDate.getTime() + i * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                literacyScore: Math.min(100, Math.round(currentLit)),
+                numeracyScore: Math.min(100, Math.round(currentNum)),
+                combinedLVI: Math.min(100, Math.round(currentLvi))
+              });
+              currentLvi += 5 + Math.random() * 10;
+              currentLit += 4 + Math.random() * 12;
+              currentNum += 6 + Math.random() * 8;
+            }
+          } else {
+            // Aggregate from reports
+            let lviBase = 40;
+            reports.forEach((rep, idx) => {
+              const numeracyScore = rep.score > 0 ? Math.round((rep.score / rep.totalQuestions) * 100) : 0;
+              // Synthesize Literacy Score since our mock data focuses heavily on Numeracy topics
+              const literacyScore = Math.min(100, numeracyScore + (Math.random() * 20 - 5)); 
+              const lviIncrement = (numeracyScore > 50 ? 5 : 2) * (idx + 1);
+              lviBase += lviIncrement;
+              
+              history.push({
+                phase: `Phase ${idx + 1}`,
+                evaluationDate: rep.timestamp.split('T')[0],
+                literacyScore: Math.round(literacyScore),
+                numeracyScore,
+                combinedLVI: Math.min(100, lviBase)
+              });
+            });
+          }
+          
+          return {
+            studentId: student.id,
+            childName: student.name,
+            classLevel: classObj.className,
+            history
+          };
+        });
+
+        return jsonResponse(growthData);
+      }
+
       // 11. GET /api/students
       if (path === '/api/students' && method === 'GET') {
         if (!currentUser) return errorResponse('Unauthorized', 401);

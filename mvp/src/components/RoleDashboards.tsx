@@ -10,6 +10,7 @@ import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCir
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { Input, Select, Textarea } from './Form';
+import { GrowthAnalyticsChart } from './GrowthAnalyticsChart';
 
 
 export const FLN_LEVELS_LIST = [
@@ -1864,6 +1865,8 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
       {activeClass && (
         <div className="space-y-6">
+          <GrowthAnalyticsChart classId={activeClass.id} token={token} />
+
           {/* 📋 Diagnostic Paper Generator */}
           <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
