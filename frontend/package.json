@@ -1,23 +1,32 @@
 {
   "name": "fln-frontend",
   "version": "1.0.0",
-  "description": "FLN — Frontend (React + Vite + Tailwind)",
+  "description": "FLN — Super Admin Dashboard (React + TypeScript + Tailwind v4)",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.59.0",
+    "axios": "^1.7.7",
+    "framer-motion": "^11.11.0",
     "lucide-react": "^0.441.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.2"
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.26.2",
+    "recharts": "^2.13.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^18.3.10",
+    "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "tailwindcss": "^4.0.0",
+    "typescript": "^5.6.2",
     "vite": "^5.4.6"
   }
 }

@@ -4,6 +4,70 @@
   --brand: #2563EB;
 }
 
+html, body, #root { height: 100%; }
+
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: #F8FAFC;
+  color: #0F172A;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* Card */
+.card {
+  @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+}
+.card-hover {
+  @apply transition hover:shadow-md hover:border-slate-300;
+}
+
+/* Buttons */
+.btn {
+  @apply inline-flex items-center justify-center px-3.5 py-2 rounded-lg text-sm font-medium transition select-none;
+}
+.btn-primary {
+  @apply inline-flex items-center justify-center px-3.5 py-2 rounded-lg text-sm font-medium transition select-none bg-blue-600 text-white hover:bg-blue-700 shadow-sm;
+}
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-3.5 py-2 rounded-lg text-sm font-medium transition select-none bg-white border border-slate-200 text-slate-700 hover:bg-slate-50;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center px-3.5 py-2 rounded-lg text-sm font-medium transition select-none text-slate-600 hover:bg-slate-100;
+}
+.btn-danger {
+  @apply inline-flex items-center justify-center px-3.5 py-2 rounded-lg text-sm font-medium transition select-none bg-red-600 text-white hover:bg-red-700;
+}
+
+.input {
+  @apply w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition;
+}
+.label {
+  @apply text-xs font-medium text-slate-600;
+}
+.chip {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+}
+.chip-blue { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700; }
+.chip-green { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700; }
+.chip-orange { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-orange-700; }
+.chip-red { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700; }
+.chip-slate { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700; }
+.chip-purple { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700; }
+
+/* Skeleton shimmer */
+@keyframes shimmer { 0% { background-position: -200px 0 } 100% { background-position: 200px 0 } }
+.skeleton {
+  background: linear-gradient(90deg, #F1F5F9 0%, #E2E8F0 50%, #F1F5F9 100%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 8px;
+}
+
+/* Dynamic color helpers for inline class names like bg-blue-50 etc. */
+.bg-blue-50, .bg-green-50, .bg-orange-50, .bg-purple-50, .bg-yellow-50, .bg-pink-50, .bg-indigo-50, .bg-emerald-50, .bg-rose-50, .bg-cyan-50 { color: inherit; }
