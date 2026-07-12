@@ -50,10 +50,8 @@
  * real use BEFORE UDISE is integrated, and those need to stay valid
  * afterwards — reintroduce a cached `schoolCode` field on `School` and
  * freeze the segment on first generation instead of recomputing it live.
- * That version was written and tested; check prior PR history / ask
- * before rebuilding it from scratch.
  *
- * Other design points (unchanged from earlier discussion):
+ * Other design points :
  *   - Alphabet: Crockford's Base32 (excludes I, L, O, U) to reduce
  *     transcription errors when IDs are hand-copied off printed sheets.
  *   - Every ID carries a checksum character for offline validation.
@@ -91,9 +89,6 @@ const ALPHABET_INDEX: Record<string, number> = Object.fromEntries(
   [...ALPHABET].map((c, i) => [c, i])
 );
 
-// Bump if the ID FORMAT itself changes. IDs already printed on
-// certificates remain parseable as long as a code path exists per
-// historical version.
 const SCHEME_VERSION = "A";
 
 const SCHOOL_SEGMENT_LENGTH = 6; // 30 bits of hash space — see note above
