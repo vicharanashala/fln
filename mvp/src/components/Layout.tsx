@@ -38,13 +38,40 @@ export const Layout: React.FC<LayoutProps> = ({
   onLogout,
   children
 }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fln_sidebar_collapsed');
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const [pinnedItems, setPinnedItems] = useState<string[]>(['Dashboard']);
+
+  const collapsed = false; // Preserve internal fully-expanded layout inside the sidebar
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev: boolean) => {
+      const next = !prev;
+      localStorage.setItem('fln_sidebar_collapsed', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileOpen) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen]);
 
   // Get dynamic navigation nodes depending on user role
   const navigationItems = useMemo<NavigationItem[]>(() => {
@@ -239,6 +266,19 @@ export const Layout: React.FC<LayoutProps> = ({
           >
             <Menu className="h-5 w-5" />
           </button>
+
+          {/* Desktop/Tablet Collapse Button */}
+          {!sidebarCollapsed && (
+            <button
+              onClick={toggleSidebar}
+              className="hidden md:flex rounded-lg p-2 text-slate-650 hover:bg-slate-100 transition-colors duration-200 mr-2"
+              aria-label="Collapse sidebar"
+              aria-expanded="true"
+              title="Collapse Sidebar"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          )}
           
           <div className="flex items-center gap-3.5">
             <div className="flex h-12 w-12 items-center justify-center rounded bg-amber-50 border border-amber-200 p-1 shadow-sm shrink-0">
@@ -342,15 +382,39 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
       </header>
 
+      {/* Floating Toggle Button (visible only when sidebar is collapsed on desktop/tablet) */}
+      {sidebarCollapsed && (
+        <button
+          onClick={toggleSidebar}
+          className="hidden md:flex fixed left-0 top-24 z-40 items-center justify-center bg-white border border-slate-200 border-l-0 rounded-r-lg shadow-md p-2.5 text-slate-650 hover:bg-slate-50 hover:text-slate-900 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 group"
+          aria-label="Show sidebar"
+          aria-expanded="false"
+          title="Show Sidebar"
+        >
+          <Menu className="h-5 w-5" />
+          
+          {/* Tooltip */}
+          <div className="absolute left-12 scale-0 transition-all rounded bg-slate-900 px-2 py-1 text-xs text-white group-hover:scale-100 z-50 whitespace-nowrap shadow-md pointer-events-none">
+            Show Sidebar
+          </div>
+        </button>
+      )}
+
       {/* Main Content Layout with Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         
         {/* Sidebar Left panel */}
-        <aside className={`hidden md:flex flex-col border-r border-slate-200 bg-white transition-all duration-200 ${collapsed ? 'w-20' : 'w-64'}`}>
-          
-          {/* Menu Search and Collapse Trigger */}
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-2">
-            {!collapsed && (
+        <aside
+          className={`hidden md:flex flex-col bg-white transition-all duration-300 ease-in-out shrink-0 ${
+            sidebarCollapsed
+              ? 'w-0 opacity-0 overflow-hidden border-r-0 pointer-events-none'
+              : 'w-[280px] opacity-100 border-r border-slate-200'
+          }`}
+          aria-hidden={sidebarCollapsed}
+        >
+          <div className="w-[280px] flex flex-col h-full flex-1">
+            {/* Menu Search and Collapse Trigger */}
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
                 <input
@@ -361,14 +425,15 @@ export const Layout: React.FC<LayoutProps> = ({
                   className="w-full pl-8 pr-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 outline-none focus:border-indigo-500 focus:bg-white"
                 />
               </div>
-            )}
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-505"
-            >
-              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </button>
-          </div>
+              <button
+                onClick={toggleSidebar}
+                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-505"
+                aria-label="Collapse sidebar"
+                title="Collapse Sidebar"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            </div>
 
           {/* Navigation Items menu */}
           <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
@@ -451,6 +516,7 @@ export const Layout: React.FC<LayoutProps> = ({
               <HelpCircle className="h-4 w-4 text-slate-400 shrink-0" />
               {!collapsed && <span>IIT Ropar VLED Labs</span>}
             </div>
+          </div>
           </div>
         </aside>
 
