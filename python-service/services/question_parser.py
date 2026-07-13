@@ -103,6 +103,7 @@ def _coerce_question(raw: Dict[str, Any], index: int) -> Dict[str, Any]:
         "evaluationRule": rule,
         "visualDescription": visual,
         "hasImage": has_image,
+        "sourceFileIndex": raw.get("sourceFileIndex"),
         "boundingBox": {
             "x": float(bbox.get("x", 0) or 0),
             "y": float(bbox.get("y", 0) or 0),

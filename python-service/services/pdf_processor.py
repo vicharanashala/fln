@@ -105,3 +105,14 @@ def pdf_to_text(pdf_path: str) -> str:
     except Exception as e:
         logger.exception(f"Failed to read PDF text: {e}")
         return ""
+
+
+def render_single_image(image_path: str) -> bytes:
+    """Read a single image file, normalize to JPEG, optionally downscale."""
+    if not image_path or not os.path.exists(image_path):
+        raise FileNotFoundError(image_path)
+    img = Image.open(image_path).convert("RGB")
+    img.thumbnail((MAX_DIMENSION, MAX_DIMENSION))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=JPEG_QUALITY)
+    return buf.getvalue()

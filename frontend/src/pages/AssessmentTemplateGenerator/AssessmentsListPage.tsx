@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { Upload, Wand2, FileText, Sparkles, Loader2, X } from "lucide-react";
+import { Upload, Wand2, FileText, Sparkles, Loader2, X, FileImage } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import Modal from "../../components/ui/Modal";
 import assessmentApi from "../../services/assessmentApi";
+import type { CreateAssessmentDTO } from "../../services/assessmentApi";
 import {
   ASSESSMENT_TYPES,
   SUBJECTS,
@@ -25,15 +26,13 @@ export default function AssessmentsListPage() {
   const [progress, setProgress] = useState(0);
 
   const fullMut = useMutation({
-    mutationFn: async (formData: FormData) => {
-      // 1. Upload PDF + create assessment record
+    mutationFn: async ({ data, files }: { data: CreateAssessmentDTO; files: File[] }) => {
       setPhase("uploading");
       setProgress(15);
-      const createRes = await assessmentApi.createWithForm(formData);
+      const createRes = await assessmentApi.createWithFiles(data, files);
       const assessmentId = createRes.data.assessment._id;
       setProgress(45);
 
-      // 2. Send to Python service for AI extraction
       setPhase("extracting");
       const genRes = await assessmentApi.generateTemplate(assessmentId);
       setProgress(100);
@@ -42,7 +41,7 @@ export default function AssessmentsListPage() {
       return { assessmentId, preview: genRes.data.preview, model: genRes.data.model };
     },
     onSuccess: (data) => {
-      toast.success("PDF uploaded & template extracted");
+      toast.success("Uploaded & extracted — review the questions");
       setShowCreate(false);
       navigate(`/assessment-template-generator/${data.assessmentId}/review`, {
         state: { template: data.preview, model: data.model },
@@ -109,7 +108,7 @@ export default function AssessmentsListPage() {
         loading={fullMut.isPending}
         phase={phase}
         progress={progress}
-        onSubmit={(data) => fullMut.mutate(data)}
+        onSubmit={(data, files) => fullMut.mutate({ data, files })}
       />
     </div>
   );
@@ -128,9 +127,9 @@ function CreateAssessmentModal({
   loading: boolean;
   phase: Phase;
   progress: number;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: CreateAssessmentDTO, files: File[]) => void;
 }) {
-  const { register, handleSubmit, watch, reset } = useForm<Record<string, unknown>>({
+  const { register, handleSubmit, reset } = useForm<Record<string, unknown>>({
     defaultValues: {
       title: "",
       assessmentType: "Diagnostic",
@@ -142,22 +141,35 @@ function CreateAssessmentModal({
       totalMarks: 30,
     },
   });
-  const fileRef = register("questionPaper") as unknown as ReturnType<typeof register>;
-  const watchFile = watch("questionPaper") as unknown as FileList | undefined;
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function addFiles(list: FileList | File[]) {
+    const arr = Array.from(list).filter((f) => f.name.toLowerCase().match(/\.(pdf|jpg|jpeg|png|webp|gif)$/));
+    if (arr.length === 0) {
+      toast.error("Only PDF / JPG / PNG files allowed");
+      return;
+    }
+    setFiles((prev) => [...prev, ...arr]);
+  }
+
+  function removeFile(idx: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    addFiles(e.dataTransfer.files);
+  }
 
   function submit(data: Record<string, unknown>) {
-    const formData = new FormData();
-    (Object.keys(data) as string[]).forEach((key) => {
-      const value = data[key];
-      if (key === "questionPaper") {
-        const file = (value as FileList)?.[0];
-        if (file) formData.append("questionPaper", file);
-      } else if (value !== undefined && value !== null) {
-        formData.append(key, String(value));
-      }
-    });
-    onSubmit(formData);
+    if (files.length === 0) {
+      toast.error("Please upload at least one file");
+      return;
+    }
+    onSubmit(data as unknown as CreateAssessmentDTO, files);
     reset();
+    setFiles([]);
   }
 
   const busy = loading || phase !== "idle";
@@ -209,38 +221,60 @@ function CreateAssessmentModal({
           </div>
 
           <div>
-            <label className="label">Question Paper PDF *</label>
-            <label
-              htmlFor="questionPaper"
-              className="mt-1 block border-2 border-dashed border-slate-200 hover:border-blue-400 transition rounded-xl p-6 text-center cursor-pointer"
+            <label className="label">
+              Question Paper(s) * <span className="text-slate-400 font-normal">(PDF or images)</span>
+            </label>
+            <div
+              onDrop={onDrop}
+              onDragOver={(e) => e.preventDefault()}
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-1 border-2 border-dashed border-slate-200 hover:border-blue-400 transition rounded-xl p-5 text-center cursor-pointer"
             >
               <input
-                id="questionPaper"
+                ref={fileInputRef}
                 type="file"
-                accept=".pdf,application/pdf"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf"
                 className="hidden"
-                {...fileRef}
+                onChange={(e) => e.target.files && addFiles(e.target.files)}
               />
-              {watchFile?.[0] ? (
-                <div className="flex items-center justify-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-slate-900">{watchFile[0].name}</p>
-                    <p className="text-[11px] text-slate-500">
-                      {(watchFile[0].size / 1024).toFixed(1)} KB · Click to change
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2" />
-                  <p className="text-sm text-slate-700 font-medium">
-                    Click to upload question paper
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">PDF only · up to 50 MB</p>
-                </>
-              )}
-            </label>
+              <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1" />
+              <p className="text-sm text-slate-700 font-medium">Click or drag to upload</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                PDF (full paper) · OR multiple JPG/PNG images (one question per image)
+              </p>
+            </div>
+
+            {files.length > 0 && (
+              <div className="mt-3 space-y-1.5 max-h-44 overflow-y-auto">
+                {files.map((f, i) => {
+                  const isImage = f.type.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(f.name);
+                  const Icon = isImage ? FileImage : FileText;
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Icon className={`w-4 h-4 flex-shrink-0 ${isImage ? "text-blue-600" : "text-slate-500"}`} />
+                        <p className="text-xs text-slate-700 truncate">{f.name}</p>
+                        <span className="text-[10px] text-slate-400">({(f.size / 1024).toFixed(1)} KB)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFile(i);
+                        }}
+                        className="p-1 hover:bg-slate-200 rounded"
+                      >
+                        <X className="w-3.5 h-3.5 text-slate-500" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">

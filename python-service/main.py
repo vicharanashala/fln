@@ -11,13 +11,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 
-from services.pdf_processor import pdf_to_images_and_pictures, pdf_to_text
+from services.pdf_processor import pdf_to_images_and_pictures, render_single_image
 import services.groq_service as groq_svc
 import services.gemini_service as gemini_svc
 from services.question_parser import parse_pages, SUBJECTIVE_TYPES
 from utils.logger import get_logger
 
-app = FastAPI(title="FLN Template Builder", version="2.0.0")
+app = FastAPI(title="FLN Template Builder", version="3.0.0")
 logger = get_logger("main")
 
 app.add_middleware(
@@ -36,6 +36,7 @@ app.mount("/extracted-images", StaticFiles(directory=IMAGES_DIR), name="images")
 class GenerateTemplateRequest(BaseModel):
     assessmentId: str
     pdfPath: Optional[str] = None
+    filePaths: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
 
 
@@ -59,6 +60,7 @@ class QuestionOut(BaseModel):
     visualDescription: str = ""
     hasImage: bool = False
     boundingBox: Dict[str, float]
+    sourceFile: Optional[str] = None
     images: List[QuestionImageOut] = []
 
 
@@ -68,6 +70,7 @@ class GenerateTemplateResponse(BaseModel):
     model: str
     totalQuestions: int
     totalMarks: int
+    imagesBySource: Dict[str, List[str]] = {}
     questions: List[QuestionOut]
 
 
@@ -80,18 +83,68 @@ def active_provider():
     return (None, "mock", None)
 
 
+def backend_url():
+    return os.environ.get("BACKEND_PUBLIC_URL", "http://localhost:5000")
+
+
 MOCK_QUESTIONS = [
-    {"questionNo": 1, "pageNumber": 1, "questionText": "Count the objects and write the number.", "questionType": "Counting", "concept": "Counting 1-10", "difficulty": "Easy", "marks": 1, "answerType": "text", "correctAnswer": "5", "alternateAnswers": ["five"], "evaluationRule": "exact", "visualDescription": "Picture of 5 objects", "hasImage": True, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "images": []},
-    {"questionNo": 2, "pageNumber": 1, "questionText": "8 + 3 = ?", "questionType": "Addition", "concept": "Simple Addition", "difficulty": "Easy", "marks": 2, "answerType": "number", "correctAnswer": "11", "alternateAnswers": ["eleven"], "evaluationRule": "exact", "visualDescription": "", "hasImage": False, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "images": []},
-    {"questionNo": 3, "pageNumber": 1, "questionText": "Which letter comes after A?", "questionType": "MCQ", "concept": "Alphabet Sequence", "difficulty": "Easy", "marks": 1, "answerType": "multiple", "correctAnswer": "B", "alternateAnswers": ["b"], "evaluationRule": "contains", "visualDescription": "", "hasImage": False, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "images": []},
-    {"questionNo": 4, "pageNumber": 2, "questionText": "Fill in the blanks: The sun rises in the ____.", "questionType": "Fill in the Blanks", "concept": "Environmental Science", "difficulty": "Easy", "marks": 2, "answerType": "text", "correctAnswer": "east", "alternateAnswers": ["East"], "evaluationRule": "contains", "visualDescription": "", "hasImage": False, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "images": []},
-    {"questionNo": 5, "pageNumber": 2, "questionText": "15 - 6 = ?", "questionType": "Subtraction", "concept": "Simple Subtraction", "difficulty": "Medium", "marks": 2, "answerType": "number", "correctAnswer": "9", "alternateAnswers": ["nine"], "evaluationRule": "exact", "visualDescription": "", "hasImage": False, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "images": []},
-    {"questionNo": 6, "pageNumber": 2, "questionText": "Match the following: Cat — ?", "questionType": "Match the Following", "concept": "Animal Knowledge", "difficulty": "Medium", "marks": 3, "answerType": "text", "correctAnswer": "Meow", "alternateAnswers": ["meow"], "evaluationRule": "contains", "visualDescription": "Picture of a cat", "hasImage": True, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "images": []},
-    {"questionNo": 7, "pageNumber": 3, "questionText": "True or False: Birds can swim.", "questionType": "True/False", "concept": "General Knowledge", "difficulty": "Easy", "marks": 1, "answerType": "text", "correctAnswer": "True", "alternateAnswers": ["true"], "evaluationRule": "exact", "visualDescription": "", "hasImage": False, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "images": []},
-    {"questionNo": 8, "pageNumber": 3, "questionText": "Draw a circle around the biggest object.", "questionType": "Drawing", "concept": "Spatial Awareness", "difficulty": "Medium", "marks": 3, "answerType": "drawing", "correctAnswer": "", "alternateAnswers": [], "evaluationRule": "manual", "visualDescription": "3 objects of different sizes", "hasImage": True, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "images": []},
-    {"questionNo": 9, "pageNumber": 3, "questionText": "Trace the letter 'A' along the dotted line.", "questionType": "Trace", "concept": "Motor Skills", "difficulty": "Easy", "marks": 2, "answerType": "trace", "correctAnswer": "", "alternateAnswers": [], "evaluationRule": "manual", "visualDescription": "Dotted letter A to trace", "hasImage": True, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "images": []},
-    {"questionNo": 10, "pageNumber": 3, "questionText": "What comes after Tuesday?", "questionType": "Short Answer", "concept": "Days of the Week", "difficulty": "Easy", "marks": 1, "answerType": "text", "correctAnswer": "Wednesday", "alternateAnswers": ["wednesday"], "evaluationRule": "contains", "visualDescription": "", "hasImage": False, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "images": []},
+    {"questionNo": 1, "pageNumber": 1, "questionText": "Count the objects and write the number.", "questionType": "Counting", "concept": "Counting 1-10", "difficulty": "Easy", "marks": 1, "answerType": "text", "correctAnswer": "5", "alternateAnswers": ["five"], "evaluationRule": "exact", "visualDescription": "Picture of 5 objects", "hasImage": True, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "sourceFile": None, "images": []},
+    {"questionNo": 2, "pageNumber": 1, "questionText": "8 + 3 = ?", "questionType": "Addition", "concept": "Simple Addition", "difficulty": "Easy", "marks": 2, "answerType": "number", "correctAnswer": "11", "alternateAnswers": ["eleven"], "evaluationRule": "exact", "visualDescription": "", "hasImage": False, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "sourceFile": None, "images": []},
+    {"questionNo": 3, "pageNumber": 1, "questionText": "Which letter comes after A?", "questionType": "MCQ", "concept": "Alphabet Sequence", "difficulty": "Easy", "marks": 1, "answerType": "multiple", "correctAnswer": "B", "alternateAnswers": ["b"], "evaluationRule": "contains", "visualDescription": "", "hasImage": False, "boundingBox": {"x": 0, "y": 0, "width": 0, "height": 0}, "sourceFile": None, "images": []},
 ]
+
+
+def _collect_pages_and_images(file_paths: List[str]) -> tuple:
+    """Render every file as JPEG pages + extract embedded images per page.
+
+    Returns:
+        pages: List of (page_idx, source_file_idx, jpeg_bytes)
+        pictures_by_page: Dict[page_idx, List[image_paths]]
+        images_by_source: Dict[source_file_name, List[image_urls]]   ← for per-question image attachment
+    """
+    pages = []
+    pictures_by_page = {}
+    images_by_source = {}
+
+    for src_idx, fp in enumerate(file_paths, start=1):
+        src_name = os.path.basename(fp)
+        is_image = fp.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
+
+        if is_image:
+            # Render the image itself as a single page
+            try:
+                img_bytes = render_single_image(fp)
+                page_idx = len(pages) + 1
+                pages.append((page_idx, src_idx, img_bytes))
+                # The image IS the page — save a copy so the frontend can serve it
+                fname = f"page-{src_idx}-{src_name}"
+                out_path = os.path.join(IMAGES_DIR, fname)
+                with open(out_path, "wb") as f:
+                    f.write(img_bytes)
+                images_by_source[src_name] = [f"{backend_url()}/extracted-images/{fname}"]
+            except Exception as e:
+                logger.warning(f"Could not render image {fp}: {e}")
+            continue
+
+        # PDF path
+        try:
+            pdf_pages, pdf_pics = pdf_to_images_and_pictures(fp, IMAGES_DIR)
+            for local_idx, jpeg in enumerate(pdf_pages, start=1):
+                page_idx = len(pages) + 1
+                pages.append((page_idx, src_idx, jpeg))
+            # Index embedded images by their global page index
+            base = len(pdf_pages)
+            for local_idx in range(1, base + 1):
+                page_idx_key = (len(pages) - base) + local_idx
+                pics = pdf_pics.get(local_idx, [])
+                if pics:
+                    urls = [f"{backend_url()}/extracted-images/{os.path.basename(p)}" for p in pics]
+                    pictures_by_page[page_idx_key] = urls
+                    images_by_source[f"{src_name}#p{local_idx}"] = urls
+        except Exception as e:
+            logger.warning(f"Could not process PDF {fp}: {e}")
+
+    return pages, pictures_by_page, images_by_source
 
 
 @app.get("/health")
@@ -110,58 +163,51 @@ def health():
     }
 
 
-def _attach_images(questions: List[Dict[str, Any]], pictures_by_page: Dict[int, List[str]]) -> List[Dict[str, Any]]:
-    """Attach image URLs to questions that reference images.
-
-    Strategy: if the AI flagged hasImage for a question, attach images from that page.
-    Fallback: if no images flagged, attach page images to any question that mentions
-    'picture' or 'image' in its text or visualDescription.
-    """
-    for q in questions:
-        page = q.get("pageNumber", 1)
-        page_images = pictures_by_page.get(page, [])
-        if not page_images:
-            continue
-        wants_image = (
-            q.get("hasImage", False)
-            or any(kw in (q.get("visualDescription") or "").lower() for kw in ["picture", "image", "diagram", "figure", "illustration"])
-            or any(kw in (q.get("questionText") or "").lower() for kw in ["picture", "image", "diagram", "in the figure"])
-        )
-        if wants_image:
-            # Attach all images from that page (max 4)
-            urls = []
-            for path in page_images[:4]:
-                fname = os.path.basename(path)
-                # Use absolute backend URL so the proxy works
-                backend = os.environ.get("BACKEND_PUBLIC_URL", "http://localhost:5000")
-                urls.append({"imageUrl": f"{backend}/extracted-images/{fname}", "position": "inline"})
-            q["images"] = urls
-    return questions
-
-
 @app.post("/generate-template", response_model=GenerateTemplateResponse)
 def generate_template(req: GenerateTemplateRequest):
     t0 = time.time()
     provider_name, model_name, analyze_fn = active_provider()
-    logger.info(f"generate-template {req.assessmentId} | provider={provider_name} model={model_name} pdf={'yes' if req.pdfPath else 'no'}")
 
-    if not provider_name or not req.pdfPath:
+    # Build list of file paths
+    if req.filePaths:
+        file_paths = [p for p in req.filePaths if p and os.path.exists(p)]
+    elif req.pdfPath:
+        file_paths = [req.pdfPath] if os.path.exists(req.pdfPath) else []
+    else:
+        file_paths = []
+
+    # Add hint: if 1+ image files uploaded, single-question mode
+    is_image_mode = any(
+        fp.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
+        for fp in file_paths
+    )
+
+    logger.info(f"generate-template {req.assessmentId} | provider={provider_name} model={model_name} files={len(file_paths)} image_mode={is_image_mode}")
+
+    if not provider_name or not file_paths:
         if not provider_name:
             logger.info("No AI provider configured — returning mock questions")
         else:
-            logger.info("No pdfPath — returning mock questions")
+            logger.info("No files uploaded — returning mock questions")
         return _mock_response(req.assessmentId)
 
-    # Real AI pipeline
     try:
-        pages, pictures_by_page = pdf_to_images_and_pictures(req.pdfPath, IMAGES_DIR)
+        pages, pictures_by_page, images_by_source = _collect_pages_and_images(file_paths)
         if not pages:
-            logger.warning("Could not render PDF — falling back to mock")
-            return _mock_with_label(req.assessmentId, "mock (pdf-render-failed)")
+            logger.warning("No pages extracted — falling back to mock")
+            return _mock_with_label(req.assessmentId, "mock (no-pages)")
 
         all_results: List[List[Dict[str, Any]]] = []
-        for i, img in enumerate(pages, start=1):
-            qs = analyze_fn(img, i, req.metadata or {})
+        per_page_metadata = []
+        for page_idx, src_idx, img in pages:
+            meta = dict(req.metadata or {})
+            if is_image_mode:
+                meta["singleQuestionMode"] = True
+                meta["hint"] = "This image shows ONE question. Extract that single question and its answer."
+            meta["pageNumber"] = page_idx
+            meta["sourceFileIndex"] = src_idx
+            per_page_metadata.append(meta)
+            qs = analyze_fn(img, page_idx, meta)
             all_results.append(qs)
 
         questions_raw = [q for page in all_results for q in page]
@@ -172,10 +218,17 @@ def generate_template(req: GenerateTemplateRequest):
             logger.warning(f"{provider_name} extracted 0 questions — falling back to mock")
             return _mock_with_label(req.assessmentId, f"mock ({provider_name}-empty)")
 
-        # Parse, fill missing answers, attach images
         deduped = parse_pages(all_results)
-        deduped = _attach_images(deduped, pictures_by_page)
+        deduped = _attach_images_to_questions(deduped, pictures_by_page, images_by_source, is_image_mode)
         total_marks = sum(q.get("marks", 1) for q in deduped)
+
+        # Post-process: mark visual questions needing manual review if AI uncertain
+        for q in deduped:
+            if q.get("hasImage") and q.get("evaluationRule") != "manual":
+                # If the AI's answer is empty or very short for a visual question, mark manual
+                if not q.get("correctAnswer") or len(q["correctAnswer"]) < 2:
+                    q["evaluationRule"] = "manual"
+                    q["needsReview"] = True
 
         return GenerateTemplateResponse(
             assessmentId=req.assessmentId,
@@ -183,12 +236,47 @@ def generate_template(req: GenerateTemplateRequest):
             model=model_name,
             totalQuestions=len(deduped),
             totalMarks=total_marks,
+            imagesBySource=images_by_source,
             questions=[QuestionOut(**q) for q in deduped],
         )
 
     except Exception as e:
         logger.exception(f"Template generation failed: {e}")
         return _mock_with_label(req.assessmentId, "mock (error)")
+
+
+def _attach_images_to_questions(questions, pictures_by_page, images_by_source, is_image_mode):
+    """Attach per-question images.
+
+    - In image-mode: each image file = 1 page = all questions from that page get that image
+    - In PDF-mode: pictures_by_page is keyed by page number
+    """
+    for q in questions:
+        page = q.get("pageNumber", 1)
+        source_idx = q.get("sourceFileIndex") or page
+
+        # Try to find images for this question
+        urls = []
+
+        if is_image_mode:
+            # Each page in image-mode has exactly one rendered image
+            # Map page number (1-based) to its extracted image
+            # images_by_source is keyed by original filename; we collected pages in order
+            all_keys = list(images_by_source.keys())
+            page_to_url = {}
+            for idx, key in enumerate(all_keys, start=1):
+                src_urls = images_by_source[key]
+                if src_urls:
+                    page_to_url[idx] = src_urls[0]
+            if page in page_to_url:
+                urls.append(page_to_url[page])
+            elif pictures_by_page.get(page):
+                urls = pictures_by_page[page]
+        else:
+            urls = pictures_by_page.get(page, [])
+
+        q["images"] = [{"imageUrl": u, "position": "inline"} for u in urls[:4]]
+    return questions
 
 
 def _mock_response(assessment_id: str) -> GenerateTemplateResponse:

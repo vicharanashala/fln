@@ -34,6 +34,9 @@ const assessmentSchema = new mongoose.Schema(
     questionPaperUrl: { type: String, default: null },
     questionPaperFileName: { type: String, default: null },
     questionPaperSize: { type: Number, default: null },
+    questionPaperUrls: { type: [String], default: [] },
+    questionPaperFileNames: { type: [String], default: [] },
+    questionPaperSizes: { type: [Number], default: [] },
     assessmentType: { type: String, enum: ASSESSMENT_TYPES, default: "Diagnostic" },
     status: { type: String, enum: ASSESSMENT_STATUS, default: "Draft" },
     templateStatus: {

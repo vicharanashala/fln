@@ -107,11 +107,19 @@ def analyze_page(image_bytes: bytes, page_number: int, metadata: Dict[str, Any] 
     b64 = base64.b64encode(image_bytes).decode("ascii")
     model = get_model()
 
-    user_text = (
-        f"\nContext: Title='{metadata.get('title','')}', "
-        f"Subject='{metadata.get('subject','')}', Grade='{metadata.get('grade','')}', "
-        f"Language='{metadata.get('language','English')}', Page={page_number}"
-    )
+    single = metadata.get("singleQuestionMode", False)
+    if single:
+        user_text = (
+            f"\nIMPORTANT: This image shows EXACTLY ONE question. "
+            f"Return a JSON array containing ONE element only — for that single question. "
+            f"Do not infer multiple questions from this image."
+        )
+    else:
+        user_text = (
+            f"\nContext: Title='{metadata.get('title','')}', "
+            f"Subject='{metadata.get('subject','')}', Grade='{metadata.get('grade','')}', "
+            f"Language='{metadata.get('language','English')}', Page={page_number}"
+        )
 
     try:
         client = _get_client()
@@ -136,7 +144,8 @@ def analyze_page(image_bytes: bytes, page_number: int, metadata: Dict[str, Any] 
             logger.warning(f"Groq returned non-list JSON for page {page_number}")
             return []
         for q in data:
-            q.setdefault("pageNumber", page_number)
+            q["pageNumber"] = page_number  # ALWAYS use the actual page number, not AI's guess
+            q["sourceFileIndex"] = metadata.get("sourceFileIndex", page_number) if metadata else page_number
         return data
     except Exception as e:
         logger.exception(f"Groq error on page {page_number}: {e}")

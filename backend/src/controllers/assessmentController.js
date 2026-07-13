@@ -16,6 +16,10 @@ async function createAssessment(req, res) {
     if (!title || !subject || !grade) {
       return res.status(400).json({ message: "title, subject, grade are required" });
     }
+    const files = Array.isArray(req.files) && req.files.length > 0
+      ? req.files
+      : req.file ? [req.file] : [];
+
     const assessment = await Assessment.create({
       title: String(title).trim(),
       subject,
@@ -27,15 +31,33 @@ async function createAssessment(req, res) {
       assessmentType: assessmentType || "Diagnostic",
       createdBy: owner(req),
     });
-    if (req.file) {
-      const filename = safeFilename(req.file.originalname);
+
+    if (files.length === 1) {
+      // Backwards-compatible single-file fields
+      const filename = safeFilename(files[0].originalname);
       const dest = path.join(UPLOAD_DIR, filename);
-      fs.renameSync(req.file.path, dest);
+      fs.renameSync(files[0].path, dest);
       assessment.questionPaperUrl = `/uploads/${filename}`;
-      assessment.questionPaperFileName = req.file.originalname;
-      assessment.questionPaperSize = req.file.size;
-      await assessment.save();
+      assessment.questionPaperFileName = files[0].originalname;
+      assessment.questionPaperSize = files[0].size;
     }
+    if (files.length > 0) {
+      const urls = [];
+      const names = [];
+      const sizes = [];
+      for (const f of files) {
+        const filename = safeFilename(f.originalname);
+        const dest = path.join(UPLOAD_DIR, filename);
+        try { fs.renameSync(f.path, dest); } catch (_) { fs.copyFileSync(f.path, dest); }
+        urls.push(`/uploads/${filename}`);
+        names.push(f.originalname);
+        sizes.push(f.size);
+      }
+      assessment.questionPaperUrls = urls;
+      assessment.questionPaperFileNames = names;
+      assessment.questionPaperSizes = sizes;
+    }
+    await assessment.save();
     return res.status(201).json({ assessment });
   } catch (err) {
     console.error("createAssessment:", err);
@@ -107,25 +129,35 @@ async function generateTemplate(req, res) {
   await assessment.save();
   await auditLog.logStart(id, "pending");
 
-  let pdfPath = null;
-  if (assessment.questionPaperUrl) {
-    pdfPath = path.join(UPLOAD_DIR, path.basename(assessment.questionPaperUrl));
+  // Build list of paths: prefer multi-file array; fall back to single file
+  const fileUrls = assessment.questionPaperUrls?.length
+    ? assessment.questionPaperUrls
+    : (assessment.questionPaperUrl ? [assessment.questionPaperUrl] : []);
+  const filePaths = fileUrls
+    .map((u) => path.join(UPLOAD_DIR, path.basename(u)))
+    .filter((p) => fs.existsSync(p));
+
+  if (filePaths.length === 0) {
+    return res.status(400).json({ message: "No question paper file uploaded" });
   }
 
-  let modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  let modelName = "groq";
   try {
     const result = await pythonClient.generateTemplate({
       assessmentId: id,
-      pdfPath,
+      filePaths,           // array (multi-image mode)
+      pdfPath: filePaths.length === 1 ? filePaths[0] : undefined,  // backwards compat
       metadata: {
         title: assessment.title,
         subject: assessment.subject,
         grade: assessment.grade,
         language: assessment.language,
         academicYear: assessment.academicYear,
+        totalFiles: filePaths.length,
+        isImageMode: filePaths.length > 1 || !filePaths[0].toLowerCase().endsWith(".pdf"),
       },
     });
-    modelName = result?.model || modelName;
+    modelName = result?.provider ? `${result.provider}/${result.model}` : modelName;
     const processingTime = (Date.now() - t0) / 1000;
     assessment.templateStatus = "Generated";
     await assessment.save();
@@ -133,6 +165,7 @@ async function generateTemplate(req, res) {
     return res.json({
       ok: true,
       model: modelName,
+      provider: result?.provider,
       processingTime,
       preview: result,
     });

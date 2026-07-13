@@ -9,6 +9,7 @@ export interface CreateAssessmentDTO {
   academicYear?: string;
   duration?: number;
   totalMarks?: number;
+  assessmentType?: string;
   questionPaper?: File;
 }
 
@@ -52,6 +53,22 @@ const assessmentApi = {
   },
 
   createWithForm(form: FormData) {
+    return api.post<{ assessment: Assessment }>("/assessments", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  createWithFiles(data: CreateAssessmentDTO, files: File[]) {
+    const form = new FormData();
+    form.append("title", data.title);
+    form.append("subject", data.subject);
+    form.append("grade", data.grade);
+    if (data.language) form.append("language", data.language);
+    if (data.academicYear) form.append("academicYear", data.academicYear);
+    if (data.duration) form.append("duration", String(data.duration));
+    if (data.totalMarks) form.append("totalMarks", String(data.totalMarks));
+    if (data.assessmentType) form.append("assessmentType", data.assessmentType);
+    files.forEach((f) => form.append("questionPapers", f));
     return api.post<{ assessment: Assessment }>("/assessments", form, {
       headers: { "Content-Type": "multipart/form-data" },
     });

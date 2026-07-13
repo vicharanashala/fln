@@ -8,11 +8,14 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, safeFilename(file.originalname)),
 });
 
+const ACCEPTED_MIME = ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype === "application/pdf" || file.originalname.toLowerCase().endsWith(".pdf")) {
+  const lower = file.originalname.toLowerCase();
+  if (ACCEPTED_MIME.includes(file.mimetype) || lower.endsWith(".pdf") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")) {
     cb(null, true);
   } else {
-    cb(new Error("Only PDF files are allowed"), false);
+    cb(new Error("Only PDF and image files (jpg/png) are allowed"), false);
   }
 };
 
