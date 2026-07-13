@@ -190,14 +190,12 @@ export const Layout: React.FC<LayoutProps> = ({
   return (
     <div className={`flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 antialiased ${darkMode ? 'dark bg-slate-950 text-slate-100' : ''}`}>
       
-      {/* 1. Official Government Header Accessibility Strip */}
+      {/* 1. Accessibility / Top strip (neutral branding) */}
       <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-gray-800 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-gov-saffron">GOVERNMENT OF INDIA</span>
+          <span className="font-bold">FLN Portal</span>
           <span className="text-gray-500">|</span>
-          <span className="text-gray-300 hidden sm:inline font-mono">MINISTRY OF SCHOOL EDUCATION & LITERACY</span>
-          <span className="text-gray-500 hidden sm:inline">|</span>
-          <span className="text-gov-green">DEPARTMENT OF SCHOOL EDUCATION</span>
+          <span className="text-gray-300 hidden sm:inline font-mono">Foundational Literacy & Numeracy</span>
         </div>
         <div className="flex items-center gap-4">
           <button 
@@ -208,7 +206,7 @@ export const Layout: React.FC<LayoutProps> = ({
           </button>
           <span className="text-gray-700">|</span>
           <div className="flex items-center gap-2">
-            <span className="text-gov-saffron font-bold cursor-pointer">ENGLISH</span>
+            <span className="font-bold cursor-pointer">ENGLISH</span>
             <span className="text-gray-600">/</span>
             <span className="hover:text-white cursor-pointer text-gray-400" onClick={() => alert("ਪੰਜਾਬੀ ਭਾਸ਼ਾ ਵਿੱਚ ਬਦਲੋ")}>ਪੰਜਾਬੀ</span>
             <span className="text-gray-600">/</span>
@@ -216,9 +214,6 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Tricolor Ribbon Segment */}
-      <div className="tricolor-ribbon shrink-0 h-1 bg-gradient-to-r from-gov-saffron via-white to-gov-green" />
 
       {/* 2. Unified Topbar */}
       <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-slate-200 bg-white px-6 transition duration-200 shrink-0">
@@ -239,10 +234,10 @@ export const Layout: React.FC<LayoutProps> = ({
             </div>
             <div className="border-l-2 border-slate-200 pl-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-sm font-extrabold tracking-tight text-gov-navy md:text-lg uppercase">
-                  NATIONAL FLN PORTAL
+                <h1 className="text-sm font-extrabold tracking-tight text-slate-900 md:text-lg uppercase">
+                  FLN Portal
                 </h1>
-                <span className="rounded bg-gov-green/10 px-2.5 py-0.5 text-[9px] font-black text-gov-green uppercase tracking-wider">
+                <span className="rounded bg-emerald-100 px-2.5 py-0.5 text-[9px] font-black text-emerald-700 uppercase tracking-wider">
                   Official Central Grid
                 </span>
               </div>
@@ -382,11 +377,11 @@ export const Layout: React.FC<LayoutProps> = ({
                       onClick={() => hasSub ? toggleSubMenu(item.name) : onSelectView(item.view)}
                       className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold transition duration-150 border ${
                         isSelected
-                          ? 'bg-gov-navy text-white border-gov-gold/30 shadow-sm'
+                          ? 'bg-indigo-700 text-white border-indigo-300 shadow-sm'
                           : 'text-slate-650 hover:bg-slate-100 border-transparent hover:text-slate-900'
                       }`}
                     >
-                      <item.icon className={`h-4 w-4 ${isSelected ? 'text-gov-saffron' : 'text-slate-400'}`} />
+                      <item.icon className={`h-4 w-4 ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`} />
                       {!collapsed && <span>{item.name}</span>}
                       {!collapsed && item.badge && (
                         <span className="ml-auto bg-rose-500 text-white font-mono text-[9px] px-1.5 py-0.5 rounded-full">
@@ -474,7 +469,7 @@ export const Layout: React.FC<LayoutProps> = ({
                         }}
                         className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold border transition ${
                           isSelected
-                            ? 'bg-gov-navy text-white border-gov-gold/30 shadow-sm'
+                            ? 'bg-primary-navy text-white border-accent-gold/30 shadow-sm'
                             : 'text-slate-650 hover:bg-slate-100 border-transparent'
                         }`}
                       >

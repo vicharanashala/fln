@@ -17,8 +17,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
   const nationalAvgFlnScore = Math.round((totalCertified / totalEnrolled) * 100);
 
   const stats = [
-    { label: 'States Active', value: '5', desc: 'Implementing standard model', icon: Globe, color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40' },
-    { label: 'Districts Coordinated', value: '92', desc: 'Unified mapping dashboard', icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
+    { label: 'States & Districts', value: '5 states · 92 districts', desc: 'Implementing standard model across coordinated districts', icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
     { label: 'Registered Schools', value: '14,240', desc: 'High & low strength schools', icon: BookOpen, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
     { label: 'Students Tracked', value: `${(totalEnrolled / 100000).toFixed(2)} Lakh`, desc: 'Continuous FLN tracking', icon: Users, color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' },
     { label: 'Assessments Conducted', value: '3.4 Lakh', desc: 'Baseline, Mid-year, End-of-year', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40' },
@@ -28,14 +27,12 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 transition-colors duration-200">
       
-      {/* 1. Official Government Top Accessibility & Bilingual Strip */}
+      {/* 1. Accessibility / Top strip (neutral branding) */}
       <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <span className="text-gov-saffron">GOVERNMENT OF INDIA</span>
+          <span className="font-bold">FLN Portal</span>
           <span className="text-gray-500">|</span>
-          <span className="text-gray-300 hidden sm:inline">MINISTRY OF SCHOOL EDUCATION & LITERACY</span>
-          <span className="text-gray-500 hidden sm:inline">|</span>
-          <span className="text-gov-green">DEPARTMENT OF SCHOOL EDUCATION, PUNJAB</span>
+          <span className="text-gray-300 hidden sm:inline">Foundational Literacy & Numeracy</span>
         </div>
         <div className="flex items-center gap-4">
           <button 
@@ -46,7 +43,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
           </button>
           <span className="text-gray-700">|</span>
           <div className="flex items-center gap-2">
-            <span className="text-gov-saffron font-bold cursor-pointer">ENGLISH</span>
+            <span className="font-bold cursor-pointer">ENGLISH</span>
             <span className="text-gray-600">/</span>
             <span className="hover:text-white cursor-pointer" onClick={() => alert("ਪੰਜਾਬੀ ਭਾਸ਼ਾ ਵਿੱਚ ਬਦਲੋ")}>ਪੰਜਾਬੀ</span>
             <span className="text-gray-600">/</span>
@@ -55,10 +52,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
         </div>
       </div>
 
-      {/* 2. Tricolor Ribbon Segment */}
-      <div className="tricolor-ribbon" />
-
-      {/* 3. Main Government Banner Header */}
+      {/* 3. Main portal banner header */}
       <header className="border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
@@ -70,22 +64,22 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
             </div>
             <div className="border-l-2 border-slate-200 pl-3">
               <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
-                <span className="text-lg font-extrabold tracking-tight text-gov-navy uppercase">
-                  NATIONAL FLN PORTAL
+                <span className="text-lg font-extrabold tracking-tight text-slate-900 uppercase">
+                  FLN Portal
                 </span>
-                <span className="rounded-full bg-gov-saffron/10 px-2.5 py-0.5 text-[10px] font-bold text-gov-saffron uppercase tracking-wider">
-                  Official GoI Portal
+                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                  Official Portal
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-bold uppercase tracking-wide">
-                Ministry of School Education & Literacy • Govt. of Punjab Initiative
+                Foundational Literacy & Numeracy initiative
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={onNavigateToLogin}
-              className="rounded-lg bg-gov-navy px-6 py-2.5 text-xs font-extrabold text-white shadow-md transition-all duration-150 hover:bg-gov-navy-light border border-gov-gold active:scale-[0.98] uppercase tracking-wider"
+              className="rounded-lg bg-indigo-700 px-6 py-2.5 text-xs font-extrabold text-white shadow-md transition-all duration-150 hover:bg-indigo-600 border border-indigo-300 active:scale-[0.98] uppercase tracking-wider"
             >
               Sign In to Dashboard
             </button>
@@ -96,14 +90,14 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
       {/* 4. Scrolling Flash Bulletin Board */}
       <div className="bg-amber-50/70 border-b border-amber-200/50 py-2.5 px-6">
         <div className="mx-auto max-w-7xl flex items-center gap-3 text-xs overflow-hidden">
-          <span className="shrink-0 bg-gov-saffron text-white font-extrabold px-2.5 py-1 rounded text-[10px] uppercase tracking-wider flex items-center gap-1">
+          <span className="shrink-0 bg-amber-600 text-white font-extrabold px-2.5 py-1 rounded text-[10px] uppercase tracking-wider flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-white animate-ping" />
             LATEST NOTICES
           </span>
-          <div className="whitespace-nowrap overflow-x-auto text-slate-700 font-medium scrollbar-none flex items-center gap-6">
-            <span className="text-gov-navy">● [FLN-PB] Diagnostic test window extended for Ludhiana and Amritsar blocks.</span>
-            <span className="text-gov-navy">● [GUIDELINE] Implementation of ASER 2026 standardized testing standards.</span>
-            <span className="text-gov-navy">● [CURRICULUM] 59 cumulative proficiency levels mapped with standard learning goals.</span>
+            <div className="whitespace-nowrap overflow-x-auto text-slate-700 font-medium scrollbar-none flex items-center gap-6">
+            <span className="text-slate-700">● [FLN-PB] Diagnostic test window extended for Ludhiana and Amritsar blocks.</span>
+            <span className="text-slate-700">● [GUIDELINE] Implementation of ASER 2026 standardized testing standards.</span>
+            <span className="text-slate-700">● [CURRICULUM] 59 cumulative proficiency levels mapped with standard learning goals.</span>
           </div>
         </div>
       </div>
@@ -111,12 +105,12 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
       {/* Hero Section */}
       <main className="mx-auto max-w-7xl px-6 py-12">
         <div className="text-center relative">
-          <div className="absolute inset-x-0 -top-12 flex justify-center -z-10 opacity-5">
-            <span className="text-[140px] font-black select-none text-gov-navy">FLN</span>
+            <div className="absolute inset-x-0 -top-12 flex justify-center -z-10 opacity-5">
+            <span className="text-[140px] font-black select-none text-slate-200">FLN</span>
           </div>
           
-          <div className="inline-flex items-center gap-2 rounded-full bg-gov-gold/10 px-4 py-1.5 text-xs font-bold text-gov-navy mb-6 border border-gov-gold/20">
-            <span className="h-2 w-2 rounded-full bg-gov-saffron" />
+          <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-1.5 text-xs font-bold text-slate-900 mb-6 border border-amber-200">
+            <span className="h-2 w-2 rounded-full bg-amber-600" />
             <span>Foundational Literacy and Numeracy (FLN) National Assessment Scheme</span>
           </div>
 
@@ -129,10 +123,10 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
           <div className="mt-8 flex justify-center gap-4">
             <button
               onClick={onNavigateToLogin}
-              className="flex items-center gap-2 rounded-xl bg-gov-navy px-8 py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-150 hover:bg-gov-navy-light border border-gov-gold active:scale-[0.98]"
+              className="flex items-center gap-2 rounded-xl bg-indigo-700 px-8 py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-150 hover:bg-indigo-600 border border-indigo-300 active:scale-[0.98]"
             >
               ACCESS DASHBOARD
-              <ArrowRight className="h-4 w-4 text-gov-saffron" />
+              <ArrowRight className="h-4 w-4 text-amber-500" />
             </button>
           </div>
         </div>
@@ -204,55 +198,19 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
         </div>
       </main>
 
-      {/* Government Link Directory Panel */}
-      <div className="bg-gov-navy text-white border-t border-slate-200 mt-20">
-        <div className="mx-auto max-w-7xl px-6 py-10 grid grid-cols-1 sm:grid-cols-4 gap-8 text-xs">
-          <div>
-            <h4 className="font-bold uppercase tracking-wider text-gov-saffron mb-3">National Portals</h4>
-            <ul className="space-y-2 text-slate-300">
-              <li><a href="https://india.gov.in" target="_blank" className="hover:text-white hover:underline">india.gov.in (National Portal)</a></li>
-              <li><a href="https://mygov.in" target="_blank" className="hover:text-white hover:underline">mygov.in (MyGov India)</a></li>
-              <li><a href="https://education.gov.in" target="_blank" className="hover:text-white hover:underline">Ministry of Education Portal</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold uppercase tracking-wider text-gov-saffron mb-3">State Resources</h4>
-            <ul className="space-y-2 text-slate-300">
-              <li><a href="#" className="hover:text-white hover:underline">Punjab School Education Board</a></li>
-              <li><a href="#" className="hover:text-white hover:underline">SCERT Punjab e-Learning</a></li>
-              <li><a href="#" className="hover:text-white hover:underline">e-Punjab School Portal</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold uppercase tracking-wider text-gov-saffron mb-3">Key Schemes</h4>
-            <ul className="space-y-2 text-slate-300">
-              <li><a href="#" className="hover:text-white hover:underline">National FLN Guidelines</a></li>
-              <li><a href="#" className="hover:text-white hover:underline">Samagra Shiksha Abhiyan</a></li>
-              <li><a href="#" className="hover:text-white hover:underline">PM POSHAN Scheme</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold uppercase tracking-wider text-gov-saffron mb-3">Platform Information</h4>
-            <p className="text-slate-400 leading-relaxed">
-              Designed as a secure Foundational Literacy & Numeracy Adaptive evaluation platform, in synchronization with NCERT diagnostic directives.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Footer */}
       <footer className="bg-[#111827] text-slate-400 py-8 border-t border-gray-800 text-center text-xs">
         <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-left">
-            <p>© 2026 NATIONAL FLN Assessment Platform. Handcrafted in compliance with the Ministry of Education directives.</p>
-            <p className="mt-1 text-slate-500">Technical Support & Platform Host: National Informatics Centre (NIC) Server Grid.</p>
+            <p>© 2026 FLN Assessment Platform. Handcrafted for educational diagnostics.</p>
+            <p className="mt-1 text-slate-500">Technical Support & Platform Host: Secure Education Services.</p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="rounded bg-gray-800 text-gov-saffron px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider">
-              Digital India Initiative
+            <span className="rounded bg-gray-800 text-amber-400 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider">
+              Digital Initiative
             </span>
-            <span className="rounded bg-gray-800 text-gov-green px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider">
-              NIC Hosted
+            <span className="rounded bg-gray-800 text-emerald-400 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider">
+              Hosted
             </span>
           </div>
         </div>

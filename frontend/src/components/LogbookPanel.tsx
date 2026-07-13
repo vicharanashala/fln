@@ -193,11 +193,11 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-gray-100 text-[10px] font-extrabold uppercase text-slate-700 dark:bg-gray-950/40 dark:border-gray-800">
-                <th className="px-6 py-3.5 text-gov-navy font-bold">Timestamp</th>
-                <th className="px-6 py-3.5 text-gov-navy font-bold">Log Type</th>
-                <th className="px-6 py-3.5 text-gov-navy font-bold">Initiated Level</th>
-                <th className="px-6 py-3.5 text-gov-navy font-bold">Scope / Code</th>
-                <th className="px-6 py-3.5 text-gov-navy font-bold">Operation Details</th>
+                <th className="px-6 py-3.5 text-primary-navy font-bold">Timestamp</th>
+                <th className="px-6 py-3.5 text-primary-navy font-bold">Log Type</th>
+                <th className="px-6 py-3.5 text-primary-navy font-bold">Initiated Level</th>
+                <th className="px-6 py-3.5 text-primary-navy font-bold">Scope / Code</th>
+                <th className="px-6 py-3.5 text-primary-navy font-bold">Operation Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
