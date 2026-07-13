@@ -61,6 +61,8 @@ def validate_template(template: dict[str, Any]) -> dict[str, Any]:
         "page": {
             "width": int(page.get("width", STANDARD_A4["width"])),
             "height": int(page.get("height", STANDARD_A4["height"])),
+            "marker_center_inset_x": int(page.get("marker_center_inset_x", 0)),
+            "marker_center_inset_y": int(page.get("marker_center_inset_y", 0)),
         },
         "questions": [],
         "answer_key": template.get("answer_key") or template.get("answerKey") or {},
@@ -82,6 +84,7 @@ def validate_template(template: dict[str, Any]) -> dict[str, Any]:
                 "question_id": question_id,
                 "label": question.get("label") or f"Q{index}",
                 "type": question.get("type") or question.get("questionType") or "short_text",
+                "source_question_type": question.get("source_question_type") or question.get("questionType"),
                 "prompt": question.get("prompt") or "",
                 "answer_key": question.get("answer_key")
                 or question.get("answerKey")

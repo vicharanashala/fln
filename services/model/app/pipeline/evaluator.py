@@ -65,6 +65,20 @@ def _marker_missing_recognition(marker: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _manual_visual_recognition() -> dict[str, Any]:
+    return {
+        "recognizedAnswer": "",
+        "confidence": 0.0,
+        "modelName": "manual-visual-review",
+        "modelVersion": MODEL_VERSION,
+        "providerStatus": "manual_visual_review",
+        "diagnostics": {
+            "engine": "visual-review",
+            "summary": "This question type is not text OCR. The full perspective-corrected question box was cropped for volunteer review.",
+        },
+    }
+
+
 def _markers_are_valid(markers: dict[str, Any]) -> bool:
     return (
         markers.get("status") in VALID_MARKER_STATUSES
@@ -282,17 +296,37 @@ def infer_full_scan(payload: dict[str, Any]) -> dict[str, Any]:
         box_marker = detect_answer_box_marker(aligned_page, question["roi"], question.get("label"))
         crop, normalized_roi = crop_answer_roi(aligned_page, question["roi"])
         crop_metrics = roi_quality(crop)
-        if template.get("box_markers_required") and not box_marker["detected"]:
+        if not question.get("auto_score", True):
+            recognition = _manual_visual_recognition()
+            scoring = {
+                "awardedMarks": 0.0,
+                "maxMarks": float(question.get("marks") or 1),
+                "confidence": 0.0,
+                "confidenceBand": "very_low",
+                "needsReview": True,
+                "status": "needs_review",
+                "isCorrect": False,
+                "matchScore": 0.0,
+                "normalizedAnswer": "",
+                "normalizedKey": str(question.get("answer_key") or ""),
+            }
+        elif template.get("box_markers_required") and not box_marker["detected"]:
             recognition = _marker_missing_recognition(box_marker)
+            scoring = score_answer(
+                question,
+                recognition["recognizedAnswer"],
+                recognition["confidence"],
+                crop_metrics["quality"],
+            )
         else:
             processed_roi = preprocess_roi(crop)
             recognition = recognize_answer(processed_roi, question)
-        scoring = score_answer(
-            question,
-            recognition["recognizedAnswer"],
-            recognition["confidence"],
-            crop_metrics["quality"],
-        )
+            scoring = score_answer(
+                question,
+                recognition["recognizedAnswer"],
+                recognition["confidence"],
+                crop_metrics["quality"],
+            )
         total_marks += scoring["maxMarks"]
         awarded_marks += scoring["awardedMarks"]
         review_count += 1 if scoring["needsReview"] else 0

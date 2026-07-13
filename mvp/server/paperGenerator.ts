@@ -1,18 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { randomUUID } from 'crypto';
-import { Question } from './db';
-import { renderBatch } from './worksheetRenderer';
-import { mergeAndStamp } from './pdfMerge';
+import { createHash, randomUUID } from 'crypto';
+import { dbStore, Question, ScanPaperTemplate } from './db';
 import { generateScanTemplatePaper, ScanTemplateStudent } from './scanTemplatePaper';
 
-// Resolve __dirname in ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const OUTPUT_DIR = path.join(__dirname, '..', 'output');
+const MODULE_DIR = path.dirname(path.resolve(process.argv[1] || path.join(process.cwd(), 'server', 'index.ts')));
+const OUTPUT_DIR = path.join(MODULE_DIR, '..', 'output');
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
@@ -26,6 +20,60 @@ export interface PaperGenerationResult {
   templateFileName?: string;
   templatePath?: string;
   templateUrl?: string;
+  paperTemplates?: ScanPaperTemplate[];
+}
+
+interface DiagnosticPaperStudent {
+  name: string;
+  studentId?: string;
+}
+
+function seededQuestionRank(seed: string, questionId: string) {
+  return createHash('sha256').update(`${seed}:${questionId}`).digest('hex');
+}
+
+export function selectQuestionBankItems(questionBank: Question[], targetLevel: number, count = 4, seed = 'default'): Question[] {
+  const unsupportedAssetReference = /\b(?:in the picture|look at the clock|shown (?:above|below)|diagram|pictograph)\b/i;
+  const printableQuestions = questionBank.filter(question => {
+    if (unsupportedAssetReference.test(question.question)) return false;
+    if (question.svgAsset && /^count\b/i.test(question.question.trim())) return false;
+    return true;
+  });
+  const ranked = [...printableQuestions].sort((left, right) => {
+    const levelDifference = Math.abs(left.source_level - targetLevel) - Math.abs(right.source_level - targetLevel);
+    if (levelDifference !== 0) return levelDifference;
+    const difficultyRank = { easy: 0, medium: 1, hard: 2 };
+    const difficultyDifference = difficultyRank[left.difficulty] - difficultyRank[right.difficulty];
+    if (difficultyDifference !== 0) return difficultyDifference;
+    return left.question_id.localeCompare(right.question_id);
+  });
+
+  const selected: Question[] = [];
+  const formats: NonNullable<Question['question_format']>[] = ['multiple_choice', 'match_pair', 'text', 'fill_blank'];
+  for (const format of formats) {
+    const formatCandidates = ranked.filter(item => item.question_format === format);
+    const closestDistance = formatCandidates.length
+      ? Math.abs(formatCandidates[0].source_level - targetLevel)
+      : Number.POSITIVE_INFINITY;
+    const question = formatCandidates
+      .filter(item => Math.abs(item.source_level - targetLevel) <= closestDistance + 1)
+      .sort((left, right) => seededQuestionRank(seed, left.question_id).localeCompare(seededQuestionRank(seed, right.question_id)))[0];
+    if (question && !selected.some(item => item.question_id === question.question_id)) selected.push(question);
+    if (selected.length >= count) break;
+  }
+  const remainingCandidates = ranked
+    .filter(question => !selected.some(item => item.question_id === question.question_id))
+    .slice(0, Math.max(count * 2, count))
+    .sort((left, right) => seededQuestionRank(seed, left.question_id).localeCompare(seededQuestionRank(seed, right.question_id)));
+  for (const question of remainingCandidates) {
+    if (selected.some(item => item.question_id === question.question_id)) continue;
+    selected.push(question);
+    if (selected.length >= count) break;
+  }
+  if (selected.length < count) {
+    throw new Error(`The database has only ${selected.length} self-contained printable questions near Level ${targetLevel}; ${count} are required.`);
+  }
+  return selected.slice(0, count);
 }
 
 export interface WorksheetPdfResult {
@@ -35,8 +83,8 @@ export interface WorksheetPdfResult {
 }
 
 /**
- * Generate mock diagnostic question papers class-wise.
- * Stamps the student's name on their corresponding mock exam paper.
+ * Generate scan-ready diagnostic papers from the persisted MVP question bank.
+ * Every generated paper template is persisted before the result is returned.
  */
 export async function generateDiagnosticPaper({
   classNumber,
@@ -44,78 +92,39 @@ export async function generateDiagnosticPaper({
   onProgress
 }: {
   classNumber: number;
-  students: ScanTemplateStudent[];
+  students: DiagnosticPaperStudent[];
   onProgress?: (setNum: number, total: number) => void;
 }): Promise<PaperGenerationResult> {
   if (!Array.isArray(students) || students.length === 0) {
     throw new Error("students must be a non-empty array.");
   }
 
-  return generateScanTemplatePaper({
+  const [questionBank, roster] = await Promise.all([
+    dbStore.getQuestions(),
+    dbStore.getStudents()
+  ]);
+  if (!questionBank.length) throw new Error('The database question bank is empty.');
+  const generationSeed = randomUUID();
+
+  const paperStudents: ScanTemplateStudent[] = students.map((student, index) => {
+    const studentId = student.studentId || `STUDENT_${index + 1}`;
+    const rosterStudent = roster.find(item => item.id === studentId);
+    const targetLevel = rosterStudent?.currentLevel || classNumber;
+    return {
+      ...student,
+      studentId,
+      questions: selectQuestionBankItems(questionBank, targetLevel, 4, `${generationSeed}:${studentId}`)
+    };
+  });
+
+  const scanResult = await generateScanTemplatePaper({
     classNumber,
-    students,
+    students: paperStudents,
     outputDir: OUTPUT_DIR,
     onProgress
   });
-
-  const classLevel = `CLASS_${classNumber}`;
-  const results = await renderBatch(classLevel, students.length, onProgress);
-
-  // Extract questions from results[0].masterJson
-  let questions: Question[] = [];
-  if (results && results[0] && results[0].masterJson && results[0].masterJson.sections) {
-    const sections = results[0].masterJson.sections;
-    sections.forEach((sec: any, secIdx: number) => {
-      if (Array.isArray(sec.items)) {
-        sec.items.forEach((item: any, itemIdx: number) => {
-          questions.push({
-            question_id: `diag_q_${secIdx}_${itemIdx}`,
-            question: item.question || `Question in section ${sec.section}`,
-            answer: item.icr?.expected || String(item.data?.answer || ''),
-            answer_type: 'number',
-            topic: sec.section || `Section ${secIdx + 1}`,
-            subtopic: sec.section || 'operations',
-            difficulty: 'medium',
-            source_level: classNumber * 10
-          });
-        });
-      }
-    });
-  } else {
-    // Fallback if masterJson parsing failed or is empty
-    questions = [
-      {
-        question_id: `DIAG_Q1`,
-        question: `Identify the place value of the underlined digit: 7_8_4 (Class ${classNumber} Diagnostic)`,
-        answer: `80`,
-        answer_type: `number`,
-        topic: `Number Sense`,
-        subtopic: `place_value`,
-        difficulty: `easy`,
-        source_level: classNumber * 10
-      }
-    ];
-  }
-
-  const mergedBuffer = await mergeAndStamp(
-    results.map(r => ({ index: r.index, pdfBase64: r.pdfBase64 })),
-    students
-  );
-
-  const fileName = `class${classNumber}_diagnostic_${randomUUID()}.pdf`;
-  const filePath = path.join(OUTPUT_DIR, fileName);
-  fs.writeFileSync(filePath, mergedBuffer);
-
-  return {
-    fileName,
-    filePath,
-    totalSets: students.length,
-    studentOrder: students.map((s, i) => ({
-      setNum: i + 1,
-      studentName: s.name,
-    })),
-    questions
-  };
+  await dbStore.upsertScanPaperTemplates(scanResult.paperTemplates);
+  return scanResult;
 }
 
 export interface LevelWorksheetResult {

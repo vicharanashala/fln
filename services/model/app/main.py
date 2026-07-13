@@ -23,6 +23,7 @@ from app.pipeline.recognition import MODEL_NAME, MODEL_VERSION, available_ocr_pr
 from app.pipeline.vision import available_vision_providers
 
 SERVICE_NAME = "smartfln-model"
+MAX_REQUEST_BYTES = int(os.getenv("SMARTFLN_MODEL_MAX_REQUEST_BYTES", str(30 * 1024 * 1024)))
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 INDEX_HTML = STATIC_DIR / "index.html"
 SAMPLES_DIR = Path(__file__).resolve().parents[1] / "samples"
@@ -84,6 +85,12 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             length = int(self.headers.get("Content-Length", "0"))
+            if length <= 0:
+                self._json(400, {"error": "request_body_required"})
+                return
+            if length > MAX_REQUEST_BYTES:
+                self._json(413, {"error": "request_too_large", "maxBytes": MAX_REQUEST_BYTES})
+                return
             payload = json.loads(self.rfile.read(length) or b"{}")
             self._json(200, infer(payload))
         except Exception as error:

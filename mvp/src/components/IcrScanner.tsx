@@ -19,14 +19,6 @@ interface RoiRect {
   height: number;
 }
 
-interface PageFrame {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  source: 'fiducials' | 'full-image';
-}
-
 interface QrIdentity {
   studentId: string;
   paperId: string;
@@ -77,6 +69,27 @@ interface ScanResult {
     page: { width: number; height: number };
     questions: TemplateQuestion[];
     templateUrl: string;
+  };
+  modelScan: {
+    answers: Array<{
+      question_id: string;
+      recognized_answer?: string;
+      confidence?: number;
+      needs_teacher_review?: boolean;
+      status?: string;
+      roi?: RoiRect;
+      crop_image_data_url?: string;
+      ocr?: {
+        model_name?: string;
+        provider_status?: string;
+      };
+    }>;
+    page?: {
+      alignment?: {
+        perspectiveCorrected?: boolean;
+        status?: string;
+      };
+    };
   };
 }
 
@@ -208,100 +221,6 @@ function normalizeAnswer(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-function findMarkerInZone(imageData: ImageData, zone: RoiRect) {
-  const minX = Math.max(0, Math.floor(zone.x));
-  const minY = Math.max(0, Math.floor(zone.y));
-  const maxX = Math.min(imageData.width, Math.ceil(zone.x + zone.width));
-  const maxY = Math.min(imageData.height, Math.ceil(zone.y + zone.height));
-  let left = maxX;
-  let top = maxY;
-  let right = minX;
-  let bottom = minY;
-  let count = 0;
-
-  for (let y = minY; y < maxY; y += 1) {
-    for (let x = minX; x < maxX; x += 1) {
-      const index = (y * imageData.width + x) * 4;
-      const red = imageData.data[index];
-      const green = imageData.data[index + 1];
-      const blue = imageData.data[index + 2];
-      if (red < 55 && green < 55 && blue < 55) {
-        left = Math.min(left, x);
-        top = Math.min(top, y);
-        right = Math.max(right, x);
-        bottom = Math.max(bottom, y);
-        count += 1;
-      }
-    }
-  }
-
-  const width = right - left + 1;
-  const height = bottom - top + 1;
-  if (count < 80 || width < 8 || height < 8) return null;
-  return { left, top, right, bottom, width, height };
-}
-
-function detectPageFrameFromFiducials(image: HTMLImageElement, page: { width: number; height: number }): PageFrame {
-  const naturalWidth = image.naturalWidth || image.width;
-  const naturalHeight = image.naturalHeight || image.height;
-  const canvas = document.createElement('canvas');
-  canvas.width = naturalWidth;
-  canvas.height = naturalHeight;
-  const context = canvas.getContext('2d', { willReadFrequently: true });
-  if (!context) return { left: 0, top: 0, width: naturalWidth, height: naturalHeight, source: 'full-image' };
-  context.drawImage(image, 0, 0, naturalWidth, naturalHeight);
-  const imageData = context.getImageData(0, 0, naturalWidth, naturalHeight);
-
-  const zoneWidth = naturalWidth * 0.22;
-  const zoneHeight = naturalHeight * 0.18;
-  const topLeft = findMarkerInZone(imageData, { x: 0, y: 0, width: zoneWidth, height: zoneHeight });
-  const topRight = findMarkerInZone(imageData, { x: naturalWidth - zoneWidth, y: 0, width: zoneWidth, height: zoneHeight });
-  const bottomLeft = findMarkerInZone(imageData, { x: 0, y: naturalHeight - zoneHeight, width: zoneWidth, height: zoneHeight });
-  const bottomRight = findMarkerInZone(imageData, { x: naturalWidth - zoneWidth, y: naturalHeight - zoneHeight, width: zoneWidth, height: zoneHeight });
-
-  if (!topLeft || !topRight || !bottomLeft || !bottomRight) {
-    return { left: 0, top: 0, width: naturalWidth, height: naturalHeight, source: 'full-image' };
-  }
-
-  const markerInsetPt = 12;
-  const markerSizePt = 28;
-  const markerTravelXPt = page.width - (markerInsetPt * 2) - markerSizePt;
-  const markerTravelYPt = page.height - (markerInsetPt * 2) - markerSizePt;
-  const scaleX = (topRight.left - topLeft.left) / markerTravelXPt;
-  const scaleY = (bottomLeft.top - topLeft.top) / markerTravelYPt;
-  const left = Math.max(0, topLeft.left - markerInsetPt * scaleX);
-  const top = Math.max(0, topLeft.top - markerInsetPt * scaleY);
-  const right = Math.min(naturalWidth, topRight.right + markerInsetPt * scaleX);
-  const bottom = Math.min(naturalHeight, bottomLeft.bottom + markerInsetPt * scaleY);
-
-  if (right <= left || bottom <= top) {
-    return { left: 0, top: 0, width: naturalWidth, height: naturalHeight, source: 'full-image' };
-  }
-
-  return { left, top, width: right - left, height: bottom - top, source: 'fiducials' };
-}
-
-function cropRoiFromImage(image: HTMLImageElement, page: { width: number; height: number }, roi: RoiRect, frame: PageFrame) {
-  const naturalWidth = image.naturalWidth || image.width;
-  const naturalHeight = image.naturalHeight || image.height;
-  const scaleX = frame.width / page.width;
-  const scaleY = frame.height / page.height;
-  const padX = 4 * scaleX;
-  const padY = 4 * scaleY;
-  const sx = Math.max(0, frame.left + roi.x * scaleX - padX);
-  const sy = Math.max(0, frame.top + roi.y * scaleY - padY);
-  const sw = Math.min(naturalWidth - sx, roi.width * scaleX + padX * 2);
-  const sh = Math.min(naturalHeight - sy, roi.height * scaleY + padY * 2);
-
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(sw));
-  canvas.height = Math.max(1, Math.round(sh));
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('Could not crop answer ROI.');
-  context.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/png');
-}
-
 function reviewMarkToMarks(mark: FinalMark | null, maxMarks = 1) {
   if (mark === 'correct') return maxMarks;
   if (mark === 'partial') return maxMarks / 2;
@@ -318,27 +237,6 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, onBack }) => {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
   const [report, setReport] = useState<EvaluationReport | null>(null);
-
-  const callTrocr = async (item: ReviewItem, identity: QrIdentity) => {
-    const res = await fetch('/api/ocr/trocr', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        studentId: identity.studentId,
-        paperId: identity.paperId,
-        testId: identity.testId,
-        questionId: item.questionId,
-        questionType: item.questionType,
-        prompt: item.question,
-        expectedAnswer: item.expectedAnswer,
-        imageDataUrl: item.cropImageDataUrl
-      })
-    });
-    return res.json();
-  };
 
   const processPaperImage = async (file: File | undefined, source: ScanSource) => {
     if (!file) return;
@@ -363,73 +261,51 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, onBack }) => {
       const parsed = parseQrPayload(qrText);
       if (!parsed) throw new Error('QR decoded, but the payload format is not valid.');
 
-      const templateRes = await fetch('/api/ocr/scan/template', {
+      const scanRes = await fetch('/api/ocr/scan/process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ qrText })
+        body: JSON.stringify({ qrText, imageDataUrl })
       });
-      const templateData = await templateRes.json();
-      if (!templateRes.ok) throw new Error(templateData.error || 'Could not load scan template for this paper.');
+      const scanData: ScanResult & { error?: string } = await scanRes.json();
+      if (!scanRes.ok) throw new Error(scanData.error || 'The full-page scan was rejected. Verify the QR and all four corner markers.');
 
-      const loadedImage = await loadImage(imageDataUrl);
-      const paper = templateData.paper;
-      const pageFrame = detectPageFrameFromFiducials(loadedImage, paper.page);
-      const items: ReviewItem[] = [];
-
-      for (const question of paper.questions as TemplateQuestion[]) {
+      const items: ReviewItem[] = (scanData.paper.questions as TemplateQuestion[]).map(question => {
         const textBased = isTextQuestion(question.questionType);
-        const roi = textBased ? question.answerBoxes?.[0] : question.questionBox;
+        const modelAnswer = scanData.modelScan.answers.find(answer => answer.question_id === question.questionId);
+        if (!modelAnswer) throw new Error(`The model did not return a crop for ${question.questionLabel}.`);
         const maxMarks = Number(question.marks || 1);
-        const cropImageDataUrl = roi ? cropRoiFromImage(loadedImage, paper.page, roi, pageFrame) : '';
-        const baseItem: ReviewItem = {
+        const confidence = textBased ? Math.max(0, Math.min(1, Number(modelAnswer.confidence || 0))) : 0;
+        const extractedText = textBased ? String(modelAnswer.recognized_answer || '') : '';
+        const autoEvaluated = textBased && confidence >= 0.4;
+        const isCorrect = autoEvaluated && normalizeAnswer(extractedText) === normalizeAnswer(question.answerKey || '');
+        return {
           questionId: question.questionId,
           questionLabel: question.questionLabel,
           questionType: question.questionType,
           question: question.prompt || question.questionLabel,
           expectedAnswer: question.answerKey || '',
-          roi: roi || null,
-          cropImageDataUrl,
-          extractedText: '',
-          confidence: textBased ? 0 : 0,
-          modelName: textBased ? 'microsoft/trocr-base-handwritten' : 'visual-review',
-          modelStatus: textBased ? 'pending' : 'manual_visual_review',
-          autoEvaluated: false,
-          needsReview: true,
-          finalMark: null,
-          marks: 0,
-          maxMarks
-        };
-
-        if (!textBased) {
-          items.push(baseItem);
-          continue;
-        }
-
-        const trocr = await callTrocr(baseItem, parsed);
-        const confidence = Math.max(0, Math.min(1, Number(trocr.confidence || 0)));
-        const extractedText = String(trocr.extractedText || '');
-        const autoEvaluated = confidence >= 0.4;
-        const isCorrect = autoEvaluated && normalizeAnswer(extractedText) === normalizeAnswer(baseItem.expectedAnswer);
-        items.push({
-          ...baseItem,
+          roi: modelAnswer.roi || null,
+          cropImageDataUrl: modelAnswer.crop_image_data_url || '',
           extractedText,
           confidence,
-          modelName: trocr.modelName || baseItem.modelName,
-          modelStatus: trocr.modelStatus || (autoEvaluated ? 'ok' : 'needs_review'),
+          modelName: modelAnswer.ocr?.model_name || (textBased ? 'microsoft/trocr-base-handwritten' : 'manual-visual-review'),
+          modelStatus: modelAnswer.ocr?.provider_status || modelAnswer.status || 'needs_review',
           autoEvaluated,
           needsReview: !autoEvaluated,
           finalMark: autoEvaluated ? (isCorrect ? 'correct' : 'incorrect') : null,
-          marks: autoEvaluated ? (isCorrect ? maxMarks : 0) : 0
-        });
-      }
+          marks: autoEvaluated ? (isCorrect ? maxMarks : 0) : 0,
+          maxMarks
+        };
+      });
 
-      setScanResult(templateData);
+      setScanResult(scanData);
       setReviewItems(items);
       setStep('review');
-      setSuccess(`QR verified. Student detected: ${templateData.student.name}. ${items.length} answer ROIs cropped using ${pageFrame.source === 'fiducials' ? 'corner markers' : 'full-image fallback'}.`);
+      const alignmentStatus = scanData.modelScan.page?.alignment?.status || 'perspective_corrected';
+      setSuccess(`QR and four fiducials verified. Student detected: ${scanData.student.name}. ${items.length} ROIs were extracted from the aligned page (${alignmentStatus}).`);
     } catch (err: any) {
       setError(err.message || 'OCR scan failed.');
       setStep('select');
@@ -507,7 +383,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, onBack }) => {
             OCR Answer Sheet Scanner
           </h2>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Upload or scan a QR-coded paper. Student and paper details come from the QR; answers are cropped from stored ROIs.
+            Upload or scan the complete QR-coded page. All four corner markers are required for perspective-corrected ROI extraction.
           </p>
         </div>
         {step !== 'select' && (
@@ -555,7 +431,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, onBack }) => {
 
       {step === 'processing' && (
         <div className="bg-zinc-900 rounded-2xl shadow-xl max-w-2xl mx-auto p-8 border border-zinc-700 text-center space-y-4">
-          <h3 className="text-xl font-display font-semibold text-white">{loading ? 'Reading QR, Cropping ROIs, Calling TrOCR...' : 'Processing'}</h3>
+          <h3 className="text-xl font-display font-semibold text-white">{loading ? 'Validating QR + Fiducials, Aligning Page, Running TrOCR...' : 'Processing'}</h3>
           <p className="text-zinc-400 text-sm">
             Source: {scanSource === 'camera' ? 'Scan Paper' : 'Upload Paper'}. Text crops use the Microsoft TrOCR service when configured.
           </p>

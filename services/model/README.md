@@ -124,6 +124,17 @@ On Windows, install and cache the local TrOCR stack from this folder:
 .\scripts\install_trocr.ps1 -Python "C:\Path\To\python.exe"
 ```
 
+To keep the large virtual environment and model cache on another drive, pass a
+runtime root (or set `SMARTFLN_MODEL_RUNTIME_DIR`):
+
+```powershell
+.\scripts\install_trocr.ps1 -Python "C:\Path\To\python.exe" -RuntimeRoot "D:\SmartFLN\model-runtime"
+.\scripts\start_trocr_service.ps1 -RuntimeRoot "D:\SmartFLN\model-runtime"
+```
+
+Source code remains in the repository. Only generated runtime dependencies,
+Hugging Face cache files, and model weights live under the runtime root.
+
 Then run the model service:
 
 ```powershell

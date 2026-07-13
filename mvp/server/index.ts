@@ -1,16 +1,15 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement } from './db';
+import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, ScanPaperTemplate } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
-import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, '..');
+const MODULE_DIR = path.dirname(path.resolve(process.argv[1] || path.join(process.cwd(), 'server', 'index.ts')));
+const ROOT_DIR = path.resolve(MODULE_DIR, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 async function startServer() {
@@ -489,6 +488,7 @@ async function startServer() {
         success: true,
         pdfUrl,
         templateUrl: result.templateUrl || '',
+        questions: result.questions,
         totalSets: result.totalSets,
         studentOrder: result.studentOrder
       });
@@ -963,38 +963,12 @@ async function startServer() {
     return parsed;
   }
 
-  function latestTemplateForPaper(paperId: string) {
-    const outputDir = path.join(ROOT_DIR, 'output');
-    if (!fs.existsSync(outputDir)) return null;
-    const templateFiles = fs.readdirSync(outputDir)
-      .filter(name => name.endsWith('.template.json'))
-      .map(name => ({ name, fullPath: path.join(outputDir, name), mtime: fs.statSync(path.join(outputDir, name)).mtimeMs }))
-      .sort((a, b) => b.mtime - a.mtime);
-
-    for (const file of templateFiles) {
-      try {
-        const template = JSON.parse(fs.readFileSync(file.fullPath, 'utf-8'));
-        const paperTemplate = (template.papers || []).find((paper: any) => paper.paperId === paperId);
-        if (paperTemplate) return { file, template, paperTemplate };
-      } catch {
-        // Ignore malformed generated artifacts.
-      }
-    }
-    return null;
-  }
-
   function questionFromScanTemplate(q: any, student: Student): Question {
     const questionType = q.questionType || 'text';
-    const fallbackAnswers: Record<string, string> = {
-      text: '48',
-      multiple_choice: 'B',
-      match_pair: 'One-1, Three-3, Five-5',
-      fill_blank: '4'
-    };
     return {
       question_id: q.questionId,
       question: q.prompt || `${q.questionLabel} ${questionType.replace('_', ' ')}`,
-      answer: q.answerKey || fallbackAnswers[questionType] || '',
+      answer: q.answerKey || '',
       answer_type: q.answerType || (questionType === 'multiple_choice' ? 'choice' : 'text'),
       choices: q.choices,
       topic: questionType,
@@ -1004,25 +978,83 @@ async function startServer() {
     };
   }
 
+  function modelQuestionType(questionType: string) {
+    if (questionType === 'fill_blank') return 'numeric';
+    if (questionType === 'multiple_choice') return 'mcq';
+    if (questionType === 'match_pair') return 'matching';
+    return 'short_text';
+  }
+
+  function toModelTemplate(template: ScanPaperTemplate) {
+    const modelPage = { width: 2480, height: 3508 };
+    const scaleX = modelPage.width / template.page.width;
+    const scaleY = modelPage.height / template.page.height;
+    const scaleRoi = (roi: { x: number; y: number; width: number; height: number }) => ({
+      x: Math.round(roi.x * scaleX),
+      y: Math.round(roi.y * scaleY),
+      width: Math.max(1, Math.round(roi.width * scaleX)),
+      height: Math.max(1, Math.round(roi.height * scaleY))
+    });
+    const topLeftMarker = template.fiducials.topLeft;
+    return {
+      paper_id: template.paperId,
+      test_id: template.testId,
+      answer_key_id: `${template.testId}:answer-key`,
+      box_markers_required: false,
+      page: {
+        ...modelPage,
+        marker_center_inset_x: Math.round((topLeftMarker.x + topLeftMarker.width / 2) * scaleX),
+        marker_center_inset_y: Math.round((topLeftMarker.y + topLeftMarker.height / 2) * scaleY)
+      },
+      questions: template.questions.map(question => {
+        const textBased = question.questionType === 'text' || question.questionType === 'fill_blank';
+        const selectedRoi = textBased ? question.answerBoxes[0] : question.questionBox;
+        if (!selectedRoi) throw new Error(`Question ${question.questionId} does not contain a scan ROI.`);
+        return {
+          question_id: question.questionId,
+          label: question.questionLabel,
+          type: modelQuestionType(question.questionType),
+          source_question_type: question.questionType,
+          prompt: question.prompt,
+          answer_key: question.answerKey,
+          marks: question.marks,
+          roi: scaleRoi(selectedRoi),
+          auto_score: textBased && question.autoScoreEligible
+        };
+      })
+    };
+  }
+
+  async function scanContext(qrText: string) {
+    const identity = parseScanQrPayload(qrText);
+    if (!identity.studentId || !identity.paperId || !identity.testId) {
+      return { error: 'QR must include student ID, paper ID, and test ID.', status: 400, identity } as const;
+    }
+    const paperTemplate = await dbStore.getScanPaperTemplate(identity.paperId);
+    if (!paperTemplate) {
+      return { error: `No database scan template found for paper ${identity.paperId}. Generate the paper again.`, status: 404, identity } as const;
+    }
+    if (
+      paperTemplate.studentId !== identity.studentId ||
+      paperTemplate.testId !== identity.testId ||
+      paperTemplate.pageNumber !== (identity.pageNumber || 1)
+    ) {
+      return { error: 'QR identity does not match the stored paper template.', status: 409, identity } as const;
+    }
+    const students = await dbStore.getStudents();
+    const student = students.find(item => item.id === identity.studentId);
+    if (!student) return { error: `Student ${identity.studentId} was not found.`, status: 404, identity } as const;
+    return { identity, paperTemplate, student } as const;
+  }
+
   app.post('/api/ocr/scan/template', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const identity = parseScanQrPayload(req.body?.qrText || '');
-    if (!identity.studentId || !identity.paperId || !identity.testId) {
-      return res.status(400).json({ error: 'QR must include student ID, paper ID, and test ID.', detectedQr: identity });
-    }
-
-    const templateMatch = latestTemplateForPaper(identity.paperId);
-    if (!templateMatch) {
-      return res.status(404).json({ error: `No scan template JSON found for paper ${identity.paperId}. Generate the paper again from this MVP instance.` });
-    }
-
-    const students = await dbStore.getStudents();
-    const student = students.find(s => s.id === identity.studentId);
-    if (!student) return res.status(404).json({ error: `Student ${identity.studentId} was not found.` });
-
-    const questions = (templateMatch.paperTemplate.questions || []).map((q: any) => questionFromScanTemplate(q, student));
+    const context = await scanContext(req.body?.qrText || '');
+    if ('error' in context) return res.status(context.status).json({ error: context.error, detectedQr: context.identity });
+    const { identity, paperTemplate, student } = context;
+    const questions = paperTemplate.questions.map(q => questionFromScanTemplate(q, student));
     res.json({
       detectedQr: {
         studentId: identity.studentId,
@@ -1036,14 +1068,81 @@ async function startServer() {
         id: identity.paperId,
         testId: identity.testId,
         pageNumber: identity.pageNumber || 1,
-        page: templateMatch.paperTemplate.page,
-        templateVersion: templateMatch.paperTemplate.templateVersion || templateMatch.template.templateVersion,
-        qrSchema: templateMatch.paperTemplate.qrSchema || templateMatch.template.qrSchema,
-        questions: templateMatch.paperTemplate.questions || [],
+        page: paperTemplate.page,
+        templateVersion: paperTemplate.templateVersion,
+        qrSchema: paperTemplate.qrSchema,
+        questions: paperTemplate.questions,
         questionModels: questions,
-        templateUrl: `/output/${templateMatch.file.name}`
+        templateUrl: `/output/${paperTemplate.templateFileName}`
       }
     });
+  });
+
+  app.post('/api/ocr/scan/process', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { qrText, imageDataUrl } = req.body || {};
+    if (!qrText || !imageDataUrl) return res.status(400).json({ error: 'qrText and imageDataUrl are required.' });
+
+    const context = await scanContext(qrText);
+    if ('error' in context) return res.status(context.status).json({ error: context.error, detectedQr: context.identity });
+    const { identity, paperTemplate, student } = context;
+    const serviceUrl = process.env.SMARTFLN_MODEL_SERVICE_URL || process.env.SMARTFLN_TROCR_URL || process.env.TROCR_SERVICE_URL || '';
+    if (!serviceUrl) {
+      return res.status(503).json({ error: 'The full-page model service is not configured. Set SMARTFLN_MODEL_SERVICE_URL.' });
+    }
+
+    try {
+      const inferUrl = serviceUrl.endsWith('/v1/infer') ? serviceUrl : `${serviceUrl.replace(/\/$/, '')}/v1/infer`;
+      const modelResponse = await fetch(inferUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(Number(process.env.SMARTFLN_MODEL_TIMEOUT_MS || 120000)),
+        body: JSON.stringify({
+          scanPageId: `scan_${identity.paperId}_${Date.now()}`,
+          qrText,
+          imageDataUrl,
+          template: toModelTemplate(paperTemplate)
+        })
+      });
+      const modelScan: any = await modelResponse.json().catch(() => ({}));
+      if (!modelResponse.ok) {
+        return res.status(502).json({ error: modelScan.error || modelScan.message || `Model service returned HTTP ${modelResponse.status}.` });
+      }
+      if (!modelScan.valid_paper || modelScan.ocr_started === false) {
+        return res.status(422).json({
+          error: modelScan.message || 'Scan rejected. A valid QR and all four corner fiducials are required.',
+          invalidReason: modelScan.invalid_reason,
+          validation: modelScan.validation,
+          page: modelScan.page
+        });
+      }
+
+      res.json({
+        detectedQr: {
+          studentId: identity.studentId,
+          paperId: identity.paperId,
+          testId: identity.testId,
+          pageNumber: identity.pageNumber || 1,
+          raw: identity.raw
+        },
+        student,
+        paper: {
+          id: paperTemplate.paperId,
+          testId: paperTemplate.testId,
+          pageNumber: paperTemplate.pageNumber,
+          page: paperTemplate.page,
+          templateVersion: paperTemplate.templateVersion,
+          qrSchema: paperTemplate.qrSchema,
+          questions: paperTemplate.questions,
+          templateUrl: `/output/${paperTemplate.templateFileName}`
+        },
+        modelScan
+      });
+    } catch (error: any) {
+      res.status(502).json({ error: error.message || 'The full-page model service is unreachable.' });
+    }
   });
 
   app.post('/api/ocr/trocr', async (req, res) => {
@@ -1618,25 +1717,62 @@ async function startServer() {
 
     const { classNumber, count, students: reqStudents } = req.body;
 
-    // Use provided students array or fall back to count
+    if (!classNumber) return res.status(400).json({ error: 'classNumber is required.' });
+
+    // Use only persisted roster students so every printed QR can be resolved later.
     let paperStudents: Array<{ name: string; studentId: string }>;
     let paperCount: number;
+    const roster = await dbStore.getStudents();
+    const schoolsForScope = await dbStore.getSchools();
+    const allowedSchoolIds = user.role === UserRole.BLOCK_ADMIN
+      ? schoolsForScope.filter(school => school.blockCode === user.blockCode).map(school => school.id)
+      : [];
+    const isSchoolInScope = (schoolId: string) => {
+      if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) return true;
+      if (user.role === UserRole.VOLUNTEER) return Boolean(user.assignedSchools?.includes(schoolId));
+      if (user.role === UserRole.BLOCK_ADMIN) return allowedSchoolIds.includes(schoolId);
+      return Boolean(user.schoolId && schoolId === user.schoolId);
+    };
+    const isStudentInScope = (student: Student) => isSchoolInScope(student.schoolId);
 
     if (Array.isArray(reqStudents) && reqStudents.length > 0) {
-      paperStudents = reqStudents;
+      const requestedIds = reqStudents.map((student: any) => String(student.studentId || '').trim());
+      if (requestedIds.some((id: string) => !id) || new Set(requestedIds).size !== requestedIds.length) {
+        return res.status(400).json({ error: 'Every paper requires a unique non-empty student ID.' });
+      }
+      let resolutionError = '';
+      const resolvedStudents = reqStudents.map((requested: any) => {
+        const studentId = String(requested.studentId).trim();
+        const rosterStudent = roster.find(student => student.id === studentId);
+        if (rosterStudent) {
+          if (!isStudentInScope(rosterStudent)) {
+            resolutionError = `Student ${studentId} is outside your authorized school scope.`;
+          }
+          return { name: rosterStudent.name, studentId: rosterStudent.id };
+        }
+
+        const schoolId = String(requested.schoolId || '').trim();
+        const classGroup = String(requested.classGroup || '').trim();
+        const name = String(requested.name || '').trim();
+        if (!name || !schoolId || classGroup !== `Class ${Number(classNumber)}` || !isSchoolInScope(schoolId)) {
+          resolutionError = `Student ${studentId} is not a valid member of Class ${Number(classNumber)} in your school scope.`;
+        }
+        return { name, studentId };
+      });
+      if (resolutionError) return res.status(400).json({ error: resolutionError });
+      paperStudents = resolvedStudents;
       paperCount = reqStudents.length;
     } else {
       paperCount = Number(count) || 0;
       if (paperCount <= 0) {
         return res.status(400).json({ error: 'count must be a positive number.' });
       }
-      paperStudents = Array.from({ length: paperCount }, (_, i) => ({
-        name: `Student ${i + 1}`,
-        studentId: `PLACEHOLDER_${classNumber}_${i + 1}`
-      }));
+      const classRoster = roster.filter(student => student.classGroup === `Class ${classNumber}` && isStudentInScope(student));
+      if (classRoster.length < paperCount) {
+        return res.status(400).json({ error: `Only ${classRoster.length} real database students are available for Class ${classNumber} in your scope.` });
+      }
+      paperStudents = classRoster.slice(0, paperCount).map(student => ({ name: student.name, studentId: student.id }));
     }
-
-    if (!classNumber) return res.status(400).json({ error: 'classNumber is required.' });
 
     // Role-based Authorization validation for bulk generation
     const classes = await dbStore.getClasses();

@@ -69,12 +69,63 @@ export interface Question {
   question: string;
   answer: string;
   answer_type: 'text' | 'number' | 'choice';
+  question_format?: 'text' | 'multiple_choice' | 'match_pair' | 'fill_blank';
   choices?: string[];
   topic: string;
   subtopic: string;
   difficulty: 'easy' | 'medium' | 'hard';
   source_level: number; // Mapping to mathematical level
   svgAsset?: string; // Standard pre-built SVG asset category
+}
+
+export interface ScanRoiRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ScanTemplateQuestion {
+  questionId: string;
+  questionLabel: string;
+  questionType: 'text' | 'multiple_choice' | 'match_pair' | 'fill_blank';
+  prompt: string;
+  answerKey: string;
+  answerType: Question['answer_type'];
+  choices?: string[];
+  marks: number;
+  autoScoreEligible: boolean;
+  questionBox: ScanRoiRect;
+  answerBoxes: ScanRoiRect[];
+  anchor: ScanRoiRect;
+}
+
+export interface ScanPaperTemplate {
+  templateVersion: 'scan-template-v2';
+  qrSchema: 'studentId|paperId|testId|pageNumber';
+  studentId: string;
+  studentName: string;
+  paperId: string;
+  testId: string;
+  pageNumber: number;
+  page: {
+    size: 'A4';
+    width: number;
+    height: number;
+    unit: 'pt';
+    coordinateOrigin: 'top-left';
+  };
+  qrPayload: string;
+  fiducials: {
+    topLeft: ScanRoiRect;
+    topRight: ScanRoiRect;
+    bottomLeft: ScanRoiRect;
+    bottomRight: ScanRoiRect;
+  };
+  questions: ScanTemplateQuestion[];
+  generatedAt: string;
+  pdfFileName: string;
+  templateFileName: string;
 }
 
 export interface Worksheet {
@@ -174,6 +225,7 @@ interface DatabaseSchema {
   classes: ClassGroup[];
   students: Student[];
   questions: Question[];
+  scanPaperTemplates: ScanPaperTemplate[];
   worksheets: Worksheet[];
   answerSubmissions: AnswerSubmission[];
   evaluationReports: EvaluationReport[];
@@ -184,6 +236,7 @@ interface DatabaseSchema {
 
 export class DBStore {
   private data: DatabaseSchema | null = null;
+  private saveQueue: Promise<void> = Promise.resolve();
 
   async init() {
     try {
@@ -254,6 +307,10 @@ export class DBStore {
         this.data.logbook = [];
         modified = true;
       }
+      if (!this.data.scanPaperTemplates) {
+        this.data.scanPaperTemplates = [];
+        modified = true;
+      }
 
       if (modified) {
         await this.save();
@@ -267,7 +324,9 @@ export class DBStore {
 
   private async save() {
     if (!this.data) return;
-    await fs.writeFile(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
+    const snapshot = JSON.stringify(this.data, null, 2);
+    this.saveQueue = this.saveQueue.then(() => fs.writeFile(DB_FILE, snapshot, 'utf-8'));
+    await this.saveQueue;
   }
 
   async reset() {
@@ -282,6 +341,10 @@ export class DBStore {
   async getClasses() { return this.data!.classes; }
   async getStudents() { return this.data!.students; }
   async getQuestions() { return this.data!.questions; }
+  async getScanPaperTemplates() { return this.data!.scanPaperTemplates; }
+  async getScanPaperTemplate(paperId: string) {
+    return this.data!.scanPaperTemplates.find(template => template.paperId === paperId);
+  }
   async getWorksheets() { return this.data!.worksheets; }
   async getAnswerSubmissions() { return this.data!.answerSubmissions; }
   async getEvaluationReports() { return this.data!.evaluationReports; }
@@ -316,6 +379,19 @@ export class DBStore {
     this.data!.worksheets.push(ws);
     await this.save();
     return ws;
+  }
+
+  async upsertScanPaperTemplates(templates: ScanPaperTemplate[]) {
+    for (const template of templates) {
+      const existingIndex = this.data!.scanPaperTemplates.findIndex(item => item.paperId === template.paperId);
+      if (existingIndex >= 0) {
+        this.data!.scanPaperTemplates[existingIndex] = template;
+      } else {
+        this.data!.scanPaperTemplates.push(template);
+      }
+    }
+    await this.save();
+    return templates;
   }
 
   async updateWorksheet(worksheetId: string, updates: Partial<Worksheet>) {
@@ -393,6 +469,7 @@ export class DBStore {
         question: 'Count the apples in the picture. How many apples are there?',
         answer: '5',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Number Sense',
         subtopic: 'Counting',
         difficulty: 'easy',
@@ -404,6 +481,7 @@ export class DBStore {
         question: 'Count the circles and write the total number.',
         answer: '3',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Shapes',
         subtopic: 'Recognition',
         difficulty: 'easy',
@@ -416,6 +494,7 @@ export class DBStore {
         question: 'Calculate: 3 + 4 = ?',
         answer: '7',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Number Operations',
         subtopic: 'Addition',
         difficulty: 'easy',
@@ -427,6 +506,7 @@ export class DBStore {
         question: 'Complete the pattern: Red Circle, Blue Circle, Red Circle, ?',
         answer: 'Blue Circle',
         answer_type: 'choice',
+        question_format: 'multiple_choice',
         choices: ['Red Circle', 'Blue Circle', 'Green Circle'],
         topic: 'Patterns',
         subtopic: 'Completing Patterns',
@@ -434,12 +514,36 @@ export class DBStore {
         source_level: 2,
         svgAsset: 'shapes'
       },
+      {
+        question_id: 'L2_Q3',
+        question: 'Write the number name for 14.',
+        answer: 'fourteen',
+        answer_type: 'text',
+        question_format: 'text',
+        topic: 'Number Sense',
+        subtopic: 'Number Names',
+        difficulty: 'easy',
+        source_level: 2
+      },
+      {
+        question_id: 'L2_Q4',
+        question: 'Match each number name with its numeral.',
+        answer: 'One=1, Three=3, Five=5',
+        answer_type: 'text',
+        question_format: 'match_pair',
+        choices: ['One = 1', 'Three = 3', 'Five = 5'],
+        topic: 'Number Sense',
+        subtopic: 'Match Pairs',
+        difficulty: 'easy',
+        source_level: 2
+      },
       // Level 3: Class 2 Measurement, Time, Simple Operations
       {
         question_id: 'L3_Q1',
         question: 'If a pencil is 8 centimeters long and we cut 3 centimeters off, how long is it now?',
         answer: '5',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Measurement',
         subtopic: 'Length Subtraction',
         difficulty: 'medium',
@@ -451,6 +555,7 @@ export class DBStore {
         question: 'Look at the clock. If the short hand points to 3 and the long hand points to 12, what hour is it?',
         answer: '3',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Calendar and Time',
         subtopic: 'Reading Hours',
         difficulty: 'easy',
@@ -463,6 +568,7 @@ export class DBStore {
         question: 'Ramu has a pizza cut into 4 equal slices. He eats 1 slice. What fraction of the pizza is left?',
         answer: '3/4',
         answer_type: 'choice',
+        question_format: 'multiple_choice',
         choices: ['1/4', '2/4', '3/4', '4/4'],
         topic: 'Fractions',
         subtopic: 'Fraction Representation',
@@ -475,6 +581,7 @@ export class DBStore {
         question: 'You buy a toy for 15 rupees and give the shopkeeper a 50-rupee note. How many rupees do you get back?',
         answer: '35',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Money',
         subtopic: 'Transaction Change',
         difficulty: 'hard',
@@ -487,6 +594,7 @@ export class DBStore {
         question: 'Multiply: 12 x 5 = ?',
         answer: '60',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Number Operations',
         subtopic: 'Multiplication',
         difficulty: 'easy',
@@ -498,6 +606,7 @@ export class DBStore {
         question: 'In a class there are 5 benches. Each bench holds 4 students. How many students can sit in total?',
         answer: '20',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Data Handling',
         subtopic: 'Simple Arithmetic Multiplication',
         difficulty: 'medium',
@@ -510,6 +619,7 @@ export class DBStore {
         question: 'Divide: 48 / 6 = ?',
         answer: '8',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Number Operations',
         subtopic: 'Division',
         difficulty: 'medium',
@@ -521,6 +631,7 @@ export class DBStore {
         question: 'If July 1st is a Monday, what day of the week is July 8th?',
         answer: 'Monday',
         answer_type: 'choice',
+        question_format: 'multiple_choice',
         choices: ['Monday', 'Tuesday', 'Sunday', 'Wednesday'],
         topic: 'Calendar and Time',
         subtopic: 'Calendar Arithmetic',
@@ -2177,6 +2288,7 @@ export class DBStore {
       classes,
       students,
       questions: seedQuestions,
+      scanPaperTemplates: [],
       worksheets,
       answerSubmissions,
       evaluationReports,

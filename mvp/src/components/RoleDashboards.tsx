@@ -1820,7 +1820,15 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                           'Content-Type': 'application/json',
                           'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ classNumber, students: unplaced.map(s => ({ name: s.name, studentId: s.id })) })
+                        body: JSON.stringify({
+                          classNumber,
+                          students: unplaced.map(s => ({
+                            name: s.name,
+                            studentId: s.id,
+                            schoolId: s.schoolId,
+                            classGroup: s.classGroup
+                          }))
+                        })
                       });
                       const data = await res.json();
                       if (res.ok) {
@@ -2460,7 +2468,15 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                           'Content-Type': 'application/json',
                           'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ classNumber, students: unplaced.map(s => ({ name: s.name, studentId: s.id })) })
+                        body: JSON.stringify({
+                          classNumber,
+                          students: unplaced.map(s => ({
+                            name: s.name,
+                            studentId: s.id,
+                            schoolId: s.schoolId,
+                            classGroup: s.classGroup
+                          }))
+                        })
                       });
                       const data = await res.json();
                       if (res.ok) {

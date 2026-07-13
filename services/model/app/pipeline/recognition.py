@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 import re
+import threading
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -20,6 +21,8 @@ MODEL_VERSION = "0.5.5"
 
 _TROCR_PROCESSOR = None
 _TROCR_MODEL = None
+_TROCR_LOAD_LOCK = threading.Lock()
+_TROCR_INFERENCE_LOCK = threading.Lock()
 
 DIGIT_CONFUSIONS = str.maketrans(
     {
@@ -276,18 +279,33 @@ def _load_trocr():
     if _TROCR_MODEL is not None and _TROCR_PROCESSOR is not None:
         return _TROCR_PROCESSOR, _TROCR_MODEL
 
-    from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+    with _TROCR_LOAD_LOCK:
+        if _TROCR_MODEL is not None and _TROCR_PROCESSOR is not None:
+            return _TROCR_PROCESSOR, _TROCR_MODEL
 
-    model_name = os.getenv("SMARTFLN_TROCR_MODEL", "microsoft/trocr-base-handwritten")
-    local_files_only = os.getenv("SMARTFLN_TROCR_LOCAL_FILES_ONLY", "false").strip().lower() == "true"
-    cache_dir = Path(os.getenv("SMARTFLN_TROCR_CACHE_DIR", Path(__file__).resolve().parents[2] / "models" / "cache"))
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    processor = TrOCRProcessor.from_pretrained(model_name, local_files_only=local_files_only, cache_dir=str(cache_dir))
-    model = VisionEncoderDecoderModel.from_pretrained(model_name, local_files_only=local_files_only, cache_dir=str(cache_dir))
-    model.eval()
+        from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
-    _TROCR_PROCESSOR = processor
-    _TROCR_MODEL = model
+        model_name = os.getenv("SMARTFLN_TROCR_MODEL", "microsoft/trocr-base-handwritten")
+        local_files_only = os.getenv("SMARTFLN_TROCR_LOCAL_FILES_ONLY", "false").strip().lower() == "true"
+        cache_dir = Path(os.getenv("SMARTFLN_TROCR_CACHE_DIR", Path(__file__).resolve().parents[2] / "models" / "cache"))
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        processor = TrOCRProcessor.from_pretrained(
+            model_name,
+            local_files_only=local_files_only,
+            cache_dir=str(cache_dir),
+            use_fast=False,
+        )
+        model = VisionEncoderDecoderModel.from_pretrained(
+            model_name,
+            local_files_only=local_files_only,
+            cache_dir=str(cache_dir),
+            low_cpu_mem_usage=False,
+            device_map=None,
+        )
+        model.eval()
+
+        _TROCR_PROCESSOR = processor
+        _TROCR_MODEL = model
     return processor, model
 
 
@@ -356,7 +374,7 @@ def _recognize_with_trocr(image: Image.Image, question: dict[str, Any]) -> dict[
         line_image = _prepare_handwriting_line(image)
         pixel_values = processor(images=line_image, return_tensors="pt").pixel_values
         beam_count = max(1, min(6, int(os.getenv("SMARTFLN_TROCR_BEAMS", "2"))))
-        with torch.inference_mode():
+        with _TROCR_INFERENCE_LOCK, torch.inference_mode():
             generated_ids = model.generate(
                 pixel_values,
                 max_new_tokens=24,

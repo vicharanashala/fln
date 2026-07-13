@@ -78,6 +78,41 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(result["answers"][0]["needs_teacher_review"], True)
         self.assertIn("answer_rois_cropped", result["pipeline"])
 
+    def test_visual_question_returns_full_manual_crop_with_zero_confidence(self):
+        image = Image.new("RGB", (700, 990), "white")
+        draw = ImageDraw.Draw(image)
+        for box in ((12, 12, 52, 52), (648, 12, 688, 52), (648, 938, 688, 978), (12, 938, 52, 978)):
+            draw.rectangle(box, fill="black")
+        draw.rectangle((70, 210, 630, 410), outline="black", width=3)
+        draw.text((90, 240), "A. 13     B. 18", fill="black")
+
+        result = infer_full_scan({
+            "scanPageId": "scan_visual",
+            "qrText": "stu_1|paper_visual|test_1|1",
+            "imageDataUrl": image_to_data_url(image),
+            "template": {
+                "paper_id": "paper_visual",
+                "test_id": "test_1",
+                "page": {"width": 700, "height": 990},
+                "questions": [{
+                    "question_id": "q_visual",
+                    "label": "Q1",
+                    "type": "mcq",
+                    "answer_key": "B",
+                    "marks": 1,
+                    "auto_score": False,
+                    "roi": {"x": 70, "y": 210, "width": 560, "height": 200},
+                }],
+            },
+        })
+
+        answer = result["answers"][0]
+        self.assertEqual(answer["confidence"], 0.0)
+        self.assertEqual(answer["needs_teacher_review"], True)
+        self.assertEqual(answer["ocr"]["provider_status"], "manual_visual_review")
+        self.assertEqual(answer["roi"]["height"], 200)
+        self.assertTrue(answer["crop_image_data_url"].startswith("data:image/png;base64,"))
+
     def test_full_scan_rejects_non_smartfln_page_before_ocr(self):
         image = Image.new("RGB", (700, 990), "white")
         draw = ImageDraw.Draw(image)
