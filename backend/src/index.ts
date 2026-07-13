@@ -1217,6 +1217,7 @@ async function startServer() {
         signal: AbortSignal.timeout(Number(process.env.SMARTFLN_MODEL_TIMEOUT_MS || 120000)),
         body: JSON.stringify({
           scanPageId: `scan_${identity.paperId}_${Date.now()}`,
+          qrText,
           imageDataUrl,
           template: toModelTemplate(paperTemplate)
         })
