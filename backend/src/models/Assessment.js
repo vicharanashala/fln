@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const ASSESSMENT_TEMPLATE_STATUS = ["Pending", "Processing", "Generated", "Draft", "Approved"];
 const ASSESSMENT_STATUS = ["Draft", "Scheduled", "Active", "Completed", "Archived"];
+const ASSESSMENT_TYPES = ["Diagnostic", "Formative", "Summative", "Practice"];
 const SUBJECTS = ["Literacy", "Numeracy", "Both"];
 const QUESTION_TYPES = [
   "MCQ",
@@ -33,6 +34,7 @@ const assessmentSchema = new mongoose.Schema(
     questionPaperUrl: { type: String, default: null },
     questionPaperFileName: { type: String, default: null },
     questionPaperSize: { type: Number, default: null },
+    assessmentType: { type: String, enum: ASSESSMENT_TYPES, default: "Diagnostic" },
     status: { type: String, enum: ASSESSMENT_STATUS, default: "Draft" },
     templateStatus: {
       type: String,
@@ -56,6 +58,7 @@ assessmentSchema.set("toObject", { virtuals: true, versionKey: false });
 module.exports = mongoose.model("Assessment", assessmentSchema);
 module.exports.ASSESSMENT_TEMPLATE_STATUS = ASSESSMENT_TEMPLATE_STATUS;
 module.exports.ASSESSMENT_STATUS = ASSESSMENT_STATUS;
+module.exports.ASSESSMENT_TYPES = ASSESSMENT_TYPES;
 module.exports.SUBJECTS = SUBJECTS;
 module.exports.QUESTION_TYPES = QUESTION_TYPES;
 module.exports.DIFFICULTY = DIFFICULTY;

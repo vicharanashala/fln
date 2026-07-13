@@ -51,6 +51,12 @@ const assessmentApi = {
     });
   },
 
+  createWithForm(form: FormData) {
+    return api.post<{ assessment: Assessment }>("/assessments", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
   delete(id: string) {
     return api.delete<{ ok: boolean }>(`/assessments/${id}`);
   },

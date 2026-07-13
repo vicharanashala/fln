@@ -12,7 +12,7 @@ function owner(req) {
 
 async function createAssessment(req, res) {
   try {
-    const { title, subject, grade, language, academicYear, duration, totalMarks } = req.body || {};
+    const { title, subject, grade, language, academicYear, duration, totalMarks, assessmentType } = req.body || {};
     if (!title || !subject || !grade) {
       return res.status(400).json({ message: "title, subject, grade are required" });
     }
@@ -24,6 +24,7 @@ async function createAssessment(req, res) {
       academicYear: academicYear || "2025-26",
       duration: Number(duration) || 60,
       totalMarks: Number(totalMarks) || 0,
+      assessmentType: assessmentType || "Diagnostic",
       createdBy: owner(req),
     });
     if (req.file) {
