@@ -1,3 +1,50 @@
+# SmartFLN dev5
+
+This branch contains the database-backed SmartFLN paper generator and the full
+QR, fiducial alignment, ROI cropping, Microsoft TrOCR, and volunteer-review
+workflow.
+
+## One-command local start
+
+Requirements:
+
+- Node.js 20 or newer
+- Python 3.11 or newer
+- Internet access during the first setup
+
+From a fresh clone of the `dev5` branch:
+
+```bash
+git clone --branch dev5 https://github.com/RahulPrsad/fln.git
+cd fln
+npm run dev
+```
+
+The first run automatically installs the MVP dependencies, creates the Python
+virtual environment, installs OpenCV/PyTorch/TrOCR, downloads
+`microsoft/trocr-base-handwritten`, and starts both services. Later runs reuse
+the local environment and model cache.
+
+- MVP: `http://localhost:3000/`
+- Model health: `http://127.0.0.1:8090/health`
+
+Use `Ctrl+C` to stop both processes. Use `npm run setup` to prepare everything
+without starting the services.
+
+Model weights are not committed to Git. They are large third-party artifacts
+and are downloaded from the Microsoft/Hugging Face model repository during the
+first setup. All SmartFLN model code, dependency pins, and startup configuration
+are committed.
+
+Optional environment variables:
+
+- `SMARTFLN_PYTHON`: Python used to create the virtual environment.
+- `SMARTFLN_MODEL_PYTHON`: existing prepared Python executable.
+- `SMARTFLN_TROCR_CACHE_DIR`: custom model-cache directory.
+- `SMARTFLN_MVP_PORT`: MVP port, default `3000`.
+- `SMARTFLN_MODEL_PORT`: model port, default `8090`.
+- `SMARTFLN_SKIP_MODEL_DOWNLOAD=true`: defer downloading weights until OCR use.
+
 # FLN — Foundational Literacy & Numeracy Assessment Platform
 
 A large-scale, personalized assessment system that helps teachers measure, track, and improve every student's Foundational Literacy and Numeracy (FLN) outcomes — from automatic question paper generation to scanning answer sheets and instant, profile-driven evaluation.

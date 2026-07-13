@@ -40,10 +40,10 @@ OpenAI can be used as a pretrained high-accuracy OCR/vision provider while we co
 
 ```text
 uploaded scanned image
-  -> QR read or supplied qrText
+  -> QR decoded from the uploaded page
   -> student_id, paper_id, test_id extraction
   -> strict paper validation: QR identity, known template, four corner markers
-  -> perspective correction or safe resize fallback
+  -> required four-fiducial perspective correction
   -> A4 template coordinate normalization
   -> answer-box ROI crop per question
   -> ROI preprocessing
@@ -207,8 +207,9 @@ python -m app.main
 ```
 
 The `vision` extra installs `opencv-python-headless`, which is required for
-backend QR decoding from uploaded paper images. Without OpenCV, full-page scans
-can still pass only when `qrText` is supplied by the browser/API.
+backend QR decoding from uploaded paper images. Without OpenCV, production
+full-page scans are rejected because QR decoding and perspective correction
+cannot be completed.
 
 Endpoints:
 

@@ -1,0 +1,13 @@
+{
+  "name": "smartfln-dev5",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SmartFLN MVP and local TrOCR development launcher",
+  "scripts": {
+    "setup": "node scripts/dev.mjs --setup-only",
+    "dev": "node scripts/dev.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
