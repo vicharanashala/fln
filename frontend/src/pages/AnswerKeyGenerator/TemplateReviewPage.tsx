@@ -5,7 +5,7 @@ import { toast } from "react-hot-toast";
 import {
   Wand2, CheckCircle2, Save, RotateCcw, ChevronLeft,
   Edit3, Check, X, BookOpen, Trophy, Clock, Plus, Trash2,
-  KeyRound, AlertCircle, ImageIcon, Sparkles, Loader2,
+  KeyRound, AlertCircle, ImageIcon, Sparkles, Loader2, Database, Edit,
 } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
@@ -35,6 +35,7 @@ const STATUS_STEP: Record<string, WorkflowStep> = {
 
 interface EditableQuestion extends Question {
   _edit?: boolean;
+  _savedAt?: number;
 }
 
 const EVAL_RULES = ["exact", "contains", "tolerance", "range", "subjective", "manual"];
@@ -59,16 +60,23 @@ export default function TemplateReviewPage() {
   const step: WorkflowStep = assessment ? STATUS_STEP[assessment.templateStatus] || "review" : "review";
 
   const saveMut = useMutation({
-    mutationFn: () => assessmentApi.saveTemplate(id!, {
-      questions,
-      status: "Draft",
-      modelName,
-    }),
-    onSuccess: (r) => {
-      toast.success("Draft saved");
-      setQuestions(r.data.template.questions);
+    mutationFn: (opts?: { silent?: boolean; questionsOverride?: EditableQuestion[] }) =>
+      assessmentApi.saveTemplate(id!, {
+        questions: opts?.questionsOverride || questions,
+        status: "Draft",
+        modelName,
+      }),
+    onSuccess: (r, vars) => {
+      // Mark each question with current savedAt timestamp so the card shows 'Saved ✓' briefly
+      const now = Date.now();
+      setQuestions((qs) =>
+        qs.map((q) => ({ ...q, _savedAt: now }))
+      );
+      if (!vars?.silent) toast.success("Saved to database ✓");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error, vars) => {
+      if (!vars?.silent) toast.error(`Save failed: ${e.message}`);
+    },
   });
 
   const approveMut = useMutation({
@@ -248,13 +256,21 @@ export default function TemplateReviewPage() {
                 q={q}
                 idx={idx}
                 isEditing={editingId === idx}
-                onToggleEdit={() => setEditingId(editingId === idx ? null : idx)}
+                onToggleEdit={() => {
+                  if (editingId === idx) {
+                    // Exiting edit mode → explicitly save the latest state to DB
+                    saveMut.mutate({});
+                  }
+                  setEditingId(editingId === idx ? null : idx);
+                }}
                 onUpdate={(patch) => updateQuestion(idx, patch)}
                 onDelete={() => deleteQuestion(idx)}
                 onAddAlternate={(val) => addAlternate(idx, val)}
                 onRemoveAlternate={(altIdx) => removeAlternate(idx, altIdx)}
                 onRegenerate={() => regenerateOneMut.mutate(idx)}
                 regenerating={regenerateOneMut.isPending && regenerateOneMut.variables === idx}
+                saving={saveMut.isPending && editingId === idx}
+                justSaved={!!q._savedAt && Date.now() - (q._savedAt as number) < 4000}
               />
             ))}
           </div>
@@ -293,8 +309,8 @@ export default function TemplateReviewPage() {
           <ChevronLeft className="w-4 h-4" /> Back
         </Button>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" loading={saveMut.isPending} onClick={() => saveMut.mutate()}>
-            <Save className="w-4 h-4" /> Save Draft
+          <Button variant="secondary" loading={saveMut.isPending} onClick={() => saveMut.mutate({ questionsOverride: questions })}>
+            <Save className="w-4 h-4" /> Save Draft to DB
           </Button>
           <Button
             variant="outline"
@@ -327,6 +343,8 @@ function QuestionCard({
   onRemoveAlternate,
   onRegenerate,
   regenerating,
+  saving,
+  justSaved,
 }: {
   q: EditableQuestion;
   idx: number;
@@ -338,6 +356,8 @@ function QuestionCard({
   onRemoveAlternate: (altIdx: number) => void;
   onRegenerate: () => void;
   regenerating?: boolean;
+  saving?: boolean;
+  justSaved?: boolean;
 }) {
   const [altInput, setAltInput] = useState("");
   const hasAnswer = q.correctAnswer && q.correctAnswer.trim().length > 0;
@@ -359,7 +379,14 @@ function QuestionCard({
           </Badge>
           <Badge tone="purple">{q.questionType}</Badge>
           <Badge tone="slate">{q.marks} marks</Badge>
-          {q._edit && <Badge tone="blue" withDot>Edited</Badge>}
+          {saving && <Badge tone="amber" withDot><Loader2 className="w-2.5 h-2.5 animate-spin mr-0.5" />Saving…</Badge>}
+          {!saving && justSaved && (
+            <Badge tone="green" withDot>
+              <Database className="w-2.5 h-2.5 mr-0.5" />
+              Saved to DB
+            </Badge>
+          )}
+          {q._edit && !justSaved && !saving && <Badge tone="blue" withDot>Edited (unsaved)</Badge>}
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -372,12 +399,13 @@ function QuestionCard({
           </button>
           <button
             onClick={onToggleEdit}
-            className={`p-1.5 rounded-md transition ${
+            disabled={saving}
+            className={`p-1.5 rounded-md transition disabled:opacity-50 ${
               isEditing ? "text-green-600 bg-green-50" : "text-slate-400 hover:text-blue-600 hover:bg-blue-50"
             }`}
-            title={isEditing ? "Save edits" : "Edit question + answer"}
+            title={isEditing ? "Save edits to database" : "Edit question + answer"}
           >
-            {isEditing ? <Check className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isEditing ? <Check className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
           </button>
           <button
             onClick={onDelete}

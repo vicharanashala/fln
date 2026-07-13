@@ -1,11 +1,12 @@
 import { ReactNode } from "react";
 
-type Tone = "blue" | "green" | "orange" | "red" | "slate" | "purple";
+type Tone = "blue" | "green" | "orange" | "amber" | "red" | "slate" | "purple";
 
 const tones: Record<Tone, string> = {
   blue: "bg-blue-50 text-blue-700 ring-blue-100",
   green: "bg-green-50 text-green-700 ring-green-100",
   orange: "bg-orange-50 text-orange-700 ring-orange-100",
+  amber: "bg-amber-50 text-amber-700 ring-amber-100",
   red: "bg-red-50 text-red-700 ring-red-100",
   slate: "bg-slate-100 text-slate-700 ring-slate-200",
   purple: "bg-purple-50 text-purple-700 ring-purple-100",
