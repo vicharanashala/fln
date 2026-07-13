@@ -22,7 +22,6 @@ import {
   SUBJECTS,
   GRADES,
   LANGUAGES,
-  SET_NUMBERS,
 } from "../../types/assessment";
 
 type Phase = "idle" | "uploading" | "extracting" | "ready";
@@ -268,10 +267,10 @@ function CreateAssessmentModal({
               options={GRADES.map((g) => ({ value: g, label: g }))}
               {...register("grade", { required: true })}
             />
-            <Select
+            <Input
               label="Set Number *"
-              options={SET_NUMBERS.map((s) => ({ value: s, label: s }))}
               {...register("setNumber", { required: true })}
+              placeholder="e.g. Set A, Set 1, Version 2"
             />
             <Select
               label="Language"

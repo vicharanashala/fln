@@ -21,14 +21,13 @@ const QUESTION_TYPES = [
 const DIFFICULTY = ["Easy", "Medium", "Hard"];
 const LANGUAGES = ["English", "Hindi", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati", "Kannada", "Malayalam", "Punjabi", "Urdu"];
 const GRADES = ["Class 1", "Class 2", "Class 3", "Class 4"];
-const SET_NUMBERS = ["Set 1", "Set 2", "Set 3", "Set 4", "Set A", "Set B", "Set C", "Set D"];
 
 const assessmentSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
     subject: { type: String, enum: SUBJECTS, required: true },
     grade: { type: String, enum: GRADES, required: true, trim: true },
-    setNumber: { type: String, enum: SET_NUMBERS, default: "Set 1" },
+    setNumber: { type: String, default: "Set 1", trim: true },
     assessmentCode: {
       type: String,
       unique: true,
@@ -77,4 +76,3 @@ module.exports.QUESTION_TYPES = QUESTION_TYPES;
 module.exports.DIFFICULTY = DIFFICULTY;
 module.exports.LANGUAGES = LANGUAGES;
 module.exports.GRADES = GRADES;
-module.exports.SET_NUMBERS = SET_NUMBERS;
