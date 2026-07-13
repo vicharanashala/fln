@@ -40,6 +40,14 @@ class GenerateTemplateRequest(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 
+class RegenerateQuestionRequest(BaseModel):
+    assessmentId: str
+    questionIndex: int
+    filePath: Optional[str] = None
+    imageBase64: Optional[str] = None
+    promptHint: Optional[str] = None
+
+
 class QuestionImageOut(BaseModel):
     imageUrl: str
     position: str = "inline"
@@ -163,6 +171,62 @@ def health():
     }
 
 
+@app.post("/regenerate-question", response_model=QuestionOut)
+def regenerate_question(req: RegenerateQuestionRequest):
+    """Re-ask the AI to extract/refine ONE specific question."""
+    t0 = time.time()
+    provider_name, model_name, analyze_fn = active_provider()
+
+    if not provider_name:
+        return _mock_with_label(req.assessmentId, "mock").questions[0]
+
+    if not req.filePath or not os.path.exists(req.filePath):
+        raise HTTPException(status_code=400, detail="filePath required")
+
+    try:
+        from services.pdf_processor import render_single_image
+        is_image = req.filePath.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
+
+        if is_image:
+            # The file itself is the question's image — just re-run AI on it
+            img = render_single_image(req.filePath)
+            meta = {
+                "singleQuestionMode": True,
+                "hint": req.promptHint or "This image shows ONE question. Extract it and provide a complete, specific answer.",
+                "sourceFileIndex": req.questionIndex,
+            }
+            questions = analyze_fn(img, 1, meta)
+        else:
+            # PDF — render specific page
+            pages, _ = pdf_to_images_and_pictures(req.filePath, IMAGES_DIR)
+            if not pages:
+                raise HTTPException(status_code=400, detail="PDF has no pages")
+            page_idx = min(req.questionIndex + 1, len(pages))
+            img = pages[page_idx - 1]
+            meta = {
+                "hint": req.promptHint or "Extract the question at the given index and provide a complete answer.",
+            }
+            questions = analyze_fn(img, page_idx, meta)
+            # Filter: keep only the question at the requested index from this page
+            if questions and req.questionIndex is not None:
+                if req.questionIndex < len(questions):
+                    questions = [questions[req.questionIndex]]
+                else:
+                    questions = [questions[0]]
+
+        if not questions:
+            raise HTTPException(status_code=500, detail="AI returned no question")
+
+        elapsed = time.time() - t0
+        logger.info(f"Regenerated question {req.questionIndex} in {elapsed:.1f}s")
+        return QuestionOut(**questions[0])
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Regenerate failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/generate-template", response_model=GenerateTemplateResponse)
 def generate_template(req: GenerateTemplateRequest):
     t0 = time.time()
@@ -222,13 +286,17 @@ def generate_template(req: GenerateTemplateRequest):
         deduped = _attach_images_to_questions(deduped, pictures_by_page, images_by_source, is_image_mode)
         total_marks = sum(q.get("marks", 1) for q in deduped)
 
-        # Post-process: mark visual questions needing manual review if AI uncertain
+        # Post-process: only mark visual questions as manual if AI completely failed
+        # (NOT for short answers like "5", "T", "9" which are valid)
         for q in deduped:
             if q.get("hasImage") and q.get("evaluationRule") != "manual":
-                # If the AI's answer is empty or very short for a visual question, mark manual
-                if not q.get("correctAnswer") or len(q["correctAnswer"]) < 2:
+                ans = (q.get("correctAnswer") or "").strip()
+                # Only mark manual if answer is COMPLETELY empty
+                # (question_parser already filled in fallbacks for arithmetic etc.)
+                if not ans and q.get("questionType") not in SUBJECTIVE_TYPES:
                     q["evaluationRule"] = "manual"
                     q["needsReview"] = True
+                    q["correctAnswer"] = ""  # keep empty for manual review
 
         return GenerateTemplateResponse(
             assessmentId=req.assessmentId,

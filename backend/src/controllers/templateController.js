@@ -1,6 +1,7 @@
 const Assessment = require("../models/Assessment");
 const AssessmentTemplate = require("../models/AssessmentTemplate");
 const pythonClient = require("../services/pythonClient");
+const { UPLOAD_DIR } = require("../services/pdfParser");
 
 async function generateOnly(req, res) {
   const { id } = req.params;
@@ -85,6 +86,48 @@ async function saveTemplate(req, res) {
   }
 }
 
+async function regenerateOne(req, res) {
+  try {
+    const { assessmentId, questionIndex } = req.params;
+    const idx = parseInt(questionIndex, 10);
+    if (isNaN(idx) || idx < 0) {
+      return res.status(400).json({ message: "questionIndex required" });
+    }
+    const { imageBase64, promptHint } = req.body || {};
+    const assessment = await Assessment.findById(assessmentId);
+    if (!assessment) return res.status(404).json({ message: "Assessment not found" });
+
+    // Find the question in the current template
+    const template = await AssessmentTemplate.findOne({ assessmentId }).sort({ version: -1 });
+    if (!template) return res.status(404).json({ message: "No template found" });
+
+    const question = template.questions[questionIndex];
+    if (!question) return res.status(404).json({ message: "Question not found" });
+
+    // Call Python to re-extract this question
+    const filePaths = assessment.questionPaperUrls?.length
+      ? assessment.questionPaperUrls.map((u) => require("path").join(UPLOAD_DIR, require("path").basename(u)))
+      : (assessment.questionPaperUrl ? [require("path").join(UPLOAD_DIR, require("path").basename(assessment.questionPaperUrl))] : []);
+
+    if (filePaths.length === 0) return res.status(400).json({ message: "No source file" });
+
+    // For multi-image uploads, each file IS one question → use the specific image
+    // For single PDF, pass the file + questionIndex → Python re-extracts and picks
+    const targetFilePath = filePaths.length > idx ? filePaths[idx] : filePaths[0];
+
+    const result = await pythonClient.regenerateQuestion({
+      assessmentId,
+      questionIndex: idx,
+      filePath: targetFilePath,
+      imageBase64,
+      promptHint,
+    });
+    return res.json({ ok: true, question: result });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+}
+
 async function approveTemplate(req, res) {
   try {
     const { assessmentId } = req.params;
@@ -130,4 +173,5 @@ module.exports = {
   saveTemplate,
   approveTemplate,
   deleteTemplate,
+  regenerateOne,
 };

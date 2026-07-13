@@ -45,8 +45,20 @@ For each question visible on the page, output a JSON object with EXACTLY these f
 5. For counting questions with a picture: count the visible items and write the number.
 6. For "What comes next" sequence questions: state the next item.
 7. For vocabulary/spelling questions: provide the correct word.
-8. For subjective tasks (Drawing, Trace, "Draw a...", "Write a story about..."): set correctAnswer = "" and evaluationRule = "manual". This is the ONLY case where correctAnswer can be empty.
-9. For Match-the-Following: provide the most obvious pairing.
+8. For "Match the following": provide the most obvious pairing.
+9. **For VISUAL questions (counting objects, identifying shapes, reading from diagrams)**:
+   - Look carefully at the image and provide YOUR BEST ANSWER as text/number.
+   - Example: "Count the apples" → "5"
+   - Example: "What color is the biggest shape?" → "Red"
+   - Example: "Which shape is a triangle?" → "Triangle"
+   - DO NOT leave these blank — give a specific answer.
+10. **ONLY leave correctAnswer empty for truly subjective tasks**:
+    - Drawing (kid draws something)
+    - Trace (kid traces a letter)
+    - "Write a story about..."
+    - "Draw your family"
+    For these, set evaluationRule = "manual". This is the ONLY case where correctAnswer can be empty.
+11. **SHORT ANSWERS ARE VALID** — "5", "T", "9", "B", "east", etc. are all good answers. Do NOT second-guess short answers.
 
 **visualDescription rules:**
 - If the question mentions a picture, image, diagram, or refers to something visual: write a short description like "Picture of 5 stars to count" or "Diagram of a circle to label".

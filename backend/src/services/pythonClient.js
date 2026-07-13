@@ -21,4 +21,13 @@ async function health() {
   }
 }
 
-module.exports = { generateTemplate, health, PYTHON_URL };
+async function regenerateQuestion({ assessmentId, questionIndex, filePath, imageBase64, promptHint }) {
+  const res = await axios.post(
+    `${PYTHON_URL}/regenerate-question`,
+    { assessmentId, questionIndex, filePath, imageBase64, promptHint },
+    { timeout: TIMEOUT_MS }
+  );
+  return res.data;
+}
+
+module.exports = { generateTemplate, regenerateQuestion, health, PYTHON_URL };

@@ -94,6 +94,13 @@ const assessmentApi = {
     return api.post<{ template: AssessmentTemplate }>(`/templates/${assessmentId}/approve`);
   },
 
+  regenerateQuestion(assessmentId: string, questionIndex: number, promptHint?: string) {
+    return api.post<{ ok: boolean; question: import("../types/assessment").Question }>(
+      `/templates/${assessmentId}/regenerate/${questionIndex}`,
+      { promptHint: promptHint || "Provide a complete answer for this single question. If the question references an image, look at it carefully and provide your best specific answer." }
+    );
+  },
+
   deleteTemplate(assessmentId: string) {
     return api.delete<{ ok: boolean }>(`/templates/${assessmentId}`);
   },

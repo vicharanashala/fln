@@ -5,7 +5,7 @@ import { toast } from "react-hot-toast";
 import {
   Wand2, CheckCircle2, Save, RotateCcw, ChevronLeft,
   Edit3, Check, X, BookOpen, Trophy, Clock, Plus, Trash2,
-  KeyRound, AlertCircle, ImageIcon,
+  KeyRound, AlertCircle, ImageIcon, Sparkles, Loader2,
 } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
@@ -87,6 +87,18 @@ export default function TemplateReviewPage() {
       setQuestions(r.data.preview?.questions || []);
       setModelName(r.data.model || "mock");
       setEditingId(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const regenerateOneMut = useMutation({
+    mutationFn: (questionIndex: number) =>
+      assessmentApi.regenerateQuestion(id!, questionIndex),
+    onSuccess: (r, questionIndex) => {
+      if (r.data?.question) {
+        setQuestions((qs) => qs.map((q, i) => (i === questionIndex ? { ...q, ...r.data.question, _edit: true } : q)));
+        toast.success("Answer regenerated — review and edit");
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -241,6 +253,8 @@ export default function TemplateReviewPage() {
                 onDelete={() => deleteQuestion(idx)}
                 onAddAlternate={(val) => addAlternate(idx, val)}
                 onRemoveAlternate={(altIdx) => removeAlternate(idx, altIdx)}
+                onRegenerate={() => regenerateOneMut.mutate(idx)}
+                regenerating={regenerateOneMut.isPending && regenerateOneMut.variables === idx}
               />
             ))}
           </div>
@@ -311,6 +325,8 @@ function QuestionCard({
   onDelete,
   onAddAlternate,
   onRemoveAlternate,
+  onRegenerate,
+  regenerating,
 }: {
   q: EditableQuestion;
   idx: number;
@@ -320,6 +336,8 @@ function QuestionCard({
   onDelete: () => void;
   onAddAlternate: (val: string) => void;
   onRemoveAlternate: (altIdx: number) => void;
+  onRegenerate: () => void;
+  regenerating?: boolean;
 }) {
   const [altInput, setAltInput] = useState("");
   const hasAnswer = q.correctAnswer && q.correctAnswer.trim().length > 0;
@@ -344,6 +362,14 @@ function QuestionCard({
           {q._edit && <Badge tone="blue" withDot>Edited</Badge>}
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={onRegenerate}
+            disabled={regenerating}
+            className="p-1.5 rounded-md text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition disabled:opacity-50"
+            title="Re-ask AI for a better answer"
+          >
+            {regenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+          </button>
           <button
             onClick={onToggleEdit}
             className={`p-1.5 rounded-md transition ${
