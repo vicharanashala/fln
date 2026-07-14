@@ -7,7 +7,7 @@ A large-scale, personalized assessment system that helps teachers measure, track
 ## Table of Contents
 - [What is FLN?](#what-is-fln)
 - [Why FLN Matters](#why-fln-matters)
-- [Government Initiatives](#government-initiatives)
+- [Initiatives](#initiatives)
 - [What This Software Does](#what-this-software-does)
 - [How It Works (Workflow)](#how-it-works-workflow)
 - [Tech Stack](#tech-stack)
@@ -32,11 +32,11 @@ The National Education Policy (NEP) 2020 explicitly recognized this and stated t
 
 This is the problem our project aims to help solve: giving schools and teachers a reliable, scalable, and personalized way to **assess** where each child stands on FLN, **act** on that data quickly, and **track** progress until every child clears the foundational bar.
 
-## Government Initiatives
+## Initiatives
 
 Some of the key national and state-level efforts this project aligns with:
 
-- **NIPUN Bharat** (National Initiative for Proficiency in Reading with Understanding and Numeracy) — launched by the Ministry of Education in July 2021 under the Samagra Shiksha scheme, with the goal that every child achieves grade-level FLN competencies by the end of Grade 3, by 2026–27. It uses a five-tier implementation structure (national, state, district, block, school).
+- **NIPUN Bharat** (National Initiative for Proficiency in Reading with Understanding and Numeracy) — launched in July 2021 under the Samagra Shiksha scheme, with the goal that every child achieves grade-level FLN competencies by the end of Grade 3, by 2026–27. It uses a five-tier implementation structure (national, state, district, block, school).
 - **NEP 2020** — the policy mandate that established universal FLN as the top priority for the Indian school system.
 - **DIKSHA & UDISE+** — existing national digital infrastructure for teacher resources and student/school data that FLN initiatives are encouraged to build on or align with.
 - **State-led missions** — several states have their own FLN programs aligned with NIPUN Bharat (e.g., Mission Buniyaad in Delhi, Mission Ankur in Madhya Pradesh), often with localized assessment tools and workbooks.
