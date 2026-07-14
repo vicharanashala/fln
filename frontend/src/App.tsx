@@ -28,6 +28,30 @@ export default function App() {
   const [activePanel, setActivePanel] = useState<string>('workspace');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('fln_dark_mode');
+    if (saved !== null) return saved === 'true';
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  // Listen for system theme changes if no explicit user preference is saved
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (localStorage.getItem('fln_dark_mode') === null) {
+        setDarkMode(e.matches);
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  // Provide a wrapped setter to children so we only save explicit user choices
+  const toggleDarkMode = (val: boolean) => {
+    localStorage.setItem('fln_dark_mode', String(val));
+    setDarkMode(val);
+  };
 
   const triggerToast = (msg: string) => {
     setToast(msg);
@@ -165,15 +189,15 @@ export default function App() {
   const activeUrgentAnnouncements = announcements.filter(a => a.isUrgent);
 
   return (
-    <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 antialiased">
+    <div className={`flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 antialiased ${darkMode ? 'dark' : ''}`}>
       {/* 1. Public Landing view */}
       {currentView === 'home' && (
-        <LandingView onNavigateToLogin={() => setCurrentView('login')} />
+        <LandingView onNavigateToLogin={() => setCurrentView('login')} darkMode={darkMode} setDarkMode={toggleDarkMode} />
       )}
 
       {/* 2. Login view */}
       {currentView === 'login' && (
-        <LoginView onLoginSuccess={handleLoginSuccess} onBackToHome={() => setCurrentView('home')} />
+        <LoginView onLoginSuccess={handleLoginSuccess} onBackToHome={() => setCurrentView('home')} darkMode={darkMode} setDarkMode={toggleDarkMode} />
       )}
 
       {/* 3. Authorized Dashboard Portal */}
@@ -187,6 +211,8 @@ export default function App() {
           onMarkNotificationRead={handleMarkNotificationRead}
           onClearNotifications={handleClearNotifications}
           onLogout={handleLogout}
+          darkMode={darkMode}
+          setDarkMode={toggleDarkMode}
         >
           {/* Urgent Announcements Strip inside Layout Content */}
           {activeUrgentAnnouncements.length > 0 && (

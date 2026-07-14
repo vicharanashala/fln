@@ -1,4 +1,5 @@
 {
   "files.encoding": "utf8",
-  "files.autoGuessEncoding": false
+  "files.autoGuessEncoding": false,
+  "git.ignoreLimitWarning": true
 }

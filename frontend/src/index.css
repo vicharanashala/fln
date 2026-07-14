@@ -87,3 +87,44 @@ input, select, textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.5);
 }
+
+/* =========================================
+   Dark Mode Global Overrides
+   (Handles components with hardcoded light classes)
+   ========================================= */
+.dark {
+  background-color: #0F172A !important;
+  color: #F8FAFC !important;
+}
+.dark .bg-white { background-color: #1E293B !important; border-color: #334155 !important; }
+
+/* Backgrounds */
+.dark .bg-slate-50, .dark .bg-zinc-50, .dark .bg-gray-50 { background-color: #0F172A !important; }
+.dark .bg-slate-100, .dark .bg-zinc-100, .dark .bg-gray-100 { background-color: #334155 !important; }
+
+/* Texts */
+.dark .text-slate-900, .dark .text-slate-800, .dark .text-slate-700,
+.dark .text-zinc-900, .dark .text-zinc-800, .dark .text-zinc-700,
+.dark .text-gray-900, .dark .text-gray-800, .dark .text-gray-700 { color: #F8FAFC !important; }
+
+.dark .text-slate-650, .dark .text-slate-600, .dark .text-slate-500,
+.dark .text-zinc-650, .dark .text-zinc-600, .dark .text-zinc-550, .dark .text-zinc-500,
+.dark .text-gray-650, .dark .text-gray-600, .dark .text-gray-500 { color: #94A3B8 !important; }
+
+.dark .text-slate-400, .dark .text-zinc-400, .dark .text-gray-400 { color: #64748B !important; }
+
+/* Borders */
+.dark .border-slate-200, .dark .border-slate-100, .dark .border-slate-150,
+.dark .border-zinc-200, .dark .border-zinc-100, .dark .border-zinc-150,
+.dark .border-gray-200, .dark .border-gray-100, .dark .border-gray-150 { border-color: #334155 !important; }
+
+.dark .border-slate-300, .dark .border-zinc-300, .dark .border-gray-300 { border-color: #475569 !important; }
+
+/* Form Controls */
+.dark input, .dark select, .dark textarea { background-color: #0F172A !important; color: #F8FAFC !important; border-color: #475569 !important; }
+.dark input:focus, .dark select:focus, .dark textarea:focus { border-color: #6366F1 !important; }
+
+/* Hover States */
+.dark .hover\:bg-slate-100:hover, .dark .hover\:bg-zinc-100:hover, .dark .hover\:bg-gray-100:hover { background-color: #334155 !important; color: #F8FAFC !important; }
+.dark .hover\:bg-slate-50:hover, .dark .hover\:bg-zinc-50:hover, .dark .hover\:bg-gray-50:hover { background-color: #1E293B !important; }
+.dark .hover\:text-slate-900:hover, .dark .hover\:text-zinc-900:hover, .dark .hover\:text-gray-900:hover { color: #F8FAFC !important; }

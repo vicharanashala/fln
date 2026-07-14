@@ -24,6 +24,8 @@ interface LayoutProps {
   onClearNotifications: () => void;
   onLogout: () => void;
   children: React.ReactNode;
+  darkMode: boolean;
+  setDarkMode: (val: boolean) => void;
 }
 
 export const Layout: React.FC<LayoutProps> = ({
@@ -35,13 +37,14 @@ export const Layout: React.FC<LayoutProps> = ({
   onMarkNotificationRead,
   onClearNotifications,
   onLogout,
-  children
+  children,
+  darkMode,
+  setDarkMode
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const [pinnedItems, setPinnedItems] = useState<string[]>(['Dashboard']);
 
@@ -505,7 +508,7 @@ export const Layout: React.FC<LayoutProps> = ({
         )}
 
         {/* Central main display viewport */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50/50">
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-transparent">
           
           {/* Breadcrumbs */}
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider mb-2 select-none">

@@ -4,15 +4,17 @@
  */
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { User, UserRole } from '../types';
 
 interface LoginViewProps {
   onLoginSuccess: (token: string, user: User) => void;
   onBackToHome: () => void;
+  darkMode: boolean;
+  setDarkMode: (val: boolean) => void;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHome }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHome, darkMode, setDarkMode }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -62,8 +64,19 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-12 transition-colors duration-200">
+    <div className={`flex min-h-screen relative flex-col items-center justify-center bg-slate-50 px-4 py-12 transition-colors duration-200 ${darkMode ? 'dark' : ''}`}>
       
+      {/* Theme Toggle Button */}
+      <div className="absolute top-6 right-6 z-50">
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="rounded-full bg-white p-3 shadow-sm text-slate-500 hover:bg-slate-50 transition border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700"
+          title="Toggle Theme"
+        >
+          {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      </div>
+
       {/* Container with neutral double border design */}
       <div className="w-full max-w-lg rounded-xl border-t-8 border-t-indigo-700 border-2 border-slate-200 bg-white p-8 shadow-md transition-all">
 

@@ -3,15 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin, Moon, Sun } from 'lucide-react';
 import { STATES_DATA } from '../constants';
 
 interface LandingViewProps {
   onNavigateToLogin: () => void;
+  darkMode: boolean;
+  setDarkMode: (val: boolean) => void;
 }
 
-export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) => {
+export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, darkMode, setDarkMode }) => {
   const totalEnrolled = STATES_DATA.reduce((acc, curr) => acc + curr.enrolled, 0);
   const totalCertified = STATES_DATA.reduce((acc, curr) => acc + curr.certified, 0);
   const nationalAvgFlnScore = Math.round((totalCertified / totalEnrolled) * 100);
@@ -25,7 +27,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 transition-colors duration-200">
+    <div className={`min-h-screen bg-slate-50 text-slate-800 transition-colors duration-200 ${darkMode ? 'dark' : ''}`}>
       
       {/* 1. Accessibility / Top strip (neutral branding) */}
       <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-gray-800">
@@ -78,6 +80,13 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
           </div>
           <div className="flex items-center gap-3">
             <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 transition dark:text-slate-400 dark:hover:bg-slate-800"
+              title="Toggle Theme"
+            >
+              {darkMode ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+            </button>
+            <button
               onClick={onNavigateToLogin}
               className="rounded-lg bg-indigo-700 px-6 py-2.5 text-xs font-extrabold text-white shadow-md transition-all duration-150 hover:bg-indigo-600 border border-indigo-300 active:scale-[0.98] uppercase tracking-wider"
             >
@@ -109,7 +118,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
             <span className="text-[140px] font-black select-none text-slate-200">FLN</span>
           </div>
           
-          <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-1.5 text-xs font-bold text-slate-900 mb-6 border border-amber-200">
+          <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-1.5 text-xs font-bold text-amber-900 mb-6 border border-amber-200">
             <span className="h-2 w-2 rounded-full bg-amber-600" />
             <span>Foundational Literacy and Numeracy (FLN) National Assessment Scheme</span>
           </div>
