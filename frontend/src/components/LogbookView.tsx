@@ -29,8 +29,8 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
       if (Array.isArray(data)) {
         setLogs(data);
       }
-    } catch (err) {
-      console.error('Failed to fetch audit log:', err);
+      } catch (err) {
+      console.error('Failed to fetch activity log:', err);
     }
   };
 
@@ -156,7 +156,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
     <div className="space-y-6" id="logbook-view">
       <div className="border-b border-zinc-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">Immutable System Logbook & Audit Trail</h2>
+          <h2 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">Immutable System Activity Log</h2>
           <p className="text-zinc-500 text-sm mt-1">Real-time recording of and compliance tracking for active workspaces, downloads, and scoring pipelines.</p>
         </div>
         
@@ -285,11 +285,11 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
         </div>
       </div>
 
-      {/* Audit Logs Table */}
+      {/* Activity Logs Table */}
       <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 bg-zinc-50/50 border-b border-zinc-150 flex justify-between items-center">
+          <div className="p-4 bg-zinc-50/50 border-b border-zinc-150 flex justify-between items-center">
           <span className="text-xs font-mono font-bold text-zinc-500 uppercase">
-            Viewing {filteredLogs.length} matching audit logs
+            Viewing {filteredLogs.length} matching activity logs
           </span>
         </div>
         
@@ -310,7 +310,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
               {filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-12 text-center text-zinc-400 font-sans text-xs">
-                    No active system audit records found with the active filters.
+                    No activity records found with the active filters.
                   </td>
                 </tr>
               ) : (

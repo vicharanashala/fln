@@ -88,6 +88,7 @@ input, select, textarea {
   background: rgba(156, 163, 175, 0.5);
 }
 
+<<<<<<< HEAD
 /* =========================================
    Dark Mode Global Overrides
    (Handles components with hardcoded light classes)
@@ -128,3 +129,17 @@ input, select, textarea {
 .dark .hover\:bg-slate-100:hover, .dark .hover\:bg-zinc-100:hover, .dark .hover\:bg-gray-100:hover { background-color: #334155 !important; color: #F8FAFC !important; }
 .dark .hover\:bg-slate-50:hover, .dark .hover\:bg-zinc-50:hover, .dark .hover\:bg-gray-50:hover { background-color: #1E293B !important; }
 .dark .hover\:text-slate-900:hover, .dark .hover\:text-zinc-900:hover, .dark .hover\:text-gray-900:hover { color: #F8FAFC !important; }
+=======
+/* Numeric sizing utilities (used for prominent metric numbers) */
+.num-lg {
+  font-size: 1.875rem; /* ~30px, similar to Tailwind text-3xl */
+  line-height: 1;
+  font-weight: 700;
+}
+
+.num-md {
+  font-size: 1.25rem; /* ~20px, similar to Tailwind text-xl */
+  line-height: 1.1;
+  font-weight: 700;
+}
+>>>>>>> d4d67d98c3915be9f0711ec2666a81997b599b9e
