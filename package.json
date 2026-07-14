@@ -1,0 +1,18 @@
+{
+  "name": "fln-platform",
+  "private": true,
+  "version": "0.0.0",
+  "description": "FLN Assessment & Personalized Worksheet Platform — monorepo (frontend + backend + ai-services)",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace @fln/frontend",
+    "dev:backend": "npm run dev --workspace @fln/backend",
+    "build": "npm run build --workspace @fln/frontend && npm run build --workspace @fln/backend",
+    "build:frontend": "npm run build --workspace @fln/frontend",
+    "build:backend": "npm run build --workspace @fln/backend",
+    "lint": "npm run lint --workspaces --if-present"
+  }
+}
