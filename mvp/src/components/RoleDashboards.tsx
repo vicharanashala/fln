@@ -817,7 +817,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               activeTab === 'compliance' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
             }`}
           >
-            📨 Announcement Compliance
+            📨 Announcement Read Tracking
           </button>
 
         {/* DB Reset for easy demo */}

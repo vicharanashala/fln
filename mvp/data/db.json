@@ -3053,6 +3053,18 @@
   ],
   "logbook": [
     {
+      "id": "log_1783840298478",
+      "timestamp": "2026-07-12T07:11:38.478Z",
+      "schoolId": "",
+      "schoolName": "National Framework",
+      "userId": "u1",
+      "userEmail": "superadmin@fln.org",
+      "userRole": "superadmin",
+      "activityType": "ticket",
+      "status": "Success",
+      "details": "Created announcement: Global Announcement System Verification"
+    },
+    {
       "id": "log_1783576498381",
       "timestamp": "2026-07-09T05:54:58.381Z",
       "schoolId": "gps-amb-003",
@@ -3571,6 +3583,14 @@
   ],
   "announcements": [
     {
+      "id": "ann_1783840298474",
+      "title": "Global Announcement System Verification",
+      "message": "his is a dummy message sent to verify the real-time announcement compliance tracking layer. Please ignore this notification.",
+      "isUrgent": false,
+      "authorEmail": "superadmin@fln.org",
+      "createdAt": "2026-07-12T07:11:38.474Z"
+    },
+    {
       "id": "ann1",
       "title": "Mid-Year Assessment Cycle Starts Next Week",
       "message": "All district coordinators and school principals are requested to complete student rosters and run onboarding diagnostics. The Mid-year paper generation will unlock on July 12th.",
@@ -3609,6 +3629,13 @@
       "userId": "u6_amb",
       "userEmail": "gps-amb-003.t01@fln.org",
       "readAt": "2026-07-11T16:58:06.533Z"
+    },
+    {
+      "id": "read_ann_1783840298474_u4",
+      "announcementId": "ann_1783840298474",
+      "userId": "u4",
+      "userEmail": "block.ldh-01@fln.org",
+      "readAt": "2026-07-12T07:16:05.526Z"
     }
   ]
 }
