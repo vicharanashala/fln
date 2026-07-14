@@ -153,7 +153,7 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
               🛡️ Superadmin Authority
             </h3>
             <p className="text-zinc-400 text-xs leading-relaxed">
-              Superadmins act as the final resolution and compliance audit authority. Creating new feedback tickets is restricted at this level.
+              Superadmins act as the final resolution and compliance review authority. Creating new feedback tickets is restricted at this level.
             </p>
             <div className="p-3.5 bg-zinc-800/80 rounded-lg border border-zinc-700/50 text-[11px] text-zinc-300 leading-normal">
               💡 Select any incoming ticket from the <strong>Global Review Queue</strong> to review historical comments, modify statuses, or input final resolutions.
