@@ -648,7 +648,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         setCoordBlock('');
         setCoordSchoolId('');
         setCoordAssignedSchoolsStr('');
-        fetchCoordinators();
+        await fetchCoordinators();
         
         // Refresh school data
         const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -994,23 +994,18 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 </div>
               )}
 
-              {/* School scope dropdown for School and Teacher roles */}
+              {/* School scope text input for School and Teacher roles */}
               {[UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) && (
                 <div>
-                  <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Assigned School</label>
-                  <select
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Assigned School ID</label>
+                  <input
+                    type="text"
                     value={coordSchoolId}
                     onChange={e => setCoordSchoolId(e.target.value)}
+                    placeholder="e.g. gps-vl-002"
                     required
-                    className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 outline-none focus:bg-white font-medium text-zinc-850"
-                  >
-                    <option value="">-- Choose a School Scope --</option>
-                    {schools.map(sch => (
-                      <option key={sch.id} value={sch.id}>
-                        {sch.name} ({sch.id.toUpperCase()})
-                      </option>
-                    ))}
-                  </select>
+                    className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 outline-none focus:bg-white font-medium text-zinc-800"
+                  />
                 </div>
               )}
 
