@@ -23,10 +23,15 @@
 @variant dark (&:where(.dark, .dark *));
 
 html, body {
-  background-color: #F8FAFC !important;
-  color: #1E293B !important;
+  background-color: #F8FAFC;
+  color: #1E293B;
   font-family: var(--font-sans);
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.dark, html.dark body {
+  background-color: #020617;
+  color: #F1F5F9;
 }
 
 /* Custom class for top indicator ribbon */

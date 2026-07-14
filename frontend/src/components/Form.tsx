@@ -15,20 +15,20 @@ export const Input: React.FC<InputProps> = ({
 }) => {
   return (
     <div className="space-y-1.5 w-full">
-      <label className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider block">
+      <label className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
         {label}
       </label>
       <input
-        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder-slate-400 outline-none transition focus:border-indigo-650 focus:ring-1 focus:ring-indigo-600 disabled:opacity-50 disabled:bg-slate-50 ${
-          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-slate-200'
+        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder-slate-400 outline-none transition focus:border-indigo-650 focus:ring-1 focus:ring-indigo-600 disabled:opacity-50 disabled:bg-slate-50 dark:bg-slate-950 dark:text-white dark:placeholder-slate-500 dark:border-slate-700 dark:focus:border-indigo-500 dark:focus:ring-indigo-500 ${
+          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-600' : ''
         } ${className}`}
         {...props}
       />
       {error && (
-        <span className="text-[10px] font-mono font-semibold text-red-600 block">{error}</span>
+        <span className="text-[10px] font-mono font-semibold text-red-600 dark:text-red-400 block">{error}</span>
       )}
       {helperText && !error && (
-        <span className="text-[10px] font-mono text-slate-400 block">{helperText}</span>
+        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 block">{helperText}</span>
       )}
     </div>
   );
@@ -49,12 +49,12 @@ export const Select: React.FC<SelectProps> = ({
 }) => {
   return (
     <div className="space-y-1.5 w-full">
-      <label className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider block">
+      <label className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
         {label}
       </label>
       <select
-        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 bg-white outline-none transition focus:border-indigo-650 focus:ring-1 focus:ring-indigo-600 disabled:opacity-50 disabled:bg-slate-50 ${
-          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-slate-200'
+        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 bg-white outline-none transition focus:border-indigo-650 focus:ring-1 focus:ring-indigo-600 disabled:opacity-50 disabled:bg-slate-50 dark:bg-slate-950 dark:text-white dark:placeholder-slate-500 dark:border-slate-700 dark:focus:border-indigo-500 dark:focus:ring-indigo-500 ${
+          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-600' : ''
         } ${className}`}
         {...props}
       >
@@ -65,7 +65,7 @@ export const Select: React.FC<SelectProps> = ({
         ))}
       </select>
       {error && (
-        <span className="text-[10px] font-mono font-semibold text-red-600 block">{error}</span>
+        <span className="text-[10px] font-mono font-semibold text-red-600 dark:text-red-400 block">{error}</span>
       )}
     </div>
   );
@@ -84,17 +84,17 @@ export const Textarea: React.FC<TextareaProps> = ({
 }) => {
   return (
     <div className="space-y-1.5 w-full">
-      <label className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider block">
+      <label className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
         {label}
       </label>
       <textarea
-        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder-slate-400 outline-none transition focus:border-indigo-650 focus:ring-1 focus:ring-indigo-600 disabled:opacity-50 disabled:bg-slate-50 ${
-          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-slate-200'
+        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder-slate-400 outline-none transition focus:border-indigo-650 focus:ring-1 focus:ring-indigo-600 disabled:opacity-50 disabled:bg-slate-50 dark:bg-slate-950 dark:text-white dark:placeholder-slate-500 dark:border-slate-700 dark:focus:border-indigo-500 dark:focus:ring-indigo-500 ${
+          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-600' : ''
         } ${className}`}
         {...props}
       />
       {error && (
-        <span className="text-[10px] font-mono font-semibold text-red-600 block">{error}</span>
+        <span className="text-[10px] font-mono font-semibold text-red-600 dark:text-red-400 block">{error}</span>
       )}
     </div>
   );
