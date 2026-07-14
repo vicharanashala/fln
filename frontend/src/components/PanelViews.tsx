@@ -63,18 +63,7 @@ const USERS_MOCK = [
   { name: 'Rahul Kumar', email: 'vol.rahul@fln.org', role: 'Volunteer', scope: 'Moga Villages', status: 'Active' },
 ];
 
-const QUESTION_BANK = [
-  { id: 'QB-001', topic: 'Number Sense', level: 4, question: 'Count the number of apples: 🍎🍎🍎🍎', type: 'MCQ', difficulty: 'Easy' },
-  { id: 'QB-002', topic: 'Number Sense', level: 8, question: 'What comes after 15?', type: 'Text', difficulty: 'Easy' },
-  { id: 'QB-003', topic: 'Addition', level: 12, question: 'What is 7 + 5?', type: 'Number', difficulty: 'Easy' },
-  { id: 'QB-004', topic: 'Subtraction', level: 16, question: 'What is 23 - 8?', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-005', topic: 'Multiplication', level: 41, question: 'What is 6 × 7?', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-006', topic: 'Division', level: 42, question: 'Divide 24 by 6', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-007', topic: 'Fractions', level: 45, question: 'Which is larger: 1/2 or 1/4?', type: 'MCQ', difficulty: 'Hard' },
-  { id: 'QB-008', topic: 'Place Value', level: 36, question: 'What is the value of 7 in 372?', type: 'Text', difficulty: 'Medium' },
-  { id: 'QB-009', topic: 'Measurement', level: 43, question: 'How many cm in 1 meter?', type: 'Number', difficulty: 'Easy' },
-  { id: 'QB-010', topic: 'Money', level: 46, question: 'You have ₹50. You buy a toy for ₹35. How much change?', type: 'Number', difficulty: 'Hard' },
-];
+// Question Bank removed — placeholder data deleted
 
 const WS_TEMPLATES = [
   { id: 'WST-001', name: 'Baseline Assessment L1-L5', grade: 'Preschool 1-2', questions: 8, duration: '30 min', status: 'Published' },
@@ -383,12 +372,12 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const filteredActivity = activityFilter === 'all' ? recentActivity : recentActivity.filter(a => a.type === activityFilter);
 
-    const tabs = [
-      { key: 'overview' as const, label: 'Overview', icon: BarChart3 },
-      { key: 'academic' as const, label: 'Academic Record', icon: BookOpen },
-      { key: 'personal' as const, label: 'Personal Details', icon: Users },
-      { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
-    ];
+      const tabs = [
+        { key: 'overview' as const, label: 'Overview', icon: BarChart3 },
+        { key: 'academic' as const, label: 'Academic Record', icon: BookOpen },
+        { key: 'personal' as const, label: 'Personal Details', icon: Users },
+        { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
+      ];
 
     return (
       <div className="space-y-6">
@@ -882,9 +871,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-6">
         <PageHeader title="Adaptive Assessment" desc="Computer-adaptive testing that adjusts to student ability" icon={<SlidersHorizontal className="h-5 w-5" />} />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard title="Active Sessions" value="3" subtext="Students currently testing" icon={Users} />
-          <MetricCard title="Avg Adaptive Score" value="72%" subtext="Across all levels" icon={BarChart3} />
-          <MetricCard title="Completion Rate" value="85%" subtext="Tests finished on time" icon={CheckCircle2} />
+          <MetricCard title="Active Sessions" value={''} subtext="Will be populated soon" icon={Users} />
+          <MetricCard title="Avg Adaptive Score" value={''} subtext="Will be populated soon" icon={BarChart3} />
+          <MetricCard title="Completion Rate" value={''} subtext="Will be populated soon" icon={CheckCircle2} />
         </div>
         <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-5 bg-slate-50 dark:bg-slate-800 space-y-3">
           <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">How Adaptive Testing Works</h4>
@@ -1339,19 +1328,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           <div key={u.email} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
             <div><div className="font-medium text-sm">{u.name}</div><div className="text-xs text-slate-400 dark:text-slate-500 font-mono">{u.email}</div></div>
             <div className="flex items-center gap-3"><span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{u.role}</span><span className="text-xs text-slate-400 dark:text-slate-500">{u.scope}</span><span className="text-[10px] font-mono font-bold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">{u.status}</span></div>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
-
-  if (panel === 'question_bank') {
-    return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Question Bank" desc="Curated repository of FLN assessment questions across all 59 levels" icon={<BookOpen className="h-5 w-5" />} />
-        <div className="space-y-2">{QUESTION_BANK.map(q => (
-          <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
-            <div className="flex justify-between items-start"><div><span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500">{q.id}</span><span className="text-sm font-medium ml-2">{q.question}</span></div><div className="flex gap-1 shrink-0"><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{q.topic}</span><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">L{q.level}</span><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">{q.difficulty}</span></div></div>
           </div>
         ))}</div>
       </div>

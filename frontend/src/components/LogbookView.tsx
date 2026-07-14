@@ -29,8 +29,8 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
       if (Array.isArray(data)) {
         setLogs(data);
       }
-    } catch (err) {
-      console.error('Failed to fetch audit log:', err);
+      } catch (err) {
+      console.error('Failed to fetch activity log:', err);
     }
   };
 
@@ -310,7 +310,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
               {filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-12 text-center text-zinc-400 font-sans text-xs">
-                    No active system audit records found with the active filters.
+                    No activity records found with the active filters.
                   </td>
                 </tr>
               ) : (
