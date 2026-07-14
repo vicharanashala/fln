@@ -26,16 +26,59 @@ interface ExportPdfOptions {
 }
 
 /**
+ * Fetch a remote image and convert it to a base64 data URL.
+ * Returns null if the fetch fails (we silently skip rather than break the PDF).
+ */
+async function fetchImageAsDataUrl(url: string): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const format = blob.type.includes("png") ? "PNG" : "JPEG";
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve({ dataUrl: reader.result as string, format });
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Generate a printable PDF answer key for an assessment.
  * Pure client-side via jspdf — no backend round-trip needed.
+ * Includes question images when present.
  */
-export function exportAnswerKeyPdf(opts: ExportPdfOptions): void {
+export async function exportAnswerKeyPdf(opts: ExportPdfOptions): Promise<void> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
   let y = margin;
+
+  // Pre-load all question images so we can embed them below the question text
+  const imageCache: Record<string, { dataUrl: string; format: "PNG" | "JPEG" } | null> = {};
+  const imagePromises: Promise<void>[] = [];
+  opts.questions.forEach((q) => {
+    if (q.images && q.images.length > 0) {
+      q.images.forEach((img, idx) => {
+        const key = `${q.questionNo}-${idx}`;
+        if (!imageCache[key] && img.imageUrl) {
+          imagePromises.push(
+            fetchImageAsDataUrl(img.imageUrl).then((result) => {
+              imageCache[key] = result;
+            })
+          );
+        }
+      });
+    }
+  });
+  if (imagePromises.length > 0) {
+    await Promise.all(imagePromises);
+  }
 
   const COLORS = {
     primary: [37, 99, 235] as [number, number, number],
@@ -143,7 +186,8 @@ export function exportAnswerKeyPdf(opts: ExportPdfOptions): void {
   y += 6;
 
   opts.questions.forEach((q, idx) => {
-    const blockHeight = 18 + (q.alternateAnswers?.length || 0) * 4;
+    const imgCount = q.images?.length || 0;
+    const blockHeight = 18 + (q.alternateAnswers?.length || 0) * 4 + imgCount * 50;
     checkPageBreak(blockHeight);
 
     // Question number badge
@@ -176,6 +220,38 @@ export function exportAnswerKeyPdf(opts: ExportPdfOptions): void {
     const qLines = doc.splitTextToSize(q.questionText || "(no question text)", contentWidth - 11);
     doc.text(qLines, metaX, y + 8);
     y += 8 + qLines.length * 4.2;
+
+    // Question images (cropped from PDF page or uploaded)
+    if (q.images && q.images.length > 0) {
+      const maxImgH = 50; // mm — keep images compact on the page
+      for (let i = 0; i < q.images.length; i++) {
+        const key = `${q.questionNo}-${i}`;
+        const img = imageCache[key];
+        if (img) {
+          checkPageBreak(maxImgH + 6);
+          try {
+            // Fit image into available width
+            const props = doc.getImageProperties(img.dataUrl);
+            const ratio = props.height / props.width;
+            let imgW = Math.min(contentWidth - 11, 80);
+            let imgH = imgW * ratio;
+            if (imgH > maxImgH) {
+              imgH = maxImgH;
+              imgW = imgH / ratio;
+            }
+            const imgX = metaX + (contentWidth - 11 - imgW) / 2;
+            doc.addImage(img.dataUrl, img.format, imgX, y + 2, imgW, imgH);
+            // Border
+            doc.setDrawColor(226, 232, 240);
+            doc.setLineWidth(0.3);
+            doc.rect(imgX, y + 2, imgW, imgH);
+            y += imgH + 4;
+          } catch (e) {
+            // Skip image if format not supported
+          }
+        }
+      }
+    }
 
     // Answer box
     const answerY = y;

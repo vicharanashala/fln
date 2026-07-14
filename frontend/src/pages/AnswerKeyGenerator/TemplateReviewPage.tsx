@@ -128,13 +128,13 @@ export default function TemplateReviewPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function handleExportPdf() {
+  async function handleExportPdf() {
     if (questions.length === 0) {
       toast.error("No questions to export");
       return;
     }
     try {
-      exportAnswerKeyPdf({
+      await exportAnswerKeyPdf({
         assessmentCode: assessment?.assessmentCode || existingTemplate?.assessmentCode || "AS0000",
         title: assessment?.title || "Untitled Assessment",
         grade: assessment?.grade || "—",

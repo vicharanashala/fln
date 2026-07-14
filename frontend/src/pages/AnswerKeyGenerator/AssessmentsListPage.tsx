@@ -82,7 +82,7 @@ export default function AssessmentsListPage() {
       // Always fetch the full template to get the questions array
       const res = await assessmentApi.getTemplate(a._id);
       const fullTpl: AssessmentTemplate = res.data.template;
-      exportAnswerKeyPdf({
+      await exportAnswerKeyPdf({
         assessmentCode: a.assessmentCode || fullTpl.assessmentCode || "AS0000",
         title: a.title,
         grade: a.grade || "—",
