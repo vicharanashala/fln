@@ -1,11 +1,8 @@
-# FLN Platform — Codebase Audit (Update)
+# FLN Platform — Codebase Audit
 
-**Scope:** entire monorepo (`frontend/`, `backend/`, `ai-services/`, `docs/`, plus root docs).
-**Method:** static read-through of every source file; no code was changed.
-**Date:** 2026-07-14
-**Supersedes:** the 2026-07-10 `AUDIT.md` (which audited the pre-migration `mvp/` layout).
-
-**TL;DR:** The folder-level move described in `MIGRATION_PLAN.md` happened — `mvp/server` → `backend/src`, `mvp/src` → `frontend/src`, `mvp/evaluation_metrics` → `ai-services`. **Nothing else in the plan happened.** The plan's Phases 2–9 (config extraction, domain modules, `apiClient`, real auth, deleting the mock) are all still open. The frontend still boots a fake in-browser backend (`frontend/src/mock/fetchInterceptor.ts`, installed from `main.tsx:8`) instead of calling the real `backend/`. Every P0/P1 finding from the last audit is still present, unchanged, at the same severity. Two things got worse in the interim: `backend/src/index.ts` grew from 1580 → 1712 lines (more endpoints piled into the same monolith) and `RoleDashboards.tsx` grew from 2702 → 2849 lines. New work (bulk diagnostic jobs, level-wise PDF generation, the `classAdapters` registry) is genuinely well-built but inherits the same unfixed backend problems (no auth on new endpoints, `execSync` with interpolated args, client-side answer keys).
+**Scope:** `mvp/` (the actual application). **Method:** static read-through of every source file; no code was changed.
+**Date:** 2026-07-10
+**TL;DR:** There are **two parallel backends**. A real Node/Express + Python backend (`mvp/server/`, `mvp/evaluation_metrics/`) implements most of the SRS correctly. But the React app never talks to it — `src/main.tsx` installs a `fetch()` interceptor that answers every `/api/*` call inside the browser against a `localStorage` mock DB (`src/mock/`), which re-implements the same business logic in a weaker, insecure form. The single highest-value action is to **delete the mock backend and point the frontend at the real server.** Almost everything else on this list collapses once that is done.
 
 ---
 
@@ -22,187 +19,183 @@ Each finding is scored **Blast radius** (harm if left unfixed) × **Effort to fi
 
 ---
 
-## 1. What actually changed since the last audit (2026-07-10 → 2026-07-14)
-
-| Area | Then (`mvp/`) | Now | Verdict |
-|---|---|---|---|
-| Top-level layout | `mvp/src`, `mvp/server`, `mvp/evaluation_metrics` | `frontend/`, `backend/`, `ai-services/` (npm workspaces root `package.json`) | ✅ Done — Phase 1/4 of the migration plan |
-| `backend/src/index.ts` | 1580 ln, monolithic | **1712 ln**, still monolithic — no `modules/`, `middleware/`, `config/`, `db/` subfolders exist | ❌ Not started — Phase 3 skipped |
-| `shared/` (domain constants, DTOs) | proposed, didn't exist | **still doesn't exist** | ❌ Not started — Phase 2 skipped |
-| Frontend `apiClient.ts` | proposed | **doesn't exist**; no `lib/`, `features/`, `auth/`, `layout/` folders — components are still a flat list under `src/components/` | ❌ Not started — Phase 5 skipped |
-| Mock backend (`fetchInterceptor.ts`, `dbStore.ts`) | live, installed in `main.tsx` | **still live, still installed** (`main.tsx:5-8`) | ❌ Not started — Phases 5–8 skipped |
-| `RoleDashboards.tsx` | 2702 ln god-file | **2849 ln** — grew, not split | ❌ Worse |
-| `PanelViews.tsx` | 1455 ln god-file, in-file PII/mocks | 1455 ln, unchanged, PII intact | ❌ Not started |
-| Auth (password hashing, JWT, role-guard middleware) | none; email-prefix role synthesis | **identical code**, same file/line shape; `backend/package.json` still has no `bcrypt`/`jsonwebtoken`/similar dependency | ❌ Not started — Phase 7 skipped |
-| Duplicate `levelGenerator.ts` | two byte-identical copies | **still two copies** (`backend/src/levelGenerator.ts`, `frontend/src/utils/levelGenerator.ts`, both 485 ln) | ❌ Not started — Phase 2 skipped |
-| New feature work | — | **Diagnostic Paper Generator** extended: `backend/src/classAdapters.ts` (adapter registry for `CLASS_1..4` + new `LEVEL_PERSONALIZED` pointing at `levels_main.html`), `/api/diagnostic/bulk` (+ progress/download), `/api/diagnostic/single`, `/api/worksheets/generate-level-pdf` | 🟡 New surface, see §4 |
-| `docs/` | lived under `mvp/docs/` | moved to repo-root `docs/`, content unchanged | ✅ Done |
-| `ai-services/` | `mvp/evaluation_metrics/` | moved, unchanged; still invoked via `execSync` with string-interpolated args, not the planned `pythonBridge.ts` | 🟡 Moved but not hardened — Phase 6 note skipped |
-
-**Bottom line:** this was a **relocation**, not a **remediation**. Every security/architecture finding below already existed in the last audit; they're repeated here (updated to current line numbers) because the user asked for the current, accurate picture — not a diff.
-
----
-
-## 2. Current repo map
+## 1. Current folder structure & what actually lives where
 
 ```
 fln/
-├── README.md  SRS.md  PRD.md  AUDIT.md  MIGRATION_PLAN.md  ARCHITECTURE.md  CLAUDE.md  CONTRIBUTING.md  CHANGELOG.md
-├── package.json                     # npm workspaces: frontend, backend (ai-services NOT a workspace member)
-├── docs/                            # teacher workflow docs — describe backend/ behavior
-├── Research/                        # curriculum/pedagogy research notes
-├── FLN Levels Structure/            # 59 level content folders (curriculum source docs)
-│
-├── frontend/                        # React 19 + Vite + Tailwind
-│   ├── index.html  vite.config.ts  tsconfig.json  package.json
-│   ├── public/
-│   │   ├── mock/*.json              # ⚠ THIRD mock dataset, still present
-│   │   └── worksheets/              # class1-4.html + levels_main.html (8811 ln) + jspdf/html2canvas/jszip
-│   └── src/
-│       ├── main.tsx                 # ⚠ still calls setupFetchInterceptor() before render
-│       ├── App.tsx                  # role switch still client-side (App.tsx handleRoleSwitch)
-│       ├── constants.ts (763 ln)    # ⚠ hardcoded seed data
-│       ├── mock/
-│       │   ├── fetchInterceptor.ts (829 ln)  # ⚠ FAKE BACKEND — still answers /api/* in-browser
-│       │   └── dbStore.ts (1006 ln)          # ⚠ localStorage "database"
-│       ├── utils/levelGenerator.ts (485 ln)  # ⚠ duplicate of backend/src/levelGenerator.ts, ships answer keys
-│       └── components/ (24 files, flat — no feature folders)
-│           ├── RoleDashboards.tsx (2849 ln)  # ⚠ god-file, grew since last audit
-│           ├── PanelViews.tsx (1455 ln)      # ⚠ god-file, in-file PII + mock data
-│           ├── IcrScanner.tsx (601 ln)       # simulated scanner, Math.random() "extraction"
-│           └── ...
-│
-├── backend/                         # Node/Express + TS
-│   ├── package.json  tsconfig.json
-│   └── src/
-│       ├── index.ts (1712 ln)       # ⚠ all ~31 endpoints in one file; no modules/middleware/config dirs
-│       ├── db.ts (2190 ln)          # JSON-file store (data/db.json), not MongoDB
-│       ├── gemini.ts (646 ln)       # real Gemini integration; hardcoded model IDs
-│       ├── paperGenerator.ts (415 ln), worksheetRenderer.ts, pdfMerge.ts  # real Puppeteer/pdf-lib pipeline
-│       ├── classAdapters.ts (73 ln) # NEW — adapter registry, well-designed (see §4)
-│       └── levelGenerator.ts (485 ln)
-│
-├── ai-services/                     # Python (moved from mvp/evaluation_metrics, unchanged)
-│   ├── run_pipeline.py, personalized_evaluation_pipeline.py, run_evaluation_c2p2.py
-│   ├── scripts/ (implied 0..3 pipeline stages), prompts/, questions/{class_1..4}/, syllabus/{class_1..4}/
-│   └── requirements.txt, PIPELINE.md
-│
-└── data/ (referenced by backend/src/db.ts as db.json; not present at this path in the archive — see §5.4)
+├── SRS.md, PRD.md, README.md, Research/     # docs only
+└── mvp/                                       # the app
+    ├── index.html, vite.config.ts, package.json, tsconfig.json
+    ├── src/                                   # React frontend (Vite + React 19 + Tailwind)
+    │   ├── main.tsx                           # ⚠ installs fetch interceptor at boot
+    │   ├── App.tsx                            # top-level view/router + role switch
+    │   ├── constants.ts        (763 ln)       # ⚠ hardcoded seed data (states/schools/students/levels)
+    │   ├── types.ts
+    │   ├── mock/
+    │   │   ├── fetchInterceptor.ts (829 ln)   # ⚠ FAKE BACKEND #1 — answers /api/* in-browser
+    │   │   └── dbStore.ts          (1006 ln)  # ⚠ localStorage "database" + seed
+    │   ├── utils/levelGenerator.ts (485 ln)   # ⚠ byte-identical duplicate of server/levelGenerator.ts
+    │   └── components/                         # 24 components; business logic mixed into UI
+    │       ├── RoleDashboards.tsx  (2702 ln)  # ⚠ god-file: 5 role dashboards + logic
+    │       ├── PanelViews.tsx      (1455 ln)  # ⚠ god-file: all secondary panels
+    │       ├── IcrScanner.tsx      (601 ln)   # simulated scanner animation
+    │       └── ... (Login, Layout, Charts, workflows, etc.)
+    ├── server/                                # REAL BACKEND (Node/Express) — mostly unused by the app
+    │   ├── index.ts            (1580 ln)      # ~30 real endpoints, real governance logic
+    │   ├── db.ts              (2190 ln)       # JSON-file "DB" (data/db.json), not MongoDB
+    │   ├── gemini.ts          (646 ln)        # real Gemini AI integration + fallbacks
+    │   ├── paperGenerator.ts  (410 ln)        # real Puppeteer HTML→PDF
+    │   ├── worksheetRenderer.ts, pdfMerge.ts, classAdapters.ts, levelGenerator.ts
+    ├── evaluation_metrics/                    # REAL Python evaluation pipeline
+    │   ├── run_pipeline.py, personalized_evaluation_pipeline.py
+    │   ├── scripts/{0_classify,1_compare,2_evaluate,3_report}.py, _api.py
+    │   ├── prompts/*.txt, questions/, syllabus/   # curriculum data as JSON
+    ├── data/db.json          (3597 ln)        # server's persistent store
+    ├── public/
+    │   ├── mock/*.json                        # ⚠ a THIRD set of mock data (static JSON)
+    │   └── worksheets/*.html + jspdf/html2canvas/jszip   # standalone HTML worksheets
+    └── docs/                                  # teacher workflow docs (describe the SERVER behavior)
 ```
 
-### Data-flow reality (unchanged from last audit)
-- `frontend/src/main.tsx:5,8` imports and calls `setupFetchInterceptor()` before `createRoot(...).render()`.
-- The interceptor still answers any URL containing `/api/` locally against `localStorage`; only unmatched paths reach the network. The React app's `/api/*` calls — now including the newer `/api/diagnostic/bulk`, `/api/worksheets/generate-level-pdf` calls — need to be checked one-by-one for whether the interceptor has a matching mock branch; where it doesn't, those calls silently fall through to a backend that isn't running in the default dev flow described in `README.md`.
-- `backend/`, `ai-services/` only get exercised via direct HTTP/CLI calls (curl, `backend/test_submit.cjs`), not through the shipped app.
+**The core structural problem in one sentence:** the frontend (`src/mock/`), the server (`server/`), and `public/mock/` are three separate implementations/copies of the same domain, and the app runs on the weakest one.
+
+### Data-flow reality
+- `src/main.tsx:8` → `setupFetchInterceptor()` overrides `window.fetch` **before React renders**.
+- `fetchInterceptor.ts:178-180` — any URL containing `/api/` is handled locally; only unmatched paths fall through to the network (`:822`). The React app's ~30 `/api/*` calls therefore **never reach `server/index.ts`**.
+- The real server + Python pipeline only run if you exercise the API directly (curl/tests). The documented "Quick Start" (`npm run dev` → localhost:3000) serves the frontend, which self-serves from `localStorage`.
 
 ---
 
-## 3. Business logic still in the frontend that belongs on the backend
+## 2. Business logic in the frontend that belongs on the backend
 
-(Same substance as the 2026-07-10 audit; paths updated to the new tree. Nothing here has moved.)
+> All of the following runs in the browser via `src/mock/`. The **good news**: the real server already implements correct versions of most of these (cited in §5), so "moving to backend" is largely "stop intercepting and call the server that already exists."
 
 | # | Logic | Frontend location | Should be |
 |---|---|---|---|
-| 3.1 | Authentication — password never verified server-side either; client only checks length/complexity | `frontend/src/mock/fetchInterceptor.ts` | Backend, and backend needs real verification too (§5.1) |
-| 3.2 | Identity/role resolution from email prefix, synthesizes a user with no credential check | `fetchInterceptor.ts` (mirrors `backend/src/index.ts` `getAuthUser`, lines 32-79) | Real session/auth |
-| 3.3 | Diagnostic scoring + level placement | `fetchInterceptor.ts` | `ai-services`/backend evaluation pipeline (which already exists and is correct) |
-| 3.4 | Worksheet scoring + promotion (`≥80% → level+1`) | `fetchInterceptor.ts` | Backend |
-| 3.5 | Generation-lock enforcement, sub-level assignment, certification rule (`currentLevel ≥ 5`), defaulter/escalation reversal | `fetchInterceptor.ts` | Backend (already implemented correctly in `backend/src/index.ts`) |
-| 3.6 | ID generation (`STD_`, `WS_`, `Date.now()`, `Math.random()`) | `fetchInterceptor.ts` | Backend/DB |
-| 3.7 | Question pool generation for levels 1–59, **including answer keys**, shipped to the browser | `frontend/src/utils/levelGenerator.ts` | Backend/curriculum service only |
-| 3.8 | Client-side role switch — any logged-in user can become any role | `App.tsx` `handleRoleSwitch` | Remove; superadmin-only server action |
-| 3.9 | ICR extraction faked with `Math.random()` (deliberately corrupts ~30% of answers to simulate OCR noise); result badge not tied to actual accuracy | `IcrScanner.tsx:110,114,116` | Real ICR/ML service |
-| 3.10 | Client-side authorization decisions (who may restore a school, audit-log redaction, analytics scope) | `RoleDashboards.tsx`, `LogbookPanel.tsx` | Server must decide/redact |
+| 2.1 | **Authentication / credential check** — password never verified; only `length ≥ 8` checked, then returns `token: user.email` | `fetchInterceptor.ts:207-224` | Backend (server has `index.ts:85`, itself also weak — see §5) |
+| 2.2 | **Identity/role resolution from email prefix** — `admin.` / `district.` / `block.` / `vol.` / `.t` → role; mints synthetic user | `fetchInterceptor.ts:106-165` (`getAuthUser`) | Backend auth/session |
+| 2.3 | **Diagnostic scoring + level placement** — counts correct, `recommendedLevel = min(failed source_level)` | `fetchInterceptor.ts:6-60` (`evaluateDiagnosticMock`) | Python evaluation engine |
+| 2.4 | **Worksheet scoring + concept mastery + promotion** (`≥80% → level+1`) | `fetchInterceptor.ts:63-103` (`evaluateWorksheetMock`) | Backend/Python |
+| 2.5 | **Generation-lock (pairwise R-11) enforcement** | `fetchInterceptor.ts:522-597` | Backend (server has it: `index.ts:721-744`) |
+| 2.6 | **Sub-level / remedial assignment + level-history mutation** | `fetchInterceptor.ts:440-520` | Backend |
+| 2.7 | **Certification rule** `currentLevel ≥ 5` + analytics %/topic-mastery formulas | `fetchInterceptor.ts:694-765` | Backend |
+| 2.8 | **Defaulter escalation reversal** (`revive-teacher`, `restore-school`) | `fetchInterceptor.ts:791-812` | Backend (server has it: `index.ts:1205,1251`) |
+| 2.9 | **ID generation** (`STD_`, `WS_`, `Date.now()`, `Math.random()`) | `fetchInterceptor.ts:352,564,242,269,…,156,778` | Backend/DB |
+| 2.10 | **Question pool generation for levels 1–59** | `dbStore.ts:20-26` + `utils/levelGenerator.ts` | Backend/curriculum service |
+| 2.11 | **Timing-window computation** (print +60 / exam +105 / submission +165 min) | `fetchInterceptor.ts:580-587` | Backend |
+| 2.12 | **Client-side full role switch** — any logged-in user can become any role | `App.tsx:127-163` (`handleRoleSwitch`) | Remove entirely / superadmin-only server action |
+| 2.13 | **Answer keys generated in the browser** — all 59 levels × 3 sub-levels with correct answers shipped in the bundle (extractable by any student) | `utils/levelGenerator.ts:9-485` | Backend/curriculum service |
+| 2.14 | **ICR extraction faked with `Math.random()`** (70% correct, deliberately corrupts answers); "Certified" badge hardcoded regardless of score | `IcrScanner.tsx:105-123, 539` | Real ICR/ML service (backend) |
+| 2.15 | **Client-side authorization decisions** — `canRestore` (who may restore a school), audit-log redaction, analytics-scope selection all decided in-browser over data already sent | `RoleDashboards.tsx:1191,223-235,1260`; `LogbookPanel.tsx:27-92` | Server must decide/redact |
+| 2.16 | **Timing-window / lock status from client clock** (`new Date()` vs timestamps) — trivially spoofable | `WorksheetWorkflow.tsx:137-156` | Server-authoritative |
+
+### UI-layer logic duplicated in components (not just the mock)
+- **Certification threshold `currentLevel >= 5`** recomputed in the dashboard UI: `RoleDashboards.tsx:599, 995, 1003` (in addition to `fetchInterceptor.ts` and `server/index.ts`).
+- **Score-band coloring `≥80 / ≥60`** hand-inlined across render code: `PanelViews.tsx:527, 680, 684, 1009` and throughout `RoleDashboards.tsx`.
+- **Class-number parsing** `parseInt(classMatch[0]) ?? 2` reimplemented: `RoleDashboards.tsx:1812, 2439`.
+- **46** scattered `role === '…' / UserRole.*` gating decisions across `src/components/*.tsx` — presentation gating is fine, but several encode authorization.
 
 ---
 
-## 4. New surface since the last audit — assessed
+## 3. Hardcoded values that should be config / DB / env
 
-The Diagnostic Paper Generator work (class-level bulk pipeline, now being extended to the level-wise generator) added real functionality on top of the existing Puppeteer/pdf-lib pipeline:
+### 3.1 Credentials & auth (highest severity)
+- **Shared password `Fln@2026` for all 12 demo accounts**, printed in the UI — `LoginView.tsx:22-35, 155`.
+- Password **never verified** server-side or client-side (only complexity/length) — `fetchInterceptor.ts:214`, `server/index.ts:92-102`.
+- Token = plaintext email, forgeable — `fetchInterceptor.ts:223`, `server/index.ts:108`.
 
-- **`backend/src/classAdapters.ts`** — a small, clean adapter registry (`ADAPTERS: Record<string, Adapter>`) mapping `CLASS_1..4` and the new `LEVEL_PERSONALIZED` entry to their HTML template, PDF-building function name, and argument shape. This is a good pattern: it's typed, has a single lookup function (`getAdapter`) that throws with the valid-keys list on a miss, and is the right shape to extend for more levels. **Worth keeping and following as the template for other refactors** (e.g. the eventual `modules/` split in `MIGRATION_PLAN.md`).
-- **`/api/diagnostic/bulk`, `/api/diagnostic/bulk/:jobId/progress`, `/api/diagnostic/bulk/:jobId/download`, `/api/diagnostic/single`, `/api/worksheets/generate-level-pdf`** — new endpoints in `backend/src/index.ts` (jobs tracked in an in-memory `Map<string, BulkDiagnosticJob>`).
-  - 🔴 In-memory job map means **all bulk-job state is lost on server restart** and **doesn't scale past one process** — fine for a demo, worth flagging before this becomes the path another frontend (the roster-holding one mentioned as the broader goal) depends on programmatically.
-  - 🔴 The two `execSync` calls with string-interpolated `classNumber`/`studentId` (`backend/src/index.ts:559,566,758`, pre-existing pattern) are now exercised by more call sites, widening the same command-injection surface rather than shrinking it.
-  - `/api/diagnostic/bulk` does check `getAuthUser` and 401s if missing (`index.ts` inside the bulk handler) — better than several of the older endpoints, but since `getAuthUser` still accepts any well-formed `*@fln.org` email with no password check, this "auth" doesn't add real protection.
-- **`frontend/public/worksheets/levels_main.html` (8811 ln)** — the level-wise counterpart to `class1-4.html`. It declares `answerKeys = []` as a parallel array to the generated worksheet HTMLs and embeds correct/wrong answer pairs directly in the page script (e.g. unit-conversion answer pairs around line 647). Same class of problem as `frontend/src/utils/levelGenerator.ts`: **this ships answer keys to any browser that loads the worksheet**, now for all 59 levels in addition to the four classes.
+### 3.2 Seed data hardcoded in source (should be DB/fixtures)
+- `src/constants.ts` (763 ln): `STATES_DATA:20`, `DISTRICTS_DATA:29`, `BLOCKS_DATA:56`, `FLN_LEVELS` (algorithmically faked 1–59):94, `INITIAL_SCHOOLS:201`, `INITIAL_STUDENTS` (w/ full assessment history + masked Aadhaar):284, `INITIAL_ANNOUNCEMENTS:507`, `INITIAL_TICKETS:534`, `INITIAL_LOGS:651`.
+- `src/mock/dbStore.ts`: seed users `46-114`, schools `29-44`, students `139-212`, etc.
+- `public/mock/*.json` — a third redundant seed set.
+- **`PanelViews.tsx:13-161`** — a *fourth* set: `STUDENTS_MOCK`, `REPORTS_MOCK`, `QUESTION_BANK` (with answers), etc. `PanelViews` renders almost entirely from these in-file mocks, not the API (parallel/dead data path).
+- 🔴 **Hardcoded student PII in the bundle** — `PanelViews.tsx:354-361` (`EXTENDED_PROFILES`): guardian names, phone numbers, home addresses, blood groups, disability notes. Ships to every visitor.
+- Fake national stats presented as real: `"82.4"` national score, `"Level 3.2"` — `RoleDashboards.tsx:678,668`.
 
-**Net assessment:** the new work is competently engineered (typed adapters, progress polling, per-job PDF output) and extends the existing *working* pipeline rather than duplicating it — this is the right way to grow the paper generator. It just hasn't addressed (and in the injection/answer-key cases, has slightly enlarged) the backend hardening debt that predates it.
-
----
-
-## 5. Persisting critical issues (all present at last audit, still present)
-
-### 5.1 Auth — unchanged
-- Login only validates password *shape* (`length ≥ 8`, uppercase, number, special char), never the actual password against a stored credential — `backend/src/index.ts` `/api/auth/login`.
-- Token = the user's own email, forgeable by construction — same handler.
-- `getAuthUser` auto-promotes any unrecognized `*@fln.org` address to a role guessed from its prefix (`admin.` / `district.` / `block.` / `vol.` / `*.t` / else) with **no credential check at all** — `backend/src/index.ts:32-79`.
-- No password-hashing dependency anywhere in `backend/package.json` (no bcrypt/argon2/etc.), confirming this was never wired up, not just disabled.
-
-### 5.2 Open endpoints — unchanged
-- `/api/reset` accepts both GET and POST with **no auth check**, and fully wipes/reseeds the database — `backend/src/index.ts`, "DATABASE RESET (Development convenience)" block.
-- Several GET reads (schools, announcements, evaluation history) still have no auth gate.
-
-### 5.3 Secrets/PII shipped to the browser — unchanged, now larger
-- `frontend/src/components/PanelViews.tsx` `EXTENDED_PROFILES` (guardian names, phone numbers, home addresses, blood group, disability notes) — still present, still hardcoded, still shipped in the bundle to every visitor regardless of role.
-- Demo password `Fln@2026` for all 12 accounts, printed in the login UI — `LoginView.tsx`.
-- Answer keys for all 4 classes *and now all 59 levels* shipped client-side (§4).
-
-### 5.4 Data layer
-- `backend/src/db.ts` is still a single JSON file rewritten in full on every mutation — no concurrency safety, no transactions. The runtime file itself (`data/db.json`) isn't present in this archive (likely gitignored/runtime-generated), consistent with `.gitignore` entries seen for `node_modules`; worth confirming it isn't accidentally excluded from deploys too.
-
-### 5.5 Three-to-four parallel seed/mock datasets — unchanged
-`frontend/src/constants.ts`, `frontend/src/mock/dbStore.ts`, `frontend/public/mock/*.json`, and in-file mocks inside `PanelViews.tsx` (`STUDENTS_MOCK`, `REPORTS_MOCK`, `QUESTION_BANK`) all still coexist.
-
-### 5.6 Gemini model IDs
-`gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.1-pro-preview` are still hardcoded and repeated across `backend/src/gemini.ts` (lines 35-37, 394, 472, 582). These names don't correspond to any publicly documented Gemini model line — worth verifying against the actual Gemini API model catalog before relying on them in production, since a silent fallback-model swap could change output quality without anyone noticing.
-
----
-
-## 6. Duplicated logic — unchanged from last audit
-
-| # | Duplication | Locations |
+### 3.3 Magic numbers / thresholds (should be a single config)
+| Value | Meaning | Locations |
 |---|---|---|
-| 6.1 | `levelGenerator.ts` byte-identical (485 ln each) | `backend/src/levelGenerator.ts` ↔ `frontend/src/utils/levelGenerator.ts` |
-| 6.2 | Entire backend re-implemented twice (auth, locks, scoring, escalation, analytics) | `frontend/src/mock/fetchInterceptor.ts` ↔ `backend/src/index.ts` |
-| 6.3 | Four seed datasets | `constants.ts`, `dbStore.ts`, `public/mock/*.json`, in-file mocks in `PanelViews.tsx` |
-| 6.4 | Certification `>=5` computed in ~6 places | `RoleDashboards.tsx`, `fetchInterceptor.ts`, `backend/src/index.ts` |
-| 6.5 | Teacher & Volunteer dashboards still ~600 ln near-identical | `RoleDashboards.tsx` |
-| 6.6 | Bulk-job polling `useEffect` pattern repeated across dashboard + `BulkDiagnosticWorkflow.tsx`, now also matched by the new backend `bulkJobs` polling pattern | `RoleDashboards.tsx`, `BulkDiagnosticWorkflow.tsx`, `backend/src/index.ts` |
+| `59` | max FLN level | `constants.ts:178`, `fetchInterceptor.ts:35,53,481,666`, `dbStore.ts:22`, `server/index.ts:1533` |
+| `>= 5` | certification | `fetchInterceptor.ts:698,719`, `RoleDashboards.tsx:599,995,1003`, `server/index.ts:1132,1170` |
+| `>= 80 / >= 60` | promotion / score bands | `fetchInterceptor.ts:94`, `PanelViews.tsx:527,680,684,1009` |
+| `3` | delayed-attempt ban | `server/index.ts:1031` (mock does **not** enforce it) |
+| `60/45/60 min` | timing windows | `fetchInterceptor.ts:583-586`, `server/index.ts:786-789` |
+| topic-mastery coeffs `55 + avgLevel*8` etc. | fabricated analytics | `fetchInterceptor.ts:724-729`, `server/index.ts:1138-1143` |
+
+> Note: the SRS's **"50%+ fail an easy question → auto-flag"** and **"3 delayed attempts → ban"** are only partially implemented (ban exists server-side; auto-flag not found in either backend).
+
+### 3.4 Server-side hardcoding
+- **Gemini model IDs** `gemini-3.5-flash` / `gemini-3.1-flash-lite` / `gemini-3.1-pro-preview` hardcoded and repeated — `gemini.ts:35-37,394,472,582`. *(These IDs look invalid/future-dated — verify before relying on them.)*
+- Retry/backoff constants `gemini.ts:43-69`; `User-Agent: 'aistudio-build'` `gemini.ts:19`.
+- **Python binary + script paths** `python run_pipeline.py`, `evaluation_metrics/…` hardcoded and shelled via `execSync` — `server/index.ts:551,558,513-514`.
+- Default geo codes `'PB'/'LDH'/'LDH-01'`, fallback school `'GPS'` — `server/index.ts:1095-1097,381,679`.
+- ✅ Correctly env-driven already: `GEMINI_API_KEY` (`gemini.ts:9`), `PORT` (`index.ts:14`), `CHROME_EXECUTABLE_PATH` (`paperGenerator.ts:129`).
 
 ---
 
-## 7. What's genuinely good and worth keeping (updated)
+## 4. Duplicated logic across files
 
-Everything the last audit called out as the real asset is still the real asset, plus the new adapter work:
-
-- **`classAdapters.ts`** (new) — clean, typed, extensible; the model to copy elsewhere.
-- **Gemini integration with fallback chain and deterministic non-AI fallback** — `backend/src/gemini.ts`.
-- **Puppeteer + pdf-lib PDF pipeline**, now generalized across 4 classes + 59 levels via the adapter registry — `paperGenerator.ts`, `worksheetRenderer.ts`, `pdfMerge.ts`, `classAdapters.ts`.
-- **Python evaluation pipeline** (classify → compare → evaluate → report) — `ai-services/`.
-- **Correct server-side governance logic** — generation lock, delayed-attempt ban, timing windows, Aadhaar masking, revive/restore — all still intact in `backend/src/index.ts`, just still unreachable from the shipped app because of §2.
-- **React UI shell** — dashboards, landing page, workflows remain a usable, polished presentation layer once wired to the real API.
-- **npm workspaces** now correctly split `frontend`/`backend` as independent packages — genuine, if partial, progress on `MIGRATION_PLAN.md` §1.
+| # | Duplication | Locations | Risk |
+|---|---|---|---|
+| 4.1 | **`levelGenerator.ts` — byte-identical** (485 ln) except the import on line 1 | `server/levelGenerator.ts` ↔ `src/utils/levelGenerator.ts` | Will silently drift |
+| 4.2 | **Entire backend re-implemented twice** (auth, locks, scoring, escalation, analytics) | `src/mock/fetchInterceptor.ts` ↔ `server/index.ts` | Two sources of truth; frontend runs the weaker one |
+| 4.3 | **Three seed datasets** | `src/constants.ts`, `src/mock/dbStore.ts`, `public/mock/*.json` | Inconsistent demo data |
+| 4.4 | **Three question-generation paths** | `levelGenerator.ts` (both copies), `gemini.ts:113-348` (`generateClassSpecificDiagnostic`), `paperGenerator.ts` HTML gen | Divergent question logic |
+| 4.5 | **Certification `>=5` computed in ≥6 places** | see §3.3 | Change one, miss five |
+| 4.6 | **Score-band thresholds inlined** in many JSX expressions | `PanelViews.tsx`, `RoleDashboards.tsx` | Cosmetic drift |
+| 4.7 | **`classNum` parse-from-name** | `RoleDashboards.tsx:1812,2439`, `BulkDiagnosticWorkflow.tsx` | Minor |
+| 4.8 | **Teacher & Volunteer dashboards ~600 ln near-identical** (`handlePrintLevelWorksheet`, `handleAddStudent`, roster table, bulk-job polling, workflow guards) | `RoleDashboards.tsx:1434-2062` ↔ `2068-2702` | Two copies to maintain |
+| 4.9 | **`handleAddStudent` verbatim duplicate** | `RoleDashboards.tsx:1534-1586` ↔ `2166-2218` | Drift |
+| 4.10 | **Bulk-job polling `useEffect` (1500ms)** repeated 3× | `RoleDashboards.tsx:1515,2147`, `BulkDiagnosticWorkflow.tsx:31` | Extract `useBulkJob` hook |
+| 4.11 | **`Math.round((score/total)*100)` and cert/avg-level computations** repeated ~10–15× | throughout `PanelViews.tsx` | Extract `scoreUtils` |
+| 4.12 | **Diagnostic result scorecard UI** rendered near-identically | `DiagnosticWorkflow.tsx:277-311`, `IcrScanner.tsx:513-562`, `WorksheetWorkflow.tsx:460-518` | Shared component |
 
 ---
 
-## 8. Prioritized action list
+## 5. What actually works and is worth keeping
+
+The **server + Python side is the asset.** It is more complete and closer to the SRS than the frontend suggests.
+
+**Keep (real, working):**
+- **Real Gemini AI integration** with retry/backoff, model fallback, and structured `responseSchema` — `server/gemini.ts:14,29-76,379,464,557`. Each AI path has a deterministic non-AI fallback (`:423,516,617`), so it degrades gracefully.
+- **Real HTML→A4 PDF generation** via Puppeteer + pdf-lib — `server/paperGenerator.ts:37,117,281`, `worksheetRenderer.ts:14`, `pdfMerge.ts`. Output written to `output/` and served statically (`index.ts:24`).
+- **Real Python evaluation pipeline** (classify → compare → evaluate → report) — `evaluation_metrics/scripts/0..3_*.py`, driven from `index.ts:551,558`. Matches SRS §9's three stages. *(Integration is fragile — synchronous `execSync`, hard `python`-in-PATH dependency.)*
+- **Correct server-side governance logic** (this is the SRS work, done right): pairwise generation lock `index.ts:721-744`; delayed-attempt ban after 3, school lockout `index.ts:1019-1045`; timing-window sequencing `index.ts:770-815`; Aadhaar masking for non-superadmin `index.ts:314-320,346-356`; role-scoped data filtering `index.ts:171,300-330`; revive/restore `index.ts:1205,1251`. The docs in `mvp/docs/` accurately describe this behavior.
+- **~30 real REST endpoints** in `server/index.ts` covering auth, students, worksheets, diagnostics, evaluation, analytics, admin, bulk jobs.
+- **Frontend UI shell** — the React dashboards, landing page, login, charts, and workflow components are a genuinely usable, polished UI. Worth keeping as the presentation layer once wired to the real API. Cleanest, most reusable pieces (good refactor templates): `Layout.tsx` (role-driven nav shell), `LogbookPanel.tsx`, `BulkDiagnosticWorkflow.tsx` (proper validation + polling cleanup), `AssessmentCalendar.tsx`, `TicketSubmission.tsx`, and the shared primitives `Table`/`MetricCard`/`Form`/`SvgLibraryResolver`/`WorksheetIframeModal`.
+- **Curriculum/exam data** — `evaluation_metrics/questions/`, `syllabus/`, `prompts/`, and `mvp/docs/FLN_Levels_Complete_Data.md` are real content assets.
+
+**Don't keep / retire:**
+- `src/mock/fetchInterceptor.ts`, `src/mock/dbStore.ts` — the fake backend (delete once frontend calls the real server).
+- `public/mock/*.json` — redundant third dataset.
+- One of the two `levelGenerator.ts` copies.
+- `src/main.tsx:8` interceptor install.
+
+**Caveats on "working" (server-side, must fix before any real use):**
+- **Critical auth bypass:** unknown `@fln.org` emails are auto-promoted to a role inferred from the prefix — anyone can send `Authorization: Bearer superadmin@fln.org` and become superadmin — `server/index.ts:39-77`. No password, no signing.
+- **No password hashing** (comment admits it) — `index.ts:106`; seed users have no password field.
+- **`/api/reset` has no auth** (GET or POST) — anyone can wipe the DB — `index.ts:1298,1304`. Same for several GET reads (`/api/schools`, `/api/announcements`, evaluation history).
+- **"MongoDB" is a single JSON file** rewritten in full on every mutation — `server/db.ts:5,268-270` — no concurrency safety, no indexes, no transactions (`data/db.json`). Fine for a demo, not for the national scale the SRS describes.
+- **Command-injection surface** — server-generated ids/classNumber flow into `execSync` shell strings unsanitized — `index.ts:551,558`.
+
+---
+
+## 6. Prioritized action list
 
 | Rank | Action | Blast × Effort | Refs |
 |---|---|---|---|
-| 🔴 **P0-1** | Remove `setupFetchInterceptor()` from `main.tsx`; point frontend at `backend/` via a real `apiClient`. This is Phase 5 of the existing migration plan — still not started. | High × Med | `frontend/src/main.tsx:5,8` |
-| 🔴 **P0-2** | Fix auth: hash + verify passwords, issue signed tokens, delete the email-prefix→role synthesis. | Critical × Med | `backend/src/index.ts` (`getAuthUser`, `/api/auth/login`) |
-| 🔴 **P0-3** | Require auth on `/api/reset` and remaining open GETs; delete client-side `handleRoleSwitch`. | High × Low | `backend/src/index.ts`, `App.tsx` |
-| 🔴 **P0-4** | Stop shipping answer keys and PII to the browser — this now spans 4 classes **and** 59 levels (`levels_main.html`), plus `PanelViews.tsx` PII and demo passwords in `LoginView.tsx`. | High × Low | §3.7, §4, §5.3 |
-| 🔴 **P0-5** | Replace the two interpolated `execSync` calls with sanitized args or a proper subprocess API (argv array, not a template string) — surface widened by the new bulk/single diagnostic endpoints. | High × Low-Med | `backend/src/index.ts:559,566,758` |
-| 🟠 **P1-1** | De-duplicate `levelGenerator.ts` into one shared module (backend-only). | Med × Low | §6.1 |
-| 🟠 **P1-2** | Persist bulk-job state (currently an in-memory `Map`) if another frontend is going to depend on `/api/diagnostic/bulk` programmatically, per the stated broader goal. | Med × Med | §4 |
-| 🟠 **P1-3** | Extract one config module for magic numbers (`59`, cert `5`, score bands, timing windows, Gemini model IDs) — Phase 2 of the migration plan, still not started. | Med × Low | §5.6, MIGRATION_PLAN.md §1 |
-| 🟠 **P1-4** | Consolidate seed data; delete the redundant `public/mock/*.json` and in-file `PanelViews.tsx` mocks once real API is wired. | Med × Med | §6.3 |
-| 🟡 **P2-1** | Split `RoleDashboards.tsx` (now 2849 ln) and `PanelViews.tsx` (1455 ln) — Phase 5's planned `features/` split, still not started, and the former has grown. | Med × High | §2 |
-| 🟡 **P2-2** | Verify the Gemini model IDs against the current API catalog. | Med × Low | §5.6 |
-| ⚪ **P3** | Plan JSON-file → real DB migration; implement the SRS's 50%-fail auto-flag rule (still not found in either backend). | High × High (later) | `db.ts` |
+| 🔴 **P0-1** | **Remove the fetch interceptor; point the frontend at the real server.** Collapses §2, §4.2, §4.3 at once and makes the app actually use its backend. | High × Med | `main.tsx:8`, `src/mock/*` |
+| 🔴 **P0-2** | **Fix auth:** hash passwords, verify them, issue signed JWTs, and delete the email-prefix→role synthesis. | Critical × Med | `index.ts:39-77,101-108`, `fetchInterceptor.ts:207-224` |
+| 🔴 **P0-3** | **Lock down open endpoints** — require auth on `/api/reset`, schools, announcements, evaluation history. Remove client-side `handleRoleSwitch`. | High × Low | `index.ts:1298,1304,289,123,1078`, `App.tsx:127` |
+| 🔴 **P0-4** | **Stop shipping secrets/PII to the browser** — answer keys (`utils/levelGenerator.ts`), student PII (`PanelViews.tsx:354-361`), demo passwords (`LoginView.tsx`). Move to backend / remove. Folds into P0-1. | High × Low | §2.13, §3.1, PII above |
+| 🟠 **P1-1** | **De-duplicate `levelGenerator.ts`** — single shared module. | Med × Low | §4.1 |
+| 🟠 **P1-2** | **Extract one config module** for the magic numbers (`59`, cert `5`, bands `80/60`, windows, model IDs). | Med × Low | §3.3, §3.4 |
+| 🟠 **P1-3** | **Move seed data out of `src/`** into fixtures/DB; pick one dataset, delete the other two. | Med × Med | §3.2, §4.3 |
+| 🟡 **P2-1** | **Harden the Python integration** — async job + argument sanitization instead of `execSync` with interpolated ids. | Med × Med | `index.ts:551,558` |
+| 🟡 **P2-2** | **Split the two god-files** (`RoleDashboards.tsx` 2702 ln, `PanelViews.tsx` 1455 ln) once the API layer is stable. | Med × High | §1 |
+| 🟡 **P2-3** | Verify/replace the Gemini model IDs (look invalid). | Med × Low | `gemini.ts:35-37` |
+| ⚪ **P3** | Plan the JSON-file → real DB (MongoDB per SRS) migration; implement missing SRS rules (50%-fail auto-flag). | High × High (later) | `db.ts`, SRS §6.7 |
 
 ---
 
-*Audit is read-only; no files were modified. Line numbers are from the repository state as uploaded on 2026-07-14.*
+*Audit is read-only; no files were modified. Line numbers are from the repository state on 2026-07-10.*

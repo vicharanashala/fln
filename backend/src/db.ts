@@ -77,6 +77,28 @@ export interface Question {
   svgAsset?: string; // Standard pre-built SVG asset category
 }
 
+/**
+ * One rendered file coming out of the standalone Levels_backend batch
+ * pipeline (POST /api/generate-batch) for a single student x sublevel x
+ * set. answerKey/coords are stored verbatim (shape from that service's
+ * buildCleanAnswerKey / captureCoords) so the ICR evaluation pipeline can
+ * mark against the real thing instead of a placeholder.
+ */
+export interface LevelWorksheet {
+  id: string;
+  batchId: string;
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  levelId: number;
+  sublevelId: string;
+  setNum: number;
+  pdfUrl: string;
+  answerKey: any;
+  coords: any;
+  generatedAt: string;
+}
+
 export interface Worksheet {
   id: string; // Exam ID
   classId: string;
@@ -175,6 +197,7 @@ interface DatabaseSchema {
   students: Student[];
   questions: Question[];
   worksheets: Worksheet[];
+  levelWorksheets: LevelWorksheet[];
   answerSubmissions: AnswerSubmission[];
   evaluationReports: EvaluationReport[];
   tickets: Ticket[];
@@ -242,6 +265,11 @@ export class DBStore {
         }
       }
 
+      if (!this.data.levelWorksheets) {
+        this.data.levelWorksheets = [];
+        modified = true;
+      }
+
       if (!this.data.announcements) {
         this.data.announcements = [];
         modified = true;
@@ -283,6 +311,7 @@ export class DBStore {
   async getStudents() { return this.data!.students; }
   async getQuestions() { return this.data!.questions; }
   async getWorksheets() { return this.data!.worksheets; }
+  async getLevelWorksheets() { return this.data!.levelWorksheets; }
   async getAnswerSubmissions() { return this.data!.answerSubmissions; }
   async getEvaluationReports() { return this.data!.evaluationReports; }
   async getTickets() { return this.data!.tickets; }
@@ -324,6 +353,12 @@ export class DBStore {
       Object.assign(ws, updates);
       await this.save();
     }
+    return ws;
+  }
+
+  async addLevelWorksheet(ws: LevelWorksheet) {
+    this.data!.levelWorksheets.push(ws);
+    await this.save();
     return ws;
   }
 
@@ -2178,6 +2213,7 @@ export class DBStore {
       students,
       questions: seedQuestions,
       worksheets,
+      levelWorksheets: [],
       answerSubmissions,
       evaluationReports,
       tickets,

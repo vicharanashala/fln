@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { Question } from './db';
 import { renderBatch } from './worksheetRenderer';
 import { mergeAndStamp } from './pdfMerge';
+import { drawQrCode } from './qrCode';
 
 // Resolve __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -40,7 +41,7 @@ export async function generateDiagnosticPaper({
   onProgress
 }: {
   classNumber: number;
-  students: Array<{ name: string }>;
+  students: Array<{ name: string; studentId?: string; rollNo?: string; qrData?: Record<string, unknown> }>;
   onProgress?: (setNum: number, total: number) => void;
 }): Promise<PaperGenerationResult> {
   if (!Array.isArray(students) || students.length === 0) {
@@ -48,7 +49,7 @@ export async function generateDiagnosticPaper({
   }
 
   const classLevel = `CLASS_${classNumber}`;
-  const results = await renderBatch(classLevel, students.length, onProgress);
+  const results = await renderBatch(classLevel, students.length, onProgress, undefined, students);
 
   // Extract questions from results[0].masterJson
   let questions: Question[] = [];
@@ -144,7 +145,11 @@ export async function generateLevelWorksheet({
     const htmlPath = path.join(worksheetAssetsDir, "levels_main.html");
     await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0', timeout: 30000 });
 
-    const data = await page.evaluate(({ levelId, subIdx }) => {
+    const data = await page.evaluate(({ levelId, subIdx, studentId, studentName }) => {
+      const nameInput = document.getElementById('studentName') as HTMLInputElement | null;
+      const idInput = document.getElementById('studentId') as HTMLInputElement | null;
+      if (nameInput) nameInput.value = studentName;
+      if (idInput) idInput.value = studentId;
       // @ts-ignore
       worksheetHTMLs = [];
       // @ts-ignore
@@ -166,7 +171,7 @@ export async function generateLevelWorksheet({
         // @ts-ignore
         meta: meta[iterations - 1]
       };
-    }, { levelId, subIdx });
+    }, { levelId, subIdx, studentId, studentName });
 
     await page.close();
 
@@ -295,6 +300,7 @@ export async function renderWorksheetPdf({
   section: string;
   cycle: string;
   studentsWithQuestions: Array<{
+    studentId: string;
     name: string;
     currentLevel: number;
     currentSubLevel: number;
@@ -368,6 +374,16 @@ export async function renderWorksheetPdf({
       font: font,
       color: rgb(0.4, 0.45, 0.5),
     });
+
+    drawQrCode(page, {
+      studentName: swq.name,
+      studentId: swq.studentId,
+      className,
+      section,
+      currentLevel: swq.currentLevel,
+      currentSubLevel: swq.currentSubLevel,
+      worksheetId,
+    }, width - 105, height - 150, 45);
 
     // Draw student-specific personalized questions
     let currentY = height - 220;

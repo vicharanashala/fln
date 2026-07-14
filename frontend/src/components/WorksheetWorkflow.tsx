@@ -182,7 +182,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
             Choose an assessment cycle to generate distinct, AI-personalized papers for each child based on their current FLN mathematical level milestones.
           </p>
 
-            <div className="flex flex-col items-center gap-3 pt-4">
+          <div className="flex flex-col items-center gap-3 pt-4">
             <div className="flex justify-center gap-3">
               <button
                 onClick={() => generateWorksheets('Baseline')}
@@ -199,7 +199,12 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                 Generate Mid-Year Worksheets
               </button>
             </div>
-            {/* Interactive generator button removed */}
+            <button
+              onClick={() => setIsIframeModalOpen(true)}
+              className="w-fit bg-white hover:bg-zinc-50 text-zinc-900 border border-zinc-200 font-medium text-sm py-2.5 px-5 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              🌐 Open In-Browser Interactive Generator
+            </button>
           </div>
 
           <div className="text-left text-xs bg-zinc-50 p-4 border border-zinc-200 rounded-xl space-y-2 max-w-md mx-auto mt-4 font-mono">
@@ -243,7 +248,12 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
               <div className="flex justify-between items-center border-b border-zinc-100 pb-3">
                 <h4 className="font-display font-medium text-zinc-900">Printable Student Math Worksheets</h4>
                 <div className="flex gap-2">
-                  {/* Interactive generator button removed */}
+                  <button
+                    onClick={() => setIsIframeModalOpen(true)}
+                    className="bg-zinc-900 hover:bg-zinc-800 text-white font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-900 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    🌐 Interactive Generator
+                  </button>
                   {pdfUrl && (
                     <a
                       href={pdfUrl}
@@ -278,16 +288,16 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                   return (
                     <div key={student.id} className="border border-zinc-300 rounded-xl p-6 bg-white space-y-6 print:border-none print:shadow-none" id={`worksheet-print-${student.id}`}>
                       <div className="flex justify-between items-center border-b border-zinc-200 pb-3">
-                              <div>
-                                <h5 className="font-display font-bold text-zinc-900 uppercase text-sm tracking-tight">{student.name}</h5>
-                                <p className="text-[10px] font-mono text-zinc-400">Student ID: {student.id} · Target Level: Level {student.targetLevel}</p>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-xs font-mono font-bold uppercase bg-zinc-100 px-2.5 py-1 rounded border border-zinc-200 text-zinc-600">
-                                  Current Level {student.currentLevel}
-                                </span>
-                              </div>
-                            </div>
+                        <div>
+                          <h5 className="font-display font-bold text-zinc-900 uppercase text-sm tracking-tight">{student.name}</h5>
+                          <p className="text-[10px] font-mono text-zinc-400">Student ID: {student.id} · Target Level: Level {student.targetLevel}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-mono font-bold uppercase bg-zinc-100 px-2.5 py-1 rounded border border-zinc-200 text-zinc-600">
+                            Current Level {student.currentLevel}
+                          </span>
+                        </div>
+                      </div>
 
                       <div className="space-y-6 divide-y divide-zinc-200">
                         {studentQuestions.map((q, qidx) => (

@@ -721,7 +721,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <MetricCard title="Total Schools Tracked" value={schools.length} subtext="● 100% Active" icon={SchoolIcon} />
               <MetricCard title="National Roster Count" value={students.length} subtext="Primary FLN candidates" icon={Users} />
-              <MetricCard title="National FLN Score" value={''} subtext="Will be populated soon" icon={BarChart3} />
+              <MetricCard title="National FLN Score" value="82.4" subtext="Average assessment grade" icon={BarChart3} />
               <MetricCard title="FLN Certification Rate" value={`${certifiedPercent}%`} subtext={`${certifiedCount} students verified competent`} icon={Award} />
             </div>
 
@@ -1079,7 +1079,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     panelSub = `District Officer ${stateCode}-${districtCode} · Scoped Administrative Node`;
   } else if (user.role === UserRole.BLOCK_ADMIN) {
     panelTitle = `Block Administrative Console: ${blockCode}`;
-    panelSub = `Block Supervisor ${stateCode}-${districtCode}-${blockCode} · Localized Facility Activity Roster`;
+    panelSub = `Block Supervisor ${stateCode}-${districtCode}-${blockCode} · Localized Facility Audit Roster`;
   }
 
   // Filter schools based on user's regional scope
@@ -1560,6 +1560,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [levelBulkProgress, setLevelBulkProgress] = useState<{ total: number; completed: number; errors: string[] } | null>(null);
   const [levelBulkLoading, setLevelBulkLoading] = useState(false);
 
+  // Level-Wise Paper Generator — batch pipeline (Levels_backend integration)
+  const [levelBatchId, setLevelBatchId] = useState<string | null>(null);
+  const [levelBatchResults, setLevelBatchResults] = useState<Array<{ studentId: string; studentName: string; sublevelId: string; setNum: number; pdfUrl: string }>>([]);
+  const [levelBatchSkipped, setLevelBatchSkipped] = useState<Array<{ studentId: string; reason: string }>>([]);
+  const [levelBatchError, setLevelBatchError] = useState('');
+  const [levelBatchDownloading, setLevelBatchDownloading] = useState(false);
+
   // New Student state
   const [showAddForm, setShowAddForm] = useState(false);
   const [name, setName] = useState('');
@@ -1595,6 +1602,72 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       setLevelPdfError('Network error generating level worksheet.');
     } finally {
       setLevelPdfLoading(false);
+    }
+  };
+
+  // "Generate Batch" — sends every placed student's {studentName, rollNumber,
+  // levelId, sublevelId, setsPerSub} to the backend in one call, which
+  // forwards it to the Levels_backend service as its roster JSON.
+  const handleGenerateLevelBatch = async () => {
+    const placed = classStudents.filter(s => s.levelHistory.length > 0);
+    if (placed.length === 0) {
+      alert('No placed students in this class to generate level-wise papers for.');
+      return;
+    }
+    setLevelBulkLoading(true);
+    setLevelBatchError('');
+    setLevelBatchResults([]);
+    setLevelBatchSkipped([]);
+    setLevelBatchId(null);
+    try {
+      const res = await fetch('/api/worksheets/generate-level-batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ studentIds: placed.map(s => s.id) })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLevelBatchId(data.batchId);
+        setLevelBatchResults(data.results || []);
+        setLevelBatchSkipped(data.skipped || []);
+      } else {
+        setLevelBatchError(data.error || 'Batch generation failed.');
+      }
+    } catch {
+      setLevelBatchError('Network error generating the batch.');
+    } finally {
+      setLevelBulkLoading(false);
+    }
+  };
+
+  // "Download Batch ZIP" — streams the batch ZIP (every student's
+  // worksheet.pdf + answer_key.json + coords.json) from Levels_backend via
+  // our own backend, once a batch has finished generating.
+  const handleDownloadLevelBatch = async () => {
+    if (!levelBatchId) return;
+    setLevelBatchDownloading(true);
+    try {
+      const res = await fetch(`/api/worksheets/download-batch/${levelBatchId}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Download failed.');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `batch_${levelBatchId}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setLevelBatchError(err.message || 'Failed to download batch ZIP.');
+    } finally {
+      setLevelBatchDownloading(false);
     }
   };
 
@@ -2045,27 +2118,74 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             )}
           </div>
 
-          {/* 📄 Level-Wise Paper Generator - Disabled (Coming Soon) */}
-          <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4 opacity-60">
+          {/* 📄 Level-Wise Paper Generator — Levels_backend batch pipeline */}
+          <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h3 className="font-display font-semibold text-zinc-900 text-sm">📄 Level-Wise Paper Generator</h3>
-                <p className="text-xs text-zinc-500 mt-0.5">Generate personalized level-wise question PDFs for placed students.</p>
+                <p className="text-xs text-zinc-500 mt-0.5">Generate personalized level-wise question PDFs for placed students via the Levels_backend batch pipeline.</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-zinc-200 text-zinc-500 border border-zinc-300">
+                <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-green-50 text-green-700 border border-green-200">
                   {classStudents.filter(s => s.levelHistory.length > 0).length} Placed
                 </span>
                 <button
                   type="button"
-                  disabled
-                  className="bg-zinc-400 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg cursor-not-allowed flex items-center gap-1.5"
-                  title="Coming Soon"
+                  onClick={handleGenerateLevelBatch}
+                  disabled={levelBulkLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  🚧 Coming Soon
+                  {levelBulkLoading ? (
+                    <><span className="animate-spin text-sm">⏳</span> Generating...</>
+                  ) : (
+                    <>Generate Batch</>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadLevelBatch}
+                  disabled={!levelBatchId || levelBatchDownloading}
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={levelBatchId ? 'Download the whole batch as a ZIP (worksheet.pdf + answer_key.json + coords.json per student)' : 'Generate a batch first'}
+                >
+                  {levelBatchDownloading ? (
+                    <><span className="animate-spin text-sm">⏳</span> Downloading...</>
+                  ) : (
+                    <>⬇️ Download Batch ZIP</>
+                  )}
                 </button>
               </div>
             </div>
+
+            {levelBatchError && (
+              <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">⚠️ {levelBatchError}</div>
+            )}
+
+            {levelBatchId && (
+              <div className="pt-2 border-t border-zinc-100 space-y-2">
+                <div className="flex justify-between text-xs font-mono text-zinc-500">
+                  <span>Batch <span className="text-zinc-800 font-semibold">{levelBatchId}</span> — {levelBatchResults.length} file(s) generated</span>
+                  {levelBatchSkipped.length > 0 && (
+                    <span className="text-amber-600 font-semibold">{levelBatchSkipped.length} skipped</span>
+                  )}
+                </div>
+                {levelBatchResults.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto space-y-1">
+                    {levelBatchResults.map((r, i) => (
+                      <div key={`${r.studentId}-${r.sublevelId}-${r.setNum}-${i}`} className="flex items-center justify-between text-xs bg-zinc-50 border border-zinc-100 rounded px-2 py-1">
+                        <span className="text-zinc-700 font-medium">{r.studentName} <span className="text-zinc-400 font-mono">L{r.sublevelId} set{r.setNum}</span></span>
+                        <a href={r.pdfUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 font-mono font-bold">View PDF</a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {levelBatchSkipped.length > 0 && (
+                  <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+                    Skipped: {levelBatchSkipped.map(s => s.reason).join('; ')}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -2131,7 +2251,15 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                         >
                           Print L{s.currentLevel}.{s.currentSubLevel || 0}
                         </button>
-                        {/* Interactive generator link removed */}
+                        <a
+                          href={`/worksheets/levels_main.html?level=${s.currentLevel}&sub=${s.currentSubLevel || 0}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1"
+                          title="Open in-browser interactive generator for this specific level"
+                        >
+                          🌐 Interactive
+                        </a>
                       </div>
                     )
                   }
@@ -2664,30 +2792,31 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                       alert('No placed students in this class to generate level-wise papers for.');
                       return;
                     }
+
                     setLevelBulkLoading(true);
                     setLevelBulkProgress({ total: placed.length, completed: 0, errors: [] });
-                    for (const s of placed) {
-                      try {
-                        const res = await fetch('/api/worksheets/generate-level-pdf', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({ studentId: s.id })
-                        });
-                        const data = await res.json();
-                        if (res.ok && data.pdfUrl) {
-                          window.open(data.pdfUrl, '_blank');
-                        } else {
-                          setLevelBulkProgress(prev => prev ? { ...prev, errors: [...prev.errors, `${s.name}: ${data.error || 'Failed'}`] } : prev);
-                        }
-                      } catch {
-                        setLevelBulkProgress(prev => prev ? { ...prev, errors: [...prev.errors, `${s.name}: Network error`] } : prev);
+                    try {
+                      const res = await fetch('/api/worksheets/generate-level-batch', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ studentIds: placed.map(s => s.id) })
+                      });
+                      const data = await res.json();
+                      if (!res.ok || !data.success) {
+                        throw new Error(data.error || 'Batch generation failed.');
                       }
-                      setLevelBulkProgress(prev => prev ? { ...prev, completed: (prev.completed + 1) } : prev);
+                      for (const result of data.results || []) {
+                        window.open(result.pdfUrl, '_blank');
+                      }
+                      setLevelBulkProgress({ total: placed.length, completed: placed.length, errors: [] });
+                    } catch (err: any) {
+                      setLevelBulkProgress({ total: placed.length, completed: 0, errors: [err.message || 'Network error'] });
+                    } finally {
+                      setLevelBulkLoading(false);
                     }
-                    setLevelBulkLoading(false);
                   }}
                   disabled={levelBulkLoading}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2785,7 +2914,15 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                         >
                           Print L{s.currentLevel}.{s.currentSubLevel || 0}
                         </button>
-                        {/* Interactive generator link removed */}
+                        <a
+                          href={`/worksheets/levels_main.html?level=${s.currentLevel}&sub=${s.currentSubLevel || 0}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1"
+                          title="Open in-browser interactive generator for this specific level"
+                        >
+                          🌐 Interactive
+                        </a>
                       </div>
                     )
                   }

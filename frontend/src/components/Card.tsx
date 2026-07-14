@@ -35,7 +35,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition duration-200 flex justify-between items-start group">
       <div className="space-y-1">
         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">{title}</span>
-        <span className="num-lg font-sans tracking-tight text-slate-900 block group-hover:text-indigo-650 transition duration-150">{value}</span>
+        <span className="text-2xl font-bold font-sans tracking-tight text-slate-900 block group-hover:text-indigo-650 transition duration-150">{value}</span>
         {trend && (
           <span className={`text-[10px] font-mono font-bold uppercase tracking-wide inline-flex items-center gap-1 mt-1 ${
             trend.type === 'positive'
