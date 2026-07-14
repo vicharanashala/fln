@@ -3053,6 +3053,18 @@
   ],
   "logbook": [
     {
+      "id": "log_1784038182577",
+      "timestamp": "2026-07-14T14:09:42.577Z",
+      "schoolId": "",
+      "schoolName": "GPS",
+      "userId": "u7_vipin",
+      "userEmail": "vol.hr_vipin@fln.org",
+      "userRole": "volunteer",
+      "activityType": "download",
+      "status": "Success",
+      "details": "Bulk diagnostic generated: Class 3, 2 papers"
+    },
+    {
       "id": "log_1783576498381",
       "timestamp": "2026-07-09T05:54:58.381Z",
       "schoolId": "gps-amb-003",

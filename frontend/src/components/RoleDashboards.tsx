@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { User, UserRole, Student, ClassGroup, School, LogEntry, Ticket } from '../types';
 import { DiagnosticWorkflow } from './DiagnosticWorkflow';
 import { BulkDiagnosticWorkflow } from './BulkDiagnosticWorkflow';
@@ -785,10 +786,18 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Admin registration form */}
           <div className="lg:col-span-1 bg-white border border-zinc-200 rounded-xl p-5 shadow-sm h-fit space-y-4">
-            <h3 className="text-lg font-display font-medium text-zinc-900 flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-zinc-500" />
-              <span>Register New Coordinator</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-display font-medium text-zinc-900 flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-zinc-500" />
+                <span>Register New Coordinator</span>
+              </h3>
+              <Link
+                to="/register-coordinator"
+                className="text-[10px] font-mono font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider whitespace-nowrap"
+              >
+                Full Form →
+              </Link>
+            </div>
 
             {coordSuccess && <div className="p-3 text-xs bg-green-50 text-green-800 rounded border border-green-200">{coordSuccess}</div>}
             {coordError && <div className="p-3 text-xs bg-red-50 text-red-850 rounded border border-red-200">{coordError}</div>}
