@@ -10,6 +10,10 @@ import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import {
+  analyzeStudentForWorksheet,
+  generateAdaptiveWorksheet
+} from './modules/adaptive-engine';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1607,6 +1611,114 @@ async function startServer() {
     });
 
     res.json({ success: true, message: 'School access manually restored.' });
+  });
+
+  // ══════════════════════════════════════════
+  // ADAPTIVE AI WORKSHEET GENERATION
+  //   - Analyse a student's existing profile + evaluation history to
+  //     identify weak / strong competencies.
+  //   - Compose an adaptive worksheet weighted 60% remediation of weak
+  //     competencies, 20% reinforcement at current level, 20% challenge
+  //     above current level.
+  //   - Falls back to a grade-aligned default worksheet when no
+  //     evaluation history exists.
+  //   - Engine selection is centralised in
+  //     modules/adaptive-engine/engine.ts so an LLM-backed engine can
+  //     be swapped in later without changing this route.
+  // ══════════════════════════════════════════
+
+  app.post('/api/adaptive/analyze/:studentId', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const studentId = req.params.studentId;
+    if (!studentId) return res.status(400).json({ error: 'studentId is required.' });
+
+    try {
+      const students = await dbStore.getStudents();
+      const student = students.find(s => s.id === studentId);
+      if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+      // Role-based scoping: teachers / schools see their own roster only.
+      if (user.role === UserRole.TEACHER && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.SCHOOL && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.VOLUNTEER && !user.assignedSchools?.includes(student.schoolId)) {
+        return res.status(403).json({ error: 'Forbidden: student outside your assigned schools.' });
+      }
+
+      const { profile, context } = await analyzeStudentForWorksheet(studentId, {
+        classNumber: req.body?.classNumber
+      });
+
+      res.json({
+        studentId,
+        hasHistory: context.hasHistory,
+        evaluationCount: context.evaluationReports.length,
+        profile
+      });
+    } catch (err: any) {
+      console.error('Adaptive analyze failed:', err);
+      res.status(500).json({ error: err?.message || 'Adaptive analysis failed.' });
+    }
+  });
+
+  app.post('/api/adaptive/worksheet/generate', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { studentId, totalQuestions, classNumber } = req.body || {};
+    if (!studentId) {
+      return res.status(400).json({ error: 'studentId is required.' });
+    }
+
+    try {
+      const students = await dbStore.getStudents();
+      const student = students.find(s => s.id === studentId);
+      if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+      if (user.role === UserRole.TEACHER && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.SCHOOL && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.VOLUNTEER && !user.assignedSchools?.includes(student.schoolId)) {
+        return res.status(403).json({ error: 'Forbidden: student outside your assigned schools.' });
+      }
+
+      const { worksheet, profile, context } = await generateAdaptiveWorksheet(studentId, {
+        totalQuestions,
+        classNumber
+      });
+
+      await dbStore.addLog({
+        id: 'log_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        schoolId: student.schoolId,
+        schoolName: 'GPS',
+        userId: user.id,
+        userEmail: user.email,
+        userRole: user.role,
+        activityType: 'download',
+        status: 'Success',
+        details: `Generated adaptive worksheet for ${student.name} (Level ${worksheet.baseLevel}, ${worksheet.totalQuestions} questions, fallback=${worksheet.fallbackUsed})`
+      });
+
+      res.json({
+        success: true,
+        studentId,
+        hasHistory: context.hasHistory,
+        evaluationCount: context.evaluationReports.length,
+        worksheet
+      });
+    } catch (err: any) {
+      console.error('Adaptive worksheet generation failed:', err);
+      res.status(500).json({ error: err?.message || 'Adaptive worksheet generation failed.' });
+    }
   });
 
   // ══════════════════════════════════════════

@@ -2339,6 +2339,12 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             )}
           </div>
 
+          {/* 🧠 Adaptive AI-Personalised Worksheet Generator */}
+          <AdaptiveWorksheetCard
+            classStudents={classStudents}
+            token={token}
+          />
+
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Class roster table */}
           <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
@@ -3116,6 +3122,301 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
       </div>
       )}
       <FLNLevelReferenceModal isOpen={showLevelRef} onClose={() => setShowLevelRef(false)} />
+    </div>
+  );
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+// Adaptive AI-Personalised Worksheet Generator card
+//
+// Sits next to the Level-Wise Paper Generator card on the Teacher dashboard.
+// Calls the real backend at /api/adaptive/* (the mock fetch interceptor passes
+// those routes through to the Vite proxy -> backend on :3000). Keeps the
+// design extensible: when an LLM engine is plugged into the backend, this
+// card will pick it up without changes here.
+// ────────────────────────────────────────────────────────────────────────────
+
+interface AdaptiveProfile {
+  studentId: string;
+  studentName: string;
+  hasHistory: boolean;
+  currentLevel: number;
+  currentSubLevel: number;
+  weakCompetencies: string[];
+  strongCompetencies: string[];
+  competencies: { topic: string; status: string; accuracy: number; attempts: number }[];
+  rationale: string;
+  generatedBy: string;
+  focusDistribution: { weak: number; reinforcement: number; challenge: number };
+}
+
+interface AdaptiveWorksheet {
+  id: string;
+  studentId: string;
+  studentName: string;
+  baseLevel: number;
+  totalQuestions: number;
+  distribution: { remediation: number; reinforcement: number; challenge: number };
+  weakCompetencies: string[];
+  strongCompetencies: string[];
+  narrative: string;
+  fallbackUsed: boolean;
+  generatedBy: string;
+  generatedAt: string;
+  questions: any[];
+  profile: AdaptiveProfile;
+}
+
+interface AdaptiveWorksheetCardProps {
+  classStudents: Student[];
+  token: string;
+}
+
+const AdaptiveWorksheetCard: React.FC<AdaptiveWorksheetCardProps> = ({ classStudents, token }) => {
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [totalQuestions, setTotalQuestions] = useState<number>(12);
+  const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<AdaptiveProfile | null>(null);
+  const [worksheet, setWorksheet] = useState<AdaptiveWorksheet | null>(null);
+
+  const eligible = classStudents;
+
+  const handleAnalyze = async () => {
+    if (!selectedStudentId) {
+      setError('Select a student first.');
+      return;
+    }
+    setError(null);
+    setAnalyzing(true);
+    setWorksheet(null);
+    try {
+      const res = await fetch(`/api/adaptive/analyze/${encodeURIComponent(selectedStudentId)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Analysis failed.');
+        setProfile(null);
+      } else {
+        setProfile(data.profile);
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Network error during analysis.');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedStudentId) {
+      setError('Select a student first.');
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    setWorksheet(null);
+    try {
+      const res = await fetch('/api/adaptive/worksheet/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          totalQuestions
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Generation failed.');
+      } else {
+        setWorksheet(data.worksheet);
+        setProfile(data.worksheet?.profile || null);
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Network error during generation.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const competencyBadge = (status: string) => {
+    const cls =
+      status === 'Strong'
+        ? 'bg-green-50 text-green-700 border-green-200'
+        : status === 'Needs Practice'
+        ? 'bg-red-50 text-red-700 border-red-200'
+        : 'bg-amber-50 text-amber-700 border-amber-200';
+    return `inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${cls}`;
+  };
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h3 className="font-display font-semibold text-zinc-900 text-sm flex items-center gap-2">
+            <span>🧠</span>
+            <span>Adaptive AI Worksheet Generator</span>
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded">
+              New
+            </span>
+          </h3>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Reads the student's evaluation history, identifies weak and strong competencies, and composes a 60/20/20 worksheet (remediation / reinforcement / challenge).
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200">
+            {eligible.length} Eligible
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3 items-end">
+        <div>
+          <label className="block text-[10px] font-mono font-semibold text-zinc-500 uppercase mb-1">Student</label>
+          <select
+            value={selectedStudentId}
+            onChange={(e) => { setSelectedStudentId(e.target.value); setWorksheet(null); setProfile(null); setError(null); }}
+            className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-white focus:border-purple-400 outline-none"
+          >
+            <option value="">Select a student…</option>
+            {eligible.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.name} · L{s.currentLevel}.{s.currentSubLevel ?? 0}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[10px] font-mono font-semibold text-zinc-500 uppercase mb-1"># Questions</label>
+          <input
+            type="number"
+            min={4}
+            max={40}
+            value={totalQuestions}
+            onChange={(e) => setTotalQuestions(Math.max(4, Math.min(40, Number(e.target.value) || 12)))}
+            className="w-24 text-sm border border-zinc-200 rounded-lg p-2.5 bg-white focus:border-purple-400 outline-none"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleAnalyze}
+          disabled={analyzing || !selectedStudentId}
+          className="bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-200 font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {analyzing ? 'Analysing…' : 'Analyse Profile'}
+        </button>
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={loading || !selectedStudentId}
+          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+        >
+          {loading ? (
+            <><span className="animate-spin text-sm">⏳</span> Generating…</>
+          ) : (
+            <>Generate Adaptive Worksheet</>
+          )}
+        </button>
+      </div>
+
+      {error && (
+        <div className="p-3 text-xs bg-red-50 text-red-700 border border-red-100 rounded-lg">{error}</div>
+      )}
+
+      {profile && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-zinc-100">
+          <div className="space-y-2">
+            <div className="text-[10px] font-mono font-bold uppercase text-zinc-500">Weak Competencies</div>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.weakCompetencies.length === 0 && (
+                <span className="text-xs text-zinc-400 italic">None detected</span>
+              )}
+              {profile.weakCompetencies.map(t => (
+                <span key={t} className={competencyBadge('Needs Practice')}>{t}</span>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] font-mono font-bold uppercase text-zinc-500">Strong Competencies</div>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.strongCompetencies.length === 0 && (
+                <span className="text-xs text-zinc-400 italic">None yet</span>
+              )}
+              {profile.strongCompetencies.map(t => (
+                <span key={t} className={competencyBadge('Strong')}>{t}</span>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] font-mono font-bold uppercase text-zinc-500">Focus Distribution</div>
+            <div className="text-xs font-mono text-zinc-700">
+              {Math.round(profile.focusDistribution.weak * 100)}% remediation · {Math.round(profile.focusDistribution.reinforcement * 100)}% reinforcement · {Math.round(profile.focusDistribution.challenge * 100)}% challenge
+            </div>
+            <div className="text-[10px] font-mono text-zinc-400">Engine: {profile.generatedBy}</div>
+          </div>
+          <div className="md:col-span-3 text-xs text-zinc-600 bg-zinc-50 border border-zinc-200 rounded p-3 font-mono leading-relaxed">
+            {profile.rationale}
+          </div>
+        </div>
+      )}
+
+      {worksheet && (
+        <div className="space-y-3 pt-3 border-t border-zinc-100">
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <span className="font-mono font-bold text-zinc-700">
+              {worksheet.totalQuestions} question(s)
+            </span>
+            <span className="font-mono text-zinc-500">·</span>
+            <span className="font-mono text-zinc-600">
+              {worksheet.distribution.remediation} remediation / {worksheet.distribution.reinforcement} reinforcement / {worksheet.distribution.challenge} challenge
+            </span>
+            {worksheet.fallbackUsed && (
+              <span className="ml-auto text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">
+                Grade-Aligned Fallback
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-zinc-600 bg-zinc-50 border border-zinc-200 rounded p-3 font-mono leading-relaxed">
+            {worksheet.narrative}
+          </div>
+          <div className="max-h-72 overflow-y-auto divide-y divide-zinc-100 border border-zinc-200 rounded-lg bg-white">
+            {worksheet.questions.map((q: any, idx: number) => {
+              const meta = q.adaptive || {};
+              const purposeCls =
+                meta.purpose === 'remediation'
+                  ? 'bg-red-50 text-red-700 border-red-200'
+                  : meta.purpose === 'reinforcement'
+                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+              return (
+                <div key={q.question_id || idx} className="p-3 text-xs space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${purposeCls}`}>
+                      {meta.purpose || 'q'}
+                    </span>
+                    <span className="font-mono text-zinc-500">L{meta.targetLevel}.{meta.targetSubLevel}</span>
+                    <span className="font-mono text-zinc-500">·</span>
+                    <span className="font-mono text-zinc-700">{meta.competency}</span>
+                    <span className="font-mono text-zinc-500">·</span>
+                    <span className="font-mono text-zinc-400 uppercase">{q.difficulty}</span>
+                  </div>
+                  <p className="text-zinc-800 leading-relaxed">{q.question}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
