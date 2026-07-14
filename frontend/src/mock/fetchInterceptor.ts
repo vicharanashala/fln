@@ -168,7 +168,7 @@ function getAuthUser(headers: HeadersInit | undefined, db: MockDatabaseSchema) {
 export function setupFetchInterceptor() {
   const originalFetch = window.fetch;
 
-  window.fetch = async function (
+  const mockFetch = async function (
     input: RequestInfo | URL,
     init?: RequestInit
   ): Promise<Response> {
@@ -301,6 +301,31 @@ export function setupFetchInterceptor() {
       // 9. GET /api/schools
       if (path === '/api/schools' && method === 'GET') {
         return jsonResponse(db.schools);
+      }
+
+      // 9b. POST /api/schools
+      if (path === '/api/schools' && method === 'POST') {
+        if (!currentUser) return errorResponse('Unauthorized', 401);
+        const { id, name, stateCode, districtCode, blockCode, strength } = bodyData;
+        if (!id || !name || !stateCode || !districtCode || !blockCode) {
+          return errorResponse('Missing required school fields.');
+        }
+        if (db.schools.some(s => s.id.toLowerCase() === id.toLowerCase())) {
+          return errorResponse('School ID already exists.');
+        }
+        const newSch = {
+          id: id.toLowerCase(),
+          name,
+          stateCode: stateCode.toUpperCase(),
+          districtCode: districtCode.toUpperCase(),
+          blockCode: blockCode.toUpperCase(),
+          strength: strength || 'low',
+          teachersCount: 0,
+          isAccessLocked: false
+        };
+        db.schools.push(newSch);
+        saveMockDB(db);
+        return jsonResponse(newSch);
       }
 
       // 10. GET /api/classes
@@ -772,7 +797,7 @@ export function setupFetchInterceptor() {
       // 21. POST /api/admin/create
       if (path === '/api/admin/create' && method === 'POST') {
         if (!currentUser) return errorResponse('Unauthorized', 401);
-        const { email, name, role, stateCode, districtCode, blockCode } = bodyData;
+        const { email, name, role, stateCode, districtCode, blockCode, schoolId, assignedSchools } = bodyData;
         
         const newU = {
           id: 'u_' + Math.random().toString(36).substr(2, 9),
@@ -781,7 +806,9 @@ export function setupFetchInterceptor() {
           role,
           stateCode,
           districtCode,
-          blockCode
+          blockCode,
+          schoolId,
+          assignedSchools
         };
         db.users.push(newU);
         saveMockDB(db);
@@ -826,4 +853,19 @@ export function setupFetchInterceptor() {
       return errorResponse(e.message || 'Internal Server Mock Error');
     }
   };
+
+  try {
+    Object.defineProperty(window, 'fetch', {
+      value: mockFetch,
+      writable: true,
+      configurable: true
+    });
+  } catch (err) {
+    console.warn('[Mock Fetch Interceptor] Failed to redefine window.fetch with Object.defineProperty, trying direct assignment:', err);
+    try {
+      (window as any).fetch = mockFetch;
+    } catch (err2) {
+      console.error('[Mock Fetch Interceptor] Completely blocked from intercepting window.fetch:', err2);
+    }
+  }
 }

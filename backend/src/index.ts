@@ -1,14 +1,18 @@
-import express from 'express';
+import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+import express from 'express';
 import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
-import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
@@ -37,8 +41,7 @@ async function startServer() {
     const email = authHeader.replace('Bearer ', '').trim();
     
     // Find preseeded user in database
-    const users = (dbStore as any).data?.users || [];
-    const found = users.find((u: User) => u.email.toLowerCase() === email.toLowerCase());
+    const found = dbStore.getUserSync(email);
     if (found) return found;
 
     // Direct fallback mapping if not pre-seeded but conforms to email format
@@ -236,7 +239,6 @@ async function startServer() {
     const logs = await dbStore.getLogbook();
     res.json(logs);
   });
-
   // Admin Creation (by Superadmin)
   app.post('/api/admin/create', async (req, res) => {
     const user = getAuthUser(req);
@@ -244,7 +246,7 @@ async function startServer() {
       return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
     }
 
-    const { name, email, password, role, stateCode, districtCode, blockCode } = req.body;
+    const { name, email, password, role, stateCode, districtCode, blockCode, schoolId, assignedSchools } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
@@ -269,7 +271,9 @@ async function startServer() {
       role: role as UserRole,
       stateCode: stateCode ? stateCode.toUpperCase() : undefined,
       districtCode: districtCode ? districtCode.toUpperCase() : undefined,
-      blockCode: blockCode ? blockCode.toUpperCase() : undefined
+      blockCode: blockCode ? blockCode.toUpperCase() : undefined,
+      schoolId: schoolId || undefined,
+      assignedSchools: assignedSchools || undefined
     };
 
     await dbStore.addUser(newUser);
@@ -285,7 +289,7 @@ async function startServer() {
       userRole: user.role,
       activityType: 'verify',
       status: 'Success',
-      details: `Superadmin created dynamic coordinator: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
+      details: `Superadmin created account: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
     });
 
     res.json(newUser);
@@ -295,6 +299,52 @@ async function startServer() {
   app.get('/api/schools', async (req, res) => {
     const schools = await dbStore.getSchools();
     res.json(schools);
+  });
+
+  app.post('/api/schools', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.SUPERADMIN) {
+      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
+    }
+
+    const { id, name, stateCode, districtCode, blockCode, strength } = req.body;
+    if (!id || !name || !stateCode || !districtCode || !blockCode) {
+      return res.status(400).json({ error: 'Missing required school fields.' });
+    }
+
+    const schools = await dbStore.getSchools();
+    if (schools.some(s => s.id.toLowerCase() === id.toLowerCase())) {
+      return res.status(400).json({ error: 'School ID already exists.' });
+    }
+
+    const newSch: School = {
+      id: id.toLowerCase(),
+      name,
+      stateCode: stateCode.toUpperCase(),
+      districtCode: districtCode.toUpperCase(),
+      blockCode: blockCode.toUpperCase(),
+      strength: strength || 'low',
+      teachersCount: 0,
+      isAccessLocked: false
+    };
+
+    await dbStore.addSchool(newSch);
+
+    // Add Log entry
+    await dbStore.addLog({
+      id: 'log_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      schoolId: newSch.id,
+      schoolName: newSch.name,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'verify',
+      status: 'Success',
+      details: `Superadmin onboarded a new school: ${newSch.name} (ID: ${newSch.id})`
+    });
+
+    res.json(newSch);
   });
 
   // Classes
@@ -643,7 +693,7 @@ async function startServer() {
     });
 
     // Create a special Evaluation Report with dynamic mock concept mastery
-    const conceptMastery: { [key: string]: string } = {
+    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {
       'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
       'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
       'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
@@ -1691,10 +1741,22 @@ async function startServer() {
     }
   });
 
-  // The backend serves the API only. In development the frontend runs on its
-  // own Vite dev server (see frontend/) and proxies /api to this backend.
+  // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        root: path.resolve(ROOT_DIR, '..', 'frontend'),
+        server: { middlewareMode: true, hmr: false },
+        appType: "spa"
+      });
+      app.use(vite.middlewares);
+      console.log("[AI Studio] Vite development middleware mounted successfully");
+    } catch (err) {
+      console.warn("[AI Studio] Failed to load Vite dev middleware, falling back to static:", err);
+    }
+  } else {
     const distPath =
       process.env.FRONTEND_DIST_DIR ||
       path.resolve(ROOT_DIR, '..', 'frontend', 'dist');

@@ -250,6 +250,12 @@ export const Layout: React.FC<LayoutProps> = ({
 
         {/* Topbar Right Section */}
         <div className="flex items-center gap-4">
+          {/* Database Storage Status (MongoDB Only) */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-xs font-mono font-bold shrink-0">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span className="text-emerald-700 text-[10px] uppercase tracking-wider">MongoDB Connected</span>
+          </div>
+
           {/* Theme Toggle Button */}
           <button
             onClick={() => setDarkMode(!darkMode)}

@@ -491,10 +491,22 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [coordState, setCoordState] = useState('PB');
   const [coordDistrict, setCoordDistrict] = useState('');
   const [coordBlock, setCoordBlock] = useState('');
+  const [coordSchoolId, setCoordSchoolId] = useState('');
+  const [coordAssignedSchoolsStr, setCoordAssignedSchoolsStr] = useState('');
   const [coordSuccess, setCoordSuccess] = useState('');
   const [coordError, setCoordError] = useState('');
   const [loading, setLoading] = useState(false);
   const [coordinatorsList, setCoordinatorsList] = useState<User[]>([]);
+
+  // School onboarding state
+  const [newSchoolId, setNewSchoolId] = useState('');
+  const [newSchoolName, setNewSchoolName] = useState('');
+  const [newSchoolState, setNewSchoolState] = useState('PB');
+  const [newSchoolDistrict, setNewSchoolDistrict] = useState('');
+  const [newSchoolBlock, setNewSchoolBlock] = useState('');
+  const [newSchoolStrength, setNewSchoolStrength] = useState<'high' | 'low'>('low');
+  const [schoolSuccess, setSchoolSuccess] = useState('');
+  const [schoolError, setSchoolError] = useState('');
 
   const [stateFilter, setStateFilter] = useState('');
   const [districtFilter, setDistrictFilter] = useState('');
@@ -602,6 +614,10 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
     setCoordSuccess('');
     setLoading(true);
 
+    const assignedSchools = coordAssignedSchoolsStr
+      ? coordAssignedSchoolsStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+      : undefined;
+
     try {
       const res = await fetch('/api/admin/create', {
         method: 'POST',
@@ -616,25 +632,80 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           role: coordRole,
           stateCode: coordState,
           districtCode: coordDistrict,
-          blockCode: coordBlock
+          blockCode: coordBlock,
+          schoolId: [UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) ? coordSchoolId : undefined,
+          assignedSchools: coordRole === UserRole.VOLUNTEER ? assignedSchools : undefined
         })
       });
 
       const data = await res.json();
       if (res.ok) {
-        setCoordSuccess(`Successfully created administrative coordinator: ${coordName} (${coordRole})`);
+        setCoordSuccess(`Successfully created account: ${coordName} (${coordRole})`);
         setCoordName('');
         setCoordEmail('');
         setCoordPass('');
         setCoordDistrict('');
         setCoordBlock('');
+        setCoordSchoolId('');
+        setCoordAssignedSchoolsStr('');
         fetchCoordinators();
+        
+        // Refresh school data
+        const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
+        const schData = await schRes.json();
+        if (Array.isArray(schData)) setSchools(schData);
+
         setTimeout(() => setCoordSuccess(''), 6000);
       } else {
-        setCoordError(data.error || 'Failed to register administrative account.');
+        setCoordError(data.error || 'Failed to register account.');
       }
     } catch (err) {
       setCoordError('Network error. Check connection settings.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOnboardSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSchoolError('');
+    setSchoolSuccess('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/schools', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          id: newSchoolId,
+          name: newSchoolName,
+          stateCode: newSchoolState,
+          districtCode: newSchoolDistrict,
+          blockCode: newSchoolBlock,
+          strength: newSchoolStrength
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSchoolSuccess(`Successfully onboarded school: ${newSchoolName} (${newSchoolId.toUpperCase()})`);
+        setNewSchoolId('');
+        setNewSchoolName('');
+        setNewSchoolDistrict('');
+        setNewSchoolBlock('');
+        // Refresh school list
+        const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
+        const schData = await schRes.json();
+        if (Array.isArray(schData)) setSchools(schData);
+        setTimeout(() => setSchoolSuccess(''), 6000);
+      } else {
+        setSchoolError(data.error || 'Failed to onboard school.');
+      }
+    } catch (err) {
+      setSchoolError('Network error. Check connection settings.');
     } finally {
       setLoading(false);
     }
@@ -854,15 +925,16 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Administrative Role Tier</label>
+                <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Account Role Tier</label>
                 <select
                   value={coordRole}
                   onChange={e => {
-                    setCoordRole(e.target.value as UserRole);
-                    if (e.target.value === UserRole.ADMIN) {
+                    const selectedRole = e.target.value as UserRole;
+                    setCoordRole(selectedRole);
+                    if (selectedRole === UserRole.ADMIN) {
                       setCoordDistrict('');
                       setCoordBlock('');
-                    } else if (e.target.value === UserRole.DISTRICT_ADMIN) {
+                    } else if (selectedRole === UserRole.DISTRICT_ADMIN) {
                       setCoordBlock('');
                     }
                   }}
@@ -871,51 +943,91 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   <option value={UserRole.ADMIN}>State Admin / Coordinator</option>
                   <option value={UserRole.DISTRICT_ADMIN}>District Admin / Officer</option>
                   <option value={UserRole.BLOCK_ADMIN}>Block Admin / Supervisor</option>
+                  <option value={UserRole.SCHOOL}>School Principal</option>
+                  <option value={UserRole.TEACHER}>Teacher</option>
+                  <option value={UserRole.VOLUNTEER}>Volunteer</option>
                 </select>
               </div>
 
               {/* Scope nodes triggers dynamically depending on role */}
-              <div className="grid grid-cols-3 gap-2">
+              {![UserRole.SCHOOL, UserRole.TEACHER, UserRole.VOLUNTEER].includes(coordRole) && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
+                    <input
+                       type="text"
+                       value={coordState}
+                       onChange={e => setCoordState(e.target.value.toUpperCase())}
+                       placeholder="e.g. PB"
+                       required
+                       className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
+                    />
+                  </div>
+                  
+                  {coordRole !== UserRole.ADMIN && (
+                    <div>
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
+                      <input
+                        type="text"
+                        value={coordDistrict}
+                        onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
+                        placeholder="e.g. LDH"
+                        required
+                        className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
+                      />
+                    </div>
+                  )}
+
+                  {coordRole === UserRole.BLOCK_ADMIN && (
+                    <div>
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
+                      <input
+                        type="text"
+                        value={coordBlock}
+                        onChange={e => setCoordBlock(e.target.value.toUpperCase())}
+                        placeholder="e.g. LDH-01"
+                        required
+                        className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* School scope dropdown for School and Teacher roles */}
+              {[UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) && (
                 <div>
-                  <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Assigned School</label>
+                  <select
+                    value={coordSchoolId}
+                    onChange={e => setCoordSchoolId(e.target.value)}
+                    required
+                    className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 outline-none focus:bg-white font-medium text-zinc-850"
+                  >
+                    <option value="">-- Choose a School Scope --</option>
+                    {schools.map(sch => (
+                      <option key={sch.id} value={sch.id}>
+                        {sch.name} ({sch.id.toUpperCase()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Comma-separated school IDs for Volunteers */}
+              {coordRole === UserRole.VOLUNTEER && (
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Assigned School IDs (Comma Separated)</label>
                   <input
-                     type="text"
-                     value={coordState}
-                     onChange={e => setCoordState(e.target.value.toUpperCase())}
-                     placeholder="e.g. PB"
-                     required
-                     className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
+                    type="text"
+                    value={coordAssignedSchoolsStr}
+                    onChange={e => setCoordAssignedSchoolsStr(e.target.value)}
+                    placeholder="e.g. gps-vl-002, gps-jai-004"
+                    required
+                    className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 outline-none focus:bg-white font-medium text-zinc-800"
                   />
                 </div>
-                
-                {coordRole !== UserRole.ADMIN && (
-                  <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
-                    <input
-                      type="text"
-                      value={coordDistrict}
-                      onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
-                      placeholder="e.g. LDH"
-                      required
-                      className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
-                    />
-                  </div>
-                )}
-
-                {coordRole === UserRole.BLOCK_ADMIN && (
-                  <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
-                    <input
-                      type="text"
-                      value={coordBlock}
-                      onChange={e => setCoordBlock(e.target.value.toUpperCase())}
-                      placeholder="e.g. LDH-01"
-                      required
-                      className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
-                    />
-                  </div>
-                )}
-              </div>
+              )}
 
               <button
                 type="submit"
@@ -1010,7 +1122,35 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 {
                   header: 'Assigned Scope Nodes',
                   accessor: (c) => {
-                    const nodeScope = c.role === UserRole.SUPERADMIN ? 'National (Global)' : c.role === UserRole.ADMIN ? `State: ${c.stateCode}` : c.role === UserRole.DISTRICT_ADMIN ? `State: ${c.stateCode} / District: ${c.districtCode}` : `State: ${c.stateCode} / Dist: ${c.districtCode} / Block: ${c.blockCode}`;
+                    let nodeScope = '';
+                    if (c.role === UserRole.SUPERADMIN) {
+                      nodeScope = 'National (Global)';
+                    } else if (c.role === UserRole.ADMIN) {
+                      nodeScope = `State: ${c.stateCode || 'N/A'}`;
+                    } else if (c.role === UserRole.DISTRICT_ADMIN) {
+                      nodeScope = `State: ${c.stateCode || 'N/A'} / District: ${c.districtCode || 'N/A'}`;
+                    } else if (c.role === UserRole.BLOCK_ADMIN) {
+                      nodeScope = `State: ${c.stateCode || 'N/A'} / Dist: ${c.districtCode || 'N/A'} / Block: ${c.blockCode || 'N/A'}`;
+                    } else if (c.role === UserRole.SCHOOL || c.role === UserRole.TEACHER) {
+                      const sch = schools.find(s => s.id === c.schoolId);
+                      if (sch) {
+                        nodeScope = `State: ${sch.stateCode} / Dist: ${sch.districtCode} / Block: ${sch.blockCode} (${sch.name})`;
+                      } else {
+                        nodeScope = `School ID: ${c.schoolId || 'N/A'}`;
+                      }
+                    } else if (c.role === UserRole.VOLUNTEER) {
+                      const firstSchId = c.assignedSchools?.[0];
+                      const sch = firstSchId ? schools.find(s => s.id === firstSchId) : undefined;
+                      if (sch) {
+                        nodeScope = `State: ${sch.stateCode} / Dist: ${sch.districtCode} / Block: ${sch.blockCode} (${sch.name})`;
+                      } else if (c.assignedSchools && c.assignedSchools.length > 0) {
+                        nodeScope = `Schools: ${c.assignedSchools.join(', ')}`;
+                      } else {
+                        nodeScope = 'No schools assigned';
+                      }
+                    } else {
+                      nodeScope = `State: ${c.stateCode || 'N/A'} / Dist: ${c.districtCode || 'N/A'} / Block: ${c.blockCode || 'N/A'}`;
+                    }
                     return <span className="font-medium text-slate-700">{nodeScope}</span>;
                   }
                 }
