@@ -721,7 +721,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <MetricCard title="Total Schools Tracked" value={schools.length} subtext="● 100% Active" icon={SchoolIcon} />
               <MetricCard title="National Roster Count" value={students.length} subtext="Primary FLN candidates" icon={Users} />
-              <MetricCard title="National FLN Score" value="82.4" subtext="Average assessment grade" icon={BarChart3} />
+              <MetricCard title="National FLN Score" value={''} subtext="Will be populated soon" icon={BarChart3} />
               <MetricCard title="FLN Certification Rate" value={`${certifiedPercent}%`} subtext={`${certifiedCount} students verified competent`} icon={Award} />
             </div>
 
@@ -1079,7 +1079,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     panelSub = `District Officer ${stateCode}-${districtCode} · Scoped Administrative Node`;
   } else if (user.role === UserRole.BLOCK_ADMIN) {
     panelTitle = `Block Administrative Console: ${blockCode}`;
-    panelSub = `Block Supervisor ${stateCode}-${districtCode}-${blockCode} · Localized Facility Audit Roster`;
+    panelSub = `Block Supervisor ${stateCode}-${districtCode}-${blockCode} · Localized Facility Activity Roster`;
   }
 
   // Filter schools based on user's regional scope
@@ -2131,15 +2131,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                         >
                           Print L{s.currentLevel}.{s.currentSubLevel || 0}
                         </button>
-                        <a
-                          href={`/worksheets/levels_main.html?level=${s.currentLevel}&sub=${s.currentSubLevel || 0}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1"
-                          title="Open in-browser interactive generator for this specific level"
-                        >
-                          🌐 Interactive
-                        </a>
+                        {/* Interactive generator link removed */}
                       </div>
                     )
                   }
@@ -2793,15 +2785,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                         >
                           Print L{s.currentLevel}.{s.currentSubLevel || 0}
                         </button>
-                        <a
-                          href={`/worksheets/levels_main.html?level=${s.currentLevel}&sub=${s.currentSubLevel || 0}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1"
-                          title="Open in-browser interactive generator for this specific level"
-                        >
-                          🌐 Interactive
-                        </a>
+                        {/* Interactive generator link removed */}
                       </div>
                     )
                   }

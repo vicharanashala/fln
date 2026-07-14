@@ -100,7 +100,6 @@ export const Layout: React.FC<LayoutProps> = ({
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         break;
 
       case UserRole.SCHOOL: // Principal
@@ -108,40 +107,36 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Students', view: 'students', icon: GraduationCap });
         list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         break;
 
       case UserRole.BLOCK_ADMIN:
         list.push({ name: 'Schools', view: 'schools', icon: School });
         list.push({ name: 'Teachers', view: 'teachers', icon: Users });
         list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         break;
 
       case UserRole.DISTRICT_ADMIN:
         list.push({ name: 'Blocks', view: 'blocks', icon: MapPin });
         list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         break;
 
       case UserRole.ADMIN: // State Admin
         list.push({ name: 'Districts', view: 'districts', icon: MapPin });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         break;
 
       case UserRole.SUPERADMIN:
         list.push({ name: 'Users', view: 'users', icon: Users });
         list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Question Bank', view: 'question_bank', icon: BookOpen });
+        // Question Bank removed from Superadmin navigation
         list.push({ name: 'Worksheet Templates', view: 'worksheet_templates', icon: ClipboardList });
         list.push({ name: 'Content', view: 'content', icon: BookOpen });
-        list.push({ name: 'Reports', view: 'reports', icon: FileText });
+        // Reports intentionally omitted for Superadmin — available to Teacher/School roles
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });
-        list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
+        // System settings will be available via the common 'Settings' entry below
+        list.push({ name: 'Activity Logs', view: 'logbook', icon: ShieldCheck });
         break;
     }
 
@@ -198,20 +193,7 @@ export const Layout: React.FC<LayoutProps> = ({
           <span className="text-gray-300 hidden sm:inline font-mono">Foundational Literacy & Numeracy</span>
         </div>
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => alert("Screen Reader Access enabled. Screen reader voice instructions active.")}
-            className="hover:text-white transition hover:underline"
-          >
-            Screen Reader Access
-          </button>
-          <span className="text-gray-700">|</span>
-          <div className="flex items-center gap-2">
-            <span className="font-bold cursor-pointer">ENGLISH</span>
-            <span className="text-gray-600">/</span>
-            <span className="hover:text-white cursor-pointer text-gray-400" onClick={() => alert("ਪੰਜਾਬੀ ਭਾਸ਼ਾ ਵਿੱਚ ਬਦਲੋ")}>ਪੰਜਾਬੀ</span>
-            <span className="text-gray-600">/</span>
-            <span className="hover:text-white cursor-pointer text-gray-400" onClick={() => alert("हिन्दी भाषा में बदलें")}>हिन्दी</span>
-          </div>
+          {/* Language switcher and screen reader access removed until functional */}
         </div>
       </div>
 
