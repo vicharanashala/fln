@@ -29,8 +29,8 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
       if (Array.isArray(data)) {
         setLogs(data);
       }
-    } catch (err) {
-      console.error('Failed to fetch audit log:', err);
+      } catch (err) {
+      console.error('Failed to fetch activity log:', err);
     }
   };
 
@@ -154,10 +154,10 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
 
   return (
     <div className="space-y-6" id="logbook-view">
-      <div className="border-b border-zinc-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">Immutable System Logbook & Audit Trail</h2>
-          <p className="text-zinc-500 text-sm mt-1">Real-time recording of and compliance tracking for active workspaces, downloads, and scoring pipelines.</p>
+          <h2 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">Immutable System Logbook & Audit Trail</h2>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">Real-time recording of and compliance tracking for active workspaces, downloads, and scoring pipelines.</p>
         </div>
         
         {/* Export Button */}
@@ -171,16 +171,16 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
       </div>
 
       {/* Advanced Cascading Filter Panel */}
-      <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2 text-zinc-800 font-medium text-sm border-b border-zinc-100 pb-3">
-          <SlidersHorizontal className="w-4 h-4 text-zinc-500" />
+      <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200 font-medium text-sm border-b border-zinc-100 dark:border-zinc-700 pb-3">
+          <SlidersHorizontal className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
           <span>Regional Drill-Down & Scoped Filters</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-xs font-sans">
           {/* 1. State Filter */}
           <div>
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">State Scope</label>
+            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">State Scope</label>
             <select
               value={selectedState}
               onChange={(e) => {
@@ -190,7 +190,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
                 setSelectedSchool('all');
               }}
               disabled={!!isStateLocked}
-              className="w-full border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 focus:border-zinc-500 focus:bg-white outline-none disabled:opacity-70 disabled:bg-zinc-100 font-medium"
+              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 focus:border-zinc-500 focus:bg-white dark:focus:bg-slate-800 outline-none disabled:opacity-70 disabled:bg-zinc-100 dark:disabled:bg-zinc-700 font-medium text-zinc-900 dark:text-white"
             >
               <option value="all">All States</option>
               {uniqueStates.map(state => (
@@ -201,7 +201,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
 
           {/* 2. District Filter */}
           <div>
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">District Scope</label>
+            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">District Scope</label>
             <select
               value={selectedDistrict}
               onChange={(e) => {
@@ -210,7 +210,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
                 setSelectedSchool('all');
               }}
               disabled={!!isDistrictLocked || (selectedState === 'all' && !isStateLocked)}
-              className="w-full border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 focus:border-zinc-500 focus:bg-white outline-none disabled:opacity-70 disabled:bg-zinc-100 font-medium"
+              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 focus:border-zinc-500 focus:bg-white dark:focus:bg-slate-800 outline-none disabled:opacity-70 disabled:bg-zinc-100 dark:disabled:bg-zinc-700 font-medium text-zinc-900 dark:text-white"
             >
               <option value="all">All Districts</option>
               {uniqueDistricts.map(district => (
@@ -221,7 +221,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
 
           {/* 3. Block Filter */}
           <div>
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Block Scope</label>
+            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Block Scope</label>
             <select
               value={selectedBlock}
               onChange={(e) => {
@@ -229,7 +229,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
                 setSelectedSchool('all');
               }}
               disabled={!!isBlockLocked || (selectedDistrict === 'all' && !isDistrictLocked)}
-              className="w-full border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 focus:border-zinc-500 focus:bg-white outline-none disabled:opacity-70 disabled:bg-zinc-100 font-medium"
+              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 focus:border-zinc-500 focus:bg-white dark:focus:bg-slate-800 outline-none disabled:opacity-70 disabled:bg-zinc-100 dark:disabled:bg-zinc-700 font-medium text-zinc-900 dark:text-white"
             >
               <option value="all">All Blocks</option>
               {uniqueBlocks.map(block => (
@@ -240,11 +240,11 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
 
           {/* 4. School Filter */}
           <div>
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">School Facility</label>
+            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">School Facility</label>
             <select
               value={selectedSchool}
               onChange={(e) => setSelectedSchool(e.target.value)}
-              className="w-full border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 focus:border-zinc-500 focus:bg-white outline-none font-medium"
+              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 focus:border-zinc-500 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium text-zinc-900 dark:text-white"
             >
               <option value="all">All School Facilities</option>
               {filteredSchoolsList.map(sch => (
@@ -255,11 +255,11 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
 
           {/* 5. Log Type Filter */}
           <div>
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Activity Category</label>
+            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Activity Category</label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="w-full border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 focus:border-zinc-500 focus:bg-white outline-none font-medium"
+              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 focus:border-zinc-500 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium text-zinc-900 dark:text-white"
             >
               <option value="all">All Activities</option>
               <option value="download">Downloads</option>
@@ -274,21 +274,21 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
 
         {/* Global search details */}
         <div className="relative">
-          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3.5 top-3" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search email, school name, activity description or log identifier..."
-            className="w-full text-xs border border-zinc-200 rounded-xl py-2.5 pl-10 pr-4 outline-none focus:border-zinc-500 transition-colors"
+            className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl py-2.5 pl-10 pr-4 outline-none focus:border-zinc-500 transition-colors bg-white dark:bg-slate-800 text-zinc-900 dark:text-white"
           />
         </div>
       </div>
 
       {/* Audit Logs Table */}
-      <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 bg-zinc-50/50 border-b border-zinc-150 flex justify-between items-center">
-          <span className="text-xs font-mono font-bold text-zinc-500 uppercase">
+      <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm overflow-hidden">
+        <div className="p-4 bg-zinc-50/50 dark:bg-zinc-800/50 border-b border-zinc-150 dark:border-zinc-700 flex justify-between items-center">
+          <span className="text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase">
             Viewing {filteredLogs.length} matching audit logs
           </span>
         </div>
@@ -296,7 +296,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 text-[10px] font-mono font-semibold uppercase">
+              <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 text-[10px] font-mono font-semibold uppercase">
                 <th className="p-4">Timestamp</th>
                 <th className="p-4">Log ID</th>
                 <th className="p-4">Correspondent</th>
@@ -306,11 +306,11 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
                 <th className="p-4 w-96">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 text-sm text-zinc-700">
+            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 text-sm text-zinc-700 dark:text-zinc-200">
               {filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-12 text-center text-zinc-400 font-sans text-xs">
-                    No active system audit records found with the active filters.
+                    No activity records found with the active filters.
                   </td>
                 </tr>
               ) : (
@@ -318,23 +318,23 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
                   const sMatch = schools.find(sch => sch.id === l.schoolId);
                   const nodeScope = sMatch ? `${sMatch.stateCode} / ${sMatch.districtCode} / ${sMatch.blockCode}` : 'National';
                   return (
-                    <tr key={l.id} className="hover:bg-zinc-50/50 transition-colors">
-                      <td className="p-4 font-mono text-[10px] text-zinc-500 whitespace-nowrap">
+                    <tr key={l.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors">
+                      <td className="p-4 font-mono text-[10px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
                         {new Date(l.timestamp).toLocaleString()}
                       </td>
-                      <td className="p-4 font-mono text-xs text-zinc-400">
+                      <td className="p-4 font-mono text-xs text-zinc-400 dark:text-zinc-500">
                         {l.id}
                       </td>
                       <td className="p-4">
-                        <div className="font-semibold text-zinc-900 text-xs">{l.userEmail}</div>
-                        <div className="text-[10px] text-zinc-400 font-mono uppercase mt-0.5">{l.userRole}</div>
+                        <div className="font-semibold text-zinc-900 dark:text-white text-xs">{l.userEmail}</div>
+                        <div className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono uppercase mt-0.5">{l.userRole}</div>
                       </td>
                       <td className="p-4 whitespace-nowrap text-xs">
-                        <div className="font-medium text-zinc-800">{l.schoolName || 'National Framework'}</div>
-                        <div className="text-[10px] text-zinc-400 font-mono uppercase mt-0.5">{nodeScope}</div>
+                        <div className="font-medium text-zinc-800 dark:text-zinc-100">{l.schoolName || 'National Framework'}</div>
+                        <div className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono uppercase mt-0.5">{nodeScope}</div>
                       </td>
                       <td className="p-4 whitespace-nowrap">
-                        <span className="font-mono text-xs capitalize text-zinc-800">
+                        <span className="font-mono text-xs capitalize text-zinc-800 dark:text-zinc-100">
                           {l.activityType}
                         </span>
                       </td>
@@ -345,7 +345,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
                           {l.status}
                         </span>
                       </td>
-                      <td className="p-4 text-xs text-zinc-600 leading-relaxed">
+                      <td className="p-4 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
                         {l.details}
                       </td>
                     </tr>

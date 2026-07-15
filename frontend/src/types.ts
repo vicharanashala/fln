@@ -160,3 +160,54 @@ export interface Announcement {
   authorEmail: string;
   createdAt: string;
 }
+
+export type InterventionStrategyType = 'small_group' | 'one_on_one' | 'peer_tutoring' | 'visual_aids' | 'manipulatives' | 'worksheets' | 'game_based' | 'other';
+
+export interface Intervention {
+  id: string;
+  studentId: string;
+  studentName: string;
+  teacherId: string;
+  teacherName: string;
+  schoolId: string;
+  classId: string;
+  className: string;
+  section: string;
+  weakCompetencies: string[];
+  currentLevel: number;
+  strategyType: InterventionStrategyType;
+  strategyDescription: string;
+  duration: string;
+  startDate: string;
+  endDate?: string;
+  status: 'active' | 'completed' | 'pending_review';
+  outcome?: {
+    improved: boolean;
+    previousLevel: number;
+    newLevel?: number;
+    improvementDetails?: string;
+    assessmentId?: string;
+    detectedAt?: string;
+  };
+  isPromoted: boolean;
+  promotedAt?: string;
+  createdAt: string;
+}
+
+export interface BestPractice {
+  id: string;
+  interventionId: string;
+  teacherId: string;
+  teacherName: string;
+  schoolId: string;
+  weakCompetencies: string[];
+  strategyType: string;
+  strategyDescription: string;
+  levelBefore: number;
+  levelAfter: number;
+  levelJump: number;
+  duration: string;
+  tags: string[];
+  viewCount: number;
+  createdAt: string;
+}

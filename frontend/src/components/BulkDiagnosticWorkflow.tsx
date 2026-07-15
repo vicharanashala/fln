@@ -94,35 +94,35 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in" id="bulk-diagnostic-workflow">
-      <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
+      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700 pb-4">
         <div>
-          <h1 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">
+          <h1 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">
             Bulk Diagnostic Generator
           </h1>
-          <p className="text-sm text-zinc-500 mt-0.5">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
             Specify the class level and the number of students to generate and print baseline diagnostic papers
           </p>
         </div>
         <button
           onClick={onBack}
-          className="text-zinc-400 hover:text-zinc-600 font-medium text-sm border border-zinc-200 hover:bg-zinc-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 font-medium text-sm border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
         >
           Back to Dashboard
         </button>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-sm text-red-700">
+        <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3 text-sm text-red-700 dark:text-red-300">
           <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Batch Control Form */}
-      <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm">
         <form onSubmit={handleGenerateBulk} className="space-y-6">
           <div>
-            <label className="text-sm font-semibold text-zinc-700 block mb-2">
+            <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 block mb-2">
               Baseline Class Level
             </label>
             <div className="grid grid-cols-4 gap-3">
@@ -134,7 +134,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
                   className={`py-3 text-center border font-display font-bold text-sm rounded-xl transition-all cursor-pointer ${
                     classLevel === lvl
                       ? 'bg-zinc-950 text-white border-zinc-950 shadow-sm'
-                      : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:bg-zinc-100'
+                      : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
                   }`}
                 >
                   Class {lvl}
@@ -144,7 +144,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-zinc-700 block mb-2" htmlFor="total-students">
+            <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 block mb-2" htmlFor="total-students">
               Number of Students
             </label>
             <input
@@ -155,9 +155,9 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
               value={totalStudents}
               onChange={(e) => setTotalStudents(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value) || 1))}
               placeholder="e.g. 30"
-              className="w-full text-base rounded-xl border-zinc-300 focus:ring-zinc-950 focus:border-zinc-950 text-zinc-905 px-4 py-3 bg-zinc-50 border font-mono"
+              className="w-full text-base rounded-xl border-zinc-300 dark:border-zinc-600 focus:ring-zinc-950 focus:border-zinc-950 text-zinc-905 px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border font-mono"
             />
-            <p className="text-[10px] text-zinc-400 mt-1 font-mono">
+            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 font-mono">
               Accepts 1 - 1000 sheets per diagnostic batch.
             </p>
           </div>
@@ -184,16 +184,16 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
 
       {/* Bulk Job Progress / Output Status */}
       {job && (
-        <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="font-display font-medium text-zinc-900">
+            <h3 className="font-display font-medium text-zinc-900 dark:text-white">
               Diagnostic Paper Batch Progress (Class {job.classNumber})
             </h3>
-            <span className="text-xs font-mono text-zinc-400">Job ID: {job.jobId}</span>
+            <span className="text-xs font-mono text-zinc-400 dark:text-zinc-500">Job ID: {job.jobId}</span>
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between text-xs font-mono text-zinc-500">
+            <div className="flex justify-between text-xs font-mono text-zinc-500 dark:text-zinc-400">
               <span>Progress: {job.completed} / {job.totalStudents} sheets rendered</span>
               <span
                 className={`font-semibold ${
@@ -203,7 +203,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
                 {job.status === 'running' ? 'Generating...' : job.status === 'completed' ? 'Ready to Print' : 'Failed'}
               </span>
             </div>
-            <div className="w-full bg-zinc-100 rounded-full h-3 overflow-hidden">
+            <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-3 overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   job.status === 'completed' ? 'bg-green-500' : job.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'
@@ -211,11 +211,11 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <div className="text-center text-xs font-mono text-zinc-400">{progressPercent}% completed</div>
+            <div className="text-center text-xs font-mono text-zinc-400 dark:text-zinc-500">{progressPercent}% completed</div>
           </div>
 
           {job.status === 'running' && (
-            <div className="flex items-center gap-2 text-xs text-blue-800 bg-blue-50 border border-blue-100 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-xs text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-800 rounded-lg p-3">
               <Clock className="w-4 h-4 animate-spin text-blue-500" />
               <span>Generating and compiling baseline mathematics papers. Please keep this browser window open...</span>
             </div>
@@ -245,7 +245,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
           )}
 
           {job.status === 'failed' && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
+            <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
               <XCircle className="w-4 h-4 text-red-600" />
               <span>{job.error || 'Generation failed. Please try again.'}</span>
             </div>

@@ -92,35 +92,35 @@ export const FLNLevelReferenceModal: React.FC<{ isOpen: boolean; onClose: () => 
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl border border-zinc-200">
-        <div className="p-6 border-b border-zinc-200 flex justify-between items-center bg-zinc-50 rounded-t-2xl">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl border border-zinc-200 dark:border-zinc-700">
+        <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 rounded-t-2xl">
           <div>
-            <h2 className="text-xl font-display font-semibold text-zinc-900">📖 FLN Levels Framework Reference</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Explore details of the 59 curriculum levels spanning Preschool 1 to Class 4</p>
+            <h2 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">📖 FLN Levels Framework Reference</h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Explore details of the 59 curriculum levels spanning Preschool 1 to Class 4</p>
           </div>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-650 text-sm font-semibold border border-zinc-200 bg-white hover:bg-zinc-100 p-2 rounded-lg">Close</button>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-650 text-sm font-semibold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-slate-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 p-2 rounded-lg">Close</button>
         </div>
 
-        <div className="p-6 border-b border-zinc-200 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
+        <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-slate-900">
           <div>
-            <label className="block text-xs font-mono font-bold text-zinc-500 uppercase mb-1">Search Level/Strand</label>
+            <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1">Search Level/Strand</label>
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="e.g. Addition, shapes, numbers..."
-              className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500"
+              className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
             />
           </div>
           <div>
-            <label className="block text-xs font-mono font-bold text-zinc-500 uppercase mb-1">Filter by Class</label>
+            <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1">Filter by Class</label>
             <div className="flex flex-wrap gap-1">
               {classesList.map((c) => (
                 <button
                   key={c}
                   onClick={() => setSelectedClass(c)}
                   className={`text-[10px] font-mono font-semibold px-2 py-1.5 rounded border transition-colors ${
-                    selectedClass === c ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                    selectedClass === c ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-white dark:bg-slate-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700'
                   }`}
                 >
                   {c}
@@ -130,23 +130,23 @@ export const FLNLevelReferenceModal: React.FC<{ isOpen: boolean; onClose: () => 
           </div>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1 bg-zinc-50/50">
+        <div className="p-6 overflow-y-auto flex-1 bg-zinc-50/50 dark:bg-zinc-800/50">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filtered.map((l) => (
-              <div key={l.id} className="bg-white border border-zinc-200 rounded-xl p-4 shadow-sm hover:border-zinc-350 transition-all flex flex-col justify-between">
+              <div key={l.id} className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 shadow-sm hover:border-zinc-350 dark:hover:border-zinc-500 transition-all flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200">
+                    <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
                       Level {l.id}
                     </span>
-                    <span className="text-[9px] font-mono font-semibold uppercase text-zinc-400">
+                    <span className="text-[9px] font-mono font-semibold uppercase text-zinc-400 dark:text-zinc-500">
                       {l.class}
                     </span>
                   </div>
-                  <h4 className="font-display font-semibold text-zinc-900 text-sm mt-2">{l.name}</h4>
+                  <h4 className="font-display font-semibold text-zinc-900 dark:text-white text-sm mt-2">{l.name}</h4>
                 </div>
-                  <div className="mt-4 pt-2 border-t border-zinc-100 flex justify-between items-center text-[10px] font-mono text-zinc-400">
-                    <span>Strand: <strong className="text-zinc-700">{l.strand}</strong></span>
+                <div className="mt-4 pt-2 border-t border-zinc-100 dark:border-zinc-800 dark:border-zinc-800 flex justify-between items-center text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
+                  <span>Strand: <strong className="text-zinc-700 dark:text-zinc-200">{l.strand}</strong></span>
                   </div>
               </div>
             ))}
@@ -213,7 +213,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
     return (
       <div className="flex justify-center items-center py-16" id="analytics-loader">
         <div className="w-8 h-8 border-4 border-zinc-900 border-t-transparent rounded-full animate-spin" />
-        <span className="ml-3 text-xs font-medium text-zinc-500 font-mono">Calculating live statistics...</span>
+        <span className="ml-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 font-mono">Calculating live statistics...</span>
       </div>
     );
   }
@@ -240,9 +240,9 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
     <div className="space-y-6" id="geographical-analytics">
       {/* Scope Controls for Superadmin */}
       {user.role === UserRole.SUPERADMIN && (
-        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-end text-xs font-sans">
+        <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-end text-xs font-sans">
           <div className="flex-grow">
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Filter State</label>
+            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter State</label>
             <input 
               type="text" 
               value={stateCode} 
@@ -252,11 +252,11 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
                 setBlockCode('');
               }}
               placeholder="e.g. PB"
-              className="w-full border border-zinc-200 rounded-lg p-2.5 bg-white outline-none font-medium text-zinc-800 focus:border-zinc-400"
+              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
           <div className="flex-grow">
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Filter District</label>
+            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter District</label>
             <input 
               type="text" 
               value={districtCode} 
@@ -265,17 +265,17 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
                 setBlockCode('');
               }}
               placeholder="e.g. LDH"
-              className="w-full border border-zinc-200 rounded-lg p-2.5 bg-white outline-none font-medium text-zinc-800 focus:border-zinc-400"
+              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
           <div className="flex-grow">
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Filter Block</label>
+            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter Block</label>
             <input 
               type="text" 
               value={blockCode} 
               onChange={e => setBlockCode(e.target.value.toUpperCase())}
               placeholder="e.g. LDH-01"
-              className="w-full border border-zinc-200 rounded-lg p-2.5 bg-white outline-none font-medium text-zinc-800 focus:border-zinc-400"
+              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
           <button 
@@ -291,41 +291,41 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* National Benchmark (Visible to All) */}
-        <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+        <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm space-y-6">
+          <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
             <div>
-              <h4 className="font-display font-bold text-zinc-900 text-base flex items-center gap-2">
+              <h4 className="font-display font-bold text-zinc-900 dark:text-white text-base flex items-center gap-2">
                 <span>🌐 National Benchmark</span>
               </h4>
-              <p className="text-zinc-400 text-[11px] mt-0.5">Immutable global standards compiled as universal framework baseline.</p>
+              <p className="text-zinc-400 dark:text-zinc-500 text-[11px] mt-0.5">Immutable global standards compiled as universal framework baseline.</p>
             </div>
-            <span className="px-2.5 py-1 bg-zinc-100 text-zinc-800 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border border-zinc-200 shadow-sm">
+            <span className="px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border border-zinc-200 dark:border-zinc-700 shadow-sm">
               Benchmark
             </span>
           </div>
 
           {/* Cards */}
           <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg shadow-sm">
-              <span className="text-[10px] text-zinc-400 font-mono font-bold uppercase block">Average FLN Level</span>
-              <span className="block text-2xl font-display font-extrabold text-zinc-900 mt-1">Level {data?.national?.avgLevel}</span>
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono font-bold uppercase block">Average FLN Level</span>
+              <span className="block text-2xl font-display font-extrabold text-zinc-900 dark:text-white mt-1">Level {data?.national?.avgLevel}</span>
             </div>
-            <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg shadow-sm">
-              <span className="text-[10px] text-zinc-400 font-mono font-bold uppercase block">Certification Rate</span>
-              <span className="block text-2xl font-display font-extrabold text-zinc-900 mt-1">{data?.national?.certificationRate}%</span>
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono font-bold uppercase block">Certification Rate</span>
+              <span className="block text-2xl font-display font-extrabold text-zinc-900 dark:text-white mt-1">{data?.national?.certificationRate}%</span>
             </div>
           </div>
 
           {/* Topic Mastery progress */}
           <div className="space-y-4 pt-2">
-            <h5 className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest block">Topic Mastery Scores</h5>
+            <h5 className="text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">Topic Mastery Scores</h5>
             {data?.national?.topicMastery && Object.entries(data.national.topicMastery).map(([topic, val]: any) => (
               <div key={topic} className="space-y-1.5">
                 <div className="flex justify-between text-xs font-medium">
-                  <span className="text-zinc-600">{topic}</span>
-                  <span className="font-semibold text-zinc-900">{val}%</span>
+                  <span className="text-zinc-600 dark:text-zinc-300">{topic}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-white">{val}%</span>
                 </div>
-                <div className="w-full bg-zinc-100 rounded-full h-2">
+                <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-2">
                   <div className="bg-zinc-500 h-2 rounded-full transition-all" style={{ width: `${val}%` }} />
                 </div>
               </div>
@@ -386,11 +386,11 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
 
       {/* Dynamic Visual Charts & Insights */}
       {activeMetrics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white border border-zinc-200 rounded-xl p-6 shadow-sm" id="analytics-charts-panel">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm" id="analytics-charts-panel">
           
           {/* Donut Pie Chart for Certification Rate */}
-          <div className="flex flex-col items-center justify-center p-5 border border-zinc-100 rounded-xl bg-zinc-50/50" id="certification-donut-chart">
-            <h5 className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest mb-4">Certification Rate (Pie / Donut Chart)</h5>
+          <div className="flex flex-col items-center justify-center p-5 border border-zinc-100 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/50" id="certification-donut-chart">
+            <h5 className="text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-4">Certification Rate (Pie / Donut Chart)</h5>
             <div className="relative flex items-center justify-center">
               <svg width="180" height="180" viewBox="0 0 180 180" className="transform -rotate-90">
                 {/* Background track */}
@@ -404,8 +404,8 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
               </svg>
               {/* Inner absolute content */}
               <div className="absolute text-center">
-                <span className="block text-3xl font-display font-black text-zinc-900 leading-none">{activeMetrics.certificationRate}%</span>
-                <span className="text-[9px] text-zinc-500 font-mono uppercase font-bold tracking-widest mt-1.5 inline-block">Certified</span>
+                <span className="block text-3xl font-display font-black text-zinc-900 dark:text-white leading-none">{activeMetrics.certificationRate}%</span>
+                <span className="text-[9px] text-zinc-500 dark:text-zinc-400 font-mono uppercase font-bold tracking-widest mt-1.5 inline-block">Certified</span>
               </div>
             </div>
             
@@ -413,26 +413,26 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
             <div className="flex gap-6 mt-6 text-xs font-medium">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-emerald-500 block"></span>
-                <span className="text-zinc-700">Certified (L5-L6): {activeMetrics.certificationRate || 0}%</span>
+                <span className="text-zinc-700 dark:text-zinc-200">Certified (L5-L6): {activeMetrics.certificationRate || 0}%</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-zinc-200 block"></span>
-                <span className="text-zinc-505">Developing (L1-L4): {100 - (activeMetrics.certificationRate || 0)}%</span>
+                <span className="w-3 h-3 rounded-full bg-zinc-200 dark:bg-zinc-600 block"></span>
+                <span className="text-zinc-505 dark:text-zinc-400">Developing (L1-L4): {100 - (activeMetrics.certificationRate || 0)}%</span>
               </div>
             </div>
           </div>
 
           {/* Bar Graph for FLN Level Distribution */}
-          <div className="flex flex-col justify-between p-5 border border-zinc-100 rounded-xl bg-zinc-50/50" id="level-bar-chart">
+          <div className="flex flex-col justify-between p-5 border border-zinc-100 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/50" id="level-bar-chart">
             <div>
-              <h5 className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest mb-2 text-center md:text-left">Student FLN Level Distribution (Bar Graph)</h5>
-              <p className="text-[11px] text-zinc-505 text-center md:text-left mb-6 leading-relaxed">
+              <h5 className="text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-2 text-center md:text-left">Student FLN Level Distribution (Bar Graph)</h5>
+              <p className="text-[11px] text-zinc-505 dark:text-zinc-400 text-center md:text-left mb-6 leading-relaxed">
                 Aggregated cohort size representing count profiles across foundational literacy & numeracy levels.
               </p>
             </div>
             
             {/* Visual Bars container */}
-            <div className="flex items-end justify-between gap-3 h-48 px-2 border-b border-zinc-200 pb-2">
+            <div className="flex items-end justify-between gap-3 h-48 px-2 border-b border-zinc-200 dark:border-zinc-700 pb-2">
               {Object.entries(activeMetrics.levelDistribution || { "Level 1": 0, "Level 2": 0, "Level 3": 0, "Level 4": 0, "Level 5": 0, "Level 6": 0 }).map(([level, val]: any) => {
                 const count = Number(val);
                 const maxLevelVal = Math.max(...Object.values(activeMetrics.levelDistribution || {}) as number[], 1);
@@ -444,11 +444,11 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
                       {count} student{count !== 1 ? 's' : ''}
                     </div>
                     {/* Bar graphic */}
-                    <div className="w-full bg-zinc-200 rounded-t-lg relative overflow-hidden transition-all duration-500" style={{ height: `${percentHeight}%`, minHeight: count > 0 ? '12px' : '4px' }}>
+                    <div className="w-full bg-zinc-200 dark:bg-zinc-600 rounded-t-lg relative overflow-hidden transition-all duration-500" style={{ height: `${percentHeight}%`, minHeight: count > 0 ? '12px' : '4px' }}>
                       <div className="absolute inset-0 bg-zinc-950 group-hover:bg-zinc-700 transition-colors duration-200 rounded-t-lg" />
                     </div>
                     {/* Label */}
-                    <span className="text-[10px] font-mono font-bold text-zinc-500 mt-2 text-center whitespace-nowrap">{level.replace('Level ', 'L')}</span>
+                    <span className="text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400 mt-2 text-center whitespace-nowrap">{level.replace('Level ', 'L')}</span>
                   </div>
                 );
               })}
@@ -456,8 +456,8 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
             
             {/* Total Indicator */}
             <div className="text-center md:text-right mt-3">
-              <span className="text-[10px] text-zinc-500 font-mono">
-                Roster segment: <strong className="text-zinc-800">{Object.values(activeMetrics.levelDistribution || {}).reduce((a: any, b: any) => a + b, 0)} student profiles</strong>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
+                Roster segment: <strong className="text-zinc-800 dark:text-zinc-100">{Object.values(activeMetrics.levelDistribution || {}).reduce((a: any, b: any) => a + b, 0)} student profiles</strong>
               </span>
             </div>
           </div>
@@ -492,10 +492,22 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [coordState, setCoordState] = useState('PB');
   const [coordDistrict, setCoordDistrict] = useState('');
   const [coordBlock, setCoordBlock] = useState('');
+  const [coordSchoolId, setCoordSchoolId] = useState('');
+  const [coordAssignedSchoolsStr, setCoordAssignedSchoolsStr] = useState('');
   const [coordSuccess, setCoordSuccess] = useState('');
   const [coordError, setCoordError] = useState('');
   const [loading, setLoading] = useState(false);
   const [coordinatorsList, setCoordinatorsList] = useState<User[]>([]);
+
+  // School onboarding state
+  const [newSchoolId, setNewSchoolId] = useState('');
+  const [newSchoolName, setNewSchoolName] = useState('');
+  const [newSchoolState, setNewSchoolState] = useState('PB');
+  const [newSchoolDistrict, setNewSchoolDistrict] = useState('');
+  const [newSchoolBlock, setNewSchoolBlock] = useState('');
+  const [newSchoolStrength, setNewSchoolStrength] = useState<'high' | 'low'>('low');
+  const [schoolSuccess, setSchoolSuccess] = useState('');
+  const [schoolError, setSchoolError] = useState('');
 
   const [stateFilter, setStateFilter] = useState('');
   const [districtFilter, setDistrictFilter] = useState('');
@@ -603,6 +615,10 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
     setCoordSuccess('');
     setLoading(true);
 
+    const assignedSchools = coordAssignedSchoolsStr
+      ? coordAssignedSchoolsStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+      : undefined;
+
     try {
       const res = await fetch('/api/admin/create', {
         method: 'POST',
@@ -617,25 +633,80 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           role: coordRole,
           stateCode: coordState,
           districtCode: coordDistrict,
-          blockCode: coordBlock
+          blockCode: coordBlock,
+          schoolId: [UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) ? coordSchoolId : undefined,
+          assignedSchools: coordRole === UserRole.VOLUNTEER ? assignedSchools : undefined
         })
       });
 
       const data = await res.json();
       if (res.ok) {
-        setCoordSuccess(`Successfully created administrative coordinator: ${coordName} (${coordRole})`);
+        setCoordSuccess(`Successfully created account: ${coordName} (${coordRole})`);
         setCoordName('');
         setCoordEmail('');
         setCoordPass('');
         setCoordDistrict('');
         setCoordBlock('');
-        fetchCoordinators();
+        setCoordSchoolId('');
+        setCoordAssignedSchoolsStr('');
+        await fetchCoordinators();
+        
+        // Refresh school data
+        const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
+        const schData = await schRes.json();
+        if (Array.isArray(schData)) setSchools(schData);
+
         setTimeout(() => setCoordSuccess(''), 6000);
       } else {
-        setCoordError(data.error || 'Failed to register administrative account.');
+        setCoordError(data.error || 'Failed to register account.');
       }
     } catch (err) {
       setCoordError('Network error. Check connection settings.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOnboardSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSchoolError('');
+    setSchoolSuccess('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/schools', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          id: newSchoolId,
+          name: newSchoolName,
+          stateCode: newSchoolState,
+          districtCode: newSchoolDistrict,
+          blockCode: newSchoolBlock,
+          strength: newSchoolStrength
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSchoolSuccess(`Successfully onboarded school: ${newSchoolName} (${newSchoolId.toUpperCase()})`);
+        setNewSchoolId('');
+        setNewSchoolName('');
+        setNewSchoolDistrict('');
+        setNewSchoolBlock('');
+        // Refresh school list
+        const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
+        const schData = await schRes.json();
+        if (Array.isArray(schData)) setSchools(schData);
+        setTimeout(() => setSchoolSuccess(''), 6000);
+      } else {
+        setSchoolError(data.error || 'Failed to onboard school.');
+      }
+    } catch (err) {
+      setSchoolError('Network error. Check connection settings.');
     } finally {
       setLoading(false);
     }
@@ -652,18 +723,18 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
   return (
     <div className="space-y-6" id="superadmin-dashboard">
-      <div className="border-b border-zinc-200 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-semibold text-zinc-900 tracking-tight">National Oversight Center</h1>
-          <p className="text-zinc-505 text-sm mt-0.5">IIT Ropar / Vicharanashala Lab · Global Curriculum Master Controls</p>
+          <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">National Oversight Center</h1>
+          <p className="text-zinc-505 dark:text-zinc-400 text-sm mt-0.5">IIT Ropar / Vicharanashala Lab · Global Curriculum Master Controls</p>
         </div>
 
         {/* Dashboard Tabs Selector */}
-        <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 w-fit self-start">
+        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700 w-fit self-start">
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'overview' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+              activeTab === 'overview' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
             📋 Overview
@@ -671,7 +742,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           <button
             onClick={() => setActiveTab('coordinators')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'coordinators' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+              activeTab === 'coordinators' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
             👤 Coordinator Management
@@ -679,7 +750,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           <button
             onClick={() => setActiveTab('analytics')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'analytics' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+              activeTab === 'analytics' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
             📊 Geographical Analytics
@@ -693,7 +764,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
             await fetch('/api/reset', { method: 'POST' });
             window.location.reload();
           }}
-          className="px-3 py-1.5 text-xs font-mono font-bold rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+          className="px-3 py-1.5 text-xs font-mono font-bold rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
         >
           🔄 Reset Database
         </button>
@@ -701,13 +772,13 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
       {activeTab === 'overview' && (() => {
         const schoolColumns: Column<School>[] = [
-          { header: 'School ID', accessor: 'id', sortKey: 'id', className: 'font-mono text-xs text-slate-500' },
-          { header: 'School Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-800' },
+          { header: 'School ID', accessor: 'id', sortKey: 'id', className: 'font-mono text-xs text-slate-500 dark:text-slate-400' },
+          { header: 'School Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-800 dark:text-slate-200' },
           { header: 'State', accessor: 'stateCode', sortKey: 'stateCode', className: 'font-mono' },
           {
             header: 'Deployment',
             accessor: (s) => (
-              <span className="text-[10px] font-mono text-zinc-500">{s.teachersCount ? `${s.teachersCount} teachers` : '—'}</span>
+              <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400">{s.teachersCount ? `${s.teachersCount} teachers` : '—'}</span>
             )
           },
           {
@@ -722,41 +793,41 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <MetricCard title="Total Schools Tracked" value={schools.length} subtext="● 100% Active" icon={SchoolIcon} />
               <MetricCard title="National Roster Count" value={students.length} subtext="Primary FLN candidates" icon={Users} />
-              <MetricCard title="National FLN Score" value="82.4" subtext="Average assessment grade" icon={BarChart3} />
+              <MetricCard title="National FLN Score" value={''} subtext="Will be populated soon" icon={BarChart3} />
               <MetricCard title="FLN Certification Rate" value={`${certifiedPercent}%`} subtext={`${certifiedCount} students verified competent`} icon={Award} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* National Schools Mapping */}
-              <div className="lg:col-span-2 bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
-                <h3 className="text-lg font-display font-medium text-zinc-900">State / School Performance Table</h3>
+              <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
+                <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">State / School Performance Table</h3>
                 <Table data={schools} columns={schoolColumns} searchPlaceholder="Search schools by name..." searchKey="name" />
               </div>
 
 
             {/* Create announcement / Broadcast */}
-            <div className="lg:col-span-1 bg-white p-6 border border-zinc-200 rounded-xl shadow-sm h-fit">
-              <h3 className="text-lg font-display font-medium text-zinc-900 mb-4">Post Global Announcement</h3>
+            <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm h-fit">
+              <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-4">Post Global Announcement</h3>
               <form onSubmit={postAnnouncement} className="space-y-4">
-                {successMsg && <div className="p-3 text-xs bg-green-50 text-green-700 rounded border border-green-100">{successMsg}</div>}
+                {successMsg && <div className="p-3 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded border border-green-100 dark:border-green-800">{successMsg}</div>}
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 uppercase tracking-wider mb-1">Title</label>
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Title</label>
                   <input
                     type="text"
                     value={announcementTitle}
                     onChange={(e) => setAnnouncementTitle(e.target.value)}
                     placeholder="Announcement title..."
-                    className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-700 uppercase tracking-wider mb-1">Message Content</label>
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Message Content</label>
                   <textarea
                     value={announcementMsg}
                     onChange={(e) => setAnnouncementMsg(e.target.value)}
                     rows={3}
                     placeholder="Details of the broadcast..."
-                    className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -764,7 +835,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                     type="checkbox"
                     checked={isUrgent}
                     onChange={(e) => setIsUrgent(e.target.checked)}
-                    className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                    className="rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white focus:ring-zinc-900"
                   />
                   <span className="text-xs text-red-600 font-medium uppercase font-mono">Flag Urgent & Email Escalate</span>
                 </div>
@@ -786,61 +857,53 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Admin registration form */}
           <div className="lg:col-span-1 bg-white border border-zinc-200 rounded-xl p-5 shadow-sm h-fit space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-display font-medium text-zinc-900 flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-zinc-500" />
-                <span>Register New Coordinator</span>
-              </h3>
-              <Link
-                to="/register-coordinator"
-                className="text-[10px] font-mono font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider whitespace-nowrap"
-              >
-                Full Form →
-              </Link>
-            </div>
+            <h3 className="text-lg font-display font-medium text-zinc-900 flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-zinc-500" />
+              <span>Register New Coordinator</span>
+            </h3>
 
-            {coordSuccess && <div className="p-3 text-xs bg-green-50 text-green-800 rounded border border-green-200">{coordSuccess}</div>}
-            {coordError && <div className="p-3 text-xs bg-red-50 text-red-850 rounded border border-red-200">{coordError}</div>}
+            {coordSuccess && <div className="p-3 text-xs bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200 rounded border border-green-200 dark:border-green-800">{coordSuccess}</div>}
+            {coordError && <div className="p-3 text-xs bg-red-50 dark:bg-red-950 text-red-850 dark:text-red-200 rounded border border-red-200 dark:border-red-800">{coordError}</div>}
 
             <form onSubmit={handleCreateCoordinator} className="space-y-4 text-xs">
               <div>
-                <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Full Name</label>
+                <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Full Name</label>
                 <input
                   type="text"
                   value={coordName}
                   onChange={e => setCoordName(e.target.value)}
                   placeholder="e.g. Dr. Satnam Singh"
                   required
-                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 outline-none focus:bg-white focus:border-zinc-500 font-medium"
+                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Email Identifier</label>
+                <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Email Identifier</label>
                 <input
                   type="email"
                   value={coordEmail}
                   onChange={e => setCoordEmail(e.target.value)}
                   placeholder="e.g. s.singh@pb.fln.org"
                   required
-                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 outline-none focus:bg-white focus:border-zinc-500 font-medium"
+                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Account Password</label>
+                <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Account Password</label>
                 <input
                   type="password"
                   value={coordPass}
                   onChange={e => setCoordPass(e.target.value)}
                   placeholder="Create complex password..."
                   required
-                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 outline-none focus:bg-white focus:border-zinc-500 font-medium"
+                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
                 />
                 
                 {/* Real-time complexity checklist (§3.2 A-3) */}
-                <div className="mt-2.5 p-3 bg-zinc-50 rounded-lg border border-zinc-200 space-y-1.5">
-                  <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 font-bold block">Password SLA Checks</span>
+                <div className="mt-2.5 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-1.5">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-bold block">Password SLA Checks</span>
                   <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
                     <span className="flex items-center gap-1">
                       {isPassLengthValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300" />}
@@ -863,68 +926,104 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1">Administrative Role Tier</label>
+                <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Administrative Role Tier</label>
                 <select
                   value={coordRole}
                   onChange={e => {
-                    setCoordRole(e.target.value as UserRole);
-                    if (e.target.value === UserRole.ADMIN) {
+                    const selectedRole = e.target.value as UserRole;
+                    setCoordRole(selectedRole);
+                    if (selectedRole === UserRole.ADMIN) {
                       setCoordDistrict('');
                       setCoordBlock('');
-                    } else if (e.target.value === UserRole.DISTRICT_ADMIN) {
+                    } else if (selectedRole === UserRole.DISTRICT_ADMIN) {
                       setCoordBlock('');
                     }
                   }}
-                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 outline-none focus:bg-white font-medium text-zinc-850"
+                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-850 dark:text-zinc-100"
                 >
                   <option value={UserRole.ADMIN}>State Admin / Coordinator</option>
                   <option value={UserRole.DISTRICT_ADMIN}>District Admin / Officer</option>
                   <option value={UserRole.BLOCK_ADMIN}>Block Admin / Supervisor</option>
+                  <option value={UserRole.SCHOOL}>School Principal</option>
+                  <option value={UserRole.TEACHER}>Teacher</option>
+                  <option value={UserRole.VOLUNTEER}>Volunteer</option>
                 </select>
               </div>
 
               {/* Scope nodes triggers dynamically depending on role */}
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
-                  <input
-                     type="text"
-                     value={coordState}
-                     onChange={e => setCoordState(e.target.value.toUpperCase())}
-                     placeholder="e.g. PB"
-                     required
-                     className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
-                  />
-                </div>
-                
-                {coordRole !== UserRole.ADMIN && (
+              {![UserRole.SCHOOL, UserRole.TEACHER, UserRole.VOLUNTEER].includes(coordRole) && (
+                <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
+                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
                     <input
-                      type="text"
-                      value={coordDistrict}
-                      onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
-                      placeholder="e.g. LDH"
-                      required
-                      className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
+                       type="text"
+                       value={coordState}
+                       onChange={e => setCoordState(e.target.value.toUpperCase())}
+                       placeholder="e.g. PB"
+                       required
+                       className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
                     />
                   </div>
-                )}
+                  
+                  {coordRole !== UserRole.ADMIN && (
+                    <div>
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
+                      <input
+                        type="text"
+                        value={coordDistrict}
+                        onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
+                        placeholder="e.g. LDH"
+                        required
+                        className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
+                      />
+                    </div>
+                  )}
 
-                {coordRole === UserRole.BLOCK_ADMIN && (
-                  <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
-                    <input
-                      type="text"
-                      value={coordBlock}
-                      onChange={e => setCoordBlock(e.target.value.toUpperCase())}
-                      placeholder="e.g. LDH-01"
-                      required
-                      className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
-                    />
-                  </div>
-                )}
-              </div>
+                  {coordRole === UserRole.BLOCK_ADMIN && (
+                    <div>
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
+                      <input
+                        type="text"
+                        value={coordBlock}
+                        onChange={e => setCoordBlock(e.target.value.toUpperCase())}
+                        placeholder="e.g. LDH-01"
+                        required
+                        className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* School scope text input for School and Teacher roles */}
+              {[UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) && (
+                <div>
+                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School ID</label>
+                   <input
+                     type="text"
+                     value={coordSchoolId}
+                     onChange={e => setCoordSchoolId(e.target.value)}
+                     placeholder="e.g. gps-vl-002"
+                     required
+                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                   />
+                 </div>
+               )}
+
+               {/* Comma-separated school IDs for Volunteers */}
+               {coordRole === UserRole.VOLUNTEER && (
+                 <div>
+                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School IDs (Comma Separated)</label>
+                   <input
+                     type="text"
+                     value={coordAssignedSchoolsStr}
+                     onChange={e => setCoordAssignedSchoolsStr(e.target.value)}
+                     placeholder="e.g. gps-vl-002, gps-jai-004"
+                     required
+                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                   />
+                 </div>
+               )}
 
               <button
                 type="submit"
@@ -937,12 +1036,12 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           </div>
 
           {/* Coordinators lists */}
-          <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-end gap-3 justify-between">
               <div>
-                <h3 className="text-lg font-display font-medium text-zinc-900">Registered Coordinators Index</h3>
-                <p className="text-xs text-zinc-500">Filter coordinator records by state, district, and school.</p>
+                <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Registered Coordinators Index</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Filter coordinator records by state, district, and school.</p>
               </div>
               <button
                 onClick={resetCoordinatorFilters}
@@ -954,7 +1053,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">State</label>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">State</label>
                 <select
                   value={stateFilter}
                   onChange={(e) => {
@@ -962,7 +1061,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                     setDistrictFilter('');
                     setSchoolFilter('');
                   }}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
                 >
                   <option value="">All states</option>
                   {stateFilterOptions.map(code => (
@@ -971,14 +1070,14 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">District</label>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">District</label>
                 <select
                   value={districtFilter}
                   onChange={(e) => {
                     setDistrictFilter(e.target.value);
                     setSchoolFilter('');
                   }}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
                 >
                   <option value="">All districts</option>
                   {districtFilterOptions.map(code => (
@@ -987,11 +1086,11 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">School</label>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">School</label>
                 <select
                   value={schoolFilter}
                   onChange={(e) => setSchoolFilter(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
                 >
                   <option value="">All schools</option>
                   {schoolFilterOptions.map(id => (
@@ -1004,13 +1103,13 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
             {(() => {
               const coordinatorColumns: Column<User>[] = [
-                { header: 'Coordinator Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-900' },
-                { header: 'Email', accessor: 'email', sortKey: 'email', className: 'font-mono text-slate-500' },
+                { header: 'Coordinator Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-900 dark:text-slate-100' },
+                { header: 'Email', accessor: 'email', sortKey: 'email', className: 'font-mono text-slate-500 dark:text-slate-400' },
                 {
                   header: 'Role Tier',
                   accessor: (c) => (
                     <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
-                      c.role === UserRole.SUPERADMIN ? 'bg-slate-900 text-slate-100' : c.role === UserRole.ADMIN ? 'bg-indigo-105 text-indigo-850' : c.role === UserRole.DISTRICT_ADMIN ? 'bg-emerald-105 text-emerald-850' : 'bg-amber-105 text-amber-855'
+                      c.role === UserRole.SUPERADMIN ? 'bg-slate-900 text-slate-100 dark:bg-slate-100 dark:text-slate-900' : c.role === UserRole.ADMIN ? 'bg-indigo-105 text-indigo-850 dark:bg-indigo-950 dark:text-indigo-200' : c.role === UserRole.DISTRICT_ADMIN ? 'bg-emerald-105 text-emerald-850 dark:bg-emerald-950 dark:text-emerald-200' : 'bg-amber-105 text-amber-855 dark:bg-amber-950 dark:text-amber-200'
                     }`}>
                       {c.role}
                     </span>
@@ -1019,8 +1118,36 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 {
                   header: 'Assigned Scope Nodes',
                   accessor: (c) => {
-                    const nodeScope = c.role === UserRole.SUPERADMIN ? 'National (Global)' : c.role === UserRole.ADMIN ? `State: ${c.stateCode}` : c.role === UserRole.DISTRICT_ADMIN ? `State: ${c.stateCode} / District: ${c.districtCode}` : `State: ${c.stateCode} / Dist: ${c.districtCode} / Block: ${c.blockCode}`;
-                    return <span className="font-medium text-slate-700">{nodeScope}</span>;
+                    let nodeScope = '';
+                    if (c.role === UserRole.SUPERADMIN) {
+                      nodeScope = 'National (Global)';
+                    } else if (c.role === UserRole.ADMIN) {
+                      nodeScope = `State: ${c.stateCode || 'N/A'}`;
+                    } else if (c.role === UserRole.DISTRICT_ADMIN) {
+                      nodeScope = `State: ${c.stateCode || 'N/A'} / District: ${c.districtCode || 'N/A'}`;
+                    } else if (c.role === UserRole.BLOCK_ADMIN) {
+                      nodeScope = `State: ${c.stateCode || 'N/A'} / Dist: ${c.districtCode || 'N/A'} / Block: ${c.blockCode || 'N/A'}`;
+                    } else if (c.role === UserRole.SCHOOL || c.role === UserRole.TEACHER) {
+                      const sch = schools.find(s => s.id === c.schoolId);
+                      if (sch) {
+                        nodeScope = `State: ${sch.stateCode} / Dist: ${sch.districtCode} / Block: ${sch.blockCode} (${sch.name})`;
+                      } else {
+                        nodeScope = `School ID: ${c.schoolId || 'N/A'}`;
+                      }
+                    } else if (c.role === UserRole.VOLUNTEER) {
+                      const firstSchId = c.assignedSchools?.[0];
+                      const sch = firstSchId ? schools.find(s => s.id === firstSchId) : undefined;
+                      if (sch) {
+                        nodeScope = `State: ${sch.stateCode} / Dist: ${sch.districtCode} / Block: ${sch.blockCode} (${sch.name})`;
+                      } else if (c.assignedSchools && c.assignedSchools.length > 0) {
+                        nodeScope = `Schools: ${c.assignedSchools.join(', ')}`;
+                      } else {
+                        nodeScope = 'No schools assigned';
+                      }
+                    } else {
+                      nodeScope = `State: ${c.stateCode || 'N/A'} / Dist: ${c.districtCode || 'N/A'} / Block: ${c.blockCode || 'N/A'}`;
+                    }
+                    return <span className="font-medium text-slate-700 dark:text-slate-200">{nodeScope}</span>;
                   }
                 }
               ];
@@ -1088,7 +1215,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     panelSub = `District Officer ${stateCode}-${districtCode} · Scoped Administrative Node`;
   } else if (user.role === UserRole.BLOCK_ADMIN) {
     panelTitle = `Block Administrative Console: ${blockCode}`;
-    panelSub = `Block Supervisor ${stateCode}-${districtCode}-${blockCode} · Localized Facility Audit Roster`;
+    panelSub = `Block Supervisor ${stateCode}-${districtCode}-${blockCode} · Localized Facility Activity Roster`;
   }
 
   // Filter schools based on user's regional scope
@@ -1159,18 +1286,18 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
   return (
     <div className="space-y-6" id="admin-dashboard">
-      <div className="border-b border-zinc-200 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-semibold text-zinc-900 tracking-tight">{panelTitle}</h1>
-          <p className="text-zinc-550 text-sm mt-0.5">{panelSub}</p>
+          <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">{panelTitle}</h1>
+          <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5">{panelSub}</p>
         </div>
 
         {/* Local Tab selectors */}
-        <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 w-fit self-start">
+        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700 w-fit self-start">
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'overview' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+              activeTab === 'overview' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
             📋 Scoped Overview
@@ -1178,7 +1305,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           <button
             onClick={() => setActiveTab('analytics')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'analytics' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+              activeTab === 'analytics' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
             📊 Scoped & Comparative Analytics
@@ -1186,7 +1313,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           <button
             onClick={() => setActiveTab('access')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'access' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+              activeTab === 'access' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
             🛡️ Access Control & Defaulters
@@ -1197,20 +1324,20 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       {activeTab === 'overview' && (
         <>
           {/* Pipeline tracker (Conducted -> Scanned -> Evaluated -> Certified) */}
-          <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
-            <h3 className="text-lg font-display font-medium text-zinc-900">Regional Data Flow Pipeline</h3>
+          <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
+            <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Regional Data Flow Pipeline</h3>
             <div className="grid grid-cols-4 gap-2 text-center font-mono text-xs">
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg shadow-sm">
-                <span className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">1. Conducted</span>
-                <span className="text-lg font-bold text-zinc-905">{conductedExams} Exams</span>
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
+                <span className="block text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase mb-1">1. Conducted</span>
+                <span className="text-lg font-bold text-zinc-905 dark:text-white">{conductedExams} Exams</span>
               </div>
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg shadow-sm">
-                <span className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">2. Ingested (ICR)</span>
-                <span className="text-lg font-bold text-zinc-905">{ingestedSheets} Sheets</span>
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
+                <span className="block text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase mb-1">2. Ingested (ICR)</span>
+                <span className="text-lg font-bold text-zinc-905 dark:text-white">{ingestedSheets} Sheets</span>
               </div>
-              <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg shadow-sm">
-                <span className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">3. Evaluated</span>
-                <span className="text-lg font-bold text-indigo-755">100% Scored</span>
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
+                <span className="block text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase mb-1">3. Evaluated</span>
+                <span className="text-lg font-bold text-indigo-755 dark:text-indigo-300">100% Scored</span>
               </div>
               <div className="p-4 bg-zinc-900 text-white rounded-lg border-none shadow-sm">
                 <span className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">4. Certified FLN</span>
@@ -1221,33 +1348,33 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* District rankings & lagging alerts */}
-            <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
-              <h3 className="text-base font-display font-semibold text-zinc-900">Regional Learning Gaps & Lagging Alerts</h3>
+            <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
+              <h3 className="text-base font-display font-semibold text-zinc-900 dark:text-white">Regional Learning Gaps & Lagging Alerts</h3>
               <div className="space-y-3">
                 {schoolPerformance.length === 0 ? (
-                  <p className="text-zinc-400 text-xs text-center py-6 font-mono">No preseeded schools found in this regional scope.</p>
+                  <p className="text-zinc-400 dark:text-zinc-500 text-xs text-center py-6 font-mono">No preseeded schools found in this regional scope.</p>
                 ) : (
                   schoolPerformance.map(perf => (
                     <div 
                       key={perf.schoolId} 
                       className={`flex justify-between items-center p-3 border rounded-lg ${
                         perf.isLagging 
-                          ? 'border-red-100 bg-red-50/50' 
-                          : 'border-zinc-150 bg-zinc-50'
+                          ? 'border-red-100 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50' 
+                          : 'border-zinc-150 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
                       }`}
                     >
                       <div>
-                        <h5 className={`font-medium text-sm ${perf.isLagging ? 'text-red-900' : 'text-zinc-900'}`}>
+                        <h5 className={`font-medium text-sm ${perf.isLagging ? 'text-red-900 dark:text-red-200' : 'text-zinc-900 dark:text-white'}`}>
                           {perf.schoolId} ({perf.name})
                         </h5>
-                        <p className={`text-[10px] font-mono ${perf.isLagging ? 'text-red-600' : 'text-zinc-400'}`}>
+                        <p className={`text-[10px] font-mono ${perf.isLagging ? 'text-red-600 dark:text-red-300' : 'text-zinc-400 dark:text-zinc-500'}`}>
                           {perf.deploymentMode}
                         </p>
                       </div>
                       <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded border ${
                         perf.isLagging 
-                          ? 'text-red-700 bg-red-100 border-red-200' 
-                          : 'text-zinc-700 bg-zinc-200 border-zinc-300'
+                          ? 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900 border-red-200 dark:border-red-800' 
+                          : 'text-zinc-700 dark:text-zinc-200 bg-zinc-200 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600'
                       }`}>
                         {perf.statusText}
                       </span>
@@ -1258,21 +1385,21 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             </div>
 
             {/* Block oversight */}
-            <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
-              <h3 className="text-base font-display font-semibold text-zinc-900">Volunteer Assignments</h3>
+            <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
+              <h3 className="text-base font-display font-semibold text-zinc-900 dark:text-white">Volunteer Assignments</h3>
               <div className="space-y-3">
                 {scopedVolunteers.length === 0 ? (
-                  <p className="text-zinc-400 text-xs text-center py-6 font-mono">No active volunteers deployed in this regional node.</p>
+                  <p className="text-zinc-400 dark:text-zinc-500 text-xs text-center py-6 font-mono">No active volunteers deployed in this regional node.</p>
                 ) : (
                   scopedVolunteers.map(vol => (
-                    <div key={vol.email} className="p-3 border border-zinc-200 rounded-lg flex justify-between items-center bg-zinc-50">
+                    <div key={vol.email} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg flex justify-between items-center bg-zinc-50 dark:bg-zinc-800">
                       <div>
-                        <div className="text-xs font-bold text-zinc-800">{vol.name}</div>
-                        <div className="text-[10px] text-zinc-500 font-mono">
+                        <div className="text-xs font-bold text-zinc-800 dark:text-zinc-100">{vol.name}</div>
+                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
                           Assigned: {vol.assignedSchools.join(', ')}
                         </div>
                       </div>
-                      <span className="text-xs font-mono text-green-700 bg-green-50 px-2.5 py-0.5 rounded border border-green-200">
+                      <span className="text-xs font-mono text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 px-2.5 py-0.5 rounded border border-green-200 dark:border-green-800">
                         {vol.status}
                       </span>
                     </div>
@@ -1289,18 +1416,18 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       )}
 
       {activeTab === 'access' && (
-        <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-6">
+        <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-6">
           <div>
-            <h3 className="text-lg font-display font-medium text-zinc-900">School & Teacher Access Control</h3>
-            <p className="text-xs text-zinc-500">Monitor Teacher delay attempts, suspensions, and manual school lockout restorations.</p>
+            <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">School & Teacher Access Control</h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Monitor Teacher delay attempts, suspensions, and manual school lockout restorations.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Schools Lockdown Monitoring */}
             <div className="space-y-3">
-              <h4 className="font-display font-bold text-zinc-800 text-xs uppercase font-mono border-b border-zinc-100 pb-2">Schools Lock Status</h4>
+              <h4 className="font-display font-bold text-zinc-800 dark:text-zinc-100 text-xs uppercase font-mono border-b border-zinc-100 dark:border-zinc-800 pb-2">Schools Lock Status</h4>
               {scopedSchools.length === 0 ? (
-                <p className="text-xs text-zinc-400 font-mono">No schools found in scope.</p>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono">No schools found in scope.</p>
               ) : (
                 scopedSchools.map(sch => {
                   const isLocked = sch.isAccessLocked;
@@ -1336,16 +1463,16 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                   };
 
                   return (
-                    <div key={sch.id} className="p-3 border border-zinc-200 rounded-lg flex justify-between items-center bg-zinc-50">
+                    <div key={sch.id} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg flex justify-between items-center bg-zinc-50 dark:bg-zinc-800">
                       <div>
-                        <div className="text-xs font-bold text-zinc-800">{sch.name}</div>
-                        <div className="text-[10px] text-zinc-400 font-mono">ID: {sch.id} · Teachers: {sch.teachersCount ?? 0}</div>
+                        <div className="text-xs font-bold text-zinc-800 dark:text-zinc-100">{sch.name}</div>
+                        <div className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">ID: {sch.id} · Teachers: {sch.teachersCount ?? 0}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
                           isLocked 
-                            ? 'text-red-700 bg-red-50 border-red-200' 
-                            : 'text-green-700 bg-green-50 border-green-200'
+                            ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800' 
+                            : 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
                         }`}>
                           {isLocked ? 'LOCKED OUT' : 'ACTIVE'}
                         </span>
@@ -1355,8 +1482,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                             onClick={handleRestore}
                             className={`font-mono text-[9px] font-bold px-2 py-1 rounded shadow-sm border transition-colors ${
                               canRestore 
-                                ? 'bg-white hover:bg-zinc-100 text-zinc-700 hover:border-zinc-400 cursor-pointer' 
-                                : 'bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed'
+                                ? 'bg-white dark:bg-slate-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 hover:border-zinc-400 cursor-pointer' 
+                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border-zinc-200 dark:border-zinc-700 cursor-not-allowed'
                             }`}
                             title={!canRestore ? 'Only State Admin / Superadmin can restore School access.' : ''}
                           >
@@ -1372,9 +1499,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
             {/* Teachers Banned / Suspended Tracking */}
             <div className="space-y-3">
-              <h4 className="font-display font-bold text-zinc-800 text-xs uppercase font-mono border-b border-zinc-100 pb-2">Teacher Defaulters & Bans</h4>
+              <h4 className="font-display font-bold text-zinc-800 dark:text-zinc-100 text-xs uppercase font-mono border-b border-zinc-100 dark:border-zinc-800 pb-2">Teacher Defaulters & Bans</h4>
               {allUsers.filter(u => u.role === UserRole.TEACHER && (user.role === UserRole.SUPERADMIN || (u.schoolId && scopedSchoolIds.includes(u.schoolId)))).length === 0 ? (
-                <p className="text-xs text-zinc-400 font-mono">No teachers registered in this scope.</p>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono">No teachers registered in this scope.</p>
               ) : (
                 allUsers.filter(u => u.role === UserRole.TEACHER && (user.role === UserRole.SUPERADMIN || (u.schoolId && scopedSchoolIds.includes(u.schoolId)))).map(tch => {
                   const delays = tch.delayedAttemptsCount || 0;
@@ -1410,25 +1537,25 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                   };
 
                   return (
-                    <div key={tch.id} className="p-3 border border-zinc-200 rounded-lg flex justify-between items-center bg-zinc-50">
+                    <div key={tch.id} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg flex justify-between items-center bg-zinc-50 dark:bg-zinc-800">
                       <div>
-                        <div className="text-xs font-bold text-zinc-800">{tch.name} ({tch.email})</div>
-                        <div className="text-[10px] text-zinc-400 font-mono">
-                          Delays: <strong className={delays > 0 ? 'text-amber-600' : 'text-zinc-550'}>{delays} / 3</strong>
+                        <div className="text-xs font-bold text-zinc-800 dark:text-zinc-100">{tch.name} ({tch.email})</div>
+                        <div className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
+                          Delays: <strong className={delays > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-550 dark:text-zinc-400'}>{delays} / 3</strong>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
                           isSuspended 
-                            ? 'text-red-700 bg-red-50 border-red-200' 
-                            : 'text-zinc-650 bg-zinc-100 border-zinc-300'
+                            ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800' 
+                            : 'text-zinc-650 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600'
                         }`}>
                           {isSuspended ? 'SUSPENDED' : 'NORMAL'}
                         </span>
                         {isSuspended && (
                           <button
                             onClick={handleRevive}
-                            className="bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200 hover:border-zinc-400 font-mono text-[9px] font-bold px-2 py-1 rounded shadow-sm cursor-pointer transition-colors"
+                            className="bg-white dark:bg-slate-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 font-mono text-[9px] font-bold px-2 py-1 rounded shadow-sm cursor-pointer transition-colors"
                           >
                             Revive
                           </button>
@@ -1491,23 +1618,23 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
   return (
     <div className="space-y-6" id="school-dashboard">
-      <div className="border-b border-zinc-200 pb-4">
-        <h1 className="text-3xl font-display font-semibold text-zinc-900 tracking-tight">School Administration</h1>
-        <p className="text-zinc-550 text-sm mt-0.5">GPS Model Town Ludhiana (ID: {user.schoolId})</p>
+      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4">
+        <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">School Administration</h1>
+        <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5">GPS Model Town Ludhiana (ID: {user.schoolId})</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Classes grid */}
         <div className="md:col-span-2 space-y-4">
-          <h3 className="text-lg font-display font-medium text-zinc-900">Assigned Classroom Roster</h3>
+          <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Assigned Classroom Roster</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {classes.map(c => {
               const count = students.filter(s => s.classGroup === c.className && s.section === c.section).length;
               return (
-                <div key={c.id} className="bg-white p-5 border border-zinc-200 rounded-xl shadow-sm space-y-4 hover:border-zinc-400 transition-all flex flex-col justify-between">
+                <div key={c.id} className="bg-white dark:bg-slate-900 p-5 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4 hover:border-zinc-400 dark:hover:border-zinc-500 transition-all flex flex-col justify-between">
                   <div>
-                    <h4 className="font-display font-bold text-zinc-900 text-lg">{c.className} - {c.section}</h4>
-                    <p className="text-xs text-zinc-400 mt-1">{count} Active Students Registered</p>
+                    <h4 className="font-display font-bold text-zinc-900 dark:text-white text-lg">{c.className} - {c.section}</h4>
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">{count} Active Students Registered</p>
                   </div>
                   <button
                     onClick={() => setActiveClass(c)}
@@ -1522,19 +1649,19 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         </div>
 
         {/* AI Learning suggestions */}
-        <div className="md:col-span-1 bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4 h-fit">
-          <h3 className="text-base font-display font-semibold text-zinc-900">AI Concept-Focus Suggestions</h3>
-          <p className="text-xs text-zinc-500 leading-relaxed">
+        <div className="md:col-span-1 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4 h-fit">
+          <h3 className="text-base font-display font-semibold text-zinc-900 dark:text-white">AI Concept-Focus Suggestions</h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
             Derived automatically from class evaluations compiled across standard assessment cycles.
           </p>
           <div className="space-y-3 pt-2">
-            <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-lg space-y-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-amber-700 font-bold">Patterns Mastery: Needs Practice</span>
-              <p className="text-zinc-700 text-xs">Class 2 is struggling with multi-step sequence patterns. Recommend tracing visual lessons.</p>
+            <div className="p-3 bg-amber-50/50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900 rounded-lg space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-amber-700 dark:text-amber-300 font-bold">Patterns Mastery: Needs Practice</span>
+              <p className="text-zinc-700 dark:text-zinc-200 text-xs">Class 2 is struggling with multi-step sequence patterns. Recommend tracing visual lessons.</p>
             </div>
-            <div className="p-3 bg-green-50/50 border border-green-100 rounded-lg space-y-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-green-700 font-bold">Number Sense: Strong</span>
-              <p className="text-zinc-700 text-xs">Class 3 has completed addition targets, ready to progress to simple fractions.</p>
+            <div className="p-3 bg-green-50/50 dark:bg-green-950/50 border border-green-100 dark:border-green-900 rounded-lg space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-green-700 dark:text-green-300 font-bold">Number Sense: Strong</span>
+              <p className="text-zinc-700 dark:text-zinc-200 text-xs">Class 3 has completed addition targets, ready to progress to simple fractions.</p>
             </div>
           </div>
         </div>
@@ -1779,14 +1906,14 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       );
     } else {
       return (
-        <div className="p-8 max-w-md mx-auto bg-white border border-zinc-200 rounded-2xl shadow-sm text-center space-y-4 my-12" id="no-classes-fallback">
-          <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto">
+        <div className="p-8 max-w-md mx-auto bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm text-center space-y-4 my-12" id="no-classes-fallback">
+          <div className="w-12 h-12 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="font-display font-semibold text-zinc-950 text-base">No Classes Found</h3>
-          <p className="text-sm text-zinc-500">You must have at least one registered classroom to open the Exam Worksheets Personalization Portal.</p>
+          <h3 className="font-display font-semibold text-zinc-950 dark:text-white text-base">No Classes Found</h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">You must have at least one registered classroom to open the Exam Worksheets Personalization Portal.</p>
           <button
             onClick={() => setShowWorksheetPortal(false)}
             className="px-4 py-2 bg-zinc-950 text-white font-mono font-medium text-xs rounded-lg hover:bg-zinc-850 cursor-pointer animate-pulse"
@@ -1801,25 +1928,25 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   return (
     <div className="space-y-6" id="teacher-dashboard">
       {levelPdfLoading && (
-        <div className="bg-indigo-50 border border-indigo-200 text-indigo-800 p-4 rounded-xl text-xs font-mono animate-pulse flex items-center gap-2">
+        <div className="bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-200 p-4 rounded-xl text-xs font-mono animate-pulse flex items-center gap-2">
           <span className="animate-spin text-lg">⏳</span>
           Generating Personalized Level-Wise Worksheet via Levels_wise_question_generator pipeline...
         </div>
       )}
       {levelPdfError && (
-        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl text-xs font-mono">
+        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 p-4 rounded-xl text-xs font-mono">
           ⚠️ {levelPdfError}
         </div>
       )}
-      <div className="border-b border-zinc-200 pb-4 flex justify-between items-end">
+      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-display font-semibold text-zinc-900 tracking-tight">Classroom Workspace</h1>
-          <p className="text-zinc-550 text-sm mt-0.5 font-medium">Teacher: {user.name} · School Scope: gps-mt-001 Model Town</p>
+          <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">Classroom Workspace</h1>
+          <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5 font-medium">Teacher: {user.name} · School Scope: gps-mt-001 Model Town</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowLevelRef(true)}
-            className="bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
+            className="bg-white dark:bg-slate-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
           >
             📖 59 FLN Framework
           </button>
@@ -1834,55 +1961,55 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
       {/* Add student dropdown form */}
       {showAddForm && (
-        <form onSubmit={handleAddStudent} className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
-          <div className="flex justify-between items-center border-b border-zinc-100 pb-2">
-            <h4 className="text-xs font-mono font-bold text-zinc-500 uppercase">
-              Register Student in <span className="text-zinc-900">{activeClass ? `${activeClass.className} - ${activeClass.section}` : `${cls} - ${sec}`}</span>
+        <form onSubmit={handleAddStudent} className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
+          <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800 pb-2">
+            <h4 className="text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase">
+              Register Student in <span className="text-zinc-900 dark:text-white">{activeClass ? `${activeClass.className} - ${activeClass.section}` : `${cls} - ${sec}`}</span>
             </h4>
           </div>
           
           {regError && (
-            <div className="p-3 text-xs bg-red-50 text-red-700 rounded-lg border border-red-100 font-medium">
+            <div className="p-3 text-xs bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-lg border border-red-100 dark:border-red-800 font-medium">
               ⚠️ {regError}
             </div>
           )}
           {regSuccess && (
-            <div className="p-3 text-xs bg-green-50 text-green-700 rounded-lg border border-green-100 font-medium">
+            <div className="p-3 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded-lg border border-green-100 dark:border-green-800 font-medium">
               ✅ {regSuccess}
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 mb-1">Full Name</label>
+              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 dark:text-zinc-400 mb-1">Full Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Amanpreet Singh"
-                className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white"
+                className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white dark:bg-zinc-800 dark:text-white"
                 required
               />
             </div>
             <div>
-              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 mb-1">Age</label>
+              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 dark:text-zinc-400 mb-1">Age</label>
               <input
                 type="number"
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
                 placeholder="e.g. 8"
-                className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white"
+                className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white dark:bg-zinc-800 dark:text-white"
                 required
               />
             </div>
             <div>
-              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 mb-1">Identity (Aadhar / BC No.)</label>
+              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 dark:text-zinc-400 mb-1">Identity (Aadhar / BC No.)</label>
               <input
                 type="text"
                 value={aadhar}
                 onChange={(e) => setAadhar(e.target.value)}
                 placeholder="12 digit identity number"
-                className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white"
+                className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white dark:bg-zinc-800 dark:text-white"
                 required
               />
             </div>
@@ -1899,13 +2026,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       )}
 
       {/* Class picker tabs */}
-      <div className="flex gap-2 border-b border-zinc-200 pb-px">
+      <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">
         {classes.map(c => (
           <button
             key={c.id}
             onClick={() => setActiveClass(c)}
             className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
-              activeClass?.id === c.id ? 'border-zinc-900 text-zinc-900 font-semibold' : 'border-transparent text-zinc-500 hover:text-zinc-700'
+              activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
           >
             {c.className} - {c.section}
@@ -1915,15 +2042,33 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
       {activeClass && (
         <div className="space-y-6">
+          {/* 💊 Intervention Quick Action */}
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950 dark:to-purple-950 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-lg">
+                  💊
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Intervention Tracking</h3>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">Record remedial actions for struggling students</p>
+                </div>
+              </div>
+              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-white dark:bg-zinc-800 px-3 py-1.5 rounded-full border border-slate-200 dark:border-zinc-600">
+                Use sidebar → Interventions
+              </div>
+            </div>
+          </div>
+
           {/* 📋 Diagnostic Paper Generator */}
-          <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-4">
                 <div>
-                  <h3 className="font-display font-semibold text-zinc-900 text-sm">📋 Diagnostic Paper Generator</h3>
-                  <p className="text-xs text-zinc-500 mt-0.5">Generate baseline diagnostic PDFs for students pending placement.</p>
+                  <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-sm">📋 Diagnostic Paper Generator</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Generate baseline diagnostic PDFs for students pending placement.</p>
                 </div>
-                <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                   {classStudents.filter(s => s.levelHistory.length === 0).length} Pending
                 </span>
               </div>
@@ -1976,12 +2121,12 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
             {/* Generating state */}
             {bulkLoading && (
-              <div className="pt-2 border-t border-zinc-100">
-                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <span className="animate-spin text-xl">⏳</span>
                   <div>
-                    <p className="text-sm font-semibold text-blue-800">Generating Diagnostic Papers...</p>
-                    <p className="text-xs text-blue-600">Please wait while the papers are being generated for {classStudents.filter(s => s.levelHistory.length === 0).length} students.</p>
+                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">Generating Diagnostic Papers...</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Please wait while the papers are being generated for {classStudents.filter(s => s.levelHistory.length === 0).length} students.</p>
                   </div>
                 </div>
               </div>
@@ -1992,12 +2137,12 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               <>
                 {/* Poll progress while running */}
                 {bulkJob.status === 'running' && (
-                  <div className="pt-2 border-t border-zinc-100">
-                    <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <span className="animate-spin text-xl">⏳</span>
                       <div>
-                        <p className="text-sm font-semibold text-blue-800">Generating Diagnostic Papers...</p>
-                        <p className="text-xs text-blue-600">{bulkJob.completed} / {bulkJob.total} papers generated</p>
+                        <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">Generating Diagnostic Papers...</p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400">{bulkJob.completed} / {bulkJob.total} papers generated</p>
                       </div>
                     </div>
                   </div>
@@ -2005,10 +2150,10 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
                 {/* Completed result */}
                 {bulkJob.status === 'completed' && bulkJob.downloadUrl && (
-                  <div className="pt-2 border-t border-zinc-100">
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
+                  <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg space-y-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-green-700 font-bold text-sm">✅ {bulkJob.total} Diagnostic Papers Generated Successfully</span>
+                        <span className="text-green-700 dark:text-green-300 font-bold text-sm">✅ {bulkJob.total} Diagnostic Papers Generated Successfully</span>
                       </div>
                       <div className="flex gap-3">
                         <a
@@ -2034,9 +2179,9 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
                 {/* Failed result */}
                 {bulkJob.status === 'failed' && (
-                  <div className="pt-2 border-t border-zinc-100">
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-xs text-red-700 font-medium">❌ Generation Failed: {bulkJob.error || 'Unknown error'}</p>
+                  <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+                      <p className="text-xs text-red-700 dark:text-red-300 font-medium">❌ Generation Failed: {bulkJob.error || 'Unknown error'}</p>
                       <button
                         onClick={() => setBulkJob(null)}
                         className="mt-2 text-xs text-red-600 underline cursor-pointer"
@@ -2050,19 +2195,19 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             )}
 
             {bulkError && !bulkJob && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">⚠️ {bulkError}</div>
+              <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-700 dark:text-red-300">⚠️ {bulkError}</div>
             )}
           </div>
 
           {/* 📄 Level-Wise Paper Generator - Disabled (Coming Soon) */}
-          <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4 opacity-60">
+          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4 opacity-60">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h3 className="font-display font-semibold text-zinc-900 text-sm">📄 Level-Wise Paper Generator</h3>
-                <p className="text-xs text-zinc-500 mt-0.5">Generate personalized level-wise question PDFs for placed students.</p>
+                <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-sm">📄 Level-Wise Paper Generator</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Generate personalized level-wise question PDFs for placed students.</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-zinc-200 text-zinc-500 border border-zinc-300">
+                <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-600">
                   {classStudents.filter(s => s.levelHistory.length > 0).length} Placed
                 </span>
                 <button
@@ -2140,15 +2285,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                         >
                           Print L{s.currentLevel}.{s.currentSubLevel || 0}
                         </button>
-                        <a
-                          href={`/worksheets/levels_main.html?level=${s.currentLevel}&sub=${s.currentSubLevel || 0}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1"
-                          title="Open in-browser interactive generator for this specific level"
-                        >
-                          🌐 Interactive
-                        </a>
+                        {/* Interactive generator link removed */}
                       </div>
                     )
                   }
@@ -2430,14 +2567,14 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
       );
     } else {
       return (
-        <div className="p-8 max-w-md mx-auto bg-white border border-zinc-200 rounded-2xl shadow-sm text-center space-y-4 my-12" id="no-classes-fallback">
-          <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto">
+        <div className="p-8 max-w-md mx-auto bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm text-center space-y-4 my-12" id="no-classes-fallback">
+          <div className="w-12 h-12 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="font-display font-semibold text-zinc-950 text-base">No Classes Found</h3>
-          <p className="text-sm text-zinc-500">You must have at least one registered classroom to open the Exam Worksheets Personalization Portal.</p>
+          <h3 className="font-display font-semibold text-zinc-950 dark:text-white text-base">No Classes Found</h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">You must have at least one registered classroom to open the Exam Worksheets Personalization Portal.</p>
           <button
             onClick={() => setShowWorksheetPortal(false)}
             className="px-4 py-2 bg-zinc-950 text-white font-mono font-medium text-xs rounded-lg hover:bg-zinc-850 cursor-pointer animate-pulse"
@@ -2554,7 +2691,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
             key={c.id}
             onClick={() => setActiveClass(c)}
             className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
-              activeClass?.id === c.id ? 'border-zinc-900 text-zinc-900 font-semibold' : 'border-transparent text-zinc-500 hover:text-zinc-700'
+              activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
           >
             {c.className} - {c.section}
@@ -2625,9 +2762,9 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
 
             {/* Inline diagnostic bulk progress */}
             {(bulkJob || bulkLoading || bulkError) && (
-              <div className="pt-2 border-t border-zinc-100 space-y-3">
+              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-3">
                 {bulkError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">⚠️ {bulkError}</div>
+                  <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-700 dark:text-red-300">⚠️ {bulkError}</div>
                 )}
                 {bulkJob && (
                   <>
@@ -2654,7 +2791,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                       </div>
                     )}
                     {bulkJob.status === 'failed' && (
-                      <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">{bulkJob.error || 'Generation failed.'}</div>
+                      <div className="p-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-300">{bulkJob.error || 'Generation failed.'}</div>
                     )}
                   </>
                 )}
@@ -2720,7 +2857,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
 
             {/* Inline level-wise progress */}
             {levelBulkProgress && (
-              <div className="pt-2 border-t border-zinc-100 space-y-3">
+              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-3">
                 <div className="flex justify-between text-xs font-mono text-zinc-500">
                   <span>Progress: {levelBulkProgress.completed} / {levelBulkProgress.total} papers</span>
                   <span className={`font-semibold ${levelBulkLoading ? 'text-blue-600' : 'text-green-600'}`}>
@@ -2802,15 +2939,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                         >
                           Print L{s.currentLevel}.{s.currentSubLevel || 0}
                         </button>
-                        <a
-                          href={`/worksheets/levels_main.html?level=${s.currentLevel}&sub=${s.currentSubLevel || 0}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1"
-                          title="Open in-browser interactive generator for this specific level"
-                        >
-                          🌐 Interactive
-                        </a>
+                        {/* Interactive generator link removed */}
                       </div>
                     )
                   }

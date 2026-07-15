@@ -1,23 +1,20 @@
-import express from 'express';
+import dotenv from 'dotenv';
 import path from 'path';
-import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement } from './db';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+import express from 'express';
+import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
-import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-
-// Worksheet HTML templates live in the frontend package (they are also served
-// to the browser). The backend reads them for Puppeteer PDF rendering.
-// Overridable so the two packages can be deployed independently.
-const WORKSHEET_ASSETS_DIR =
-  process.env.WORKSHEET_ASSETS_DIR ||
-  path.resolve(ROOT_DIR, '..', 'frontend', 'public', 'worksheets');
 
 async function startServer() {
   // Initialize file-based DB
@@ -28,7 +25,7 @@ async function startServer() {
 
   // Serve Puppeteer output PDF sheets statically
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
-  app.use('/worksheets', express.static(WORKSHEET_ASSETS_DIR));
+  app.use('/worksheets', express.static(path.join(ROOT_DIR, 'public', 'worksheets')));
   // --- Auth Middleware & Helper ---
   // A simple token-based auth helper. Token is email address for easy stateless authentication.
   function getAuthUser(req: express.Request): User | null {
@@ -37,8 +34,7 @@ async function startServer() {
     const email = authHeader.replace('Bearer ', '').trim();
     
     // Find preseeded user in database
-    const users = (dbStore as any).data?.users || [];
-    const found = users.find((u: User) => u.email.toLowerCase() === email.toLowerCase());
+    const found = dbStore.getUserSync(email);
     if (found) return found;
 
     // Direct fallback mapping if not pre-seeded but conforms to email format
@@ -236,7 +232,6 @@ async function startServer() {
     const logs = await dbStore.getLogbook();
     res.json(logs);
   });
-
   // Admin Creation (by Superadmin)
   app.post('/api/admin/create', async (req, res) => {
     const user = getAuthUser(req);
@@ -244,7 +239,7 @@ async function startServer() {
       return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
     }
 
-    const { name, email, password, role, stateCode, districtCode, blockCode } = req.body;
+    const { name, email, password, role, stateCode, districtCode, blockCode, schoolId, assignedSchools } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
@@ -269,7 +264,9 @@ async function startServer() {
       role: role as UserRole,
       stateCode: stateCode ? stateCode.toUpperCase() : undefined,
       districtCode: districtCode ? districtCode.toUpperCase() : undefined,
-      blockCode: blockCode ? blockCode.toUpperCase() : undefined
+      blockCode: blockCode ? blockCode.toUpperCase() : undefined,
+      schoolId: schoolId || undefined,
+      assignedSchools: assignedSchools || undefined
     };
 
     await dbStore.addUser(newUser);
@@ -285,7 +282,7 @@ async function startServer() {
       userRole: user.role,
       activityType: 'verify',
       status: 'Success',
-      details: `Superadmin created dynamic coordinator: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
+      details: `Superadmin created account: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
     });
 
     res.json(newUser);
@@ -295,6 +292,52 @@ async function startServer() {
   app.get('/api/schools', async (req, res) => {
     const schools = await dbStore.getSchools();
     res.json(schools);
+  });
+
+  app.post('/api/schools', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.SUPERADMIN) {
+      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
+    }
+
+    const { id, name, stateCode, districtCode, blockCode, strength } = req.body;
+    if (!id || !name || !stateCode || !districtCode || !blockCode) {
+      return res.status(400).json({ error: 'Missing required school fields.' });
+    }
+
+    const schools = await dbStore.getSchools();
+    if (schools.some(s => s.id.toLowerCase() === id.toLowerCase())) {
+      return res.status(400).json({ error: 'School ID already exists.' });
+    }
+
+    const newSch: School = {
+      id: id.toLowerCase(),
+      name,
+      stateCode: stateCode.toUpperCase(),
+      districtCode: districtCode.toUpperCase(),
+      blockCode: blockCode.toUpperCase(),
+      strength: strength || 'low',
+      teachersCount: 0,
+      isAccessLocked: false
+    };
+
+    await dbStore.addSchool(newSch);
+
+    // Add Log entry
+    await dbStore.addLog({
+      id: 'log_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      schoolId: newSch.id,
+      schoolName: newSch.name,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'verify',
+      status: 'Success',
+      details: `Superadmin onboarded a new school: ${newSch.name} (ID: ${newSch.id})`
+    });
+
+    res.json(newSch);
   });
 
   // Classes
@@ -516,9 +559,7 @@ async function startServer() {
 
     // Connect to Python Evaluation Metrics Pipeline
     const dateStr = new Date().toISOString().split('T')[0];
-    // AI evaluation pipeline lives in the top-level `ai-services/` folder.
-    // Overridable via AI_SERVICES_DIR so the backend can be relocated independently.
-    const pipelineDir = process.env.AI_SERVICES_DIR || path.resolve(ROOT_DIR, '..', 'ai-services');
+    const pipelineDir = path.join(ROOT_DIR, 'evaluation_metrics');
     const responseDir = path.join(pipelineDir, 'student_responses', `class_${classNumber}`, 'phrase_1');
     fs.mkdirSync(responseDir, { recursive: true });
 
@@ -643,7 +684,7 @@ async function startServer() {
     });
 
     // Create a special Evaluation Report with dynamic mock concept mastery
-    const conceptMastery: { [key: string]: string } = {
+    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {
       'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
       'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
       'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
@@ -693,132 +734,6 @@ async function startServer() {
     });
 
     res.json({ student, evaluation: { score, recommendedLevel, narrative }, report });
-  });
-
-  // Upload a baseline answer sheet (ICR-style JSON) for a student and run the
-  // real ai-services evaluation pipeline to place them at an FLN level.
-  //
-  // Body: { classNumber: number, studentName?: string,
-  //         answers: { "Q1": "A", "Q2": "5", ... } }
-  //
-  // The answers are graded against the stored baseline exam key in
-  // ai-services/questions/class_<N>/. The student does NOT need to exist in the
-  // backend DB (the two stores are not yet unified); if the id does match a
-  // stored student, their level/history is updated as a side effect.
-  app.post('/api/students/:id/baseline/submit', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-
-    const studentId = req.params.id;
-    const { answers } = req.body || {};
-    if (!answers || typeof answers !== 'object' || Array.isArray(answers) || Object.keys(answers).length === 0) {
-      return res.status(400).json({ error: 'Body must include a non-empty "answers" object, e.g. {"Q1":"A","Q2":"5"}.' });
-    }
-
-    // Resolve class + name: prefer a matching stored student, else the body.
-    const students = await dbStore.getStudents();
-    const existing = students.find(s => s.id === studentId);
-    const classNumber = existing
-      ? (existing.classGroup.match(/\d+/) ? parseInt(existing.classGroup.match(/\d+/)![0], 10) : 1)
-      : parseInt(String(req.body?.classNumber ?? ''), 10);
-    if (!classNumber || Number.isNaN(classNumber)) {
-      return res.status(400).json({ error: 'classNumber is required (1-4) when the student is not in the backend database.' });
-    }
-    const studentName = existing?.name || req.body?.studentName || studentId;
-
-    const dateStr = new Date().toISOString().split('T')[0];
-    const pipelineDir = process.env.AI_SERVICES_DIR || path.resolve(ROOT_DIR, '..', 'ai-services');
-    const responseDir = path.join(pipelineDir, 'student_responses', `class_${classNumber}`, 'phrase_1');
-    fs.mkdirSync(responseDir, { recursive: true });
-
-    // Normalise the flat ICR answers into the pipeline's expected shape.
-    const pipelineAnswers: { [qId: string]: { answer: string; confidence: number } } = {};
-    for (const [qId, val] of Object.entries(answers as Record<string, unknown>)) {
-      pipelineAnswers[qId] = { answer: String(val), confidence: 0.95 };
-    }
-
-    const studentResponse = {
-      student_id: studentId,
-      student_name: studentName,
-      enrolled_class: classNumber,
-      test_date: dateStr,
-      phrase: 'phrase_1',
-      exam_id: `C${classNumber}_WORKSHEET_PHRASE_1`,
-      answers: pipelineAnswers
-    };
-    fs.writeFileSync(path.join(responseDir, `${studentId}.json`), JSON.stringify(studentResponse, null, 2));
-
-    // Run the evaluation pipeline (it has an offline deterministic fallback, so
-    // this works without an LLM API key; a key just improves placement quality).
-    let assignedLevel = 1;
-    let narrative = '';
-    let evaluationData: any = null;
-    try {
-      const { execSync } = await import('child_process');
-      execSync(`python run_pipeline.py ${classNumber} phrase_1 ${studentId}`, {
-        cwd: pipelineDir,
-        env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-      });
-
-      const evalReportPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'evaluation', `${studentId}_evaluation_${dateStr}.json`);
-      const reportTxtPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'reports', `${studentId}_report_${dateStr}.txt`);
-
-      if (fs.existsSync(evalReportPath)) {
-        evaluationData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
-        const levelStr = String(evaluationData.demonstrated_level ?? evaluationData.assigned_level ?? '1');
-        const lvlMatch = levelStr.match(/\d+/);
-        if (lvlMatch) {
-          const matchedNum = parseInt(lvlMatch[0], 10);
-          assignedLevel = levelStr.toLowerCase().includes('class') ? (matchedNum - 1) * 10 + 1 : matchedNum;
-        }
-      }
-      if (fs.existsSync(reportTxtPath)) {
-        narrative = fs.readFileSync(reportTxtPath, 'utf-8');
-      }
-    } catch (pipelineErr: any) {
-      console.error('Baseline evaluation pipeline failed:', pipelineErr?.message || pipelineErr);
-      return res.status(502).json({ error: 'Evaluation pipeline failed. Ensure Python is installed and on PATH.' });
-    }
-
-    assignedLevel = Math.max(1, Math.min(59, assignedLevel));
-
-    // If the student exists in the backend DB, persist the placement.
-    if (existing) {
-      const levelHistory = [...existing.levelHistory, {
-        level: assignedLevel,
-        subLevel: 0,
-        date: dateStr,
-        reason: 'Baseline Answer Sheet Upload'
-      }];
-      await dbStore.updateStudent(existing.id, {
-        currentLevel: assignedLevel,
-        targetLevel: Math.min(59, assignedLevel + 1),
-        levelHistory
-      });
-    }
-
-    await dbStore.addLog({
-      id: 'log_' + Date.now(),
-      timestamp: new Date().toISOString(),
-      schoolId: existing?.schoolId || '',
-      schoolName: 'GPS',
-      userId: user.id,
-      userEmail: user.email,
-      userRole: user.role,
-      activityType: 'scan',
-      status: 'Success',
-      details: `Uploaded baseline sheet for ${studentName} (Class ${classNumber}). Placed at Level ${assignedLevel}`
-    });
-
-    res.json({
-      studentId,
-      studentName,
-      classNumber,
-      assignedLevel,
-      recommendedAction: evaluationData?.recommended_action || evaluationData?.recommendation || null,
-      narrative,
-      evaluation: evaluationData
-    });
   });
 
   // Generate Personalized Class Worksheets
@@ -1202,6 +1117,29 @@ async function startServer() {
         activityType: 'scan',
         status: 'Success',
         details: `Successfully evaluated assessment sheet for ${student.name}.`
+      });
+    }
+
+    // Auto-detect intervention outcomes
+    const interventions = await dbStore.getInterventions();
+    const activeInterventions = interventions.filter(
+      i => i.studentId === studentId && i.status === 'active' && !i.outcome
+    );
+    for (const intv of activeInterventions) {
+      const improved = evaluation.recommendedLevel > intv.currentLevel;
+      await dbStore.updateIntervention(intv.id, {
+        status: 'completed',
+        endDate: now.toISOString().split('T')[0],
+        outcome: {
+          improved,
+          previousLevel: intv.currentLevel,
+          newLevel: evaluation.recommendedLevel,
+          improvementDetails: improved
+            ? `Auto-detected: Student improved from Level ${intv.currentLevel} to Level ${evaluation.recommendedLevel} after intervention targeting ${intv.weakCompetencies.join(', ')}.`
+            : `Auto-detected: Student remained at Level ${intv.currentLevel} after intervention. Further remediation may be needed.`,
+          assessmentId: report.id,
+          detectedAt: now.toISOString()
+        }
       });
     }
 
@@ -1691,10 +1629,208 @@ async function startServer() {
     }
   });
 
-  // The backend serves the API only. In development the frontend runs on its
-  // own Vite dev server (see frontend/) and proxies /api to this backend.
+  // --- Intervention Tracking & Best Practices Repository ---
+
+  // Create a new intervention
+  app.post('/api/interventions', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.TEACHER) {
+      return res.status(403).json({ error: 'Only teachers can record interventions.' });
+    }
+    const { studentId, weakCompetencies, strategyType, strategyDescription, duration, startDate } = req.body;
+    if (!studentId || !weakCompetencies?.length || !strategyType || !strategyDescription) {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+    const students = await dbStore.getStudents();
+    const student = students.find(s => s.id === studentId);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+    const intervention: Intervention = {
+      id: 'int_' + randomUUID().slice(0, 8),
+      studentId,
+      studentName: student.name,
+      teacherId: user.id,
+      teacherName: user.name,
+      schoolId: user.schoolId || student.schoolId,
+      classId: student.classGroup,
+      className: student.classGroup,
+      section: student.section,
+      weakCompetencies,
+      currentLevel: student.currentLevel,
+      strategyType,
+      strategyDescription,
+      duration: duration || '2 weeks',
+      startDate: startDate || new Date().toISOString().split('T')[0],
+      status: 'active',
+      isPromoted: false,
+      createdAt: new Date().toISOString()
+    };
+    await dbStore.addIntervention(intervention);
+    await dbStore.addLog({
+      id: 'log_' + randomUUID().slice(0, 8),
+      timestamp: new Date().toISOString(),
+      schoolId: user.schoolId || '',
+      schoolName: '',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'verify',
+      status: 'Success',
+      details: `INTERVENTION: Recorded remedial intervention for ${student.name} — Strategy: ${strategyType}`
+    });
+    res.json(intervention);
+  });
+
+  // List interventions (role-scoped)
+  app.get('/api/interventions', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    let interventions = await dbStore.getInterventions();
+
+    if (user.role === UserRole.TEACHER) {
+      interventions = interventions.filter(i => i.teacherId === user.id);
+    } else if (user.role === UserRole.SCHOOL) {
+      interventions = interventions.filter(i => i.schoolId === user.schoolId);
+    } else if (user.role === UserRole.VOLUNTEER) {
+      const assignedSchools = user.assignedSchools || [];
+      interventions = interventions.filter(i => assignedSchools.includes(i.schoolId));
+    } else if (user.role === UserRole.BLOCK_ADMIN) {
+      const schools = await dbStore.getSchools();
+      const blockSchools = schools.filter(s => s.blockCode === user.blockCode).map(s => s.id);
+      interventions = interventions.filter(i => blockSchools.includes(i.schoolId));
+    }
+    // District Admin, Admin, Superadmin see all
+    res.json(interventions);
+  });
+
+  // Get single intervention
+  app.get('/api/interventions/:id', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const interventions = await dbStore.getInterventions();
+    const intervention = interventions.find(i => i.id === req.params.id);
+    if (!intervention) return res.status(404).json({ error: 'Intervention not found.' });
+    res.json(intervention);
+  });
+
+  // Promote intervention to Best Practice (teacher only)
+  app.post('/api/interventions/:id/promote', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.TEACHER) {
+      return res.status(403).json({ error: 'Only teachers can promote interventions.' });
+    }
+    const interventions = await dbStore.getInterventions();
+    const intervention = interventions.find(i => i.id === req.params.id);
+    if (!intervention) return res.status(404).json({ error: 'Intervention not found.' });
+    if (intervention.teacherId !== user.id) {
+      return res.status(403).json({ error: 'You can only promote your own interventions.' });
+    }
+    if (!intervention.outcome?.improved) {
+      return res.status(400).json({ error: 'Only interventions with confirmed improvement can be promoted.' });
+    }
+    if (intervention.isPromoted) {
+      return res.status(400).json({ error: 'This intervention is already promoted.' });
+    }
+
+    const bp: BestPractice = {
+      id: 'bp_' + randomUUID().slice(0, 8),
+      interventionId: intervention.id,
+      teacherId: intervention.teacherId,
+      teacherName: intervention.teacherName,
+      schoolId: intervention.schoolId,
+      weakCompetencies: intervention.weakCompetencies,
+      strategyType: intervention.strategyType,
+      strategyDescription: intervention.strategyDescription,
+      levelBefore: intervention.outcome.previousLevel,
+      levelAfter: intervention.outcome.newLevel || intervention.outcome.previousLevel,
+      levelJump: (intervention.outcome.newLevel || 0) - intervention.outcome.previousLevel,
+      duration: intervention.duration,
+      tags: [
+        ...intervention.weakCompetencies,
+        intervention.strategyType.replace('_', ' '),
+        intervention.className
+      ],
+      viewCount: 0,
+      createdAt: new Date().toISOString()
+    };
+
+    await dbStore.addBestPractice(bp);
+    await dbStore.updateIntervention(intervention.id, { isPromoted: true, promotedAt: new Date().toISOString() });
+
+    await dbStore.addLog({
+      id: 'log_' + randomUUID().slice(0, 8),
+      timestamp: new Date().toISOString(),
+      schoolId: user.schoolId || '',
+      schoolName: '',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'verify',
+      status: 'Success',
+      details: `BEST PRACTICE: Teacher ${user.name} promoted intervention for ${intervention.studentName} to Best Practices Repository`
+    });
+    res.json(bp);
+  });
+
+  // Search/list Best Practices Repository (all roles)
+  app.get('/api/best-practices', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    let bestPractices = await dbStore.getBestPractices();
+    const { search, competency, strategy, sort } = req.query;
+
+    if (search && typeof search === 'string') {
+      const q = search.toLowerCase();
+      bestPractices = bestPractices.filter(bp =>
+        bp.strategyDescription.toLowerCase().includes(q) ||
+        bp.teacherName.toLowerCase().includes(q) ||
+        bp.weakCompetencies.some(c => c.toLowerCase().includes(q)) ||
+        bp.tags.some(t => t.toLowerCase().includes(q))
+      );
+    }
+    if (competency && typeof competency === 'string') {
+      bestPractices = bestPractices.filter(bp => bp.weakCompetencies.includes(competency));
+    }
+    if (strategy && typeof strategy === 'string') {
+      bestPractices = bestPractices.filter(bp => bp.strategyType === strategy);
+    }
+    if (sort === 'level_jump') {
+      bestPractices.sort((a, b) => b.levelJump - a.levelJump);
+    } else {
+      bestPractices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    res.json(bestPractices);
+  });
+
+  // Get single Best Practice (increment view count)
+  app.get('/api/best-practices/:id', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const bestPractices = await dbStore.getBestPractices();
+    const bp = bestPractices.find(b => b.id === req.params.id);
+    if (!bp) return res.status(404).json({ error: 'Best practice not found.' });
+    await dbStore.updateBestPractice(bp.id, { viewCount: (bp.viewCount || 0) + 1 });
+    res.json({ ...bp, viewCount: (bp.viewCount || 0) + 1 });
+  });
+
+  // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        root: path.resolve(ROOT_DIR, '..', 'frontend'),
+        server: { middlewareMode: true, hmr: false },
+        appType: "spa"
+      });
+      app.use(vite.middlewares);
+      console.log("[AI Studio] Vite development middleware mounted successfully");
+    } catch (err) {
+      console.warn("[AI Studio] Failed to load Vite dev middleware, falling back to static:", err);
+    }
+  } else {
     const distPath =
       process.env.FRONTEND_DIST_DIR ||
       path.resolve(ROOT_DIR, '..', 'frontend', 'dist');

@@ -4,10 +4,6 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {BrowserRouter} from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
-import { setupFetchInterceptor } from './mock/fetchInterceptor';
-
-// Initialize full client-side mock backend interceptor
-setupFetchInterceptor();
 
 const queryClient = new QueryClient({
   defaultOptions: {
