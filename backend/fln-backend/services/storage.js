@@ -95,7 +95,19 @@ async function zipBatch(batchId, writableStream) {
         await addDir(fullPath, relPath);
       } else {
         const data = await fsp.readFile(fullPath);
-        zip.file(relPath.split(path.sep).join('/'), data);
+        const zipPath = relPath.split(path.sep).join('/');
+        zip.file(zipPath, data);
+
+        // If it is a worksheet.pdf, also add a flat copy to 'all_worksheets/'
+        if (entry.name === 'worksheet.pdf') {
+          const parts = relPath.split(path.sep);
+          if (parts.length >= 3) {
+            const studentFolder = parts[parts.length - 3];
+            const subFolder = parts[parts.length - 2];
+            const flatName = `all_worksheets/${studentFolder}_${subFolder}.pdf`;
+            zip.file(flatName, data);
+          }
+        }
       }
     }
   }
