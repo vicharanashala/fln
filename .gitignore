@@ -1,6 +1,22 @@
-archive/
-node_modules
-
+# Dependencies
 node_modules/
-.DS_Store
+
+# Build outputs
+dist/
+output/
+archive/
+
+# Environment / secrets
 .env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log

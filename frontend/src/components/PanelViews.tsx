@@ -63,18 +63,7 @@ const USERS_MOCK = [
   { name: 'Rahul Kumar', email: 'vol.rahul@fln.org', role: 'Volunteer', scope: 'Moga Villages', status: 'Active' },
 ];
 
-const QUESTION_BANK = [
-  { id: 'QB-001', topic: 'Number Sense', level: 4, question: 'Count the number of apples: 🍎🍎🍎🍎', type: 'MCQ', difficulty: 'Easy' },
-  { id: 'QB-002', topic: 'Number Sense', level: 8, question: 'What comes after 15?', type: 'Text', difficulty: 'Easy' },
-  { id: 'QB-003', topic: 'Addition', level: 12, question: 'What is 7 + 5?', type: 'Number', difficulty: 'Easy' },
-  { id: 'QB-004', topic: 'Subtraction', level: 16, question: 'What is 23 - 8?', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-005', topic: 'Multiplication', level: 41, question: 'What is 6 × 7?', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-006', topic: 'Division', level: 42, question: 'Divide 24 by 6', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-007', topic: 'Fractions', level: 45, question: 'Which is larger: 1/2 or 1/4?', type: 'MCQ', difficulty: 'Hard' },
-  { id: 'QB-008', topic: 'Place Value', level: 36, question: 'What is the value of 7 in 372?', type: 'Text', difficulty: 'Medium' },
-  { id: 'QB-009', topic: 'Measurement', level: 43, question: 'How many cm in 1 meter?', type: 'Number', difficulty: 'Easy' },
-  { id: 'QB-010', topic: 'Money', level: 46, question: 'You have ₹50. You buy a toy for ₹35. How much change?', type: 'Number', difficulty: 'Hard' },
-];
+// Question Bank removed — placeholder data deleted
 
 const WS_TEMPLATES = [
   { id: 'WST-001', name: 'Baseline Assessment L1-L5', grade: 'Preschool 1-2', questions: 8, duration: '30 min', status: 'Published' },
@@ -162,11 +151,11 @@ const SYSTEM_LOGS_MOCK = [
 
 function PageHeader({ title, desc, icon }: { title: string; desc: string; icon?: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
-      {icon && <div className="text-slate-500">{icon}</div>}
+    <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-4">
+      {icon && <div className="text-slate-500 dark:text-slate-400">{icon}</div>}
       <div>
-        <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-        <p className="text-xs text-slate-500">{desc}</p>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{desc}</p>
       </div>
     </div>
   );
@@ -174,8 +163,8 @@ function PageHeader({ title, desc, icon }: { title: string; desc: string; icon?:
 
 function EmptyStudents() {
   const cols: Column<Student>[] = [
-    { header: 'ID', accessor: 'id', className: 'font-mono text-xs text-slate-400' },
-    { header: 'Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-800' },
+    { header: 'ID', accessor: 'id', className: 'font-mono text-xs text-slate-400 dark:text-slate-500' },
+    { header: 'Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-800 dark:text-slate-100' },
     { header: 'Class', accessor: 'classGroup', className: '' },
     { header: 'Level', accessor: (s) => `L${s.currentLevel}.${s.currentSubLevel ?? 0}`, className: 'font-mono' },
     { header: 'Streak', accessor: (s) => `${s.streak} 🔥`, className: '' },
@@ -188,6 +177,13 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [stateFilter, setStateFilter] = useState('all');
   const [distFilter, setDistFilter] = useState('all');
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
+  const [sel, setSel] = useState(STUDENTS_MOCK[0].id);
+  const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<'all' | 'assessment' | 'level_change'>('all');
+  const [expandedDistRpt, setExpandedDistRpt] = useState<string | null>(null);
+  const [expandedDist, setExpandedDist] = useState<string | null>(null);
 
   const filteredSchools = SCHOOLS_MOCK.filter(s => {
     if (stateFilter !== 'all' && s.stateCode !== stateFilter) return false;
@@ -330,7 +326,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   // ===================== TEACHER PANELS =====================
   if (panel === 'student_list') {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Student Roster" desc="Complete list of registered students across your classes" icon={<Users className="h-5 w-5" />} />
         <EmptyStudents />
       </div>
@@ -338,11 +334,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'student_profile') {
-    const [sel, setSel] = useState(STUDENTS_MOCK[0].id);
-    const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showDropdown, setShowDropdown] = useState(false);
-    const [activityFilter, setActivityFilter] = useState<'all' | 'assessment' | 'level_change'>('all');
     const s = STUDENTS_MOCK.find(x => x.id === sel) || STUDENTS_MOCK[0];
 
     const filteredStudents = STUDENTS_MOCK.filter(x =>
@@ -381,54 +372,54 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const filteredActivity = activityFilter === 'all' ? recentActivity : recentActivity.filter(a => a.type === activityFilter);
 
-    const tabs = [
-      { key: 'overview' as const, label: 'Overview', icon: BarChart3 },
-      { key: 'academic' as const, label: 'Academic Record', icon: BookOpen },
-      { key: 'personal' as const, label: 'Personal Details', icon: Users },
-      { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
-    ];
+      const tabs = [
+        { key: 'overview' as const, label: 'Overview', icon: BarChart3 },
+        { key: 'academic' as const, label: 'Academic Record', icon: BookOpen },
+        { key: 'personal' as const, label: 'Personal Details', icon: Users },
+        { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
+      ];
 
     return (
       <div className="space-y-6">
         {/* Student selector header */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center text-xl font-bold shrink-0 shadow-md">{s.name.charAt(0)}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
-                <h2 className="text-xl font-bold text-slate-900 truncate">{s.name}</h2>
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">ID: {s.id}</span>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.levelHistory.length > 0 ? 'text-green-700 bg-green-50 border border-green-200' : 'text-amber-700 bg-amber-50 border border-amber-200'}`}>{s.levelHistory.length > 0 ? 'Active' : 'Pending Diagnostic'}</span>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white truncate">{s.name}</h2>
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">ID: {s.id}</span>
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.levelHistory.length > 0 ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.levelHistory.length > 0 ? 'Active' : 'Pending Diagnostic'}</span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5 truncate"><strong>{studentSchool?.name || 'N/A'}</strong> · {s.classGroup} - {s.section} · Enrolled {daysSinceEnroll} days ago</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate"><strong>{studentSchool?.name || 'N/A'}</strong> · {s.classGroup} - {s.section} · Enrolled {daysSinceEnroll} days ago</p>
             </div>
             {/* Searchable student selector */}
             <div className="relative shrink-0">
-              <button onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-2 text-sm border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50 min-w-[180px] text-left">
-                <Search className="w-3.5 h-3.5 text-slate-400" />
+              <button onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 min-w-[180px] text-left">
+                <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 <span className="flex-1 truncate">{s.name}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
               </button>
               {showDropdown && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-20 overflow-hidden">
-                    <div className="p-2 border-b border-slate-100">
-                      <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search students..." className="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:border-indigo-400" />
+                  <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden">
+                    <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                      <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search students..." className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
                     </div>
                     <div className="max-h-56 overflow-y-auto">
                       {filteredStudents.length === 0 ? (
-                        <p className="text-xs text-slate-400 text-center py-4">No students found</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-4">No students found</p>
                       ) : filteredStudents.map(x => {
                         const isSelected = x.id === sel;
                         const xAtt = ATTENDANCE_MOCK.find(a => a.student === x.name);
                         return (
                           <button key={x.id} onClick={() => { setSel(x.id); setProfileTab('overview'); setShowDropdown(false); setSearchQuery(''); }}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors ${isSelected ? 'bg-indigo-50' : ''}`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>{x.name.charAt(0)}</div>
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-950' : ''}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>{x.name.charAt(0)}</div>
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm font-semibold text-slate-800 truncate">{x.name}</div>
-                              <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                              <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{x.name}</div>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500">
                                 <span>{x.classGroup}-{x.section}</span>
                                 <span className="font-mono font-bold">L{x.currentLevel}</span>
                                 {xAtt && <span className={xAtt.percentage >= 85 ? 'text-emerald-500' : 'text-amber-500'}>{xAtt.percentage}%</span>}
@@ -445,19 +436,19 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             </div>
           </div>
           {/* Quick Stats Bar */}
-          <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 mt-4 pt-4 border-t border-slate-100">
-            <div className="text-center"><div className="text-lg font-bold text-slate-900">{reports.length}</div><div className="text-[9px] font-mono text-slate-400 uppercase">Assessments</div></div>
-            <div className="text-center"><div className={`text-lg font-bold ${avgScore >= 70 ? 'text-emerald-600' : avgScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{avgScore > 0 ? `${avgScore}%` : '—'}</div><div className="text-[9px] font-mono text-slate-400 uppercase">Avg Score</div></div>
-            <div className="text-center"><div className="text-lg font-bold text-amber-600">L{s.currentLevel}</div><div className="text-[9px] font-mono text-slate-400 uppercase">Current Level</div></div>
-            <div className="text-center"><div className="text-lg font-bold text-slate-900">{s.streak}</div><div className="text-[9px] font-mono text-slate-400 uppercase">Day Streak</div></div>
-            <div className="text-center hidden sm:block"><div className={`text-lg font-bold ${att ? (att.percentage >= 85 ? 'text-emerald-600' : 'text-amber-600') : 'text-slate-400'}`}>{att ? `${att.percentage}%` : '—'}</div><div className="text-[9px] font-mono text-slate-400 uppercase">Attendance</div></div>
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{reports.length}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Assessments</div></div>
+            <div className="text-center"><div className={`text-lg font-bold ${avgScore >= 70 ? 'text-emerald-600' : avgScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{avgScore > 0 ? `${avgScore}%` : '—'}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Avg Score</div></div>
+            <div className="text-center"><div className="text-lg font-bold text-amber-600">L{s.currentLevel}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Current Level</div></div>
+            <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{s.streak}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Day Streak</div></div>
+            <div className="text-center hidden sm:block"><div className={`text-lg font-bold ${att ? (att.percentage >= 85 ? 'text-emerald-600' : 'text-amber-600') : 'text-slate-400'}`}>{att ? `${att.percentage}%` : '—'}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Attendance</div></div>
           </div>
         </div>
 
         {/* Tab navigation */}
-        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit">
+        <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 w-fit">
           {tabs.map(t => (
-            <button key={t.key} onClick={() => setProfileTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${profileTab === t.key ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}>
+            <button key={t.key} onClick={() => setProfileTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${profileTab === t.key ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>
               <t.icon className="w-3.5 h-3.5" /> {t.label}
             </button>
           ))}
@@ -481,26 +472,26 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
               </div>
 
               {/* Class Comparison */}
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">Class Comparison</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Class Comparison</h3>
                 <div className="space-y-3">
-                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500">This Student</span><span className="font-bold text-indigo-600">L{s.currentLevel}</span></div><div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${(s.currentLevel / 59) * 100}%` }} /></div></div>
-                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500">Class Average ({classStudents.length} students)</span><span className="font-bold text-slate-700">L{classAvg}</span></div><div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-slate-500 rounded-full transition-all" style={{ width: `${(classAvg / 59) * 100}%` }} /></div></div>
-                  <div className={`p-2 rounded-lg text-xs font-medium text-center ${s.currentLevel > classAvg ? 'bg-emerald-50 text-emerald-700' : s.currentLevel === classAvg ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500 dark:text-slate-400">This Student</span><span className="font-bold text-indigo-600">L{s.currentLevel}</span></div><div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${(s.currentLevel / 59) * 100}%` }} /></div></div>
+                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500 dark:text-slate-400">Class Average ({classStudents.length} students)</span><span className="font-bold text-slate-700 dark:text-slate-200">L{classAvg}</span></div><div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-slate-500 rounded-full transition-all" style={{ width: `${(classAvg / 59) * 100}%` }} /></div></div>
+                  <div className={`p-2 rounded-lg text-xs font-medium text-center ${s.currentLevel > classAvg ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : s.currentLevel === classAvg ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300'}`}>
                     {s.currentLevel > classAvg ? `↑ ${s.currentLevel - classAvg} levels above class average` : s.currentLevel === classAvg ? 'At class average' : `↓ ${classAvg - s.currentLevel} levels below class average`}
                   </div>
                 </div>
                 {/* Class rank */}
-                <div className="pt-2 border-t border-slate-100">
-                  <div className="flex justify-between text-xs"><span className="text-slate-500">Class Rank</span><span className="font-bold font-mono text-slate-800">#{classStudents.sort((a, b) => b.currentLevel - a.currentLevel).findIndex(x => x.id === s.id) + 1} / {classStudents.length}</span></div>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between text-xs"><span className="text-slate-500 dark:text-slate-400">Class Rank</span><span className="font-bold font-mono text-slate-800 dark:text-slate-100">#{classStudents.sort((a, b) => b.currentLevel - a.currentLevel).findIndex(x => x.id === s.id) + 1} / {classStudents.length}</span></div>
                 </div>
               </div>
 
               {/* Quick Info */}
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-2.5 text-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-2">Quick Info</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-2.5 text-sm">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Quick Info</h3>
                 {[['Age', `${s.age} yrs`], ['Gender', profile.gender], ['Blood Group', profile.bloodGroup], ['Guardian', profile.guardian], ['Contact', profile.contact], ['Attendance', att ? `${att.present}/${att.total} (${att.percentage}%)` : 'N/A']].map(([l, v]) => (
-                  <div key={l as string} className="flex justify-between border-b border-slate-50 pb-1.5"><span className="text-slate-500">{l}</span><span className="font-medium text-slate-800">{v || 'N/A'}</span></div>
+                  <div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v || 'N/A'}</span></div>
                 ))}
               </div>
             </div>
@@ -508,10 +499,10 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             <div className="lg:col-span-2 space-y-6">
               {/* Score Trend Chart */}
               {reports.length > 0 && (
-                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                  <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-4">Score Trend</h3>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                  <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">Score Trend</h3>
                   <div className="relative">
-                    <div className="flex items-end gap-3 h-40 border-b border-l border-slate-200 ml-8 pb-2 pl-2">
+                    <div className="flex items-end gap-3 h-40 border-b border-l border-slate-200 dark:border-slate-700 ml-8 pb-2 pl-2">
                       {reports.map((r, i) => {
                         const pct = Math.round((r.score / r.totalQuestions) * 100);
                         const barH = Math.max(pct * 0.8, 10);
@@ -522,12 +513,12 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                               <span className="text-[10px] font-mono font-bold bg-slate-900 text-white px-2 py-0.5 rounded whitespace-nowrap">{pct}%</span>
                               <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
                             </div>
-                            <span className="text-[9px] font-mono font-bold text-slate-500">{pct}%</span>
-                            <div className="w-full bg-slate-100 rounded-t-lg relative overflow-hidden flex-1 self-stretch" style={{ height: `${barH}px` }}>
+                            <span className="text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400">{pct}%</span>
+                            <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-t-lg relative overflow-hidden flex-1 self-stretch" style={{ height: `${barH}px` }}>
                               <div className={`absolute bottom-0 inset-x-0 rounded-t-lg transition-all ${pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ height: `${pct}%` }} />
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-[8px] font-mono text-slate-400">{new Date(r.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                              <span className="text-[8px] font-mono text-slate-400 dark:text-slate-500">{new Date(r.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                               <span className={`text-[8px] ${isUp ? 'text-emerald-500' : 'text-red-500'}`}>{isUp ? '↑' : '↓'}</span>
                             </div>
                           </div>
@@ -535,7 +526,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                       })}
                     </div>
                     {reports.length >= 2 && (
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-4 text-[10px] text-slate-500">
+                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-400">
                         <span>Trend: <strong className={avgScore >= 70 ? 'text-emerald-600' : 'text-amber-600'}>{avgScore}% avg</strong></span>
                         <span>Best: <strong className="text-emerald-600">{Math.max(...reports.map(r => Math.round((r.score / r.totalQuestions) * 100)))}%</strong></span>
                         <span>Last: <strong>{Math.round((reports[reports.length - 1].score / reports[reports.length - 1].totalQuestions) * 100)}%</strong></span>
@@ -546,34 +537,34 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
               )}
 
               {/* Level Journey */}
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-4">Level Journey</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">Level Journey</h3>
                 {s.levelHistory.length > 0 ? (
-                  <div className="space-y-0 relative before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                  <div className="space-y-0 relative before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                     {[...s.levelHistory].reverse().map((lh, i) => (
                       <div key={i} className="flex gap-4 pb-4 relative pl-2">
                         <div className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow mt-1 shrink-0 z-10" />
-                        <div className="flex-1"><div className="flex justify-between"><div><span className="font-bold text-sm text-slate-900">Level {lh.level}{lh.subLevel !== undefined ? `.${lh.subLevel}` : ''}</span><p className="text-xs text-slate-500">{lh.reason}</p></div><span className="text-[10px] font-mono text-slate-400 shrink-0">{lh.date}</span></div></div>
+                        <div className="flex-1"><div className="flex justify-between"><div><span className="font-bold text-sm text-slate-900 dark:text-white">Level {lh.level}{lh.subLevel !== undefined ? `.${lh.subLevel}` : ''}</span><p className="text-xs text-slate-500 dark:text-slate-400">{lh.reason}</p></div><span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0">{lh.date}</span></div></div>
                       </div>
                     ))}
                   </div>
-                ) : <div className="text-center py-6"><p className="text-xs text-slate-400">No level history yet.</p></div>}
+                ) : <div className="text-center py-6"><p className="text-xs text-slate-400 dark:text-slate-500">No level history yet.</p></div>}
                 {s.levelHistory.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-slate-100">
-                    <h4 className="text-[10px] font-mono font-bold text-slate-400 uppercase mb-2">Next Targets</h4>
+                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <h4 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-2">Next Targets</h4>
                     <div className="flex items-center gap-1 text-[10px] font-mono flex-wrap">
                       {Array.from({ length: Math.min(5, s.targetLevel - s.currentLevel + 1) }, (_, i) => s.currentLevel + i).map((lvl, i) => (
-                        <React.Fragment key={lvl}>{i > 0 && <span className="text-slate-300">→</span>}<span className={`px-2 py-0.5 rounded border ${lvl <= s.currentLevel ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>L{lvl}</span></React.Fragment>
+                        <React.Fragment key={lvl}>{i > 0 && <span className="text-slate-300 dark:text-slate-600">→</span>}<span className={`px-2 py-0.5 rounded border ${lvl <= s.currentLevel ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 font-bold' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>L{lvl}</span></React.Fragment>
                       ))}
-                      {s.targetLevel > s.currentLevel + 5 && <span className="text-slate-300">… → L{s.targetLevel}</span>}
+                      {s.targetLevel > s.currentLevel + 5 && <span className="text-slate-300 dark:text-slate-600">… → L{s.targetLevel}</span>}
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Skills Grid */}
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-4">Skill Proficiency</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">Skill Proficiency</h3>
                 {latestSkills.length > 0 ? (
                   <div className="grid grid-cols-2 gap-2">
                     {latestSkills.map(([topic, mastery]) => {
@@ -581,21 +572,21 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                       const history = allSkills.get(topic) || [];
                       const improving = history.length >= 2 && history[0].mastery !== history[history.length - 1].mastery;
                       return (
-                        <div key={topic} className="border border-slate-100 rounded-lg p-3">
+                        <div key={topic} className="border border-slate-100 dark:border-slate-800 rounded-lg p-3">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-semibold text-slate-700">{topic}</span>
-                            <span className={`flex items-center gap-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${mastery === 'Strong' ? 'bg-emerald-50 text-emerald-700' : mastery === 'Satisfactory' ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}>
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{topic}</span>
+                            <span className={`flex items-center gap-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${mastery === 'Strong' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : mastery === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300'}`}>
                               {mastery}
                               {improving && <span className="text-emerald-500">↑</span>}
                             </span>
                           </div>
-                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div className={`h-full rounded-full transition-all ${mastery === 'Strong' ? 'bg-emerald-500' : mastery === 'Satisfactory' ? 'bg-blue-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
                           </div>
                           {history.length >= 2 && (
                             <div className="flex gap-1 mt-1.5">
                               {history.map((h, hi) => (
-                                <span key={hi} className={`text-[7px] font-mono px-1 py-0.5 rounded ${h.mastery === 'Strong' ? 'bg-emerald-50 text-emerald-600' : h.mastery === 'Satisfactory' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>
+                                <span key={hi} className={`text-[7px] font-mono px-1 py-0.5 rounded ${h.mastery === 'Strong' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400' : h.mastery === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400' : 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400'}`}>
                                   {h.mastery === 'Strong' ? 'S' : h.mastery === 'Satisfactory' ? 'Sat' : 'NP'}
                                 </span>
                               ))}
@@ -605,23 +596,23 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                       );
                     })}
                   </div>
-                ) : <div className="text-center py-6"><p className="text-xs text-slate-400">No skill data yet.</p></div>}
+                ) : <div className="text-center py-6"><p className="text-xs text-slate-400 dark:text-slate-500">No skill data yet.</p></div>}
               </div>
 
               {/* Teacher Notes */}
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Teacher Notes</h3>
-                <div className="text-sm text-slate-700 bg-amber-50 border border-amber-200 rounded-lg p-4 leading-relaxed">{profile.notes || 'No notes recorded.'}</div>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Teacher Notes</h3>
+                <div className="text-sm text-slate-700 dark:text-slate-200 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 leading-relaxed">{profile.notes || 'No notes recorded.'}</div>
               </div>
 
               {/* Recommended Focus */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-blue-700 uppercase tracking-wider mb-3 flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Recommended Focus Areas</h3>
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border border-blue-200 dark:border-blue-800 rounded-xl p-5 shadow-sm">
+                <h3 className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Recommended Focus Areas</h3>
                 <div className="space-y-2">
                   {weakAreas.length > 0 ? weakAreas.map(topic => (
-                    <div key={topic} className="flex items-center gap-2 text-sm text-slate-700 bg-white/60 rounded-lg px-3 py-2 border border-blue-100"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />Additional practice recommended for <strong>{topic}</strong></div>
-                  )) : reports.length > 0 ? <div className="flex items-center gap-2 text-sm text-slate-700 bg-white/60 rounded-lg px-3 py-2 border border-blue-100"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />All skills at expected level — no focus areas needed</div> : <div className="text-sm text-slate-500">Complete a diagnostic assessment to generate recommendations.</div>}
-                  {s.currentLevel < 59 && <div className="flex items-center gap-2 text-sm text-slate-700 bg-white/60 rounded-lg px-3 py-2 border border-blue-100"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Next milestone: <strong>Level {Math.min(59, s.currentLevel + 1)}</strong></div>}
+                    <div key={topic} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />Additional practice recommended for <strong>{topic}</strong></div>
+                  )) : reports.length > 0 ? <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />All skills at expected level — no focus areas needed</div> : <div className="text-sm text-slate-500 dark:text-slate-400">Complete a diagnostic assessment to generate recommendations.</div>}
+                  {s.currentLevel < 59 && <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Next milestone: <strong>Level {Math.min(59, s.currentLevel + 1)}</strong></div>}
                 </div>
               </div>
             </div>
@@ -632,16 +623,16 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         {profileTab === 'academic' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-6">
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">Academic Summary</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Academic Summary</h3>
                 <div className="space-y-2.5 text-sm">
                   {[['Total Assessments', String(reports.length)], ['Avg Score', reports.length > 0 ? `${avgScore}%` : 'N/A'], ['Current Level', `L${s.currentLevel}.${s.currentSubLevel ?? 0}`], ['Target Level', `L${s.targetLevel}`], ['Sub-Level Status', s.currentSubLevel === 0 ? 'Mastery' : s.currentSubLevel === 1 ? 'Easier' : 'Remedial'], ['Day Streak', `${s.streak}`], ['Attendance', att ? `${att.percentage}% (${att.present}/${att.total} days)` : 'N/A']].map(([l, v]) => (
-                    <div key={l as string} className="flex justify-between border-b border-slate-50 pb-1.5"><span className="text-slate-500">{l}</span><span className="font-medium text-slate-800">{v}</span></div>
+                    <div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v}</span></div>
                   ))}
                 </div>
               </div>
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-3">Curriculum Coverage</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Curriculum Coverage</h3>
                 <div className="space-y-2">
                   {['Number Sense', 'Number Operations', 'Shapes & Geometry', 'Measurement', 'Patterns & Algebra', 'Data Handling'].map(strand => {
                     const lvlForStrand = ['Number Sense', 'Number Operations'].includes(strand) ? s.currentLevel : Math.max(0, s.currentLevel - 5);
@@ -650,46 +641,46 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                     return <div key={strand} className="flex items-center justify-between gap-2 text-sm py-0.5">
                       <div className="flex items-center gap-2">
                         <span className={`${covered ? 'text-emerald-600' : partial ? 'text-amber-500' : 'text-slate-300'}`}>{covered ? '✓' : partial ? '◐' : '○'}</span>
-                        <span className={covered ? 'text-slate-800 font-medium' : 'text-slate-400'}>{strand}</span>
+                        <span className={covered ? 'text-slate-800 dark:text-slate-100 font-medium' : 'text-slate-400 dark:text-slate-500'}>{strand}</span>
                       </div>
                       <span className={`text-[9px] font-mono ${covered ? 'text-emerald-600' : partial ? 'text-amber-500' : 'text-slate-300'}`}>{covered ? 'Covered' : partial ? 'Partial' : 'Not Started'}</span>
                     </div>;
                   })}
                 </div>
               </div>
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Progress Highlights</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Progress Highlights</h3>
                 <div className="space-y-2 text-sm">
-                  {reports.length > 0 && <div className="flex justify-between"><span className="text-slate-500">Best Score</span><span className="font-bold text-emerald-600">{Math.max(...reports.map(r => Math.round((r.score / r.totalQuestions) * 100)))}%</span></div>}
-                  {reports.length > 0 && <div className="flex justify-between"><span className="text-slate-500">Recent Score</span><span className="font-bold text-slate-800">{Math.round((reports[reports.length - 1].score / reports[reports.length - 1].totalQuestions) * 100)}%</span></div>}
-                  <div className="flex justify-between"><span className="text-slate-500">Levels Gained</span><span className="font-bold text-slate-800">{s.levelHistory.length > 0 ? s.currentLevel - s.levelHistory[0].level : 0}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Strong Skills</span><span className="font-bold text-slate-800">{latestSkills.filter(([_, m]) => m === 'Strong').length}/{latestSkills.length}</span></div>
-                  {s.levelHistory.length > 0 && <div className="flex justify-between"><span className="text-slate-500">Since</span><span className="font-mono text-xs text-slate-600">{s.levelHistory[0].date}</span></div>}
+                  {reports.length > 0 && <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Best Score</span><span className="font-bold text-emerald-600">{Math.max(...reports.map(r => Math.round((r.score / r.totalQuestions) * 100)))}%</span></div>}
+                  {reports.length > 0 && <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Recent Score</span><span className="font-bold text-slate-800 dark:text-slate-100">{Math.round((reports[reports.length - 1].score / reports[reports.length - 1].totalQuestions) * 100)}%</span></div>}
+                  <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Levels Gained</span><span className="font-bold text-slate-800 dark:text-slate-100">{s.levelHistory.length > 0 ? s.currentLevel - s.levelHistory[0].level : 0}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Strong Skills</span><span className="font-bold text-slate-800 dark:text-slate-100">{latestSkills.filter(([_, m]) => m === 'Strong').length}/{latestSkills.length}</span></div>
+                  {s.levelHistory.length > 0 && <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Since</span><span className="font-mono text-xs text-slate-600 dark:text-slate-300">{s.levelHistory[0].date}</span></div>}
                 </div>
               </div>
             </div>
             <div className="lg:col-span-2 space-y-4">
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-4">All Assessment Reports</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">All Assessment Reports</h3>
                 {reports.length > 0 ? <div className="space-y-4">{reports.map(r => {
                   const scorePct = Math.round((r.score / r.totalQuestions) * 100);
                   return (
-                    <div key={r.id} className="border border-slate-200 rounded-lg p-4 space-y-3 hover:border-slate-300 transition-colors">
+                    <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${scorePct >= 80 ? 'bg-emerald-50 text-emerald-700' : scorePct >= 60 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>{scorePct}%</div>
-                          <div><span className="text-sm font-semibold text-slate-900">{r.worksheetId}</span><div className="text-[10px] text-slate-400">{new Date(r.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300'}`}>{scorePct}%</div>
+                          <div><span className="text-sm font-semibold text-slate-900 dark:text-white">{r.worksheetId}</span><div className="text-[10px] text-slate-400 dark:text-slate-500">{new Date(r.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${scorePct >= 80 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : scorePct >= 60 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{r.score}/{r.totalQuestions}</span>
+                          <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{r.score}/{r.totalQuestions}</span>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-600 leading-relaxed">{r.narrative}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{r.narrative}</p>
                       <div className="flex flex-wrap gap-1.5">{Object.entries(r.conceptMastery).map(([t, m]) => (
-                        <span key={t} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${m === 'Strong' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : m === 'Satisfactory' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{t}: {m}</span>
+                        <span key={t} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${m === 'Strong' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : m === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{t}: {m}</span>
                       ))}</div>
                       
-                      <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
                         <button onClick={() => setExpandedReportId(expandedReportId === r.id ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                           {expandedReportId === r.id ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
                         </button>
@@ -718,9 +709,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                       </div>
 
                       {expandedReportId === r.id && (
-                        <div className="mt-3 border border-slate-200 rounded-lg overflow-hidden bg-slate-50 text-xs">
-                          <div className="bg-slate-100 px-3 py-2 font-bold text-slate-700 border-b border-slate-200">Side-by-Side Exam Grader Report</div>
-                          <div className="divide-y divide-slate-200">
+                        <div className="mt-3 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 text-xs">
+                          <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">Side-by-Side Exam Grader Report</div>
+                          <div className="divide-y divide-slate-200 dark:divide-slate-700">
                             {(s.id === 's1' ? [
                               { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
                               { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
@@ -739,19 +730,19 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                               { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
                             ]).map((item: any, idx: number) => (
                               <div key={idx} className="p-3 space-y-1">
-                                <div className="font-semibold text-slate-800">{item.question}</div>
-                                <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-dotted border-slate-200">
+                                <div className="font-semibold text-slate-800 dark:text-slate-100">{item.question}</div>
+                                <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-dotted border-slate-200 dark:border-slate-700">
                                   <div>
-                                    <span className="text-[9px] text-slate-400 uppercase font-mono block">Student Response</span>
-                                    <span className={`font-medium ${item.status === 'Correct' ? 'text-green-700' : 'text-red-700'}`}>{item.studentAnswer}</span>
+                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Student Response</span>
+                                    <span className={`font-medium ${item.status === 'Correct' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>{item.studentAnswer}</span>
                                   </div>
                                   <div>
-                                    <span className="text-[9px] text-slate-400 uppercase font-mono block">Correct Keys</span>
-                                    <span className="font-medium text-slate-800">{item.correctAnswer}</span>
+                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Correct Keys</span>
+                                    <span className="font-medium text-slate-800 dark:text-slate-100">{item.correctAnswer}</span>
                                   </div>
                                 </div>
                                 <div className="pt-1">
-                                  <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
+                                  <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
                                 </div>
                               </div>
                             ))}
@@ -760,7 +751,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                       )}
                     </div>
                   );
-                })}</div> : <div className="text-center py-8"><p className="text-xs text-slate-400">No assessment reports yet.</p></div>}
+                })}</div> : <div className="text-center py-8"><p className="text-xs text-slate-400 dark:text-slate-500">No assessment reports yet.</p></div>}
               </div>
             </div>
           </div>
@@ -769,47 +760,47 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         {/* ===== PERSONAL TAB ===== */}
         {profileTab === 'personal' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-              <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Personal Information</h3>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
+              <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Personal Information</h3>
               <div className="space-y-2.5 text-sm">{[
                 ['Full Name', s.name], ['Date of Birth', profile.dob || 'N/A'], ['Age', `${s.age} years`], ['Gender', profile.gender || 'N/A'], ['Blood Group', profile.bloodGroup || 'N/A'], ['Disability Status', profile.disability || 'None'], ['Aadhar Number', s.aadharMasked], ['Enrollment Date', profile.enrollmentDate || 'N/A'], ['Class & Section', `${s.classGroup} - ${s.section}`], ['School', studentSchool?.name || 'N/A'], ['School ID', s.schoolId],
-              ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 pb-1.5"><span className="text-slate-500">{l}</span><span className="font-medium text-slate-800 text-right max-w-[55%]">{v}</span></div>))}</div>
+              ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
             </div>
             <div className="space-y-6">
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><UserCheck className="w-3.5 h-3.5" /> Guardian & Contact</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><UserCheck className="w-3.5 h-3.5" /> Guardian & Contact</h3>
                 <div className="space-y-2.5 text-sm">{[
                   ['Guardian Name', profile.guardian || 'N/A'], ['Relation', profile.relation || 'N/A'], ['Contact Number', profile.contact || 'N/A'], ['Residential Address', profile.address || 'N/A'], ['Mid-Day Meal', profile.midDayMeal || 'N/A'], ['Bus Route', profile.busRoute || 'N/A'],
-                ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 pb-1.5"><span className="text-slate-500">{l}</span><span className="font-medium text-slate-800 text-right max-w-[55%]">{v}</span></div>))}</div>
+                ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
               </div>
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Additional Information</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Additional Information</h3>
                 <div className="text-sm space-y-2">{[
                   ['Siblings in School', profile.sibblings || 'N/A'], ['Last Medical Check-up', profile.lastMedical || 'N/A'], ['Mid-Day Meal Beneficiary', profile.midDayMeal || 'N/A'],
-                ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 pb-1.5"><span className="text-slate-500">{l}</span><span className="font-medium text-slate-800">{v}</span></div>))}</div>
+                ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v}</span></div>))}</div>
               </div>
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Teacher Notes</h3>
-                <div className="text-sm text-slate-700 bg-amber-50 border border-amber-200 rounded-lg p-4 leading-relaxed">{profile.notes || 'No notes recorded.'}</div>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Teacher Notes</h3>
+                <div className="text-sm text-slate-700 dark:text-slate-200 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 leading-relaxed">{profile.notes || 'No notes recorded.'}</div>
               </div>
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Attendance Record</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Attendance Record</h3>
                 {att ? (
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-500">Overall Attendance</span>
+                      <span className="text-sm text-slate-500 dark:text-slate-400">Overall Attendance</span>
                       <span className={`text-lg font-bold ${att.percentage >= 85 ? 'text-emerald-600' : att.percentage >= 75 ? 'text-amber-600' : 'text-red-600'}`}>{att.percentage}%</span>
                     </div>
-                    <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full transition-all ${att.percentage >= 85 ? 'bg-emerald-500' : att.percentage >= 75 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${att.percentage}%` }} />
                     </div>
-                    <div className="flex justify-between text-xs text-slate-500">
+                    <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
                       <span>Present: {att.present} days</span>
                       <span>Total: {att.total} days</span>
                       <span>Absent: {att.total - att.present} days</span>
                     </div>
                   </div>
-                ) : <p className="text-xs text-slate-400">No attendance data available.</p>}
+                ) : <p className="text-xs text-slate-400 dark:text-slate-500">No attendance data available.</p>}
               </div>
             </div>
           </div>
@@ -818,27 +809,27 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         {/* ===== ACTIVITY TAB ===== */}
         {profileTab === 'activity' && (
           <div className="max-w-2xl">
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">Recent Activity</h3>
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Recent Activity</h3>
                 <div className="flex gap-1">
                   {(['all', 'assessment', 'level_change'] as const).map(f => (
-                    <button key={f} onClick={() => setActivityFilter(f)} className={`text-[10px] font-mono font-bold px-2 py-1 rounded ${activityFilter === f ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                    <button key={f} onClick={() => setActivityFilter(f)} className={`text-[10px] font-mono font-bold px-2 py-1 rounded ${activityFilter === f ? 'bg-slate-800 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'}`}>
                       {f === 'all' ? 'All' : f === 'assessment' ? 'Assessments' : 'Level Changes'}
                     </button>
                   ))}
                 </div>
               </div>
               {filteredActivity.length > 0 ? (
-                <div className="space-y-0 relative before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                <div className="space-y-0 relative before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                   {filteredActivity.map((act, i) => (
                     <div key={i} className="flex gap-4 pb-5 relative pl-2">
-                      <div className={`w-3 h-3 rounded-full border-2 border-white shadow mt-1 shrink-0 z-10 ${act.type === 'assessment' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
-                      <div className="flex-1"><div className="flex justify-between"><div><span className="font-semibold text-sm text-slate-900">{act.label}</span><p className="text-xs text-slate-500">{act.detail}</p></div><span className="text-[10px] font-mono text-slate-400 shrink-0">{new Date(act.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span></div></div>
+                      <div className={`w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 shadow mt-1 shrink-0 z-10 ${act.type === 'assessment' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
+                      <div className="flex-1"><div className="flex justify-between"><div><span className="font-semibold text-sm text-slate-900 dark:text-white">{act.label}</span><p className="text-xs text-slate-500 dark:text-slate-400">{act.detail}</p></div><span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0">{new Date(act.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span></div></div>
                     </div>
                   ))}
                 </div>
-              ) : <div className="text-center py-8"><p className="text-xs text-slate-400">{activityFilter === 'all' ? 'No activity recorded yet.' : `No ${activityFilter === 'assessment' ? 'assessment' : 'level change'} activity found.`}</p></div>}
+              ) : <div className="text-center py-8"><p className="text-xs text-slate-400 dark:text-slate-500">{activityFilter === 'all' ? 'No activity recorded yet.' : `No ${activityFilter === 'assessment' ? 'assessment' : 'level change'} activity found.`}</p></div>}
             </div>
           </div>
         )}
@@ -851,23 +842,23 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     const completed = STUDENTS_MOCK.filter(s => s.levelHistory.length > 0);
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="Pending Diagnostics" desc={`${pending.length} students need initial assessment`} icon={<ShieldAlert className="h-5 w-5 text-amber-500" />} />
-          {pending.length === 0 ? <p className="text-xs text-slate-400 text-center py-8">All students placed.</p> : (
+          {pending.length === 0 ? <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-8">All students placed.</p> : (
             <div className="space-y-3">{pending.map(s => (
-              <div key={s.id} className="flex justify-between items-center p-3 border border-slate-200 rounded-lg">
-                <div><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400">{s.classGroup} - {s.section}</div></div>
-                <span className="text-[10px] font-mono font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">Run Diagnostic</span>
+              <div key={s.id} className="flex justify-between items-center p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
+                <div><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup} - {s.section}</div></div>
+                <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-2 py-1 rounded border border-amber-200 dark:border-amber-800">Run Diagnostic</span>
               </div>
             ))}</div>
           )}
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="Completed Diagnostics" desc={`${completed.length} students have been placed`} icon={<CheckCircle2 className="h-5 w-5 text-green-500" />} />
           <div className="space-y-3">{completed.map(s => (
-            <div key={s.id} className="flex justify-between items-center p-3 border border-slate-200 rounded-lg">
-              <div><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400">Placed at L{s.currentLevel}.{s.currentSubLevel ?? 0}</div></div>
-              <span className="text-[10px] font-mono font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200">Completed</span>
+            <div key={s.id} className="flex justify-between items-center p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
+              <div><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400 dark:text-slate-500">Placed at L{s.currentLevel}.{s.currentSubLevel ?? 0}</div></div>
+              <span className="text-[10px] font-mono font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 px-2 py-1 rounded border border-green-200 dark:border-green-800">Completed</span>
             </div>
           ))}</div>
         </div>
@@ -877,19 +868,19 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'adaptive_test') {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-6">
         <PageHeader title="Adaptive Assessment" desc="Computer-adaptive testing that adjusts to student ability" icon={<SlidersHorizontal className="h-5 w-5" />} />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard title="Active Sessions" value="3" subtext="Students currently testing" icon={Users} />
-          <MetricCard title="Avg Adaptive Score" value="72%" subtext="Across all levels" icon={BarChart3} />
-          <MetricCard title="Completion Rate" value="85%" subtext="Tests finished on time" icon={CheckCircle2} />
+          <MetricCard title="Active Sessions" value={''} subtext="Will be populated soon" icon={Users} />
+          <MetricCard title="Avg Adaptive Score" value={''} subtext="Will be populated soon" icon={BarChart3} />
+          <MetricCard title="Completion Rate" value={''} subtext="Will be populated soon" icon={CheckCircle2} />
         </div>
-        <div className="border border-slate-200 rounded-lg p-5 bg-slate-50 space-y-3">
-          <h4 className="text-sm font-semibold text-slate-800">How Adaptive Testing Works</h4>
-          <p className="text-xs text-slate-600 leading-relaxed">The system selects questions dynamically based on the student's previous answers. Correct answers lead to harder questions; incorrect answers adjust to easier ones. This pinpoints the exact FLN level.</p>
+        <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-5 bg-slate-50 dark:bg-slate-800 space-y-3">
+          <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">How Adaptive Testing Works</h4>
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">The system selects questions dynamically based on the student's previous answers. Correct answers lead to harder questions; incorrect answers adjust to easier ones. This pinpoints the exact FLN level.</p>
           <div className="flex gap-4 pt-2">
-            <button className="bg-slate-900 text-white text-xs font-medium px-4 py-2 rounded-lg hover:bg-slate-800">Start New Adaptive Test</button>
-            <button className="border border-slate-200 text-slate-700 text-xs font-medium px-4 py-2 rounded-lg hover:bg-slate-50">View Session Logs</button>
+            <button className="bg-slate-900 text-white text-xs font-medium px-4 py-2 rounded-lg hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">Start New Adaptive Test</button>
+            <button className="border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium px-4 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">View Session Logs</button>
           </div>
         </div>
       </div>
@@ -898,12 +889,12 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'test_history') {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Test History" desc="Complete record of all diagnostic and worksheet evaluations" icon={<FileText className="h-5 w-5" />} />
         <div className="space-y-3">{DIAGNOSTIC_HISTORY.map(h => (
-          <div key={h.id} className="flex justify-between items-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
-            <div><div className="font-semibold text-sm">{h.student}</div><div className="text-xs text-slate-400">{h.date} · Evaluated by {h.evaluator}</div></div>
-            <div className="text-right"><div className="font-mono font-bold">{h.score}/{h.total}</div><div className="text-xs text-slate-400">Placed L{h.placedLevel}</div></div>
+          <div key={h.id} className="flex justify-between items-center p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
+            <div><div className="font-semibold text-sm">{h.student}</div><div className="text-xs text-slate-400 dark:text-slate-500">{h.date} · Evaluated by {h.evaluator}</div></div>
+            <div className="text-right"><div className="font-mono font-bold">{h.score}/{h.total}</div><div className="text-xs text-slate-400 dark:text-slate-500">Placed L{h.placedLevel}</div></div>
           </div>
         ))}</div>
       </div>
@@ -918,12 +909,12 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           <MetricCard title="Evaluated" value={WORKSHEETS_MOCK.filter(w => w.status === 'Evaluated').length} subtext="Graded and scored" icon={CheckCircle2} />
           <MetricCard title="Pending" value={WORKSHEETS_MOCK.filter(w => w.status === 'Pending').length} subtext="Awaiting evaluation" icon={FileText} />
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <PageHeader title="Worksheet Cycles" desc="Baseline, Mid-year, and End-of-year assessments" />
           <div className="space-y-3 mt-4">{WORKSHEETS_MOCK.map(w => (
-            <div key={w.id} className="flex justify-between items-center p-4 border border-slate-200 rounded-lg">
-              <div><div className="font-semibold text-sm">{w.cycle} — {w.class}</div><div className="text-xs text-slate-400">{w.date} · {w.questions} questions</div></div>
-              <div className="text-right"><span className={`text-xs font-mono font-bold px-2 py-1 rounded ${w.status === 'Evaluated' ? 'text-green-700 bg-green-50 border border-green-200' : 'text-amber-700 bg-amber-50 border border-amber-200'}`}>{w.status}</span><div className="text-xs text-slate-400 mt-1">Avg: {w.avgScore}</div></div>
+            <div key={w.id} className="flex justify-between items-center p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+              <div><div className="font-semibold text-sm">{w.cycle} — {w.class}</div><div className="text-xs text-slate-400 dark:text-slate-500">{w.date} · {w.questions} questions</div></div>
+              <div className="text-right"><span className={`text-xs font-mono font-bold px-2 py-1 rounded ${w.status === 'Evaluated' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{w.status}</span><div className="text-xs text-slate-400 dark:text-slate-500 mt-1">Avg: {w.avgScore}</div></div>
             </div>
           ))}</div>
         </div>
@@ -942,14 +933,14 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           <MetricCard title="Certified" value={`${STUDENTS_MOCK.filter(s => s.currentLevel >= 5).length}`} subtext="Level 5+ achieved" icon={Award} />
           <MetricCard title="Pending Diagnostic" value={STUDENTS_MOCK.filter(s => s.levelHistory.length === 0).length} subtext="Need placement" icon={ShieldAlert} />
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <PageHeader title={isTeacher ? "Class Performance" : "School Performance"} desc="FLN level distribution and trends" />
           <div className="space-y-3">
-            <h4 className="text-xs font-mono font-bold text-slate-500 uppercase">Top Performing Students</h4>
+            <h4 className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 uppercase">Top Performing Students</h4>
             <div className="space-y-2">{topStudents.map(s => (
-              <div key={s.id} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg">
-                <div className="flex items-center gap-3"><span className="text-sm font-semibold">{s.name}</span><span className="text-xs text-slate-400">{s.classGroup}</span></div>
-                <div className="flex items-center gap-4"><div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / 59) * 100}%` }} /></div><span className="font-mono font-bold text-sm">L{s.currentLevel}</span></div>
+              <div key={s.id} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
+                <div className="flex items-center gap-3"><span className="text-sm font-semibold">{s.name}</span><span className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup}</span></div>
+                <div className="flex items-center gap-4"><div className="w-32 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / 59) * 100}%` }} /></div><span className="font-mono font-bold text-sm">L{s.currentLevel}</span></div>
               </div>
             ))}</div>
           </div>
@@ -964,7 +955,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       const userState = currentUser.stateCode || 'PB';
       const stateSchools = SCHOOLS_MOCK.filter(s => s.stateCode === userState);
       const stateDistricts = [...new Set(stateSchools.map(s => s.districtCode))];
-      const [expandedDistRpt, setExpandedDistRpt] = useState<string | null>(null);
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -973,48 +963,48 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             <MetricCard title="Schools" value={stateSchools.length} subtext={`In ${userState}`} icon={SchoolIcon} />
             <MetricCard title="Districts" value={stateDistricts.length} subtext="Active jurisdictions" icon={MapPin} />
           </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
             <PageHeader title={`District-Wise School Reports — ${userState}`} desc="Evaluation reports organized by district and school" />
             <div className="space-y-3 mt-4">{stateDistricts.map(dc => {
               const isExpanded = expandedDistRpt === dc;
               const distSchools = stateSchools.filter(s => s.districtCode === dc);
               return (
                 <div key={dc}>
-                  <button onClick={() => setExpandedDistRpt(isExpanded ? null : dc)} className={`w-full flex items-center gap-3 p-3 border rounded-lg text-left hover:bg-slate-50 transition-all ${isExpanded ? 'border-indigo-300 bg-indigo-50' : 'border-slate-100'}`}>
+                  <button onClick={() => setExpandedDistRpt(isExpanded ? null : dc)} className={`w-full flex items-center gap-3 p-3 border rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${isExpanded ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950' : 'border-slate-100 dark:border-slate-700'}`}>
                     <span className="font-bold text-sm w-16">{dc}</span>
                     <span className="text-sm flex-1">{DISTRICTS.find(d => d.code === dc)?.name || dc}</span>
-                    <span className="text-xs text-slate-500">{distSchools.length} schools</span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{distSchools.length} schools</span>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </button>
                   {isExpanded && (
-                    <div className="ml-6 mt-2 space-y-4 pl-4 border-l-2 border-indigo-200">
+                    <div className="ml-6 mt-2 space-y-4 pl-4 border-l-2 border-indigo-200 dark:border-indigo-800">
                       {distSchools.map(sch => {
                         const schStudents = STUDENTS_MOCK.filter(st => st.schoolId === sch.id);
                         const schReports = REPORTS_MOCK.filter(r => schStudents.some(st => st.id === r.studentId));
                         const avgScore = schReports.length > 0 ? Math.round(schReports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / schReports.length) : 0;
                         return (
-                          <div key={sch.id} className="border border-slate-200 rounded-xl p-4">
-                            <div className="flex justify-between items-center mb-3"><h4 className="font-bold text-slate-900 text-sm">{sch.name}</h4><span className="text-xs text-slate-400">{sch.blockCode} · {sch.strength}</span></div>
+                          <div key={sch.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                            <div className="flex justify-between items-center mb-3"><h4 className="font-bold text-slate-900 dark:text-white text-sm">{sch.name}</h4><span className="text-xs text-slate-400 dark:text-slate-500">{sch.blockCode} · {sch.strength}</span></div>
                             <div className="grid grid-cols-3 gap-3 mb-3">
-                              <div className="text-center bg-slate-50 rounded-lg p-2"><div className="text-lg font-bold text-slate-900">{schReports.length}</div><div className="text-[10px] text-slate-400">Reports</div></div>
-                              <div className="text-center bg-slate-50 rounded-lg p-2"><div className={`text-lg font-bold ${avgScore >= 70 ? 'text-emerald-600' : 'text-amber-600'}`}>{avgScore}%</div><div className="text-[10px] text-slate-400">Avg Score</div></div>
-                              <div className="text-center bg-slate-50 rounded-lg p-2"><div className="text-lg font-bold text-slate-900">{schStudents.length}</div><div className="text-[10px] text-slate-400">Students</div></div>
+                              <div className="text-center bg-slate-50 dark:bg-slate-800 rounded-lg p-2"><div className="text-lg font-bold text-slate-900 dark:text-white">{schReports.length}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Reports</div></div>
+                              <div className="text-center bg-slate-50 dark:bg-slate-800 rounded-lg p-2"><div className={`text-lg font-bold ${avgScore >= 70 ? 'text-emerald-600' : 'text-amber-600'}`}>{avgScore}%</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Avg Score</div></div>
+                              <div className="text-center bg-slate-50 dark:bg-slate-800 rounded-lg p-2"><div className="text-lg font-bold text-slate-900 dark:text-white">{schStudents.length}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Students</div></div>
                             </div>
                             {schReports.length > 0 ? (
                               <div className="space-y-2">{schReports.map(r => {
                                 const student = schStudents.find(st => st.id === r.studentId);
                                 const scorePct = Math.round((r.score / r.totalQuestions) * 100);
                                 return (
-                                  <div key={r.id} className="border border-slate-100 rounded-lg p-3 text-sm">
-                                    <div className="flex justify-between items-center"><span className="font-semibold">{student?.name || 'N/A'}</span><span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${scorePct >= 80 ? 'bg-emerald-50 text-emerald-700' : scorePct >= 60 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>{r.score}/{r.totalQuestions} ({scorePct}%)</span></div>
-                                    <p className="text-xs text-slate-500 mt-1">{r.narrative}</p>
+                                  <div key={r.id} className="border border-slate-100 dark:border-slate-700 rounded-lg p-3 text-sm">
+                                    <div className="flex justify-between items-center"><span className="font-semibold">{student?.name || 'N/A'}</span><span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300'}`}>{r.score}/{r.totalQuestions} ({scorePct}%)</span></div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{r.narrative}</p>
                                     <div className="flex gap-1 mt-1.5">{Object.entries(r.conceptMastery).map(([t, m]) => (
-                                      <span key={t} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${m === 'Strong' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : m === 'Satisfactory' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-red-50 text-red-700 border-red-200'}`}>{t}</span>
+                                      <span key={t} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${m === 'Strong' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : m === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'}`}>{t}</span>
                                     ))}</div>
                                   </div>
                                 );
                               })}</div>
-                            ) : <p className="text-xs text-slate-400 text-center py-3">No evaluation reports for this school yet.</p>}
+                            ) : <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-3">No evaluation reports for this school yet.</p>}
                           </div>
                         );
                       })}
@@ -1034,7 +1024,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           <MetricCard title="Avg Score" value={`${Math.round(REPORTS_MOCK.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / REPORTS_MOCK.length)}%`} subtext="Across reports" icon={BarChart3} />
           <MetricCard title="Strong Concepts" value={REPORTS_MOCK.reduce((a, r) => a + Object.values(r.conceptMastery).filter(v => v === 'Strong').length, 0)} subtext="Mastered topics" icon={Award} />
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="Evaluation Reports" desc="Detailed assessment narratives and concept mastery breakdowns" />
           {REPORTS_MOCK.map(r => {
             const student = STUDENTS_MOCK.find(s => s.id === r.studentId);
@@ -1062,20 +1052,20 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             ) : [];
 
             return (
-              <div key={r.id} className="border border-slate-200 rounded-lg p-4 space-y-3 hover:border-slate-300 transition-all">
-                <div className="flex justify-between items-center"><span className="font-semibold text-sm">{student?.name || 'Unknown'}</span><span className="text-xs text-slate-400">{new Date(r.timestamp).toLocaleDateString()}</span></div>
+              <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-600 transition-all">
+                <div className="flex justify-between items-center"><span className="font-semibold text-sm">{student?.name || 'Unknown'}</span><span className="text-xs text-slate-400 dark:text-slate-500">{new Date(r.timestamp).toLocaleDateString()}</span></div>
                 <div className="flex gap-4 text-sm"><span>Score: <strong>{r.score}/{r.totalQuestions}</strong></span><span>Level: <strong>L{r.recommendedLevel}.{r.recommendedSubLevel ?? 0}</strong></span></div>
                 
-                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
-                  <span className="text-[9px] font-mono font-bold uppercase text-slate-400 tracking-wider">Evaluation Report Narrative</span>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed whitespace-pre-line">{r.narrative}</p>
+                <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-3">
+                  <span className="text-[9px] font-mono font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Evaluation Report Narrative</span>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed whitespace-pre-line">{r.narrative}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">{Object.entries(r.conceptMastery).map(([t, m]) => (
-                  <span key={t} className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${m === 'Strong' ? 'bg-green-50 text-green-700 border border-green-200' : m === 'Satisfactory' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{t}: {m}</span>
+                  <span key={t} className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${m === 'Strong' ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' : m === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{t}: {m}</span>
                 ))}</div>
 
-                <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
                   <div className="flex gap-3">
                     <button onClick={() => setExpandedReportId(isExpanded ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                       {isExpanded ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
@@ -1086,28 +1076,28 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                       </button>
                     )}
                   </div>
-                  <span className="text-[10px] text-slate-400 font-mono">Assigned from Diagnostic Pipeline</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Assigned from Diagnostic Pipeline</span>
                 </div>
 
                 {isExpanded && (
-                  <div className="mt-3 border border-slate-200 rounded-lg overflow-hidden bg-slate-50 text-xs">
-                    <div className="bg-slate-100 px-3 py-2 font-bold text-slate-700 border-b border-slate-200">Side-by-Side Exam Grader Report</div>
-                    <div className="divide-y divide-slate-200">
+                  <div className="mt-3 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 text-xs">
+                    <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">Side-by-Side Exam Grader Report</div>
+                    <div className="divide-y divide-slate-200 dark:divide-slate-700">
                       {examResponses.map((item, idx) => (
                         <div key={idx} className="p-3 space-y-1">
-                          <div className="font-semibold text-slate-800">{item.question}</div>
-                          <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-dotted border-slate-200">
+                          <div className="font-semibold text-slate-800 dark:text-slate-100">{item.question}</div>
+                          <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-dotted border-slate-200 dark:border-slate-700">
                             <div>
-                              <span className="text-[9px] text-slate-400 uppercase font-mono block">Student Response</span>
-                              <span className={`font-medium ${item.status === 'Correct' ? 'text-green-700' : 'text-red-700'}`}>{item.studentAnswer}</span>
+                              <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Student Response</span>
+                              <span className={`font-medium ${item.status === 'Correct' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>{item.studentAnswer}</span>
                             </div>
                             <div>
-                              <span className="text-[9px] text-slate-400 uppercase font-mono block">Correct Keys</span>
-                              <span className="font-medium text-slate-800">{item.correctAnswer}</span>
+                              <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Correct Keys</span>
+                              <span className="font-medium text-slate-800 dark:text-slate-100">{item.correctAnswer}</span>
                             </div>
                           </div>
                           <div className="pt-1">
-                            <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
+                            <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
                           </div>
                         </div>
                       ))}
@@ -1131,11 +1121,11 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           if (!sch) return null;
           const count = STUDENTS_MOCK.filter(s => s.schoolId === id).length;
           return (
-            <div key={id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-3 hover:border-slate-400 transition-all">
-              <div className="flex justify-between"><h3 className="font-bold text-slate-900">{sch.name}</h3><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sch.strength === 'low' ? 'text-amber-700 bg-amber-50 border border-amber-200' : 'text-emerald-700 bg-emerald-50 border border-emerald-200'}`}>{sch.strength === 'low' ? 'Low-Strength' : 'High-Strength'}</span></div>
-              <div className="text-xs text-slate-400">{sch.stateCode} / {sch.districtCode} / {sch.blockCode}</div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs pt-2 border-t border-slate-100"><div><div className="font-bold text-slate-800">{count}</div><div className="text-slate-400">Students</div></div><div><div className="font-bold text-slate-800">{sch.teachersCount}</div><div className="text-slate-400">Teachers</div></div><div><div className="font-bold text-green-600">{sch.isAccessLocked ? 'Locked' : 'Active'}</div><div className="text-slate-400">Status</div></div></div>
-              <button className="w-full text-xs font-medium bg-slate-900 text-white py-2 rounded-lg hover:bg-slate-800">Visit School</button>
+            <div key={id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-3 hover:border-slate-400 dark:hover:border-slate-600 transition-all">
+              <div className="flex justify-between"><h3 className="font-bold text-slate-900 dark:text-white">{sch.name}</h3><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sch.strength === 'low' ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800' : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800'}`}>{sch.strength === 'low' ? 'Low-Strength' : 'High-Strength'}</span></div>
+              <div className="text-xs text-slate-400 dark:text-slate-500">{sch.stateCode} / {sch.districtCode} / {sch.blockCode}</div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs pt-2 border-t border-slate-100 dark:border-slate-700"><div><div className="font-bold text-slate-800 dark:text-slate-100">{count}</div><div className="text-slate-400 dark:text-slate-500">Students</div></div><div><div className="font-bold text-slate-800 dark:text-slate-100">{sch.teachersCount}</div><div className="text-slate-400 dark:text-slate-500">Teachers</div></div><div><div className="font-bold text-green-600 dark:text-green-400">{sch.isAccessLocked ? 'Locked' : 'Active'}</div><div className="text-slate-400 dark:text-slate-500">Status</div></div></div>
+              <button className="w-full text-xs font-medium bg-slate-900 text-white py-2 rounded-lg hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">Visit School</button>
             </div>
           );
         })}
@@ -1145,13 +1135,13 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'student_progress') {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Student Progress Tracking" desc="Monitor FLN level advancement across assigned schools" icon={<GraduationCap className="h-5 w-5" />} />
         <div className="space-y-3">{STUDENTS_MOCK.sort((a, b) => b.currentLevel - a.currentLevel).map(s => (
-          <div key={s.id} className="flex items-center gap-4 p-3 border border-slate-200 rounded-lg">
-            <div className="flex-1"><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400">{s.classGroup} · Streak: {s.streak}</div></div>
-            <div className="w-40"><div className="flex justify-between text-[10px] text-slate-500 mb-1"><span>L{s.currentLevel}</span><span>Target L{s.targetLevel}</span></div><div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / s.targetLevel) * 100}%` }} /></div></div>
-            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.levelHistory.length > 0 ? 'text-green-700 bg-green-50 border border-green-200' : 'text-amber-700 bg-amber-50 border border-amber-200'}`}>{s.levelHistory.length > 0 ? 'Placed' : 'Pending'}</span>
+          <div key={s.id} className="flex items-center gap-4 p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
+            <div className="flex-1"><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup} · Streak: {s.streak}</div></div>
+            <div className="w-40"><div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1"><span>L{s.currentLevel}</span><span>Target L{s.targetLevel}</span></div><div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / s.targetLevel) * 100}%` }} /></div></div>
+            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.levelHistory.length > 0 ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.levelHistory.length > 0 ? 'Placed' : 'Pending'}</span>
           </div>
         ))}</div>
       </div>
@@ -1175,17 +1165,17 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           <MetricCard title="Avg Exams/Student" value={`${(totalExams / examAttendance.length).toFixed(1)}`} subtext="Participation rate" icon={BarChart3} />
           <MetricCard title="Placed Students" value={examAttendance.filter(e => e.placed).length} subtext="Have level history" icon={Award} />
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <PageHeader title="Exam Attendance Records" desc="Track which students have appeared for assessments and their performance" icon={<Calendar className="h-5 w-5" />} />
           <div className="space-y-2 mt-4">{examAttendance.map(a => (
-            <div key={a.student} className="flex items-center gap-4 p-3 border border-slate-100 rounded-lg">
-              <div className="flex items-center gap-3 w-8">{a.examsGiven > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <XCircle className="w-4 h-4 text-slate-300" />}</div>
-              <div className="flex-1 min-w-0"><span className="text-sm font-medium">{a.student}</span><span className="text-xs text-slate-400 ml-2">{a.class}</span></div>
+            <div key={a.student} className="flex items-center gap-4 p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
+              <div className="flex items-center gap-3 w-8">{a.examsGiven > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <XCircle className="w-4 h-4 text-slate-300 dark:text-slate-600" />}</div>
+              <div className="flex-1 min-w-0"><span className="text-sm font-medium">{a.student}</span><span className="text-xs text-slate-400 dark:text-slate-500 ml-2">{a.class}</span></div>
               <div className="flex items-center gap-6 text-sm shrink-0">
-                <div className="text-center"><div className="font-bold text-slate-900">{a.examsGiven}</div><div className="text-[9px] text-slate-400 font-mono uppercase">Exams</div></div>
-                <div className="text-center"><div className={`font-bold ${a.avgScore >= 70 ? 'text-emerald-600' : a.avgScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{a.examsGiven > 0 ? `${a.avgScore}%` : '—'}</div><div className="text-[9px] text-slate-400 font-mono uppercase">Avg Score</div></div>
-                <div className="text-center"><div className="text-xs text-slate-500 font-mono">{a.lastExam}</div><div className="text-[9px] text-slate-400 font-mono uppercase">Last Exam</div></div>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${a.placed ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-amber-700 bg-amber-50 border border-amber-200'}`}>{a.placed ? 'Placed' : 'Pending'}</span>
+                <div className="text-center"><div className="font-bold text-slate-900 dark:text-white">{a.examsGiven}</div><div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono uppercase">Exams</div></div>
+                <div className="text-center"><div className={`font-bold ${a.avgScore >= 70 ? 'text-emerald-600' : a.avgScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{a.examsGiven > 0 ? `${a.avgScore}%` : '—'}</div><div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono uppercase">Avg Score</div></div>
+                <div className="text-center"><div className="text-xs text-slate-500 dark:text-slate-400 font-mono">{a.lastExam}</div><div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono uppercase">Last Exam</div></div>
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${a.placed ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{a.placed ? 'Placed' : 'Pending'}</span>
               </div>
             </div>
           ))}</div>
@@ -1197,12 +1187,12 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
   if (panel === 'teachers' && currentUser.role === UserRole.SCHOOL) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Teacher Roster" desc="Manage teaching staff at your school" icon={<Users className="h-5 w-5" />} />
         <div className="space-y-3">{TEACHERS_MOCK.filter(t => t.schoolId === currentUser.schoolId).map(t => (
-          <div key={t.id} className="flex justify-between items-center p-3 border border-slate-200 rounded-lg">
-            <div><div className="font-semibold text-sm">{t.name}</div><div className="text-xs text-slate-400">{t.email} · {t.classes.join(', ')}</div></div>
-            <div className="text-right"><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${t.status === 'Active' ? 'text-green-700 bg-green-50 border border-green-200' : 'text-red-700 bg-red-50 border border-red-200'}`}>{t.status}</span><div className="text-xs text-slate-400 mt-1">{t.studentsCount} students</div></div>
+          <div key={t.id} className="flex justify-between items-center p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
+            <div><div className="font-semibold text-sm">{t.name}</div><div className="text-xs text-slate-400 dark:text-slate-500">{t.email} · {t.classes.join(', ')}</div></div>
+            <div className="text-right"><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${t.status === 'Active' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'}`}>{t.status}</span><div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t.studentsCount} students</div></div>
           </div>
         ))}</div>
       </div>
@@ -1216,15 +1206,15 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     return (
       <div className="space-y-6">
         <div className="flex gap-3 items-end">
-          <div><label className="block text-[10px] font-mono font-bold text-slate-400 uppercase mb-1">State</label><select value={stateFilter} onChange={e => { setStateFilter(e.target.value); setDistFilter('all'); }} className="text-sm border border-slate-200 rounded-lg p-2 outline-none">{uniqueStates.map(s => <option key={s} value={s}>{s}</option>)}<option value="all">All States</option></select></div>
-          <div><label className="block text-[10px] font-mono font-bold text-slate-400 uppercase mb-1">District</label><select value={distFilter} onChange={e => setDistFilter(e.target.value)} className="text-sm border border-slate-200 rounded-lg p-2 outline-none"><option value="all">All Districts</option>{uniqueDists.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
-          <div className="text-xs text-slate-400 pb-1">Showing {filteredSchools.length} schools</div>
+          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">State</label><select value={stateFilter} onChange={e => { setStateFilter(e.target.value); setDistFilter('all'); }} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{uniqueStates.map(s => <option key={s} value={s}>{s}</option>)}<option value="all">All States</option></select></div>
+          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">District</label><select value={distFilter} onChange={e => setDistFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"><option value="all">All Districts</option>{uniqueDists.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+          <div className="text-xs text-slate-400 dark:text-slate-500 pb-1">Showing {filteredSchools.length} schools</div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{filteredSchools.map(s => (
-          <div key={s.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-2">
-            <div className="flex justify-between"><h4 className="font-bold text-slate-900 text-sm">{s.name}</h4><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.strength === 'high' ? 'text-indigo-700 bg-indigo-50 border border-indigo-200' : 'text-amber-700 bg-amber-50 border border-amber-200'}`}>{s.strength}</span></div>
-            <div className="text-xs text-slate-400">{s.stateCode} / {s.districtCode} / {s.blockCode}</div>
-            <div className="flex gap-4 text-xs pt-1 border-t border-slate-100"><span>👨‍🏫 {s.teachersCount} teachers</span><span className={s.isAccessLocked ? 'text-red-600' : 'text-green-600'}>{s.isAccessLocked ? '🔒 Locked' : '🔓 Active'}</span></div>
+          <div key={s.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-2">
+            <div className="flex justify-between"><h4 className="font-bold text-slate-900 dark:text-white text-sm">{s.name}</h4><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.strength === 'high' ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.strength}</span></div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">{s.stateCode} / {s.districtCode} / {s.blockCode}</div>
+            <div className="flex gap-4 text-xs pt-1 border-t border-slate-100 dark:border-slate-700"><span>👨‍🏫 {s.teachersCount} teachers</span><span className={s.isAccessLocked ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}>{s.isAccessLocked ? '🔒 Locked' : '🔓 Active'}</span></div>
           </div>
         ))}</div>
       </div>
@@ -1234,7 +1224,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'districts') {
     const userState = currentUser.stateCode || 'PB';
     const stateDistricts = DISTRICTS.filter(d => d.state === userState);
-    const [expandedDist, setExpandedDist] = useState<string | null>(null);
     const distSchools = expandedDist ? SCHOOLS_MOCK.filter(s => s.districtCode === expandedDist) : [];
     return (
       <div className="space-y-6">
@@ -1247,7 +1236,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* District list */}
-          <div className={`${expandedDist ? 'lg:col-span-1' : 'lg:col-span-3'} bg-white border border-slate-200 rounded-xl p-5 shadow-sm`}>
+          <div className={`${expandedDist ? 'lg:col-span-1' : 'lg:col-span-3'} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm`}>
             <PageHeader title="District Overview" desc={`${userState} — Performance metrics by district`} icon={<MapPin className="h-5 w-5" />} />
             <div className="space-y-2 mt-4">{stateDistricts.map(d => {
               const isExpanded = expandedDist === d.code;
@@ -1255,15 +1244,15 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
               const studentCount = schoolList.reduce((a, s) => a + (STUDENTS_MOCK.filter(st => st.schoolId === s.id).length), 0);
               return (
                 <div key={d.code}>
-                  <button onClick={() => setExpandedDist(isExpanded ? null : d.code)} className={`w-full flex items-center gap-4 p-3 border rounded-lg text-left hover:bg-slate-50 transition-all ${isExpanded ? 'border-indigo-300 bg-indigo-50' : 'border-slate-100'}`}>
-                    <div className="w-16"><span className="font-bold text-sm">{d.code}</span><span className="text-[10px] text-slate-400 ml-1">({d.state})</span></div>
+                  <button onClick={() => setExpandedDist(isExpanded ? null : d.code)} className={`w-full flex items-center gap-4 p-3 border rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${isExpanded ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950' : 'border-slate-100 dark:border-slate-700'}`}>
+                    <div className="w-16"><span className="font-bold text-sm">{d.code}</span><span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1">({d.state})</span></div>
                     <div className="flex-1"><span className="text-sm font-semibold">{d.name}</span></div>
-                    <div className="flex gap-4 text-xs text-slate-500">
-                      <span><strong className="text-slate-800">{studentCount}</strong> students</span>
-                      <span><strong className="text-slate-800">{schoolList.length}</strong> schools</span>
+                    <div className="flex gap-4 text-xs text-slate-500 dark:text-slate-400">
+                      <span><strong className="text-slate-800 dark:text-slate-100">{studentCount}</strong> students</span>
+                      <span><strong className="text-slate-800 dark:text-slate-100">{schoolList.length}</strong> schools</span>
                     </div>
-                    <div className="w-24"><div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.certifiedRate}%` }} /></div><div className="text-[10px] text-slate-400 mt-0.5 text-right">{d.certifiedRate}% certified</div></div>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    <div className="w-24"><div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.certifiedRate}%` }} /></div><div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 text-right">{d.certifiedRate}% certified</div></div>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
               );
@@ -1273,36 +1262,36 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           {/* Schools in selected district */}
           {expandedDist && (
             <div className="lg:col-span-2 space-y-4">
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-slate-900">Schools in {expandedDist}</h3>
-                  <button onClick={() => setExpandedDist(null)} className="text-xs text-slate-400 hover:text-slate-600 font-mono">Close</button>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Schools in {expandedDist}</h3>
+                  <button onClick={() => setExpandedDist(null)} className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 font-mono">Close</button>
                 </div>
                 <div className="grid grid-cols-1 gap-4">{distSchools.map(sch => {
                   const students = STUDENTS_MOCK.filter(st => st.schoolId === sch.id);
                   const certified = students.filter(st => st.currentLevel >= 5).length;
                   const avgLevel = students.length > 0 ? Math.round(students.reduce((a, st) => a + st.currentLevel, 0) / students.length) : 0;
                   return (
-                    <div key={sch.id} className="border border-slate-200 rounded-xl p-5 hover:border-slate-400 transition-all">
+                    <div key={sch.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-slate-400 dark:hover:border-slate-600 transition-all">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-bold text-slate-900">{sch.name}</h4>
-                          <p className="text-xs text-slate-400">{sch.id} · {sch.blockCode} · {sch.stateCode}/{sch.districtCode}</p>
+                          <h4 className="font-bold text-slate-900 dark:text-white">{sch.name}</h4>
+                          <p className="text-xs text-slate-400 dark:text-slate-500">{sch.id} · {sch.blockCode} · {sch.stateCode}/{sch.districtCode}</p>
                         </div>
-                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sch.strength === 'high' ? 'text-indigo-700 bg-indigo-50 border border-indigo-200' : 'text-amber-700 bg-amber-50 border border-amber-200'}`}>{sch.strength}</span>
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sch.strength === 'high' ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{sch.strength}</span>
                       </div>
-                      <div className="grid grid-cols-4 gap-4 mt-4 pt-3 border-t border-slate-100">
-                        <div className="text-center"><div className="text-lg font-bold text-slate-900">{students.length}</div><div className="text-[10px] text-slate-400">Students</div></div>
-                        <div className="text-center"><div className="text-lg font-bold text-slate-900">{sch.teachersCount}</div><div className="text-[10px] text-slate-400">Teachers</div></div>
-                        <div className="text-center"><div className="text-lg font-bold text-emerald-600">{certified}</div><div className="text-[10px] text-slate-400">Certified</div></div>
-                        <div className="text-center"><div className="text-lg font-bold text-slate-900">L{avgLevel}</div><div className="text-[10px] text-slate-400">Avg Level</div></div>
+                      <div className="grid grid-cols-4 gap-4 mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+                        <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{students.length}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Students</div></div>
+                        <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{sch.teachersCount}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Teachers</div></div>
+                        <div className="text-center"><div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{certified}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Certified</div></div>
+                        <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">L{avgLevel}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Avg Level</div></div>
                       </div>
                       <div className="mt-3">
-                        <div className="flex justify-between text-[10px] text-slate-500 mb-1"><span>Certification Rate</span><span>{students.length > 0 ? Math.round(certified / students.length * 100) : 0}%</span></div>
-                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${students.length > 0 ? (certified / students.length) * 100 : 0}%` }} /></div>
+                        <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1"><span>Certification Rate</span><span>{students.length > 0 ? Math.round(certified / students.length * 100) : 0}%</span></div>
+                        <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${students.length > 0 ? (certified / students.length) * 100 : 0}%` }} /></div>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-1.5">{students.map(st => (
-                        <span key={st.id} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${st.levelHistory.length > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{st.name.split(' ')[0]} L{st.currentLevel}</span>
+                        <span key={st.id} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${st.levelHistory.length > 0 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'}`}>{st.name.split(' ')[0]} L{st.currentLevel}</span>
                       ))}</div>
                     </div>
                   );
@@ -1317,13 +1306,13 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'blocks') {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Block Administration" desc="All blocks under your district jurisdiction" icon={<MapPin className="h-5 w-5" />} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{BLOCKS.map(b => (
-          <div key={b.code} className="border border-slate-200 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between"><span className="font-bold text-sm">{b.code}</span><span className="text-xs text-slate-400">Dist: {b.district}</span></div>
+          <div key={b.code} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2">
+            <div className="flex justify-between"><span className="font-bold text-sm">{b.code}</span><span className="text-xs text-slate-400 dark:text-slate-500">Dist: {b.district}</span></div>
             <div className="flex gap-4 text-xs"><span>🏫 {b.schools} schools</span><span>👨‍🎓 {b.students} students</span></div>
-            <div><div className="flex justify-between text-[10px] mb-0.5"><span>Certification</span><span>{b.certifiedRate}%</span></div><div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${b.certifiedRate}%` }} /></div></div>
+            <div><div className="flex justify-between text-[10px] mb-0.5"><span>Certification</span><span>{b.certifiedRate}%</span></div><div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${b.certifiedRate}%` }} /></div></div>
           </div>
         ))}</div>
       </div>
@@ -1333,25 +1322,12 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   // ===================== SUPERADMIN PANELS =====================
   if (panel === 'users') {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="User Management" desc="All registered users across the FLN system" icon={<Users className="h-5 w-5" />} />
         <div className="space-y-2">{USERS_MOCK.map(u => (
-          <div key={u.email} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg">
-            <div><div className="font-medium text-sm">{u.name}</div><div className="text-xs text-slate-400 font-mono">{u.email}</div></div>
-            <div className="flex items-center gap-3"><span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">{u.role}</span><span className="text-xs text-slate-400">{u.scope}</span><span className="text-[10px] font-mono font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">{u.status}</span></div>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
-
-  if (panel === 'question_bank') {
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Question Bank" desc="Curated repository of FLN assessment questions across all 59 levels" icon={<BookOpen className="h-5 w-5" />} />
-        <div className="space-y-2">{QUESTION_BANK.map(q => (
-          <div key={q.id} className="p-3 border border-slate-100 rounded-lg">
-            <div className="flex justify-between items-start"><div><span className="text-[10px] font-mono font-bold text-slate-400">{q.id}</span><span className="text-sm font-medium ml-2">{q.question}</span></div><div className="flex gap-1 shrink-0"><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">{q.topic}</span><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">L{q.level}</span><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{q.difficulty}</span></div></div>
+          <div key={u.email} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
+            <div><div className="font-medium text-sm">{u.name}</div><div className="text-xs text-slate-400 dark:text-slate-500 font-mono">{u.email}</div></div>
+            <div className="flex items-center gap-3"><span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{u.role}</span><span className="text-xs text-slate-400 dark:text-slate-500">{u.scope}</span><span className="text-[10px] font-mono font-bold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">{u.status}</span></div>
           </div>
         ))}</div>
       </div>
@@ -1360,13 +1336,13 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'worksheet_templates') {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Worksheet Templates" desc="Pre-designed assessment templates for each grade and cycle" icon={<ClipboardList className="h-5 w-5" />} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{WS_TEMPLATES.map(t => (
-          <div key={t.id} className="border border-slate-200 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between"><span className="font-bold text-sm">{t.name}</span><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${t.status === 'Published' ? 'text-green-700 bg-green-50 border border-green-200' : t.status === 'Draft' ? 'text-amber-700 bg-amber-50 border border-amber-200' : 'text-blue-700 bg-blue-50 border border-blue-200'}`}>{t.status}</span></div>
-            <div className="text-xs text-slate-400">{t.id} · Grade: {t.grade}</div>
-            <div className="flex gap-3 text-xs text-slate-500"><span>📝 {t.questions} questions</span><span>⏱ {t.duration}</span></div>
+          <div key={t.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2">
+            <div className="flex justify-between"><span className="font-bold text-sm">{t.name}</span><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${t.status === 'Published' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : t.status === 'Draft' ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800' : 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800'}`}>{t.status}</span></div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">{t.id} · Grade: {t.grade}</div>
+            <div className="flex gap-3 text-xs text-slate-500 dark:text-slate-400"><span>📝 {t.questions} questions</span><span>⏱ {t.duration}</span></div>
           </div>
         ))}</div>
       </div>
@@ -1375,13 +1351,13 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'content') {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Content Library" desc="Educational resources, lesson plans, and teaching aids" icon={<BookMarked className="h-5 w-5" />} />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{CONTENT_ITEMS.map(c => (
-          <div key={c.id} className="border border-slate-200 rounded-lg p-4 space-y-2 hover:border-slate-400 transition-all">
-            <div className="flex justify-between"><span className="font-bold text-sm">{c.title}</span><span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${c.status === 'Approved' ? 'text-green-700 bg-green-50 border border-green-200' : c.status === 'Draft' ? 'text-amber-700 bg-amber-50 border border-amber-200' : 'text-blue-700 bg-blue-50 border border-blue-200'}`}>{c.status}</span></div>
-            <div className="text-xs text-slate-400">{c.type} · Level {c.level}</div>
-            <div className="text-xs text-slate-500">Languages: {c.language}</div>
+          <div key={c.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2 hover:border-slate-400 dark:hover:border-slate-600 transition-all">
+            <div className="flex justify-between"><span className="font-bold text-sm">{c.title}</span><span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${c.status === 'Approved' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : c.status === 'Draft' ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800' : 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800'}`}>{c.status}</span></div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">{c.type} · Level {c.level}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">Languages: {c.language}</div>
           </div>
         ))}</div>
       </div>
@@ -1401,14 +1377,14 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           <MetricCard title="Avg FLN Level" value={`L${Math.round(STUDENTS_MOCK.reduce((a, s) => a + s.currentLevel, 0) / STUDENTS_MOCK.length)}`} subtext="System average" icon={BarChart3} />
           <MetricCard title="Certification Rate" value={`${Math.round(STUDENTS_MOCK.filter(s => s.currentLevel >= 5).length / STUDENTS_MOCK.length * 100)}%`} subtext="Level 5+ benchmark" icon={Award} />
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <PageHeader title={title} desc={desc} icon={<BarChart3 className="h-5 w-5" />} />
           <div className="space-y-3 mt-4">{data.map((d: any) => (
-            <div key={d.code || d.id} className="flex items-center gap-4 p-3 border border-slate-100 rounded-lg">
+            <div key={d.code || d.id} className="flex items-center gap-4 p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
               <span className="font-bold text-sm w-20">{d.code || d.id}</span>
               <span className="text-sm flex-1">{d.name || d.districtCode}</span>
-              <span className="text-xs text-slate-400 w-24">{d.schools || '—'} schools</span>
-              <div className="w-32"><div className="flex justify-between text-[10px] mb-0.5"><span>{d.certifiedRate || 0}%</span></div><div className="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.certifiedRate || 0}%` }} /></div></div>
+              <span className="text-xs text-slate-400 dark:text-slate-500 w-24">{d.schools || '—'} schools</span>
+              <div className="w-32"><div className="flex justify-between text-[10px] mb-0.5"><span>{d.certifiedRate || 0}%</span></div><div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.certifiedRate || 0}%` }} /></div></div>
             </div>
           ))}</div>
         </div>
@@ -1419,7 +1395,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'system_settings') {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="System Configuration" desc="Core platform settings and infrastructure" icon={<Settings className="h-5 w-5" />} />
           <div className="space-y-3">{[
             { label: 'Platform Name', value: 'National FLN Assessment Portal' },
@@ -1431,20 +1407,20 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             { label: 'Auth Provider', value: 'Email + Password (SLA §3.2)' },
             { label: 'AI Model', value: 'Gemini 1.5 Pro (Fine-tuned FLN)' },
           ].map(c => (
-            <div key={c.label} className="flex justify-between text-sm py-2 border-b border-slate-50"><span className="text-slate-500">{c.label}</span><span className="font-medium text-slate-800 font-mono text-xs">{c.value}</span></div>
+            <div key={c.label} className="flex justify-between text-sm py-2 border-b border-slate-50 dark:border-slate-800"><span className="text-slate-500 dark:text-slate-400">{c.label}</span><span className="font-medium text-slate-800 dark:text-slate-100 font-mono text-xs">{c.value}</span></div>
           ))}</div>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="System Health" desc="Recent operational logs and status" icon={<Database className="h-5 w-5" />} />
           <div className="space-y-2">{SYSTEM_LOGS_MOCK.map(l => (
-            <div key={l.action} className="flex items-center gap-3 p-2 border border-slate-100 rounded text-xs">
+            <div key={l.action} className="flex items-center gap-3 p-2 border border-slate-100 dark:border-slate-700 rounded text-xs">
               <span className={`w-2 h-2 rounded-full shrink-0 ${l.status === 'Success' ? 'bg-green-500' : l.status === 'Warning' ? 'bg-amber-500' : 'bg-red-500'}`} />
               <span className="font-medium w-32">{l.action}</span>
-              <span className="text-slate-400 flex-1">{l.details}</span>
-              <span className="text-slate-400 font-mono">{l.timestamp}</span>
+              <span className="text-slate-400 dark:text-slate-500 flex-1">{l.details}</span>
+              <span className="text-slate-400 dark:text-slate-500 font-mono">{l.timestamp}</span>
             </div>
           ))}</div>
-          <button className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 mt-2"><RefreshCw className="w-3 h-3" /> Refresh Status</button>
+          <button className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mt-2"><RefreshCw className="w-3 h-3" /> Refresh Status</button>
         </div>
       </div>
     );

@@ -170,33 +170,33 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
 
   return (
     <div className="space-y-6" id="icr-scanner">
-      <div className="flex justify-between items-center border-b border-zinc-200 pb-4">
+      <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-4">
         <div>
-          <button onClick={onBack} className="text-zinc-500 hover:text-zinc-800 text-xs font-mono mb-2 block">
+          <button onClick={onBack} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white text-xs font-mono mb-2 block">
             ← Back to Dashboard
           </button>
-          <h2 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">
+          <h2 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">
             ICR Answer Sheet Scanner
           </h2>
-          <p className="text-zinc-500 text-sm mt-0.5">
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-0.5">
             Place the completed answer sheet into the scanner for AI-powered ICR extraction and evaluation
           </p>
         </div>
         {step !== 'select' && (
           <button
             onClick={resetScanner}
-            className="text-zinc-500 hover:text-zinc-700 text-xs font-mono border border-zinc-200 hover:bg-zinc-50 px-3 py-1.5 rounded-lg"
+            className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-white text-xs font-mono border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-lg"
           >
             New Scan
           </button>
         )}
       </div>
 
-      {error && <div className="p-3 text-sm bg-red-50 text-red-700 border border-red-100 rounded-lg">{error}</div>}
-      {success && <div className="p-3 text-sm bg-green-50 text-green-700 border border-green-100 rounded-lg">{success}</div>}
+      {error && <div className="p-3 text-sm bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-800 rounded-lg">{error}</div>}
+      {success && <div className="p-3 text-sm bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-800 rounded-lg">{success}</div>}
 
       {/* Step progress indicator */}
-      <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
+      <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 dark:text-zinc-500">
         {(['select', 'paper', 'verify', 'result'] as ScannerStep[]).map((s, i) => {
           const stepsMap: Record<ScannerStep, string> = {
             select: 'Select Student',
@@ -211,8 +211,8 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
           const thisIndex = orderedSteps.indexOf(s);
           return (
             <React.Fragment key={s}>
-              {i > 0 && <span className="text-zinc-300">→</span>}
-              <span className={`${thisIndex < stepIndex ? 'text-green-600' : thisIndex === stepIndex ? 'text-zinc-900 font-bold' : 'text-zinc-300'}`}>
+              {i > 0 && <span className="text-zinc-300 dark:text-zinc-600">→</span>}
+              <span className={`${thisIndex < stepIndex ? 'text-green-600 dark:text-green-400' : thisIndex === stepIndex ? 'text-zinc-900 dark:text-white font-bold' : 'text-zinc-300 dark:text-zinc-600'}`}>
                 {thisIndex < stepIndex ? '✓ ' : ''}{stepsMap[s]}
               </span>
             </React.Fragment>
@@ -222,26 +222,26 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
 
       {/* Step: Select Student */}
       {step === 'select' && (
-        <div className="bg-white p-8 border border-zinc-200 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
+        <div className="bg-white dark:bg-slate-900 p-8 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto">
               <svg className="w-8 h-8 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h3 className="text-xl font-display font-semibold text-zinc-900">Prepare for ICR Scan</h3>
-            <p className="text-zinc-500 text-sm max-w-md mx-auto">
+            <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">Prepare for ICR Scan</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm max-w-md mx-auto">
               Select a class and student, then generate a diagnostic paper. Once printed and answered, place the sheet into the physical scanner.
             </p>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-mono font-bold text-zinc-500 uppercase mb-1.5">Select Class</label>
+              <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Class</label>
               <select
                 value={selectedClassId}
                 onChange={(e) => { setSelectedClassId(e.target.value); setSelectedStudentId(''); }}
-                className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-white focus:border-zinc-500 outline-none"
+                className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
               >
                 <option value="">Choose a class...</option>
                 {classes.map(c => (
@@ -251,12 +251,12 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
             </div>
 
             <div>
-              <label className="block text-xs font-mono font-bold text-zinc-500 uppercase mb-1.5">Select Student</label>
+              <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Student</label>
               <select
                 value={selectedStudentId}
                 onChange={(e) => setSelectedStudentId(e.target.value)}
                 disabled={!selectedClassId}
-                className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-white focus:border-zinc-500 outline-none disabled:opacity-50"
+                className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none disabled:opacity-50"
               >
                 <option value="">Choose a student...</option>
                 {filteredStudents.map(s => (
@@ -266,17 +266,17 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
             </div>
 
             {selectedStudent && (
-              <div className="bg-zinc-50 p-4 border border-zinc-200 rounded-xl space-y-2 text-sm">
+              <div className="bg-zinc-50 dark:bg-zinc-800 p-4 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Student</span>
-                  <span className="font-medium text-zinc-900">{selectedStudent.name}</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">Student</span>
+                  <span className="font-medium text-zinc-900 dark:text-white">{selectedStudent.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Current Level</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">Current Level</span>
                   <span className="font-mono font-bold">L{selectedStudent.currentLevel}.{selectedStudent.currentSubLevel ?? 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Diagnostic Status</span>
+                  <span className="text-zinc-500 dark:text-zinc-400">Diagnostic Status</span>
                   <span className={`font-mono text-xs font-bold ${selectedStudent.levelHistory.length === 0 ? 'text-amber-600' : 'text-green-600'}`}>
                     {selectedStudent.levelHistory.length === 0 ? 'Pending' : 'Completed'}
                   </span>
@@ -297,10 +297,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
 
       {/* Step: Place paper in scanner */}
       {step === 'paper' && paper && !isScanning && (
-        <div className="bg-white p-8 border border-zinc-200 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
+        <div className="bg-white dark:bg-slate-900 p-8 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
           <div className="text-center space-y-2">
-            <h3 className="text-xl font-display font-semibold text-zinc-900">Place Paper in Scanner</h3>
-            <p className="text-zinc-500 text-sm">
+            <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">Place Paper in Scanner</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
               Insert the completed answer sheet for <strong>{selectedStudent?.name}</strong> into the scanner tray below.
             </p>
           </div>
@@ -445,19 +445,19 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
           </div>
 
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
-              <h4 className="text-lg font-display font-medium text-zinc-900 mb-1">Verified Extracted Answers</h4>
-              <p className="text-xs text-zinc-500 mb-4">Review each answer and correct any ICR misreads before final submission.</p>
+            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm">
+              <h4 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-1">Verified Extracted Answers</h4>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Review each answer and correct any ICR misreads before final submission.</p>
 
               <div className="space-y-4">
                 {paper.questions.map((q, idx) => (
-                  <div key={q.question_id} className="p-4 border border-zinc-200 rounded-lg space-y-2">
+                  <div key={q.question_id} className="p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg space-y-2">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-bold bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded border border-zinc-200">
+                        <span className="text-[10px] font-mono font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
                           Q{idx + 1}
                         </span>
-                        <span className="text-[10px] font-mono text-zinc-400 capitalize">Level {q.source_level} · {q.topic}</span>
+                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 capitalize">Level {q.source_level} · {q.topic}</span>
                       </div>
                       <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
                         (extractedAnswers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase()
@@ -467,13 +467,13 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                         {(extractedAnswers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase() ? 'Match' : 'Differs from key'}
                       </span>
                     </div>
-                    <p className="text-sm text-zinc-700">{q.question}</p>
+                    <p className="text-sm text-zinc-700 dark:text-zinc-200">{q.question}</p>
 
                     {q.answer_type === 'choice' && q.choices ? (
                       <select
                         value={extractedAnswers[q.question_id] || ''}
                         onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
-                        className="w-full text-sm border border-zinc-200 rounded-lg p-2 bg-white focus:border-zinc-500 outline-none"
+                        className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
                       >
                         <option value="">Select option...</option>
                         {q.choices.map(c => (
@@ -486,16 +486,16 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                           type="text"
                           value={extractedAnswers[q.question_id] || ''}
                           onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
-                          className="flex-1 text-sm border border-zinc-200 rounded-lg p-2 bg-white focus:border-zinc-500 outline-none font-mono"
+                          className="flex-1 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none font-mono"
                         />
-                        <span className="text-[10px] font-mono text-zinc-400 self-center">Key: {q.answer}</span>
+                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 self-center">Key: {q.answer}</span>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
 
-              <div className="mt-6 pt-4 border-t border-zinc-200">
+              <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
                 <button
                   onClick={submitEvaluation}
                   disabled={loading}
@@ -512,27 +512,27 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
       {/* Step: Results */}
       {step === 'result' && report && (
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-6">
+          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm space-y-6">
             <div className="text-center space-y-2">
-              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto border border-green-200">
+              <div className="w-16 h-16 bg-green-50 dark:bg-green-950 rounded-full flex items-center justify-center mx-auto border border-green-200 dark:border-green-800">
                 <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-display font-semibold text-zinc-900">ICR Scan & Evaluation Complete</h3>
-              <p className="text-sm text-zinc-500">
+              <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">ICR Scan & Evaluation Complete</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 Answers for <strong>{selectedStudent?.name}</strong> have been evaluated.
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 border-y border-zinc-200 py-4">
+            <div className="grid grid-cols-3 gap-4 border-y border-zinc-200 dark:border-zinc-700 py-4">
               <div className="text-center">
-                <span className="block text-xs font-mono text-zinc-400 uppercase">Score</span>
-                <span className="text-2xl font-display font-bold text-zinc-900">{report.score} / {report.totalQuestions}</span>
+                <span className="block text-xs font-mono text-zinc-400 dark:text-zinc-500 uppercase">Score</span>
+                <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">{report.score} / {report.totalQuestions}</span>
               </div>
-              <div className="text-center border-x border-zinc-200">
-                <span className="block text-xs font-mono text-zinc-400 uppercase">Placed Level</span>
-                <span className="text-2xl font-display font-bold text-zinc-900">L{report.recommendedLevel}.{report.recommendedSubLevel ?? 0}</span>
+              <div className="text-center border-x border-zinc-200 dark:border-zinc-700">
+                <span className="block text-xs font-mono text-zinc-400 dark:text-zinc-500 uppercase">Placed Level</span>
+                <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">L{report.recommendedLevel}.{report.recommendedSubLevel ?? 0}</span>
               </div>
               <div className="text-center">
                 <span className="block text-xs font-mono text-zinc-400 uppercase">Status</span>
@@ -541,11 +541,11 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
             </div>
 
             <div className="space-y-3">
-              <h4 className="text-[10px] font-mono font-bold uppercase text-zinc-400 tracking-wider">Concept Mastery</h4>
+              <h4 className="text-[10px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500 tracking-wider">Concept Mastery</h4>
               <div className="grid grid-cols-1 gap-1.5">
                 {Object.entries(report.conceptMastery).map(([topic, mastery]) => (
-                  <div key={topic} className="flex justify-between items-center p-2.5 border border-zinc-100 rounded-lg bg-zinc-50">
-                    <span className="text-sm font-medium text-zinc-700">{topic}</span>
+                  <div key={topic} className="flex justify-between items-center p-2.5 border border-zinc-100 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{topic}</span>
                     <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
                       mastery === 'Strong' ? 'bg-green-100 text-green-800' : mastery === 'Satisfactory' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
                     }`}>
@@ -556,9 +556,9 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               </div>
             </div>
 
-            <div className="bg-zinc-50 p-5 rounded-xl border border-zinc-200 space-y-1">
-              <h4 className="text-[9px] font-mono font-bold uppercase text-zinc-400 tracking-wider">AI Narrative Summary</h4>
-              <p className="text-zinc-700 text-sm leading-relaxed">{report.narrative}</p>
+            <div className="bg-zinc-50 dark:bg-zinc-800 p-5 rounded-xl border border-zinc-200 dark:border-zinc-700 space-y-1">
+              <h4 className="text-[9px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500 tracking-wider">AI Narrative Summary</h4>
+              <p className="text-zinc-700 dark:text-zinc-200 text-sm leading-relaxed">{report.narrative}</p>
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -570,7 +570,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               </button>
               <button
                 onClick={onBack}
-                className="flex-1 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-medium text-sm py-2.5 rounded-lg transition-colors"
+                className="flex-1 bg-white dark:bg-slate-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 font-medium text-sm py-2.5 rounded-lg transition-colors"
               >
                 Back to Dashboard
               </button>
