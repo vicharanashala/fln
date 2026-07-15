@@ -19,10 +19,7 @@ export default defineConfig(() => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {
         ignored: ['**/data/**', '**/db.json']
       },
-      // Forward backend routes to the real API server (backend, :3000).
-      // The in-browser mock (src/mock) intercepts most /api calls before they
-      // reach the network; anything it does NOT handle (e.g. real PDF/diagnostic
-      // generation) falls through to here and is proxied to the backend.
+      // Forward all /api calls to the real backend server (Express, :3000).
       // Override the target with VITE_API_TARGET if the backend runs elsewhere.
       proxy: {
         '/api': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true },
