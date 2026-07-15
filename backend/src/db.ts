@@ -1,8 +1,4 @@
-import fs from 'fs/promises';
-import path from 'path';
-
-const DB_DIR = path.resolve(process.cwd(), 'data');
-const DB_FILE = path.resolve(DB_DIR, 'db.json');
+import { MongoClient, Db } from 'mongodb';
 
 // Types & Interfaces corresponding to MongoDB Collections in SRS §10
 export enum UserRole {
@@ -237,248 +233,299 @@ interface DatabaseSchema {
 
 export class DBStore {
   private data: DatabaseSchema | null = null;
+  public useMongo: boolean = false;
+  private mongoDb: Db | null = null;
 
   async init() {
-    try {
-      await fs.mkdir(DB_DIR, { recursive: true });
-    } catch (_) {}
+    const mongoUri = process.env.MONGO_URI;
+    if (!mongoUri) {
+      throw new Error('MONGO_URI not set. A MongoDB connection string is required.');
+    }
 
     try {
-      const content = await fs.readFile(DB_FILE, 'utf-8');
-      this.data = JSON.parse(content);
-      
-      // Auto-merge any newly defined pre-seeded users, schools, classes, and students
+      console.log('[Database] Connecting to MongoDB...');
+      const client = new MongoClient(mongoUri, {
+        serverSelectionTimeoutMS: 5000
+      });
+      await client.connect();
+      this.mongoDb = client.db();
+      this.useMongo = true;
+      console.log('[Database] Connected to MongoDB successfully.');
+
+      // Seed any empty collections in MongoDB
       const seed = this.getSeedData();
-      let modified = false;
+      const collections = [
+        { name: 'users', data: seed.users },
+        { name: 'schools', data: seed.schools },
+        { name: 'classes', data: seed.classes },
+        { name: 'students', data: seed.students },
+        { name: 'questions', data: seed.questions },
+        { name: 'worksheets', data: seed.worksheets },
+        { name: 'answerSubmissions', data: seed.answerSubmissions },
+        { name: 'evaluationReports', data: seed.evaluationReports },
+        { name: 'tickets', data: seed.tickets },
+        { name: 'logbook', data: seed.logbook },
+        { name: 'announcements', data: seed.announcements },
+        { name: 'interventions', data: seed.interventions },
+        { name: 'bestPractices', data: seed.bestPractices }
+      ];
 
-      if (!this.data.users) {
-        this.data.users = [];
-        modified = true;
+      for (const coll of collections) {
+        const count = await this.mongoDb.collection(coll.name).countDocuments();
+        if (count === 0 && coll.data.length > 0) {
+          await this.mongoDb.collection(coll.name).insertMany(coll.data);
+          console.log(`[Database] Seeded collection: ${coll.name} with ${coll.data.length} records`);
+        }
       }
+
+      // Force update pre-seeded users in MongoDB to ensure volunteer names are updated
       for (const u of seed.users) {
-        if (!this.data.users.some(existing => existing.email.toLowerCase() === u.email.toLowerCase())) {
-          this.data.users.push(u);
-          modified = true;
-        }
+        await this.mongoDb.collection('users').updateOne(
+          { email: u.email.toLowerCase() },
+          { $set: { name: u.name, role: u.role, assignedSchools: u.assignedSchools } },
+          { upsert: true }
+        );
       }
 
-      if (!this.data.schools) {
-        this.data.schools = [];
-        modified = true;
-      }
-      for (const s of seed.schools) {
-        if (!this.data.schools.some(existing => existing.id === s.id)) {
-          this.data.schools.push(s);
-          modified = true;
-        }
-      }
-
-      if (!this.data.classes) {
-        this.data.classes = [];
-        modified = true;
-      }
-      for (const c of seed.classes) {
-        if (!this.data.classes.some(existing => existing.id === c.id)) {
-          this.data.classes.push(c);
-          modified = true;
-        }
-      }
-
-      if (!this.data.students) {
-        this.data.students = [];
-        modified = true;
-      }
-      for (const std of seed.students) {
-        if (!this.data.students.some(existing => existing.id === std.id)) {
-          this.data.students.push(std);
-          modified = true;
-        }
-      }
-
-      if (!this.data.announcements) {
-        this.data.announcements = [];
-        modified = true;
-      }
-      if (!this.data.tickets) {
-        this.data.tickets = [];
-        modified = true;
-      }
-      if (!this.data.logbook) {
-        this.data.logbook = [];
-        modified = true;
-      }
-      if (!this.data.interventions) {
-        this.data.interventions = [];
-        modified = true;
-      }
-      if (!this.data.bestPractices) {
-        this.data.bestPractices = [];
-        modified = true;
-      }
-
-      if (modified) {
-        await this.save();
-      }
-    } catch (_) {
-      // If DB file does not exist, pre-seed data
-      this.data = this.getSeedData();
-      await this.save();
+      // Cache the seeded/existing MongoDB data into this.data for lightning-fast synchronous operations (like auth checks)
+      this.data = {
+        users: await this.mongoDb.collection<User>('users').find({}).toArray(),
+        schools: await this.mongoDb.collection<School>('schools').find({}).toArray(),
+        classes: await this.mongoDb.collection<ClassGroup>('classes').find({}).toArray(),
+        students: await this.mongoDb.collection<Student>('students').find({}).toArray(),
+        questions: await this.mongoDb.collection<Question>('questions').find({}).toArray(),
+        worksheets: await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray(),
+        answerSubmissions: await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray(),
+        evaluationReports: await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({}).toArray(),
+        tickets: await this.mongoDb.collection<Ticket>('tickets').find({}).toArray(),
+        logbook: await this.mongoDb.collection<LogEntry>('logbook').find({}).toArray(),
+        announcements: await this.mongoDb.collection<Announcement>('announcements').find({}).toArray(),
+        interventions: await this.mongoDb.collection<Intervention>('interventions').find({}).toArray(),
+        bestPractices: await this.mongoDb.collection<BestPractice>('bestPractices').find({}).toArray()
+      };
+      console.log('[Database] MongoDB memory cache synchronized successfully.');
+    } catch (err: any) {
+      throw new Error(`Failed to connect to MongoDB: ${err?.message || err}`);
     }
   }
 
-  private async save() {
-    if (!this.data) return;
-    await fs.writeFile(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
-  }
-
   async reset() {
-    this.data = this.getSeedData();
-    await this.save();
+    if (!this.useMongo || !this.mongoDb) {
+      throw new Error('Database not connected.');
+    }
+    console.log('[Database] Resetting MongoDB data...');
+    const seed = this.getSeedData();
+    const collections = [
+      'users', 'schools', 'classes', 'students', 'questions',
+      'worksheets', 'answerSubmissions', 'evaluationReports',
+      'tickets', 'logbook', 'announcements', 'interventions', 'bestPractices'
+    ];
+    for (const cName of collections) {
+      await this.mongoDb.collection(cName).deleteMany({});
+    }
+    await this.mongoDb.collection('users').insertMany(seed.users);
+    await this.mongoDb.collection('schools').insertMany(seed.schools);
+    await this.mongoDb.collection('classes').insertMany(seed.classes);
+    await this.mongoDb.collection('students').insertMany(seed.students);
+    await this.mongoDb.collection('questions').insertMany(seed.questions);
+    await this.mongoDb.collection('worksheets').insertMany(seed.worksheets);
+    await this.mongoDb.collection('answerSubmissions').insertMany(seed.answerSubmissions);
+    await this.mongoDb.collection('evaluationReports').insertMany(seed.evaluationReports);
+    await this.mongoDb.collection('tickets').insertMany(seed.tickets);
+    await this.mongoDb.collection('logbook').insertMany(seed.logbook);
+    await this.mongoDb.collection('announcements').insertMany(seed.announcements);
+    await this.mongoDb.collection('interventions').insertMany(seed.interventions);
+    await this.mongoDb.collection('bestPractices').insertMany(seed.bestPractices);
+    console.log('[Database] MongoDB reset and re-seeded successfully.');
   }
 
   // --- Collection Accessors ---
 
-  async getUsers() { return this.data!.users; }
-  async getSchools() { return this.data!.schools; }
-  async getClasses() { return this.data!.classes; }
-  async getStudents() { return this.data!.students; }
-  async getQuestions() { return this.data!.questions; }
-  async getWorksheets() { return this.data!.worksheets; }
-  async getAnswerSubmissions() { return this.data!.answerSubmissions; }
-  async getEvaluationReports() { return this.data!.evaluationReports; }
-  async getTickets() { return this.data!.tickets; }
-  async getLogbook() { return this.data!.logbook; }
-  async getAnnouncements() { return this.data!.announcements; }
+  getUserSync(email: string): User | null {
+    if (!this.data || !this.data.users) return null;
+    return this.data.users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+  }
+
+  async getUsers() {
+    return await this.mongoDb!.collection<User>('users').find({}).toArray();
+  }
+  async getSchools() {
+    return await this.mongoDb!.collection<School>('schools').find({}).toArray();
+  }
+  async getClasses() {
+    return await this.mongoDb!.collection<ClassGroup>('classes').find({}).toArray();
+  }
+  async getStudents() {
+    return await this.mongoDb!.collection<Student>('students').find({}).toArray();
+  }
+  async getQuestions() {
+    return await this.mongoDb!.collection<Question>('questions').find({}).toArray();
+  }
+  async getWorksheets() {
+    return await this.mongoDb!.collection<Worksheet>('worksheets').find({}).toArray();
+  }
+  async getAnswerSubmissions() {
+    return await this.mongoDb!.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
+  }
+  async getEvaluationReports() {
+    return await this.mongoDb!.collection<EvaluationReport>('evaluationReports').find({}).toArray();
+  }
+  async getTickets() {
+    return await this.mongoDb!.collection<Ticket>('tickets').find({}).toArray();
+  }
+  async getLogbook() {
+    return await this.mongoDb!.collection<LogEntry>('logbook').find({}).toArray();
+  }
+  async getAnnouncements() {
+    return await this.mongoDb!.collection<Announcement>('announcements').find({}).toArray();
+  }
 
   // --- Write / Update Helpers ---
 
   async addUser(user: User) {
-    this.data!.users.push(user);
-    await this.save();
+    await this.mongoDb!.collection('users').insertOne(user);
+    if (this.data) this.data.users.push(user);
     return user;
   }
 
   async addStudent(student: Student) {
-    this.data!.students.push(student);
-    await this.save();
+    await this.mongoDb!.collection('students').insertOne(student);
+    if (this.data) this.data.students.push(student);
     return student;
   }
 
   async updateStudent(studentId: string, updates: Partial<Student>) {
-    const s = this.data!.students.find(x => x.id === studentId);
-    if (s) {
-      Object.assign(s, updates);
-      await this.save();
+    await this.mongoDb!.collection('students').updateOne({ id: studentId }, { $set: updates });
+    const s = await this.mongoDb!.collection<Student>('students').findOne({ id: studentId });
+    if (s && this.data) {
+      const idx = this.data.students.findIndex(x => x.id === studentId);
+      if (idx !== -1) this.data.students[idx] = s;
     }
-    return s;
+    return s || undefined;
   }
 
   async addWorksheet(ws: Worksheet) {
-    this.data!.worksheets.push(ws);
-    await this.save();
+    await this.mongoDb!.collection('worksheets').insertOne(ws);
+    if (this.data) this.data.worksheets.push(ws);
     return ws;
   }
 
   async updateWorksheet(worksheetId: string, updates: Partial<Worksheet>) {
-    const ws = this.data!.worksheets.find(x => x.id === worksheetId);
-    if (ws) {
-      Object.assign(ws, updates);
-      await this.save();
+    await this.mongoDb!.collection('worksheets').updateOne({ id: worksheetId }, { $set: updates });
+    const ws = await this.mongoDb!.collection<Worksheet>('worksheets').findOne({ id: worksheetId });
+    if (ws && this.data) {
+      const idx = this.data.worksheets.findIndex(x => x.id === worksheetId);
+      if (idx !== -1) this.data.worksheets[idx] = ws;
     }
-    return ws;
+    return ws || undefined;
   }
 
   async addAnswerSubmission(sub: AnswerSubmission) {
-    this.data!.answerSubmissions.push(sub);
-    await this.save();
+    await this.mongoDb!.collection('answerSubmissions').insertOne(sub);
+    if (this.data) this.data.answerSubmissions.push(sub);
     return sub;
   }
 
   async addEvaluationReport(rep: EvaluationReport) {
-    this.data!.evaluationReports.push(rep);
-    await this.save();
+    await this.mongoDb!.collection('evaluationReports').insertOne(rep);
+    if (this.data) this.data.evaluationReports.push(rep);
     return rep;
   }
 
   async addTicket(t: Ticket) {
-    this.data!.tickets.push(t);
-    await this.save();
+    await this.mongoDb!.collection('tickets').insertOne(t);
+    if (this.data) this.data.tickets.push(t);
     return t;
   }
 
   async updateTicket(id: string, updates: Partial<Ticket>) {
-    const t = this.data!.tickets.find(x => x.id === id);
-    if (t) {
-      Object.assign(t, updates);
-      await this.save();
+    await this.mongoDb!.collection('tickets').updateOne({ id }, { $set: updates });
+    const t = await this.mongoDb!.collection<Ticket>('tickets').findOne({ id });
+    if (t && this.data) {
+      const idx = this.data.tickets.findIndex(x => x.id === id);
+      if (idx !== -1) this.data.tickets[idx] = t;
     }
-    return t;
+    return t || undefined;
   }
 
   async updateUser(userId: string, updates: Partial<User>) {
-    const u = this.data!.users.find(x => x.id === userId);
-    if (u) {
-      Object.assign(u, updates);
-      await this.save();
+    await this.mongoDb!.collection('users').updateOne({ id: userId }, { $set: updates });
+    const u = await this.mongoDb!.collection<User>('users').findOne({ id: userId });
+    if (u && this.data) {
+      const idx = this.data.users.findIndex(x => x.id === userId);
+      if (idx !== -1) this.data.users[idx] = u;
     }
-    return u;
+    return u || undefined;
   }
 
   async updateSchool(schoolId: string, updates: Partial<School>) {
-    const s = this.data!.schools.find(x => x.id === schoolId);
-    if (s) {
-      Object.assign(s, updates);
-      await this.save();
+    await this.mongoDb!.collection('schools').updateOne({ id: schoolId }, { $set: updates });
+    const s = await this.mongoDb!.collection<School>('schools').findOne({ id: schoolId });
+    if (s && this.data) {
+      const idx = this.data.schools.findIndex(x => x.id === schoolId);
+      if (idx !== -1) this.data.schools[idx] = s;
     }
-    return s;
+    return s || undefined;
+  }
+
+  async addSchool(school: School) {
+    await this.mongoDb!.collection('schools').insertOne(school);
+    if (this.data) this.data.schools.push(school);
+    return school;
   }
 
   async addLog(log: LogEntry) {
-    this.data!.logbook.unshift(log);
-    await this.save();
+    await this.mongoDb!.collection('logbook').insertOne(log);
+    if (this.data) this.data.logbook.unshift(log);
     return log;
   }
 
   async addAnnouncement(ann: Announcement) {
-    this.data!.announcements.unshift(ann);
-    await this.save();
+    await this.mongoDb!.collection('announcements').insertOne(ann);
+    if (this.data) this.data.announcements.unshift(ann);
     return ann;
   }
 
   // --- Intervention & Best Practice Methods ---
 
-  async getInterventions() { return this.data!.interventions; }
+  async getInterventions() {
+    return await this.mongoDb!.collection<Intervention>('interventions').find({}).toArray();
+  }
 
   async addIntervention(intervention: Intervention) {
-    this.data!.interventions.push(intervention);
-    await this.save();
+    await this.mongoDb!.collection('interventions').insertOne(intervention);
+    if (this.data) this.data.interventions.push(intervention);
     return intervention;
   }
 
   async updateIntervention(id: string, updates: Partial<Intervention>) {
-    const i = this.data!.interventions.find(x => x.id === id);
-    if (i) {
-      Object.assign(i, updates);
-      await this.save();
+    await this.mongoDb!.collection('interventions').updateOne({ id }, { $set: updates });
+    const i = await this.mongoDb!.collection<Intervention>('interventions').findOne({ id });
+    if (i && this.data) {
+      const idx = this.data.interventions.findIndex(x => x.id === id);
+      if (idx !== -1) this.data.interventions[idx] = i;
     }
-    return i;
+    return i || undefined;
   }
 
-  async getBestPractices() { return this.data!.bestPractices; }
+  async getBestPractices() {
+    return await this.mongoDb!.collection<BestPractice>('bestPractices').find({}).toArray();
+  }
 
   async addBestPractice(bp: BestPractice) {
-    this.data!.bestPractices.push(bp);
-    await this.save();
+    await this.mongoDb!.collection('bestPractices').insertOne(bp);
+    if (this.data) this.data.bestPractices.push(bp);
     return bp;
   }
 
   async updateBestPractice(id: string, updates: Partial<BestPractice>) {
-    const bp = this.data!.bestPractices.find(x => x.id === id);
-    if (bp) {
-      Object.assign(bp, updates);
-      await this.save();
+    await this.mongoDb!.collection('bestPractices').updateOne({ id }, { $set: updates });
+    const bp = await this.mongoDb!.collection<BestPractice>('bestPractices').findOne({ id });
+    if (bp && this.data) {
+      const idx = this.data.bestPractices.findIndex(x => x.id === id);
+      if (idx !== -1) this.data.bestPractices[idx] = bp;
     }
-    return bp;
+    return bp || undefined;
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -667,10 +714,10 @@ export class DBStore {
       { id: 'u6_amb', email: 'gps-amb-003.t01@fln.org', name: 'Meena Kumari (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-amb-003' },
       { id: 'u6_jai', email: 'gps-jai-004.t01@fln.org', name: 'Ram Gopal (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-jai-004' },
       { id: 'u6_lko', email: 'gps-lko-005.t01@fln.org', name: 'Suresh Kumar (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-lko-005' },
-      { id: 'u7', email: 'vol.rahul@fln.org', name: 'Rahul Kumar (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002'] },
+      { id: 'u7', email: 'vol.rahul@fln.org', name: 'Punjab Volunteer (Rahul)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002'] },
       { id: 'u7_amit', email: 'vol.amit@fln.org', name: 'Amit Saini (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002', 'gps-jai-004'] },
       { id: 'u7_sneha', email: 'vol.up_sneha@fln.org', name: 'Sneha Verma (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-lko-005'] },
-      { id: 'u7_vipin', email: 'vol.hr_vipin@fln.org', name: 'Vipin Yadav (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-amb-003'] },
+      { id: 'u7_vipin', email: 'vol.hr_vipin@fln.org', name: 'Haryana Volunteer (Vipin)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-amb-003'] },
       // District admins for new districts
       { id: 'u3_bth', email: 'district.bth@fln.org', name: 'Bathinda District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'PB', districtCode: 'BTH' },
       { id: 'u3_asr', email: 'district.asr@fln.org', name: 'Amritsar District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'PB', districtCode: 'ASR' },
