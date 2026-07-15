@@ -99,14 +99,21 @@ async function zipBatch(batchId, writableStream) {
         const zipPath = relPath.split(path.sep).join('/');
         zip.file(zipPath, data);
 
-        // If it is a worksheet.pdf, also add a flat copy to 'all_worksheets/'
-        if (entry.name === 'worksheet.pdf') {
-          const parts = relPath.split(path.sep);
-          if (parts.length >= 3) {
-            const studentFolder = parts[parts.length - 3];
-            const subFolder = parts[parts.length - 2];
-            const flatName = `all_worksheets/${studentFolder}_${subFolder}.pdf`;
-            zip.file(flatName, data);
+        // Add flat copies of pdf, answer key, coords, and question paper to 'all_worksheets/'
+        const parts = relPath.split(path.sep);
+        if (parts.length >= 3) {
+          const studentFolder = parts[parts.length - 3];
+          const subFolder = parts[parts.length - 2];
+          const baseName = `${studentFolder}_${subFolder}`;
+          
+          if (entry.name === 'worksheet.pdf') {
+            zip.file(`all_worksheets/${baseName}.pdf`, data);
+          } else if (entry.name === 'answer_key.json') {
+            zip.file(`all_worksheets/${baseName}_answer_key.json`, data);
+          } else if (entry.name === 'coords.json') {
+            zip.file(`all_worksheets/${baseName}_coords.json`, data);
+          } else if (entry.name === 'question_paper.json') {
+            zip.file(`all_worksheets/${baseName}_question_paper.json`, data);
           }
         }
       }

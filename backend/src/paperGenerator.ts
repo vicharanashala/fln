@@ -138,8 +138,17 @@ export async function generateDiagnosticPaper({
       zip.file(`${folderName}/question_paper.json`, JSON.stringify(r.questionPaperJson, null, 2));
     }
 
-    // Add flat copy to all_worksheets/
+    // Add flat copies to all_worksheets/ for easy single-folder access
     zip.file(`all_worksheets/${folderName}.pdf`, pdfBuf);
+    if (r.masterJson) {
+      zip.file(`all_worksheets/${folderName}_answer_key.json`, JSON.stringify(r.masterJson, null, 2));
+    }
+    if (r.coords) {
+      zip.file(`all_worksheets/${folderName}_coords.json`, JSON.stringify(r.coords, null, 2));
+    }
+    if (r.questionPaperJson) {
+      zip.file(`all_worksheets/${folderName}_question_paper.json`, JSON.stringify(r.questionPaperJson, null, 2));
+    }
   });
 
   const pdfFileName = `class${classNumber}_diagnostic_${randomUUID()}.pdf`;
