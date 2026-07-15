@@ -68,7 +68,8 @@ export default function App() {
         });
         const data = await res.json();
         if (Array.isArray(data)) {
-          setAnnouncements(data);
+          const cleared = JSON.parse(localStorage.getItem('fln_cleared_notifications') || '[]') as string[];
+          setAnnouncements(data.filter((a: Announcement) => !cleared.includes(a.id)));
         }
       } catch (err) {
         console.error('Error fetching announcements:', err);
@@ -97,10 +98,17 @@ export default function App() {
   };
 
   const handleMarkNotificationRead = (id: string) => {
+    const cleared = JSON.parse(localStorage.getItem('fln_cleared_notifications') || '[]') as string[];
+    if (!cleared.includes(id)) cleared.push(id);
+    localStorage.setItem('fln_cleared_notifications', JSON.stringify(cleared));
     setAnnouncements(prev => prev.filter(a => a.id !== id));
   };
 
   const handleClearNotifications = () => {
+    const ids = announcements.map(a => a.id);
+    const cleared = JSON.parse(localStorage.getItem('fln_cleared_notifications') || '[]') as string[];
+    const merged = [...new Set([...cleared, ...ids])];
+    localStorage.setItem('fln_cleared_notifications', JSON.stringify(merged));
     setAnnouncements([]);
   };
 
@@ -165,7 +173,7 @@ export default function App() {
   const activeUrgentAnnouncements = announcements.filter(a => a.isUrgent);
 
   return (
-    <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 antialiased">
+    <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
       {/* 1. Public Landing view */}
       {currentView === 'home' && (
         <LandingView onNavigateToLogin={() => setCurrentView('login')} />
@@ -254,25 +262,25 @@ export default function App() {
 
           {/* Dynamic notifications list panel */}
           {activePanel === 'notifications' && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                <Bell className="h-6 w-6 text-slate-550" />
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-700">
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
+                <Bell className="h-6 w-6 text-slate-550 dark:text-slate-400" />
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900 font-sans">Announcements Log</h2>
-                  <p className="text-xs text-slate-505">Official notifications escalated by state administrative coordinators.</p>
+                  <h2 className="text-lg font-bold text-slate-900 font-sans dark:text-white">Announcements Log</h2>
+                  <p className="text-xs text-slate-505 dark:text-slate-400">Official notifications escalated by state administrative coordinators.</p>
                 </div>
               </div>
               <div className="space-y-4">
                 {announcements.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 font-mono text-xs">No active broadcasts.</div>
+                  <div className="p-8 text-center text-slate-400 font-mono text-xs dark:text-slate-500">No active broadcasts.</div>
                 ) : (
                   announcements.map(notif => (
-                    <div key={notif.id} className={`p-4 border rounded-xl space-y-2 ${notif.isUrgent ? 'border-amber-200 bg-amber-50/30' : 'border-slate-150 bg-slate-50/50'}`}>
+                    <div key={notif.id} className={`p-4 border rounded-xl space-y-2 ${notif.isUrgent ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30' : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'}`}>
                       <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-sm text-slate-900">{notif.title}</h4>
-                        <span className="text-[10px] text-slate-400 font-mono font-bold">{new Date(notif.createdAt).toLocaleString()}</span>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">{notif.title}</h4>
+                        <span className="text-[10px] text-slate-400 font-mono font-bold dark:text-slate-500">{new Date(notif.createdAt).toLocaleString()}</span>
                       </div>
-                      <p className="text-xs text-slate-650 leading-relaxed font-sans">{notif.message}</p>
+                      <p className="text-xs text-slate-650 leading-relaxed font-sans dark:text-slate-300">{notif.message}</p>
                     </div>
                   ))
                 )}
@@ -289,9 +297,9 @@ export default function App() {
 
       {/* Floating Action Toast Alerts */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-2xl border border-slate-800 animate-slideIn">
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-650 text-white">
-            <ShieldCheck className="h-3 w-3 animate-ping" />
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-2xl border border-slate-700 animate-slideIn dark:border-slate-600">
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white">
+            <ShieldCheck className="h-3 w-3" />
           </div>
           <span>{toast}</span>
         </div>
