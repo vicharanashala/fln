@@ -8,6 +8,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const assessmentRoutes = require("./routes/assessmentRoutes");
 const templateRoutes = require("./routes/templateRoutes");
+const superadminRoutes = require("./routes/superadminRoutes");
 const { UPLOAD_DIR } = require("./services/pdfParser");
 
 const app = express();
@@ -44,6 +45,7 @@ app.get("/api/health", (req, res) =>
 app.use("/api/auth", authRoutes);
 app.use("/api/assessments", assessmentRoutes);
 app.use("/api/templates", templateRoutes);
+app.use("/api", superadminRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

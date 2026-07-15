@@ -1,9 +1,14 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Wand, Sparkles } from "lucide-react";
+import { Wand, Sparkles, LayoutDashboard } from "lucide-react";
 
 const NAV = [
   {
-    label: "AI Answer Key",
+    label: "Dashboard",
+    to: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Answer Key",
     to: "/answer-key-generator",
     icon: Wand,
     highlight: true,
@@ -58,7 +63,7 @@ export default function Sidebar() {
                     }`}
                   />
                   <span className="flex-1">{item.label}</span>
-                  <Sparkles className="w-3.5 h-3.5 text-violet-300" />
+                  {item.highlight && <Sparkles className="w-3.5 h-3.5 text-violet-300" />}
                 </>
               )}
             </NavLink>
