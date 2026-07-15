@@ -8277,9 +8277,11 @@ function buildWorksheet(levelId, subIdx, setNum, totalForStamp){
     answers.forEach(a=>{ a.sectionId=a.sectionId||sectionId; a.sectionName=a.sectionName||sd.name; allAnswers.push(a); });
   });
   const hOverride = HEADER_OVERRIDES[sublevelId];
-  const studentName = document.getElementById('studentName')?.value.trim() || 'UNASSIGNED';
-  const studentId = document.getElementById('studentId')?.value.trim() || 'UNASSIGNED';
-  const studentDetails = `<div class="student-details">Name: ${esc(studentName)} &nbsp;|&nbsp; ID: ${esc(studentId)}</div>`;
+  const studentName = document.getElementById('studentName')?.value.trim();
+  const studentId = document.getElementById('studentId')?.value.trim();
+  const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
+  const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
+  const studentDetails = `<div class="student-details">Name: <span style="font-family: monospace;">${esc(nameText)}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${esc(idText)}</span></div>`;
   const headerHtml = hOverride ? `
     <div class="worksheet-header-full">
       ${worksheetQRHtml(level,sublevelId,setNum)}

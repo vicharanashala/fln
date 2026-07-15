@@ -776,9 +776,18 @@ function buildWorksheet(setNum){
     '<div class="reg-sq bl"></div><div class="reg-sq br"></div>';
   const pid='SET-'+String(setNum).padStart(5,'0');
 
+  const studentName = document.getElementById('studentName')?.value.trim();
+  const studentId = document.getElementById('studentId')?.value.trim();
+  const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
+  const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
+  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+
   const headerP1=
     '<div class="ws-header">'+
+      '<div style="font-size:16px;font-weight:bold;text-align:left;float:left;margin-top:4px;">CLASS 1 — MATHEMATICS PRACTICE WORKSHEET</div>'+
       worksheetQRHtml(setNum)+
+      '<div style="clear:both;"></div>'+
+      studentDetails+
     '</div>';
 
   const headerP2=

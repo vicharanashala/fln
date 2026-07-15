@@ -546,9 +546,16 @@ function worksheetQRHtml(setNum){
   return '<img class="worksheet-qr" alt="Student worksheet QR" style="width:18mm;height:18mm;float:right" src="'+qr.createDataURL(3,2)+'">';
 }
 function makePageWrapper(setNum,pageNum,totalPages,bodyHtml,pageId,includeHeader){
+  const studentName = document.getElementById('studentName')?.value.trim();
+  const studentId = document.getElementById('studentId')?.value.trim();
+  const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
+  const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
+  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+
   const hdr=includeHeader?
     '<div class="ws-header"><div class="ws-title">CLASS 4 — FLN MATHEMATICS PRACTICE WORKSHEET</div>'+
     '<div class="ws-sub">Set '+setNum+'</div>'+worksheetQRHtml(setNum)+
+    studentDetails+
     '</div>':
     '<div class="cont-header">Set '+setNum+' — Page '+pageNum+' of '+totalPages+'</div>';
   return '<div class="page-wrapper" data-pageid="'+pageId+'-P'+pageNum+'" data-setnum="'+setNum+'">'+

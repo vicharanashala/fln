@@ -858,6 +858,12 @@ function buildWorksheet(n,totalSets){
     return `<div class="section"><h2>${title}</h2>${html}</div>`;
   }).join('');
   const stamp=pageIdStamp(n,totalSets||n);
+  const studentName = document.getElementById('studentName')?.value.trim();
+  const studentId = document.getElementById('studentId')?.value.trim();
+  const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
+  const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
+  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+
   const html=`<div class="page-wrapper">
     <div class="reg-sq tl"></div>
     <div class="reg-sq tr"></div>
@@ -868,6 +874,7 @@ function buildWorksheet(n,totalSets){
         <div class="ws-title">CLASS 3 — MATHEMATICS PRACTICE WORKSHEET</div>
         ${worksheetQRHtml(n)}
         <div class="ws-sub">Set ${n}</div>
+        ${studentDetails}
       </div>${secs}
       <div class="ws-footer">Class 3 — Math Practice &nbsp;|&nbsp; Set ${n}</div>
       ${stamp}

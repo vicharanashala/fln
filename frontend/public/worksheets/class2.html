@@ -684,11 +684,18 @@ function buildWorksheetAndKey(setNum){
     '<div class="reg-sq bl"></div><div class="reg-sq br"></div>';
   const pid='SET-'+String(setNum).padStart(5,'0');
 
+  const studentName = document.getElementById('studentName')?.value.trim();
+  const studentId = document.getElementById('studentId')?.value.trim();
+  const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
+  const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
+  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+
   const worksheetHtml='<div class="page-wrapper">'+reg+
     '<div class="page" id="page-set-'+setNum+'">'+
     '<div class="ws-header">'+
       '<div class="ws-title">CLASS 2 — MATHEMATICS PRACTICE WORKSHEET</div>'+worksheetQRHtml(setNum)+
       '<div class="ws-sub">Set '+setNum+'</div>'+
+      studentDetails+
     '</div>'+sectionsHtml+
     '<div class="ws-footer">Class 2 — Math FLN Practice &nbsp;|&nbsp; Set '+setNum+'</div>'+
     '<div class="ws-page-id">'+pid+'</div>'+
