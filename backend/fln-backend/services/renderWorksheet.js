@@ -207,12 +207,31 @@ async function evaluateRender(page, { levelId, subIdx, setNum, student }) {
       const cleanKey = window.buildCleanAnswerKey(answerKey);
       const pdfDataUri = pdf.output('datauristring');
 
+      const ak = answerKey;
+      const questionPaper = {
+        setId: `L${ak.level}_${ak.slug}_set${String(ak.set).padStart(5, '0')}`,
+        level: ak.level,
+        levelTitle: ak.levelTitle,
+        sublevel: ak.sublevel,
+        setNumber: ak.set,
+        generatedAt: ak.generatedAt,
+        totalQuestions: ak.items.length,
+        questions: ak.items.map(it => ({
+          questionId: it.questionId,
+          section: it.sectionId,
+          sectionName: it.sectionName,
+          questionNumber: it.questionNo,
+          type: it.answerType
+        }))
+      };
+
       document.body.removeChild(container);
 
       return {
         pdfBase64: pdfDataUri.split(',')[1],
         coordsJson: coords,
         answerKeyJson: cleanKey,
+        questionPaperJson: questionPaper,
         meta
       };
     },
@@ -230,6 +249,7 @@ async function renderStudentSet(page, levelId, subIdx, setNum, student) {
     pdfBuffer: Buffer.from(result.pdfBase64, 'base64'),
     answerKeyJson: result.answerKeyJson,
     coordsJson: result.coordsJson,
+    questionPaperJson: result.questionPaperJson,
     meta: result.meta
   };
 }

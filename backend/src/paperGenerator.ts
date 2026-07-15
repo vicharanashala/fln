@@ -96,6 +96,16 @@ export async function generateDiagnosticPaper({
   const filePath = path.join(OUTPUT_DIR, fileName);
   fs.writeFileSync(filePath, mergedBuffer);
 
+  // Write corresponding answer keys, coords, and question papers for each set
+  const baseName = fileName.replace(/\.pdf$/, '');
+  const answerKeys = results.map(r => r.masterJson);
+  const coordsList = results.map(r => r.coords);
+  const questionPapers = results.map(r => r.questionPaperJson);
+
+  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_answer_key.json`), JSON.stringify(answerKeys, null, 2));
+  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_coords.json`), JSON.stringify(coordsList, null, 2));
+  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_question_paper.json`), JSON.stringify(questionPapers, null, 2));
+
   return {
     fileName,
     filePath,

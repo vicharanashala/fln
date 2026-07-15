@@ -10,6 +10,7 @@ export interface RenderedResult {
   csv: string;
   coordsCaptured: boolean;
   coords: any;
+  questionPaperJson?: any;
 }
 
 export async function renderBatch(
@@ -106,8 +107,19 @@ export async function renderBatch(
 
       const csv = window.buildCSV(setIndex, setIndex);
 
+      let questionPaperJson;
+      if (typeof window.buildQuestionPaperJSON === "function") {
+        if (cl === "CLASS_1" || cl === "CLASS_2") {
+          questionPaperJson = window.buildQuestionPaperJSON(setIndex, coords);
+        } else if (cl === "CLASS_3") {
+          questionPaperJson = window.buildQuestionPaperJSON(setIndex, setIndex);
+        } else if (cl === "CLASS_4") {
+          questionPaperJson = window.buildQuestionPaperJSON(setIndex, setIndex, cl);
+        }
+      }
+
       if (coords) masterJson = Object.assign({}, masterJson, { coords });
-      return { pdfBase64, masterJson, csv, coordsCaptured: Boolean(coords), coords };
+      return { pdfBase64, masterJson, csv, coordsCaptured: Boolean(coords), coords, questionPaperJson };
     }`;
 
     const results: RenderedResult[] = [];

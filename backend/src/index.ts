@@ -1020,6 +1020,18 @@ async function startServer() {
       fs.writeFileSync(filePath, file.pdfBuffer);
       const pdfUrl = `/output/${fileName}`;
 
+      // Write corresponding JSONs alongside the PDF for single/batch files
+      const baseName = fileName.replace(/\.pdf$/, '');
+      if (file.answerKey) {
+        fs.writeFileSync(path.join(localOutputDir, `${baseName}_answer_key.json`), JSON.stringify(file.answerKey, null, 2));
+      }
+      if (file.coords) {
+        fs.writeFileSync(path.join(localOutputDir, `${baseName}_coords.json`), JSON.stringify(file.coords, null, 2));
+      }
+      if (file.questionPaper) {
+        fs.writeFileSync(path.join(localOutputDir, `${baseName}_question_paper.json`), JSON.stringify(file.questionPaper, null, 2));
+      }
+
       const record: LevelWorksheet = {
         id: 'LW_' + randomUUID(),
         batchId: batchResult.batchId,

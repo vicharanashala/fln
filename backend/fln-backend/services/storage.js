@@ -40,13 +40,14 @@ async function ensureDir(dir) {
 }
 
 /** Persists one rendered student/sublevel/set to disk. Returns the dir written. */
-async function saveStudentSet(batchId, studentFolder, sublevelId, setNum, { pdfBuffer, answerKeyJson, coordsJson }) {
+async function saveStudentSet(batchId, studentFolder, sublevelId, setNum, { pdfBuffer, answerKeyJson, coordsJson, questionPaperJson }) {
   const dir = path.join(batchDir(batchId), studentFolder, `${sublevelId}_set${setNum}`);
   await ensureDir(dir);
   await Promise.all([
     fsp.writeFile(path.join(dir, 'worksheet.pdf'), pdfBuffer),
     fsp.writeFile(path.join(dir, 'answer_key.json'), JSON.stringify(answerKeyJson, null, 2)),
-    fsp.writeFile(path.join(dir, 'coords.json'), JSON.stringify(coordsJson, null, 2))
+    fsp.writeFile(path.join(dir, 'coords.json'), JSON.stringify(coordsJson, null, 2)),
+    fsp.writeFile(path.join(dir, 'question_paper.json'), JSON.stringify(questionPaperJson, null, 2))
   ]);
   return dir;
 }

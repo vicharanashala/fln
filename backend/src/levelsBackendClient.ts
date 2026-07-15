@@ -121,6 +121,7 @@ export interface ExtractedFile {
   pdfBuffer: Buffer;
   answerKey: any;
   coords: any;
+  questionPaper?: any;
 }
 
 export interface ExtractedBatch {
@@ -134,12 +135,13 @@ export interface ExtractedBatch {
  * into structured records, grouped by student x sublevel x set.
  */
 export async function extractBatchZip(zipBuffer: Buffer): Promise<ExtractedBatch> {
-  const zip = await JSZip.loadAsync(zipBuffer);
+  const zip = new JSZip();
+  await zip.loadAsync(zipBuffer);
 
   const manifestEntry = zip.file('manifest.json');
   const manifest = manifestEntry ? JSON.parse(await manifestEntry.async('string')) : null;
 
-  const groups = new Map<string, { pdf?: Buffer; answerKey?: any; coords?: any }>();
+  const groups = new Map<string, { pdf?: Buffer; answerKey?: any; coords?: any; questionPaper?: any }>();
 
   for (const entry of Object.values(zip.files)) {
     if (entry.dir) continue;
@@ -158,6 +160,8 @@ export async function extractBatchZip(zipBuffer: Buffer): Promise<ExtractedBatch
       g.answerKey = JSON.parse(await entry.async('string'));
     } else if (filename === 'coords.json') {
       g.coords = JSON.parse(await entry.async('string'));
+    } else if (filename === 'question_paper.json') {
+      g.questionPaper = JSON.parse(await entry.async('string'));
     }
   }
 
@@ -168,7 +172,7 @@ export async function extractBatchZip(zipBuffer: Buffer): Promise<ExtractedBatch
     const m = subFolder.match(/^(.+)_set(\d+)$/);
     const sublevelId = m ? m[1] : subFolder;
     const setNum = m ? parseInt(m[2], 10) : 1;
-    files.push({ studentFolder, sublevelId, setNum, pdfBuffer: g.pdf, answerKey: g.answerKey, coords: g.coords });
+    files.push({ studentFolder, sublevelId, setNum, pdfBuffer: g.pdf, answerKey: g.answerKey, coords: g.coords, questionPaper: g.questionPaper });
   }
 
   return { manifest, files };
