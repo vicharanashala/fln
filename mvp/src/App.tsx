@@ -282,7 +282,7 @@ export default function App() {
 
           {/* Panel data views for all navigation items across roles */}
           {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(activePanel) && (
-            <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
+            <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onNavigate={setActivePanel} />
           )}
         </Layout>
       )}

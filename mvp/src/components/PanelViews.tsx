@@ -3,11 +3,13 @@ import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry
 import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
+import { IcrScanner } from './IcrScanner';
 
 interface PanelViewsProps {
   activePanel: string;
   currentUser: User;
   token: string;
+  onNavigate?: (panel: string) => void;
 }
 
 const STUDENTS_MOCK: Student[] = [
@@ -21,10 +23,10 @@ const STUDENTS_MOCK: Student[] = [
 ];
 
 const REPORTS_MOCK: EvaluationReport[] = [
-  { id: 'r1', studentId: 's1', worksheetId: 'ws1', score: 8, totalQuestions: 10, conceptMastery: { 'Number Sense': 'Strong', 'Addition': 'Satisfactory', 'Subtraction': 'Needs Practice' }, narrative: 'Shows good number sense but needs practice with borrowing in subtraction.', recommendedLevel: 12, timestamp: '2026-03-15T10:00:00Z' },
-  { id: 'r2', studentId: 's2', worksheetId: 'ws2', score: 5, totalQuestions: 10, conceptMastery: { 'Number Sense': 'Satisfactory', 'Shapes': 'Needs Practice', 'Patterns': 'Needs Practice' }, narrative: 'Struggling with pattern recognition. Recommend additional tracing and matching exercises.', recommendedLevel: 8, recommendedSubLevel: 1, timestamp: '2026-02-20T11:30:00Z' },
-  { id: 'r3', studentId: 's3', worksheetId: 'ws3', score: 9, totalQuestions: 10, conceptMastery: { 'Place Value': 'Strong', 'Comparison': 'Strong', 'Addition': 'Strong' }, narrative: 'Excellent understanding of place value up to 1000. Ready to progress to multiplication.', recommendedLevel: 36, timestamp: '2026-01-10T09:15:00Z' },
-  { id: 'r4', studentId: 's6', worksheetId: 'ws4', score: 7, totalQuestions: 10, conceptMastery: { 'Multiplication': 'Strong', 'Division': 'Satisfactory', 'Measurement': 'Satisfactory' }, narrative: 'Multiplication skills are strong. Division concepts are developing well with occasional errors.', recommendedLevel: 38, recommendedSubLevel: 1, timestamp: '2026-03-01T14:00:00Z' },
+  { id: 'r1', studentId: 's1', worksheetId: 'ws1', score: 8, totalQuestions: 10, conceptMastery: { 'Number Sense': 'Strong', 'Addition': 'Satisfactory', 'Subtraction': 'Needs Practice' }, topicStats: { 'Number Sense': { easy: { total: 2, correct: 2 }, medium: { total: 1, correct: 1 }, hard: { total: 0, correct: 0 } }, 'Addition': { easy: { total: 2, correct: 2 }, medium: { total: 2, correct: 1 }, hard: { total: 1, correct: 0 } }, 'Subtraction': { easy: { total: 1, correct: 1 }, medium: { total: 1, correct: 0 }, hard: { total: 0, correct: 0 } } }, narrative: 'Shows good number sense but needs practice with borrowing in subtraction.', recommendedLevel: 12, timestamp: '2026-03-15T10:00:00Z' },
+  { id: 'r2', studentId: 's2', worksheetId: 'ws2', score: 5, totalQuestions: 10, conceptMastery: { 'Number Sense': 'Satisfactory', 'Shapes': 'Needs Practice', 'Patterns': 'Needs Practice' }, topicStats: { 'Number Sense': { easy: { total: 3, correct: 2 }, medium: { total: 1, correct: 0 }, hard: { total: 0, correct: 0 } }, 'Shapes': { easy: { total: 2, correct: 1 }, medium: { total: 1, correct: 0 }, hard: { total: 0, correct: 0 } }, 'Patterns': { easy: { total: 1, correct: 0 }, medium: { total: 2, correct: 0 }, hard: { total: 0, correct: 0 } } }, narrative: 'Struggling with pattern recognition. Recommend additional tracing and matching exercises.', recommendedLevel: 8, recommendedSubLevel: 1, timestamp: '2026-02-20T11:30:00Z' },
+  { id: 'r3', studentId: 's3', worksheetId: 'ws3', score: 9, totalQuestions: 10, conceptMastery: { 'Place Value': 'Strong', 'Comparison': 'Strong', 'Addition': 'Strong' }, topicStats: { 'Place Value': { easy: { total: 2, correct: 2 }, medium: { total: 2, correct: 2 }, hard: { total: 1, correct: 1 } }, 'Comparison': { easy: { total: 1, correct: 1 }, medium: { total: 2, correct: 2 }, hard: { total: 0, correct: 0 } }, 'Addition': { easy: { total: 1, correct: 1 }, medium: { total: 1, correct: 1 }, hard: { total: 0, correct: 0 } } }, narrative: 'Excellent understanding of place value up to 1000. Ready to progress to multiplication.', recommendedLevel: 36, timestamp: '2026-01-10T09:15:00Z' },
+  { id: 'r4', studentId: 's6', worksheetId: 'ws4', score: 7, totalQuestions: 10, conceptMastery: { 'Multiplication': 'Strong', 'Division': 'Satisfactory', 'Measurement': 'Satisfactory' }, topicStats: { 'Multiplication': { easy: { total: 2, correct: 2 }, medium: { total: 2, correct: 2 }, hard: { total: 0, correct: 0 } }, 'Division': { easy: { total: 2, correct: 2 }, medium: { total: 2, correct: 1 }, hard: { total: 0, correct: 0 } }, 'Measurement': { easy: { total: 1, correct: 1 }, medium: { total: 1, correct: 0 }, hard: { total: 0, correct: 0 } } }, narrative: 'Multiplication skills are strong. Division concepts are developing well with occasional errors.', recommendedLevel: 38, recommendedSubLevel: 1, timestamp: '2026-03-01T14:00:00Z' },
 ];
 
 const TEACHERS_MOCK = [
@@ -183,11 +185,12 @@ function EmptyStudents() {
   return <Table data={STUDENTS_MOCK} columns={cols} searchPlaceholder="Search students..." searchKey="name" />;
 }
 
-export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token }) => {
+export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onNavigate }) => {
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
   const [distFilter, setDistFilter] = useState('all');
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
+  const [reportClassFilter, setReportClassFilter] = useState('All');
 
   const filteredSchools = SCHOOLS_MOCK.filter(s => {
     if (stateFilter !== 'all' && s.stateCode !== stateFilter) return false;
@@ -205,8 +208,15 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     }
 
     const conceptBadges = Object.entries(r.conceptMastery)
-      .map(([t, m]) => `<span class="badge ${m === 'Strong' ? 'badge-pass' : 'badge-fail'}">${t}: ${m}</span>`)
-      .join(' ');
+      .map(([t, m]) => {
+        const stats = r.topicStats?.[t];
+        const statsHtml = stats ? `<div style="margin-top: 5px; font-size: 9px; color: #64748b; font-family: monospace;">Easy: ${stats.easy.correct}/${stats.easy.total} &nbsp;|&nbsp; Med: ${stats.medium.correct}/${stats.medium.total} &nbsp;|&nbsp; Hard: ${stats.hard.correct}/${stats.hard.total}</div>` : '';
+        return `<div style="display: inline-block; margin-right: 15px; margin-bottom: 10px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc;">
+          <span class="badge ${m === 'Strong' ? 'badge-pass' : m === 'Satisfactory' ? 'badge-satisfactory' : 'badge-fail'}">${t}: ${m}</span>
+          ${statsHtml}
+        </div>`;
+      })
+      .join('');
 
     const tableRows = examResponses.map(item => `
       <tr>
@@ -215,7 +225,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         <td>${item.correctAnswer}</td>
         <td>
           <span class="badge ${item.status === 'Correct' ? 'badge-pass' : 'badge-fail'}">
-            ${item.status === 'Correct' ? 'PASS' : 'FAIL'}
+            ${item.status === 'Correct' ? 'CORRECT' : 'INCORRECT'}
           </span>
         </td>
       </tr>
@@ -246,6 +256,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
           .badge { display: inline-block; padding: 3px 8px; font-size: 9px; font-weight: 700; border-radius: 4px; text-transform: uppercase; font-family: monospace; }
           .badge-pass { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+          .badge-satisfactory { background-color: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
           .badge-fail { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
           .footer { text-align: center; margin-top: 50px; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; }
           @media print {
@@ -1036,7 +1047,40 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="Evaluation Reports" desc="Detailed assessment narratives and concept mastery breakdowns" />
-          {REPORTS_MOCK.map(r => {
+          
+          {(() => {
+            const classesWithReports = Array.from(new Set(REPORTS_MOCK.map(r => {
+              const student = STUDENTS_MOCK.find(s => s.id === r.studentId);
+              return student ? `${student.classGroup} - ${student.section}` : null;
+            }).filter(Boolean))) as string[];
+            classesWithReports.sort();
+            
+            return classesWithReports.length > 0 ? (
+              <div className="flex gap-6 border-b border-slate-200 mt-2 mb-4 overflow-x-auto">
+                <button
+                  onClick={() => setReportClassFilter('All')}
+                  className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors ${reportClassFilter === 'All' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  All Classes
+                </button>
+                {classesWithReports.map(cls => (
+                  <button
+                    key={cls}
+                    onClick={() => setReportClassFilter(cls)}
+                    className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors ${reportClassFilter === cls ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    {cls}
+                  </button>
+                ))}
+              </div>
+            ) : null;
+          })()}
+
+          {REPORTS_MOCK.filter(r => {
+            if (reportClassFilter === 'All') return true;
+            const student = STUDENTS_MOCK.find(s => s.id === r.studentId);
+            return student && `${student.classGroup} - ${student.section}` === reportClassFilter;
+          }).map(r => {
             const student = STUDENTS_MOCK.find(s => s.id === r.studentId);
             const isExpanded = expandedReportId === r.id;
             
@@ -1063,7 +1107,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
             return (
               <div key={r.id} className="border border-slate-200 rounded-lg p-4 space-y-3 hover:border-slate-300 transition-all">
-                <div className="flex justify-between items-center"><span className="font-semibold text-sm">{student?.name || 'Unknown'}</span><span className="text-xs text-slate-400">{new Date(r.timestamp).toLocaleDateString()}</span></div>
+                <div className="flex justify-between items-center"><span className="font-semibold text-sm">{student?.name || 'Unknown'} <span className="text-slate-500 font-normal ml-2">({student ? `${student.classGroup} - ${student.section}` : 'N/A'})</span></span><span className="text-xs text-slate-400">{new Date(r.timestamp).toLocaleDateString()}</span></div>
                 <div className="flex gap-4 text-sm"><span>Score: <strong>{r.score}/{r.totalQuestions}</strong></span><span>Level: <strong>L{r.recommendedLevel}.{r.recommendedSubLevel ?? 0}</strong></span></div>
                 
                 <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
@@ -1071,9 +1115,26 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed whitespace-pre-line">{r.narrative}</p>
                 </div>
 
-                <div className="flex flex-wrap gap-2">{Object.entries(r.conceptMastery).map(([t, m]) => (
-                  <span key={t} className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${m === 'Strong' ? 'bg-green-50 text-green-700 border border-green-200' : m === 'Satisfactory' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{t}: {m}</span>
-                ))}</div>
+                <div className="flex flex-col gap-2 mt-2">
+                  {Object.entries(r.conceptMastery).map(([t, m]) => {
+                    const stats = r.topicStats?.[t];
+                    return (
+                      <div key={t} className="flex flex-col p-2 border border-slate-100 bg-white rounded-md">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-xs font-semibold">{t}</span>
+                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${m === 'Strong' ? 'bg-green-50 text-green-700 border border-green-200' : m === 'Satisfactory' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{m}</span>
+                        </div>
+                        {stats && (
+                          <div className="flex gap-3 text-[10px] text-slate-500 font-mono">
+                            <span>Easy: {stats.easy.correct}/{stats.easy.total}</span>
+                            <span>Med: {stats.medium.correct}/{stats.medium.total}</span>
+                            <span>Hard: {stats.hard.correct}/{stats.hard.total}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
 
                 <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
                   <div className="flex gap-3">
@@ -1107,7 +1168,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                             </div>
                           </div>
                           <div className="pt-1">
-                            <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
+                            <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.status === 'Correct' ? 'CORRECT' : 'INCORRECT'}</span>
                           </div>
                         </div>
                       ))}
@@ -1412,6 +1473,14 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             </div>
           ))}</div>
         </div>
+      </div>
+    );
+  }
+
+  if (panel === 'evaluation') {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+        <IcrScanner token={token} user={currentUser} onBack={() => onNavigate?.('workspace')} />
       </div>
     );
   }

@@ -616,30 +616,58 @@ Generate a narrative report summarizing strengths and learning gaps.`;
 
   // Deterministic evaluation fallback
   let score = 0;
-  const conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' } = {};
+  const topicStats: {
+    [topic: string]: {
+      easy: { total: number; correct: number };
+      medium: { total: number; correct: number };
+      hard: { total: number; correct: number };
+    };
+  } = {};
 
   questions.forEach((q) => {
     const submitted = (submittedAnswers[q.question_id] || '').trim().toLowerCase();
     const correct = q.answer.trim().toLowerCase();
     const isCorrect = submitted === correct;
-
-    if (isCorrect) score++;
-
     const topic = q.topic || 'General Mathematics';
-    if (!conceptMastery[topic]) {
-      conceptMastery[topic] = isCorrect ? 'Strong' : 'Needs Practice';
-    } else if (conceptMastery[topic] === 'Needs Practice' && isCorrect) {
-      conceptMastery[topic] = 'Satisfactory';
+    const diff = (q.difficulty || 'medium') as 'easy' | 'medium' | 'hard';
+
+    if (!topicStats[topic]) {
+      topicStats[topic] = {
+        easy: { total: 0, correct: 0 },
+        medium: { total: 0, correct: 0 },
+        hard: { total: 0, correct: 0 }
+      };
+    }
+
+    topicStats[topic][diff].total += 1;
+    if (isCorrect) {
+      topicStats[topic][diff].correct += 1;
+      score++;
     }
   });
 
-  const percent = (score / questions.length) * 100;
+  const conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' } = {};
+  for (const topic in topicStats) {
+    const stats = topicStats[topic];
+    const total = stats.easy.total + stats.medium.total + stats.hard.total;
+    const correct = stats.easy.correct + stats.medium.correct + stats.hard.correct;
+    if (correct === total && total > 0) {
+      conceptMastery[topic] = 'Strong';
+    } else if (correct === 0 && total > 0) {
+      conceptMastery[topic] = 'Needs Practice';
+    } else {
+      conceptMastery[topic] = 'Satisfactory';
+    }
+  }
+
+  const percent = questions.length > 0 ? (score / questions.length) * 100 : 0;
   const recommendedLevel = percent >= 80 ? Math.min(59, level + 1) : level;
 
   return {
     score,
     total: questions.length,
     conceptMastery,
+    topicStats,
     recommendedLevel,
     narrative: `Determined deterministically: ${studentName} successfully completed ${score} out of ${questions.length} questions (${percent.toFixed(0)}%). Demonstrates clear progress. Progression: recommended level is Level ${recommendedLevel}.`
   };

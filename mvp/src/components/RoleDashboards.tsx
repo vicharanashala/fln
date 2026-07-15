@@ -2045,12 +2045,6 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               >
                 Open Personalization Portal
               </button>
-              <button
-                onClick={() => setShowIcrScanner(true)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-semibold text-xs py-3 rounded-lg transition-colors shadow cursor-pointer"
-              >
-                ICR Answer Sheet Scanner
-              </button>
             </div>
           </div>
         </div>
@@ -2684,12 +2678,6 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                 className="w-full bg-zinc-950 text-white font-mono font-semibold text-xs py-3 rounded-lg hover:bg-zinc-850 transition-colors shadow cursor-pointer animate-pulse"
               >
                 Open Personalization Portal
-              </button>
-              <button
-                onClick={() => setShowIcrScanner(true)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-semibold text-xs py-3 rounded-lg transition-colors shadow cursor-pointer"
-              >
-                ICR Answer Sheet Scanner
               </button>
             </div>
           </div>

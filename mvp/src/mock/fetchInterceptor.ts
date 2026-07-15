@@ -36,21 +36,18 @@ function evaluateDiagnosticMock(
   }
 
   const accuracy = Math.round((score / questions.length) * 100);
-  const narrative = `============================================================
-            NATIONAL FLN PORTAL ASSESSMENT REPORT
-============================================================
-Student Name: ${studentName}
+  const narrative = `Student Name: ${studentName}
 Diagnostic Accuracy: ${accuracy}% (${score} / ${questions.length} correct)
 Placed Level: Level ${recommendedLevel}
 
 CORE CONCEPT ANALYSIS:
-- Number Sense: ${recommendedLevel >= 12 ? 'Demonstrates stable counting and sequence tracking.' : 'Exhibits foundational gaps in one-to-one correspondence and classification.'}
-- Operations: ${recommendedLevel >= 16 ? 'Capable of executing simple arithmetic operations.' : 'Requires additional practice sheets for basic single-digit addition/subtraction.'}
+• Number Sense: ${recommendedLevel >= 12 ? 'Demonstrates stable counting and sequence tracking.' : 'Exhibits foundational gaps in one-to-one correspondence and classification.'}
+• Operations: ${recommendedLevel >= 16 ? 'Capable of executing simple arithmetic operations.' : 'Requires additional practice sheets for basic single-digit addition/subtraction.'}
 
 REMEDIAL RECOMMENDATIONS:
-- Align remediation cycle immediately with Level ${recommendedLevel} objectives.
-- Practice daily drills on weakest areas (classification and matching).
-- Target next-step milestone: Level ${Math.min(59, recommendedLevel + 1)} within 4 weeks.`;
+• Align remediation cycle immediately with Level ${recommendedLevel} objectives.
+• Practice daily drills on weakest areas (classification and matching).
+• Target next-step milestone: Level ${Math.min(59, recommendedLevel + 1)} within 4 weeks.`;
 
   return {
     score,
@@ -73,22 +70,49 @@ function evaluateWorksheetMock(
   recommendedLevel: number;
 } {
   let score = 0;
-  const conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' } = {};
+  const topicStats: {
+    [topic: string]: {
+      easy: { total: number; correct: number };
+      medium: { total: number; correct: number };
+      hard: { total: number; correct: number };
+    };
+  } = {};
 
   questions.forEach((q) => {
     const submitted = (answers[q.question_id] || '').trim().toLowerCase();
     const correct = q.answer.trim().toLowerCase();
     const isCorrect = submitted === correct;
-
-    if (isCorrect) score++;
-
     const topic = q.topic || 'General Mathematics';
-    if (!conceptMastery[topic]) {
-      conceptMastery[topic] = isCorrect ? 'Strong' : 'Needs Practice';
-    } else if (conceptMastery[topic] === 'Needs Practice' && isCorrect) {
-      conceptMastery[topic] = 'Satisfactory';
+    const diff = (q.difficulty || 'medium') as 'easy' | 'medium' | 'hard';
+
+    if (!topicStats[topic]) {
+      topicStats[topic] = {
+        easy: { total: 0, correct: 0 },
+        medium: { total: 0, correct: 0 },
+        hard: { total: 0, correct: 0 }
+      };
+    }
+
+    topicStats[topic][diff].total += 1;
+    if (isCorrect) {
+      topicStats[topic][diff].correct += 1;
+      score++;
     }
   });
+
+  const conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' } = {};
+  for (const topic in topicStats) {
+    const stats = topicStats[topic];
+    const total = stats.easy.total + stats.medium.total + stats.hard.total;
+    const correct = stats.easy.correct + stats.medium.correct + stats.hard.correct;
+    if (correct === total && total > 0) {
+      conceptMastery[topic] = 'Strong';
+    } else if (correct === 0 && total > 0) {
+      conceptMastery[topic] = 'Needs Practice';
+    } else {
+      conceptMastery[topic] = 'Satisfactory';
+    }
+  }
 
   const percent = questions.length > 0 ? (score / questions.length) * 100 : 0;
   const recommendedLevel = percent >= 80 ? Math.min(59, level + 1) : level;
@@ -97,6 +121,7 @@ function evaluateWorksheetMock(
     score,
     total: questions.length,
     conceptMastery,
+    topicStats,
     recommendedLevel,
     narrative: `Graded in-browser: ${studentName} successfully completed ${score} out of ${questions.length} questions (${percent.toFixed(0)}%). Progression: recommended level is Level ${recommendedLevel}.`
   };
@@ -481,6 +506,50 @@ export function setupFetchInterceptor() {
         student.targetLevel = Math.min(59, evaluation.recommendedLevel + 1);
         student.levelHistory = newHistory;
 
+        // Calculate topic stats
+        const topicStats: {
+          [topic: string]: {
+            easy: { total: number; correct: number };
+            medium: { total: number; correct: number };
+            hard: { total: number; correct: number };
+          };
+        } = {};
+
+        questions.forEach((q: any) => {
+          const submitted = (answers[q.question_id] || '').trim().toLowerCase();
+          const correct = q.answer.trim().toLowerCase();
+          const isCorrect = submitted === correct;
+          const topic = q.topic || 'General Mathematics';
+          const diff = (q.difficulty || 'medium') as 'easy' | 'medium' | 'hard';
+
+          if (!topicStats[topic]) {
+            topicStats[topic] = {
+              easy: { total: 0, correct: 0 },
+              medium: { total: 0, correct: 0 },
+              hard: { total: 0, correct: 0 }
+            };
+          }
+
+          topicStats[topic][diff].total += 1;
+          if (isCorrect) {
+            topicStats[topic][diff].correct += 1;
+          }
+        });
+
+        const conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' } = {};
+        for (const topic in topicStats) {
+          const stats = topicStats[topic];
+          const total = stats.easy.total + stats.medium.total + stats.hard.total;
+          const correct = stats.easy.correct + stats.medium.correct + stats.hard.correct;
+          if (correct === total && total > 0) {
+            conceptMastery[topic] = 'Strong';
+          } else if (correct === 0 && total > 0) {
+            conceptMastery[topic] = 'Needs Practice';
+          } else {
+            conceptMastery[topic] = 'Satisfactory';
+          }
+        }
+
         // Add Evaluation Report
         const report: EvaluationReport = {
           id: 'rep_diag_' + Date.now(),
@@ -488,11 +557,8 @@ export function setupFetchInterceptor() {
           worksheetId: 'diagnostic',
           score: evaluation.score,
           totalQuestions: questions.length,
-          conceptMastery: {
-            'Number Sense': evaluation.recommendedLevel >= 2 ? 'Strong' : 'Needs Practice',
-            'Shapes': evaluation.recommendedLevel >= 3 ? 'Strong' : 'Needs Practice',
-            'Fractions': evaluation.recommendedLevel >= 5 ? 'Strong' : 'Needs Practice'
-          },
+          conceptMastery,
+          topicStats,
           narrative: evaluation.narrative,
           recommendedLevel: evaluation.recommendedLevel,
           recommendedSubLevel: subLevel,

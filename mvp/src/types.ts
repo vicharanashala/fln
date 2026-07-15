@@ -120,6 +120,13 @@ export interface EvaluationReport {
   score: number;
   totalQuestions: number;
   conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' };
+  topicStats?: {
+    [topic: string]: {
+      easy: { total: number; correct: number };
+      medium: { total: number; correct: number };
+      hard: { total: number; correct: number };
+    };
+  };
   narrative: string;
   recommendedLevel: number;
   recommendedSubLevel?: number;

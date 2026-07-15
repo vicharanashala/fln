@@ -634,13 +634,49 @@ async function startServer() {
       levelHistory
     });
 
-    // Create a special Evaluation Report with dynamic mock concept mastery
-    const conceptMastery: { [key: string]: string } = {
-      'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
-      'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
-      'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
-      'Operations': recommendedLevel >= 12 ? 'Strong' : 'Needs Practice'
-    };
+    // Calculate accurate concept mastery and topic stats based on answers
+    const topicStats: {
+      [topic: string]: {
+        easy: { total: number; correct: number };
+        medium: { total: number; correct: number };
+        hard: { total: number; correct: number };
+      };
+    } = {};
+
+    questions.forEach((q: any) => {
+      const submitted = (answers[q.question_id] || '').trim().toLowerCase();
+      const correct = q.answer.trim().toLowerCase();
+      const isCorrect = submitted === correct;
+      const topic = q.topic || 'General Mathematics';
+      const diff = (q.difficulty || 'medium') as 'easy' | 'medium' | 'hard';
+
+      if (!topicStats[topic]) {
+        topicStats[topic] = {
+          easy: { total: 0, correct: 0 },
+          medium: { total: 0, correct: 0 },
+          hard: { total: 0, correct: 0 }
+        };
+      }
+
+      topicStats[topic][diff].total += 1;
+      if (isCorrect) {
+        topicStats[topic][diff].correct += 1;
+      }
+    });
+
+    const conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' } = {};
+    for (const topic in topicStats) {
+      const stats = topicStats[topic];
+      const total = stats.easy.total + stats.medium.total + stats.hard.total;
+      const correct = stats.easy.correct + stats.medium.correct + stats.hard.correct;
+      if (correct === total && total > 0) {
+        conceptMastery[topic] = 'Strong';
+      } else if (correct === 0 && total > 0) {
+        conceptMastery[topic] = 'Needs Practice';
+      } else {
+        conceptMastery[topic] = 'Satisfactory';
+      }
+    }
 
     try {
       const evalReportPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'evaluation', `${student.id}_evaluation_${dateStr}.json`);
@@ -648,7 +684,9 @@ async function startServer() {
         const evalData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
         if (evalData.topics_to_focus && Array.isArray(evalData.topics_to_focus)) {
           evalData.topics_to_focus.forEach((t: string) => {
-            conceptMastery[t] = 'Needs Practice';
+            if (conceptMastery[t]) {
+              conceptMastery[t] = 'Needs Practice';
+            }
           });
         }
       }
@@ -663,6 +701,7 @@ async function startServer() {
       score,
       totalQuestions: questions.length,
       conceptMastery,
+      topicStats,
       narrative,
       recommendedLevel,
       recommendedSubLevel: subLevel,

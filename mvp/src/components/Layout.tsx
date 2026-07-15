@@ -3,7 +3,7 @@ import { User, UserRole, Announcement } from '../types';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound, Clock
+  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound, Clock, CheckSquare
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -74,6 +74,7 @@ export const Layout: React.FC<LayoutProps> = ({
             { name: 'Performance', view: 'performance' }
           ]
         });
+        list.push({ name: 'Evaluation', view: 'evaluation', icon: CheckSquare });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         break;
@@ -99,6 +100,7 @@ export const Layout: React.FC<LayoutProps> = ({
             { name: 'Performance', view: 'performance' }
           ]
         });
+        list.push({ name: 'Evaluation', view: 'evaluation', icon: CheckSquare });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         break;

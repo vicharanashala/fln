@@ -543,22 +543,34 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
             <div className="space-y-3">
               <h4 className="text-[10px] font-mono font-bold uppercase text-zinc-400 tracking-wider">Concept Mastery</h4>
               <div className="grid grid-cols-1 gap-1.5">
-                {Object.entries(report.conceptMastery).map(([topic, mastery]) => (
-                  <div key={topic} className="flex justify-between items-center p-2.5 border border-zinc-100 rounded-lg bg-zinc-50">
-                    <span className="text-sm font-medium text-zinc-700">{topic}</span>
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                      mastery === 'Strong' ? 'bg-green-100 text-green-800' : mastery === 'Satisfactory' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {mastery}
-                    </span>
-                  </div>
-                ))}
+                {Object.entries(report.conceptMastery).map(([topic, mastery]) => {
+                  const stats = report.topicStats?.[topic];
+                  return (
+                    <div key={topic} className="flex flex-col p-2.5 border border-zinc-100 rounded-lg bg-zinc-50 gap-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-zinc-700">{topic}</span>
+                        <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                          mastery === 'Strong' ? 'bg-green-100 text-green-800' : mastery === 'Satisfactory' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {mastery}
+                        </span>
+                      </div>
+                      {stats && (
+                        <div className="flex gap-4 text-[10px] text-zinc-500 font-mono">
+                          <span>Easy: {stats.easy.correct}/{stats.easy.total}</span>
+                          <span>Med: {stats.medium.correct}/{stats.medium.total}</span>
+                          <span>Hard: {stats.hard.correct}/{stats.hard.total}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="bg-zinc-50 p-5 rounded-xl border border-zinc-200 space-y-1">
+            <div className="bg-zinc-50 p-5 rounded-xl border border-zinc-200 space-y-2">
               <h4 className="text-[9px] font-mono font-bold uppercase text-zinc-400 tracking-wider">AI Narrative Summary</h4>
-              <p className="text-zinc-700 text-sm leading-relaxed">{report.narrative}</p>
+              <p className="text-zinc-700 text-sm leading-relaxed whitespace-pre-wrap">{report.narrative}</p>
             </div>
 
             <div className="flex gap-3 pt-2">
