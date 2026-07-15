@@ -288,7 +288,7 @@ export const AssessmentCalendar: React.FC = () => {
 
       {activeTab === 'guidelines' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="bg-white/90 dark:bg-slate-900/90 border border-zinc-200/80 dark:border-zinc-700/80 rounded-[24px] p-5 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] space-y-4 backdrop-blur-xl">
             <h4 className="font-display font-semibold text-zinc-900 dark:text-white text-base flex items-center gap-2">
               <FileText className="w-5 h-5 text-zinc-500 dark:text-zinc-400" /> Principal & Grader Conduct Guidelines
             </h4>
@@ -303,41 +303,45 @@ export const AssessmentCalendar: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="bg-white/90 dark:bg-slate-900/90 border border-zinc-200/80 dark:border-zinc-700/80 rounded-[24px] p-5 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] space-y-4 backdrop-blur-xl">
             <h4 className="font-display font-semibold text-zinc-900 dark:text-white text-base flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-zinc-500 dark:text-zinc-400" /> SLA Thresholds & Penalties
             </h4>
-            <table className="w-full text-xs text-left border-collapse">
-              <thead>
-                <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-mono uppercase text-[10px]">
-                  <th className="p-2">Milestone Phase</th>
-                  <th className="p-2">SLA Window</th>
-                  <th className="p-2">Delayed Flag</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
-                <tr>
-                  <td className="p-2 font-medium text-zinc-900 dark:text-white">Worksheet Customization</td>
-                  <td className="p-2 text-zinc-700 dark:text-zinc-200">Lock at T-72 Hours</td>
-                  <td className="p-2 text-red-600 font-mono">Rollback to Default</td>
-                </tr>
-                <tr>
-                  <td className="p-2 font-medium text-zinc-900 dark:text-white">Paper Printing</td>
-                  <td className="p-2 text-zinc-700 dark:text-zinc-200">T-48 to T-24 Hours</td>
-                  <td className="p-2 text-amber-600 font-mono">Warn Admin</td>
-                </tr>
-                <tr>
-                  <td className="p-2 font-medium text-zinc-900 dark:text-white">Grade Sheet Upload</td>
-                  <td className="p-2 text-zinc-700 dark:text-zinc-200">Assessment Day +72 hrs</td>
-                  <td className="p-2 text-red-600 font-mono">Log SLA Violation</td>
-                </tr>
-                <tr>
-                  <td className="p-2 font-medium text-zinc-900 dark:text-white">Report Delivery</td>
-                  <td className="p-2 text-zinc-700 dark:text-zinc-200">Assessment Day +96 hrs</td>
-                  <td className="p-2 text-zinc-500 dark:text-zinc-400 font-mono">Escalate Tech</td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="overflow-hidden rounded-[20px] border border-zinc-200/80 dark:border-zinc-700/80">
+              <div className="max-h-[320px] overflow-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="border-b border-zinc-200/80 bg-zinc-50/95 text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500 backdrop-blur dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:text-zinc-400">
+                      <th className="p-3">Milestone Phase</th>
+                      <th className="p-3">SLA Window</th>
+                      <th className="p-3">Delayed Flag</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white text-zinc-700 dark:bg-slate-900 dark:text-zinc-200">
+                    <tr className="border-b border-zinc-100/80 odd:bg-white even:bg-zinc-50/70 transition-colors hover:bg-zinc-100/80 dark:border-zinc-800/70 dark:odd:bg-slate-900 dark:even:bg-zinc-900/70 dark:hover:bg-zinc-800/70">
+                      <td className="p-3 font-medium text-zinc-900 dark:text-white">Worksheet Customization</td>
+                      <td className="p-3">Lock at T-72 Hours</td>
+                      <td className="p-3 font-mono text-red-600">Rollback to Default</td>
+                    </tr>
+                    <tr className="border-b border-zinc-100/80 odd:bg-white even:bg-zinc-50/70 transition-colors hover:bg-zinc-100/80 dark:border-zinc-800/70 dark:odd:bg-slate-900 dark:even:bg-zinc-900/70 dark:hover:bg-zinc-800/70">
+                      <td className="p-3 font-medium text-zinc-900 dark:text-white">Paper Printing</td>
+                      <td className="p-3">T-48 to T-24 Hours</td>
+                      <td className="p-3 font-mono text-amber-600">Warn Admin</td>
+                    </tr>
+                    <tr className="border-b border-zinc-100/80 odd:bg-white even:bg-zinc-50/70 transition-colors hover:bg-zinc-100/80 dark:border-zinc-800/70 dark:odd:bg-slate-900 dark:even:bg-zinc-900/70 dark:hover:bg-zinc-800/70">
+                      <td className="p-3 font-medium text-zinc-900 dark:text-white">Grade Sheet Upload</td>
+                      <td className="p-3">Assessment Day +72 hrs</td>
+                      <td className="p-3 font-mono text-red-600">Log SLA Violation</td>
+                    </tr>
+                    <tr className="odd:bg-white even:bg-zinc-50/70 transition-colors hover:bg-zinc-100/80 dark:odd:bg-slate-900 dark:even:bg-zinc-900/70 dark:hover:bg-zinc-800/70">
+                      <td className="p-3 font-medium text-zinc-900 dark:text-white">Report Delivery</td>
+                      <td className="p-3">Assessment Day +96 hrs</td>
+                      <td className="p-3 font-mono text-zinc-500 dark:text-zinc-400">Escalate Tech</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       )}

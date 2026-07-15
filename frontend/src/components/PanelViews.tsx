@@ -395,15 +395,15 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             </div>
             {/* Searchable student selector */}
             <div className="relative shrink-0">
-              <button onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 min-w-[180px] text-left">
+              <button onClick={() => setShowDropdown(!showDropdown)} className="ui-button flex items-center gap-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 min-w-[180px] text-left">
                 <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 <span className="flex-1 truncate">{s.name}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
               </button>
               {showDropdown && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden">
+                  <div className="ui-modal-backdrop fixed inset-0 z-10" onClick={() => setShowDropdown(false)} />
+                  <div className="ui-dropdown absolute right-0 top-full mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden">
                     <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                       <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search students..." className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
                     </div>
@@ -868,14 +868,14 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'adaptive_test') {
     return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-6">
+      <div className="bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-700/80 rounded-[24px] p-6 shadow-[0_20px_40px_-28px_rgba(15,23,42,0.35)] space-y-6 backdrop-blur-xl">
         <PageHeader title="Adaptive Assessment" desc="Computer-adaptive testing that adjusts to student ability" icon={<SlidersHorizontal className="h-5 w-5" />} />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricCard title="Active Sessions" value={''} subtext="Will be populated soon" icon={Users} />
           <MetricCard title="Avg Adaptive Score" value={''} subtext="Will be populated soon" icon={BarChart3} />
           <MetricCard title="Completion Rate" value={''} subtext="Will be populated soon" icon={CheckCircle2} />
         </div>
-        <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-5 bg-slate-50 dark:bg-slate-800 space-y-3">
+        <div className="border border-slate-200/80 dark:border-slate-700/80 rounded-2xl p-5 bg-slate-50/80 dark:bg-slate-800/80 space-y-3">
           <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">How Adaptive Testing Works</h4>
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">The system selects questions dynamically based on the student's previous answers. Correct answers lead to harder questions; incorrect answers adjust to easier ones. This pinpoints the exact FLN level.</p>
           <div className="flex gap-4 pt-2">

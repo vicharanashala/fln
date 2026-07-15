@@ -136,26 +136,25 @@ export function Table<T extends Record<string, any>>({
 
   return (
     <div className="space-y-4">
-      {/* Controls: Search, Filters button, Export */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 rounded-[24px] border border-slate-200/70 bg-gradient-to-br from-white via-slate-50/80 to-white p-4 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.35)] ring-1 ring-slate-900/5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between dark:border-slate-700/70 dark:from-slate-900/90 dark:via-slate-900/80 dark:to-slate-900/90 dark:ring-white/5">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
             placeholder={searchPlaceholder}
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:placeholder-slate-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500"
+            className="w-full rounded-2xl border border-slate-200/80 bg-white/90 py-2.75 pl-10 pr-4 text-sm font-medium text-slate-700 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.45)] outline-none transition duration-200 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-slate-200 dark:placeholder:text-slate-500"
           />
         </div>
         <div className="flex items-center gap-2">
           {filterableColumns.length > 0 && (
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-1.5 px-3.5 py-2 border rounded-lg text-xs font-semibold font-mono transition cursor-pointer ${
+              className={`flex items-center gap-1.5 rounded-2xl border px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20 ${
                 showFilters || Object.values(activeFilters).some(v => v)
-                  ? 'bg-indigo-50 text-indigo-755 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800'
-                  : 'bg-white text-slate-750 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800'
+                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300'
+                  : 'border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -165,7 +164,7 @@ export function Table<T extends Record<string, any>>({
           <button
             onClick={handleExportCSV}
             disabled={processedData.length === 0}
-            className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-lg text-xs font-semibold font-mono bg-white text-slate-750 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <Download className="h-3.5 w-3.5" />
             <span>Export CSV</span>
@@ -173,18 +172,17 @@ export function Table<T extends Record<string, any>>({
         </div>
       </div>
 
-      {/* Expanded Filters bar */}
       {showFilters && filterableColumns.length > 0 && (
-        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 dark:bg-slate-900 dark:border-slate-700">
+        <div className="grid grid-cols-1 gap-4 rounded-[24px] border border-slate-200/70 bg-slate-50/70 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] sm:grid-cols-2 md:grid-cols-3 dark:border-slate-700/70 dark:bg-slate-900/70">
           {filterableColumns.map(col => {
             const key = String(col.filterKey);
             return (
-              <div key={key} className="space-y-1">
-                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{col.header}</label>
+              <div key={key} className="space-y-1.5">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{col.header}</label>
                 <select
                   value={activeFilters[key] || ''}
                   onChange={(e) => handleFilterChange(key, e.target.value)}
-                  className="w-full p-2 border border-slate-200 rounded-lg text-xs bg-white outline-none focus:border-indigo-500 dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:focus:border-indigo-500"
+                  className="w-full rounded-2xl border border-slate-200/80 bg-white/90 p-2.5 text-xs font-medium text-slate-700 shadow-sm outline-none transition duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-white"
                 >
                   <option value="">All</option>
                   {col.filterOptions?.map(opt => (
@@ -198,7 +196,7 @@ export function Table<T extends Record<string, any>>({
             <div className="flex items-end">
               <button
                 onClick={() => { setActiveFilters({}); setCurrentPage(1); }}
-                className="text-xs text-red-650 font-mono font-bold hover:underline mb-2 dark:text-red-400"
+                className="mb-1 rounded-full border border-rose-200/70 bg-rose-50/90 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-600 transition hover:bg-rose-100 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-300"
               >
                 Clear Filters
               </button>
@@ -207,85 +205,88 @@ export function Table<T extends Record<string, any>>({
         </div>
       )}
 
-      {/* Table grid */}
-      <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-sm bg-white dark:bg-slate-900 dark:border-slate-700">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-mono text-[10px] uppercase font-bold tracking-wider dark:bg-slate-900/60 dark:border-slate-700 dark:text-slate-400">
-              {columns.map((col, idx) => {
-                const isSortable = !!col.sortKey;
-                const isSorted = sortConfig?.key === col.sortKey;
-                return (
-                  <th
-                    key={idx}
-                    onClick={() => isSortable && col.sortKey && requestSort(col.sortKey)}
-                    className={`p-4 font-bold ${col.className || ''} ${isSortable ? 'cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800' : ''}`}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>{col.header}</span>
-                      {isSortable && (
-                        isSorted ? (
-                          sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3 text-indigo-600 dark:text-indigo-400" /> : <ChevronDown className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
-                        ) : (
-                          <ChevronsUpDown className="h-3 w-3 text-slate-400 dark:text-slate-600" />
-                        )
-                      )}
+      <div className="overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/90 shadow-[0_24px_70px_-35px_rgba(15,23,42,0.35)] ring-1 ring-slate-900/5 backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/80 dark:ring-white/5">
+        <div className="max-h-[70vh] overflow-auto">
+          <table className="min-w-full border-collapse text-left text-sm">
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-slate-200/70 bg-slate-50/95 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-600 shadow-[inset_0_-1px_0_rgba(15,23,42,0.06)] backdrop-blur dark:border-slate-700/70 dark:bg-slate-950/90 dark:text-slate-400">
+                {columns.map((col, idx) => {
+                  const isSortable = !!col.sortKey;
+                  const isSorted = sortConfig?.key === col.sortKey;
+                  return (
+                    <th
+                      key={idx}
+                      onClick={() => isSortable && col.sortKey && requestSort(col.sortKey)}
+                      className={`px-4 py-3.5 font-semibold whitespace-nowrap ${col.className || ''} ${isSortable ? 'cursor-pointer select-none transition duration-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/80' : ''}`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>{col.header}</span>
+                        {isSortable && (
+                          isSorted ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3 text-indigo-600 dark:text-indigo-400" /> : <ChevronDown className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
+                          ) : (
+                            <ChevronsUpDown className="h-3 w-3 text-slate-400 dark:text-slate-600" />
+                          )
+                        )}
+                      </div>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200/60 bg-white text-sm text-slate-700 dark:divide-slate-700/70 dark:bg-slate-900 dark:text-slate-300">
+              {loading ? (
+                <tr>
+                  <td colSpan={columns.length} className="p-8 text-center">
+                    <div className="mx-auto flex w-full max-w-sm flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-8 py-10 dark:border-slate-700 dark:bg-slate-800/40">
+                      <div className="h-7 w-7 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent dark:border-indigo-400" />
+                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Loading record entries...</span>
                     </div>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 font-sans text-slate-700 dark:divide-slate-700 dark:text-slate-300">
-            {loading ? (
-              <tr>
-                <td colSpan={columns.length} className="p-8 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <div className="w-6 h-6 border-2 border-indigo-650 border-t-transparent rounded-full animate-spin dark:border-indigo-400" />
-                    <span className="text-xs font-medium font-mono text-slate-500 dark:text-slate-400">Loading record entries...</span>
-                  </div>
-                </td>
-              </tr>
-            ) : paginatedData.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length} className="p-12 text-center text-xs font-mono text-slate-400 dark:text-slate-500">
-                  {emptyMessage}
-                </td>
-              </tr>
-            ) : (
-              paginatedData.map((row, rIdx) => (
-                <tr key={row.id || rIdx} className="hover:bg-slate-50/50 transition duration-150 dark:hover:bg-slate-800/50">
-                  {columns.map((col, cIdx) => (
-                    <td key={cIdx} className={`p-4 ${col.className || ''}`}>
-                      {typeof col.accessor === 'function' ? (
-                        col.accessor(row)
-                      ) : (
-                        String(row[col.accessor] ?? '')
-                      )}
-                    </td>
-                  ))}
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : paginatedData.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} className="p-12 text-center">
+                    <div className="mx-auto flex w-full max-w-sm flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-8 py-10 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">
+                      <span className="text-xs font-semibold uppercase tracking-[0.2em]">Empty state</span>
+                      <span>{emptyMessage}</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedData.map((row, rIdx) => (
+                  <tr key={row.id || rIdx} className="transition-all duration-200 odd:bg-white even:bg-slate-50/70 hover:bg-indigo-50/70 hover:shadow-[inset_0_1px_0_rgba(99,102,241,0.08)] dark:odd:bg-slate-900 dark:even:bg-slate-800/40 dark:hover:bg-slate-800/70">
+                    {columns.map((col, cIdx) => (
+                      <td key={cIdx} className={`px-4 py-3.5 align-middle text-[13px] leading-6 ${col.className || ''}`}>
+                        {typeof col.accessor === 'function' ? (
+                          col.accessor(row)
+                        ) : (
+                          String(row[col.accessor] ?? '')
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Pagination controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+        <div className="flex flex-col gap-3 rounded-[20px] border border-slate-200/70 bg-white/80 px-4 py-3 text-sm shadow-[0_12px_40px_-28px_rgba(15,23,42,0.35)] sm:flex-row sm:items-center sm:justify-between dark:border-slate-700/70 dark:bg-slate-900/70">
+          <span className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
             Showing <strong className="text-slate-800 dark:text-slate-200">{((currentPage - 1) * rowsPerPage) + 1}</strong> to{' '}
             <strong className="text-slate-800 dark:text-slate-200">
               {Math.min(currentPage * rowsPerPage, processedData.length)}
             </strong>{' '}
             of <strong className="text-slate-800 dark:text-slate-200">{processedData.length}</strong> records
           </span>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold cursor-pointer dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
+              className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition duration-200 hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Previous
             </button>
@@ -293,10 +294,10 @@ export function Table<T extends Record<string, any>>({
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition cursor-pointer ${
+                className={`rounded-2xl border px-3 py-1.5 text-xs font-bold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20 ${
                   currentPage === page
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800'
+                    ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
                 }`}
               >
                 {page}
@@ -305,7 +306,7 @@ export function Table<T extends Record<string, any>>({
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold cursor-pointer dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
+              className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition duration-200 hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Next
             </button>

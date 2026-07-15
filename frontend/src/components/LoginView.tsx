@@ -62,10 +62,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12 transition-colors duration-200">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.12),_transparent_30%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] dark:bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.16),_transparent_30%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] px-4 py-12 transition-colors duration-200">
       
       {/* Container with neutral double border design */}
-      <div className="w-full max-w-lg rounded-xl border-t-8 border-t-indigo-700 dark:border-t-indigo-600 border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 shadow-md dark:shadow-slate-950/50 transition-all">
+      <div className="w-full max-w-lg rounded-[28px] border border-slate-200/80 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 p-8 shadow-[0_24px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl transition-all">
 
         {/* Branding header */}
         <div className="flex flex-col items-center text-center">
@@ -88,39 +88,36 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
 
         {/* Form panel */}
         <form className="mt-8 space-y-4" onSubmit={(e) => handleLogin(e)}>
-          
-          {/* User Email or Username input */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+          <div className="space-y-2">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-700 dark:text-slate-300">
               Official Email Address / SSO Username
             </label>
             <input
               type="email"
               required
-              className="w-full rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 text-sm text-slate-950 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-indigo-700 dark:focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-700 dark:focus:ring-indigo-500 font-medium"
+              className="w-full rounded-2xl border border-slate-200/80 bg-white/90 px-3.5 py-2.75 text-sm font-medium text-slate-950 shadow-sm placeholder-slate-400 outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-white dark:placeholder-slate-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
               placeholder="enter mail or username"
               value={email}
               onChange={e => setEmail(e.target.value)}
             />
           </div>
 
-          {/* User Password input */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+          <div className="space-y-2">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-700 dark:text-slate-300">
               Official Access Password
             </label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                className="w-full rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 pr-10 text-sm text-slate-950 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-indigo-700 dark:focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-700 dark:focus:ring-indigo-500 font-medium"
+                className="w-full rounded-2xl border border-slate-200/80 bg-white/90 py-2.75 pr-10 pl-3.5 text-sm font-medium text-slate-950 shadow-sm placeholder-slate-400 outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-white dark:placeholder-slate-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 placeholder="*********"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 transition hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -128,19 +125,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
             </div>
           </div>
 
-          {/* Validation Alerts */}
           {error && (
-            <div className="flex items-center gap-2 rounded-lg border-2 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3.5 text-xs font-bold text-red-700 dark:text-red-400 animate-shake">
+            <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50/90 p-3.5 text-xs font-semibold text-red-700 shadow-sm dark:border-red-800 dark:bg-red-950/40 dark:text-red-400">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          {/* Login Action Trigger */}
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center rounded-lg bg-indigo-700 dark:bg-indigo-800 py-3.5 text-xs font-extrabold text-white shadow-md dark:shadow-slate-950/50 transition-all duration-150 hover:bg-indigo-600 dark:hover:bg-indigo-700 border border-indigo-300 dark:border-indigo-700 active:scale-[0.98] disabled:opacity-50 uppercase tracking-widest cursor-pointer font-mono"
+            className="flex w-full items-center justify-center rounded-full bg-indigo-600 py-3.5 text-xs font-semibold uppercase tracking-[0.24em] text-white shadow-[0_14px_28px_-16px_rgba(79,70,229,0.9)] transition-all duration-200 hover:bg-indigo-500 active:scale-[0.98] disabled:opacity-50"
           >
             {loading ? 'Verifying Digital Certificate Signature...' : 'Secure Sign In'}
           </button>
@@ -156,7 +151,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
               <button
                 key={u.email}
                 onClick={() => handleLogin(undefined, u.email, u.pass)}
-                className="rounded-lg bg-slate-50 dark:bg-slate-800 p-2 text-left border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition hover:bg-amber-50/70 dark:hover:bg-amber-950/40 hover:border-amber-300 dark:hover:border-amber-800 hover:text-indigo-700 dark:hover:text-amber-400 cursor-pointer"
+                className="rounded-2xl bg-slate-50/80 dark:bg-slate-800/70 p-2.5 text-left border border-slate-200/80 dark:border-slate-700/70 text-slate-700 dark:text-slate-300 transition hover:-translate-y-0.5 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/30 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-700 dark:hover:text-indigo-300 cursor-pointer"
               >
                 <div className="font-extrabold truncate text-slate-900 dark:text-white">
                   {u.label}

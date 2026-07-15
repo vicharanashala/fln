@@ -14,21 +14,21 @@ export const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   return (
-    <div className="space-y-1.5 w-full">
-      <label className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+    <div className="w-full space-y-2">
+      <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600 dark:text-slate-300">
         {label}
       </label>
       <input
-        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder-slate-400 outline-none transition focus:border-indigo-650 focus:ring-1 focus:ring-indigo-600 disabled:opacity-50 disabled:bg-slate-50 dark:bg-slate-950 dark:text-white dark:placeholder-slate-500 dark:border-slate-700 dark:focus:border-indigo-500 dark:focus:ring-indigo-500 ${
-          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-600' : ''
+        className={`w-full rounded-2xl border border-slate-200/80 bg-white/90 px-3.5 py-2.75 text-sm text-slate-900 shadow-sm placeholder-slate-400 outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:opacity-50 disabled:bg-slate-50 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-white dark:placeholder-slate-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15 ${
+          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500/15 dark:border-red-600' : ''
         } ${className}`}
         {...props}
       />
       {error && (
-        <span className="text-[10px] font-mono font-semibold text-red-600 dark:text-red-400 block">{error}</span>
+        <span className="block rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</span>
       )}
       {helperText && !error && (
-        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 block">{helperText}</span>
+        <span className="block text-[11px] text-slate-500 dark:text-slate-400">{helperText}</span>
       )}
     </div>
   );
@@ -48,13 +48,13 @@ export const Select: React.FC<SelectProps> = ({
   ...props
 }) => {
   return (
-    <div className="space-y-1.5 w-full">
-      <label className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+    <div className="w-full space-y-2">
+      <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600 dark:text-slate-300">
         {label}
       </label>
       <select
-        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 bg-white outline-none transition focus:border-indigo-650 focus:ring-1 focus:ring-indigo-600 disabled:opacity-50 disabled:bg-slate-50 dark:bg-slate-950 dark:text-white dark:placeholder-slate-500 dark:border-slate-700 dark:focus:border-indigo-500 dark:focus:ring-indigo-500 ${
-          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-600' : ''
+        className={`w-full rounded-2xl border border-slate-200/80 bg-white/90 px-3.5 py-2.75 text-sm text-slate-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:opacity-50 disabled:bg-slate-50 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-white dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15 ${
+          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500/15 dark:border-red-600' : ''
         } ${className}`}
         {...props}
       >
@@ -65,7 +65,7 @@ export const Select: React.FC<SelectProps> = ({
         ))}
       </select>
       {error && (
-        <span className="text-[10px] font-mono font-semibold text-red-600 dark:text-red-400 block">{error}</span>
+        <span className="block rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</span>
       )}
     </div>
   );
@@ -83,18 +83,18 @@ export const Textarea: React.FC<TextareaProps> = ({
   ...props
 }) => {
   return (
-    <div className="space-y-1.5 w-full">
-      <label className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+    <div className="w-full space-y-2">
+      <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-600 dark:text-slate-300">
         {label}
       </label>
       <textarea
-        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 bg-white placeholder-slate-400 outline-none transition focus:border-indigo-650 focus:ring-1 focus:ring-indigo-600 disabled:opacity-50 disabled:bg-slate-50 dark:bg-slate-950 dark:text-white dark:placeholder-slate-500 dark:border-slate-700 dark:focus:border-indigo-500 dark:focus:ring-indigo-500 ${
-          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-600' : ''
+        className={`w-full rounded-[20px] border border-slate-200/80 bg-white/90 px-3.5 py-2.75 text-sm text-slate-900 shadow-sm placeholder-slate-400 outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:opacity-50 disabled:bg-slate-50 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-white dark:placeholder-slate-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15 ${
+          error ? 'border-red-300 focus:border-red-500 focus:ring-red-500/15 dark:border-red-600' : ''
         } ${className}`}
         {...props}
       />
       {error && (
-        <span className="text-[10px] font-mono font-semibold text-red-600 dark:text-red-400 block">{error}</span>
+        <span className="block rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</span>
       )}
     </div>
   );

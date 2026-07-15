@@ -198,12 +198,12 @@ export default function App() {
         >
           {/* Urgent Announcements Strip inside Layout Content */}
           {activeUrgentAnnouncements.length > 0 && (
-            <div className="bg-amber-600 text-white font-medium text-xs py-2.5 px-6 flex items-center justify-between shadow-sm border border-amber-700 rounded-xl mb-6">
+            <div className="border border-amber-200/80 bg-amber-50/90 text-amber-900 shadow-[0_16px_36px_-24px_rgba(245,158,11,0.7)] backdrop-blur-sm rounded-2xl mb-6 px-5 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-mono font-bold">⚠️ CRITICAL ALERT:</span>
-                <span>{activeUrgentAnnouncements[0].message}</span>
+                <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em]">Critical alert</span>
+                <span className="text-sm font-medium">{activeUrgentAnnouncements[0].message}</span>
               </div>
-              <span className="text-[10px] font-mono text-amber-200 bg-amber-800/40 px-2 py-0.5 rounded uppercase">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] bg-amber-500/15 px-2.5 py-1 rounded-full">
                 Escalated
               </span>
             </div>
@@ -226,32 +226,34 @@ export default function App() {
 
           {/* Unified fallback settings panel */}
           {activePanel === 'settings' && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                <Settings className="h-6 w-6 text-slate-500" />
+            <div className="glass-panel rounded-[28px] p-6 shadow-[0_24px_48px_-30px_rgba(15,23,42,0.4)] space-y-6">
+              <div className="flex items-center gap-3 border-b border-slate-200/80 dark:border-slate-700/80 pb-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+                  <Settings className="h-5 w-5" />
+                </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900 font-sans">Portal Preferences & Account Settings</h2>
-                  <p className="text-xs text-slate-505">Configure user settings, localization preferences, and SSO authorization status.</p>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Portal Preferences & Account Settings</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Configure user settings, localization preferences, and SSO authorization status.</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-sans">
                 <div className="space-y-4">
-                  <h3 className="font-bold text-slate-800 text-xs uppercase font-mono">User Profile Details</h3>
-                  <div className="p-4 bg-slate-50 rounded-lg space-y-2 border border-slate-150">
-                    <div><span className="text-slate-450 font-semibold text-xs">Full Name:</span> <strong className="text-slate-800">{currentUser.name}</strong></div>
-                    <div><span className="text-slate-450 font-semibold text-xs">Email ID:</span> <strong className="text-slate-850 font-mono">{currentUser.email}</strong></div>
-                    <div><span className="text-slate-450 font-semibold text-xs">Assigned Scope:</span> <strong className="text-slate-800 font-mono">{currentUser.schoolId || currentUser.districtCode || currentUser.stateCode || 'National Oversight'}</strong></div>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-[0.24em]">User Profile Details</h3>
+                  <div className="p-4 bg-slate-50/80 dark:bg-slate-800/70 rounded-2xl space-y-2 border border-slate-200/70 dark:border-slate-700/70">
+                    <div><span className="text-slate-500 dark:text-slate-400 font-medium text-xs">Full Name:</span> <strong className="text-slate-800 dark:text-slate-100">{currentUser.name}</strong></div>
+                    <div><span className="text-slate-500 dark:text-slate-400 font-medium text-xs">Email ID:</span> <strong className="text-slate-800 dark:text-slate-100 font-mono">{currentUser.email}</strong></div>
+                    <div><span className="text-slate-500 dark:text-slate-400 font-medium text-xs">Assigned Scope:</span> <strong className="text-slate-800 dark:text-slate-100 font-mono">{currentUser.schoolId || currentUser.districtCode || currentUser.stateCode || 'National Oversight'}</strong></div>
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <h3 className="font-bold text-slate-800 text-xs uppercase font-mono">Accessibility Configuration</h3>
-                  <div className="p-4 bg-slate-50 rounded-lg space-y-3 border border-slate-150">
-                    <label className="flex items-center gap-2 font-medium">
-                      <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-650" />
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-[0.24em]">Accessibility Configuration</h3>
+                  <div className="p-4 bg-slate-50/80 dark:bg-slate-800/70 rounded-2xl space-y-3 border border-slate-200/70 dark:border-slate-700/70">
+                    <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
+                      <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-600" />
                       <span>Enable High-Contrast Border Outlines</span>
                     </label>
-                    <label className="flex items-center gap-2 font-medium">
-                      <input type="checkbox" className="rounded border-slate-300 text-indigo-650" />
+                    <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
+                      <input type="checkbox" className="rounded border-slate-300 text-indigo-600" />
                       <span>Audio voice narration on hover (SLA §2.3)</span>
                     </label>
                   </div>

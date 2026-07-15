@@ -90,14 +90,14 @@ export const FLNLevelReferenceModal: React.FC<{ isOpen: boolean; onClose: () => 
   });
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl border border-zinc-200 dark:border-zinc-700">
+    <div className="ui-modal-backdrop fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="ui-modal-panel bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl border border-zinc-200 dark:border-zinc-700">
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 rounded-t-2xl">
           <div>
             <h2 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">📖 FLN Levels Framework Reference</h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Explore details of the 59 curriculum levels spanning Preschool 1 to Class 4</p>
           </div>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-650 text-sm font-semibold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-slate-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 p-2 rounded-lg">Close</button>
+          <button onClick={onClose} className="ui-button text-zinc-400 hover:text-zinc-650 text-sm font-semibold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-slate-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 p-2 rounded-lg">Close</button>
         </div>
 
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-slate-900">
@@ -176,6 +176,139 @@ interface DashboardProps {
   token: string;
 }
 
+interface DashboardHeroProps {
+  badge: string;
+  title: string;
+  subtitle: string;
+  userName?: string;
+  summaryItems?: Array<{ label: string; value: string | number; hint?: string; icon?: React.ElementType }>;
+  quickActions?: Array<{ label: string; description: string; icon: React.ElementType; onClick: () => void }>;
+  commandCenterItems?: Array<{ label: string; description: string; icon: React.ElementType; onClick?: () => void; disabled?: boolean }>;
+}
+
+const DashboardHero: React.FC<DashboardHeroProps> = ({ badge, title, subtitle, userName, summaryItems = [], quickActions = [], commandCenterItems = [] }) => {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+
+  return (
+    <div className="overflow-hidden rounded-[28px] border border-slate-200/70 bg-gradient-to-br from-white via-slate-50 to-indigo-50/70 p-6 shadow-[0_18px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/70 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/40">
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-indigo-700 dark:border-indigo-800/80 dark:bg-indigo-950/30 dark:text-indigo-300">
+            <span className="h-2 w-2 rounded-full bg-indigo-500" />
+            {badge}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm dark:border-slate-700/80 dark:bg-slate-800/80 dark:text-slate-200">
+                {greeting}{userName ? `, ${userName}` : ''}
+              </span>
+              <span className="rounded-full border border-emerald-200/70 bg-emerald-50/80 px-3 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-800/80 dark:bg-emerald-950/40 dark:text-emerald-300">
+                Live oversight
+              </span>
+            </div>
+            <h2 className="text-3xl font-display font-semibold tracking-tight text-slate-900 dark:text-white sm:text-[2rem]">{title}</h2>
+            <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-400">{subtitle}</p>
+          </div>
+
+          {summaryItems.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-3">
+              {summaryItems.map(({ label, value, hint, icon: Icon }) => (
+                <div key={label} className="rounded-[22px] border border-slate-200/70 bg-white/85 p-3 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.35)] backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/70">
+                  <div className="flex items-center gap-2">
+                    {Icon ? <Icon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> : null}
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">{label}</p>
+                  </div>
+                  <p className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">{value}</p>
+                  {hint ? <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{hint}</p> : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-[24px] border border-slate-200/70 bg-white/80 p-4 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur dark:border-slate-700/80 dark:bg-slate-900/70">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Quick actions</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">Navigate instantly</p>
+            </div>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+            {quickActions.map(({ label, description, icon: Icon, onClick }) => (
+              <button
+                key={label}
+                onClick={onClick}
+                className="group flex items-center justify-between rounded-[20px] border border-slate-200/70 bg-slate-50/80 px-3 py-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-white dark:border-slate-700/70 dark:bg-slate-800/70 dark:hover:border-indigo-700 dark:hover:bg-slate-800"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 transition-colors group-hover:bg-indigo-600 group-hover:text-white dark:bg-indigo-950/60 dark:text-indigo-300 dark:group-hover:bg-indigo-600 dark:group-hover:text-white">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-900 dark:text-white">{label}</span>
+                    <span className="block text-[11px] text-slate-500 dark:text-slate-400">{description}</span>
+                  </span>
+                </span>
+                <ArrowRight className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {commandCenterItems.length > 0 && (
+        <div className="mt-6 rounded-[24px] border border-slate-200/70 bg-white/85 p-4 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/80">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Command Center</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">Fast access to your most used dashboard views</p>
+            </div>
+            <div className="rounded-full border border-slate-200/70 bg-slate-50/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-600 dark:border-slate-700/80 dark:bg-slate-800/80 dark:text-slate-300">
+              UI-only workspace
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {commandCenterItems.map(({ label, description, icon: Icon, onClick, disabled }) => {
+              const content = (
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 transition-colors group-hover:bg-indigo-600 group-hover:text-white dark:bg-indigo-950/60 dark:text-indigo-300 dark:group-hover:bg-indigo-600 dark:group-hover:text-white">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-zinc-900 dark:text-white">{label}</span>
+                    <span className="block text-[11px] text-zinc-500 dark:text-zinc-400">{description}</span>
+                  </span>
+                </div>
+              );
+
+              if (disabled || !onClick) {
+                return (
+                  <div key={label} className="rounded-2xl border border-zinc-200/70 bg-zinc-50/70 p-3 opacity-70 dark:border-zinc-700/70 dark:bg-zinc-800/70">
+                    {content}
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={label}
+                  onClick={onClick}
+                  className="group rounded-2xl border border-zinc-200/70 bg-zinc-50/80 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-white dark:border-zinc-700/70 dark:bg-zinc-800/70 dark:hover:border-indigo-700 dark:hover:bg-zinc-800"
+                >
+                  {content}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ==========================================
 // GEOGRAPHICAL COMPARATIVE ANALYTICS (SHARED VIEW)
 // ==========================================
@@ -239,7 +372,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
     <div className="space-y-6" id="geographical-analytics">
       {/* Scope Controls for Superadmin */}
       {user.role === UserRole.SUPERADMIN && (
-        <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-end text-xs font-sans">
+        <div className="flex flex-col gap-4 items-end rounded-[24px] border border-slate-200/70 bg-white/85 p-4 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl text-xs font-sans dark:border-slate-700/70 dark:bg-slate-900/85 md:flex-row">
           <div className="flex-grow">
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter State</label>
             <input 
@@ -290,15 +423,15 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* National Benchmark (Visible to All) */}
-        <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
+        <div className="space-y-6 rounded-[24px] border border-slate-200/70 bg-white/85 p-6 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/85">
+          <div className="flex items-center justify-between border-b border-slate-200/70 pb-3 dark:border-slate-700/70">
             <div>
-              <h4 className="font-display font-bold text-zinc-900 dark:text-white text-base flex items-center gap-2">
+              <h4 className="flex items-center gap-2 text-base font-display font-semibold text-slate-900 dark:text-white">
                 <span>🌐 National Benchmark</span>
               </h4>
               <p className="text-zinc-400 dark:text-zinc-500 text-[11px] mt-0.5">Immutable global standards compiled as universal framework baseline.</p>
             </div>
-            <span className="px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border border-zinc-200 dark:border-zinc-700 shadow-sm">
+            <span className="rounded-full border border-slate-200/70 bg-slate-50/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-600 shadow-sm dark:border-slate-700/70 dark:bg-slate-800/80 dark:text-slate-300">
               Benchmark
             </span>
           </div>
@@ -333,8 +466,8 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
         </div>
 
         {/* Local Assigned Scope */}
-        <div className="bg-zinc-900 text-white rounded-xl p-6 shadow-md space-y-6 border-none">
-          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="space-y-6 rounded-[24px] border border-slate-700/60 bg-slate-900 p-6 text-white shadow-[0_18px_50px_-32px_rgba(15,23,42,0.55)]">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h4 className="font-display font-bold text-zinc-100 text-base">📍 Scope: {activeLabel}</h4>
               <p className="text-zinc-400 text-[11px] mt-0.5">Real-time local metrics calculated dynamically from active rosters.</p>
@@ -385,10 +518,10 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
 
       {/* Dynamic Visual Charts & Insights */}
       {activeMetrics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm" id="analytics-charts-panel">
+        <div className="grid grid-cols-1 gap-6 rounded-[24px] border border-slate-200/70 bg-white/85 p-6 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/85 md:grid-cols-2" id="analytics-charts-panel">
           
           {/* Donut Pie Chart for Certification Rate */}
-          <div className="flex flex-col items-center justify-center p-5 border border-zinc-100 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/50" id="certification-donut-chart">
+          <div className="flex flex-col items-center justify-center p-5 border border-zinc-100/80 dark:border-zinc-800/80 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/70" id="certification-donut-chart">
             <h5 className="text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-4">Certification Rate (Pie / Donut Chart)</h5>
             <div className="relative flex items-center justify-center">
               <svg width="180" height="180" viewBox="0 0 180 180" className="transform -rotate-90">
@@ -422,7 +555,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
           </div>
 
           {/* Bar Graph for FLN Level Distribution */}
-          <div className="flex flex-col justify-between p-5 border border-zinc-100 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/50" id="level-bar-chart">
+          <div className="flex flex-col justify-between p-5 border border-zinc-100/80 dark:border-zinc-800/80 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/70" id="level-bar-chart">
             <div>
               <h5 className="text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-2 text-center md:text-left">Student FLN Level Distribution (Bar Graph)</h5>
               <p className="text-[11px] text-zinc-505 dark:text-zinc-400 text-center md:text-left mb-6 leading-relaxed">
@@ -456,7 +589,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
             {/* Total Indicator */}
             <div className="text-center md:text-right mt-3">
               <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
-                Roster segment: <strong className="text-zinc-800 dark:text-zinc-100">{Object.values(activeMetrics.levelDistribution || {}).reduce((a: any, b: any) => a + b, 0)} student profiles</strong>
+                Roster segment: <strong className="text-zinc-800 dark:text-zinc-100">{Object.values(activeMetrics.levelDistribution || {}).reduce<number>((total, value) => total + Number(value ?? 0), 0)} student profiles</strong>
               </span>
             </div>
           </div>
@@ -722,51 +855,82 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
   return (
     <div className="space-y-6" id="superadmin-dashboard">
-      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">National Oversight Center</h1>
-          <p className="text-zinc-505 dark:text-zinc-400 text-sm mt-0.5">IIT Ropar / Vicharanashala Lab · Global Curriculum Master Controls</p>
-        </div>
+      <div className="space-y-4">
+        <DashboardHero
+          badge="National Oversight Center"
+          title="National Oversight Center"
+          subtitle="Monitor FLN performance across all schools from one unified dashboard."
+          userName={user.name}
+          summaryItems={[
+            { label: 'Schools', value: schools.length, hint: 'Tracked nationally', icon: SchoolIcon },
+            { label: 'Students', value: students.length, hint: 'Active FLN roster', icon: Users },
+            { label: 'Certified', value: `${certifiedPercent}%`, hint: `${certifiedCount} verified`, icon: Award }
+          ]}
+          quickActions={[
+            { label: 'Schools', description: 'Open school overview', icon: SchoolIcon, onClick: () => setActiveTab('overview') },
+            { label: 'Users', description: 'Manage coordinators', icon: Users, onClick: () => setActiveTab('coordinators') },
+            { label: 'Analytics', description: 'Review geographic performance', icon: BarChart3, onClick: () => setActiveTab('analytics') },
+            { label: 'Worksheets', description: 'Open operational workspace', icon: FileText, onClick: () => setActiveTab('overview') }
+          ]}
+          commandCenterItems={[
+            { label: 'Schools', description: 'Review school performance', icon: SchoolIcon, onClick: () => setActiveTab('overview') },
+            { label: 'Users', description: 'Manage coordinators', icon: Users, onClick: () => setActiveTab('coordinators') },
+            { label: 'Worksheets', description: 'Open worksheet operations', icon: FileText, onClick: () => setActiveTab('overview') },
+            { label: 'Analytics', description: 'Inspect geographic trends', icon: BarChart3, onClick: () => setActiveTab('analytics') },
+            { label: 'Notifications', description: 'Broadcast updates', icon: Calendar, onClick: () => setActiveTab('overview') },
+            { label: 'Activity Logs', description: 'Review recent activity', icon: ClipboardList, onClick: () => setActiveTab('overview') }
+          ]}
+        />
 
-        {/* Dashboard Tabs Selector */}
-        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700 w-fit self-start">
+        <div className="flex flex-col gap-4 border-b border-slate-200/70 pb-5 sm:pb-6 xl:flex-row xl:items-center xl:justify-between dark:border-slate-700/70">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-600 shadow-sm dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-300">
+              <span className="h-2 w-2 rounded-full bg-slate-500" />
+              Global operations
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">IIT Ropar / Vicharanashala Lab · Global Curriculum Master Controls</p>
+          </div>
+
+          {/* Dashboard Tabs Selector */}
+          <div className="flex w-fit flex-wrap items-center gap-2 self-start rounded-[20px] border border-slate-200/70 bg-slate-100/80 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-slate-700/80 dark:bg-slate-800/80">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                activeTab === 'overview' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              📋 Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('coordinators')}
+              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                activeTab === 'coordinators' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              👤 Coordinator Management
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                activeTab === 'analytics' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              📊 Geographical Analytics
+            </button>
+          </div>
+
+          {/* DB Reset for easy demo */}
           <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'overview' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
+            onClick={async () => {
+              if (!window.confirm('Reset all database data to fresh seed state? This is irreversible.')) return;
+              await fetch('/api/reset', { method: 'POST' });
+              window.location.reload();
+            }}
+            className="rounded-2xl border border-red-200/80 bg-red-50/90 px-3 py-1.5 text-xs font-mono font-bold text-red-600 transition-colors hover:bg-red-100 dark:border-red-800/80 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-900/70"
           >
-            📋 Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('coordinators')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'coordinators' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
-          >
-            👤 Coordinator Management
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'analytics' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
-          >
-            📊 Geographical Analytics
+            🔄 Reset Database
           </button>
         </div>
-
-        {/* DB Reset for easy demo */}
-        <button
-          onClick={async () => {
-            if (!window.confirm('Reset all database data to fresh seed state? This is irreversible.')) return;
-            await fetch('/api/reset', { method: 'POST' });
-            window.location.reload();
-          }}
-          className="px-3 py-1.5 text-xs font-mono font-bold rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
-        >
-          🔄 Reset Database
-        </button>
       </div>
 
       {activeTab === 'overview' && (() => {
@@ -789,58 +953,60 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         return (
           <>
             {/* Analytics Card Deck */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 md:gap-5">
               <MetricCard title="Total Schools Tracked" value={schools.length} subtext="● 100% Active" icon={SchoolIcon} />
               <MetricCard title="National Roster Count" value={students.length} subtext="Primary FLN candidates" icon={Users} />
               <MetricCard title="National FLN Score" value={''} subtext="Will be populated soon" icon={BarChart3} />
               <MetricCard title="FLN Certification Rate" value={`${certifiedPercent}%`} subtext={`${certifiedCount} students verified competent`} icon={Award} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               {/* National Schools Mapping */}
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
-                <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">State / School Performance Table</h3>
+              <div className="space-y-4 overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/85 p-6 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl lg:col-span-2 dark:border-slate-700/70 dark:bg-slate-900/85">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-lg font-display font-semibold text-slate-900 dark:text-white">State / School Performance Table</h3>
+                  <span className="rounded-full border border-slate-200/70 bg-slate-50/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:border-slate-700/80 dark:bg-slate-800/80 dark:text-slate-400">Live roster</span>
+                </div>
                 <Table data={schools} columns={schoolColumns} searchPlaceholder="Search schools by name..." searchKey="name" />
               </div>
 
-
             {/* Create announcement / Broadcast */}
-            <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm h-fit">
-              <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-4">Post Global Announcement</h3>
+            <div className="h-fit rounded-[24px] border border-slate-200/70 bg-white/85 p-6 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl lg:col-span-1 dark:border-slate-700/70 dark:bg-slate-900/85">
+              <h3 className="mb-4 text-lg font-display font-semibold text-slate-900 dark:text-white">Post Global Announcement</h3>
               <form onSubmit={postAnnouncement} className="space-y-4">
-                {successMsg && <div className="p-3 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded border border-green-100 dark:border-green-800">{successMsg}</div>}
-                <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Title</label>
+                {successMsg && <div className="rounded-2xl border border-green-200 bg-green-50/90 p-3 text-xs font-semibold text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300">{successMsg}</div>}
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-300">Title</label>
                   <input
                     type="text"
                     value={announcementTitle}
                     onChange={(e) => setAnnouncementTitle(e.target.value)}
                     placeholder="Announcement title..."
-                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
+                    className="w-full rounded-2xl border border-zinc-200/80 bg-white/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-slate-900/80 dark:text-white dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Message Content</label>
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-300">Message Content</label>
                   <textarea
                     value={announcementMsg}
                     onChange={(e) => setAnnouncementMsg(e.target.value)}
                     rows={3}
                     placeholder="Details of the broadcast..."
-                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
+                    className="w-full rounded-[20px] border border-zinc-200/80 bg-white/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-slate-900/80 dark:text-white dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                   />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 rounded-2xl border border-zinc-200/80 bg-zinc-50/70 px-3 py-2.5 dark:border-zinc-700/80 dark:bg-zinc-900/60">
                   <input
                     type="checkbox"
                     checked={isUrgent}
                     onChange={(e) => setIsUrgent(e.target.checked)}
-                    className="rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white focus:ring-zinc-900"
+                    className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <span className="text-xs text-red-600 font-medium uppercase font-mono">Flag Urgent & Email Escalate</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-red-600 dark:text-red-400">Flag Urgent & Email Escalate</span>
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-zinc-900 text-white font-medium text-sm py-2 px-4 rounded-lg hover:bg-zinc-800 transition-colors"
+                  className="w-full rounded-2xl bg-zinc-900 px-4 py-2.75 text-sm font-semibold text-white shadow-[0_14px_28px_-16px_rgba(15,23,42,0.95)] transition-all duration-200 hover:bg-zinc-800"
                 >
                   Broadcast Message
                 </button>
@@ -855,9 +1021,9 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       {activeTab === 'coordinators' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Admin registration form */}
-          <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm h-fit space-y-4">
-            <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
+          <div className="h-fit space-y-4 rounded-[24px] border border-slate-200/70 bg-white/85 p-5 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl lg:col-span-1 dark:border-slate-700/70 dark:bg-slate-900/85">
+            <h3 className="flex items-center gap-2 text-lg font-display font-semibold text-slate-900 dark:text-white">
+              <UserCheck className="h-5 w-5 text-zinc-500 dark:text-zinc-400" />
               <span>Register New Coordinator</span>
             </h3>
 
@@ -865,67 +1031,66 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
             {coordError && <div className="p-3 text-xs bg-red-50 dark:bg-red-950 text-red-850 dark:text-red-200 rounded border border-red-200 dark:border-red-800">{coordError}</div>}
 
             <form onSubmit={handleCreateCoordinator} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Full Name</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-300">Full Name</label>
                 <input
                   type="text"
                   value={coordName}
                   onChange={e => setCoordName(e.target.value)}
                   placeholder="e.g. Dr. Satnam Singh"
                   required
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
+                  className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm font-medium text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-white dark:focus:bg-zinc-700 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Email Identifier</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-300">Email Identifier</label>
                 <input
                   type="email"
                   value={coordEmail}
                   onChange={e => setCoordEmail(e.target.value)}
                   placeholder="e.g. s.singh@pb.fln.org"
                   required
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
+                  className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm font-medium text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-white dark:focus:bg-zinc-700 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Account Password</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-300">Account Password</label>
                 <input
                   type="password"
                   value={coordPass}
                   onChange={e => setCoordPass(e.target.value)}
                   placeholder="Create complex password..."
                   required
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
+                  className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm font-medium text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-white dark:focus:bg-zinc-700 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 />
                 
-                {/* Real-time complexity checklist (§3.2 A-3) */}
-                <div className="mt-2.5 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-1.5">
-                  <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-bold block">Password SLA Checks</span>
+                <div className="space-y-1.5 rounded-[20px] border border-zinc-200/80 bg-zinc-50/80 p-3 dark:border-zinc-700/80 dark:bg-zinc-800/60">
+                  <span className="block text-[9px] font-semibold uppercase tracking-[0.24em] text-zinc-400 dark:text-zinc-500">Password SLA Checks</span>
                   <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
                     <span className="flex items-center gap-1">
-                      {isPassLengthValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300" />}
+                      {isPassLengthValid ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> : <XCircle className="h-3.5 w-3.5 text-zinc-300" />}
                       <span className={isPassLengthValid ? 'text-green-700' : 'text-zinc-550'}>&gt;= 8 Characters</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      {isPassUppercaseValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300" />}
+                      {isPassUppercaseValid ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> : <XCircle className="h-3.5 w-3.5 text-zinc-300" />}
                       <span className={isPassUppercaseValid ? 'text-green-700' : 'text-zinc-550'}>1 Uppercase</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      {isPassNumberValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300" />}
+                      {isPassNumberValid ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> : <XCircle className="h-3.5 w-3.5 text-zinc-300" />}
                       <span className={isPassNumberValid ? 'text-green-700' : 'text-zinc-550'}>1 Numeric Digit</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      {isPassSpecialValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300" />}
+                      {isPassSpecialValid ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> : <XCircle className="h-3.5 w-3.5 text-zinc-300" />}
                       <span className={isPassSpecialValid ? 'text-green-700' : 'text-zinc-550'}>1 Symbol (!@#...)</span>
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Administrative Role Tier</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-300">Administrative Role Tier</label>
                 <select
                   value={coordRole}
                   onChange={e => {
@@ -938,7 +1103,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                       setCoordBlock('');
                     }
                   }}
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-850 dark:text-zinc-100"
+                  className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm font-medium text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-zinc-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 >
                   <option value={UserRole.ADMIN}>State Admin / Coordinator</option>
                   <option value={UserRole.DISTRICT_ADMIN}>District Admin / Officer</option>
@@ -1035,22 +1200,22 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           </div>
 
           {/* Coordinators lists */}
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="space-y-4 rounded-[24px] border border-slate-200/70 bg-white/85 p-5 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl lg:col-span-2 dark:border-slate-700/70 dark:bg-slate-900/85">
             <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-end gap-3 justify-between">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Registered Coordinators Index</h3>
+                <h3 className="text-lg font-display font-semibold text-zinc-900 dark:text-white">Registered Coordinators Index</h3>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">Filter coordinator records by state, district, and school.</p>
               </div>
               <button
                 onClick={resetCoordinatorFilters}
-                className="text-xs font-semibold text-indigo-700 hover:underline"
+                className="rounded-full border border-indigo-200/80 bg-indigo-50/80 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 dark:border-indigo-800/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-900/60"
               >
                 Reset filters
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">State</label>
                 <select
@@ -1285,70 +1450,104 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
   return (
     <div className="space-y-6" id="admin-dashboard">
-      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">{panelTitle}</h1>
-          <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5">{panelSub}</p>
-        </div>
+      <div className="space-y-4">
+        <DashboardHero
+          badge="Regional oversight"
+          title={panelTitle}
+          subtitle={panelSub}
+          userName={user.name}
+          summaryItems={[
+            { label: 'Schools', value: scopedSchools.length, hint: 'In current scope', icon: SchoolIcon },
+            { label: 'Students', value: studentsCount, hint: 'Tracked locally', icon: Users },
+            { label: 'Certified', value: `${Math.round((certifiedCount / Math.max(studentsCount, 1)) * 100)}%`, hint: `${certifiedCount} verified`, icon: Award }
+          ]}
+          quickActions={[
+            { label: 'Schools', description: 'Open scoped overview', icon: SchoolIcon, onClick: () => setActiveTab('overview') },
+            { label: 'Analytics', description: 'Compare regional trends', icon: BarChart3, onClick: () => setActiveTab('analytics') },
+            { label: 'Access', description: 'Review defaulters', icon: ShieldAlert, onClick: () => setActiveTab('access') },
+            { label: 'Worksheets', description: 'Open pipeline workspace', icon: FileText, onClick: () => setActiveTab('overview') }
+          ]}
+          commandCenterItems={[
+            { label: 'Schools', description: 'Review scoped schools', icon: SchoolIcon, onClick: () => setActiveTab('overview') },
+            { label: 'Analytics', description: 'Inspect regional performance', icon: BarChart3, onClick: () => setActiveTab('analytics') },
+            { label: 'Worksheets', description: 'Open worksheet workspace', icon: FileText, onClick: () => setActiveTab('overview') },
+            { label: 'Users', description: 'Review designated access', icon: Users, onClick: () => setActiveTab('access') },
+            { label: 'Notifications', description: 'Manage operational updates', icon: Calendar, onClick: () => setActiveTab('overview') },
+            { label: 'Activity Logs', description: 'Review recent actions', icon: ClipboardList, onClick: () => setActiveTab('overview') }
+          ]}
+        />
 
-        {/* Local Tab selectors */}
-        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700 w-fit self-start">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'overview' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
-          >
-            📋 Scoped Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'analytics' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
-          >
-            📊 Scoped & Comparative Analytics
-          </button>
-          <button
-            onClick={() => setActiveTab('access')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'access' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
-          >
-            🛡️ Access Control & Defaulters
-          </button>
+        <div className="flex flex-col gap-4 border-b border-slate-200/70 pb-5 sm:pb-6 xl:flex-row xl:items-center xl:justify-between dark:border-slate-700/70">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-700 dark:border-emerald-800/80 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              Regional oversight
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{panelSub}</p>
+          </div>
+
+          {/* Local Tab selectors */}
+          <div className="flex w-fit flex-wrap items-center gap-2 self-start rounded-[20px] border border-slate-200/70 bg-slate-100/80 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-slate-700/80 dark:bg-slate-800/80">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                activeTab === 'overview' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              📋 Scoped Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                activeTab === 'analytics' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              📊 Scoped & Comparative Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab('access')}
+              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                activeTab === 'access' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              🛡️ Access Control & Defaulters
+            </button>
+          </div>
         </div>
       </div>
 
       {activeTab === 'overview' && (
         <>
           {/* Pipeline tracker (Conducted -> Scanned -> Evaluated -> Certified) */}
-          <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
-            <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Regional Data Flow Pipeline</h3>
-            <div className="grid grid-cols-4 gap-2 text-center font-mono text-xs">
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
-                <span className="block text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase mb-1">1. Conducted</span>
-                <span className="text-lg font-bold text-zinc-905 dark:text-white">{conductedExams} Exams</span>
+          <div className="space-y-4 rounded-[24px] border border-slate-200/70 bg-white/85 p-6 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/85">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-lg font-display font-semibold text-zinc-900 dark:text-white">Regional Data Flow Pipeline</h3>
+              <span className="rounded-full border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-700 dark:border-emerald-800/80 dark:bg-emerald-950/40 dark:text-emerald-300">Live status</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2 text-center font-mono text-xs sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-800/80">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-400 dark:text-zinc-500">1. Conducted</span>
+                <span className="text-lg font-bold text-zinc-900 dark:text-white">{conductedExams} Exams</span>
               </div>
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
-                <span className="block text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase mb-1">2. Ingested (ICR)</span>
-                <span className="text-lg font-bold text-zinc-905 dark:text-white">{ingestedSheets} Sheets</span>
+              <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-800/80">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-400 dark:text-zinc-500">2. Ingested (ICR)</span>
+                <span className="text-lg font-bold text-zinc-900 dark:text-white">{ingestedSheets} Sheets</span>
               </div>
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
-                <span className="block text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase mb-1">3. Evaluated</span>
-                <span className="text-lg font-bold text-indigo-755 dark:text-indigo-300">100% Scored</span>
+              <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-800/80">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-400 dark:text-zinc-500">3. Evaluated</span>
+                <span className="text-lg font-bold text-indigo-700 dark:text-indigo-300">100% Scored</span>
               </div>
-              <div className="p-4 bg-zinc-900 text-white rounded-lg border-none shadow-sm">
-                <span className="block text-[10px] text-zinc-400 font-bold uppercase mb-1">4. Certified FLN</span>
+              <div className="rounded-2xl border border-zinc-900 bg-zinc-900 p-4 text-white shadow-sm">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-400">4. Certified FLN</span>
                 <span className="text-lg font-bold text-green-400">{certifiedCount} Students</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {/* District rankings & lagging alerts */}
-            <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
-              <h3 className="text-base font-display font-semibold text-zinc-900 dark:text-white">Regional Learning Gaps & Lagging Alerts</h3>
+            <div className="space-y-4 rounded-[24px] border border-slate-200/70 bg-white/85 p-6 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/85">
+              <h3 className="text-base font-display font-semibold text-slate-900 dark:text-white">Regional Learning Gaps & Lagging Alerts</h3>
               <div className="space-y-3">
                 {schoolPerformance.length === 0 ? (
                   <p className="text-zinc-400 dark:text-zinc-500 text-xs text-center py-6 font-mono">No preseeded schools found in this regional scope.</p>
@@ -1384,8 +1583,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             </div>
 
             {/* Block oversight */}
-            <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
-              <h3 className="text-base font-display font-semibold text-zinc-900 dark:text-white">Volunteer Assignments</h3>
+            <div className="space-y-4 rounded-[24px] border border-slate-200/70 bg-white/85 p-6 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/85">
+              <h3 className="text-base font-display font-semibold text-slate-900 dark:text-white">Volunteer Assignments</h3>
               <div className="space-y-3">
                 {scopedVolunteers.length === 0 ? (
                   <p className="text-zinc-400 dark:text-zinc-500 text-xs text-center py-6 font-mono">No active volunteers deployed in this regional node.</p>
@@ -1617,27 +1816,49 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
   return (
     <div className="space-y-6" id="school-dashboard">
-      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4">
-        <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">School Administration</h1>
-        <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5">GPS Model Town Ludhiana (ID: {user.schoolId})</p>
-      </div>
+      <DashboardHero
+        badge="School administration"
+        title="School Administration"
+        subtitle={`Monitor classroom activity and worksheet operations for ${user.schoolId || 'your school'}.`}
+        userName={user.name}
+        summaryItems={[
+          { label: 'Classes', value: classes.length, hint: 'Assigned groups', icon: SchoolIcon },
+          { label: 'Students', value: students.length, hint: 'Registered roster', icon: Users },
+          { label: 'Focus', value: 'Worksheet Ops', hint: 'Operational readiness', icon: BookOpen }
+        ]}
+        quickActions={[
+          { label: 'Classes', description: 'Review classroom roster', icon: SchoolIcon, onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+          { label: 'Worksheets', description: 'Open worksheet workflows', icon: FileText, onClick: () => setActiveClass(classes[0] || null) },
+          { label: 'Analytics', description: 'Review performance insights', icon: BarChart3, onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+          { label: 'Students', description: 'Manage student activity', icon: Users, onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) }
+        ]}
+        commandCenterItems={[
+          { label: 'Schools', description: 'Review school overview', icon: SchoolIcon, disabled: true },
+          { label: 'Users', description: 'Manage class roster', icon: Users, onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+          { label: 'Worksheets', description: 'Open worksheet workflows', icon: FileText, onClick: () => setActiveClass(classes[0] || null) },
+          { label: 'Analytics', description: 'Review performance insights', icon: BarChart3, disabled: true },
+          { label: 'Notifications', description: 'Operational updates', icon: Calendar, disabled: true },
+          { label: 'Activity Logs', description: 'Recent school actions', icon: ClipboardList, disabled: true }
+        ]}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {/* Classes grid */}
-        <div className="md:col-span-2 space-y-4">
-          <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Assigned Classroom Roster</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4 md:col-span-2">
+          <h3 className="text-lg font-display font-semibold text-zinc-900 dark:text-white">Assigned Classroom Roster</h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {classes.map(c => {
               const count = students.filter(s => s.classGroup === c.className && s.section === c.section).length;
               return (
-                <div key={c.id} className="bg-white dark:bg-slate-900 p-5 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4 hover:border-zinc-400 dark:hover:border-zinc-500 transition-all flex flex-col justify-between">
+                <div key={c.id} className="flex flex-col justify-between space-y-4 rounded-[24px] border border-slate-200/70 bg-white/85 p-5 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-indigo-200/80 dark:border-slate-700/70 dark:bg-slate-900/85 dark:hover:border-indigo-700/80">
                   <div>
-                    <h4 className="font-display font-bold text-zinc-900 dark:text-white text-lg">{c.className} - {c.section}</h4>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">{count} Active Students Registered</p>
+                    <div className="inline-flex items-center rounded-full border border-zinc-200/80 bg-zinc-50/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-500 dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-zinc-400">Classroom</div>
+                    <h4 className="mt-3 text-lg font-display font-semibold text-zinc-900 dark:text-white">{c.className} - {c.section}</h4>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{count} Active Students Registered</p>
                   </div>
                   <button
                     onClick={() => setActiveClass(c)}
-                    className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-mono font-medium text-xs py-2 rounded transition-colors"
+                    className="w-full rounded-2xl bg-zinc-900 px-3 py-2.5 text-xs font-mono font-semibold text-white transition-colors hover:bg-zinc-800"
                   >
                     Manage Worksheets & locks
                   </button>
@@ -1648,19 +1869,19 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         </div>
 
         {/* AI Learning suggestions */}
-        <div className="md:col-span-1 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4 h-fit">
+        <div className="h-fit space-y-4 rounded-[24px] border border-slate-200/70 bg-white/85 p-6 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl md:col-span-1 dark:border-slate-700/70 dark:bg-slate-900/85">
           <h3 className="text-base font-display font-semibold text-zinc-900 dark:text-white">AI Concept-Focus Suggestions</h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+          <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
             Derived automatically from class evaluations compiled across standard assessment cycles.
           </p>
           <div className="space-y-3 pt-2">
-            <div className="p-3 bg-amber-50/50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900 rounded-lg space-y-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-amber-700 dark:text-amber-300 font-bold">Patterns Mastery: Needs Practice</span>
-              <p className="text-zinc-700 dark:text-zinc-200 text-xs">Class 2 is struggling with multi-step sequence patterns. Recommend tracing visual lessons.</p>
+            <div className="space-y-1 rounded-[20px] border border-amber-100 bg-amber-50/60 p-3 dark:border-amber-900 dark:bg-amber-950/40">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-300">Patterns Mastery: Needs Practice</span>
+              <p className="text-xs text-zinc-700 dark:text-zinc-200">Class 2 is struggling with multi-step sequence patterns. Recommend tracing visual lessons.</p>
             </div>
-            <div className="p-3 bg-green-50/50 dark:bg-green-950/50 border border-green-100 dark:border-green-900 rounded-lg space-y-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-green-700 dark:text-green-300 font-bold">Number Sense: Strong</span>
-              <p className="text-zinc-700 dark:text-zinc-200 text-xs">Class 3 has completed addition targets, ready to progress to simple fractions.</p>
+            <div className="space-y-1 rounded-[20px] border border-green-100 bg-green-50/60 p-3 dark:border-green-900 dark:bg-green-950/40">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-green-700 dark:text-green-300">Number Sense: Strong</span>
+              <p className="text-xs text-zinc-700 dark:text-zinc-200">Class 3 has completed addition targets, ready to progress to simple fractions.</p>
             </div>
           </div>
         </div>
@@ -1937,85 +2158,116 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           ⚠️ {levelPdfError}
         </div>
       )}
-      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">Classroom Workspace</h1>
-          <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5 font-medium">Teacher: {user.name} · School Scope: gps-mt-001 Model Town</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowLevelRef(true)}
-            className="bg-white dark:bg-slate-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
-          >
-            📖 59 FLN Framework
-          </button>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
-          >
-            {showAddForm ? 'Close Form' : 'Register New Student'}
-          </button>
+      <div className="space-y-4">
+        <DashboardHero
+          badge="Classroom workspace"
+          title="Classroom Workspace"
+          subtitle="Monitor student progress, launch diagnostics, and keep worksheet operations on track."
+          userName={user.name}
+          summaryItems={[
+            { label: 'Classes', value: classes.length, hint: 'Assigned groups', icon: SchoolIcon },
+            { label: 'Students', value: students.length, hint: 'Current roster', icon: Users },
+            { label: 'Active', value: activeClass ? `${activeClass.className} ${activeClass.section}` : 'Ready', hint: 'Selected view', icon: BookOpen }
+          ]}
+          quickActions={[
+            { label: 'Students', description: 'Register or review roster', icon: Users, onClick: () => setShowAddForm(!showAddForm) },
+            { label: 'Worksheets', description: 'Open worksheet portal', icon: FileText, onClick: () => setShowWorksheetPortal(true) },
+            { label: 'Diagnostics', description: 'Run student assessments', icon: ClipboardList, onClick: () => setShowBulkDiagnostic(true) },
+            { label: 'Framework', description: 'Review FLN levels', icon: BookOpen, onClick: () => setShowLevelRef(true) }
+          ]}
+          commandCenterItems={[
+            { label: 'Schools', description: 'Review school context', icon: SchoolIcon, disabled: true },
+            { label: 'Users', description: 'Register students', icon: Users, onClick: () => setShowAddForm(!showAddForm) },
+            { label: 'Worksheets', description: 'Open worksheet portal', icon: FileText, onClick: () => setShowWorksheetPortal(true) },
+            { label: 'Analytics', description: 'Review insights', icon: BarChart3, disabled: true },
+            { label: 'Notifications', description: 'Operational prompts', icon: Calendar, disabled: true },
+            { label: 'Activity Logs', description: 'Recent classroom activity', icon: ClipboardList, disabled: true }
+          ]}
+        />
+
+        <div className="flex flex-col gap-4 border-b border-zinc-200/80 pb-5 sm:pb-6 xl:flex-row xl:items-end xl:justify-between dark:border-zinc-700/80">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-600 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-300">
+              <span className="h-2 w-2 rounded-full bg-zinc-500" />
+              Classroom operations
+            </div>
+            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Teacher: {user.name} · School Scope: gps-mt-001 Model Town</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setShowLevelRef(true)}
+              className="cursor-pointer rounded-2xl border border-zinc-200/80 bg-white/90 px-4 py-2.5 text-xs font-mono font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700/80 dark:bg-slate-900/90 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              📖 59 FLN Framework
+            </button>
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="cursor-pointer rounded-2xl bg-zinc-900 px-4 py-2.5 text-xs font-mono font-semibold text-white transition-colors hover:bg-zinc-800"
+            >
+              {showAddForm ? 'Close Form' : 'Register New Student'}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Add student dropdown form */}
       {showAddForm && (
-        <form onSubmit={handleAddStudent} className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
-          <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800 pb-2">
-            <h4 className="text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase">
+        <form onSubmit={handleAddStudent} className="space-y-4 rounded-[24px] border border-slate-200/70 bg-white/90 p-6 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/80">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-2 dark:border-zinc-800">
+            <h4 className="text-xs font-mono font-bold uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400">
               Register Student in <span className="text-zinc-900 dark:text-white">{activeClass ? `${activeClass.className} - ${activeClass.section}` : `${cls} - ${sec}`}</span>
             </h4>
           </div>
           
           {regError && (
-            <div className="p-3 text-xs bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-lg border border-red-100 dark:border-red-800 font-medium">
+            <div className="rounded-2xl border border-red-200 bg-red-50/90 p-3 text-xs font-semibold text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
               ⚠️ {regError}
             </div>
           )}
           {regSuccess && (
-            <div className="p-3 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded-lg border border-green-100 dark:border-green-800 font-medium">
+            <div className="rounded-2xl border border-green-200 bg-green-50/90 p-3 text-xs font-semibold text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300">
               ✅ {regSuccess}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 dark:text-zinc-400 mb-1">Full Name</label>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="space-y-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-400">Full Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Amanpreet Singh"
-                className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-white dark:focus:bg-zinc-700 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 required
               />
             </div>
-            <div>
-              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 dark:text-zinc-400 mb-1">Age</label>
+            <div className="space-y-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-400">Age</label>
               <input
                 type="number"
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
                 placeholder="e.g. 8"
-                className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-white dark:focus:bg-zinc-700 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 required
               />
             </div>
-            <div>
-              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 dark:text-zinc-400 mb-1">Identity (Aadhar / BC No.)</label>
+            <div className="space-y-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-400">Identity (Aadhar / BC No.)</label>
               <input
                 type="text"
                 value={aadhar}
                 onChange={(e) => setAadhar(e.target.value)}
                 placeholder="12 digit identity number"
-                className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-white dark:focus:bg-zinc-700 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 required
               />
             </div>
             <div className="flex items-end">
               <button
                 type="submit"
-                className="w-full bg-zinc-900 text-white font-mono font-medium text-xs py-3 rounded-lg hover:bg-zinc-800 cursor-pointer shadow-sm transition-colors"
+                className="w-full rounded-2xl bg-zinc-900 px-3 py-3 text-xs font-semibold uppercase tracking-[0.24em] text-white shadow-[0_14px_28px_-16px_rgba(15,23,42,0.95)] transition-all duration-200 hover:bg-zinc-800"
               >
                 Verify & Add Student
               </button>
@@ -2025,13 +2277,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       )}
 
       {/* Class picker tabs */}
-      <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">
+      <div className="flex flex-wrap gap-2 rounded-[24px] border border-slate-200/70 bg-slate-50/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-700/70 dark:bg-slate-800/70">
         {classes.map(c => (
           <button
             key={c.id}
             onClick={() => setActiveClass(c)}
-            className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
-              activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+            className={`rounded-2xl px-4 py-2 text-sm font-display font-medium transition-all ${
+              activeClass?.id === c.id ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
             }`}
           >
             {c.className} - {c.section}
@@ -2042,7 +2294,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       {activeClass && (
         <div className="space-y-6">
           {/* 💊 Intervention Quick Action */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950 dark:to-purple-950 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 shadow-sm">
+          <div className="rounded-[24px] border border-indigo-200/70 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 shadow-[0_14px_40px_-28px_rgba(79,70,229,0.35)] dark:border-indigo-800/70 dark:from-indigo-950/50 dark:to-purple-950/40">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-lg">
@@ -2060,7 +2312,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           </div>
 
           {/* 📋 Diagnostic Paper Generator */}
-          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="space-y-4 rounded-[24px] border border-slate-200/70 bg-white/85 p-5 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/85">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-4">
                 <div>
@@ -2598,84 +2850,115 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
           ⚠️ {levelPdfError}
         </div>
       )}
-      <div className="border-b border-zinc-200 pb-4 flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-display font-semibold text-zinc-900 tracking-tight">Classroom Workspace</h1>
-          <p className="text-zinc-550 text-sm mt-0.5 font-medium">Volunteer: {user.name}</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowLevelRef(true)}
-            className="bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
-          >
-            📖 59 FLN Framework
-          </button>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
-          >
-            {showAddForm ? 'Close Form' : 'Register New Student'}
-          </button>
+      <div className="space-y-4">
+        <DashboardHero
+          badge="Volunteer workspace"
+          title="Classroom Workspace"
+          subtitle="Support student onboarding and keep classroom workflows moving with clarity."
+          userName={user.name}
+          summaryItems={[
+            { label: 'Classes', value: classes.length, hint: 'Assigned groups', icon: SchoolIcon },
+            { label: 'Students', value: students.length, hint: 'Current roster', icon: Users },
+            { label: 'Ready', value: activeClass ? `${activeClass.className} ${activeClass.section}` : 'Prepared', hint: 'Selected view', icon: BookOpen }
+          ]}
+          quickActions={[
+            { label: 'Students', description: 'Register new learners', icon: Users, onClick: () => setShowAddForm(!showAddForm) },
+            { label: 'Worksheets', description: 'Open worksheet portal', icon: FileText, onClick: () => setShowWorksheetPortal(true) },
+            { label: 'Diagnostics', description: 'Generate assessments', icon: ClipboardList, onClick: () => setShowBulkDiagnostic(true) },
+            { label: 'Framework', description: 'Review FLN levels', icon: BookOpen, onClick: () => setShowLevelRef(true) }
+          ]}
+          commandCenterItems={[
+            { label: 'Schools', description: 'Review school context', icon: SchoolIcon, disabled: true },
+            { label: 'Users', description: 'Register students', icon: Users, onClick: () => setShowAddForm(!showAddForm) },
+            { label: 'Worksheets', description: 'Open worksheet portal', icon: FileText, onClick: () => setShowWorksheetPortal(true) },
+            { label: 'Analytics', description: 'Review insights', icon: BarChart3, disabled: true },
+            { label: 'Notifications', description: 'Operational prompts', icon: Calendar, disabled: true },
+            { label: 'Activity Logs', description: 'Recent classroom activity', icon: ClipboardList, disabled: true }
+          ]}
+        />
+
+        <div className="flex flex-col gap-4 border-b border-zinc-200/80 pb-5 sm:pb-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-600 shadow-sm">
+              <span className="h-2 w-2 rounded-full bg-zinc-500" />
+              Classroom operations
+            </div>
+            <p className="text-sm font-medium text-zinc-500">Volunteer: {user.name}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setShowLevelRef(true)}
+              className="cursor-pointer rounded-2xl border border-zinc-200/80 bg-white/90 px-4 py-2.5 text-xs font-mono font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
+            >
+              📖 59 FLN Framework
+            </button>
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="cursor-pointer rounded-2xl bg-zinc-900 px-4 py-2.5 text-xs font-mono font-semibold text-white transition-colors hover:bg-zinc-800"
+            >
+              {showAddForm ? 'Close Form' : 'Register New Student'}
+            </button>
+          </div>
         </div>
       </div>
 
       {showAddForm && (
-        <form onSubmit={handleAddStudent} className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
-          <div className="flex justify-between items-center border-b border-zinc-100 pb-2">
-            <h4 className="text-xs font-mono font-bold text-zinc-500 uppercase">
+        <form onSubmit={handleAddStudent} className="space-y-4 rounded-[28px] border border-zinc-200/80 bg-white/90 p-6 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+            <h4 className="text-xs font-mono font-bold uppercase tracking-[0.24em] text-zinc-500">
               Register Student in <span className="text-zinc-900">{activeClass ? `${activeClass.className} - ${activeClass.section}` : `${cls} - ${sec}`}</span>
             </h4>
           </div>
           
           {regError && (
-            <div className="p-3 text-xs bg-red-50 text-red-700 rounded-lg border border-red-100 font-medium">
+            <div className="rounded-2xl border border-red-200 bg-red-50/90 p-3 text-xs font-semibold text-red-700">
               ⚠️ {regError}
             </div>
           )}
           {regSuccess && (
-            <div className="p-3 text-xs bg-green-50 text-green-700 rounded-lg border border-green-100 font-medium">
+            <div className="rounded-2xl border border-green-200 bg-green-50/90 p-3 text-xs font-semibold text-green-700">
               ✅ {regSuccess}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 mb-1">Full Name</label>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="space-y-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-600">Full Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Amanpreet Singh"
-                className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white"
+                className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
                 required
               />
             </div>
-            <div>
-              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 mb-1">Age</label>
+            <div className="space-y-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-600">Age</label>
               <input
                 type="number"
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
                 placeholder="e.g. 8"
-                className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white"
+                className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
                 required
               />
             </div>
-            <div>
-              <label className="block text-[10px] font-mono font-bold uppercase text-zinc-505 mb-1">Identity (Aadhar / BC No.)</label>
+            <div className="space-y-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-600">Identity (Aadhar / BC No.)</label>
               <input
                 type="text"
                 value={aadhar}
                 onChange={(e) => setAadhar(e.target.value)}
                 placeholder="12 digit identity number"
-                className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:bg-white"
+                className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
                 required
               />
             </div>
             <div className="flex items-end">
               <button
                 type="submit"
-                className="w-full bg-zinc-900 text-white font-mono font-medium text-xs py-3 rounded-lg hover:bg-zinc-800 cursor-pointer shadow-sm transition-colors"
+                className="w-full rounded-2xl bg-zinc-900 px-3 py-3 text-xs font-semibold uppercase tracking-[0.24em] text-white shadow-[0_14px_28px_-16px_rgba(15,23,42,0.95)] transition-all duration-200 hover:bg-zinc-800"
               >
                 Verify & Add Student
               </button>
@@ -2684,13 +2967,13 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
         </form>
       )}
 
-      <div className="flex gap-2 border-b border-zinc-200 pb-px">
+      <div className="flex flex-wrap gap-2 rounded-[24px] border border-zinc-200/80 bg-zinc-50/70 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
         {classes.map(c => (
           <button
             key={c.id}
             onClick={() => setActiveClass(c)}
-            className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
-              activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+            className={`rounded-2xl px-4 py-2 text-sm font-display font-medium transition-all ${
+              activeClass?.id === c.id ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
             }`}
           >
             {c.className} - {c.section}
