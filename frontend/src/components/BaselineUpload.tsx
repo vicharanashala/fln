@@ -88,16 +88,16 @@ export const BaselineUpload: React.FC<BaselineUploadProps> = ({ student, token, 
   const answerCount = answers ? Object.keys(answers).length : 0;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6 max-w-2xl">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 uppercase tracking-wider">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-6 max-w-2xl">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white uppercase tracking-wider">
         <ArrowLeft className="h-3.5 w-3.5" /> Back to Roster
       </button>
 
-      <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+      <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4">
         <FileJson className="h-6 w-6 text-indigo-600" />
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Upload Baseline Answer Sheet</h2>
-          <p className="text-xs text-slate-500">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Upload Baseline Answer Sheet</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {student.name} · {student.classGroup} · evaluated by the AI pipeline to place an FLN level
           </p>
         </div>
@@ -106,32 +106,32 @@ export const BaselineUpload: React.FC<BaselineUploadProps> = ({ student, token, 
       {!result && (
         <>
           <label className="block">
-            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Answer sheet (.json)</span>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Answer sheet (.json)</span>
             <div className="mt-2 flex items-center gap-3">
-              <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg border-2 border-dashed border-slate-300 px-4 py-3 text-sm font-medium text-slate-600 hover:border-indigo-400 hover:text-indigo-700">
+              <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-400">
                 <Upload className="h-4 w-4" />
                 Choose file
                 <input type="file" accept="application/json,.json" className="hidden" onChange={handleFile} />
               </label>
-              {fileName && <span className="text-xs font-mono text-slate-500">{fileName}</span>}
+              {fileName && <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{fileName}</span>}
             </div>
-            <p className="mt-2 text-[11px] text-slate-400 font-mono">Format: {'{'}"Q1":"A", "Q2":"5", ...{'}'}</p>
+            <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500 font-mono">Format: {'{'}"Q1":"A", "Q2":"5", ...{'}'}</p>
           </label>
 
           {parseError && (
-            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+            <div className="flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-3 text-xs font-semibold text-red-700 dark:text-red-300">
               <AlertCircle className="h-4 w-4 flex-shrink-0" /> {parseError}
             </div>
           )}
 
           {answers && !parseError && (
-            <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950 p-3 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               <CheckCircle2 className="h-4 w-4 flex-shrink-0" /> Parsed {answerCount} answers — ready to evaluate.
             </div>
           )}
 
           {error && (
-            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+            <div className="flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-3 text-xs font-semibold text-red-700 dark:text-red-300">
               <AlertCircle className="h-4 w-4 flex-shrink-0" /> {error}
             </div>
           )}
@@ -148,15 +148,15 @@ export const BaselineUpload: React.FC<BaselineUploadProps> = ({ student, token, 
 
       {result && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-5 text-center">
-            <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Placed at</p>
-            <p className="text-4xl font-extrabold text-indigo-700 mt-1">Level {result.assignedLevel}</p>
+          <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 p-5 text-center">
+            <p className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">Placed at</p>
+            <p className="text-4xl font-extrabold text-indigo-700 dark:text-indigo-300 mt-1">Level {result.assignedLevel}</p>
             {result.recommendedAction && (
-              <p className="text-xs font-semibold text-indigo-600 mt-2">Recommended: {result.recommendedAction}</p>
+              <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mt-2">Recommended: {result.recommendedAction}</p>
             )}
           </div>
           {result.narrative && (
-            <pre className="text-[11px] leading-relaxed text-slate-600 bg-slate-50 border border-slate-150 rounded-lg p-4 whitespace-pre-wrap font-mono max-h-72 overflow-y-auto">
+            <pre className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-150 dark:border-slate-700 rounded-lg p-4 whitespace-pre-wrap font-mono max-h-72 overflow-y-auto">
               {result.narrative}
             </pre>
           )}

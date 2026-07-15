@@ -139,13 +139,13 @@ export function Table<T extends Record<string, any>>({
       {/* Controls: Search, Filters button, Export */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
             placeholder={searchPlaceholder}
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:placeholder-slate-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -154,8 +154,8 @@ export function Table<T extends Record<string, any>>({
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-1.5 px-3.5 py-2 border rounded-lg text-xs font-semibold font-mono transition cursor-pointer ${
                 showFilters || Object.values(activeFilters).some(v => v)
-                  ? 'bg-indigo-50 text-indigo-755 border-indigo-200'
-                  : 'bg-white text-slate-750 border-slate-200 hover:bg-slate-50'
+                  ? 'bg-indigo-50 text-indigo-755 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800'
+                  : 'bg-white text-slate-750 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800'
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -165,7 +165,7 @@ export function Table<T extends Record<string, any>>({
           <button
             onClick={handleExportCSV}
             disabled={processedData.length === 0}
-            className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-lg text-xs font-semibold font-mono bg-white text-slate-750 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-lg text-xs font-semibold font-mono bg-white text-slate-750 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
           >
             <Download className="h-3.5 w-3.5" />
             <span>Export CSV</span>
@@ -175,16 +175,16 @@ export function Table<T extends Record<string, any>>({
 
       {/* Expanded Filters bar */}
       {showFilters && filterableColumns.length > 0 && (
-        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 dark:bg-slate-900 dark:border-slate-700">
           {filterableColumns.map(col => {
             const key = String(col.filterKey);
             return (
               <div key={key} className="space-y-1">
-                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">{col.header}</label>
+                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{col.header}</label>
                 <select
                   value={activeFilters[key] || ''}
                   onChange={(e) => handleFilterChange(key, e.target.value)}
-                  className="w-full p-2 border border-slate-200 rounded-lg text-xs bg-white outline-none focus:border-indigo-500"
+                  className="w-full p-2 border border-slate-200 rounded-lg text-xs bg-white outline-none focus:border-indigo-500 dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:focus:border-indigo-500"
                 >
                   <option value="">All</option>
                   {col.filterOptions?.map(opt => (
@@ -198,7 +198,7 @@ export function Table<T extends Record<string, any>>({
             <div className="flex items-end">
               <button
                 onClick={() => { setActiveFilters({}); setCurrentPage(1); }}
-                className="text-xs text-red-650 font-mono font-bold hover:underline mb-2"
+                className="text-xs text-red-650 font-mono font-bold hover:underline mb-2 dark:text-red-400"
               >
                 Clear Filters
               </button>
@@ -208,10 +208,10 @@ export function Table<T extends Record<string, any>>({
       )}
 
       {/* Table grid */}
-      <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-sm bg-white">
+      <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-sm bg-white dark:bg-slate-900 dark:border-slate-700">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-mono text-[10px] uppercase font-bold tracking-wider">
+            <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-mono text-[10px] uppercase font-bold tracking-wider dark:bg-slate-900/60 dark:border-slate-700 dark:text-slate-400">
               {columns.map((col, idx) => {
                 const isSortable = !!col.sortKey;
                 const isSorted = sortConfig?.key === col.sortKey;
@@ -219,15 +219,15 @@ export function Table<T extends Record<string, any>>({
                   <th
                     key={idx}
                     onClick={() => isSortable && col.sortKey && requestSort(col.sortKey)}
-                    className={`p-4 font-bold ${col.className || ''} ${isSortable ? 'cursor-pointer select-none hover:bg-slate-50' : ''}`}
+                    className={`p-4 font-bold ${col.className || ''} ${isSortable ? 'cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800' : ''}`}
                   >
                     <div className="flex items-center gap-1">
                       <span>{col.header}</span>
                       {isSortable && (
                         isSorted ? (
-                          sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3 text-indigo-600" /> : <ChevronDown className="h-3 w-3 text-indigo-600" />
+                          sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3 text-indigo-600 dark:text-indigo-400" /> : <ChevronDown className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
                         ) : (
-                          <ChevronsUpDown className="h-3 w-3 text-slate-400" />
+                          <ChevronsUpDown className="h-3 w-3 text-slate-400 dark:text-slate-600" />
                         )
                       )}
                     </div>
@@ -236,25 +236,25 @@ export function Table<T extends Record<string, any>>({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 font-sans text-slate-700">
+          <tbody className="divide-y divide-slate-100 font-sans text-slate-700 dark:divide-slate-700 dark:text-slate-300">
             {loading ? (
               <tr>
                 <td colSpan={columns.length} className="p-8 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <div className="w-6 h-6 border-2 border-indigo-650 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs font-medium font-mono text-slate-500">Loading record entries...</span>
+                    <div className="w-6 h-6 border-2 border-indigo-650 border-t-transparent rounded-full animate-spin dark:border-indigo-400" />
+                    <span className="text-xs font-medium font-mono text-slate-500 dark:text-slate-400">Loading record entries...</span>
                   </div>
                 </td>
               </tr>
             ) : paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="p-12 text-center text-xs font-mono text-slate-400">
+                <td colSpan={columns.length} className="p-12 text-center text-xs font-mono text-slate-400 dark:text-slate-500">
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               paginatedData.map((row, rIdx) => (
-                <tr key={row.id || rIdx} className="hover:bg-slate-50/50 transition duration-150">
+                <tr key={row.id || rIdx} className="hover:bg-slate-50/50 transition duration-150 dark:hover:bg-slate-800/50">
                   {columns.map((col, cIdx) => (
                     <td key={cIdx} className={`p-4 ${col.className || ''}`}>
                       {typeof col.accessor === 'function' ? (
@@ -274,18 +274,18 @@ export function Table<T extends Record<string, any>>({
       {/* Pagination controls */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
-          <span className="text-xs font-mono text-slate-500">
-            Showing <strong className="text-slate-800">{((currentPage - 1) * rowsPerPage) + 1}</strong> to{' '}
-            <strong className="text-slate-800">
+          <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+            Showing <strong className="text-slate-800 dark:text-slate-200">{((currentPage - 1) * rowsPerPage) + 1}</strong> to{' '}
+            <strong className="text-slate-800 dark:text-slate-200">
               {Math.min(currentPage * rowsPerPage, processedData.length)}
             </strong>{' '}
-            of <strong className="text-slate-800">{processedData.length}</strong> records
+            of <strong className="text-slate-800 dark:text-slate-200">{processedData.length}</strong> records
           </span>
           <div className="flex gap-1.5">
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold cursor-pointer"
+              className="px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold cursor-pointer dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
             >
               Previous
             </button>
@@ -296,7 +296,7 @@ export function Table<T extends Record<string, any>>({
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition cursor-pointer ${
                   currentPage === page
                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800'
                 }`}
               >
                 {page}
@@ -305,7 +305,7 @@ export function Table<T extends Record<string, any>>({
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold cursor-pointer"
+              className="px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold cursor-pointer dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
             >
               Next
             </button>

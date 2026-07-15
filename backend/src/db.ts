@@ -168,6 +168,57 @@ export interface Announcement {
   createdAt: string;
 }
 
+export type InterventionStrategyType = 'small_group' | 'one_on_one' | 'peer_tutoring' | 'visual_aids' | 'manipulatives' | 'worksheets' | 'game_based' | 'other';
+
+export interface Intervention {
+  id: string;
+  studentId: string;
+  studentName: string;
+  teacherId: string;
+  teacherName: string;
+  schoolId: string;
+  classId: string;
+  className: string;
+  section: string;
+  weakCompetencies: string[];
+  currentLevel: number;
+  strategyType: InterventionStrategyType;
+  strategyDescription: string;
+  duration: string;
+  startDate: string;
+  endDate?: string;
+  status: 'active' | 'completed' | 'pending_review';
+  outcome?: {
+    improved: boolean;
+    previousLevel: number;
+    newLevel?: number;
+    improvementDetails?: string;
+    assessmentId?: string;
+    detectedAt?: string;
+  };
+  isPromoted: boolean;
+  promotedAt?: string;
+  createdAt: string;
+}
+
+export interface BestPractice {
+  id: string;
+  interventionId: string;
+  teacherId: string;
+  teacherName: string;
+  schoolId: string;
+  weakCompetencies: string[];
+  strategyType: string;
+  strategyDescription: string;
+  levelBefore: number;
+  levelAfter: number;
+  levelJump: number;
+  duration: string;
+  tags: string[];
+  viewCount: number;
+  createdAt: string;
+}
+
 interface DatabaseSchema {
   users: User[];
   schools: School[];
@@ -180,6 +231,8 @@ interface DatabaseSchema {
   tickets: Ticket[];
   logbook: LogEntry[];
   announcements: Announcement[];
+  interventions: Intervention[];
+  bestPractices: BestPractice[];
 }
 
 export class DBStore {
@@ -252,6 +305,14 @@ export class DBStore {
       }
       if (!this.data.logbook) {
         this.data.logbook = [];
+        modified = true;
+      }
+      if (!this.data.interventions) {
+        this.data.interventions = [];
+        modified = true;
+      }
+      if (!this.data.bestPractices) {
+        this.data.bestPractices = [];
         modified = true;
       }
 
@@ -382,6 +443,42 @@ export class DBStore {
     this.data!.announcements.unshift(ann);
     await this.save();
     return ann;
+  }
+
+  // --- Intervention & Best Practice Methods ---
+
+  async getInterventions() { return this.data!.interventions; }
+
+  async addIntervention(intervention: Intervention) {
+    this.data!.interventions.push(intervention);
+    await this.save();
+    return intervention;
+  }
+
+  async updateIntervention(id: string, updates: Partial<Intervention>) {
+    const i = this.data!.interventions.find(x => x.id === id);
+    if (i) {
+      Object.assign(i, updates);
+      await this.save();
+    }
+    return i;
+  }
+
+  async getBestPractices() { return this.data!.bestPractices; }
+
+  async addBestPractice(bp: BestPractice) {
+    this.data!.bestPractices.push(bp);
+    await this.save();
+    return bp;
+  }
+
+  async updateBestPractice(id: string, updates: Partial<BestPractice>) {
+    const bp = this.data!.bestPractices.find(x => x.id === id);
+    if (bp) {
+      Object.assign(bp, updates);
+      await this.save();
+    }
+    return bp;
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -2171,6 +2268,128 @@ export class DBStore {
       }
     ];
 
+    const interventions: Intervention[] = [
+      {
+        id: 'int1',
+        studentId: 's2',
+        studentName: 'Jasmine Kaur',
+        teacherId: 'u5',
+        teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001',
+        classId: 'c1',
+        className: 'Class 2',
+        section: 'A',
+        weakCompetencies: ['Shapes', 'Patterns'],
+        currentLevel: 8,
+        strategyType: 'visual_aids',
+        strategyDescription: 'Used flashcards with shape outlines and colour-coded pattern strips. Practised daily for 15 minutes during morning assembly. Jasmine responded well to colour-based matching exercises.',
+        duration: '2 weeks',
+        startDate: '2026-06-15',
+        endDate: '2026-06-29',
+        status: 'completed',
+        outcome: {
+          improved: true,
+          previousLevel: 8,
+          newLevel: 10,
+          improvementDetails: 'Jasmine improved from Level 8 to Level 10. Shapes recognition went from Needs Practice to Satisfactory. Pattern completion improved significantly.',
+          assessmentId: 'ws_mid_001',
+          detectedAt: '2026-07-02T10:00:00Z'
+        },
+        isPromoted: true,
+        promotedAt: '2026-07-03T08:00:00Z',
+        createdAt: '2026-06-15T09:00:00Z'
+      },
+      {
+        id: 'int2',
+        studentId: 's5',
+        studentName: 'Arjun Verma',
+        teacherId: 'u5',
+        teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001',
+        classId: 'c1',
+        className: 'Class 2',
+        section: 'A',
+        weakCompetencies: ['Subtraction', 'Number Sense'],
+        currentLevel: 6,
+        strategyType: 'manipulatives',
+        strategyDescription: 'Used physical counting beads and number blocks for hands-on subtraction practice. Grouped Arjun with two peers for peer learning during math station time.',
+        duration: '3 weeks',
+        startDate: '2026-06-10',
+        status: 'active',
+        isPromoted: false,
+        createdAt: '2026-06-10T09:00:00Z'
+      },
+      {
+        id: 'int3',
+        studentId: 's19',
+        studentName: 'Rohan Das',
+        teacherId: 'u6_amb',
+        teacherName: 'Meena Kumari',
+        schoolId: 'gps-amb-003',
+        classId: 'c5',
+        className: 'Class 3',
+        section: 'A',
+        weakCompetencies: ['Number Operations', 'Multiplication'],
+        currentLevel: 8,
+        strategyType: 'game_based',
+        strategyDescription: 'Introduced multiplication table songs and number-line hop games. Used a dice-based addition game during break time to reinforce basic operations. Rohan showed high engagement with game-based activities.',
+        duration: '2 weeks',
+        startDate: '2026-06-20',
+        endDate: '2026-07-04',
+        status: 'completed',
+        outcome: {
+          improved: true,
+          previousLevel: 8,
+          newLevel: 12,
+          improvementDetails: 'Rohan jumped from Level 8 to Level 12 (two full levels). Multiplication tables 2-5 mastered. Addition speed improved by 40%.',
+          assessmentId: 'ws_mid_003',
+          detectedAt: '2026-07-05T10:00:00Z'
+        },
+        isPromoted: false,
+        createdAt: '2026-06-20T09:00:00Z'
+      },
+      {
+        id: 'int4',
+        studentId: 's7',
+        studentName: 'Simran Kaur',
+        teacherId: 'u5',
+        teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001',
+        classId: 'c3',
+        className: 'Class 1',
+        section: 'A',
+        weakCompetencies: ['Number Sense', 'Counting'],
+        currentLevel: 4,
+        strategyType: 'one_on_one',
+        strategyDescription: 'Conducted daily one-on-one counting sessions using real objects (pencils, erasers). Practised number tracing on sandpaper numbers. Focused on building confidence before introducing new concepts.',
+        duration: '1 month',
+        startDate: '2026-06-01',
+        status: 'active',
+        isPromoted: false,
+        createdAt: '2026-06-01T09:00:00Z'
+      }
+    ];
+
+    const bestPractices: BestPractice[] = [
+      {
+        id: 'bp1',
+        interventionId: 'int1',
+        teacherId: 'u5',
+        teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001',
+        weakCompetencies: ['Shapes', 'Patterns'],
+        strategyType: 'visual_aids',
+        strategyDescription: 'Used flashcards with shape outlines and colour-coded pattern strips. Practised daily for 15 minutes during morning assembly. Responded well to colour-based matching exercises.',
+        levelBefore: 8,
+        levelAfter: 10,
+        levelJump: 2,
+        duration: '2 weeks',
+        tags: ['Shapes', 'Patterns', 'Visual Learning', 'Preschool 3', 'Class 1', 'Quick Win'],
+        viewCount: 12,
+        createdAt: '2026-07-03T08:00:00Z'
+      }
+    ];
+
     return {
       users,
       schools,
@@ -2182,7 +2401,9 @@ export class DBStore {
       evaluationReports,
       tickets,
       logbook,
-      announcements
+      announcements,
+      interventions,
+      bestPractices
     };
   }
 }

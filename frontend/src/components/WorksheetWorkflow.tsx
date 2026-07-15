@@ -157,28 +157,28 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
 
   return (
     <div className="space-y-6" id="worksheet-workflow">
-      <div className="flex justify-between items-center border-b border-zinc-200 pb-4">
+      <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-4">
         <div>
-          <button onClick={onBack} className="text-zinc-500 hover:text-zinc-800 text-xs font-mono mb-2 block">
+          <button onClick={onBack} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white text-xs font-mono mb-2 block">
             ← Back to Class Dashboard
           </button>
-          <h2 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">
+          <h2 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">
             Personalized Worksheet Management
           </h2>
-          <p className="text-zinc-500 text-sm mt-0.5">
-            Class: <strong className="text-zinc-800">{classGroup.className} ({classGroup.section})</strong> · Students Enrolled: <strong className="text-zinc-800">{students.length}</strong>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-0.5">
+            Class: <strong className="text-zinc-800 dark:text-zinc-100">{classGroup.className} ({classGroup.section})</strong> · Students Enrolled: <strong className="text-zinc-800 dark:text-zinc-100">{students.length}</strong>
           </p>
         </div>
       </div>
 
-      {error && <div className="p-3 text-sm bg-red-50 text-red-700 border border-red-100 rounded-lg">{error}</div>}
-      {success && <div className="p-3 text-sm bg-green-50 text-green-700 border border-green-100 rounded-lg">{success}</div>}
+      {error && <div className="p-3 text-sm bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-800 rounded-lg">{error}</div>}
+      {success && <div className="p-3 text-sm bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-800 rounded-lg">{success}</div>}
 
       {!worksheet ? (
-        <div className="bg-white p-8 border border-zinc-200 rounded-2xl shadow-sm text-center max-w-2xl mx-auto space-y-6">
+        <div className="bg-white dark:bg-slate-900 p-8 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm text-center max-w-2xl mx-auto space-y-6">
           <span className="text-4xl">📄</span>
-          <h3 className="text-xl font-display font-medium text-zinc-900">Generate Cycle Worksheets</h3>
-          <p className="text-zinc-500 text-sm leading-relaxed max-w-md mx-auto">
+          <h3 className="text-xl font-display font-medium text-zinc-900 dark:text-white">Generate Cycle Worksheets</h3>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed max-w-md mx-auto">
             Choose an assessment cycle to generate distinct, AI-personalized papers for each child based on their current FLN mathematical level milestones.
           </p>
 
@@ -199,11 +199,16 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                 Generate Mid-Year Worksheets
               </button>
             </div>
-            {/* Interactive generator button removed */}
+            <button
+              onClick={() => setIsIframeModalOpen(true)}
+              className="w-fit bg-white dark:bg-slate-800 hover:bg-zinc-50 dark:hover:bg-slate-700 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 font-medium text-sm py-2.5 px-5 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              🌐 Open In-Browser Interactive Generator
+            </button>
           </div>
 
-          <div className="text-left text-xs bg-zinc-50 p-4 border border-zinc-200 rounded-xl space-y-2 max-w-md mx-auto mt-4 font-mono">
-            <div className="font-bold text-zinc-700 mb-1">🔐 System Locks & Governance Rules:</div>
+          <div className="text-left text-xs bg-zinc-50 dark:bg-zinc-800 p-4 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-2 max-w-md mx-auto mt-4 font-mono">
+            <div className="font-bold text-zinc-700 dark:text-zinc-200 mb-1">🔐 System Locks & Governance Rules:</div>
             <div>• Enforces pairwise lock: first to generate (Teacher ↔ School) locks the other out.</div>
             <div>• Initiates sequential exam timings (1h Print → 45m Exam → 1h Ingest).</div>
           </div>
@@ -213,9 +218,9 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
           {/* Worksheets Listing & Printing Layouts */}
           <div className="xl:col-span-2 space-y-6">
             {/* Timing Progress Bar Card */}
-            <div className="bg-white p-5 border border-zinc-200 rounded-xl shadow-sm space-y-3">
+            <div className="bg-white dark:bg-slate-900 p-5 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-3">
               <div className="flex justify-between items-center">
-                <h4 className="font-display font-medium text-zinc-900 text-base">Active Timing Cycle Monitors</h4>
+                <h4 className="font-display font-medium text-zinc-900 dark:text-white text-base">Active Timing Cycle Monitors</h4>
                 <span className={`px-2.5 py-1 rounded text-xs font-mono font-bold uppercase border ${timingStatus.color}`}>
                   {timingStatus.label}
                 </span>
@@ -223,15 +228,15 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
 
               {/* Graphical timing sequence */}
               <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-mono pt-2">
-                <div className="bg-blue-50 border border-blue-200 p-2 rounded-lg text-blue-800">
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-2 rounded-lg text-blue-800 dark:text-blue-300">
                   <div className="font-bold uppercase mb-0.5">1. Print & Print</div>
                   <div>1-Hour Access</div>
                 </div>
-                <div className="bg-amber-50 border border-amber-200 p-2 rounded-lg text-amber-800">
+                <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-2 rounded-lg text-amber-800 dark:text-amber-300">
                   <div className="font-bold uppercase mb-0.5">2. Active Exam</div>
                   <div>30m + 15m commute</div>
                 </div>
-                <div className="bg-green-50 border border-green-200 p-2 rounded-lg text-green-800">
+                <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-2 rounded-lg text-green-800 dark:text-green-300">
                   <div className="font-bold uppercase mb-0.5">3. Answer Ingestion</div>
                   <div>1-Hour Submission</div>
                 </div>
@@ -239,9 +244,9 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
             </div>
 
             {/* Simulated Printed Worksheets Compilation */}
-            <div className="bg-white border border-zinc-200 rounded-xl shadow-sm p-6 space-y-6">
-              <div className="flex justify-between items-center border-b border-zinc-100 pb-3">
-                <h4 className="font-display font-medium text-zinc-900">Printable Student Math Worksheets</h4>
+            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm p-6 space-y-6">
+              <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-700 pb-3">
+                <h4 className="font-display font-medium text-zinc-900 dark:text-white">Printable Student Math Worksheets</h4>
                 <div className="flex gap-2">
                   {/* Interactive generator button removed */}
                   {pdfUrl && (
@@ -257,13 +262,13 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                   <button
                     onClick={generateWorksheetPdf}
                     disabled={pdfGenerating}
-                    className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-200 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                    className="bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-800 dark:text-zinc-200 font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-200 dark:border-zinc-600 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
                     {pdfGenerating ? 'Generating PDF...' : pdfUrl ? '🔄 Regenerate PDF' : '📄 Generate Worksheet PDF'}
                   </button>
                   <button
                     onClick={() => window.print()}
-                    className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-200 flex items-center gap-1.5 cursor-pointer"
+                    className="bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-800 dark:text-zinc-200 font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-200 dark:border-zinc-600 flex items-center gap-1.5 cursor-pointer"
                   >
                     🖨 Bulk Print A4
                   </button>
@@ -276,27 +281,27 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                   if (studentQuestions.length === 0) return null;
 
                   return (
-                    <div key={student.id} className="border border-zinc-300 rounded-xl p-6 bg-white space-y-6 print:border-none print:shadow-none" id={`worksheet-print-${student.id}`}>
-                      <div className="flex justify-between items-center border-b border-zinc-200 pb-3">
-                              <div>
-                                <h5 className="font-display font-bold text-zinc-900 uppercase text-sm tracking-tight">{student.name}</h5>
-                                <p className="text-[10px] font-mono text-zinc-400">Student ID: {student.id} · Target Level: Level {student.targetLevel}</p>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-xs font-mono font-bold uppercase bg-zinc-100 px-2.5 py-1 rounded border border-zinc-200 text-zinc-600">
-                                  Current Level {student.currentLevel}
-                                </span>
-                              </div>
-                            </div>
+                    <div key={student.id} className="border border-zinc-300 dark:border-zinc-600 rounded-xl p-6 bg-white dark:bg-slate-900 space-y-6 print:border-none print:shadow-none" id={`worksheet-print-${student.id}`}>
+                      <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-3">
+                        <div>
+                          <h5 className="font-display font-bold text-zinc-900 dark:text-white uppercase text-sm tracking-tight">{student.name}</h5>
+                          <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">Student ID: {student.id} · Target Level: Level {student.targetLevel}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-mono font-bold uppercase bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300">
+                            Current Level {student.currentLevel}
+                          </span>
+                        </div>
+                      </div>
 
-                      <div className="space-y-6 divide-y divide-zinc-200">
+                      <div className="space-y-6 divide-y divide-zinc-200 dark:divide-zinc-700">
                         {studentQuestions.map((q, qidx) => (
                           <div key={q.question_id} className={`pt-4 ${qidx === 0 ? 'pt-0' : ''}`}>
-                            <div className="flex justify-between text-[10px] font-mono text-zinc-400 mb-1">
+                            <div className="flex justify-between text-[10px] font-mono text-zinc-400 dark:text-zinc-500 mb-1">
                               <span>Concept: {q.topic}</span>
                               <span className="uppercase">{q.difficulty}</span>
                             </div>
-                            <p className="text-zinc-800 text-sm font-medium leading-relaxed">{q.question.replace(`[For ${student.name} - Level ${student.currentLevel}] `, '')}</p>
+                            <p className="text-zinc-800 dark:text-zinc-100 text-sm font-medium leading-relaxed">{q.question.replace(`[For ${student.name} - Level ${student.currentLevel}] `, '')}</p>
 
                             {q.svgAsset && (
                               <SvgLibraryResolver category={q.svgAsset} count={student.currentLevel + 1} />
@@ -305,15 +310,15 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                             {q.answer_type === 'choice' && q.choices && (
                               <div className="grid grid-cols-3 gap-2 mt-2">
                                 {q.choices.map(c => (
-                                  <div key={c} className="border border-zinc-200 rounded p-1.5 text-center text-xs text-zinc-600 font-medium">
+                                  <div key={c} className="border border-zinc-200 dark:border-zinc-700 rounded p-1.5 text-center text-xs text-zinc-600 dark:text-zinc-300 font-medium">
                                     {c}
                                   </div>
                                 ))}
                               </div>
                             )}
 
-                            <div className="mt-3 border border-dashed border-zinc-300 h-9 w-48 rounded bg-zinc-50/50 flex items-center px-3">
-                              <span className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider">Solution Line</span>
+                            <div className="mt-3 border border-dashed border-zinc-300 dark:border-zinc-600 h-9 w-48 rounded bg-zinc-50/50 dark:bg-zinc-800/50 flex items-center px-3">
+                              <span className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Solution Line</span>
                             </div>
                           </div>
                         ))}
@@ -448,29 +453,29 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
 
             {/* Real-time Evaluation Results */}
             {evaluationResult && (
-              <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-4" id="realtime-results">
+                <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm space-y-4" id="realtime-results">
                 <div className="flex justify-between items-center">
-                  <h4 className="font-display font-semibold text-zinc-900">Grading Scorecard</h4>
-                  <span className="text-xs font-mono font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                  <h4 className="font-display font-semibold text-zinc-900 dark:text-white">Grading Scorecard</h4>
+                  <span className="text-xs font-mono font-bold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">
                     Evaluated
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center py-2 border-y border-zinc-100">
+                <div className="grid grid-cols-3 gap-2 text-center py-2 border-y border-zinc-100 dark:border-zinc-700">
                   <div>
-                    <span className="text-[10px] font-mono text-zinc-400 block uppercase">Correct</span>
-                    <span className="text-xl font-display font-bold text-zinc-900">
+                    <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 block uppercase">Correct</span>
+                    <span className="text-xl font-display font-bold text-zinc-900 dark:text-white">
                       {evaluationResult.report.score} / {evaluationResult.report.totalQuestions}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-mono text-zinc-400 block uppercase">Level Progression</span>
-                    <span className="text-xl font-display font-bold text-zinc-900">
+                    <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 block uppercase">Level Progression</span>
+                    <span className="text-xl font-display font-bold text-zinc-900 dark:text-white">
                       Level {evaluationResult.report.recommendedLevel}.{evaluationResult.report.recommendedSubLevel ?? 0}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-mono text-zinc-400 block uppercase">Sub-Level</span>
+                    <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 block uppercase">Sub-Level</span>
                     <span className={`text-sm font-mono font-bold px-2 py-0.5 rounded ${
                       (evaluationResult.report.recommendedSubLevel ?? 0) === 0
                         ? 'bg-green-100 text-green-800'
@@ -486,11 +491,11 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
 
                 {/* Concept breakdown grids */}
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-mono font-bold uppercase text-zinc-400">Concept Mastery</span>
+                  <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500">Concept Mastery</span>
                   <div className="grid grid-cols-1 gap-1.5 text-xs">
                     {Object.entries(evaluationResult.report.conceptMastery).map(([topic, mastery]) => (
-                      <div key={topic} className="flex justify-between items-center p-2 border border-zinc-100 rounded bg-zinc-50">
-                        <span className="font-medium text-zinc-700">{topic}</span>
+                      <div key={topic} className="flex justify-between items-center p-2 border border-zinc-100 dark:border-zinc-700 rounded bg-zinc-50 dark:bg-zinc-800">
+                        <span className="font-medium text-zinc-700 dark:text-zinc-200">{topic}</span>
                         <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
                           mastery === 'Strong' ? 'bg-green-100 text-green-800' : mastery === 'Satisfactory' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
                         }`}>
@@ -501,9 +506,9 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                   </div>
                 </div>
 
-                <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 space-y-1">
-                  <span className="text-[9px] font-mono font-bold uppercase text-zinc-400">AI Narrative Summary</span>
-                  <p className="text-zinc-600 text-xs leading-relaxed">{evaluationResult.report.narrative}</p>
+                <div className="bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 space-y-1">
+                  <span className="text-[9px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500">AI Narrative Summary</span>
+                  <p className="text-zinc-600 dark:text-zinc-300 text-xs leading-relaxed">{evaluationResult.report.narrative}</p>
                 </div>
               </div>
             )}
