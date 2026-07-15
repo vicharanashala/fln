@@ -1690,7 +1690,7 @@ async function startServer() {
 
         job.fileName = result.fileName;
         job.filePath = result.filePath;
-        job.pdfUrl = `/output/${result.fileName}`;
+        job.pdfUrl = `/output/${result.pdfFileName || result.fileName}`;
         job.status = 'completed';
         job.completedAt = new Date().toISOString();
         job.completed = job.totalSets;
@@ -1751,7 +1751,7 @@ async function startServer() {
       return res.status(404).json({ error: 'PDF file not found on disk.' });
     }
 
-    res.download(job.filePath, `class${job.classNumber}_bulk_diagnostic.pdf`);
+    res.download(job.filePath, `class${job.classNumber}_bulk_diagnostic.zip`);
   });
 
   // Generate diagnostic for a single student (enhanced with PDF download)

@@ -2232,7 +2232,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                           href={bulkJob.downloadUrl}
                           className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer shadow-sm"
                         >
-                          🖨️ Print All PDFs
+                          📥 Download ZIP Package
                         </a>
                         {bulkJob.pdfUrl && (
                           <a
@@ -2908,7 +2908,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                     {bulkJob.status === 'completed' && bulkJob.downloadUrl && (
                       <div className="flex gap-2 pt-1">
                         <a href={bulkJob.downloadUrl} className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer">
-                          📥 Download Merged PDF ({bulkJob.total} papers)
+                          📥 Download ZIP Package ({bulkJob.total} sets)
                         </a>
                         {bulkJob.pdfUrl && (
                           <a href={bulkJob.pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-mono font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer">

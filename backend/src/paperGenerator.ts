@@ -7,6 +7,7 @@ import { Question } from './db';
 import { renderBatch } from './worksheetRenderer';
 import { mergeAndStamp } from './pdfMerge';
 import { drawQrCode } from './qrCode';
+import JSZip from 'jszip';
 
 // Resolve __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +24,8 @@ export interface PaperGenerationResult {
   totalSets: number;
   studentOrder: Array<{ setNum: number; studentName: string }>;
   questions: Question[];
+  pdfFileName?: string;
+  pdfFilePath?: string;
 }
 
 export interface WorksheetPdfResult {
@@ -92,12 +95,65 @@ export async function generateDiagnosticPaper({
     students
   );
 
-  const fileName = `class${classNumber}_diagnostic_${randomUUID()}.pdf`;
-  const filePath = path.join(OUTPUT_DIR, fileName);
-  fs.writeFileSync(filePath, mergedBuffer);
+  const zip = new JSZip();
 
-  // Write corresponding answer keys, coords, and question papers for each set
-  const baseName = fileName.replace(/\.pdf$/, '');
+  // Add the merged PDF for bulk printing
+  const mergedFileName = `class${classNumber}_bulk_diagnostic.pdf`;
+  zip.file(mergedFileName, mergedBuffer);
+
+  // Add a manifest.json
+  const manifestData = {
+    classNumber,
+    generatedAt: new Date().toISOString(),
+    totalSets: students.length,
+    students: students.map((s, idx) => ({
+      name: s.name,
+      studentId: s.studentId || s.rollNo || `STUDENT_${idx + 1}`,
+      setNum: idx + 1,
+      files: ['worksheet.pdf', 'answer_key.json', 'coords.json', 'question_paper.json']
+    }))
+  };
+  zip.file('manifest.json', JSON.stringify(manifestData, null, 2));
+
+  // Loop through results and add student directories and flat PDFs
+  results.forEach((r, idx) => {
+    const student = students[idx];
+    const sName = student.name;
+    const sId = student.studentId || student.rollNo || `STUDENT_${idx + 1}`;
+    
+    // Sanitize names for folder structure
+    const folderName = `Set_${String(idx + 1).padStart(3, '0')}_RollNo-${sId.replace(/[^a-zA-Z0-9_\-]+/g, '')}_${sName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]+/g, '')}`;
+
+    // Add individual student files
+    const pdfBuf = Buffer.from(r.pdfBase64, 'base64');
+    zip.file(`${folderName}/worksheet.pdf`, pdfBuf);
+
+    if (r.masterJson) {
+      zip.file(`${folderName}/answer_key.json`, JSON.stringify(r.masterJson, null, 2));
+    }
+    if (r.coords) {
+      zip.file(`${folderName}/coords.json`, JSON.stringify(r.coords, null, 2));
+    }
+    if (r.questionPaperJson) {
+      zip.file(`${folderName}/question_paper.json`, JSON.stringify(r.questionPaperJson, null, 2));
+    }
+
+    // Add flat copy to all_worksheets/
+    zip.file(`all_worksheets/${folderName}.pdf`, pdfBuf);
+  });
+
+  const pdfFileName = `class${classNumber}_diagnostic_${randomUUID()}.pdf`;
+  const pdfFilePath = path.join(OUTPUT_DIR, pdfFileName);
+  fs.writeFileSync(pdfFilePath, mergedBuffer);
+
+  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+  const fileName = `class${classNumber}_diagnostic_${randomUUID()}.zip`;
+  const filePath = path.join(OUTPUT_DIR, fileName);
+  fs.writeFileSync(filePath, zipBuffer);
+
+  // Write corresponding answer keys, coords, and question papers for each set to output/ for logs/verification
+  const baseName = fileName.replace(/\.zip$/, '');
   const answerKeys = results.map(r => r.masterJson);
   const coordsList = results.map(r => r.coords);
   const questionPapers = results.map(r => r.questionPaperJson);
@@ -109,6 +165,8 @@ export async function generateDiagnosticPaper({
   return {
     fileName,
     filePath,
+    pdfFileName,
+    pdfFilePath,
     totalSets: students.length,
     studentOrder: students.map((s, i) => ({
       setNum: i + 1,
