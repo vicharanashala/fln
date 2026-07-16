@@ -158,6 +158,29 @@ export const SetsPanel: React.FC<{ token: string }> = ({ token }) => {
     }
   };
 
+  const handleDownload = async (setId: string) => {
+    try {
+      const res = await fetch(`/api/sets/${setId}/download`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Download failed');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${setId}-package.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || 'Download failed');
+    }
+  };
+
   const handleResetFilters = () => {
     setFilters({
       setId: '',
@@ -257,12 +280,12 @@ export const SetsPanel: React.FC<{ token: string }> = ({ token }) => {
           if (job.status === 'completed') {
             return (
               <div className="flex flex-col gap-1 items-start w-32">
-                <a 
-                  href={`/api/sets/${row.id}/download?token=${encodeURIComponent(token)}`} 
-                  className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 text-center w-full block hover:bg-emerald-100 transition-colors font-mono"
+                <button 
+                  onClick={() => handleDownload(row.id)}
+                  className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 text-center w-full block hover:bg-emerald-100 transition-colors font-mono cursor-pointer"
                 >
                   Download Package
-                </a>
+                </button>
                 {job.failures && job.failures.length > 0 && (
                   <span className="text-[9px] text-red-500 font-bold block">{job.failures.length} failed</span>
                 )}
