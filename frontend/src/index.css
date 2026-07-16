@@ -92,16 +92,3 @@ input, select, textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.5);
 }
-
-/* Numeric sizing utilities (used for prominent metric numbers) */
-.num-lg {
-  font-size: 1.875rem; /* ~30px, similar to Tailwind text-3xl */
-  line-height: 1;
-  font-weight: 700;
-}
-
-.num-md {
-  font-size: 1.25rem; /* ~20px, similar to Tailwind text-xl */
-  line-height: 1.1;
-  font-weight: 700;
-}

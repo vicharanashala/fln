@@ -3,6 +3,8 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 export interface StudentInfo {
   rollNo?: string;
   name: string;
+  studentId?: string;
+  qrData?: Record<string, unknown>;
 }
 
 export interface RenderedSet {

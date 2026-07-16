@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FLN Worksheet Batch Generator</title>
+</head>
+<body style="font-family:sans-serif;max-width:760px;margin:40px auto;">
+  <h1>FLN Worksheet Batch Generator</h1>
+
+  <p>Paste a roster JSON array below, then generate and download a class ZIP.</p>
+
+  <textarea id="roster" rows="10" style="width:100%;font-family:monospace;">
+[
+  { "studentName": "John Doe", "rollNumber": "12", "levelId": 26, "sublevelId": "26.0", "setsPerSub": 1 },
+  { "studentName": "Jane Smith", "rollNumber": "13", "levelId": 41, "sublevelId": "all", "setsPerSub": 1 }
+]
+  </textarea>
+
+  <div style="margin-top:12px;">
+    <button id="btnGenerate">Generate Batch</button>
+    <button id="btnDownload" disabled>Download Batch ZIP</button>
+  </div>
+
+  <pre id="log" style="background:#f4f4f4;padding:12px;margin-top:16px;white-space:pre-wrap;"></pre>
+
+  <script>
+    let currentBatchId = null;
+    const log = (msg) => { document.getElementById('log').textContent += msg + '\n'; };
+
+    document.getElementById('btnGenerate').addEventListener('click', async () => {
+      document.getElementById('log').textContent = '';
+      let roster;
+      try {
+        roster = JSON.parse(document.getElementById('roster').value);
+      } catch (e) {
+        log('Invalid JSON: ' + e.message);
+        return;
+      }
+
+      log('Submitting batch...');
+      const res = await fetch('/api/generate-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(roster)
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        log('Error: ' + (data.error || res.statusText));
+        return;
+      }
+
+      currentBatchId = data.batchId;
+      log('Batch complete: ' + JSON.stringify(data, null, 2));
+      document.getElementById('btnDownload').disabled = false;
+    });
+
+    document.getElementById('btnDownload').addEventListener('click', () => {
+      if (!currentBatchId) return;
+      window.location.href = '/api/download-batch/' + currentBatchId;
+    });
+  </script>
+</body>
+</html>

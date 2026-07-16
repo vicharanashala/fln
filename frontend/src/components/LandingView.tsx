@@ -62,7 +62,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
           <span className="text-gray-500">|</span>
           <span className="text-gray-300 hidden sm:inline">Foundational Literacy & Numeracy</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold">
             <button onClick={() => adjustFontSize(-10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Decrease font size">A-</button>
             <button onClick={resetFontSize} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Reset font size">A</button>

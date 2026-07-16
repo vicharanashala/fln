@@ -2,15 +2,14 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
-import { fileURLToPath } from 'url';
+import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
@@ -35,8 +34,7 @@ async function startServer() {
     const email = authHeader.replace('Bearer ', '').trim();
     
     // Find preseeded user in database
-    const users = (dbStore as any).data?.users || [];
-    const found = users.find((u: User) => u.email.toLowerCase() === email.toLowerCase());
+    const found = dbStore.getUserSync(email);
     if (found) return found;
 
     // Direct fallback mapping if not pre-seeded but conforms to email format
@@ -254,7 +252,6 @@ async function startServer() {
     const logs = await dbStore.getLogbook();
     res.json(logs);
   });
-
   // Admin Creation (by Superadmin)
   app.post('/api/admin/create', async (req, res) => {
     const user = getAuthUser(req);
@@ -262,7 +259,7 @@ async function startServer() {
       return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
     }
 
-    const { name, email, password, role, stateCode, districtCode, blockCode } = req.body;
+    const { name, email, password, role, stateCode, districtCode, blockCode, schoolId, assignedSchools } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
@@ -287,7 +284,9 @@ async function startServer() {
       role: role as UserRole,
       stateCode: stateCode ? stateCode.toUpperCase() : undefined,
       districtCode: districtCode ? districtCode.toUpperCase() : undefined,
-      blockCode: blockCode ? blockCode.toUpperCase() : undefined
+      blockCode: blockCode ? blockCode.toUpperCase() : undefined,
+      schoolId: schoolId || undefined,
+      assignedSchools: assignedSchools || undefined
     };
 
     await dbStore.addUser(newUser);
@@ -303,7 +302,7 @@ async function startServer() {
       userRole: user.role,
       activityType: 'verify',
       status: 'Success',
-      details: `Superadmin created dynamic coordinator: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
+      details: `Superadmin created account: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
     });
 
     res.json(newUser);
@@ -313,6 +312,52 @@ async function startServer() {
   app.get('/api/schools', async (req, res) => {
     const schools = await dbStore.getSchools();
     res.json(schools);
+  });
+
+  app.post('/api/schools', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.SUPERADMIN) {
+      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
+    }
+
+    const { id, name, stateCode, districtCode, blockCode, strength } = req.body;
+    if (!id || !name || !stateCode || !districtCode || !blockCode) {
+      return res.status(400).json({ error: 'Missing required school fields.' });
+    }
+
+    const schools = await dbStore.getSchools();
+    if (schools.some(s => s.id.toLowerCase() === id.toLowerCase())) {
+      return res.status(400).json({ error: 'School ID already exists.' });
+    }
+
+    const newSch: School = {
+      id: id.toLowerCase(),
+      name,
+      stateCode: stateCode.toUpperCase(),
+      districtCode: districtCode.toUpperCase(),
+      blockCode: blockCode.toUpperCase(),
+      strength: strength || 'low',
+      teachersCount: 0,
+      isAccessLocked: false
+    };
+
+    await dbStore.addSchool(newSch);
+
+    // Add Log entry
+    await dbStore.addLog({
+      id: 'log_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      schoolId: newSch.id,
+      schoolName: newSch.name,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'verify',
+      status: 'Success',
+      details: `Superadmin onboarded a new school: ${newSch.name} (ID: ${newSch.id})`
+    });
+
+    res.json(newSch);
   });
 
   // Classes
@@ -453,7 +498,16 @@ async function startServer() {
       // Generate the official PDF worksheet paper via Puppeteer
       const result = await generateDiagnosticPaper({
         classNumber,
-        students: [{ name: student.name }]
+        students: [{
+          name: student.name,
+          studentId: student.id,
+          qrData: {
+            age: student.age, classGroup: student.classGroup, section: student.section,
+            schoolId: student.schoolId, currentLevel: student.currentLevel,
+            currentSubLevel: student.currentSubLevel, targetLevel: student.targetLevel,
+            streak: student.streak
+          }
+        }]
       });
       questions = result.questions;
       pdfUrl = `/output/${result.fileName}`;
@@ -502,7 +556,7 @@ async function startServer() {
       
       const result = await generateDiagnosticPaper({
         classNumber: Number(classNumber),
-        students
+        students: students.map((s: any) => ({ ...s, studentId: s.studentId || s.id || s.rollNo }))
       });
 
       const pdfUrl = `/output/${result.fileName}`;
@@ -659,7 +713,7 @@ async function startServer() {
     });
 
     // Create a special Evaluation Report with dynamic mock concept mastery
-    const conceptMastery: { [key: string]: string } = {
+    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {
       'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
       'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
       'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
@@ -883,6 +937,7 @@ async function startServer() {
     const studentsWithQuestions = classStudents.map(s => {
       const studentQuestions = ws.questions.filter(q => q.question_id.startsWith(s.id + '_'));
       return {
+        studentId: s.id,
         name: s.name,
         currentLevel: s.currentLevel,
         currentSubLevel: s.currentSubLevel || 0,
@@ -910,7 +965,125 @@ async function startServer() {
     }
   });
 
-  // Generate Personalized Level-Wise Worksheet PDF for a student
+  /**
+   * Shared pipeline: build a roster -> Levels_backend /api/generate-batch ->
+   * poll /api/batch-status -> /api/download-batch (zip) -> unpack
+   * worksheet.pdf + answer_key.json + coords.json -> save PDF into this
+   * backend's own /output (served statically) and persist a LevelWorksheet
+   * record (with the real answer key + OMR coords) per rendered file.
+   *
+   * Students are matched back to rendered files via the roster's
+   * `rollNumber` field, which we deliberately set to the student's stable
+   * internal id (this codebase has no separate roll-number field on
+   * Student) — Levels_backend echoes the original rollNumber back in its
+   * manifest.json per file, so the mapping is exact regardless of how it
+   * sanitizes folder names.
+   */
+  async function generateLevelWorksheetsViaLevelsBackend(
+    students: Student[],
+    _opts: { includeBatchId?: boolean } = {}
+  ): Promise<Array<{
+    studentId: string;
+    studentName: string;
+    batchId: string;
+    sublevelId: string;
+    setNum: number;
+    pdfUrl: string;
+  }>> {
+    const roster: levelsBackendClient.RosterEntry[] = students.map(s => ({
+      studentName: s.name,
+      rollNumber: s.id,
+      levelId: s.currentLevel,
+      sublevelId: s.currentSubLevel != null ? `${s.currentLevel}.${s.currentSubLevel}` : 'all',
+      setsPerSub: 1,
+      studentData: {
+        age: s.age, classGroup: s.classGroup, section: s.section, schoolId: s.schoolId,
+        currentLevel: s.currentLevel, currentSubLevel: s.currentSubLevel,
+        targetLevel: s.targetLevel, streak: s.streak
+      }
+    }));
+
+    const batchResult = await levelsBackendClient.generateBatch(roster);
+    await levelsBackendClient.waitForBatch(batchResult.batchId);
+    const zipBuffer = await levelsBackendClient.downloadBatchZip(batchResult.batchId);
+    const { manifest, files } = await levelsBackendClient.extractBatchZip(zipBuffer);
+
+    // groupKey ("<studentFolder>/<sublevelId>_set<n>") -> original rollNumber (== studentId)
+    const rollNumberByGroupKey = new Map<string, string>();
+    if (manifest && Array.isArray(manifest.students)) {
+      for (const ms of manifest.students) {
+        if (!Array.isArray(ms.files)) continue;
+        for (const f of ms.files) {
+          rollNumberByGroupKey.set(f.folder, ms.rollNumber);
+        }
+      }
+    }
+
+    const studentsById = new Map(students.map(s => [s.id, s]));
+    const localOutputDir = path.join(ROOT_DIR, 'output');
+    if (!fs.existsSync(localOutputDir)) fs.mkdirSync(localOutputDir, { recursive: true });
+
+    const out: Array<{ studentId: string; studentName: string; batchId: string; sublevelId: string; setNum: number; pdfUrl: string }> = [];
+
+    for (const file of files) {
+      const groupKey = `${file.studentFolder}/${file.sublevelId}_set${file.setNum}`;
+      const studentId = rollNumberByGroupKey.get(groupKey);
+      const student = studentId ? studentsById.get(studentId) : undefined;
+      if (!student) {
+        console.warn(`[levels-backend] Could not map rendered file back to a student: ${groupKey}`);
+        continue;
+      }
+
+      const fileName = `level_${student.currentLevel}_${file.sublevelId}_set${file.setNum}_${student.id}_${randomUUID()}.pdf`;
+      const filePath = path.join(localOutputDir, fileName);
+      fs.writeFileSync(filePath, file.pdfBuffer);
+      const pdfUrl = `/output/${fileName}`;
+
+      // Write corresponding JSONs alongside the PDF for single/batch files
+      const baseName = fileName.replace(/\.pdf$/, '');
+      if (file.answerKey) {
+        fs.writeFileSync(path.join(localOutputDir, `${baseName}_answer_key.json`), JSON.stringify(file.answerKey, null, 2));
+      }
+      if (file.coords) {
+        fs.writeFileSync(path.join(localOutputDir, `${baseName}_coords.json`), JSON.stringify(file.coords, null, 2));
+      }
+      if (file.questionPaper) {
+        fs.writeFileSync(path.join(localOutputDir, `${baseName}_question_paper.json`), JSON.stringify(file.questionPaper, null, 2));
+      }
+
+      const record: LevelWorksheet = {
+        id: 'LW_' + randomUUID(),
+        batchId: batchResult.batchId,
+        studentId: student.id,
+        studentName: student.name,
+        rollNumber: student.id,
+        levelId: student.currentLevel,
+        sublevelId: file.sublevelId,
+        setNum: file.setNum,
+        pdfUrl,
+        answerKey: file.answerKey,
+        coords: file.coords,
+        generatedAt: new Date().toISOString()
+      };
+      await dbStore.addLevelWorksheet(record);
+
+      out.push({
+        studentId: student.id,
+        studentName: student.name,
+        batchId: batchResult.batchId,
+        sublevelId: file.sublevelId,
+        setNum: file.setNum,
+        pdfUrl
+      });
+    }
+
+    return out;
+  }
+
+  // Generate Personalized Level-Wise Worksheet PDF for a single student.
+  // Pipeline: build a 1-entry roster -> Levels_backend /api/generate-batch
+  // -> poll /api/batch-status -> fetch /api/download-batch (zip) -> extract
+  // worksheet.pdf + answer_key.json + coords.json -> persist here.
   app.post('/api/worksheets/generate-level-pdf', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -929,18 +1102,100 @@ async function startServer() {
         return res.status(400).json({ error: 'Student has not completed their diagnostic test.' });
       }
 
-      const { generateLevelWorksheet } = await import('./paperGenerator');
-      const result = await generateLevelWorksheet({
-        studentId: student.id,
-        studentName: student.name,
-        levelId: student.currentLevel,
-        subIdx: student.currentSubLevel || 0
-      });
-
-      res.json({ success: true, pdfUrl: result.pdfUrl });
+      try {
+        const generated = await generateLevelWorksheetsViaLevelsBackend([student]);
+        if (generated.length === 0) {
+          throw new Error('Levels_backend returned no files for this student.');
+        }
+        res.json({ success: true, pdfUrl: generated[0].pdfUrl });
+      } catch (levelsBackendErr: any) {
+        // Deterministic fallback: the old in-process Puppeteer generator,
+        // so the button keeps working if Levels_backend is unreachable.
+        console.error('Levels_backend generation failed, falling back to local generator:', levelsBackendErr.message);
+        const { generateLevelWorksheet } = await import('./paperGenerator');
+        const result = await generateLevelWorksheet({
+          studentId: student.id,
+          studentName: student.name,
+          levelId: student.currentLevel,
+          subIdx: student.currentSubLevel || 0
+        });
+        res.json({ success: true, pdfUrl: result.pdfUrl, fallback: true });
+      }
     } catch (err: any) {
       console.error('Level worksheet generation failed:', err);
       res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Generate Personalized Level-Wise Worksheets for a whole roster of
+  // students in ONE batch call to Levels_backend (the "Generate Batch"
+  // button in the teacher dashboard's Level-Wise Paper Generator panel).
+  app.post('/api/worksheets/generate-level-batch', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { studentIds } = req.body;
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ error: 'studentIds must be a non-empty array.' });
+    }
+
+    try {
+      const students = await dbStore.getStudents();
+      const targets: Student[] = [];
+      const skipped: Array<{ studentId: string; reason: string }> = [];
+
+      for (const id of studentIds) {
+        const student = students.find(s => s.id === id);
+        if (!student) {
+          skipped.push({ studentId: id, reason: 'Student not found.' });
+          continue;
+        }
+        if (student.currentLevel == null) {
+          skipped.push({ studentId: id, reason: 'Student has not completed their diagnostic test.' });
+          continue;
+        }
+        targets.push(student);
+      }
+
+      if (targets.length === 0) {
+        return res.status(400).json({ error: 'No eligible (placed) students in this request.', skipped });
+      }
+
+      const generated = await generateLevelWorksheetsViaLevelsBackend(targets, { includeBatchId: true });
+
+      const results = generated.map(g => ({
+        studentId: g.studentId,
+        studentName: g.studentName,
+        sublevelId: g.sublevelId,
+        setNum: g.setNum,
+        pdfUrl: g.pdfUrl
+      }));
+
+      res.json({
+        success: true,
+        batchId: generated[0]?.batchId || null,
+        studentsProcessed: targets.length,
+        totalFiles: generated.length,
+        results,
+        skipped
+      });
+    } catch (err: any) {
+      console.error('Level-wise batch generation failed:', err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Streams the raw batch ZIP straight from Levels_backend, for the
+  // "Download Batch ZIP" button. No transformation — pass-through.
+  app.get('/api/worksheets/download-batch/:batchId', async (req, res) => {
+    try {
+      const zipBuffer = await levelsBackendClient.downloadBatchZip(req.params.batchId);
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="batch_${req.params.batchId}.zip"`);
+      res.send(zipBuffer);
+    } catch (err: any) {
+      console.error('Batch ZIP download failed:', err);
+      res.status(502).json({ error: err.message });
     }
   });
 
@@ -1446,7 +1701,7 @@ async function startServer() {
       try {
         const result = await generateDiagnosticPaper({
           classNumber: job.classNumber,
-          students: paperStudents.map(s => ({ name: s.name })),
+          students: paperStudents.map(s => ({ name: s.name, studentId: s.studentId })),
           onProgress: (setNum, total) => {
             job.completed = setNum;
           }
@@ -1454,7 +1709,7 @@ async function startServer() {
 
         job.fileName = result.fileName;
         job.filePath = result.filePath;
-        job.pdfUrl = `/output/${result.fileName}`;
+        job.pdfUrl = `/output/${result.pdfFileName || result.fileName}`;
         job.status = 'completed';
         job.completedAt = new Date().toISOString();
         job.completed = job.totalSets;
@@ -1515,7 +1770,7 @@ async function startServer() {
       return res.status(404).json({ error: 'PDF file not found on disk.' });
     }
 
-    res.download(job.filePath, `class${job.classNumber}_bulk_diagnostic.pdf`);
+    res.download(job.filePath, `class${job.classNumber}_bulk_diagnostic.zip`);
   });
 
   // Generate diagnostic for a single student (enhanced with PDF download)
@@ -1564,7 +1819,16 @@ async function startServer() {
       try {
         const result = await generateDiagnosticPaper({
           classNumber,
-          students: [{ name: student.name }]
+          students: [{
+            name: student.name,
+            studentId: student.id,
+            qrData: {
+              age: student.age, classGroup: student.classGroup, section: student.section,
+              schoolId: student.schoolId, currentLevel: student.currentLevel,
+              currentSubLevel: student.currentSubLevel, targetLevel: student.targetLevel,
+              streak: student.streak
+            }
+          }]
         });
         questions = result.questions;
         pdfUrl = `/output/${result.fileName}`;
@@ -1790,15 +2054,25 @@ async function startServer() {
     res.json({ ...bp, viewCount: (bp.viewCount || 0) + 1 });
   });
 
-  // Vite integration
+  // In development, serve the frontend using Vite development middleware.
+  // In production, serve the built frontend bundle (frontend/dist).
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        root: path.resolve(ROOT_DIR, '..', 'frontend'),
+        server: { middlewareMode: true, hmr: false },
+        appType: "spa"
+      });
+      app.use(vite.middlewares);
+      console.log("[AI Studio] Vite development middleware mounted successfully");
+    } catch (err) {
+      console.warn("[AI Studio] Failed to load Vite dev middleware, falling back to static:", err);
+    }
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const distPath =
+      process.env.FRONTEND_DIST_DIR ||
+      path.resolve(ROOT_DIR, '..', 'frontend', 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));

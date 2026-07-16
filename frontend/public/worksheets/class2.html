@@ -93,17 +93,23 @@
     margin-top:10px;flex-wrap:wrap;gap:6px;
   }
   .ws-fields span{border-bottom:1px solid #000;padding:0 4px 2px 4px;min-width:120px;display:inline-block;}
-  .section{margin:16px 0 22px 0;}
+  /* Keep the child details and QR visible; questions begin below the header. */
+  .ws-fields{display:none;}
+  .ws-header{min-height:18mm;box-sizing:border-box;}
+  .section{margin:4px 0 8px 0;}
+  .section, table, tr{break-inside:avoid;page-break-inside:avoid;}
   .section h2{
     font-size:14.5px;background:#000;color:#fff;
     padding:4px 8px;margin:0 0 8px 0;display:inline-block;
   }
   .section .instr{font-size:12.5px;color:#000;font-style:italic;margin:0 0 6px 0;}
+  .two-column-questions{display:grid;grid-template-columns:1fr 1fr;column-gap:18px;row-gap:4px;}
+  .two-column-questions .seqline{margin:3px 0;}
   .seqline{font-size:15px;margin:6px 0;letter-spacing:1px;font-family:Arial,sans-serif;}
   .seqline .qn{font-weight:bold;margin-right:6px;}
   table.wstable{width:100%;border-collapse:collapse;margin:6px 0;}
   table.wstable td,table.wstable th{
-    border:1.4px solid #000;padding:6px 8px;
+    border:1.4px solid #000;padding:3px 5px;
     vertical-align:middle;font-size:13px;
   }
   table.wstable td.rownum{width:26px;text-align:center;font-weight:bold;}
@@ -120,7 +126,7 @@
   .blankline{display:inline-block;border-bottom:1.4px solid #000;width:50px;margin:0 4px;}
   .matchwrap{display:flex;justify-content:space-between;gap:30px;}
   .matchcol{flex:1;}
-  .matchitem{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0;font-size:13px;width:100%;}
+  .matchitem{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0;font-size:13px;width:100%;}
   .matchitem .micontent{display:flex;align-items:center;gap:8px;}
   .matchitem .dot{width:10px;height:10px;border:1.4px solid #000;border-radius:50%;background:#fff;flex-shrink:0;}
   .objline{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;}
@@ -129,7 +135,7 @@
   .sizebox{display:flex;flex-direction:column;align-items:center;gap:4px;}
   .numbox{width:30px;height:26px;border:2px solid #000;}
   .compare-row{display:flex;align-items:flex-end;gap:24px;justify-content:center;}
-  .compare-cell{border:1.4px solid #000;padding:8px 14px;display:flex;align-items:flex-end;justify-content:center;min-width:90px;min-height:90px;}
+  .compare-cell{border:1.4px solid #000;padding:4px 8px;display:flex;align-items:flex-end;justify-content:center;min-width:72px;min-height:72px;}
   .ws-footer{margin-top:18px;border-top:1.4px solid #000;padding-top:6px;font-size:11px;text-align:center;color:#333;}
 
   /* ANSWER KEY STYLES */
@@ -178,11 +184,14 @@
 <script src="./html2canvas.min.js"></script>
 <script src="./jspdf.umd.min.js"></script>
 <script src="./jszip.min.js"></script>
+<script src="./qrcode.min.js"></script>
 </head>
 <body>
 
 <div class="toolbar no-print">
   <h1>Class 2 — Math Worksheet Generator (FLN) · v3</h1>
+  <label>Student name: <input id="studentName" type="text" placeholder="Student name"></label>
+  <label>Student ID: <input id="studentId" type="text" placeholder="Roll/Student ID"></label>
   <label>Number of sets:
     <input type="number" id="setCount" min="1" max="5000" value="5">
   </label>
@@ -370,7 +379,7 @@ function section2(){
 }
 
 function section3(){
-  let out='';
+  let out='<div class="two-column-questions">';
   const answers=[];
   const A=randInt(2,49);
   out+='<div class="seqline"><span class="qn">1.</span> <span class="blankline" data-omr="q3-ans-1" style="width:40px;"></span> , '+A+' &nbsp;(before)</div>';
@@ -387,12 +396,12 @@ function section3(){
   const E=randInt(1,47);
   out+='<div class="seqline"><span class="qn">5.</span> '+E+' , '+(E+1)+' , <span class="blankline" data-omr="q3-ans-5" style="width:40px;"></span> &nbsp;(after)</div>';
   answers.push({question:5,type:'after',given:[E,E+1],answer:E+2});
-  return {html:out, answers:{section:'Before After Between', items:answers}};
+  return {html:out+'</div>', answers:{section:'Before After Between', items:answers}};
 }
 
 function section4(){
   const syms=shuffle(['<','>','=','<','>']);
-  let out='';
+  let out='<div class="two-column-questions">';
   const answers=[];
   syms.forEach((sym,i)=>{
     let left,right;
@@ -402,11 +411,11 @@ function section4(){
     out+='<div class="seqline"><span class="qn">'+(i+1)+'.</span> '+left+' <span class="compbox" data-omr="q4-ans-'+(i+1)+'" style="vertical-align:middle;"></span> '+right+'</div>';
     answers.push({question:i+1,left,right,answer:sym});
   });
-  return {html:out, answers:{section:'Compare Numbers', items:answers}};
+  return {html:out+'</div>', answers:{section:'Compare Numbers', items:answers}};
 }
 
 function section5(){
-  const objs=sample(SIZE_OBJECTS,5);
+  const objs=sample(SIZE_OBJECTS,2);
   let rows='';
   const answers=[];
   objs.forEach((obj,i)=>{
@@ -437,7 +446,7 @@ function section5(){
 }
 
 function section6(){
-  const icons=sample(COUNT_ICONS,5);
+  const icons=sample(COUNT_ICONS,2);
   let rows='';
   const answers=[];
   icons.forEach((icon,i)=>{
@@ -454,7 +463,7 @@ function section6(){
 }
 
 function section7(){
-  const icons=sample(COUNT_ICONS,5);
+  const icons=sample(COUNT_ICONS,2);
   let rows='';
   const answers=[];
   icons.forEach((icon,i)=>{
@@ -483,7 +492,7 @@ function tensOnesBlocks(number){
 function section8(){
   let rows='';
   const answers=[];
-  for(let i=0;i<5;i++){
+  for(let i=0;i<3;i++){
     const number=randInt(11,99);
     const reveal=i<3;
     const instr=reveal?'Show the number <b>'+number+'</b> using tens and ones.':'Look at the blocks. Write the number.';
@@ -590,7 +599,7 @@ const COMPARE_PHRASES={
   glassWater:{adjBig:'with more water',adjSmall:'with less water',noun:'glass'}
 };
 function section11(){
-  const objs=sample(COMPARE_OBJECTS,5);
+  const objs=sample(COMPARE_OBJECTS,2);
   let rows='';
   const answers=[];
   objs.forEach((obj,i)=>{
@@ -649,18 +658,25 @@ const SECTION_TITLES=[
   'Section 11 — Compare the Objects'
 ];
 
+function worksheetQRHtml(setNum){
+  const student={studentName:document.getElementById('studentName')?.value.trim()||'UNASSIGNED',studentId:document.getElementById('studentId')?.value.trim()||'UNASSIGNED',classLevel:'CLASS_2',set:setNum};
+  const qr=qrcode(0,'M');qr.addData(JSON.stringify(student));qr.make();
+  return '<img class="worksheet-qr" alt="Student worksheet QR" style="width:18mm;height:18mm;float:right" src="'+qr.createDataURL(3,2)+'">';
+}
 function buildWorksheetAndKey(setNum){
-  const builders=[section1,section2,section3,section4,section5,section6,section7,section8,section9,section10,section11];
+  const builders=[section1,section3,section4,section5,section6,section7,section8,section9,section10,section11];
   let sectionsHtml='';
   const answerKey={
     set:setNum,
     generated:new Date().toISOString(),
-    totalSections:11,
+    totalSections:10,
     sections:[]
   };
   builders.forEach((fn,idx)=>{
     const result=fn();
-    sectionsHtml+='<div class="section" data-section="'+(idx+1)+'" style="page-break-inside:avoid;"><h2>'+SECTION_TITLES[idx]+'</h2>'+result.html+'</div>';
+    // Section 2 is intentionally omitted; retain the original section labels.
+    const titleIndex=idx===0?0:idx+1;
+    sectionsHtml+='<div class="section" data-section="'+titleIndex+'" style="page-break-inside:avoid;"><h2>'+SECTION_TITLES[titleIndex]+'</h2>'+result.html+'</div>';
     answerKey.sections.push(result.answers);
   });
 
@@ -668,12 +684,18 @@ function buildWorksheetAndKey(setNum){
     '<div class="reg-sq bl"></div><div class="reg-sq br"></div>';
   const pid='SET-'+String(setNum).padStart(5,'0');
 
+  const studentName = document.getElementById('studentName')?.value.trim();
+  const studentId = document.getElementById('studentId')?.value.trim();
+  const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
+  const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
+  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+
   const worksheetHtml='<div class="page-wrapper">'+reg+
     '<div class="page" id="page-set-'+setNum+'">'+
     '<div class="ws-header">'+
-      '<div class="ws-title">CLASS 2 — MATHEMATICS PRACTICE WORKSHEET</div>'+
+      '<div class="ws-title">CLASS 2 — MATHEMATICS PRACTICE WORKSHEET</div>'+worksheetQRHtml(setNum)+
       '<div class="ws-sub">Set '+setNum+'</div>'+
-      '<div class="ws-fields"><span>Name:</span><span>Date:</span><span>Roll No.:</span><span>Marks: ____ / 100</span></div>'+
+      studentDetails+
     '</div>'+sectionsHtml+
     '<div class="ws-footer">Class 2 — Math FLN Practice &nbsp;|&nbsp; Set '+setNum+'</div>'+
     '<div class="ws-page-id">'+pid+'</div>'+
@@ -685,7 +707,8 @@ function buildWorksheetAndKey(setNum){
    ANSWER KEY HTML RENDERER
    ============================================================ */
 function renderAnswerKeyHTML(ak){
-  const s=ak.sections;
+  // Keep answer-key numbering aligned with the printed worksheet after Section 2 was removed.
+  const s=[ak.sections[0],{items:[]},...ak.sections.slice(1)];
   let html=`<div class="ak-page">
   <div class="ak-header">
     <div class="ak-title">ANSWER KEY — CLASS 2 MATHEMATICS</div>
@@ -697,13 +720,6 @@ function renderAnswerKeyHTML(ak){
   s[0].items.forEach(q=>{
     const ans=q.blanks.map(b=>`Pos ${b.position} → <span class="ak-ans">${b.value}</span>`).join(' &nbsp; ');
     html+=`<tr><td>${q.question}</td><td>${q.range}</td><td>${q.blanks.map(b=>'Pos '+b.position).join(', ')}</td><td>${ans}</td></tr>`;
-  });
-  html+=`</table></div>`;
-
-  html+=`<div class="ak-section"><h3>Section 2 — Count the Objects</h3>
-  <table class="aktable"><tr><th>#</th><th>Object</th><th>Count</th></tr>`;
-  s[1].items.forEach(q=>{
-    html+=`<tr><td>${q.question}</td><td>${cap(q.object)}</td><td><span class="ak-ans">${q.count}</span></td></tr>`;
   });
   html+=`</table></div>`;
 
@@ -784,18 +800,17 @@ function renderAnswerKeyHTML(ak){
 function icrForSection(sIdx,item){
   switch(sIdx){
     case 0: return {detect:'handwritten_digit',blanks:item.blanks.map(b=>({pos:b.position,expected:b.value}))};
-    case 1: return {detect:'handwritten_digit',expected:item.count};
-    case 2: return {detect:'handwritten_digit',expected:item.answer};
-    case 3: return {detect:'handwritten_symbol',expected:item.answer,options:['<','>','=']};
-    case 4: return {detect:'handwritten_digit_per_box',expected:item.ranking.map(r=>r.correctRank)};
-    case 5: return {detect:'handwritten_digit',expected:item.answer};
-    case 6: return {detect:'handwritten_digit',expected:item.remaining};
-    case 7: return {detect:'handwritten_digit_multi',fields:['tens','ones','number'],expected:{tens:item.tens,ones:item.ones,number:item.number}};
-    case 8: return {detect:'drawn_line_between_dots',from_label:item.shape,to_label:item.matchesTo};
-    case 9: return item.type==='pattern'
+    case 1: return {detect:'handwritten_digit',expected:item.answer};
+    case 2: return {detect:'handwritten_symbol',expected:item.answer,options:['<','>','=']};
+    case 3: return {detect:'handwritten_digit_per_box',expected:item.ranking.map(r=>r.correctRank)};
+    case 4: return {detect:'handwritten_digit',expected:item.answer};
+    case 5: return {detect:'handwritten_digit',expected:item.remaining};
+    case 6: return {detect:'handwritten_digit_multi',fields:['tens','ones','number'],expected:{tens:item.tens,ones:item.ones,number:item.number}};
+    case 7: return {detect:'drawn_line_between_dots',from_label:item.shape,to_label:item.matchesTo};
+    case 8: return item.type==='pattern'
       ? {detect:'drawn_or_written_shape',expected:item.answer}
       : {detect:(item.ask==='3rd position'?'handwritten_text':'circle_mark'),expected:item.answer};
-    case 10: return {detect:'circle_mark',expected_side:item.answer,options:['Left','Right']};
+    case 9: return {detect:'circle_mark',expected_side:item.answer,options:['Left','Right']};
     default: return {detect:'unspecified'};
   }
 }
@@ -824,6 +839,18 @@ function buildMasterJSON(setNum,liveCoords){
     coords_mm:coordsBySection,
     sections
   };
+}
+
+const QUESTION_ANSWER_FIELDS=new Set(['answer','answers','ans','correct_answer','expected_answer','expected','expected_value','expected_choice','expected_label','expected_side','matches','pairs','target_type','expected_count','circle','tick','matchesTo','correctRank','scanned_response','is_correct']);
+function questionOnly(value){
+  if(Array.isArray(value)) return value.map(questionOnly);
+  if(value&&typeof value==='object') return Object.fromEntries(Object.entries(value).filter(([key])=>!QUESTION_ANSWER_FIELDS.has(key)).map(([key,item])=>[key,questionOnly(item)]));
+  return value;
+}
+function buildQuestionPaperJSON(setNum,liveCoords){
+  const paper=questionOnly(buildMasterJSON(setNum,liveCoords));
+  paper.meta={...paper.meta,artifact:'question_paper',includes_answers:false};
+  return paper;
 }
 
 /* ============================================================
@@ -1006,6 +1033,7 @@ document.getElementById('dlAKBtn').addEventListener('click',async()=>{
   const setNum=String(currentSet).padStart(String(worksheetAnswers.length).length,'0');
   const zip=new JSZip();
   zip.file('Set_'+setNum+'_AnswerKey.json', JSON.stringify(ak,null,2));
+  zip.file('Set_'+setNum+'_QuestionPaper.json', JSON.stringify(buildQuestionPaperJSON(currentSet,null),null,2));
   const akHtmlFull=`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Answer Key Set ${currentSet}</title>
   <style>
     body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
@@ -1091,7 +1119,7 @@ document.getElementById('exportCoordsBtn').addEventListener('click',async()=>{
 const PDF_A4_W_MM  = 210;
 const PDF_A4_H_MM  = 297;
 const PDF_MARGIN_MM = 14;   // matches .page { padding: 14mm }
-const PDF_RENDER_SCALE = 1.2; // 1.2× gives ~114dpi — sharp enough, 40% faster than 1.5×
+const PDF_RENDER_SCALE = 1.8; // Keep text and SVG images sharp in exported PDFs.
 
 async function buildPdfBlobForSet(setIndex) {
   const renderRoot = document.getElementById('pdfRenderRoot');
@@ -1113,6 +1141,7 @@ async function buildPdfBlobForSet(setIndex) {
   // blocks = array of { top_px, bottom_px } relative to pageEl top-left
   // We measure every direct child that is either the header, a section, or the footer.
   // The ws-page-id div is tiny — lump it with the footer band.
+  // Keep each section (including its images) together on one printed page.
   const blockEls = [
     pageEl.querySelector('.ws-header'),
     ...Array.from(pageEl.querySelectorAll('.section')),
@@ -1202,11 +1231,11 @@ async function buildPdfBlobForSet(setIndex) {
     tmpCtx.clearRect(0, 0, canvasW, sliceH);
     tmpCtx.drawImage(fullCanvas, 0, pg.startPx, canvasW, sliceH, 0, 0, canvasW, sliceH);
 
-    const imgData = tmpCanvas.toDataURL('image/jpeg', 0.88);
+    const imgData = tmpCanvas.toDataURL('image/png');
 
     if (idx > 0) pdf.addPage();
     // Place with top margin; image fills full width
-    pdf.addImage(imgData, 'JPEG', 0, PDF_MARGIN_MM, PDF_A4_W_MM, sliceMM);
+    pdf.addImage(imgData, 'PNG', 0, PDF_MARGIN_MM, PDF_A4_W_MM, sliceMM);
 
     // Immediately clear the temp canvas to free memory
     tmpCtx.clearRect(0, 0, canvasW, sliceH);
@@ -1251,8 +1280,9 @@ document.getElementById('downloadSingleSetBtn').addEventListener('click',async()
 
     const masterJson=buildMasterJSON(setNum,coords);
     triggerTextDownload('MasterKey_Set'+padded+'.json',JSON.stringify(masterJson,null,2),'application/json');
+    triggerTextDownload('QuestionPaper_Set'+padded+'.json',JSON.stringify(buildQuestionPaperJSON(setNum,coords),null,2),'application/json');
     triggerTextDownload('AnswerKey_Set'+padded+'.csv',buildCSV(setNum,setNum),'text/csv');
-    pr.textContent='Done — Set '+setNum+' downloaded.';
+    pr.textContent='Done — worksheet, answer key, coordinates and question JSON downloaded.';
   }catch(e){
     console.error(e);
     pr.textContent='Failed: '+(e.message||e);
@@ -1289,6 +1319,7 @@ async function exportAllSetsAsZip(){
 
         const masterJson=buildMasterJSON(i,coords);
         zip.file(fileName+'_MasterKey.json', JSON.stringify(masterJson,null,2));
+        zip.file(fileName+'_QuestionPaper.json', JSON.stringify(buildQuestionPaperJSON(i,coords),null,2));
         zip.file(fileName+'_AnswerKey.csv', buildCSV(i,i));
 
         const ak=worksheetAnswers[i-1];
@@ -1356,6 +1387,7 @@ document.getElementById('exportAllBtn').addEventListener('click',exportAllSetsAs
 window.generateSets=generateSets;
 window.captureCoords=captureCoords;
 window.buildMasterJSON=buildMasterJSON;
+window.buildQuestionPaperJSON=buildQuestionPaperJSON;
 window.buildCSV=buildCSV;
 window.activateSet=activateSet;
 window.buildWorksheetAndKey=buildWorksheetAndKey;

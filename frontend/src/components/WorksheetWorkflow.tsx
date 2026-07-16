@@ -182,7 +182,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
             Choose an assessment cycle to generate distinct, AI-personalized papers for each child based on their current FLN mathematical level milestones.
           </p>
 
-            <div className="flex flex-col items-center gap-3 pt-4">
+          <div className="flex flex-col items-center gap-3 pt-4">
             <div className="flex justify-center gap-3">
               <button
                 onClick={() => generateWorksheets('Baseline')}
@@ -248,7 +248,12 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
               <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-700 pb-3">
                 <h4 className="font-display font-medium text-zinc-900 dark:text-white">Printable Student Math Worksheets</h4>
                 <div className="flex gap-2">
-                  {/* Interactive generator button removed */}
+                  <button
+                    onClick={() => setIsIframeModalOpen(true)}
+                    className="bg-zinc-900 hover:bg-zinc-800 text-white font-mono text-xs font-semibold px-3 py-1.5 rounded border border-zinc-900 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    🌐 Interactive Generator
+                  </button>
                   {pdfUrl && (
                     <a
                       href={pdfUrl}

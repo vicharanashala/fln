@@ -82,7 +82,7 @@ export const AssessmentCalendar: React.FC = () => {
         { date: 10, label: 'Conduct End', event: 'Summative Exam', type: 'exam' },
         { date: 11, label: 'Ingestion Start', event: 'ICR Scanning', type: 'scan' },
         { date: 13, label: 'Ingestion End', event: 'Uploads', type: 'scan' },
-        { date: 14, label: 'Certification Phase', event: 'AI Review', type: 'eval' },
+        { date: 14, label: 'Certification Phase', event: 'AI Audit', type: 'eval' },
         { date: 15, label: 'Graduation Day', event: 'Awards Release', type: 'eval' }
       ]
     }

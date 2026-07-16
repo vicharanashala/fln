@@ -9,13 +9,16 @@ export interface RenderedResult {
   masterJson: any;
   csv: string;
   coordsCaptured: boolean;
+  coords: any;
+  questionPaperJson?: any;
 }
 
 export async function renderBatch(
   classLevel: string,
   count: number,
   onProgress?: (done: number, total: number) => void,
-  extraOptions?: { levelId?: number; subIdx?: number }
+  extraOptions?: { levelId?: number; subIdx?: number },
+  studentIdentities?: Array<{ name: string; studentId?: string; rollNo?: string }>
 ): Promise<RenderedResult[]> {
   const adapter = getAdapter(classLevel);
 
@@ -26,6 +29,9 @@ export async function renderBatch(
     throw new Error(
       `count (${count}) exceeds the ${MAX_SETS_PER_PAGE_LOAD}-set ceiling baked into the worksheet generator. Split into multiple batches.`
     );
+  }
+  if (studentIdentities && studentIdentities.length !== count) {
+    throw new Error("studentIdentities must contain one entry for every generated worksheet.");
   }
 
   const browser = await puppeteer.launch({
@@ -78,7 +84,13 @@ export async function renderBatch(
 
       const raw = await fn(...pdfFnArgs);
       const pdfBlob = pdfFnReturnsCoords ? raw.pdfBlob : raw;
-      const coords = pdfFnReturnsCoords ? raw.coords : null;
+      let coords = pdfFnReturnsCoords ? raw.coords : null;
+      if (!coords && typeof window.captureCoords === "function") {
+        const coordTarget = document.querySelector("#ws-" + setIndex + " [data-pageid]") ||
+          document.querySelector("#ws-" + setIndex + " .page-wrapper") ||
+          document.querySelector("#ws-" + setIndex + " .page");
+        if (coordTarget) coords = window.captureCoords(coordTarget);
+      }
 
       const pdfBase64 = await blobToBase64(pdfBlob);
 
@@ -95,18 +107,47 @@ export async function renderBatch(
 
       const csv = window.buildCSV(setIndex, setIndex);
 
-      return { pdfBase64, masterJson, csv, coordsCaptured: Boolean(coords) };
+      let questionPaperJson;
+      if (typeof window.buildQuestionPaperJSON === "function") {
+        if (cl === "CLASS_1" || cl === "CLASS_2") {
+          questionPaperJson = window.buildQuestionPaperJSON(setIndex, coords);
+        } else if (cl === "CLASS_3") {
+          questionPaperJson = window.buildQuestionPaperJSON(setIndex, setIndex);
+        } else if (cl === "CLASS_4") {
+          questionPaperJson = window.buildQuestionPaperJSON(setIndex, setIndex, cl);
+        }
+      }
+
+      if (coords) masterJson = Object.assign({}, masterJson, { coords });
+      return { pdfBase64, masterJson, csv, coordsCaptured: Boolean(coords), coords, questionPaperJson };
     }`;
 
     const results: RenderedResult[] = [];
     for (let i = 1; i <= count; i += 1) {
+      // QR codes are generated when a worksheet is built. Rebuild this one
+      // worksheet after setting the assigned student's identity so the scanner
+      // payload is unique to that student, without printing personal details.
+      if (studentIdentities) {
+        const student = studentIdentities[i - 1];
+        await page.evaluate(
+          new Function('student', `
+            const name = document.getElementById('studentName');
+            const id = document.getElementById('studentId');
+            if (name) name.value = student.name || '';
+            if (id) id.value = student.studentId || student.rollNo || '';
+            window.generateSets(1);
+          `) as any,
+          student
+        );
+      }
+      const activeSetIndex = studentIdentities ? 1 : i;
       const rendered = await page.evaluate(
         new Function('obj', 'return (' + evaluateFnStr + ')(obj)') as any,
         {
-          setIndex: i,
+          setIndex: activeSetIndex,
           classLevel,
           pdfFn: adapter.pdfFn,
-          pdfFnArgs: adapter.pdfFnArgs(i),
+          pdfFnArgs: adapter.pdfFnArgs(activeSetIndex),
           pdfFnReturnsCoords: adapter.pdfFnReturnsCoords,
         }
       );

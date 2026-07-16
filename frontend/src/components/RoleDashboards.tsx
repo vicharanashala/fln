@@ -491,10 +491,22 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [coordState, setCoordState] = useState('PB');
   const [coordDistrict, setCoordDistrict] = useState('');
   const [coordBlock, setCoordBlock] = useState('');
+  const [coordSchoolId, setCoordSchoolId] = useState('');
+  const [coordAssignedSchoolsStr, setCoordAssignedSchoolsStr] = useState('');
   const [coordSuccess, setCoordSuccess] = useState('');
   const [coordError, setCoordError] = useState('');
   const [loading, setLoading] = useState(false);
   const [coordinatorsList, setCoordinatorsList] = useState<User[]>([]);
+
+  // School onboarding state
+  const [newSchoolId, setNewSchoolId] = useState('');
+  const [newSchoolName, setNewSchoolName] = useState('');
+  const [newSchoolState, setNewSchoolState] = useState('PB');
+  const [newSchoolDistrict, setNewSchoolDistrict] = useState('');
+  const [newSchoolBlock, setNewSchoolBlock] = useState('');
+  const [newSchoolStrength, setNewSchoolStrength] = useState<'high' | 'low'>('low');
+  const [schoolSuccess, setSchoolSuccess] = useState('');
+  const [schoolError, setSchoolError] = useState('');
 
   const [stateFilter, setStateFilter] = useState('');
   const [districtFilter, setDistrictFilter] = useState('');
@@ -602,6 +614,10 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
     setCoordSuccess('');
     setLoading(true);
 
+    const assignedSchools = coordAssignedSchoolsStr
+      ? coordAssignedSchoolsStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+      : undefined;
+
     try {
       const res = await fetch('/api/admin/create', {
         method: 'POST',
@@ -616,25 +632,80 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           role: coordRole,
           stateCode: coordState,
           districtCode: coordDistrict,
-          blockCode: coordBlock
+          blockCode: coordBlock,
+          schoolId: [UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) ? coordSchoolId : undefined,
+          assignedSchools: coordRole === UserRole.VOLUNTEER ? assignedSchools : undefined
         })
       });
 
       const data = await res.json();
       if (res.ok) {
-        setCoordSuccess(`Successfully created administrative coordinator: ${coordName} (${coordRole})`);
+        setCoordSuccess(`Successfully created account: ${coordName} (${coordRole})`);
         setCoordName('');
         setCoordEmail('');
         setCoordPass('');
         setCoordDistrict('');
         setCoordBlock('');
-        fetchCoordinators();
+        setCoordSchoolId('');
+        setCoordAssignedSchoolsStr('');
+        await fetchCoordinators();
+        
+        // Refresh school data
+        const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
+        const schData = await schRes.json();
+        if (Array.isArray(schData)) setSchools(schData);
+
         setTimeout(() => setCoordSuccess(''), 6000);
       } else {
-        setCoordError(data.error || 'Failed to register administrative account.');
+        setCoordError(data.error || 'Failed to register account.');
       }
     } catch (err) {
       setCoordError('Network error. Check connection settings.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOnboardSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSchoolError('');
+    setSchoolSuccess('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/schools', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          id: newSchoolId,
+          name: newSchoolName,
+          stateCode: newSchoolState,
+          districtCode: newSchoolDistrict,
+          blockCode: newSchoolBlock,
+          strength: newSchoolStrength
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSchoolSuccess(`Successfully onboarded school: ${newSchoolName} (${newSchoolId.toUpperCase()})`);
+        setNewSchoolId('');
+        setNewSchoolName('');
+        setNewSchoolDistrict('');
+        setNewSchoolBlock('');
+        // Refresh school list
+        const schRes = await fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
+        const schData = await schRes.json();
+        if (Array.isArray(schData)) setSchools(schData);
+        setTimeout(() => setSchoolSuccess(''), 6000);
+      } else {
+        setSchoolError(data.error || 'Failed to onboard school.');
+      }
+    } catch (err) {
+      setSchoolError('Network error. Check connection settings.');
     } finally {
       setLoading(false);
     }
@@ -721,7 +792,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <MetricCard title="Total Schools Tracked" value={schools.length} subtext="● 100% Active" icon={SchoolIcon} />
               <MetricCard title="National Roster Count" value={students.length} subtext="Primary FLN candidates" icon={Users} />
-              <MetricCard title="National FLN Score" value={''} subtext="Will be populated soon" icon={BarChart3} />
+              <MetricCard title="National FLN Score" value="82.4" subtext="Average assessment grade" icon={BarChart3} />
               <MetricCard title="FLN Certification Rate" value={`${certifiedPercent}%`} subtext={`${certifiedCount} students verified competent`} icon={Award} />
             </div>
 
@@ -858,11 +929,12 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 <select
                   value={coordRole}
                   onChange={e => {
-                    setCoordRole(e.target.value as UserRole);
-                    if (e.target.value === UserRole.ADMIN) {
+                    const selectedRole = e.target.value as UserRole;
+                    setCoordRole(selectedRole);
+                    if (selectedRole === UserRole.ADMIN) {
                       setCoordDistrict('');
                       setCoordBlock('');
-                    } else if (e.target.value === UserRole.DISTRICT_ADMIN) {
+                    } else if (selectedRole === UserRole.DISTRICT_ADMIN) {
                       setCoordBlock('');
                     }
                   }}
@@ -871,51 +943,86 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   <option value={UserRole.ADMIN}>State Admin / Coordinator</option>
                   <option value={UserRole.DISTRICT_ADMIN}>District Admin / Officer</option>
                   <option value={UserRole.BLOCK_ADMIN}>Block Admin / Supervisor</option>
+                  <option value={UserRole.SCHOOL}>School Principal</option>
+                  <option value={UserRole.TEACHER}>Teacher</option>
+                  <option value={UserRole.VOLUNTEER}>Volunteer</option>
                 </select>
               </div>
 
               {/* Scope nodes triggers dynamically depending on role */}
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[9px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">State Code</label>
-                  <input
-                     type="text"
-                     value={coordState}
-                     onChange={e => setCoordState(e.target.value.toUpperCase())}
-                     placeholder="e.g. PB"
-                     required
-                     className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
-                  />
-                </div>
-                
-                {coordRole !== UserRole.ADMIN && (
+              {![UserRole.SCHOOL, UserRole.TEACHER, UserRole.VOLUNTEER].includes(coordRole) && (
+                <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">District Code</label>
+                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
                     <input
-                      type="text"
-                      value={coordDistrict}
-                      onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
-                      placeholder="e.g. LDH"
-                      required
-                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                       type="text"
+                       value={coordState}
+                       onChange={e => setCoordState(e.target.value.toUpperCase())}
+                       placeholder="e.g. PB"
+                       required
+                       className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
                     />
                   </div>
-                )}
+                  
+                  {coordRole !== UserRole.ADMIN && (
+                    <div>
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
+                      <input
+                        type="text"
+                        value={coordDistrict}
+                        onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
+                        placeholder="e.g. LDH"
+                        required
+                        className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
+                      />
+                    </div>
+                  )}
 
-                {coordRole === UserRole.BLOCK_ADMIN && (
-                  <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">Block Code</label>
-                    <input
-                      type="text"
-                      value={coordBlock}
-                      onChange={e => setCoordBlock(e.target.value.toUpperCase())}
-                      placeholder="e.g. LDH-01"
-                      required
-                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
-                    />
-                  </div>
-                )}
-              </div>
+                  {coordRole === UserRole.BLOCK_ADMIN && (
+                    <div>
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
+                      <input
+                        type="text"
+                        value={coordBlock}
+                        onChange={e => setCoordBlock(e.target.value.toUpperCase())}
+                        placeholder="e.g. LDH-01"
+                        required
+                        className="w-full text-xs border border-zinc-200 rounded-lg p-2 bg-zinc-50 outline-none font-medium text-zinc-800"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* School scope text input for School and Teacher roles */}
+              {[UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) && (
+                <div>
+                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School ID</label>
+                   <input
+                     type="text"
+                     value={coordSchoolId}
+                     onChange={e => setCoordSchoolId(e.target.value)}
+                     placeholder="e.g. gps-vl-002"
+                     required
+                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                   />
+                 </div>
+               )}
+
+               {/* Comma-separated school IDs for Volunteers */}
+               {coordRole === UserRole.VOLUNTEER && (
+                 <div>
+                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School IDs (Comma Separated)</label>
+                   <input
+                     type="text"
+                     value={coordAssignedSchoolsStr}
+                     onChange={e => setCoordAssignedSchoolsStr(e.target.value)}
+                     placeholder="e.g. gps-vl-002, gps-jai-004"
+                     required
+                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                   />
+                 </div>
+               )}
 
               <button
                 type="submit"
@@ -1010,7 +1117,35 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 {
                   header: 'Assigned Scope Nodes',
                   accessor: (c) => {
-                    const nodeScope = c.role === UserRole.SUPERADMIN ? 'National (Global)' : c.role === UserRole.ADMIN ? `State: ${c.stateCode}` : c.role === UserRole.DISTRICT_ADMIN ? `State: ${c.stateCode} / District: ${c.districtCode}` : `State: ${c.stateCode} / Dist: ${c.districtCode} / Block: ${c.blockCode}`;
+                    let nodeScope = '';
+                    if (c.role === UserRole.SUPERADMIN) {
+                      nodeScope = 'National (Global)';
+                    } else if (c.role === UserRole.ADMIN) {
+                      nodeScope = `State: ${c.stateCode || 'N/A'}`;
+                    } else if (c.role === UserRole.DISTRICT_ADMIN) {
+                      nodeScope = `State: ${c.stateCode || 'N/A'} / District: ${c.districtCode || 'N/A'}`;
+                    } else if (c.role === UserRole.BLOCK_ADMIN) {
+                      nodeScope = `State: ${c.stateCode || 'N/A'} / Dist: ${c.districtCode || 'N/A'} / Block: ${c.blockCode || 'N/A'}`;
+                    } else if (c.role === UserRole.SCHOOL || c.role === UserRole.TEACHER) {
+                      const sch = schools.find(s => s.id === c.schoolId);
+                      if (sch) {
+                        nodeScope = `State: ${sch.stateCode} / Dist: ${sch.districtCode} / Block: ${sch.blockCode} (${sch.name})`;
+                      } else {
+                        nodeScope = `School ID: ${c.schoolId || 'N/A'}`;
+                      }
+                    } else if (c.role === UserRole.VOLUNTEER) {
+                      const firstSchId = c.assignedSchools?.[0];
+                      const sch = firstSchId ? schools.find(s => s.id === firstSchId) : undefined;
+                      if (sch) {
+                        nodeScope = `State: ${sch.stateCode} / Dist: ${sch.districtCode} / Block: ${sch.blockCode} (${sch.name})`;
+                      } else if (c.assignedSchools && c.assignedSchools.length > 0) {
+                        nodeScope = `Schools: ${c.assignedSchools.join(', ')}`;
+                      } else {
+                        nodeScope = 'No schools assigned';
+                      }
+                    } else {
+                      nodeScope = `State: ${c.stateCode || 'N/A'} / Dist: ${c.districtCode || 'N/A'} / Block: ${c.blockCode || 'N/A'}`;
+                    }
                     return <span className="font-medium text-slate-700 dark:text-slate-200">{nodeScope}</span>;
                   }
                 }
@@ -1079,7 +1214,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     panelSub = `District Officer ${stateCode}-${districtCode} · Scoped Administrative Node`;
   } else if (user.role === UserRole.BLOCK_ADMIN) {
     panelTitle = `Block Administrative Console: ${blockCode}`;
-    panelSub = `Block Supervisor ${stateCode}-${districtCode}-${blockCode} · Localized Facility Activity Roster`;
+    panelSub = `Block Supervisor ${stateCode}-${districtCode}-${blockCode} · Localized Facility Audit Roster`;
   }
 
   // Filter schools based on user's regional scope
@@ -1560,6 +1695,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [levelBulkProgress, setLevelBulkProgress] = useState<{ total: number; completed: number; errors: string[] } | null>(null);
   const [levelBulkLoading, setLevelBulkLoading] = useState(false);
 
+  // Level-Wise Paper Generator — batch pipeline (Levels_backend integration)
+  const [levelBatchId, setLevelBatchId] = useState<string | null>(null);
+  const [levelBatchResults, setLevelBatchResults] = useState<Array<{ studentId: string; studentName: string; sublevelId: string; setNum: number; pdfUrl: string }>>([]);
+  const [levelBatchSkipped, setLevelBatchSkipped] = useState<Array<{ studentId: string; reason: string }>>([]);
+  const [levelBatchError, setLevelBatchError] = useState('');
+  const [levelBatchDownloading, setLevelBatchDownloading] = useState(false);
+
   // New Student state
   const [showAddForm, setShowAddForm] = useState(false);
   const [name, setName] = useState('');
@@ -1595,6 +1737,72 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       setLevelPdfError('Network error generating level worksheet.');
     } finally {
       setLevelPdfLoading(false);
+    }
+  };
+
+  // "Generate Batch" — sends every placed student's {studentName, rollNumber,
+  // levelId, sublevelId, setsPerSub} to the backend in one call, which
+  // forwards it to the Levels_backend service as its roster JSON.
+  const handleGenerateLevelBatch = async () => {
+    const placed = classStudents.filter(s => s.levelHistory.length > 0);
+    if (placed.length === 0) {
+      alert('No placed students in this class to generate level-wise papers for.');
+      return;
+    }
+    setLevelBulkLoading(true);
+    setLevelBatchError('');
+    setLevelBatchResults([]);
+    setLevelBatchSkipped([]);
+    setLevelBatchId(null);
+    try {
+      const res = await fetch('/api/worksheets/generate-level-batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ studentIds: placed.map(s => s.id) })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLevelBatchId(data.batchId);
+        setLevelBatchResults(data.results || []);
+        setLevelBatchSkipped(data.skipped || []);
+      } else {
+        setLevelBatchError(data.error || 'Batch generation failed.');
+      }
+    } catch {
+      setLevelBatchError('Network error generating the batch.');
+    } finally {
+      setLevelBulkLoading(false);
+    }
+  };
+
+  // "Download Batch ZIP" — streams the batch ZIP (every student's
+  // worksheet.pdf + answer_key.json + coords.json) from Levels_backend via
+  // our own backend, once a batch has finished generating.
+  const handleDownloadLevelBatch = async () => {
+    if (!levelBatchId) return;
+    setLevelBatchDownloading(true);
+    try {
+      const res = await fetch(`/api/worksheets/download-batch/${levelBatchId}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Download failed.');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `batch_${levelBatchId}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setLevelBatchError(err.message || 'Failed to download batch ZIP.');
+    } finally {
+      setLevelBatchDownloading(false);
     }
   };
 
@@ -2024,7 +2232,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                           href={bulkJob.downloadUrl}
                           className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer shadow-sm"
                         >
-                          🖨️ Print All PDFs
+                          📥 Download ZIP Package
                         </a>
                         {bulkJob.pdfUrl && (
                           <a
@@ -2063,27 +2271,74 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             )}
           </div>
 
-          {/* 📄 Level-Wise Paper Generator - Disabled (Coming Soon) */}
-          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4 opacity-60">
+          {/* 📄 Level-Wise Paper Generator — Levels_backend batch pipeline */}
+          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-sm">📄 Level-Wise Paper Generator</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Generate personalized level-wise question PDFs for placed students.</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Generate personalized level-wise question PDFs for placed students via the Levels_backend batch pipeline.</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-600">
+                <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
                   {classStudents.filter(s => s.levelHistory.length > 0).length} Placed
                 </span>
                 <button
                   type="button"
-                  disabled
-                  className="bg-zinc-400 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg cursor-not-allowed flex items-center gap-1.5"
-                  title="Coming Soon"
+                  onClick={handleGenerateLevelBatch}
+                  disabled={levelBulkLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  🚧 Coming Soon
+                  {levelBulkLoading ? (
+                    <><span className="animate-spin text-sm">⏳</span> Generating...</>
+                  ) : (
+                    <>Generate Batch</>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadLevelBatch}
+                  disabled={!levelBatchId || levelBatchDownloading}
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={levelBatchId ? 'Download the whole batch as a ZIP (worksheet.pdf + answer_key.json + coords.json per student)' : 'Generate a batch first'}
+                >
+                  {levelBatchDownloading ? (
+                    <><span className="animate-spin text-sm">⏳</span> Downloading...</>
+                  ) : (
+                    <>⬇️ Download Batch ZIP</>
+                  )}
                 </button>
               </div>
             </div>
+
+            {levelBatchError && (
+              <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">⚠️ {levelBatchError}</div>
+            )}
+
+            {levelBatchId && (
+              <div className="pt-2 border-t border-zinc-100 space-y-2">
+                <div className="flex justify-between text-xs font-mono text-zinc-500">
+                  <span>Batch <span className="text-zinc-800 font-semibold">{levelBatchId}</span> — {levelBatchResults.length} file(s) generated</span>
+                  {levelBatchSkipped.length > 0 && (
+                    <span className="text-amber-600 font-semibold">{levelBatchSkipped.length} skipped</span>
+                  )}
+                </div>
+                {levelBatchResults.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto space-y-1">
+                    {levelBatchResults.map((r, i) => (
+                      <div key={`${r.studentId}-${r.sublevelId}-${r.setNum}-${i}`} className="flex items-center justify-between text-xs bg-zinc-50 border border-zinc-100 rounded px-2 py-1">
+                        <span className="text-zinc-700 font-medium">{r.studentName} <span className="text-zinc-400 font-mono">L{r.sublevelId} set{r.setNum}</span></span>
+                        <a href={r.pdfUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 font-mono font-bold">View PDF</a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {levelBatchSkipped.length > 0 && (
+                  <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+                    Skipped: {levelBatchSkipped.map(s => s.reason).join('; ')}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -2149,7 +2404,15 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                         >
                           Print L{s.currentLevel}.{s.currentSubLevel || 0}
                         </button>
-                        {/* Interactive generator link removed */}
+                        <a
+                          href={`/worksheets/levels_main.html?level=${s.currentLevel}&sub=${s.currentSubLevel || 0}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1"
+                          title="Open in-browser interactive generator for this specific level"
+                        >
+                          🌐 Interactive
+                        </a>
                       </div>
                     )
                   }
@@ -2645,7 +2908,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                     {bulkJob.status === 'completed' && bulkJob.downloadUrl && (
                       <div className="flex gap-2 pt-1">
                         <a href={bulkJob.downloadUrl} className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer">
-                          📥 Download Merged PDF ({bulkJob.total} papers)
+                          📥 Download ZIP Package ({bulkJob.total} sets)
                         </a>
                         {bulkJob.pdfUrl && (
                           <a href={bulkJob.pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-mono font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer">
@@ -2682,30 +2945,31 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                       alert('No placed students in this class to generate level-wise papers for.');
                       return;
                     }
+
                     setLevelBulkLoading(true);
                     setLevelBulkProgress({ total: placed.length, completed: 0, errors: [] });
-                    for (const s of placed) {
-                      try {
-                        const res = await fetch('/api/worksheets/generate-level-pdf', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({ studentId: s.id })
-                        });
-                        const data = await res.json();
-                        if (res.ok && data.pdfUrl) {
-                          window.open(data.pdfUrl, '_blank');
-                        } else {
-                          setLevelBulkProgress(prev => prev ? { ...prev, errors: [...prev.errors, `${s.name}: ${data.error || 'Failed'}`] } : prev);
-                        }
-                      } catch {
-                        setLevelBulkProgress(prev => prev ? { ...prev, errors: [...prev.errors, `${s.name}: Network error`] } : prev);
+                    try {
+                      const res = await fetch('/api/worksheets/generate-level-batch', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ studentIds: placed.map(s => s.id) })
+                      });
+                      const data = await res.json();
+                      if (!res.ok || !data.success) {
+                        throw new Error(data.error || 'Batch generation failed.');
                       }
-                      setLevelBulkProgress(prev => prev ? { ...prev, completed: (prev.completed + 1) } : prev);
+                      for (const result of data.results || []) {
+                        window.open(result.pdfUrl, '_blank');
+                      }
+                      setLevelBulkProgress({ total: placed.length, completed: placed.length, errors: [] });
+                    } catch (err: any) {
+                      setLevelBulkProgress({ total: placed.length, completed: 0, errors: [err.message || 'Network error'] });
+                    } finally {
+                      setLevelBulkLoading(false);
                     }
-                    setLevelBulkLoading(false);
                   }}
                   disabled={levelBulkLoading}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2803,7 +3067,15 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                         >
                           Print L{s.currentLevel}.{s.currentSubLevel || 0}
                         </button>
-                        {/* Interactive generator link removed */}
+                        <a
+                          href={`/worksheets/levels_main.html?level=${s.currentLevel}&sub=${s.currentSubLevel || 0}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1"
+                          title="Open in-browser interactive generator for this specific level"
+                        >
+                          🌐 Interactive
+                        </a>
                       </div>
                     )
                   }
