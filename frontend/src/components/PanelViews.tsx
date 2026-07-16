@@ -12,13 +12,13 @@ interface PanelViewsProps {
 }
 
 const STUDENTS_FALLBACK: Student[] = [
-  { id: 's1', name: 'Amanpreet Singh', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 12, currentSubLevel: 0, targetLevel: 13, aadharMasked: 'XXXX-XXXX-1234', levelHistory: [{ level: 12, subLevel: 0, date: '2026-03-15', reason: 'Diagnostic' }], streak: 3 },
-  { id: 's2', name: 'Jasmine Kaur', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 8, currentSubLevel: 1, targetLevel: 12, aadharMasked: 'XXXX-XXXX-5678', levelHistory: [{ level: 8, subLevel: 1, date: '2026-02-20', reason: 'Mid-year' }], streak: 1 },
-  { id: 's3', name: 'Rohit Kumar', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', currentLevel: 36, currentSubLevel: 0, targetLevel: 37, aadharMasked: 'XXXX-XXXX-9012', levelHistory: [{ level: 36, date: '2026-01-10', reason: 'Baseline' }], streak: 5 },
-  { id: 's4', name: 'Priya Sharma', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 10, currentSubLevel: 2, targetLevel: 14, aadharMasked: 'XXXX-XXXX-3456', levelHistory: [], streak: 0 },
-  { id: 's5', name: 'Arjun Verma', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 6, currentSubLevel: 0, targetLevel: 11, aadharMasked: 'XXXX-XXXX-7890', levelHistory: [{ level: 6, date: '2026-04-01', reason: 'Diagnostic' }], streak: 2 },
-  { id: 's6', name: 'Neha Gupta', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', currentLevel: 38, currentSubLevel: 1, targetLevel: 40, aadharMasked: 'XXXX-XXXX-2345', levelHistory: [{ level: 38, date: '2026-03-01', reason: 'Mid-year' }], streak: 4 },
-  { id: 's7', name: 'Simran Kaur', age: 6, classGroup: 'Class 1', section: 'A', schoolId: 'gps-mt-001', currentLevel: 4, currentSubLevel: 0, targetLevel: 8, aadharMasked: 'XXXX-XXXX-6789', levelHistory: [], streak: 0 },
+  { id: 's1', name: 'Amanpreet Singh', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 12, currentSubLevel: 0, targetLevel: 13, aadharMasked: 'XXXX-XXXX-1234', levelHistory: [{ level: 12, subLevel: 0, date: '2026-03-15', reason: 'Diagnostic' }], streak: 3, rollNumber: 'S001', class: 'Class 2', schoolName: 'GPS Model Town', districtName: 'Ludhiana', stateName: 'Punjab', gender: 'Male', attendance: 93, averageScore: 78 },
+  { id: 's2', name: 'Jasmine Kaur', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 8, currentSubLevel: 1, targetLevel: 12, aadharMasked: 'XXXX-XXXX-5678', levelHistory: [{ level: 8, subLevel: 1, date: '2026-02-20', reason: 'Mid-year' }], streak: 1, rollNumber: 'S002', class: 'Class 2', schoolName: 'GPS Model Town', districtName: 'Ludhiana', stateName: 'Punjab', gender: 'Female', attendance: 84, averageScore: 65 },
+  { id: 's3', name: 'Rohit Kumar', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', currentLevel: 36, currentSubLevel: 0, targetLevel: 37, aadharMasked: 'XXXX-XXXX-9012', levelHistory: [{ level: 36, date: '2026-01-10', reason: 'Baseline' }], streak: 5, rollNumber: 'S003', class: 'Class 3', schoolName: 'GPS Model Town', districtName: 'Ludhiana', stateName: 'Punjab', gender: 'Male', attendance: 98, averageScore: 85 },
+  { id: 's4', name: 'Priya Sharma', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 10, currentSubLevel: 2, targetLevel: 14, aadharMasked: 'XXXX-XXXX-3456', levelHistory: [], streak: 0, rollNumber: 'S004', class: 'Class 2', schoolName: 'GPS Model Town', districtName: 'Ludhiana', stateName: 'Punjab', gender: 'Female', attendance: 78, averageScore: 60 },
+  { id: 's5', name: 'Arjun Verma', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 6, currentSubLevel: 0, targetLevel: 11, aadharMasked: 'XXXX-XXXX-7890', levelHistory: [{ level: 6, date: '2026-04-01', reason: 'Diagnostic' }], streak: 2, rollNumber: 'S005', class: 'Class 2', schoolName: 'GPS Model Town', districtName: 'Ludhiana', stateName: 'Punjab', gender: 'Male', attendance: 89, averageScore: 55 },
+  { id: 's6', name: 'Neha Gupta', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', currentLevel: 38, currentSubLevel: 1, targetLevel: 40, aadharMasked: 'XXXX-XXXX-2345', levelHistory: [{ level: 38, date: '2026-03-01', reason: 'Mid-year' }], streak: 4, rollNumber: 'S006', class: 'Class 3', schoolName: 'GPS Model Town', districtName: 'Ludhiana', stateName: 'Punjab', gender: 'Female', attendance: 96, averageScore: 72 },
+  { id: 's7', name: 'Simran Kaur', age: 6, classGroup: 'Class 1', section: 'A', schoolId: 'gps-mt-001', currentLevel: 4, currentSubLevel: 0, targetLevel: 8, aadharMasked: 'XXXX-XXXX-6789', levelHistory: [], streak: 0, rollNumber: 'S007', class: 'Class 1', schoolName: 'GPS Model Town', districtName: 'Ludhiana', stateName: 'Punjab', gender: 'Female', attendance: 75, averageScore: 50 },
 ];
 
 const REPORTS_MOCK: EvaluationReport[] = [
@@ -36,20 +36,20 @@ const TEACHERS_MOCK = [
 ];
 
 const SCHOOLS_FALLBACK: School[] = [
-  { id: 'gps-mt-001', name: 'GPS Model Town', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-01', strength: 'standard', teachersCount: 8, isAccessLocked: false },
-  { id: 'gps-vl-002', name: 'GPS Village Lohara', stateCode: 'PB', districtCode: 'MOG', blockCode: 'MOG-01', strength: 'standard', teachersCount: 2, isAccessLocked: false },
-  { id: 'gps-amb-003', name: 'GPS Ambala Cantt', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-01', strength: 'standard', teachersCount: 6, isAccessLocked: false },
-  { id: 'gps-jai-004', name: 'GPS Govind Dev Ji', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-01', strength: 'standard', teachersCount: 7, isAccessLocked: true },
-  { id: 'gps-lko-005', name: 'GPS Hazratganj', stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-01', strength: 'standard', teachersCount: 5, isAccessLocked: false },
-  { id: 'gps-bth-006', name: 'GPS Bathinda City', stateCode: 'PB', districtCode: 'BTH', blockCode: 'BTH-01', strength: 'standard', teachersCount: 4, isAccessLocked: false },
-  { id: 'gps-asr-007', name: 'GPS Amritsar', stateCode: 'PB', districtCode: 'ASR', blockCode: 'ASR-01', strength: 'standard', teachersCount: 6, isAccessLocked: false },
-  { id: 'gps-pkl-008', name: 'GPS Panchkula', stateCode: 'HR', districtCode: 'PKL', blockCode: 'PKL-01', strength: 'standard', teachersCount: 5, isAccessLocked: false },
-  { id: 'gps-jai2-009', name: 'GPS Jaipur Rural', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-02', strength: 'standard', teachersCount: 3, isAccessLocked: false },
-  { id: 'gps-uda-010', name: 'GPS Udaipur', stateCode: 'RJ', districtCode: 'UDA', blockCode: 'UDA-01', strength: 'standard', teachersCount: 3, isAccessLocked: false },
-  { id: 'gps-lko2-011', name: 'GPS Aliganj', stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-02', strength: 'standard', teachersCount: 2, isAccessLocked: false },
-  { id: 'gps-knp-012', name: 'GPS Kanpur', stateCode: 'UP', districtCode: 'KNP', blockCode: 'KNP-01', strength: 'standard', teachersCount: 5, isAccessLocked: false },
-  { id: 'gps-pb-ldh2-013', name: 'GPS Gill Village', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-02', strength: 'standard', teachersCount: 2, isAccessLocked: false },
-  { id: 'gps-hr-amb2-014', name: 'GPS Ambala South', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-02', strength: 'standard', teachersCount: 2, isAccessLocked: false },
+  { id: 'gps-mt-001', name: 'GPS Model Town', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-01', strength: 'standard', teachersCount: 8, isAccessLocked: false, udiseId: 'PB001001', stateId: 'st-pb', stateName: 'Punjab', districtId: 'dt-ldh', districtName: 'Ludhiana', blockId: 'bk-ldh-01', blockName: 'Ludhiana Block 1', cluster: 'Urban', type: 'Government', principal: 'Harjeet Singh', teacherCount: 8, studentCount: 240, averageScore: 78, status: 'Active' },
+  { id: 'gps-vl-002', name: 'GPS Village Lohara', stateCode: 'PB', districtCode: 'MOG', blockCode: 'MOG-01', strength: 'standard', teachersCount: 2, isAccessLocked: false, udiseId: 'PB002001', stateId: 'st-pb', stateName: 'Punjab', districtId: 'dt-mog', districtName: 'Moga', blockId: 'bk-mog-01', blockName: 'Moga Block 1', cluster: 'Rural', type: 'Government', principal: 'Gurpreet Kaur', teacherCount: 2, studentCount: 45, averageScore: 62, status: 'Active' },
+  { id: 'gps-amb-003', name: 'GPS Ambala Cantt', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-01', strength: 'standard', teachersCount: 6, isAccessLocked: false, udiseId: 'HR001001', stateId: 'st-hr', stateName: 'Haryana', districtId: 'dt-amb', districtName: 'Ambala', blockId: 'bk-amb-01', blockName: 'Ambala Block 1', cluster: 'Semi-Urban', type: 'Government', principal: 'Sunita Rani', teacherCount: 6, studentCount: 180, averageScore: 71, status: 'Active' },
+  { id: 'gps-jai-004', name: 'GPS Govind Dev Ji', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-01', strength: 'standard', teachersCount: 7, isAccessLocked: true, udiseId: 'RJ001001', stateId: 'st-rj', stateName: 'Rajasthan', districtId: 'dt-jai', districtName: 'Jaipur', blockId: 'bk-jai-01', blockName: 'Jaipur Block 1', cluster: 'Urban', type: 'Government', principal: 'Mohan Sharma', teacherCount: 7, studentCount: 210, averageScore: 66, status: 'Inactive' },
+  { id: 'gps-lko-005', name: 'GPS Hazratganj', stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-01', strength: 'standard', teachersCount: 5, isAccessLocked: false, udiseId: 'UP001001', stateId: 'st-up', stateName: 'Uttar Pradesh', districtId: 'dt-lko', districtName: 'Lucknow', blockId: 'bk-lko-01', blockName: 'Lucknow Block 1', cluster: 'Urban', type: 'Government', principal: 'Reena Verma', teacherCount: 5, studentCount: 150, averageScore: 69, status: 'Active' },
+  { id: 'gps-bth-006', name: 'GPS Bathinda City', stateCode: 'PB', districtCode: 'BTH', blockCode: 'BTH-01', strength: 'standard', teachersCount: 4, isAccessLocked: false, udiseId: 'PB003001', stateId: 'st-pb', stateName: 'Punjab', districtId: 'dt-bth', districtName: 'Bathinda', blockId: 'bk-bth-01', blockName: 'Bathinda Block 1', cluster: 'Urban', type: 'Government', principal: 'Amarjit Singh', teacherCount: 4, studentCount: 120, averageScore: 74, status: 'Active' },
+  { id: 'gps-asr-007', name: 'GPS Amritsar', stateCode: 'PB', districtCode: 'ASR', blockCode: 'ASR-01', strength: 'standard', teachersCount: 6, isAccessLocked: false, udiseId: 'PB004001', stateId: 'st-pb', stateName: 'Punjab', districtId: 'dt-asr', districtName: 'Amritsar', blockId: 'bk-asr-01', blockName: 'Amritsar Block 1', cluster: 'Urban', type: 'Government', principal: 'Parminder Kaur', teacherCount: 6, studentCount: 200, averageScore: 76, status: 'Active' },
+  { id: 'gps-pkl-008', name: 'GPS Panchkula', stateCode: 'HR', districtCode: 'PKL', blockCode: 'PKL-01', strength: 'standard', teachersCount: 5, isAccessLocked: false, udiseId: 'HR002001', stateId: 'st-hr', stateName: 'Haryana', districtId: 'dt-pkl', districtName: 'Panchkula', blockId: 'bk-pkl-01', blockName: 'Panchkula Block 1', cluster: 'Semi-Urban', type: 'Government', principal: 'Vijay Kumar', teacherCount: 5, studentCount: 160, averageScore: 73, status: 'Active' },
+  { id: 'gps-jai2-009', name: 'GPS Jaipur Rural', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-02', strength: 'standard', teachersCount: 3, isAccessLocked: false, udiseId: 'RJ001002', stateId: 'st-rj', stateName: 'Rajasthan', districtId: 'dt-jai', districtName: 'Jaipur', blockId: 'bk-jai-02', blockName: 'Jaipur Block 2', cluster: 'Rural', type: 'Government', principal: 'Kavita Joshi', teacherCount: 3, studentCount: 90, averageScore: 60, status: 'Active' },
+  { id: 'gps-uda-010', name: 'GPS Udaipur', stateCode: 'RJ', districtCode: 'UDA', blockCode: 'UDA-01', strength: 'standard', teachersCount: 3, isAccessLocked: false, udiseId: 'RJ002001', stateId: 'st-rj', stateName: 'Rajasthan', districtId: 'dt-uda', districtName: 'Udaipur', blockId: 'bk-uda-01', blockName: 'Udaipur Block 1', cluster: 'Rural', type: 'Government', principal: 'Deepak Mehta', teacherCount: 3, studentCount: 85, averageScore: 58, status: 'Active' },
+  { id: 'gps-lko2-011', name: 'GPS Aliganj', stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-02', strength: 'standard', teachersCount: 2, isAccessLocked: false, udiseId: 'UP001002', stateId: 'st-up', stateName: 'Uttar Pradesh', districtId: 'dt-lko', districtName: 'Lucknow', blockId: 'bk-lko-02', blockName: 'Lucknow Block 2', cluster: 'Urban', type: 'Government', principal: 'Sanjay Gupta', teacherCount: 2, studentCount: 60, averageScore: 67, status: 'Active' },
+  { id: 'gps-knp-012', name: 'GPS Kanpur', stateCode: 'UP', districtCode: 'KNP', blockCode: 'KNP-01', strength: 'standard', teachersCount: 5, isAccessLocked: false, udiseId: 'UP002001', stateId: 'st-up', stateName: 'Uttar Pradesh', districtId: 'dt-knp', districtName: 'Kanpur', blockId: 'bk-knp-01', blockName: 'Kanpur Block 1', cluster: 'Urban', type: 'Government', principal: 'Meena Tiwari', teacherCount: 5, studentCount: 145, averageScore: 70, status: 'Active' },
+  { id: 'gps-pb-ldh2-013', name: 'GPS Gill Village', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-02', strength: 'standard', teachersCount: 2, isAccessLocked: false, udiseId: 'PB001002', stateId: 'st-pb', stateName: 'Punjab', districtId: 'dt-ldh', districtName: 'Ludhiana', blockId: 'bk-ldh-02', blockName: 'Ludhiana Block 2', cluster: 'Rural', type: 'Government', principal: 'Balwinder Kaur', teacherCount: 2, studentCount: 55, averageScore: 61, status: 'Active' },
+  { id: 'gps-hr-amb2-014', name: 'GPS Ambala South', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-02', strength: 'standard', teachersCount: 2, isAccessLocked: false, udiseId: 'HR001002', stateId: 'st-hr', stateName: 'Haryana', districtId: 'dt-amb', districtName: 'Ambala', blockId: 'bk-amb-02', blockName: 'Ambala Block 2', cluster: 'Rural', type: 'Government', principal: 'Ashok Kumar', teacherCount: 2, studentCount: 50, averageScore: 63, status: 'Active' },
 ];
 
 const USERS_FALLBACK = [
@@ -990,8 +990,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     const isStateAdmin = currentUser.role === UserRole.ADMIN;
     if (isStateAdmin) {
       const userState = currentUser.stateCode || 'PB';
-      const stateSchools = schools.filter(s => s.stateCode === userState);
-      const stateDistricts = [...new Set(stateSchools.map(s => s.districtCode))];
+      const stateSchools = SCHOOLS_FALLBACK.filter(s => s.stateCode === userState);
+      const stateDistricts = [...new Set(stateSchools.map(s => s.districtCode).filter((x): x is string => !!x))];
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1257,7 +1257,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{filteredSchools.map(s => (
           <div key={s.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-2">
             <div className="flex justify-between"><h4 className="font-bold text-slate-900 dark:text-white text-sm">{s.name}</h4><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.strength === 'high' ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.strength}</span></div>
-            <div className="text-xs text-slate-400 dark:text-slate-500">{STATE_NAMES[s.stateCode] || s.stateCode} &rsaquo; {DISTRICT_NAMES[s.districtCode] || s.districtCode} &rsaquo; {BLOCK_NAMES[s.blockCode] || s.blockCode}</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">{(s.stateCode && STATE_NAMES[s.stateCode]) || s.stateCode} &rsaquo; {(s.districtCode && DISTRICT_NAMES[s.districtCode]) || s.districtCode} &rsaquo; {(s.blockCode && BLOCK_NAMES[s.blockCode]) || s.blockCode}</div>
             <div className="flex gap-4 text-xs pt-1 border-t border-slate-100 dark:border-slate-700"><span>👨‍🏫 {s.teachersCount} teachers</span><span className={s.isAccessLocked ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}>{s.isAccessLocked ? '🔒 Locked' : '🔓 Active'}</span></div>
           </div>
         ))}</div>
@@ -1465,8 +1465,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'analytics') {
-    const isAdmin = [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(currentUser.role);
-    const data = isAdmin ? DISTRICTS : schools;
+    const isAdmin = [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(currentUser.role as UserRole);
+    const data = isAdmin ? DISTRICTS : SCHOOLS_FALLBACK;
     const title = isAdmin ? 'Geographical Analytics' : 'Performance Analytics';
     const desc = isAdmin ? 'Cross-regional performance metrics and benchmarking' : 'School-level performance data and trends';
     return (

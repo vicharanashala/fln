@@ -210,6 +210,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });
         list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
+        list.push({ name: 'Answer Key', view: 'answer_key', icon: KeyRound });
         break;
     }
 
@@ -398,10 +399,10 @@ export const Layout: React.FC<LayoutProps> = ({
           {/* User Profile Info */}
           <div className="flex items-center gap-2 border-l border-slate-200 pl-4 dark:border-slate-700">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
-              {currentUser.name.charAt(0)}
+              {(currentUser.name ?? currentUser.firstName ?? '?').charAt(0)}
             </div>
             <div className="hidden flex-col sm:flex">
-              <span className="text-xs font-bold text-slate-900 dark:text-white">{currentUser.name}</span>
+              <span className="text-xs font-bold text-slate-900 dark:text-white">{currentUser.name ?? currentUser.firstName}</span>
               <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wide dark:text-slate-500">
                 {currentUser.role.replace('_', ' ')}
               </span>

@@ -21,6 +21,7 @@ import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
+import AnswerKeyPanel from './pages/AnswerKeyGenerator/AnswerKeyPanel';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
 
 export default function App() {
@@ -74,18 +75,6 @@ export default function App() {
     navigate('/');
   };
 
-  const handleRoleSwitch = (role: UserRole) => {
-    if (!currentUser) return;
-    setCurrentUser({ ...currentUser, role });
-    triggerToast('Role switched');
-  };
-
-  const handleMarkNotificationRead = (id: string) => {
-    setAnnouncements(prev => prev.map(a => (a.id === id ? { ...a, read: true } : a)));
-  };
-
-  const handleClearNotifications = () => setAnnouncements([]);
-
   const handleLogout = () => {
     setToken(null);
     setCurrentUser(null);
@@ -94,26 +83,73 @@ export default function App() {
     navigate('/');
   };
 
-  const renderRoleWorkspace = () => {
-    if (!currentUser) return null;
+  const handleMarkNotificationRead = (id: string) => {
+    setAnnouncements(prev => prev.map(a => (a.id === id ? { ...a, read: true } : a)));
+  };
 
+  const handleClearNotifications = () => setAnnouncements([]);
+
+  const handleRoleSwitch = async (newRole: UserRole) => {
+    if (!currentUser || !token) return;
+    try {
+      const res = await fetch('/api/auth/switch-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ role: newRole })
+      });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        setCurrentUser(data.user);
+        setActivePanel('workspace');
+        triggerToast(`Switched active profile to ${newRole.toUpperCase()}`);
+      } else {
+        const fallbackUser: User = {
+          ...currentUser,
+          role: newRole,
+          name: `Demo ${newRole.charAt(0).toUpperCase() + newRole.slice(1)}`
+        };
+        setCurrentUser(fallbackUser);
+        setActivePanel('workspace');
+        triggerToast(`Switched active profile to fallback ${newRole.toUpperCase()}`);
+      }
+    } catch (e) {
+      const fallbackUser: User = {
+        ...currentUser,
+        role: newRole,
+        name: `Demo ${newRole.charAt(0).toUpperCase() + newRole.slice(1)}`
+      };
+      setCurrentUser(fallbackUser);
+      setActivePanel('workspace');
+      triggerToast(`Switched active profile to fallback ${newRole.toUpperCase()}`);
+    }
+  };
+
+  const renderRoleWorkspace = () => {
+    if (!currentUser || !token) return null;
     switch (currentUser.role) {
-      case 'superadmin':
-        return <SuperadminDashboard user={currentUser} />;
-      case 'admin':
-        return <AdminDashboard user={currentUser} />;
-      case 'school':
-        return <SchoolDashboard user={currentUser} />;
-      case 'teacher':
-        return <TeacherDashboard user={currentUser} />;
-      case 'volunteer':
-        return <VolunteerDashboard user={currentUser} />;
+      case UserRole.SUPERADMIN:
+        return <SuperadminDashboard user={currentUser} token={token} />;
+      case UserRole.ADMIN:
+      case UserRole.DISTRICT_ADMIN:
+      case UserRole.BLOCK_ADMIN:
+        return <AdminDashboard user={currentUser} token={token} />;
+      case UserRole.SCHOOL:
+        return <SchoolDashboard user={currentUser} token={token} />;
+      case UserRole.TEACHER:
+        return <TeacherDashboard user={currentUser} token={token} />;
+      case UserRole.VOLUNTEER:
+        return <VolunteerDashboard user={currentUser} token={token} />;
       default:
-        return <div />;
+        return <div className="p-8 text-center text-zinc-500">Unrecognized user role mapping.</div>;
     }
   };
 
   const activeUrgentAnnouncements = announcements.filter(a => a.isUrgent);
+
+  const EXPLICIT_PANELS = ['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'answer_key'];
 
   return (
     <Routes>
@@ -151,10 +187,10 @@ export default function App() {
                 {activePanel === 'notifications' && (
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                     <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
-                      <Bell className="h-6 w-6 text-slate-550 dark:text-slate-400" />
+                      <Bell className="h-6 w-6 text-slate-500 dark:text-slate-400" />
                       <div>
                         <h2 className="font-sans text-lg font-bold text-slate-900 dark:text-white">Announcements Log</h2>
-                        <p className="text-xs text-slate-505 dark:text-slate-400">Official notifications escalated by state administrative coordinators.</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Official notifications escalated by state administrative coordinators.</p>
                       </div>
                     </div>
                     <div className="space-y-4">
@@ -167,7 +203,7 @@ export default function App() {
                             className={`space-y-2 rounded-xl border p-4 ${
                               notif.isUrgent
                                 ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30'
-                                : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'
+                                : 'border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'
                             }`}
                           >
                             <div className="flex items-center justify-between">
@@ -176,7 +212,7 @@ export default function App() {
                                 {new Date(notif.createdAt).toLocaleString()}
                               </span>
                             </div>
-                            <p className="font-sans text-xs leading-relaxed text-slate-650 dark:text-slate-300">{notif.message}</p>
+                            <p className="font-sans text-xs leading-relaxed text-slate-600 dark:text-slate-300">{notif.message}</p>
                           </div>
                         ))
                       )}
@@ -185,8 +221,9 @@ export default function App() {
                 )}
 
                 {activePanel === 'logbook' && <LogbookView token={token} user={currentUser} />}
-                {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role} />}
+                {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role as UserRole} />}
                 {activePanel === 'calendar' && <AssessmentCalendar />}
+                {activePanel === 'answer_key' && <AnswerKeyPanel token={token} />}
 
                 {activePanel === 'settings' && (
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -200,21 +237,21 @@ export default function App() {
                     <div className="grid grid-cols-1 gap-6 text-sm font-sans md:grid-cols-2">
                       <div className="space-y-4">
                         <h3 className="font-mono text-xs font-bold uppercase text-slate-800">User Profile Details</h3>
-                        <div className="space-y-2 rounded-lg border border-slate-150 bg-slate-50 p-4">
-                          <div><span className="text-xs font-semibold text-slate-450">Full Name:</span> <strong className="text-slate-800">{currentUser.name}</strong></div>
-                          <div><span className="text-xs font-semibold text-slate-450">Email ID:</span> <strong className="font-mono text-slate-850">{currentUser.email}</strong></div>
-                          <div><span className="text-xs font-semibold text-slate-450">Assigned Scope:</span> <strong className="font-mono text-slate-800">{currentUser.schoolId || currentUser.districtCode || currentUser.stateCode || 'National Oversight'}</strong></div>
+                        <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                          <div><span className="text-xs font-semibold text-slate-400">Full Name:</span> <strong className="text-slate-800">{currentUser.name}</strong></div>
+                          <div><span className="text-xs font-semibold text-slate-400">Email ID:</span> <strong className="font-mono text-slate-800">{currentUser.email}</strong></div>
+                          <div><span className="text-xs font-semibold text-slate-400">Assigned Scope:</span> <strong className="font-mono text-slate-800">{currentUser.schoolId || currentUser.districtCode || currentUser.stateCode || 'National Oversight'}</strong></div>
                         </div>
                       </div>
                       <div className="space-y-4">
                         <h3 className="font-mono text-xs font-bold uppercase text-slate-800">Accessibility Configuration</h3>
-                        <div className="space-y-3 rounded-lg border border-slate-150 bg-slate-50 p-4">
+                        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                           <label className="flex items-center gap-2 font-medium">
-                            <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-650" />
+                            <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-600" />
                             <span>Enable High-Contrast Border Outlines</span>
                           </label>
                           <label className="flex items-center gap-2 font-medium">
-                            <input type="checkbox" className="rounded border-slate-300 text-indigo-650" />
+                            <input type="checkbox" className="rounded border-slate-300 text-indigo-600" />
                             <span>Audio voice narration on hover (SLA §2.3)</span>
                           </label>
                         </div>
@@ -223,7 +260,7 @@ export default function App() {
                   </div>
                 )}
 
-                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(activePanel) && (
+                {!EXPLICIT_PANELS.includes(activePanel) && (
                   <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
                 )}
 

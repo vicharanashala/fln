@@ -108,14 +108,14 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     paper.questions.forEach((q) => {
       if (q.answer_type === 'choice') {
         const randomIdx = Math.floor(Math.random() * (q.choices?.length || 1));
-        extracted[q.question_id] = q.choices?.[randomIdx] || '';
+        extracted[q.question_id ?? ''] = q.choices?.[randomIdx] || '';
       } else {
-        const correct = q.answer;
+        const correct = q.answer ?? '';
         const shouldCorrect = Math.random() > 0.3;
         if (q.answer_type === 'number') {
-          extracted[q.question_id] = shouldCorrect ? correct : String(parseInt(correct, 10) + (Math.random() > 0.5 ? 1 : -1));
+          extracted[q.question_id ?? ''] = shouldCorrect ? correct : String(parseInt(correct, 10) + (Math.random() > 0.5 ? 1 : -1));
         } else {
-          extracted[q.question_id] = shouldCorrect ? correct : correct.split('').reverse().join('');
+          extracted[q.question_id ?? ''] = shouldCorrect ? correct : correct.split('').reverse().join('');
         }
       }
     });
@@ -460,19 +460,19 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                         <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 capitalize">Level {q.source_level} · {q.topic}</span>
                       </div>
                       <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                        (extractedAnswers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase()
+                        (extractedAnswers[q.question_id ?? ''] || '').trim().toLowerCase() === (q.answer ?? '').trim().toLowerCase()
                           ? 'bg-green-50 text-green-700 border border-green-200'
                           : 'bg-amber-50 text-amber-700 border border-amber-200'
                       }`}>
-                        {(extractedAnswers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase() ? 'Match' : 'Differs from key'}
+                        {(extractedAnswers[q.question_id ?? ''] || '').trim().toLowerCase() === (q.answer ?? '').trim().toLowerCase() ? 'Match' : 'Differs from key'}
                       </span>
                     </div>
                     <p className="text-sm text-zinc-700 dark:text-zinc-200">{q.question}</p>
 
                     {q.answer_type === 'choice' && q.choices ? (
                       <select
-                        value={extractedAnswers[q.question_id] || ''}
-                        onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
+                        value={extractedAnswers[q.question_id ?? ''] || ''}
+                        onChange={(e) => handleAnswerChange(q.question_id ?? '', e.target.value)}
                         className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
                       >
                         <option value="">Select option...</option>
@@ -484,11 +484,11 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                       <div className="flex gap-2">
                         <input
                           type="text"
-                          value={extractedAnswers[q.question_id] || ''}
-                          onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
+                          value={extractedAnswers[q.question_id ?? ''] || ''}
+                          onChange={(e) => handleAnswerChange(q.question_id ?? '', e.target.value)}
                           className="flex-1 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none font-mono"
                         />
-                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 self-center">Key: {q.answer}</span>
+                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 self-center">Key: {q.answer ?? ''}</span>
                       </div>
                     )}
                   </div>

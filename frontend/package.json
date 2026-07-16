@@ -1,17 +1,19 @@
 {
-  "name": "@fln/frontend",
-  "private": true,
-  "version": "0.0.0",
+  "name": "fln-frontend",
+  "version": "1.0.0",
+  "description": "FLN — Super Admin Dashboard (React + TypeScript + Tailwind v4)",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",
     "axios": "^1.18.1",
+    "framer-motion": "^11.11.0",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "qrcode": "^1.5.4",
@@ -19,15 +21,17 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-hook-form": "^7.81.0",
-    "react-router-dom": "^7.18.1"
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^7.18.1",
+    "recharts": "^2.13.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.14",
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.4",
-    "autoprefixer": "^10.4.21",
-    "tailwindcss": "^4.1.14",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^18.3.10",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.6"
   }
 }

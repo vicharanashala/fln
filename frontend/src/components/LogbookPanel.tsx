@@ -58,12 +58,12 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
 
-  const userRank = useMemo(() => ROLE_RANKS[currentUser.role] || 1, [currentUser.role]);
+  const userRank = useMemo(() => ROLE_RANKS[currentUser.role as UserRole] || 1, [currentUser.role]);
 
   // Filter logs where log.level rank <= currentUser.role rank
   const accessibleLogs = useMemo(() => {
     return logs.filter(log => {
-      const logRank = ROLE_RANKS[log.level] || 1;
+      const logRank = (log.level ? ROLE_RANKS[log.level] : 0) || 1;
       return logRank <= userRank;
     });
   }, [logs, userRank]);
@@ -79,7 +79,7 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
   const finalLogs = useMemo(() => {
     return accessibleLogs.filter(log => {
       const matchesSearch = 
-        log.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (log.type ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (log.scope && log.scope.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -106,7 +106,7 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
         </div>
         <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-400">
           <Shield className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-          <span>Access Level: {ROLE_LABELS[currentUser.role]}</span>
+          <span>Access Level: {ROLE_LABELS[currentUser.role as UserRole]}</span>
         </div>
       </div>
 
@@ -119,8 +119,8 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
               Role-Based Logbook Visibility Policy
             </h4>
             <p className="text-xs text-blue-800/90 leading-relaxed dark:text-blue-400/90">
-              Your logged-in role is <strong className="font-bold">{ROLE_LABELS[currentUser.role]}</strong>. Under standard FLN security directives, 
-              <strong> only higher or equal level users can audit lower-level activities</strong>. 
+              Your logged-in role is <strong className="font-bold">{ROLE_LABELS[currentUser.role as UserRole]}</strong>. Under standard FLN security directives, 
+              <strong> only higher or equal level users can view lower-level activities</strong>. 
               You can monitor your level's actions and all activities logged by roles underneath you. Actions by superior hierarchies remain strictly confidential and redacted.
             </p>
             
@@ -213,8 +213,8 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${ROLE_COLOR_CLASSES[log.level]}`}>
-                      {ROLE_LABELS[log.level]}
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${log.level ? ROLE_COLOR_CLASSES[log.level] : ''}`}>
+                      {log.level ? ROLE_LABELS[log.level] : ''}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500 font-medium">

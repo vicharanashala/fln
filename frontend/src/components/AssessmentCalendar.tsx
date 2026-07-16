@@ -183,7 +183,7 @@ export const AssessmentCalendar: React.FC = () => {
                   <div key={idx} className="relative">
                     {/* Ring dot indicator */}
                     <div className={`absolute -left-[27px] top-1 w-3 h-3 rounded-full border-2 bg-white transition-all ${
-                      m.completed ? 'border-green-600 bg-green-500' : m.current ? 'border-amber-600 animate-pulse bg-amber-500' : 'border-zinc-300'
+                      m.completed ? 'border-green-600 bg-green-500' : (m as any).current ? 'border-amber-600 animate-pulse bg-amber-500' : 'border-zinc-300'
                     }`} />
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">

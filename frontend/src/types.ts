@@ -8,11 +8,25 @@ export enum UserRole {
   VOLUNTEER = 'volunteer'
 }
 
+export type ID = string;
+
+export type Role =
+  | "superadmin"
+  | "admin"
+  | "state_admin"
+  | "district_admin"
+  | "block_admin"
+  | "school"
+  | "teacher"
+  | "volunteer";
+
 export interface User {
   id: string;
   email: string;
-  name: string;
-  role: UserRole;
+  name?: string; // original
+  firstName: string; // MERN
+  lastName: string; // MERN
+  role: UserRole | Role;
   stateCode?: string;
   districtCode?: string;
   blockCode?: string;
@@ -20,17 +34,90 @@ export interface User {
   assignedSchools?: string[];
   delayedAttemptsCount?: number;
   isBanned?: boolean;
+  phone?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface State {
+  id: ID;
+  name: string;
+  code: string;
+  type: string;
+  districtCount: number;
+  blockCount: number;
+  schoolCount: number;
+  teacherCount: number;
+  studentCount: number;
+  averageScore: number;
+  literacyScore: number;
+  numeracyScore: number;
+  center?: [number, number];
+}
+
+export interface District {
+  id: ID;
+  name: string;
+  code: string;
+  stateId: ID;
+  stateName: string;
+  blockCount: number;
+  schoolCount: number;
+  teacherCount: number;
+  studentCount: number;
+  averageScore: number;
+}
+
+export interface Teacher {
+  id: ID;
+  employeeId: string;
+  name: string;
+  schoolId: ID;
+  schoolName: string;
+  stateName: string;
+  districtName: string;
+  designation: string;
+  subjects: string[];
+  classes: string[];
+  studentCount: number;
+  assessmentsConducted: number;
+  status: "Active" | "On Leave" | "Inactive";
+}
+
+export interface Block {
+  id: ID;
+  name: string;
+  districtId: ID;
+  districtName: string;
+  stateName: string;
+  schoolCount: number;
 }
 
 export interface School {
   id: string;
   name: string;
-  stateCode: string;
-  districtCode: string;
-  blockCode: string;
+  stateCode?: string;
+  districtCode?: string;
+  blockCode?: string;
   strength?: string;
-  teachersCount: number;
+  teachersCount?: number;
   isAccessLocked?: boolean;
+
+  // MERN fields
+  udiseId: string;
+  stateId: string;
+  stateName: string;
+  districtId: string;
+  districtName: string;
+  blockId: string;
+  blockName: string;
+  cluster: string;
+  type: "Government" | "Aided" | "Private" | "Central";
+  principal: string;
+  teacherCount: number;
+  studentCount: number;
+  averageScore: number;
+  status: "Active" | "Inactive";
 }
 
 export interface ClassGroup {
@@ -55,19 +142,72 @@ export interface Student {
   aadharMasked: string;
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
+
+  // MERN fields
+  rollNumber: string;
+  class: string;
+  schoolName: string;
+  districtName: string;
+  stateName: string;
+  gender: "Male" | "Female" | "Other";
+  attendance: number;
+  averageScore: number;
+  latestAssessmentId?: ID;
+  latestAssessment?: string;
+}
+
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface QuestionImage {
+  imageUrl: string;
+  position: string;
 }
 
 export interface Question {
-  question_id: string;
-  question: string;
-  answer: string;
-  answer_type: 'text' | 'number' | 'choice';
+  // original Worksheet Question
+  question_id?: string;
+  question?: string;
+  answer?: string;
+  answer_type?: 'text' | 'number' | 'choice';
   choices?: string[];
-  topic: string;
-  subtopic: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  source_level: number;
+  topic?: string;
+  subtopic?: string;
+  difficulty?: 'easy' | 'medium' | 'hard' | 'Easy' | 'Medium' | 'Hard' | string;
+  source_level?: number;
   svgAsset?: string;
+
+  // MERN template Question
+  id?: string;
+  number?: number;
+  text?: string;
+  type?: 'MCQ' | 'Trace' | 'Drawing' | 'Input' | string;
+  marks?: number;
+  concept?: string;
+  correctAnswer?: string;
+  pageNumber?: number;
+  bbox?: { x: number; y: number; w: number; h: number };
+  status?: string;
+
+  // Answer Key Generator Question
+  questionNo?: number;
+  questionText?: string;
+  questionType?: string;
+  answerType?: string;
+  alternateAnswers?: string[];
+  evaluationRule?: string;
+  visualDescription?: string;
+  hasImage?: boolean;
+  boundingBox?: BoundingBox;
+  sourceFileIndex?: number | null;
+  croppedFromPage?: number;
+  images?: QuestionImage[];
+  _edit?: boolean;
+  _savedAt?: number;
 }
 
 export interface Worksheet {
@@ -150,6 +290,11 @@ export interface LogEntry {
   activityType: 'download' | 'print' | 'conduct' | 'scan' | 'verify' | 'ticket';
   status: 'Success' | 'Failed' | 'Delayed';
   details: string;
+  // Extended fields used by LogbookPanel (legacy/original project)
+  time?: string;
+  type?: string;
+  level?: UserRole;
+  scope?: string;
 }
 
 export interface Announcement {
@@ -211,3 +356,112 @@ export interface BestPractice {
   viewCount: number;
   createdAt: string;
 }
+
+// MERN AuditLog
+export interface AuditLog {
+  id: ID;
+  userId: ID;
+  userName: string;
+  module: string;
+  action: string;
+  timestamp: string;
+  ipAddress: string;
+  status: "Success" | "Failure";
+}
+
+// MERN Notification
+export interface Notification {
+  id: ID;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  type: "info" | "success" | "warning" | "error";
+}
+
+// MERN GlobalFilters
+export interface GlobalFilters {
+  stateId?: ID;
+  districtId?: ID;
+  blockId?: ID;
+  schoolId?: ID;
+  academicYear?: string;
+  grade?: string;
+  assessmentType?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+}
+
+// MERN PageResponse
+export interface PageResponse<T> {
+  rows: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// MERN Assessment and Answer Key Generator
+export const ASSESSMENT_STATUS = ["Draft", "Scheduled", "Active", "Completed", "Archived"] as const;
+export const ASSESSMENT_TEMPLATE_STATUS = ["Pending", "Processing", "Generated", "Draft", "Approved"] as const;
+export const ASSESSMENT_TYPES = ["Diagnostic", "Formative", "Summative", "Practice"] as const;
+export const SUBJECTS = ["Literacy", "Numeracy", "Both"] as const;
+export const GRADES = ["Class 1", "Class 2", "Class 3", "Class 4"] as const;
+export const LANGUAGES = ["English", "Hindi", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati", "Kannada", "Malayalam", "Punjabi", "Urdu"] as const;
+export const QUESTION_TYPES = ["MCQ", "True/False", "Fill in the Blanks", "Short Answer", "Long Answer", "Match the Following", "Counting", "Addition", "Subtraction", "Number Recognition", "Drawing", "Trace"] as const;
+export const DIFFICULTY = ["Easy", "Medium", "Hard"] as const;
+
+export interface AssessmentTemplate {
+  _id: string;
+  assessmentId: string;
+  assessmentCode?: string;
+  version: number;
+  status: "Draft" | "Approved" | "Archived";
+  generatedBy: string;
+  modelName: string;
+  verifiedBy?: { firstName: string; lastName: string; email: string } | null;
+  verifiedAt?: string | null;
+  totalQuestions: number;
+  totalMarks: number;
+  questions: Question[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuestionPaperFile {
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+}
+
+export interface Assessment {
+  id?: string;
+  _id?: string;
+  name?: string;
+  title?: string;
+  type?: string;
+  subject?: "Literacy" | "Numeracy" | "Both";
+  grade?: string;
+  language?: string;
+  academicYear?: string;
+  totalMarks?: number;
+  duration?: number;
+  status?: any;
+  templateStatus?: any;
+  questionCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  publishedAt?: string;
+  questionPaperUrl?: string | null;
+  questionPaperFileName?: string | null;
+  questionPaperSize?: number | null;
+  assessmentType?: string;
+  setNumber?: string;
+  assessmentCode?: string | null;
+  templateId?: any;
+  createdBy?: string;
+}
+
+export type TemplateStatus = (typeof ASSESSMENT_TEMPLATE_STATUS)[number];
+export type AssessmentStatus = (typeof ASSESSMENT_STATUS)[number];

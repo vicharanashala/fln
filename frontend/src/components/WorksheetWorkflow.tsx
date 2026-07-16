@@ -282,7 +282,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
 
               <div className="space-y-12">
                 {students.map((student) => {
-                  const studentQuestions = worksheet.questions.filter(q => q.question_id.startsWith(student.id + '_'));
+                  const studentQuestions = worksheet.questions.filter(q => q.question_id?.startsWith(student.id + '_'));
                   if (studentQuestions.length === 0) return null;
 
                   return (
@@ -306,7 +306,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                               <span>Concept: {q.topic}</span>
                               <span className="uppercase">{q.difficulty}</span>
                             </div>
-                            <p className="text-zinc-800 dark:text-zinc-100 text-sm font-medium leading-relaxed">{q.question.replace(`[For ${student.name} - Level ${student.currentLevel}] `, '')}</p>
+                            <p className="text-zinc-800 dark:text-zinc-100 text-sm font-medium leading-relaxed">{(q.question ?? '').replace(`[For ${student.name} - Level ${student.currentLevel}] `, '')}</p>
 
                             {q.svgAsset && (
                               <SvgLibraryResolver category={q.svgAsset} count={student.currentLevel + 1} />
@@ -374,9 +374,9 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                         onClick={() => {
                           const filled: { [key: string]: string } = {};
                           worksheet.questions
-                            .filter(q => q.question_id.startsWith(activeStudentId + '_'))
+                            .filter(q => q.question_id?.startsWith(activeStudentId + '_'))
                             .forEach(q => {
-                              filled[q.question_id] = q.answer;
+                              if (q.question_id) filled[q.question_id] = q.answer ?? '';
                             });
                           setStudentAnswers(filled);
                         }}
@@ -388,9 +388,9 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                         type="button"
                         onClick={() => {
                           const filled: { [key: string]: string } = {};
-                          const qs = worksheet.questions.filter(q => q.question_id.startsWith(activeStudentId + '_'));
+                          const qs = worksheet.questions.filter(q => q.question_id?.startsWith(activeStudentId + '_'));
                           qs.forEach((q, idx) => {
-                            filled[q.question_id] = idx === 0 ? 'FAIL' : q.answer;
+                            if (q.question_id) filled[q.question_id] = idx === 0 ? 'FAIL' : (q.answer ?? '');
                           });
                           setStudentAnswers(filled);
                         }}
@@ -403,9 +403,9 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                         onClick={() => {
                           const filled: { [key: string]: string } = {};
                           worksheet.questions
-                            .filter(q => q.question_id.startsWith(activeStudentId + '_'))
+                            .filter(q => q.question_id?.startsWith(activeStudentId + '_'))
                             .forEach(q => {
-                              filled[q.question_id] = 'WRONG';
+                              if (q.question_id) filled[q.question_id] = 'WRONG';
                             });
                           setStudentAnswers(filled);
                         }}
@@ -416,16 +416,16 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                     </div>
                   </div>
                   {worksheet.questions
-                    .filter(q => q.question_id.startsWith(activeStudentId + '_'))
+                    .filter(q => q.question_id?.startsWith(activeStudentId + '_'))
                     .map((q, idx) => (
-                      <div key={q.question_id} className="space-y-1">
+                      <div key={q.question_id ?? idx} className="space-y-1">
                         <label className="block text-[10px] font-mono text-zinc-300">
                           Question {idx + 1}
                         </label>
                         {q.answer_type === 'choice' && q.choices ? (
                           <select
-                            value={studentAnswers[q.question_id] || ''}
-                            onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
+                            value={studentAnswers[q.question_id ?? ''] || ''}
+                            onChange={(e) => handleAnswerChange(q.question_id ?? '', e.target.value)}
                             className="w-full text-sm border border-zinc-800 rounded-lg p-2 bg-zinc-800 text-white focus:border-zinc-500 outline-none"
                           >
                             <option value="">Select option...</option>
@@ -436,8 +436,8 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                         ) : (
                           <input
                             type="text"
-                            value={studentAnswers[q.question_id] || ''}
-                            onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
+                            value={studentAnswers[q.question_id ?? ''] || ''}
+                            onChange={(e) => handleAnswerChange(q.question_id ?? '', e.target.value)}
                             placeholder={`Correct: ${q.answer}`}
                             className="w-full text-sm border border-zinc-800 rounded-lg p-2 bg-zinc-800 text-white focus:border-zinc-500 outline-none"
                           />

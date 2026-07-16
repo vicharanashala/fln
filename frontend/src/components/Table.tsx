@@ -224,7 +224,7 @@ export function Table<T extends Record<string, any>>({
                     <div className="flex items-center gap-1">
                       <span>{col.header}</span>
                       {isSortable && (
-                        isSorted ? (
+                        isSorted && sortConfig ? (
                           sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3 text-indigo-600 dark:text-indigo-400" /> : <ChevronDown className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
                         ) : (
                           <ChevronsUpDown className="h-3 w-3 text-slate-400 dark:text-slate-600" />

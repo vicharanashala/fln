@@ -32,7 +32,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
         // Initialize answer keys
         const initialAnswers: { [key: string]: string } = {};
         data.diagnosticPaper.questions.forEach((q: Question) => {
-          initialAnswers[q.question_id] = '';
+          initialAnswers[q.question_id ?? ''] = '';
         });
         setAnswers(initialAnswers);
       } else {
@@ -154,7 +154,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
 
                   {/* Render beautiful SVG helpers if recommended */}
                   {q.svgAsset && (
-                    <SvgLibraryResolver category={q.svgAsset} count={q.source_level * 2 || 3} />
+                    <SvgLibraryResolver category={q.svgAsset} count={(q.source_level ?? 1) * 2 || 3} />
                   )}
 
                   {q.answer_type === 'choice' && q.choices && (
@@ -189,7 +189,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
                   onClick={() => {
                     const filled: { [key: string]: string } = {};
                     paper.questions.forEach((q) => {
-                      filled[q.question_id] = q.answer;
+                      filled[q.question_id ?? ''] = q.answer ?? '';
                     });
                     setAnswers(filled);
                   }}
@@ -203,7 +203,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
                     const filled: { [key: string]: string } = {};
                     // Fail the first question, which has level q.source_level
                     paper.questions.forEach((q, idx) => {
-                      filled[q.question_id] = idx === 0 ? 'FAIL' : q.answer;
+                      filled[q.question_id ?? ''] = idx === 0 ? 'FAIL' : (q.answer ?? '');
                     });
                     setAnswers(filled);
                   }}
@@ -216,7 +216,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
                   onClick={() => {
                     const filled: { [key: string]: string } = {};
                     paper.questions.forEach((q) => {
-                      filled[q.question_id] = 'WRONG';
+                      filled[q.question_id ?? ''] = 'WRONG';
                     });
                     setAnswers(filled);
                   }}
@@ -240,8 +240,8 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
                   </label>
                   {q.answer_type === 'choice' && q.choices ? (
                     <select
-                      value={answers[q.question_id] || ''}
-                      onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
+                      value={answers[q.question_id ?? ''] || ''}
+                      onChange={(e) => handleAnswerChange(q.question_id ?? '', e.target.value)}
                       className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
                     >
                       <option value="">Select option...</option>
@@ -252,8 +252,8 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
                   ) : (
                     <input
                       type="text"
-                      value={answers[q.question_id] || ''}
-                      onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
+                      value={answers[q.question_id ?? ''] || ''}
+                      onChange={(e) => handleAnswerChange(q.question_id ?? '', e.target.value)}
                       placeholder="Type final answer..."
                       className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
                     />

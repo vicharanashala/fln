@@ -457,7 +457,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
             {/* Total Indicator */}
             <div className="text-center md:text-right mt-3">
               <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
-                Roster segment: <strong className="text-zinc-800 dark:text-zinc-100">{Object.values(activeMetrics.levelDistribution || {}).reduce((a: any, b: any) => a + b, 0)} student profiles</strong>
+                Roster segment: <strong className="text-zinc-800 dark:text-zinc-100">{Object.values(activeMetrics.levelDistribution || {}).reduce((a: any, b: any) => a + b, 0) as number} student profiles</strong>
               </span>
             </div>
           </div>
@@ -514,7 +514,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [schoolFilter, setSchoolFilter] = useState('');
 
   const stateFilterOptions = useMemo(() => {
-    return Array.from(new Set(coordinatorsList.map(c => c.stateCode).filter(Boolean)))
+    return Array.from(new Set(coordinatorsList.map(c => c.stateCode).filter((x): x is string => !!x)))
       .sort();
   }, [coordinatorsList]);
 
@@ -523,7 +523,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       coordinatorsList
         .filter(c => !stateFilter || c.stateCode === stateFilter)
         .map(c => c.districtCode)
-        .filter(Boolean)
+        .filter((x): x is string => !!x)
     )).sort();
   }, [coordinatorsList, stateFilter]);
 
@@ -532,7 +532,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       coordinatorsList
         .filter(c => (!stateFilter || c.stateCode === stateFilter) && (!districtFilter || c.districtCode === districtFilter))
         .map(c => c.schoolId)
-        .filter(Boolean)
+        .filter((x): x is string => !!x)
     )).sort();
   }, [coordinatorsList, stateFilter, districtFilter]);
 
@@ -1261,7 +1261,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     return {
       schoolId: sch.id,
       name: sch.name,
-      district: DISTRICT_NAMES[sch.districtCode] || sch.districtCode,
+      district: sch.districtCode ? (DISTRICT_NAMES[sch.districtCode] || sch.districtCode) : "",
       deploymentMode,
       statusText,
       isLagging,
@@ -1428,7 +1428,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               ) : (
                 scopedSchools.map(sch => {
                   const isLocked = sch.isAccessLocked;
-                  const canRestore = [UserRole.SUPERADMIN, UserRole.ADMIN].includes(user.role);
+                  const canRestore = [UserRole.SUPERADMIN, UserRole.ADMIN].includes(user.role as UserRole);
 
                   const handleRestore = async () => {
                     try {
@@ -1904,7 +1904,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       <BulkDiagnosticWorkflow
         user={user}
         token={token}
-        userRole={user.role}
+        userRole={user.role as UserRole}
         onBack={() => {
           setShowBulkDiagnostic(false);
           fetchTeacherData();
@@ -2621,7 +2621,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
       <BulkDiagnosticWorkflow
         user={user}
         token={token}
-        userRole={user.role}
+        userRole={user.role as UserRole}
         onBack={() => {
           setShowBulkDiagnostic(false);
           fetchVolunteerData();

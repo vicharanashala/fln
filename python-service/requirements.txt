@@ -1,0 +1,14 @@
+# Core APIs
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+PyMuPDF==1.24.10
+Pillow==10.4.0
+google-generativeai==0.8.3
+python-dotenv==1.0.1
+pydantic==2.9.2
+openai==1.54.3
+
+# Local Offline Model Requirements:
+# 1. Install Ollama: https://ollama.com
+# 2. Pull local Vision-Language Model: `ollama pull qwen2.5vl:7b`
+# 3. Configure local port forwarding if running remotely

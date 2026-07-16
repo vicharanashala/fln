@@ -73,21 +73,21 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
   
   const uniqueDistricts = Array.from(new Set(
     schools
-      .filter(s => selectedState === 'all' || s.stateCode.toLowerCase() === selectedState.toLowerCase())
+      .filter(s => selectedState === 'all' || (s.stateCode ?? '').toLowerCase() === selectedState.toLowerCase())
       .map(s => s.districtCode)
   )).filter(Boolean);
 
   const uniqueBlocks = Array.from(new Set(
     schools
-      .filter(s => selectedState === 'all' || s.stateCode.toLowerCase() === selectedState.toLowerCase())
-      .filter(s => selectedDistrict === 'all' || s.districtCode.toLowerCase() === selectedDistrict.toLowerCase())
+      .filter(s => selectedState === 'all' || (s.stateCode ?? '').toLowerCase() === selectedState.toLowerCase())
+      .filter(s => selectedDistrict === 'all' || (s.districtCode ?? '').toLowerCase() === selectedDistrict.toLowerCase())
       .map(s => s.blockCode)
   )).filter(Boolean);
 
   const filteredSchoolsList = schools
-    .filter(s => selectedState === 'all' || s.stateCode.toLowerCase() === selectedState.toLowerCase())
-    .filter(s => selectedDistrict === 'all' || s.districtCode.toLowerCase() === selectedDistrict.toLowerCase())
-    .filter(s => selectedBlock === 'all' || s.blockCode.toLowerCase() === selectedBlock.toLowerCase());
+    .filter(s => selectedState === 'all' || (s.stateCode ?? '').toLowerCase() === selectedState.toLowerCase())
+    .filter(s => selectedDistrict === 'all' || (s.districtCode ?? '').toLowerCase() === selectedDistrict.toLowerCase())
+    .filter(s => selectedBlock === 'all' || (s.blockCode ?? '').toLowerCase() === selectedBlock.toLowerCase());
 
   // Filter actual log list
   const filteredLogs = logs.filter(log => {
@@ -99,9 +99,9 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
     const logBlock = matchedSchool ? matchedSchool.blockCode : 'National';
 
     // Verify cascading dropdown matches
-    const stateMatch = selectedState === 'all' || logState.toLowerCase() === selectedState.toLowerCase();
-    const districtMatch = selectedDistrict === 'all' || logDistrict.toLowerCase() === selectedDistrict.toLowerCase();
-    const blockMatch = selectedBlock === 'all' || logBlock.toLowerCase() === selectedBlock.toLowerCase();
+    const stateMatch = selectedState === 'all' || (logState ?? 'National').toLowerCase() === selectedState.toLowerCase();
+    const districtMatch = selectedDistrict === 'all' || (logDistrict ?? 'National').toLowerCase() === selectedDistrict.toLowerCase();
+    const blockMatch = selectedBlock === 'all' || (logBlock ?? 'National').toLowerCase() === selectedBlock.toLowerCase();
     const schoolMatch = selectedSchool === 'all' || log.schoolId === selectedSchool;
 
     // Type filter
@@ -148,9 +148,9 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
   };
 
   // Check locks for selectors based on user roles
-  const isStateLocked = user && [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(user.role);
-  const isDistrictLocked = user && [UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(user.role);
-  const isBlockLocked = user && [UserRole.BLOCK_ADMIN].includes(user.role);
+  const isStateLocked = user && [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(user.role as UserRole);
+  const isDistrictLocked = user && [UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(user.role as UserRole);
+  const isBlockLocked = user && [UserRole.BLOCK_ADMIN].includes(user.role as UserRole);
 
   return (
     <div className="space-y-6" id="logbook-view">
