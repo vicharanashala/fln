@@ -3063,6 +3063,16 @@
       "activityType": "ticket",
       "status": "Success",
       "details": "Created announcement: Global Announcement System Verification"
+      "id": "log_6ccdb1be",
+      "timestamp": "2026-07-12T15:51:03.696Z",
+      "schoolId": "gps-amb-003",
+      "schoolName": "",
+      "userId": "u6_amb",
+      "userEmail": "gps-amb-003.t01@fln.org",
+      "userRole": "teacher",
+      "activityType": "verify",
+      "status": "Success",
+      "details": "INTERVENTION: Recorded remedial intervention for Sneha Sharma — Strategy: small_group"
     },
     {
       "id": "log_1783576498381",
@@ -3645,4 +3655,29 @@
       "readAt": "2026-07-15T10:43:02.732Z"
     }
   ]
+  "interventions": [
+    {
+      "id": "int_1a44b29d",
+      "studentId": "s7",
+      "studentName": "Sneha Sharma",
+      "teacherId": "u6_amb",
+      "teacherName": "Meena Kumari (Teacher)",
+      "schoolId": "gps-amb-003",
+      "classId": "Class 3",
+      "className": "Class 3",
+      "section": "A",
+      "weakCompetencies": [
+        "Division"
+      ],
+      "currentLevel": 5,
+      "strategyType": "small_group",
+      "strategyDescription": "practice everyday for five minutes with other peers",
+      "duration": "2 weeks",
+      "startDate": "2026-07-12",
+      "status": "active",
+      "isPromoted": false,
+      "createdAt": "2026-07-12T15:51:03.687Z"
+    }
+  ],
+  "bestPractices": []
 }

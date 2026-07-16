@@ -92,22 +92,22 @@ export const AssessmentCalendar: React.FC = () => {
 
   return (
     <div className="space-y-6" id="assessment-calendar">
-      <div className="border-b border-zinc-200 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">
+          <h2 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">
             Academic Assessment Calendar
           </h2>
-          <p className="text-zinc-500 text-sm mt-1">
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">
             Official FLN framework schedule outlining question generation, locks, printing, and grading milestones.
           </p>
         </div>
 
         {/* Cycle selector buttons */}
-        <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 w-fit self-start">
+        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700 w-fit self-start">
           <button
             onClick={() => setActiveCycle('baseline')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              activeCycle === 'baseline' ? 'bg-white text-zinc-900 shadow-sm font-semibold' : 'text-zinc-600 hover:text-zinc-900'
+              activeCycle === 'baseline' ? 'bg-white dark:bg-slate-800 text-zinc-900 dark:text-white shadow-sm font-semibold' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
             Baseline (July)
@@ -115,7 +115,7 @@ export const AssessmentCalendar: React.FC = () => {
           <button
             onClick={() => setActiveCycle('midyear')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              activeCycle === 'midyear' ? 'bg-white text-zinc-900 shadow-sm font-semibold' : 'text-zinc-600 hover:text-zinc-900'
+              activeCycle === 'midyear' ? 'bg-white dark:bg-slate-800 text-zinc-900 dark:text-white shadow-sm font-semibold' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
             Mid-Year (Nov)
@@ -123,7 +123,7 @@ export const AssessmentCalendar: React.FC = () => {
           <button
             onClick={() => setActiveCycle('endyear')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              activeCycle === 'endyear' ? 'bg-white text-zinc-900 shadow-sm font-semibold' : 'text-zinc-600 hover:text-zinc-900'
+              activeCycle === 'endyear' ? 'bg-white dark:bg-slate-800 text-zinc-900 dark:text-white shadow-sm font-semibold' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
             End-of-Year (Mar)
@@ -132,11 +132,11 @@ export const AssessmentCalendar: React.FC = () => {
       </div>
 
       {/* Internal Navigation Tabs */}
-      <div className="flex border-b border-zinc-200 gap-6">
+      <div className="flex border-b border-zinc-200 dark:border-zinc-700 gap-6">
         <button
           onClick={() => setActiveTab('timeline')}
           className={`pb-3 text-sm font-display font-medium border-b-2 transition-all ${
-            activeTab === 'timeline' ? 'border-zinc-900 text-zinc-900 font-semibold' : 'border-transparent text-zinc-400 hover:text-zinc-600'
+            activeTab === 'timeline' ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'
           }`}
         >
           Phase-by-Phase Timeline
@@ -144,7 +144,7 @@ export const AssessmentCalendar: React.FC = () => {
         <button
           onClick={() => setActiveTab('grid')}
           className={`pb-3 text-sm font-display font-medium border-b-2 transition-all ${
-            activeTab === 'grid' ? 'border-zinc-900 text-zinc-900 font-semibold' : 'border-transparent text-zinc-400 hover:text-zinc-600'
+            activeTab === 'grid' ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'
           }`}
         >
           Dynamic Calendar Grid
@@ -152,7 +152,7 @@ export const AssessmentCalendar: React.FC = () => {
         <button
           onClick={() => setActiveTab('guidelines')}
           className={`pb-3 text-sm font-display font-medium border-b-2 transition-all ${
-            activeTab === 'guidelines' ? 'border-zinc-900 text-zinc-900 font-semibold' : 'border-transparent text-zinc-400 hover:text-zinc-600'
+            activeTab === 'guidelines' ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'
           }`}
         >
           Conduct Guidelines & SLA
@@ -163,18 +163,18 @@ export const AssessmentCalendar: React.FC = () => {
       {activeTab === 'timeline' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-mono font-bold uppercase text-zinc-400">Assessment Phases</span>
+                <span className="text-sm font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500">Assessment Phases</span>
                 <span className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider ${
-                  activeCycle === 'baseline' ? 'bg-amber-100 text-amber-800' : activeCycle === 'midyear' ? 'bg-indigo-100 text-indigo-800' : 'bg-green-100 text-green-800'
+                  activeCycle === 'baseline' ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300' : activeCycle === 'midyear' ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300' : 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300'
                 }`}>
                   {selectedCycle.status}
                 </span>
               </div>
-              <h3 className="text-xl font-display font-semibold text-zinc-900">{selectedCycle.name}</h3>
-              <p className="text-zinc-500 text-xs flex items-center gap-2">
-                <Clock className="w-4 h-4 text-zinc-400" /> Complete window: {selectedCycle.period}
+              <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">{selectedCycle.name}</h3>
+              <p className="text-zinc-500 dark:text-zinc-400 text-xs flex items-center gap-2">
+                <Clock className="w-4 h-4 text-zinc-400 dark:text-zinc-500" /> Complete window: {selectedCycle.period}
               </p>
 
               {/* Milestones list */}
@@ -187,12 +187,12 @@ export const AssessmentCalendar: React.FC = () => {
                     }`} />
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-display font-medium text-sm text-zinc-900">{m.phase}</span>
-                        <span className="text-[10px] font-mono text-zinc-400 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded">
+                        <span className="font-display font-medium text-sm text-zinc-900 dark:text-white">{m.phase}</span>
+                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-1.5 py-0.5 rounded">
                           {m.dates}
                         </span>
                       </div>
-                      <p className="text-zinc-600 text-xs leading-relaxed">{m.desc}</p>
+                      <p className="text-zinc-600 dark:text-zinc-300 text-xs leading-relaxed">{m.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -220,11 +220,11 @@ export const AssessmentCalendar: React.FC = () => {
       )}
 
       {activeTab === 'grid' && (
-        <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-150 pb-4">
+        <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-150 dark:border-zinc-700 pb-4">
             <div>
-              <h4 className="font-display font-semibold text-zinc-950 text-base">{selectedCycle.name}</h4>
-              <p className="text-zinc-400 text-xs mt-0.5">Assigned calendar blocks for key activities.</p>
+              <h4 className="font-display font-semibold text-zinc-950 dark:text-white text-base">{selectedCycle.name}</h4>
+              <p className="text-zinc-400 dark:text-zinc-500 text-xs mt-0.5">Assigned calendar blocks for key activities.</p>
             </div>
             
             {/* Legend indicators */}
@@ -239,7 +239,7 @@ export const AssessmentCalendar: React.FC = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {selectedCycle.days.map((day, index) => {
-              let bg = 'bg-zinc-50 border-zinc-200';
+              let bg = 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700';
               let badgeText = '';
               let badgeColor = '';
               
@@ -277,7 +277,7 @@ export const AssessmentCalendar: React.FC = () => {
                   </div>
                   <div className="space-y-0.5">
                     <span className="text-xs font-semibold block truncate">{day.event || 'Standard Schedule'}</span>
-                    <span className="text-[10px] text-zinc-500 font-mono block truncate">{day.label || 'Framework Window'}</span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono block truncate">{day.label || 'Framework Window'}</span>
                   </div>
                 </div>
               );
@@ -288,12 +288,12 @@ export const AssessmentCalendar: React.FC = () => {
 
       {activeTab === 'guidelines' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
-            <h4 className="font-display font-semibold text-zinc-900 text-base flex items-center gap-2">
-              <FileText className="w-5 h-5 text-zinc-500" /> Principal & Grader Conduct Guidelines
+          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
+            <h4 className="font-display font-semibold text-zinc-900 dark:text-white text-base flex items-center gap-2">
+              <FileText className="w-5 h-5 text-zinc-500 dark:text-zinc-400" /> Principal & Grader Conduct Guidelines
             </h4>
-            <div className="space-y-3 text-xs text-zinc-600 leading-relaxed">
-              <p className="font-medium text-zinc-800">Please review key operational requirements for conducting examinations:</p>
+            <div className="space-y-3 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
+              <p className="font-medium text-zinc-800 dark:text-zinc-100">Please review key operational requirements for conducting examinations:</p>
               <ul className="list-disc pl-5 space-y-2.5">
                 <li><strong>No Internet Setting:</strong> Schools with poor network flags are authorized to download PDF papers early, or request printed block dispatch 5 days in advance.</li>
                 <li><strong>Oral Scribing:</strong> Scribing answers manually is approved for Class 2 students when physical scanning is unavailable.</li>
@@ -303,38 +303,38 @@ export const AssessmentCalendar: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
-            <h4 className="font-display font-semibold text-zinc-900 text-base flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-zinc-500" /> SLA Thresholds & Penalties
+          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
+            <h4 className="font-display font-semibold text-zinc-900 dark:text-white text-base flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-zinc-500 dark:text-zinc-400" /> SLA Thresholds & Penalties
             </h4>
             <table className="w-full text-xs text-left border-collapse">
               <thead>
-                <tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-mono uppercase text-[10px]">
+                <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-mono uppercase text-[10px]">
                   <th className="p-2">Milestone Phase</th>
                   <th className="p-2">SLA Window</th>
                   <th className="p-2">Delayed Flag</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200">
+              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
                 <tr>
-                  <td className="p-2 font-medium">Worksheet Customization</td>
-                  <td className="p-2">Lock at T-72 Hours</td>
+                  <td className="p-2 font-medium text-zinc-900 dark:text-white">Worksheet Customization</td>
+                  <td className="p-2 text-zinc-700 dark:text-zinc-200">Lock at T-72 Hours</td>
                   <td className="p-2 text-red-600 font-mono">Rollback to Default</td>
                 </tr>
                 <tr>
-                  <td className="p-2 font-medium">Paper Printing</td>
-                  <td className="p-2">T-48 to T-24 Hours</td>
+                  <td className="p-2 font-medium text-zinc-900 dark:text-white">Paper Printing</td>
+                  <td className="p-2 text-zinc-700 dark:text-zinc-200">T-48 to T-24 Hours</td>
                   <td className="p-2 text-amber-600 font-mono">Warn Admin</td>
                 </tr>
                 <tr>
-                  <td className="p-2 font-medium">Grade Sheet Upload</td>
-                  <td className="p-2">Assessment Day +72 hrs</td>
+                  <td className="p-2 font-medium text-zinc-900 dark:text-white">Grade Sheet Upload</td>
+                  <td className="p-2 text-zinc-700 dark:text-zinc-200">Assessment Day +72 hrs</td>
                   <td className="p-2 text-red-600 font-mono">Log SLA Violation</td>
                 </tr>
                 <tr>
-                  <td className="p-2 font-medium">Report Delivery</td>
-                  <td className="p-2">Assessment Day +96 hrs</td>
-                  <td className="p-2 text-zinc-500 font-mono">Escalate Tech</td>
+                  <td className="p-2 font-medium text-zinc-900 dark:text-white">Report Delivery</td>
+                  <td className="p-2 text-zinc-700 dark:text-zinc-200">Assessment Day +96 hrs</td>
+                  <td className="p-2 text-zinc-500 dark:text-zinc-400 font-mono">Escalate Tech</td>
                 </tr>
               </tbody>
             </table>
