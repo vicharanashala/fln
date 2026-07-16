@@ -3,16 +3,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin } from 'lucide-react';
-import { STATES_DATA } from '../constants';
 
 interface LandingViewProps {
   onNavigateToLogin: () => void;
 }
 
+interface Stats {
+  totalStates: number;
+  totalDistricts: number;
+  totalSchools: number;
+  totalStudents: number;
+  totalAssessments: number;
+  avgFlnLevel: number;
+  totalUsers: number;
+}
+
 export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) => {
   const [fontSize, setFontSize] = useState(100);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   const adjustFontSize = (delta: number) => {
     setFontSize((prev) => {
@@ -26,16 +37,35 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
     setFontSize(100);
     document.documentElement.style.fontSize = '100%';
   };
-  const totalEnrolled = STATES_DATA.reduce((acc, curr) => acc + curr.enrolled, 0);
-  const totalCertified = STATES_DATA.reduce((acc, curr) => acc + curr.certified, 0);
-  const nationalAvgFlnScore = Math.round((totalCertified / totalEnrolled) * 100);
 
-  const stats = [
-    { label: 'States & Districts', value: '5 states · 92 districts', desc: 'Implementing standard model across coordinated districts', icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
-    { label: 'Registered Schools', value: '14,240', desc: 'High & low strength schools', icon: BookOpen, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
-    { label: 'Students Tracked', value: `${(totalEnrolled / 100000).toFixed(2)} Lakh`, desc: 'Continuous FLN tracking', icon: Users, color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' },
-    { label: 'Assessments Conducted', value: '3.4 Lakh', desc: 'Baseline, Mid-year, End-of-year', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40' },
-    { label: 'National FLN Score', value: `${nationalAvgFlnScore}%`, desc: 'Certification average', icon: Award, color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' },
+  useEffect(() => {
+    let attempts = 0;
+    const maxAttempts = 10;
+    const interval = 2000;
+
+    const fetchStats = () => {
+      fetch('/api/stats')
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(d => { setStats(d); setStatsLoading(false); })
+        .catch(() => {
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(fetchStats, interval);
+          } else {
+            setStatsLoading(false);
+          }
+        });
+    };
+
+    fetchStats();
+  }, []);
+
+  const statCards = [
+    { label: 'States & Districts', value: stats ? `${stats.totalStates} States / ${stats.totalDistricts} Districts` : null, desc: 'Across India', icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
+    { label: 'Registered Schools', value: stats?.totalSchools?.toLocaleString() ?? null, desc: 'Active institutions', icon: BookOpen, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
+    { label: 'Students Tracked', value: stats?.totalStudents?.toLocaleString() ?? null, desc: 'Enrolled learners', icon: Users, color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' },
+    { label: 'Assessments Conducted', value: stats?.totalAssessments?.toLocaleString() ?? null, desc: 'Worksheets generated', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40' },
+    { label: 'National Avg FLN Level', value: stats ? `L${stats.avgFlnLevel}` : null, desc: 'Average student level', icon: Award, color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' },
   ];
 
   return (
@@ -49,13 +79,6 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
           <span className="text-gray-300 hidden sm:inline">Foundational Literacy & Numeracy</span>
         </div>
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => alert("Screen Reader Access enabled. Screen reader voice instructions active.")}
-            className="hover:text-white transition hover:underline"
-          >
-            Screen Reader Access
-          </button>
-          <span className="text-gray-700">|</span>
           <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold">
             <button onClick={() => adjustFontSize(-10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Decrease font size">A-</button>
             <button onClick={resetFontSize} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Reset font size">A</button>
@@ -66,12 +89,10 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
             defaultValue="en"
             onChange={(e) => {
               if (e.target.value === 'hi') alert("हिन्दी भाषा में बदलें");
-              if (e.target.value === 'pa') alert("ਪੰਜਾਬੀ ਭਾਸ਼ਾ ਵਿੱਚ ਬਦਲੋ");
             }}
             className="bg-gray-800 text-gray-300 text-[10px] md:text-xs font-bold border border-gray-700 rounded px-2 py-1 outline-none hover:border-gray-500 cursor-pointer"
           >
             <option value="en">English</option>
-            <option value="pa">ਪੰਜਾਬੀ</option>
             <option value="hi">हिन्दी</option>
           </select>
         </div>
@@ -135,7 +156,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
 
         {/* Stats Grid */}
         <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {stats.map((stat, index) => {
+          {statCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div
@@ -149,9 +170,13 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
                   <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">
                     {stat.label}
                   </p>
-                  <p className="mt-1 text-2xl font-extrabold text-gray-900 dark:text-white">
-                    {stat.value}
-                  </p>
+                  {stat.value !== null ? (
+                    <p className="mt-1 text-2xl font-extrabold text-gray-900 dark:text-white">
+                      {stat.value}
+                    </p>
+                  ) : (
+                    <div className="mt-1 h-8 w-32 rounded bg-gray-200 dark:bg-slate-700 animate-pulse" />
+                  )}
                   <p className="text-xs text-gray-500 dark:text-slate-400">
                     {stat.desc}
                   </p>

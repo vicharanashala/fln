@@ -264,13 +264,6 @@ export const Layout: React.FC<LayoutProps> = ({
           <span className="text-gray-300 dark:text-gray-400 hidden sm:inline font-mono">Foundational Literacy & Numeracy</span>
         </div>
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => alert("Screen Reader Access enabled. Screen reader voice instructions active.")}
-            className="hover:text-white transition hover:underline"
-          >
-            Screen Reader Access
-          </button>
-          <span className="text-gray-700 dark:text-gray-500">|</span>
           <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold">
             <button onClick={() => adjustFontSize(-10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Decrease font size">A-</button>
             <button onClick={resetFontSize} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Reset font size">A</button>

@@ -1,4 +1,27 @@
+import fs from 'fs/promises';
+import path from 'path';
 import { MongoClient, Db } from 'mongodb';
+
+const DB_DIR = path.resolve(process.cwd(), 'data');
+const DB_FILE = path.resolve(DB_DIR, 'db.json');
+
+export let mongoClient: MongoClient | null = null;
+
+export const connectDB = async () => {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error("MONGODB_URI not set — cannot start server");
+    process.exit(1);
+  }
+  try {
+    mongoClient = new MongoClient(uri);
+    await mongoClient.connect();
+    console.log("MongoDB Connected");
+  } catch (err) {
+    console.error("MongoDB connection failed:", err.message);
+    process.exit(1);
+  }
+};
 
 // Types & Interfaces corresponding to MongoDB Collections in SRS §10
 export enum UserRole {
@@ -261,28 +284,64 @@ interface DatabaseSchema {
   bestPractices: BestPractice[];
 }
 
+const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
+  users: 'users',
+  schools: 'schools',
+  classes: 'classes',
+  students: 'students',
+  questions: 'questions',
+  worksheets: 'worksheets',
+  answerSubmissions: 'answer_submissions',
+  evaluationReports: 'evaluation_reports',
+  tickets: 'tickets',
+  logbook: 'logbook',
+  announcements: 'announcements',
+  interventions: 'interventions',
+  bestPractices: 'best_practices',
+};
+
 export class DBStore {
   private data: DatabaseSchema | null = null;
   public useMongo: boolean = false;
   private mongoDb: Db | null = null;
 
+  getDb() {
+    if (!mongoClient) throw new Error('MongoDB not connected');
+    return mongoClient.db();
+  }
+
   async init() {
-    const mongoUri = process.env.MONGO_URI;
-    if (!mongoUri) {
-      throw new Error('MONGO_URI not set. A MongoDB connection string is required.');
+    if (mongoClient) {
+      console.log('Loading data from MongoDB...');
+      this.mongoDb = mongoClient.db();
+      const db = this.mongoDb;
+      this.data = {} as DatabaseSchema;
+      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
+        const docs = await db.collection(collName).find().toArray();
+        (this.data as any)[key] = docs.map(({ _id, ...rest }) => rest);
+      }
+      console.log(`MongoDB loaded: ${this.data.users?.length || 0} users, ${this.data.schools?.length || 0} schools, ${this.data.students?.length || 0} students`);
+    } else {
+      console.log('No MongoDB — falling back to file-based DB');
+      try {
+        await fs.mkdir(DB_DIR, { recursive: true });
+      } catch (_) {}
+      try {
+        const content = await fs.readFile(DB_FILE, 'utf-8');
+        this.data = JSON.parse(content);
+      } catch (_) {
+        this.data = this.getSeedData();
+        await this.save();
+      }
     }
+  }
 
-    try {
-      console.log('[Database] Connecting to MongoDB...');
-      const client = new MongoClient(mongoUri, {
-        serverSelectionTimeoutMS: 5000
-      });
-      await client.connect();
-      this.mongoDb = client.db();
-      this.useMongo = true;
-      console.log('[Database] Connected to MongoDB successfully.');
+  private async save() {
+    if (!this.data) return;
+    await fs.writeFile(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
+  }
 
-      // Seed any empty collections in MongoDB
+// Seed any empty collections in MongoDB
       const seed = this.getSeedData();
       const collections = [
         { name: 'users', data: seed.users },
@@ -343,11 +402,37 @@ export class DBStore {
     }
   }
 
-  async reset() {
-    if (!this.useMongo || !this.mongoDb) {
-      throw new Error('Database not connected.');
+  private async persistCollection(key: keyof DatabaseSchema) {
+    if (!this.data || !this.mongoDb) return;
+    const collName = COLLECTION_NAMES[key];
+    const items = (this.data as any)[key] || [];
+    const coll = this.mongoDb.collection(collName);
+    await coll.deleteMany({});
+    if (items.length > 0) {
+      await coll.insertMany(items);
     }
-    console.log('[Database] Resetting MongoDB data...');
+  }
+    
+
+  async reset() {
+    this.data = this.getSeedData();
+    if (mongoClient) {
+      const db = this.getDb();
+      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
+        const items = (this.data as any)[key] || [];
+        const coll = db.collection(collName);
+        await coll.deleteMany({});
+        if (items.length > 0) {
+          await coll.insertMany(items);
+        }
+      }
+    } else {
+      await this.save();
+    }
+console.log('[Database] Resetting MongoDB data...');
+    const db = this.mongoDb;
+    if (!db) throw new Error("Database not connected");
+    
     const seed = this.getSeedData();
 
     const collections = [
@@ -357,23 +442,23 @@ export class DBStore {
     ];
   
     for (const cName of collections) {
-      await this.mongoDb.collection(cName).deleteMany({});
+      await db.collection(cName).deleteMany({});
     }
-    await this.mongoDb.collection('users').insertMany(seed.users);
-    await this.mongoDb.collection('schools').insertMany(seed.schools);
-    await this.mongoDb.collection('classes').insertMany(seed.classes);
-    await this.mongoDb.collection('students').insertMany(seed.students);
-    await this.mongoDb.collection('questions').insertMany(seed.questions);
-    await this.mongoDb.collection('worksheets').insertMany(seed.worksheets);
-    await this.mongoDb.collection('answerSubmissions').insertMany(seed.answerSubmissions);
-    await this.mongoDb.collection('evaluationReports').insertMany(seed.evaluationReports);
-    await this.mongoDb.collection('tickets').insertMany(seed.tickets);
-    await this.mongoDb.collection('logbook').insertMany(seed.logbook);
-    await this.mongoDb.collection('announcements').insertMany(seed.announcements);
-    await this.mongoDb.collection('announcementReads').insertMany(seed.announcementReads);
-    await this.mongoDb.collection('interventions').insertMany(seed.interventions);
-    await this.mongoDb.collection('bestPractices').insertMany(seed.bestPractices);
-    console.log('[Database] MongoDB reset and re-seeded successfully.');
+    await db.collection('users').insertMany(seed.users);
+    await db.collection('schools').insertMany(seed.schools);
+    await db.collection('classes').insertMany(seed.classes);
+    await db.collection('students').insertMany(seed.students);
+    await db.collection('questions').insertMany(seed.questions);
+    await db.collection('worksheets').insertMany(seed.worksheets);
+    await db.collection('answerSubmissions').insertMany(seed.answerSubmissions);
+    await db.collection('evaluationReports').insertMany(seed.evaluationReports);
+    await db.collection('tickets').insertMany(seed.tickets);
+    await db.collection('logbook').insertMany(seed.logbook);
+    await db.collection('announcements').insertMany(seed.announcements);
+    await db.collection('announcementReads').insertMany(seed.announcementReads);
+    await db.collection('interventions').insertMany(seed.interventions);
+    await db.collection('bestPractices').insertMany(seed.bestPractices);
+    console.log('[Database] MongoDB reset and re-seeded successfully.');set and re-seeded successfully.');
   }
 
   // --- Collection Accessors ---
