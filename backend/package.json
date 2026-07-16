@@ -13,6 +13,7 @@
     "@google/genai": "^2.4.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "jszip": "^3.10.1",
     "pdf-lib": "^1.17.1",
     "puppeteer": "^25.3.0"
   },

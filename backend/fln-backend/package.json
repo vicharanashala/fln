@@ -1,0 +1,18 @@
+{
+  "name": "fln-worksheet-backend",
+  "version": "1.0.0",
+  "description": "Express + Puppeteer backend that batch-generates personalized FLN worksheets, answer keys, and OMR coords by driving the existing browser app/index.html headlessly.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "puppeteer": "^22.15.0",
+    "jszip": "^3.10.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

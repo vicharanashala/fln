@@ -73,6 +73,28 @@ export interface Question {
   svgAsset?: string; // Standard pre-built SVG asset category
 }
 
+/**
+ * One rendered file coming out of the standalone Levels_backend batch
+ * pipeline (POST /api/generate-batch) for a single student x sublevel x
+ * set. answerKey/coords are stored verbatim (shape from that service's
+ * buildCleanAnswerKey / captureCoords) so the ICR evaluation pipeline can
+ * mark against the real thing instead of a placeholder.
+ */
+export interface LevelWorksheet {
+  id: string;
+  batchId: string;
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  levelId: number;
+  sublevelId: string;
+  setNum: number;
+  pdfUrl: string;
+  answerKey: any;
+  coords: any;
+  generatedAt: string;
+}
+
 export interface Worksheet {
   id: string; // Exam ID
   classId: string;
@@ -228,6 +250,7 @@ interface DatabaseSchema {
   students: Student[];
   questions: Question[];
   worksheets: Worksheet[];
+  levelWorksheets: LevelWorksheet[];
   answerSubmissions: AnswerSubmission[];
   evaluationReports: EvaluationReport[];
   tickets: Ticket[];
@@ -268,6 +291,7 @@ export class DBStore {
         { name: 'students', data: seed.students },
         { name: 'questions', data: seed.questions },
         { name: 'worksheets', data: seed.worksheets },
+        { name: 'levelWorksheets', data: seed.levelWorksheets },
         { name: 'answerSubmissions', data: seed.answerSubmissions },
         { name: 'evaluationReports', data: seed.evaluationReports },
         { name: 'tickets', data: seed.tickets },
@@ -304,6 +328,7 @@ export class DBStore {
         students: await this.mongoDb.collection<Student>('students').find({}).toArray(),
         questions: await this.mongoDb.collection<Question>('questions').find({}).toArray(),
         worksheets: await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray(),
+        levelWorksheets: await this.mongoDb.collection<LevelWorksheet>('levelWorksheets').find({}).toArray(),
         answerSubmissions: await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray(),
         evaluationReports: await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({}).toArray(),
         tickets: await this.mongoDb.collection<Ticket>('tickets').find({}).toArray(),
@@ -324,11 +349,13 @@ export class DBStore {
     }
     console.log('[Database] Resetting MongoDB data...');
     const seed = this.getSeedData();
+
     const collections = [
       'users', 'schools', 'classes', 'students', 'questions',
-      'worksheets', 'answerSubmissions', 'evaluationReports',
-      'tickets', 'logbook', 'announcements', 'announcementReads', 'interventions', 'bestPractices'
+      'worksheets', 'levelWorksheets', 'answerSubmissions', 'evaluationReports',
+      'tickets', 'logbook', 'announcements', 'announcementReads', 'interventions'
     ];
+  
     for (const cName of collections) {
       await this.mongoDb.collection(cName).deleteMany({});
     }
@@ -372,6 +399,9 @@ getUserSync(email: string): User | null {
   }
   async getWorksheets() {
     return await this.mongoDb!.collection<Worksheet>('worksheets').find({}).toArray();
+  }
+  async getLevelWorksheets() {
+    return await this.mongoDb!.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
   }
   async getAnswerSubmissions() {
     return await this.mongoDb!.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
@@ -430,6 +460,12 @@ getUserSync(email: string): User | null {
       if (idx !== -1) this.data.worksheets[idx] = ws;
     }
     return ws || undefined;
+  }
+
+  async addLevelWorksheet(ws: LevelWorksheet) {
+    await this.mongoDb!.collection('levelWorksheets').insertOne(ws);
+    if (this.data) this.data.levelWorksheets.push(ws);
+    return ws;
   }
 
   async addAnswerSubmission(sub: AnswerSubmission) {
@@ -2463,6 +2499,7 @@ getUserSync(email: string): User | null {
       students,
       questions: seedQuestions,
       worksheets,
+      levelWorksheets: [],
       answerSubmissions,
       evaluationReports,
       tickets,
