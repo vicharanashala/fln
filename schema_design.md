@@ -256,4 +256,24 @@ interface Set {
   createdAt: string;        // ISO timestamp
   createdByEmail: string;   // Email of the district admin who created the set
 }
+
+// In-memory Ephemeral Job tracking the generation progress of a Set:
+interface SetGenerationJob {
+  jobId: string;            // Unique generation job UUID
+  setId: string;            // Linked Set ID
+  total: number;            // Total students in the set
+  completed: number;        // Number of successfully generated PDFs
+  status: 'running' | 'completed' | 'failed';
+  pdfPaths: string[];       // Individual student PDF paths
+  packagePath?: string;     // Final merged PDF package path
+  failures: Array<{ studentId: string; error: string }>; // Tracked generation failures
+  startedAt: string;        // ISO Timestamp
+  completedAt: string;      // ISO Timestamp
+}
 ```
+
+---
+
+## Known Limitations
+
+- **In-Memory Job Tracking:** Set generation jobs (tracked via `SetGenerationJob`) are tracked in-memory and are lost on server restart, similar to the existing `/api/diagnostic/bulk` bulk generation jobs. Active generation loops and cached PDF package references will not persist across service restarts.
