@@ -810,6 +810,40 @@ async function startServer() {
     res.json(newSet);
   });
 
+  // Get all sets with optional filtering
+  app.get('/api/sets', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const sets = await dbStore.getSets();
+
+    let filtered = sets;
+    const { setId, assessmentName, schoolId, classGroup, status } = req.query;
+
+    if (setId) {
+      const q = String(setId).toLowerCase();
+      filtered = filtered.filter(s => s.id.toLowerCase().includes(q));
+    }
+    if (assessmentName) {
+      const q = String(assessmentName).toLowerCase();
+      filtered = filtered.filter(s => s.assessmentName.toLowerCase().includes(q));
+    }
+    if (schoolId) {
+      const q = String(schoolId).toLowerCase();
+      filtered = filtered.filter(s => s.schoolId.toLowerCase().includes(q));
+    }
+    if (classGroup) {
+      const q = String(classGroup).toLowerCase();
+      filtered = filtered.filter(s => s.classGroup.toLowerCase().includes(q));
+    }
+    if (status) {
+      const q = String(status);
+      filtered = filtered.filter(s => s.status === q);
+    }
+
+    res.json(filtered);
+  });
+
   // Generate Personalized Class Worksheets
   app.post('/api/worksheets/generate', async (req, res) => {
     const user = getAuthUser(req);
