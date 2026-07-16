@@ -32,8 +32,13 @@ body{font-family:Arial,Helvetica,sans-serif;background:#e9e9e9;color:#000;margin
 .ws-sub{font-size:11px;margin-top:2px;font-weight:bold;}
 .ws-fields{display:flex;justify-content:space-between;font-size:10px;margin-top:5px;flex-wrap:wrap;gap:3px;}
 .ws-fields span{border-bottom:1px solid #000;padding:0 3px 1px 3px;min-width:85px;display:inline-block;}
+/* Keep the child details and QR visible; begin questions directly below. */
+ .ws-fields{display:none;}
+ .ws-header{min-height:18mm;box-sizing:border-box;}
+.cont-header{display:none;}
 .section-label{font-size:10px;font-weight:bold;letter-spacing:0.8px;text-transform:uppercase;background:#000;color:#fff;padding:2px 7px;margin:5px 0 2px 0;display:block;}
 .qcell{padding:5px 7px 6px 7px;display:flex;flex-direction:column;}
+.qcell,.section-label,table,tr{break-inside:avoid;page-break-inside:avoid;}
 .ctitle{font-weight:bold;font-size:10px;margin-bottom:1px;border-bottom:1px solid #000;padding-bottom:1px;}
 .cprompt{font-size:8.5px;margin-bottom:2px;line-height:1.3;}
 .ansbox{border:1.6px solid #000;display:inline-flex;align-items:center;justify-content:center;font-size:10px;min-width:28px;height:19px;padding:0 3px;}
@@ -76,10 +81,13 @@ table.pvb th,table.pvb td{border:1px solid #000;padding:2px 3px;text-align:cente
 <script src="./html2canvas.min.js"></script>
 <script src="./jspdf.umd.min.js"></script>
 <script src="./jszip.min.js"></script>
+<script src="./qrcode.min.js"></script>
 </head>
 <body>
 <div class="toolbar no-print">
   <h1>Class 4 — FLN Worksheet Generator</h1>
+  <label>Student name: <input id="studentName" type="text" placeholder="Student name"></label>
+  <label>Student ID: <input id="studentId" type="text" placeholder="Roll/Student ID"></label>
   <label>Sets: <input type="number" id="setCount" min="1" max="5000" value="5"></label>
   <button class="btn" id="generateBtn">Generate</button>
   <button class="btn" id="printBtn">Print current set</button>
@@ -532,11 +540,23 @@ function makeSec(keys,allAnswers,full){
       cells.replace(/<div class="qcell"/g,'<div class="qcell" style="border-right:1.5px solid #000;border-bottom:1.5px solid #000;"')+'</div>';
 }
 
+function worksheetQRHtml(setNum){
+  const student={studentName:document.getElementById('studentName')?.value.trim()||'UNASSIGNED',studentId:document.getElementById('studentId')?.value.trim()||'UNASSIGNED',classLevel:'CLASS_4',set:setNum};
+  const qr=qrcode(0,'M');qr.addData(JSON.stringify(student));qr.make();
+  return '<img class="worksheet-qr" alt="Student worksheet QR" style="width:18mm;height:18mm;float:right" src="'+qr.createDataURL(3,2)+'">';
+}
 function makePageWrapper(setNum,pageNum,totalPages,bodyHtml,pageId,includeHeader){
+  const studentName = document.getElementById('studentName')?.value.trim();
+  const studentId = document.getElementById('studentId')?.value.trim();
+  const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
+  const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
+  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+
   const hdr=includeHeader?
     '<div class="ws-header"><div class="ws-title">CLASS 4 — FLN MATHEMATICS PRACTICE WORKSHEET</div>'+
-    '<div class="ws-sub">Set '+setNum+'</div>'+
-    '<div class="ws-fields"><span>Name:</span><span>Date:</span><span>Roll No.:</span><span>Marks: ___ / __</span></div></div>':
+    '<div class="ws-sub">Set '+setNum+'</div>'+worksheetQRHtml(setNum)+
+    studentDetails+
+    '</div>':
     '<div class="cont-header">Set '+setNum+' — Page '+pageNum+' of '+totalPages+'</div>';
   return '<div class="page-wrapper" data-pageid="'+pageId+'-P'+pageNum+'" data-setnum="'+setNum+'">'+
     '<div class="reg-sq tl" data-regsq="tl"></div><div class="reg-sq tr" data-regsq="tr"></div>'+
@@ -691,6 +711,17 @@ function buildMasterJSON(start,end,cl){
   }
   return{generated:new Date().toISOString(),total_sets:sets.length,sets};
 }
+const QUESTION_ANSWER_FIELDS=new Set(['answer','answers','ans','correct_answer','expected_answer','expected','expected_value','expected_choice','expected_label','expected_side','matches','pairs','target_type','expected_count','circle','tick','matchesTo','correctRank','scanned_response','is_correct']);
+function questionOnly(value){
+  if(Array.isArray(value)) return value.map(questionOnly);
+  if(value&&typeof value==='object') return Object.fromEntries(Object.entries(value).filter(([key])=>!QUESTION_ANSWER_FIELDS.has(key)).map(([key,item])=>[key,questionOnly(item)]));
+  return value;
+}
+function buildQuestionPaperJSON(start,end,cl){
+  const paper=questionOnly(buildMasterJSON(start,end,cl));
+  paper.meta={artifact:'question_paper',includes_answers:false,generated:paper.generated};
+  return paper;
+}
 function csvEscape(v){v=String(v==null?'':v);if(/[",\n]/.test(v)) return '"'+v.replace(/"/g,'""')+'"';return v;}
 function buildCSV(start,end){
   const rows=[['set','question','qid','type','label','answer']];
@@ -750,6 +781,7 @@ document.getElementById('downloadSingleBtn').addEventListener('click',async()=>{
     const zip=new JSZip();
     zip.file('Set_'+String(n).padStart(5,'0')+'.pdf',pdfBlob);
     zip.file('Set_'+String(n).padStart(5,'0')+'_answerkey.json',JSON.stringify(buildMasterJSON(n,n,null),null,2));
+    zip.file('Set_'+String(n).padStart(5,'0')+'_questionpaper.json',JSON.stringify(buildQuestionPaperJSON(n,n,null),null,2));
     zip.file('Set_'+String(n).padStart(5,'0')+'_answers.csv',buildCSV(n,n));
     const zb=await zip.generateAsync({type:'blob',compression:'STORE'});
     const url=URL.createObjectURL(zb);const a=document.createElement('a');a.href=url;a.download='Class4_Set_'+String(n).padStart(5,'0')+'.zip';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
@@ -775,6 +807,7 @@ async function exportAllSetsAsZip(){
         const pb=await buildPdfBlobForSet(i);rawBytes+=pb.size;
         zip.file('Set_'+setId+'.pdf',pb);
         zip.file('Set_'+setId+'_answerkey.json',JSON.stringify(buildMasterJSON(i,i,null),null,2));
+        zip.file('Set_'+setId+'_questionpaper.json',JSON.stringify(buildQuestionPaperJSON(i,i,null),null,2));
         zip.file('Set_'+setId+'_answers.csv',buildCSV(i,i));
         await new Promise(r=>setTimeout(r,0)); // yield after every set
       }
@@ -790,6 +823,7 @@ document.getElementById('exportAllBtn').addEventListener('click',exportAllSetsAs
 
 window.generateSets=generateSets;window.activateSet=activateSet;window.captureCoords=captureCoords;
 window.buildMasterJSON=buildMasterJSON;window.buildCSV=buildCSV;window.buildPdfBlobForSet=buildPdfBlobForSet;
+window.buildQuestionPaperJSON=buildQuestionPaperJSON;
 window.getWorksheetSets=()=>worksheetSets;window.getQuestionRegistry=()=>Q;window.getVisualsLibrary=()=>V;
 </script>
 </body>
