@@ -98,7 +98,7 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
         <div>
           <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white md:text-2xl flex items-center gap-2">
             <Activity className="h-6 w-6 text-indigo-600 animate-pulse" />
-            FLN System Logbook & Audit Trail
+            FLN System Activity Log
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             Real-time, cryptographically logged operational journals and academic verification records.
@@ -120,14 +120,14 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
             </h4>
             <p className="text-xs text-blue-800/90 leading-relaxed dark:text-blue-400/90">
               Your logged-in role is <strong className="font-bold">{ROLE_LABELS[currentUser.role]}</strong>. Under standard FLN security directives, 
-              <strong> only higher or equal level users can audit lower-level activities</strong>. 
-              You can monitor your level's actions and all activities logged by roles underneath you. Actions by superior hierarchies remain strictly confidential and redacted.
+                <strong> only higher or equal level users can view lower-level activities</strong>. 
+                You can monitor your level's actions and all activities logged by roles underneath you. Actions by superior hierarchies remain strictly confidential and redacted.
             </p>
             
             {/* Visual Steps of Hierarchy */}
             <div className="mt-4 pt-3 border-t border-blue-100 dark:border-blue-900/30">
               <span className="text-[10px] font-black uppercase text-blue-900 dark:text-blue-400 tracking-wider block mb-2">
-                Hierarchical Audit Stream Visibility Flow
+                Hierarchical Activity Stream Visibility Flow
               </span>
               <div className="flex flex-wrap items-center gap-1 text-[10px] font-bold">
                 {Object.entries(ROLE_RANKS)
@@ -235,7 +235,7 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
               {finalLogs.length === 0 && (
                 <tr>
                   <td colSpan={5} className="text-center py-10 text-gray-400 text-xs font-semibold">
-                    No activities matching the active criteria were logged in this audit epoch.
+                    No activities matching the active criteria were logged in this epoch.
                   </td>
                 </tr>
               )}

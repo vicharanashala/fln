@@ -113,23 +113,23 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
 
   return (
     <div className="space-y-6" id="ticket-submission">
-      <div className="border-b border-zinc-200 pb-4 flex justify-between items-end">
+      <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex justify-between items-end">
         <div>
-          <h2 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">Pedagogical & Process Feedback Tickets</h2>
-          <p className="text-zinc-500 text-sm mt-1">Submit feedback on syllabus, exam timings, or report inconsistencies. Superadmins review all entries.</p>
+          <h2 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">Pedagogical & Process Feedback Tickets</h2>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">Submit feedback on syllabus, exam timings, or report inconsistencies. Superadmins review all entries.</p>
         </div>
       </div>
       
       {isAdminRole && (
-        <div className="flex gap-4 border-b border-zinc-200">
+        <div className="flex gap-4 border-b border-zinc-200 dark:border-zinc-700">
           <button 
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'general' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'general' ? 'border-indigo-600 dark:border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
             onClick={() => setActiveTab('general')}
           >
             General Feedback
           </button>
           <button 
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'appeals' ? 'border-red-600 text-red-600' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${activeTab === 'appeals' ? 'border-red-600 dark:border-red-500 text-red-600 dark:text-red-400' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
             onClick={() => setActiveTab('appeals')}
           >
             Defaulter Appeals
@@ -140,18 +140,18 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Create ticket form or Admin Notice */}
         {userRole !== UserRole.SUPERADMIN && activeTab === 'general' ? (
-          <div className="lg:col-span-1 bg-white p-6 border border-zinc-200 rounded-xl shadow-sm h-fit">
-            <h3 className="text-lg font-display font-medium text-zinc-900 mb-4">Raise a New Ticket</h3>
+          <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm h-fit">
+            <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-4">Raise a New Ticket</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && <div className="p-3 text-xs bg-red-50 text-red-700 rounded border border-red-100">{error}</div>}
-              {success && <div className="p-3 text-xs bg-green-50 text-green-700 rounded border border-green-100">{success}</div>}
+              {error && <div className="p-3 text-xs bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded border border-red-100 dark:border-red-800">{error}</div>}
+              {success && <div className="p-3 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded border border-green-100 dark:border-green-800">{success}</div>}
 
               <div>
-                <label className="block text-xs font-medium text-zinc-700 uppercase tracking-wider mb-1">Ticket Type</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Ticket Type</label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as 'general' | 'curriculum')}
-                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 focus:border-zinc-500 focus:ring-0 outline-none"
+                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 focus:border-zinc-500 focus:ring-0 outline-none text-zinc-900 dark:text-white"
                 >
                   <option value="general">General / Process (All Roles)</option>
                   {(userRole === UserRole.TEACHER || userRole === UserRole.VOLUNTEER) && (
@@ -161,24 +161,24 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-700 uppercase tracking-wider mb-1">Subject</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Subject</label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Brief summary of the issue..."
-                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 focus:border-zinc-500 focus:ring-0 outline-none"
+                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 focus:border-zinc-500 focus:ring-0 outline-none bg-white dark:bg-slate-800 text-zinc-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-700 uppercase tracking-wider mb-1">Detailed Description</label>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Detailed Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                   placeholder="Elaborate on the topic, syllabus reference, or observed issue..."
-                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 focus:border-zinc-500 focus:ring-0 outline-none"
+                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 focus:border-zinc-500 focus:ring-0 outline-none bg-white dark:bg-slate-800 text-zinc-900 dark:text-white"
                 />
               </div>
 
@@ -211,18 +211,18 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
 
         {/* Tickets listing */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-lg font-display font-medium text-zinc-900">
+          <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">
             {activeTab === 'appeals' ? 'Pending Defaulter Appeals' : (userRole === UserRole.SUPERADMIN ? 'Global Review Queue' : 'Your Submitted Tickets')}
           </h3>
 
           {displayTickets.length === 0 ? (
-            <div className="p-8 border border-dashed border-zinc-200 rounded-xl bg-zinc-50 text-center text-zinc-400 text-sm">
+            <div className="p-8 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-center text-zinc-400 dark:text-zinc-500 text-sm">
               No active {activeTab === 'appeals' ? 'appeals' : 'feedback tickets'} found.
             </div>
           ) : (
             <div className="space-y-3">
               {displayTickets.map((t) => (
-                <div key={t.id} className="bg-white p-5 border border-zinc-200 rounded-xl shadow-sm space-y-3">
+                <div key={t.id} className="bg-white dark:bg-slate-900 p-5 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2">
@@ -242,34 +242,34 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
                           {t.status}
                         </span>
                       </div>
-                      <h4 className="font-display font-medium text-zinc-900 mt-2">{t.subject}</h4>
+                      <h4 className="font-display font-medium text-zinc-900 dark:text-white mt-2">{t.subject}</h4>
                     </div>
                     <span className="text-[10px] font-mono text-zinc-400">
                       {new Date(t.createdAt).toLocaleDateString()}
                     </span>
                   </div>
 
-                  <p className="text-zinc-600 text-xs leading-relaxed bg-zinc-50 p-3 rounded-lg border border-zinc-100">{t.description}</p>
+                  <p className="text-zinc-600 dark:text-zinc-300 text-xs leading-relaxed bg-zinc-50 dark:bg-slate-800 p-3 rounded-lg border border-zinc-100 dark:border-zinc-700">{t.description}</p>
                   
                   {t.type === 'DEFAULTER_APPEAL' && (
                     <div className="mt-4">
                       <button 
                         onClick={() => toggleExpand(t.id)}
-                        className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                        className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1"
                       >
                         {expandedAppeals.includes(t.id) ? 'Hide Logbook Metadata' : 'View Logbook Metadata'}
                       </button>
                       
                       {expandedAppeals.includes(t.id) && t.metadata?.logbookContext && (
-                        <div className="mt-3 space-y-2 border-l-2 border-indigo-200 pl-3">
+                        <div className="mt-3 space-y-2 border-l-2 border-indigo-200 dark:border-indigo-800 pl-3">
                           {t.metadata.logbookContext.length === 0 ? (
                             <div className="text-xs text-zinc-500 italic">No recent logbook activity found.</div>
                           ) : (
                             t.metadata.logbookContext.map(log => (
-                              <div key={log.id} className="text-[10px] bg-slate-50 p-2 rounded flex justify-between">
+                              <div key={log.id} className="text-[10px] bg-slate-50 dark:bg-slate-800 p-2 rounded flex justify-between">
                                 <span className="font-mono text-slate-500">{new Date(log.timestamp).toLocaleString()}</span>
-                                <span className={`font-medium ${log.status === 'Success' ? 'text-green-600' : log.status === 'Failed' ? 'text-red-600' : 'text-amber-600'}`}>{log.status}</span>
-                                <span className="text-slate-700 w-1/2 truncate" title={log.details}>{log.details}</span>
+                                <span className={`font-medium ${log.status === 'Success' ? 'text-green-600 dark:text-green-400' : log.status === 'Failed' ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>{log.status}</span>
+                                <span className="text-slate-700 dark:text-slate-300 w-1/2 truncate" title={log.details}>{log.details}</span>
                               </div>
                             ))
                           )}
@@ -278,9 +278,9 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center pt-3 border-t border-zinc-100 text-[10px] text-zinc-400">
+                  <div className="flex justify-between items-center pt-3 border-t border-zinc-100 dark:border-zinc-700 text-[10px] text-zinc-400 dark:text-zinc-500">
                     <div>
-                      Filed by: <span className="font-medium text-zinc-700">{t.userName}</span> ({t.userRole})
+                      Filed by: <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.userName}</span> ({t.userRole})
                       {t.metadata?.schoolId && <span className="ml-2">School: {t.metadata.schoolId}</span>}
                     </div>
 
@@ -296,7 +296,7 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
                             </button>
                             <button
                               onClick={() => handleResolve(t.id, 'REJECTED')}
-                              className="bg-zinc-200 hover:bg-zinc-300 text-zinc-800 font-medium px-2 py-1 rounded cursor-pointer"
+                              className="bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 text-zinc-800 dark:text-zinc-200 font-medium px-2 py-1 rounded cursor-pointer"
                             >
                               Reject
                             </button>
@@ -306,7 +306,7 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
                             {t.status === 'Open' && (
                               <button
                                 onClick={() => handleResolve(t.id, 'Reviewed')}
-                                className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-medium px-2 py-1 rounded cursor-pointer"
+                                className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-medium px-2 py-1 rounded cursor-pointer"
                               >
                                 Mark Reviewed
                               </button>

@@ -1,6 +1,0 @@
-[
-  { "id": "u7", "email": "vol.rahul@fln.org", "name": "Rahul Kumar", "assignedSchools": ["gps-vl-002"] },
-  { "id": "u7_amit", "email": "vol.amit@fln.org", "name": "Amit Saini", "assignedSchools": ["gps-vl-002", "gps-jai-004"] },
-  { "id": "u7_sneha", "email": "vol.up_sneha@fln.org", "name": "Sneha Verma", "assignedSchools": ["gps-lko-005"] },
-  { "id": "u7_vipin", "email": "vol.hr_vipin@fln.org", "name": "Vipin Yadav", "assignedSchools": ["gps-amb-003"] }
-]
