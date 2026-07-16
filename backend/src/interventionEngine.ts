@@ -49,9 +49,10 @@ export function classifyStudentIntervention(
   const recent = reports.slice(-RECENT_WINDOW);
   const latest = reports[reports.length - 1];
 
-  const percentOf = (r: EvaluationReport) =>
-    r.totalQuestions > 0 ? (r.score / r.totalQuestions) * 100 : 0;
-
+  // NOTE: EvaluationReport.score is already stored as a 0-100 percentage
+  // (see seed data / gemini.ts), not a raw correct-answer count — so it's
+  // used directly, not divided by totalQuestions.
+  const percentOf = (r: EvaluationReport) => r.score;
   const allPercents = reports.map(percentOf);
   const recentPercents = recent.map(percentOf);
   const latestPercent = percentOf(latest);
