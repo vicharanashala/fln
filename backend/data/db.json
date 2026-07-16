@@ -3636,6 +3636,13 @@
       "userId": "u4",
       "userEmail": "block.ldh-01@fln.org",
       "readAt": "2026-07-12T07:16:05.526Z"
+    },
+    {
+      "id": "read_ann_1783840298474_u5",
+      "announcementId": "ann_1783840298474",
+      "userId": "u5",
+      "userEmail": "gps-mt-001@fln.org",
+      "readAt": "2026-07-15T10:43:02.732Z"
     }
   ]
 }
