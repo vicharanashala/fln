@@ -24,6 +24,7 @@ export const SetsPanel: React.FC<{ token: string }> = ({ token }) => {
   });
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [formError, setFormError] = useState('');
+  const [activeJobs, setActiveJobs] = useState<Record<string, any>>({});
 
   const fetchSets = () => {
     const queryParams = new URLSearchParams();
@@ -64,6 +65,55 @@ export const SetsPanel: React.FC<{ token: string }> = ({ token }) => {
         .catch(console.error);
     }
   }, [isCreateModalOpen, token, schools.length]);
+
+  const runningJobKeys = Object.entries(activeJobs)
+    .filter(([_, j]) => j.status === 'running')
+    .map(([id, j]) => `${id}:${j.jobId}`)
+    .join(',');
+
+  useEffect(() => {
+    const runningEntries = Object.entries(activeJobs).filter(([_, j]) => j.status === 'running');
+    if (runningEntries.length === 0) return;
+
+    const interval = setInterval(async () => {
+      for (const [setId, job] of runningEntries) {
+        try {
+          const res = await fetch(`/api/sets/${setId}/generate/${job.jobId}/progress`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setActiveJobs(prev => ({
+              ...prev,
+              [setId]: data
+            }));
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }, 1500);
+    
+    return () => clearInterval(interval);
+  }, [runningJobKeys, token]);
+
+  const handleGenerate = async (setId: string) => {
+    try {
+      const res = await fetch(`/api/sets/${setId}/generate`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveJobs(prev => ({
+          ...prev,
+          [setId]: { jobId: data.jobId, status: 'running', completed: 0, total: data.total || 1, failures: [] }
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to start generation', err);
+    }
+  };
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -131,7 +181,60 @@ export const SetsPanel: React.FC<{ token: string }> = ({ token }) => {
     { header: 'Grade', accessor: 'classGroup', className: 'text-sm' },
     { header: 'Students', accessor: (row) => row.studentIds?.length || 0, className: 'text-sm font-mono' },
     { header: 'Status', accessor: 'status', className: 'text-sm' },
-    { header: 'Created', accessor: (row) => new Date(row.createdAt).toLocaleDateString(), className: 'text-sm text-slate-500' }
+    { header: 'Created', accessor: (row) => new Date(row.createdAt).toLocaleDateString(), className: 'text-sm text-slate-500' },
+    {
+      header: 'Actions',
+      accessor: (row) => {
+        const job = activeJobs[row.id];
+        if (job) {
+          if (job.status === 'running') {
+            const pct = Math.round((job.completed / Math.max(1, job.total)) * 100);
+            return (
+              <div className="w-32">
+                <div className="flex justify-between text-[10px] mb-1 font-mono text-slate-500">
+                  <span>Generating</span>
+                  <span>{pct}%</span>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-blue-500 h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            );
+          }
+          if (job.status === 'completed') {
+            return (
+              <div className="flex flex-col gap-1 items-start w-32">
+                <a 
+                  href={`/api/sets/${row.id}/download`} 
+                  className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 text-center w-full block hover:bg-emerald-100 transition-colors"
+                >
+                  Download Package
+                </a>
+                {job.failures && job.failures.length > 0 && (
+                  <span className="text-[9px] text-red-500 font-bold block">{job.failures.length} failed</span>
+                )}
+              </div>
+            );
+          }
+          if (job.status === 'failed') {
+            return <span className="text-[10px] text-red-500 font-bold">Generation failed</span>;
+          }
+        }
+
+        if (row.status === 'Created') {
+          return (
+            <button 
+              onClick={() => handleGenerate(row.id)}
+              className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-2 py-1 hover:bg-indigo-100 transition-colors"
+            >
+              Generate Papers
+            </button>
+          );
+        }
+        return null;
+      },
+      className: ''
+    }
   ];
 
   return (
