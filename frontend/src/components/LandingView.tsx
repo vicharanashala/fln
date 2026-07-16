@@ -3,16 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin } from 'lucide-react';
-import { STATES_DATA } from '../constants';
 
 interface LandingViewProps {
   onNavigateToLogin: () => void;
 }
 
+interface Stats {
+  totalStates: number;
+  totalDistricts: number;
+  totalSchools: number;
+  totalStudents: number;
+  totalAssessments: number;
+  avgFlnLevel: number;
+  totalUsers: number;
+}
+
 export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) => {
   const [fontSize, setFontSize] = useState(100);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   const adjustFontSize = (delta: number) => {
     setFontSize((prev) => {
@@ -26,17 +36,20 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
     setFontSize(100);
     document.documentElement.style.fontSize = '100%';
   };
-  const totalEnrolled = STATES_DATA.reduce((acc, curr) => acc + curr.enrolled, 0);
-  const totalCertified = STATES_DATA.reduce((acc, curr) => acc + curr.certified, 0);
-  const nationalAvgFlnScore = Math.round((totalCertified / totalEnrolled) * 100);
 
-  // Show blank placeholders until the backend provides real data
-  const stats = [
-    { label: 'States & Districts', value: '', desc: 'Will be populated soon', icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
-    { label: 'Registered Schools', value: '', desc: 'Will be populated soon', icon: BookOpen, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
-    { label: 'Students Tracked', value: '', desc: 'Will be populated soon', icon: Users, color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' },
-    { label: 'Assessments Conducted', value: '', desc: 'Will be populated soon', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40' },
-    { label: 'National FLN Score', value: '', desc: 'Will be populated soon', icon: Award, color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' },
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(d => setStats(d))
+      .catch(() => {});
+  }, []);
+
+  const statCards = [
+    { label: 'States & Districts', value: stats ? `${stats.totalStates} States / ${stats.totalDistricts} Districts` : '—', desc: 'Across India', icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
+    { label: 'Registered Schools', value: stats?.totalSchools?.toLocaleString() ?? '—', desc: 'Active institutions', icon: BookOpen, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
+    { label: 'Students Tracked', value: stats?.totalStudents?.toLocaleString() ?? '—', desc: 'Enrolled learners', icon: Users, color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' },
+    { label: 'Assessments Conducted', value: stats?.totalAssessments?.toLocaleString() ?? '—', desc: 'Worksheets generated', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40' },
+    { label: 'National Avg FLN Level', value: stats ? `L${stats.avgFlnLevel}` : '—', desc: 'Average student level', icon: Award, color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' },
   ];
 
   return (
@@ -127,7 +140,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
 
         {/* Stats Grid */}
         <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {stats.map((stat, index) => {
+          {statCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div

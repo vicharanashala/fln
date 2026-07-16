@@ -1,8 +1,27 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { MongoClient } from 'mongodb';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
+
+export let mongoClient: MongoClient | null = null;
+
+export const connectDB = async () => {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error("MONGODB_URI not set — cannot start server");
+    process.exit(1);
+  }
+  try {
+    mongoClient = new MongoClient(uri);
+    await mongoClient.connect();
+    console.log("MongoDB Connected");
+  } catch (err) {
+    console.error("MongoDB connection failed:", err.message);
+    process.exit(1);
+  }
+};
 
 // Types & Interfaces corresponding to MongoDB Collections in SRS §10
 export enum UserRole {
@@ -235,94 +254,52 @@ interface DatabaseSchema {
   bestPractices: BestPractice[];
 }
 
+const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
+  users: 'users',
+  schools: 'schools',
+  classes: 'classes',
+  students: 'students',
+  questions: 'questions',
+  worksheets: 'worksheets',
+  answerSubmissions: 'answer_submissions',
+  evaluationReports: 'evaluation_reports',
+  tickets: 'tickets',
+  logbook: 'logbook',
+  announcements: 'announcements',
+  interventions: 'interventions',
+  bestPractices: 'best_practices',
+};
+
 export class DBStore {
   private data: DatabaseSchema | null = null;
 
+  private getDb() {
+    if (!mongoClient) throw new Error('MongoDB not connected');
+    return mongoClient.db();
+  }
+
   async init() {
-    try {
-      await fs.mkdir(DB_DIR, { recursive: true });
-    } catch (_) {}
-
-    try {
-      const content = await fs.readFile(DB_FILE, 'utf-8');
-      this.data = JSON.parse(content);
-      
-      // Auto-merge any newly defined pre-seeded users, schools, classes, and students
-      const seed = this.getSeedData();
-      let modified = false;
-
-      if (!this.data.users) {
-        this.data.users = [];
-        modified = true;
+    if (mongoClient) {
+      console.log('Loading data from MongoDB...');
+      const db = this.getDb();
+      this.data = {} as DatabaseSchema;
+      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
+        const docs = await db.collection(collName).find().toArray();
+        (this.data as any)[key] = docs.map(({ _id, ...rest }) => rest);
       }
-      for (const u of seed.users) {
-        if (!this.data.users.some(existing => existing.email.toLowerCase() === u.email.toLowerCase())) {
-          this.data.users.push(u);
-          modified = true;
-        }
-      }
-
-      if (!this.data.schools) {
-        this.data.schools = [];
-        modified = true;
-      }
-      for (const s of seed.schools) {
-        if (!this.data.schools.some(existing => existing.id === s.id)) {
-          this.data.schools.push(s);
-          modified = true;
-        }
-      }
-
-      if (!this.data.classes) {
-        this.data.classes = [];
-        modified = true;
-      }
-      for (const c of seed.classes) {
-        if (!this.data.classes.some(existing => existing.id === c.id)) {
-          this.data.classes.push(c);
-          modified = true;
-        }
-      }
-
-      if (!this.data.students) {
-        this.data.students = [];
-        modified = true;
-      }
-      for (const std of seed.students) {
-        if (!this.data.students.some(existing => existing.id === std.id)) {
-          this.data.students.push(std);
-          modified = true;
-        }
-      }
-
-      if (!this.data.announcements) {
-        this.data.announcements = [];
-        modified = true;
-      }
-      if (!this.data.tickets) {
-        this.data.tickets = [];
-        modified = true;
-      }
-      if (!this.data.logbook) {
-        this.data.logbook = [];
-        modified = true;
-      }
-      if (!this.data.interventions) {
-        this.data.interventions = [];
-        modified = true;
-      }
-      if (!this.data.bestPractices) {
-        this.data.bestPractices = [];
-        modified = true;
-      }
-
-      if (modified) {
+      console.log(`MongoDB loaded: ${this.data.users?.length || 0} users, ${this.data.schools?.length || 0} schools, ${this.data.students?.length || 0} students`);
+    } else {
+      console.log('No MongoDB — falling back to file-based DB');
+      try {
+        await fs.mkdir(DB_DIR, { recursive: true });
+      } catch (_) {}
+      try {
+        const content = await fs.readFile(DB_FILE, 'utf-8');
+        this.data = JSON.parse(content);
+      } catch (_) {
+        this.data = this.getSeedData();
         await this.save();
       }
-    } catch (_) {
-      // If DB file does not exist, pre-seed data
-      this.data = this.getSeedData();
-      await this.save();
     }
   }
 
@@ -331,9 +308,33 @@ export class DBStore {
     await fs.writeFile(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
   }
 
+  private async persistCollection(key: keyof DatabaseSchema) {
+    if (!this.data || !mongoClient) return;
+    const db = this.getDb();
+    const collName = COLLECTION_NAMES[key];
+    const items = (this.data as any)[key] || [];
+    const coll = db.collection(collName);
+    await coll.deleteMany({});
+    if (items.length > 0) {
+      await coll.insertMany(items);
+    }
+  }
+
   async reset() {
     this.data = this.getSeedData();
-    await this.save();
+    if (mongoClient) {
+      const db = this.getDb();
+      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
+        const items = (this.data as any)[key] || [];
+        const coll = db.collection(collName);
+        await coll.deleteMany({});
+        if (items.length > 0) {
+          await coll.insertMany(items);
+        }
+      }
+    } else {
+      await this.save();
+    }
   }
 
   // --- Collection Accessors ---
@@ -354,13 +355,13 @@ export class DBStore {
 
   async addUser(user: User) {
     this.data!.users.push(user);
-    await this.save();
+    await this.persistCollection('users');
     return user;
   }
 
   async addStudent(student: Student) {
     this.data!.students.push(student);
-    await this.save();
+    await this.persistCollection('students');
     return student;
   }
 
@@ -368,14 +369,14 @@ export class DBStore {
     const s = this.data!.students.find(x => x.id === studentId);
     if (s) {
       Object.assign(s, updates);
-      await this.save();
+      await this.persistCollection('students');
     }
     return s;
   }
 
   async addWorksheet(ws: Worksheet) {
     this.data!.worksheets.push(ws);
-    await this.save();
+    await this.persistCollection('worksheets');
     return ws;
   }
 
@@ -383,26 +384,26 @@ export class DBStore {
     const ws = this.data!.worksheets.find(x => x.id === worksheetId);
     if (ws) {
       Object.assign(ws, updates);
-      await this.save();
+      await this.persistCollection('worksheets');
     }
     return ws;
   }
 
   async addAnswerSubmission(sub: AnswerSubmission) {
     this.data!.answerSubmissions.push(sub);
-    await this.save();
+    await this.persistCollection('answerSubmissions');
     return sub;
   }
 
   async addEvaluationReport(rep: EvaluationReport) {
     this.data!.evaluationReports.push(rep);
-    await this.save();
+    await this.persistCollection('evaluationReports');
     return rep;
   }
 
   async addTicket(t: Ticket) {
     this.data!.tickets.push(t);
-    await this.save();
+    await this.persistCollection('tickets');
     return t;
   }
 
@@ -410,7 +411,7 @@ export class DBStore {
     const t = this.data!.tickets.find(x => x.id === id);
     if (t) {
       Object.assign(t, updates);
-      await this.save();
+      await this.persistCollection('tickets');
     }
     return t;
   }
@@ -419,7 +420,7 @@ export class DBStore {
     const u = this.data!.users.find(x => x.id === userId);
     if (u) {
       Object.assign(u, updates);
-      await this.save();
+      await this.persistCollection('users');
     }
     return u;
   }
@@ -428,20 +429,20 @@ export class DBStore {
     const s = this.data!.schools.find(x => x.id === schoolId);
     if (s) {
       Object.assign(s, updates);
-      await this.save();
+      await this.persistCollection('schools');
     }
     return s;
   }
 
   async addLog(log: LogEntry) {
     this.data!.logbook.unshift(log);
-    await this.save();
+    await this.persistCollection('logbook');
     return log;
   }
 
   async addAnnouncement(ann: Announcement) {
     this.data!.announcements.unshift(ann);
-    await this.save();
+    await this.persistCollection('announcements');
     return ann;
   }
 
@@ -451,7 +452,7 @@ export class DBStore {
 
   async addIntervention(intervention: Intervention) {
     this.data!.interventions.push(intervention);
-    await this.save();
+    await this.persistCollection('interventions');
     return intervention;
   }
 
@@ -459,7 +460,7 @@ export class DBStore {
     const i = this.data!.interventions.find(x => x.id === id);
     if (i) {
       Object.assign(i, updates);
-      await this.save();
+      await this.persistCollection('interventions');
     }
     return i;
   }
@@ -468,7 +469,7 @@ export class DBStore {
 
   async addBestPractice(bp: BestPractice) {
     this.data!.bestPractices.push(bp);
-    await this.save();
+    await this.persistCollection('bestPractices');
     return bp;
   }
 
@@ -476,7 +477,7 @@ export class DBStore {
     const bp = this.data!.bestPractices.find(x => x.id === id);
     if (bp) {
       Object.assign(bp, updates);
-      await this.save();
+      await this.persistCollection('bestPractices');
     }
     return bp;
   }

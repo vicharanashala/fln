@@ -1,7 +1,8 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
@@ -14,6 +15,9 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 async function startServer() {
+  // Connect to MongoDB
+  await connectDB();
+
   // Initialize file-based DB
   await dbStore.init();
 
@@ -80,6 +84,26 @@ async function startServer() {
   }
 
   // --- API Endpoints ---
+
+  // Public stats (no auth required — used by landing page)
+  app.get('/api/stats', async (_req, res) => {
+    const schools = await dbStore.getSchools();
+    const students = await dbStore.getStudents();
+    const users = await dbStore.getUsers();
+    const worksheets = await dbStore.getWorksheets();
+    const stateCodes = new Set(schools.map(s => s.stateCode));
+    const districtCodes = new Set(schools.map(s => s.districtCode));
+    const avgLevel = students.length > 0 ? Math.round(students.reduce((a, s) => a + s.currentLevel, 0) / students.length) : 0;
+    res.json({
+      totalStates: stateCodes.size,
+      totalDistricts: districtCodes.size,
+      totalSchools: schools.length,
+      totalStudents: students.length,
+      totalAssessments: worksheets.length,
+      avgFlnLevel: avgLevel,
+      totalUsers: users.length,
+    });
+  });
 
   // Auth: Login
   app.post('/api/auth/login', async (req, res) => {
