@@ -35,12 +35,12 @@ For each question visible on the page, output a JSON object with EXACTLY these f
 }
 
 **CRITICAL — boundingBox coordinates MUST be integers in the 0 to 1000 range relative to the page image (ymin, xmin, ymax, xmax):**
-- ymin = distance from the TOP edge of the page (0 = topmost, 1000 = bottommost)
-- xmin = distance from the LEFT edge of the page (0 = leftmost, 1000 = rightmost)
-- ymax = distance from the TOP edge of the page (0 = topmost, 1000 = bottommost)
-- xmax = distance from the LEFT edge of the page (0 = leftmost, 1000 = rightmost)
-- Be very precise! Do not estimate simple large boxes. Draw a tight crop box around JUST this question's text, pictures, and lines.
-- Example: a question occupying the top quarter might be {"ymin": 50, "xmin": 80, "ymax": 300, "xmax": 920}
+- ymin = distance from the TOP edge of the page (0 = topmost, 1000 = bottommost). **Must start exactly above the question number/text (e.g. "Q1.")**.
+- xmin = distance from the LEFT edge of the page (0 = leftmost, 1000 = rightmost). **Must cover the far left side of the text (including question numbers)**.
+- ymax = distance from the TOP edge of the page (0 = topmost, 1000 = bottommost). **Must extend below all the answer options, tables, pictures, or drawing lines for this question**.
+- xmax = distance from the LEFT edge of the page (0 = leftmost, 1000 = rightmost). **Must cover the far right side of the page**.
+- **Important**: Do not let question boxes overlap on the vertical axis (y-axis) unless they are part of the same question! Be extremely careful to find the correct vertical start (`ymin`) and end (`ymax`) for each question.
+- Example: a question occupying the top quarter might be {"ymin": 50, "xmin": 50, "ymax": 280, "xmax": 950}
 
 **STRICT answer generation rules — ALWAYS provide an answer:**
 1. For math/arithmetic/computation: COMPUTE the answer yourself. Examples:

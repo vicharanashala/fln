@@ -125,18 +125,17 @@ def crop_page_to_bbox(page_image_path: str, bbox: Dict[str, float], padding_pct:
         img = Image.open(page_image_path).convert("RGB")
         page_w, page_h = img.size
 
-        # Convert to pixel coords
-        x_px = int(x * page_w)
+        # Enforce full width (0.01 to 0.99) to guarantee left/right margins are never cut off
+        x0 = int(0.01 * page_w)
+        x1 = int(0.99 * page_w)
+
+        # Convert to pixel coords for vertical axis
         y_px = int(y * page_h)
-        w_px = int(w * page_w)
         h_px = int(h * page_h)
 
-        # Add padding
-        pad_x = int(padding_pct * page_w)
-        pad_y = int(padding_pct * page_h)
-        x0 = max(0, x_px - pad_x)
+        # Add generous vertical padding (5%) to prevent top/bottom cutoff
+        pad_y = int(0.05 * page_h)
         y0 = max(0, y_px - pad_y)
-        x1 = min(page_w, x_px + w_px + pad_x)
         y1 = min(page_h, y_px + h_px + pad_y)
 
         cropped = img.crop((x0, y0, x1, y1))
