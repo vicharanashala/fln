@@ -260,6 +260,33 @@ export interface BestPractice {
   createdAt: string;
 }
 
+export type SetStatus =
+  | 'Created'
+  | 'Question Papers Generated'
+  | 'Printed'
+  | 'Dispatched'
+  | 'Delivered to School'
+  | 'Assessment Conducted'
+  | 'Answer Sheets Returned'
+  | 'Scanning Completed'
+  | 'Evaluation Completed';
+
+export interface Set {
+  id: string;            // e.g. "SET_10234"
+  name: string;
+  assessmentName: string;
+  schoolId: string;
+  classGroup: string;    // reuses the same grade/class values as the `classes` collection
+  studentIds: string[];  // ordered — printing order must match this order
+  status: SetStatus;
+  createdAt: string;     // ISO timestamp
+  createdByEmail: string;
+}
+
+/** Generates a unique Set ID following the same convention as STD_ and WS_ IDs. */
+export const generateSetId = (): string =>
+  'SET_' + Math.floor(10000 + Math.random() * 90000);
+
 interface DatabaseSchema {
   users: User[];
   schools: School[];
@@ -268,6 +295,7 @@ interface DatabaseSchema {
   questions: Question[];
   worksheets: Worksheet[];
   levelWorksheets: LevelWorksheet[];
+  sets: Set[];
   answerSubmissions: AnswerSubmission[];
   evaluationReports: EvaluationReport[];
   tickets: Ticket[];
@@ -284,6 +312,8 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   students: 'students',
   questions: 'questions',
   worksheets: 'worksheets',
+  levelWorksheets: 'level_worksheets',
+  sets: 'sets',
   answerSubmissions: 'answer_submissions',
   evaluationReports: 'evaluation_reports',
   tickets: 'tickets',
@@ -318,7 +348,7 @@ export class DBStore {
       console.log('No MongoDB — falling back to file-based DB');
       try {
         await fs.mkdir(DB_DIR, { recursive: true });
-      } catch (_) {}
+      } catch (_) { }
       try {
         const content = await fs.readFile(DB_FILE, 'utf-8');
         this.data = JSON.parse(content);
@@ -388,6 +418,9 @@ export class DBStore {
   async getWorksheets() {
     return await this.mongoDb!.collection<Worksheet>('worksheets').find({}).toArray();
   }
+  async getSets() {
+    return await this.mongoDb!.collection<Set>('sets').find({}).toArray();
+  }
   async getLevelWorksheets() {
     return await this.mongoDb!.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
   }
@@ -445,6 +478,22 @@ export class DBStore {
       if (idx !== -1) this.data.worksheets[idx] = ws;
     }
     return ws || undefined;
+  }
+
+  async addSet(set: Set) {
+    await this.mongoDb!.collection('sets').insertOne(set);
+    if (this.data) this.data.sets.push(set);
+    return set;
+  }
+
+  async updateSet(setId: string, updates: Partial<Set>) {
+    await this.mongoDb!.collection('sets').updateOne({ id: setId }, { $set: updates });
+    const s = await this.mongoDb!.collection<Set>('sets').findOne({ id: setId });
+    if (s && this.data) {
+      const idx = this.data.sets.findIndex(x => x.id === setId);
+      if (idx !== -1) this.data.sets[idx] = s;
+    }
+    return s || undefined;
   }
 
   async addLevelWorksheet(ws: LevelWorksheet) {
@@ -2478,6 +2527,7 @@ export class DBStore {
       questions: seedQuestions,
       worksheets,
       levelWorksheets: [],
+      sets: [],
       answerSubmissions,
       evaluationReports,
       tickets,

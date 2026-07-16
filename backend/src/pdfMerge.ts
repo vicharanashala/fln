@@ -1,4 +1,13 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { Set } from './db';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { randomUUID } from 'crypto';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const OUTPUT_DIR = path.join(__dirname, '..', 'output');
 
 export interface StudentInfo {
   rollNo?: string;
@@ -67,4 +76,76 @@ export async function mergeAndStamp(renderedSets: RenderedSet[], students: Stude
 
   const bytes = await mergedPdf.save();
   return Buffer.from(bytes);
+}
+
+export async function buildSetPackage(set: Set, generatedPdfPaths: string[]): Promise<string> {
+  const puppeteer = await import('puppeteer');
+  const CHROME_EXECUTABLE_PATH = process.env.CHROME_EXECUTABLE_PATH || undefined;
+
+  const browser = await puppeteer.default.launch({
+    headless: true,
+    executablePath: CHROME_EXECUTABLE_PATH,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+
+  let coverPdfBuffer: Buffer;
+  try {
+    const page = await browser.newPage();
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: 'Helvetica', Arial, sans-serif; padding: 50px; text-align: center; }
+          .title { font-size: 32px; font-weight: bold; margin-bottom: 20px; }
+          .detail { font-size: 20px; margin-bottom: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="title">District-Level Set Package</div>
+        <div class="detail"><strong>Set ID:</strong> ${set.id}</div>
+        <div class="detail"><strong>Set Name:</strong> ${set.name}</div>
+        <div class="detail"><strong>Assessment Name:</strong> ${set.assessmentName}</div>
+        <div class="detail"><strong>School ID:</strong> ${set.schoolId}</div>
+        <div class="detail"><strong>Class Group:</strong> ${set.classGroup}</div>
+        <div class="detail"><strong>Total Students:</strong> ${set.studentIds.length}</div>
+        <div class="detail"><strong>Generation Date:</strong> ${new Date().toLocaleDateString()}</div>
+      </body>
+      </html>
+    `;
+    await page.setContent(html);
+    coverPdfBuffer = Buffer.from(await page.pdf({ format: 'A4', printBackground: true }));
+  } finally {
+    await browser.close();
+  }
+
+  const mergedPdf = await PDFDocument.create();
+  
+  // Add Cover Page
+  const coverPdf = await PDFDocument.load(coverPdfBuffer);
+  const coverPages = await mergedPdf.copyPages(coverPdf, coverPdf.getPageIndices());
+  coverPages.forEach(p => mergedPdf.addPage(p));
+
+  // Add all generated student PDFs
+  for (const pdfPathUrl of generatedPdfPaths) {
+    const filename = pdfPathUrl.split('/').pop();
+    if (!filename) continue;
+    const absolutePath = path.join(OUTPUT_DIR, filename);
+    if (!fs.existsSync(absolutePath)) continue;
+
+    const studentPdfBytes = fs.readFileSync(absolutePath);
+    const studentPdf = await PDFDocument.load(studentPdfBytes);
+    const studentPages = await mergedPdf.copyPages(studentPdf, studentPdf.getPageIndices());
+    studentPages.forEach(p => mergedPdf.addPage(p));
+  }
+
+  const finalPdfBytes = await mergedPdf.save();
+  const finalFilename = `set_${set.id}_package_${randomUUID()}.pdf`;
+  if (!fs.existsSync(OUTPUT_DIR)) {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  }
+  const finalPath = path.join(OUTPUT_DIR, finalFilename);
+  fs.writeFileSync(finalPath, finalPdfBytes);
+
+  return `/output/${finalFilename}`;
 }

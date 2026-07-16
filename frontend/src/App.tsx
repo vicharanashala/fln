@@ -21,6 +21,7 @@ import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
+import { SetsPanel } from './components/SetsPanel';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
 
 export default function App() {
@@ -99,15 +100,17 @@ export default function App() {
 
     switch (currentUser.role) {
       case 'superadmin':
-        return <SuperadminDashboard user={currentUser} />;
+        return <SuperadminDashboard user={currentUser} token={token || undefined} />;
       case 'admin':
-        return <AdminDashboard user={currentUser} />;
+      case 'district_admin':
+      case 'block_admin':
+        return <AdminDashboard user={currentUser} token={token || undefined} />;
       case 'school':
-        return <SchoolDashboard user={currentUser} />;
+        return <SchoolDashboard user={currentUser} token={token || undefined} />;
       case 'teacher':
-        return <TeacherDashboard user={currentUser} />;
+        return <TeacherDashboard user={currentUser} token={token || undefined} />;
       case 'volunteer':
-        return <VolunteerDashboard user={currentUser} />;
+        return <VolunteerDashboard user={currentUser} token={token || undefined} />;
       default:
         return <div />;
     }
@@ -147,6 +150,7 @@ export default function App() {
                 )}
 
                 {activePanel === 'workspace' && renderRoleWorkspace()}
+                {activePanel === 'sets' && <SetsPanel token={token} />}
 
                 {activePanel === 'notifications' && (
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">

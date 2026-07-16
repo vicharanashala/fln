@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev:old": "tsx src/index.ts",
-    "dev:new": "tsx src/server.ts",
+    "dev:new": "PORT=3001 tsx src/server.ts",
     "dev": "concurrently -n old,new -c yellow,cyan \"npm run dev:old\" \"npm run dev:new\"",
     "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
@@ -22,9 +22,9 @@
     "express-validator": "^7.2.1",
     "http-status": "^2.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.9.5",
     "jszip": "^3.10.1",
     "mongodb": "^6.12.0",
+    "mongoose": "^8.9.5",
     "pdf-lib": "^1.17.1",
     "puppeteer": "^25.3.0"
   },
@@ -37,6 +37,7 @@
     "concurrently": "^10.0.3",
     "esbuild": "^0.25.0",
     "tsx": "^4.21.0",
-    "typescript": "~5.8.2"
+    "typescript": "~5.8.2",
+    "vite": "^8.1.5"
   }
 }

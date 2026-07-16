@@ -3,7 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { randomUUID } from 'crypto';
-import { Question } from './db';
+import { Question, dbStore } from './db';
+import { generateQuestionsForLevel } from './levelGenerator';
 import { renderBatch } from './worksheetRenderer';
 import { mergeAndStamp } from './pdfMerge';
 import { drawQrCode } from './qrCode';
@@ -223,8 +224,10 @@ export async function generateLevelWorksheet({
     await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0' as any, timeout: 30000 });
 
     const data = await page.evaluate(({ levelId, subIdx, studentId, studentName }) => {
-      const nameInput = document.getElementById('studentName') as HTMLInputElement | null;
-      const idInput = document.getElementById('studentId') as HTMLInputElement | null;
+      // @ts-ignore
+      const nameInput = document.getElementById('studentName') as any;
+      // @ts-ignore
+      const idInput = document.getElementById('studentId') as any;
       if (nameInput) nameInput.value = studentName;
       if (idInput) idInput.value = studentId;
       // @ts-ignore
@@ -506,3 +509,67 @@ export async function renderWorksheetPdf({
     pdfUrl: `/output/${fileName}`
   };
 }
+
+export interface SingleDiagnosticResult {
+  questions: Question[];
+  pdfUrl: string;
+  useMock: boolean;
+  student: any;
+}
+
+export async function generateStudentPaper(studentId: string): Promise<SingleDiagnosticResult> {
+  const students = await dbStore.getStudents();
+  const student = students.find(s => s.id === studentId);
+  if (!student) {
+    throw new Error('Student not found');
+  }
+
+  const classMatch = student.classGroup.match(/\d+/);
+  const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
+
+  let questions: Question[];
+  let pdfUrl = '';
+  let useMock = false;
+
+  try {
+    const result = await generateDiagnosticPaper({
+      classNumber,
+      students: [{
+        name: student.name,
+        studentId: student.id,
+        qrData: {
+          age: student.age, classGroup: student.classGroup, section: student.section,
+          schoolId: student.schoolId, currentLevel: student.currentLevel,
+          currentSubLevel: student.currentSubLevel, targetLevel: student.targetLevel,
+          streak: student.streak
+        }
+      }]
+    });
+    questions = result.questions;
+    pdfUrl = `/output/${result.fileName}`;
+  } catch (err: any) {
+    console.error("Puppeteer paper generation failed, using generateQuestionsForLevel mock:", err);
+    useMock = true;
+    const startLevel = (classNumber - 1) * 12 + 1;
+    questions = [];
+    for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
+      const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 59), 0);
+      lvlQuestions.forEach(q => {
+        questions.push({
+          ...q,
+          question_id: `DIAG_${lvl}_${q.question_id}`,
+          source_level: Math.min(lvl, 59)
+        });
+      });
+    }
+    questions = questions.slice(0, 12);
+  }
+
+  return {
+    questions,
+    pdfUrl,
+    useMock,
+    student
+  };
+}
+

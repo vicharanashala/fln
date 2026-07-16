@@ -3,7 +3,8 @@ import { User, UserRole, Announcement } from '../types';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound,   Clock
+  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound,   Clock,
+  Layers
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -192,6 +193,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Schools', view: 'schools', icon: School });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Sets', view: 'sets', icon: Layers });
         break;
 
       case UserRole.ADMIN:

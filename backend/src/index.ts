@@ -3,13 +3,15 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice, Set, SetStatus, generateSetId } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
-import { generateDiagnosticPaper } from './paperGenerator';
+import { generateDiagnosticPaper, generateStudentPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import { isValidStatusTransition } from './setLifecycle';
+import { buildSetPackage } from './pdfMerge';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -778,6 +780,368 @@ async function startServer() {
     });
 
     res.json({ student, evaluation: { score, recommendedLevel, narrative }, report });
+  });
+
+  // Create a new District-Level Set (Batch)
+  app.post('/api/sets', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (![UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN, UserRole.SUPERADMIN].includes(user.role)) {
+      return res.status(403).json({ error: 'Not authorized to manage Sets.' });
+    }
+
+    const { name, assessmentName, schoolId, classGroup, studentIds } = req.body;
+    if (!name || !assessmentName || !schoolId || !classGroup || !studentIds) {
+      return res.status(400).json({ error: 'Missing required fields: name, assessmentName, schoolId, classGroup, and studentIds are all required.' });
+    }
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ error: 'studentIds must be a non-empty array.' });
+    }
+
+    // Verify school and authorization scope
+    const schools = await dbStore.getSchools();
+    const school = schools.find(s => s.id === schoolId);
+    if (!school) {
+      return res.status(400).json({ error: 'School not found.' });
+    }
+    if (user.role === UserRole.DISTRICT_ADMIN && school.districtCode !== user.districtCode) {
+      return res.status(403).json({ error: 'Not authorized to create Sets for schools outside your district.' });
+    }
+    if (user.role === UserRole.BLOCK_ADMIN && school.blockCode !== user.blockCode) {
+      return res.status(403).json({ error: 'Not authorized to create Sets for schools outside your block.' });
+    }
+
+    const newSet: Set = {
+      id: generateSetId(),
+      name,
+      assessmentName,
+      schoolId,
+      classGroup,
+      studentIds,
+      status: 'Created',
+      createdAt: new Date().toISOString(),
+      createdByEmail: user.email
+    };
+
+    await dbStore.addSet(newSet);
+    res.json(newSet);
+  });
+
+  // Get all sets with optional filtering
+  app.get('/api/sets', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (![UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN, UserRole.SUPERADMIN].includes(user.role)) {
+      return res.status(403).json({ error: 'Not authorized to manage Sets.' });
+    }
+
+    const sets = await dbStore.getSets();
+    const schools = await dbStore.getSchools();
+    const schoolMap = new Map(schools.map(s => [s.id, s]));
+
+    let filtered = sets;
+
+    // Apply force-scoping
+    if (user.role === UserRole.DISTRICT_ADMIN) {
+      filtered = filtered.filter(s => {
+        const sch = schoolMap.get(s.schoolId);
+        return sch && sch.districtCode === user.districtCode;
+      });
+    } else if (user.role === UserRole.BLOCK_ADMIN) {
+      filtered = filtered.filter(s => {
+        const sch = schoolMap.get(s.schoolId);
+        return sch && sch.blockCode === user.blockCode;
+      });
+    }
+
+    const { setId, assessmentName, schoolId, classGroup, status } = req.query;
+
+    if (setId) {
+      const q = String(setId).toLowerCase();
+      filtered = filtered.filter(s => s.id.toLowerCase().includes(q));
+    }
+    if (assessmentName) {
+      const q = String(assessmentName).toLowerCase();
+      filtered = filtered.filter(s => s.assessmentName.toLowerCase().includes(q));
+    }
+    if (schoolId) {
+      const q = String(schoolId).toLowerCase();
+      filtered = filtered.filter(s => s.schoolId.toLowerCase().includes(q));
+    }
+    if (classGroup) {
+      const q = String(classGroup).toLowerCase();
+      filtered = filtered.filter(s => s.classGroup.toLowerCase().includes(q));
+    }
+    if (status) {
+      const q = String(status);
+      filtered = filtered.filter(s => s.status === q);
+    }
+
+    res.json(filtered);
+  });
+
+  // Get a single District-Level Set (Batch)
+  app.get('/api/sets/:id', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (![UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN, UserRole.SUPERADMIN].includes(user.role)) {
+      return res.status(403).json({ error: 'Not authorized to manage Sets.' });
+    }
+
+    const sets = await dbStore.getSets();
+    const set = sets.find(s => s.id === req.params.id);
+    if (!set) return res.status(404).json({ error: 'Set not found.' });
+
+    // Scope check
+    if (user.role !== UserRole.SUPERADMIN) {
+      const schools = await dbStore.getSchools();
+      const school = schools.find(s => s.id === set.schoolId);
+      if (!school) {
+        return res.status(403).json({ error: 'Associated school not found or access denied.' });
+      }
+      if (user.role === UserRole.DISTRICT_ADMIN && school.districtCode !== user.districtCode) {
+        return res.status(403).json({ error: 'Access denied to this Set (outside your district).' });
+      }
+      if (user.role === UserRole.BLOCK_ADMIN && school.blockCode !== user.blockCode) {
+        return res.status(403).json({ error: 'Access denied to this Set (outside your block).' });
+      }
+    }
+
+    res.json(set);
+  });
+
+  // Update the status of a District-Level Set
+  app.patch('/api/sets/:id/status', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (![UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN, UserRole.SUPERADMIN].includes(user.role)) {
+      return res.status(403).json({ error: 'Not authorized to manage Sets.' });
+    }
+
+    const { status } = req.body;
+    if (!status) {
+      return res.status(400).json({ error: 'Missing required field: status.' });
+    }
+
+    const sets = await dbStore.getSets();
+    const set = sets.find(s => s.id === req.params.id);
+    if (!set) return res.status(404).json({ error: 'Set not found.' });
+
+    // Scope check
+    if (user.role !== UserRole.SUPERADMIN) {
+      const schools = await dbStore.getSchools();
+      const school = schools.find(s => s.id === set.schoolId);
+      if (!school) {
+        return res.status(403).json({ error: 'Associated school not found or access denied.' });
+      }
+      if (user.role === UserRole.DISTRICT_ADMIN && school.districtCode !== user.districtCode) {
+        return res.status(403).json({ error: 'Access denied to this Set (outside your district).' });
+      }
+      if (user.role === UserRole.BLOCK_ADMIN && school.blockCode !== user.blockCode) {
+        return res.status(403).json({ error: 'Access denied to this Set (outside your block).' });
+      }
+    }
+
+    if (!isValidStatusTransition(set.status, status)) {
+      return res.status(400).json({ 
+        error: `Invalid status transition from '${set.status}' to '${status}'. Stages must progress strictly one step at a time.` 
+      });
+    }
+
+    const updatedSet = await dbStore.updateSet(set.id, { status });
+    res.json(updatedSet);
+  });
+
+  interface SetGenerationJob {
+    jobId: string;
+    setId: string;
+    total: number;
+    completed: number;
+    status: 'running' | 'completed' | 'failed';
+    pdfPaths: string[];
+    packagePath?: string;
+    failures: Array<{ studentId: string; error: string }>;
+    startedAt: string;
+    completedAt: string;
+  }
+
+  const setGenerationJobs = new Map<string, SetGenerationJob>();
+
+  // Start a Set generation job asynchronously
+  app.post('/api/sets/:id/generate', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (![UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN, UserRole.SUPERADMIN].includes(user.role)) {
+      return res.status(403).json({ error: 'Not authorized to manage Sets.' });
+    }
+
+    const sets = await dbStore.getSets();
+    const set = sets.find(s => s.id === req.params.id);
+    if (!set) return res.status(404).json({ error: 'Set not found.' });
+
+    // Scope check
+    if (user.role !== UserRole.SUPERADMIN) {
+      const schools = await dbStore.getSchools();
+      const school = schools.find(s => s.id === set.schoolId);
+      if (!school) {
+        return res.status(403).json({ error: 'Associated school not found or access denied.' });
+      }
+      if (user.role === UserRole.DISTRICT_ADMIN && school.districtCode !== user.districtCode) {
+        return res.status(403).json({ error: 'Access denied to this Set (outside your district).' });
+      }
+      if (user.role === UserRole.BLOCK_ADMIN && school.blockCode !== user.blockCode) {
+        return res.status(403).json({ error: 'Access denied to this Set (outside your block).' });
+      }
+    }
+
+    const jobId = 'setjob_' + randomUUID();
+    const job: SetGenerationJob = {
+      jobId,
+      setId: set.id,
+      total: set.studentIds.length,
+      completed: 0,
+      status: 'running',
+      pdfPaths: [],
+      failures: [],
+      startedAt: new Date().toISOString(),
+      completedAt: ''
+    };
+    setGenerationJobs.set(jobId, job);
+
+    res.status(202).json({
+      jobId,
+      setId: set.id,
+      totalStudents: job.total,
+      status: 'running',
+      progressUrl: `/api/sets/${set.id}/generate/${jobId}/progress`
+    });
+
+    // Background processing loop
+    (async () => {
+      try {
+        for (const studentId of set.studentIds) {
+          try {
+            const result = await generateStudentPaper(studentId);
+            if (result.useMock) {
+              job.failures.push({ studentId, error: 'Puppeteer unavailable — mock fallback produced no PDF.' });
+            } else {
+              job.pdfPaths.push(result.pdfUrl);
+            }
+          } catch (err: any) {
+            console.error(`Failed to generate paper for student ${studentId}:`, err);
+            job.failures.push({ studentId, error: err?.message || 'Unknown error' });
+          } finally {
+            job.completed += 1;
+          }
+        }
+        job.status = 'completed';
+        try {
+          job.packagePath = await buildSetPackage(set, job.pdfPaths);
+        } catch (err: any) {
+          console.error(`Failed to build set package for job ${jobId}:`, err);
+          job.status = 'failed';
+          job.failures.push({ studentId: 'PACKAGE_BUILD', error: err?.message || 'Package build error' });
+        }
+      } catch (err: any) {
+        console.error(`Fatal error in set generation job ${jobId}:`, err);
+        job.status = 'failed';
+      } finally {
+        job.completedAt = new Date().toISOString();
+      }
+    })();
+  });
+
+  // Get Set generation job progress
+  app.get('/api/sets/:id/generate/:jobId/progress', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (![UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN, UserRole.SUPERADMIN].includes(user.role)) {
+      return res.status(403).json({ error: 'Not authorized to manage Sets.' });
+    }
+
+    const sets = await dbStore.getSets();
+    const set = sets.find(s => s.id === req.params.id);
+    if (!set) return res.status(404).json({ error: 'Set not found.' });
+
+    // Scope check
+    if (user.role !== UserRole.SUPERADMIN) {
+      const schools = await dbStore.getSchools();
+      const school = schools.find(s => s.id === set.schoolId);
+      if (!school) {
+        return res.status(403).json({ error: 'Associated school not found or access denied.' });
+      }
+      if (user.role === UserRole.DISTRICT_ADMIN && school.districtCode !== user.districtCode) {
+        return res.status(403).json({ error: 'Access denied to this Set (outside your district).' });
+      }
+      if (user.role === UserRole.BLOCK_ADMIN && school.blockCode !== user.blockCode) {
+        return res.status(403).json({ error: 'Access denied to this Set (outside your block).' });
+      }
+    }
+
+    const job = setGenerationJobs.get(req.params.jobId);
+    if (!job || job.setId !== req.params.id) {
+      return res.status(404).json({ error: 'Job not found.' });
+    }
+
+    res.json({
+      jobId: job.jobId,
+      status: job.status,
+      completed: job.completed,
+      total: job.total,
+      failures: job.failures
+    });
+  });
+
+  // Download the generated PDF package for a Set
+  app.get('/api/sets/:id/download', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (![UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN, UserRole.SUPERADMIN].includes(user.role)) {
+      return res.status(403).json({ error: 'Not authorized to manage Sets.' });
+    }
+
+    const sets = await dbStore.getSets();
+    const set = sets.find(s => s.id === req.params.id);
+    if (!set) return res.status(404).json({ error: 'Set not found.' });
+
+    // Scope check
+    if (user.role !== UserRole.SUPERADMIN) {
+      const schools = await dbStore.getSchools();
+      const school = schools.find(s => s.id === set.schoolId);
+      if (!school) {
+        return res.status(403).json({ error: 'Associated school not found or access denied.' });
+      }
+      if (user.role === UserRole.DISTRICT_ADMIN && school.districtCode !== user.districtCode) {
+        return res.status(403).json({ error: 'Access denied to this Set (outside your district).' });
+      }
+      if (user.role === UserRole.BLOCK_ADMIN && school.blockCode !== user.blockCode) {
+        return res.status(403).json({ error: 'Access denied to this Set (outside your block).' });
+      }
+    }
+
+    // Find the most recent completed job for this Set
+    let latestJob = null;
+    for (const job of setGenerationJobs.values()) {
+      if (job.setId === set.id && job.status === 'completed' && job.packagePath) {
+        if (!latestJob || new Date(job.completedAt).getTime() > new Date(latestJob.completedAt).getTime()) {
+          latestJob = job;
+        }
+      }
+    }
+
+    if (!latestJob || !latestJob.packagePath) {
+      return res.status(404).json({ error: 'No generated package for this Set yet.' });
+    }
+
+    const filename = latestJob.packagePath.split('/').pop() || `${set.id}-package.pdf`;
+    const absolutePath = path.join(ROOT_DIR, 'output', filename);
+
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ error: 'PDF file not found on disk.' });
+    }
+
+    res.download(absolutePath, `${set.id}-package.pdf`);
   });
 
   // Generate Personalized Class Worksheets
@@ -1823,49 +2187,7 @@ async function startServer() {
         return res.status(403).json({ error: 'You are not authorized to generate diagnostic papers for this student.' });
       }
 
-      // Parse class number from classGroup (e.g. "Class 2" -> 2)
-      const classMatch = student.classGroup.match(/\d+/);
-      const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
-
-      let questions: Question[];
-      let pdfUrl = '';
-      let useMock = false;
-
-      try {
-        const result = await generateDiagnosticPaper({
-          classNumber,
-          students: [{
-            name: student.name,
-            studentId: student.id,
-            qrData: {
-              age: student.age, classGroup: student.classGroup, section: student.section,
-              schoolId: student.schoolId, currentLevel: student.currentLevel,
-              currentSubLevel: student.currentSubLevel, targetLevel: student.targetLevel,
-              streak: student.streak
-            }
-          }]
-        });
-        questions = result.questions;
-        pdfUrl = `/output/${result.fileName}`;
-      } catch (err: any) {
-        console.error("Puppeteer paper generation failed, using generateQuestionsForLevel mock:", err);
-        useMock = true;
-        // Generate questions across multiple levels using the level generator
-        const startLevel = (classNumber - 1) * 12 + 1;
-        questions = [];
-        for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-          const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 59), 0);
-          lvlQuestions.forEach(q => {
-            questions.push({
-              ...q,
-              question_id: `DIAG_${lvl}_${q.question_id}`,
-              source_level: Math.min(lvl, 59)
-            });
-          });
-        }
-        // Limit to 12 questions for a reasonable diagnostic
-        questions = questions.slice(0, 12);
-      }
+      const { questions, pdfUrl, useMock } = await generateStudentPaper(student.id);
 
       res.json({
         student,
