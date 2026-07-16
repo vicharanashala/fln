@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev:old": "tsx src/index.ts",
-    "dev:new": "tsx src/server.ts",
+    "dev:new": "PORT=3001 tsx src/server.ts",
     "dev": "concurrently -n old,new -c yellow,cyan \"npm run dev:old\" \"npm run dev:new\"",
     "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
