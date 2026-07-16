@@ -133,15 +133,16 @@ export const Layout: React.FC<LayoutProps> = ({
           ]
         });
         list.push({
-          name: 'Students',
-          view: 'students',
-          icon: GraduationCap,
-          subItems: [
-            { name: 'Student List', view: 'student_list' },
-            { name: 'Student Profile', view: 'student_profile' },
-            { name: 'Performance', view: 'performance' }
-          ]
-        });
+  name: 'Students',
+  view: 'students',
+  icon: GraduationCap,
+  subItems: [
+    { name: 'Student List', view: 'student_list' },
+    { name: 'Student Profile', view: 'student_profile' },
+    { name: 'Performance', view: 'performance' },
+    { name: 'Interventions', view: 'interventions' }
+  ]
+});
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         break;

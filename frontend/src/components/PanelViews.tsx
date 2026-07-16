@@ -3,6 +3,7 @@ import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry
 import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
+import InterventionsView from "./InterventionsView";
 
 interface PanelViewsProps {
   activePanel: string;
@@ -335,6 +336,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   };
 
   // ===================== TEACHER PANELS =====================
+ if (panel === "interventions") {
+  return <InterventionsView token={token} />;
+}
   if (panel === 'student_list') {
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
