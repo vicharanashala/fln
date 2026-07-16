@@ -298,7 +298,7 @@ export class DBStore {
   public useMongo: boolean = false;
   private mongoDb: Db | null = null;
 
-  private getDb() {
+  getDb() {
     if (!mongoClient) throw new Error('MongoDB not connected');
     return mongoClient.db();
   }
@@ -306,7 +306,8 @@ export class DBStore {
   async init() {
     if (mongoClient) {
       console.log('Loading data from MongoDB...');
-      const db = this.getDb();
+      this.mongoDb = mongoClient.db();
+      const db = this.mongoDb;
       this.data = {} as DatabaseSchema;
       for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
         const docs = await db.collection(collName).find().toArray();

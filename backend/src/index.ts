@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
@@ -9,6 +10,8 @@ import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -85,21 +88,33 @@ async function startServer() {
 
   // Public stats (no auth required — used by landing page)
   app.get('/api/stats', async (_req, res) => {
-    const schools = await dbStore.getSchools();
-    const students = await dbStore.getStudents();
-    const users = await dbStore.getUsers();
-    const worksheets = await dbStore.getWorksheets();
-    const stateCodes = new Set(schools.map(s => s.stateCode));
-    const districtCodes = new Set(schools.map(s => s.districtCode));
-    const avgLevel = students.length > 0 ? Math.round(students.reduce((a, s) => a + s.currentLevel, 0) / students.length) : 0;
+    const db = dbStore.getDb();
+    if (!db) return res.json({ totalStates: 0, totalDistricts: 0, totalSchools: 0, totalStudents: 0, totalAssessments: 0, avgFlnLevel: 0, totalUsers: 0, certifiedCount: 0, certifiedPercent: 0 });
+
+    const [totalSchools, totalStudents, totalUsers, totalAssessments, stateCodes, districtCodes, avgResult, certifiedResult] = await Promise.all([
+      db.collection('schools').countDocuments(),
+      db.collection('students').countDocuments(),
+      db.collection('users').countDocuments(),
+      db.collection('worksheets').countDocuments(),
+      db.collection('schools').distinct('stateCode'),
+      db.collection('schools').distinct('districtCode'),
+      db.collection('students').aggregate([{ $group: { _id: null, avg: { $avg: '$currentLevel' } } }]).toArray(),
+      db.collection('students').aggregate([{ $match: { currentLevel: { $gte: 5 } } }, { $count: 'count' }]).toArray(),
+    ]);
+
+    const certifiedCount = certifiedResult[0]?.count ?? 0;
+    const avgFlnLevel = totalStudents > 0 ? Math.round(avgResult[0]?.avg ?? 0) : 0;
+
     res.json({
-      totalStates: stateCodes.size,
-      totalDistricts: districtCodes.size,
-      totalSchools: schools.length,
-      totalStudents: students.length,
-      totalAssessments: worksheets.length,
-      avgFlnLevel: avgLevel,
-      totalUsers: users.length,
+      totalStates: stateCodes.length,
+      totalDistricts: districtCodes.length,
+      totalSchools,
+      totalStudents,
+      totalAssessments,
+      avgFlnLevel,
+      totalUsers,
+      certifiedCount,
+      certifiedPercent: totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0,
     });
   });
 

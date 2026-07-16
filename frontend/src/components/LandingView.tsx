@@ -23,6 +23,7 @@ interface Stats {
 export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) => {
   const [fontSize, setFontSize] = useState(100);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   const adjustFontSize = (delta: number) => {
     setFontSize((prev) => {
@@ -38,18 +39,33 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
   };
 
   useEffect(() => {
-    fetch('/api/stats')
-      .then(r => r.json())
-      .then(d => setStats(d))
-      .catch(() => {});
+    let attempts = 0;
+    const maxAttempts = 10;
+    const interval = 2000;
+
+    const fetchStats = () => {
+      fetch('/api/stats')
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(d => { setStats(d); setStatsLoading(false); })
+        .catch(() => {
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(fetchStats, interval);
+          } else {
+            setStatsLoading(false);
+          }
+        });
+    };
+
+    fetchStats();
   }, []);
 
   const statCards = [
-    { label: 'States & Districts', value: stats ? `${stats.totalStates} States / ${stats.totalDistricts} Districts` : '—', desc: 'Across India', icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
-    { label: 'Registered Schools', value: stats?.totalSchools?.toLocaleString() ?? '—', desc: 'Active institutions', icon: BookOpen, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
-    { label: 'Students Tracked', value: stats?.totalStudents?.toLocaleString() ?? '—', desc: 'Enrolled learners', icon: Users, color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' },
-    { label: 'Assessments Conducted', value: stats?.totalAssessments?.toLocaleString() ?? '—', desc: 'Worksheets generated', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40' },
-    { label: 'National Avg FLN Level', value: stats ? `L${stats.avgFlnLevel}` : '—', desc: 'Average student level', icon: Award, color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' },
+    { label: 'States & Districts', value: stats ? `${stats.totalStates} States / ${stats.totalDistricts} Districts` : null, desc: 'Across India', icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
+    { label: 'Registered Schools', value: stats?.totalSchools?.toLocaleString() ?? null, desc: 'Active institutions', icon: BookOpen, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
+    { label: 'Students Tracked', value: stats?.totalStudents?.toLocaleString() ?? null, desc: 'Enrolled learners', icon: Users, color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' },
+    { label: 'Assessments Conducted', value: stats?.totalAssessments?.toLocaleString() ?? null, desc: 'Worksheets generated', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40' },
+    { label: 'National Avg FLN Level', value: stats ? `L${stats.avgFlnLevel}` : null, desc: 'Average student level', icon: Award, color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' },
   ];
 
   return (
@@ -154,9 +170,13 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
                   <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">
                     {stat.label}
                   </p>
-                  <p className="mt-1 text-2xl font-extrabold text-gray-900 dark:text-white">
-                    {stat.value}
-                  </p>
+                  {stat.value !== null ? (
+                    <p className="mt-1 text-2xl font-extrabold text-gray-900 dark:text-white">
+                      {stat.value}
+                    </p>
+                  ) : (
+                    <div className="mt-1 h-8 w-32 rounded bg-gray-200 dark:bg-slate-700 animate-pulse" />
+                  )}
                   <p className="text-xs text-gray-500 dark:text-slate-400">
                     {stat.desc}
                   </p>
