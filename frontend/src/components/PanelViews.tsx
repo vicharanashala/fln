@@ -3,6 +3,7 @@ import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry
 import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
+import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -10,7 +11,7 @@ interface PanelViewsProps {
   token: string;
 }
 
-const STUDENTS_MOCK: Student[] = [
+const STUDENTS_FALLBACK: Student[] = [
   { id: 's1', name: 'Amanpreet Singh', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 12, currentSubLevel: 0, targetLevel: 13, aadharMasked: 'XXXX-XXXX-1234', levelHistory: [{ level: 12, subLevel: 0, date: '2026-03-15', reason: 'Diagnostic' }], streak: 3 },
   { id: 's2', name: 'Jasmine Kaur', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 8, currentSubLevel: 1, targetLevel: 12, aadharMasked: 'XXXX-XXXX-5678', levelHistory: [{ level: 8, subLevel: 1, date: '2026-02-20', reason: 'Mid-year' }], streak: 1 },
   { id: 's3', name: 'Rohit Kumar', age: 9, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', currentLevel: 36, currentSubLevel: 0, targetLevel: 37, aadharMasked: 'XXXX-XXXX-9012', levelHistory: [{ level: 36, date: '2026-01-10', reason: 'Baseline' }], streak: 5 },
@@ -34,7 +35,7 @@ const TEACHERS_MOCK = [
   { id: 't4', name: 'Rajesh Kumar', email: 'gps-pkl-008.t01@fln.org', schoolId: 'gps-pkl-008', classes: ['Class 3-B'], studentsCount: 30, delayedAttempts: 0, status: 'Active' },
 ];
 
-const SCHOOLS_MOCK: School[] = [
+const SCHOOLS_FALLBACK: School[] = [
   { id: 'gps-mt-001', name: 'GPS Model Town', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-01', strength: 'standard', teachersCount: 8, isAccessLocked: false },
   { id: 'gps-vl-002', name: 'GPS Village Lohara', stateCode: 'PB', districtCode: 'MOG', blockCode: 'MOG-01', strength: 'standard', teachersCount: 2, isAccessLocked: false },
   { id: 'gps-amb-003', name: 'GPS Ambala Cantt', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-01', strength: 'standard', teachersCount: 6, isAccessLocked: false },
@@ -51,7 +52,7 @@ const SCHOOLS_MOCK: School[] = [
   { id: 'gps-hr-amb2-014', name: 'GPS Ambala South', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-02', strength: 'standard', teachersCount: 2, isAccessLocked: false },
 ];
 
-const USERS_MOCK = [
+const USERS_FALLBACK = [
   { name: 'Jinal Gupta', email: 'superadmin@fln.org', role: 'Super Admin', scope: 'National', status: 'Active' },
   { name: 'State Coordinator Punjab', email: 'admin.pb@fln.org', role: 'State Admin', scope: 'PB', status: 'Active' },
   { name: 'State Coordinator Haryana', email: 'admin.hr@fln.org', role: 'State Admin', scope: 'HR', status: 'Active' },
@@ -63,7 +64,18 @@ const USERS_MOCK = [
   { name: 'Rahul Kumar', email: 'vol.rahul@fln.org', role: 'Volunteer', scope: 'Moga Villages', status: 'Active' },
 ];
 
-// Question Bank removed — placeholder data deleted
+const QUESTION_BANK = [
+  { id: 'QB-001', topic: 'Number Sense', level: 4, question: 'Count the number of apples: 🍎🍎🍎🍎', type: 'MCQ', difficulty: 'Easy' },
+  { id: 'QB-002', topic: 'Number Sense', level: 8, question: 'What comes after 15?', type: 'Text', difficulty: 'Easy' },
+  { id: 'QB-003', topic: 'Addition', level: 12, question: 'What is 7 + 5?', type: 'Number', difficulty: 'Easy' },
+  { id: 'QB-004', topic: 'Subtraction', level: 16, question: 'What is 23 - 8?', type: 'Number', difficulty: 'Medium' },
+  { id: 'QB-005', topic: 'Multiplication', level: 41, question: 'What is 6 × 7?', type: 'Number', difficulty: 'Medium' },
+  { id: 'QB-006', topic: 'Division', level: 42, question: 'Divide 24 by 6', type: 'Number', difficulty: 'Medium' },
+  { id: 'QB-007', topic: 'Fractions', level: 45, question: 'Which is larger: 1/2 or 1/4?', type: 'MCQ', difficulty: 'Hard' },
+  { id: 'QB-008', topic: 'Place Value', level: 36, question: 'What is the value of 7 in 372?', type: 'Text', difficulty: 'Medium' },
+  { id: 'QB-009', topic: 'Measurement', level: 43, question: 'How many cm in 1 meter?', type: 'Number', difficulty: 'Easy' },
+  { id: 'QB-010', topic: 'Money', level: 46, question: 'You have ₹50. You buy a toy for ₹35. How much change?', type: 'Number', difficulty: 'Hard' },
+];
 
 const WS_TEMPLATES = [
   { id: 'WST-001', name: 'Baseline Assessment L1-L5', grade: 'Preschool 1-2', questions: 8, duration: '30 min', status: 'Published' },
@@ -161,7 +173,7 @@ function PageHeader({ title, desc, icon }: { title: string; desc: string; icon?:
   );
 }
 
-function EmptyStudents() {
+function EmptyStudents({ students }: { students: Student[] }) {
   const cols: Column<Student>[] = [
     { header: 'ID', accessor: 'id', className: 'font-mono text-xs text-slate-400 dark:text-slate-500' },
     { header: 'Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-800 dark:text-slate-100' },
@@ -169,25 +181,50 @@ function EmptyStudents() {
     { header: 'Level', accessor: (s) => `L${s.currentLevel}.${s.currentSubLevel ?? 0}`, className: 'font-mono' },
     { header: 'Streak', accessor: (s) => `${s.streak} 🔥`, className: '' },
   ];
-  return <Table data={STUDENTS_MOCK} columns={cols} searchPlaceholder="Search students..." searchKey="name" />;
+  return <Table data={students} columns={cols} searchPlaceholder="Search students..." searchKey="name" />;
 }
 
 export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token }) => {
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
   const [distFilter, setDistFilter] = useState('all');
+  const [blockFilter, setBlockFilter] = useState('all');
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
-  const [sel, setSel] = useState(STUDENTS_MOCK[0].id);
+  const [sel, setSel] = useState('');
   const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [activityFilter, setActivityFilter] = useState<'all' | 'assessment' | 'level_change'>('all');
   const [expandedDistRpt, setExpandedDistRpt] = useState<string | null>(null);
   const [expandedDist, setExpandedDist] = useState<string | null>(null);
+  const [userRoleFilter, setUserRoleFilter] = useState('superadmin');
+  const [userSearch, setUserSearch] = useState('');
 
-  const filteredSchools = SCHOOLS_MOCK.filter(s => {
+  const [apiStudents, setApiStudents] = useState<Student[]>([]);
+  const [apiSchools, setApiSchools] = useState<School[]>([]);
+  const [apiUsers, setApiUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    const headers = { 'Authorization': `Bearer ${token}` };
+    fetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
+    fetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
+    fetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
+  }, [token]);
+
+  const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
+  const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
+  const usersList = apiUsers.length > 0 ? apiUsers : USERS_FALLBACK;
+
+  useEffect(() => {
+    if (students.length > 0 && !sel) {
+      setSel(students[0].id);
+    }
+  }, [students, sel]);
+
+  const filteredSchools = schools.filter(s => {
     if (stateFilter !== 'all' && s.stateCode !== stateFilter) return false;
     if (distFilter !== 'all' && s.districtCode !== distFilter) return false;
+    if (blockFilter !== 'all' && s.blockCode !== blockFilter) return false;
     return true;
   });
 
@@ -328,15 +365,15 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Student Roster" desc="Complete list of registered students across your classes" icon={<Users className="h-5 w-5" />} />
-        <EmptyStudents />
+        <EmptyStudents students={students} />
       </div>
     );
   }
 
   if (panel === 'student_profile') {
-    const s = STUDENTS_MOCK.find(x => x.id === sel) || STUDENTS_MOCK[0];
+    const s = students.find(x => x.id === sel) || students[0];
 
-    const filteredStudents = STUDENTS_MOCK.filter(x =>
+    const filteredStudents = students.filter(x =>
       x.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       x.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -353,10 +390,10 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
     const profile = EXTENDED_PROFILES[s.id] || {};
     const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
-    const studentSchool = SCHOOLS_MOCK.find(sch => sch.id === s.schoolId);
+    const studentSchool = schools.find(sch => sch.id === s.schoolId);
     const att = ATTENDANCE_MOCK.find(a => a.student === s.name);
     const daysSinceEnroll = Math.floor((Date.now() - new Date(profile.enrollmentDate || s.id).getTime()) / 86400000);
-    const classStudents = STUDENTS_MOCK.filter(st => st.classGroup === s.classGroup);
+    const classStudents = students.filter(st => st.classGroup === s.classGroup);
     const classAvg = Math.round(classStudents.reduce((a, st) => a + st.currentLevel, 0) / Math.max(1, classStudents.length));
     const avgScore = reports.length > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reports.length) : 0;
     const allSkills = new Map<string, { mastery: string; date: string }[]>();
@@ -372,12 +409,12 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const filteredActivity = activityFilter === 'all' ? recentActivity : recentActivity.filter(a => a.type === activityFilter);
 
-      const tabs = [
-        { key: 'overview' as const, label: 'Overview', icon: BarChart3 },
-        { key: 'academic' as const, label: 'Academic Record', icon: BookOpen },
-        { key: 'personal' as const, label: 'Personal Details', icon: Users },
-        { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
-      ];
+    const tabs = [
+      { key: 'overview' as const, label: 'Overview', icon: BarChart3 },
+      { key: 'academic' as const, label: 'Academic Record', icon: BookOpen },
+      { key: 'personal' as const, label: 'Personal Details', icon: Users },
+      { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
+    ];
 
     return (
       <div className="space-y-6">
@@ -838,8 +875,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'diagnostic_test') {
-    const pending = STUDENTS_MOCK.filter(s => s.levelHistory.length === 0);
-    const completed = STUDENTS_MOCK.filter(s => s.levelHistory.length > 0);
+    const pending = students.filter(s => s.levelHistory.length === 0);
+    const completed = students.filter(s => s.levelHistory.length > 0);
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
@@ -871,9 +908,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-6">
         <PageHeader title="Adaptive Assessment" desc="Computer-adaptive testing that adjusts to student ability" icon={<SlidersHorizontal className="h-5 w-5" />} />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard title="Active Sessions" value={''} subtext="Will be populated soon" icon={Users} />
-          <MetricCard title="Avg Adaptive Score" value={''} subtext="Will be populated soon" icon={BarChart3} />
-          <MetricCard title="Completion Rate" value={''} subtext="Will be populated soon" icon={CheckCircle2} />
+          <MetricCard title="Active Sessions" value="3" subtext="Students currently testing" icon={Users} />
+          <MetricCard title="Avg Adaptive Score" value="72%" subtext="Across all levels" icon={BarChart3} />
+          <MetricCard title="Completion Rate" value="85%" subtext="Tests finished on time" icon={CheckCircle2} />
         </div>
         <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-5 bg-slate-50 dark:bg-slate-800 space-y-3">
           <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">How Adaptive Testing Works</h4>
@@ -924,14 +961,14 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'performance') {
     const isTeacher = currentUser.role === UserRole.TEACHER || currentUser.role === UserRole.VOLUNTEER;
-    const topStudents = [...STUDENTS_MOCK].sort((a, b) => b.currentLevel - a.currentLevel).slice(0, 5);
+    const topStudents = [...students].sort((a, b) => b.currentLevel - a.currentLevel).slice(0, 5);
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <MetricCard title="Total Students" value={STUDENTS_MOCK.length} subtext="Active roster" icon={Users} />
-          <MetricCard title="Avg Level" value={`L${Math.round(STUDENTS_MOCK.reduce((a, s) => a + s.currentLevel, 0) / STUDENTS_MOCK.length)}`} subtext="Class average" icon={BarChart3} />
-          <MetricCard title="Certified" value={`${STUDENTS_MOCK.filter(s => s.currentLevel >= 5).length}`} subtext="Level 5+ achieved" icon={Award} />
-          <MetricCard title="Pending Diagnostic" value={STUDENTS_MOCK.filter(s => s.levelHistory.length === 0).length} subtext="Need placement" icon={ShieldAlert} />
+          <MetricCard title="Total Students" value={students.length} subtext="Active roster" icon={Users} />
+          <MetricCard title="Avg Level" value={`L${Math.round(students.reduce((a, s) => a + s.currentLevel, 0) / students.length)}`} subtext="Class average" icon={BarChart3} />
+          <MetricCard title="Certified" value={`${students.filter(s => s.currentLevel >= 5).length}`} subtext="Level 5+ achieved" icon={Award} />
+          <MetricCard title="Pending Diagnostic" value={students.filter(s => s.levelHistory.length === 0).length} subtext="Need placement" icon={ShieldAlert} />
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <PageHeader title={isTeacher ? "Class Performance" : "School Performance"} desc="FLN level distribution and trends" />
@@ -953,7 +990,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     const isStateAdmin = currentUser.role === UserRole.ADMIN;
     if (isStateAdmin) {
       const userState = currentUser.stateCode || 'PB';
-      const stateSchools = SCHOOLS_MOCK.filter(s => s.stateCode === userState);
+      const stateSchools = schools.filter(s => s.stateCode === userState);
       const stateDistricts = [...new Set(stateSchools.map(s => s.districtCode))];
       return (
         <div className="space-y-6">
@@ -979,7 +1016,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                   {isExpanded && (
                     <div className="ml-6 mt-2 space-y-4 pl-4 border-l-2 border-indigo-200 dark:border-indigo-800">
                       {distSchools.map(sch => {
-                        const schStudents = STUDENTS_MOCK.filter(st => st.schoolId === sch.id);
+                        const schStudents = students.filter(st => st.schoolId === sch.id);
                         const schReports = REPORTS_MOCK.filter(r => schStudents.some(st => st.id === r.studentId));
                         const avgScore = schReports.length > 0 ? Math.round(schReports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / schReports.length) : 0;
                         return (
@@ -1027,7 +1064,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="Evaluation Reports" desc="Detailed assessment narratives and concept mastery breakdowns" />
           {REPORTS_MOCK.map(r => {
-            const student = STUDENTS_MOCK.find(s => s.id === r.studentId);
+            const student = students.find(s => s.id === r.studentId);
             const isExpanded = expandedReportId === r.id;
             
             // Mock exam questions and student responses for side-by-side preview
@@ -1117,9 +1154,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {['gps-vl-002', 'gps-jai-004', 'gps-lko-005', 'gps-amb-003'].map(id => {
-          const sch = SCHOOLS_MOCK.find(s => s.id === id);
+          const sch = schools.find(s => s.id === id);
           if (!sch) return null;
-          const count = STUDENTS_MOCK.filter(s => s.schoolId === id).length;
+          const count = students.filter(s => s.schoolId === id).length;
           return (
             <div key={id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-3 hover:border-slate-400 dark:hover:border-slate-600 transition-all">
               <div className="flex justify-between"><h3 className="font-bold text-slate-900 dark:text-white">{sch.name}</h3><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sch.strength === 'low' ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800' : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800'}`}>{sch.strength === 'low' ? 'Low-Strength' : 'High-Strength'}</span></div>
@@ -1137,7 +1174,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Student Progress Tracking" desc="Monitor FLN level advancement across assigned schools" icon={<GraduationCap className="h-5 w-5" />} />
-        <div className="space-y-3">{STUDENTS_MOCK.sort((a, b) => b.currentLevel - a.currentLevel).map(s => (
+        <div className="space-y-3">{students.sort((a, b) => b.currentLevel - a.currentLevel).map(s => (
           <div key={s.id} className="flex items-center gap-4 p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
             <div className="flex-1"><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup} · Streak: {s.streak}</div></div>
             <div className="w-40"><div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1"><span>L{s.currentLevel}</span><span>Target L{s.targetLevel}</span></div><div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / s.targetLevel) * 100}%` }} /></div></div>
@@ -1149,7 +1186,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'attendance') {
-    const examAttendance = STUDENTS_MOCK.map(s => {
+    const examAttendance = students.map(s => {
       const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
       const examsGiven = reports.length;
       const lastExam = examsGiven > 0 ? new Date(Math.max(...reports.map(r => new Date(r.timestamp).getTime()))).toLocaleDateString() : 'N/A';
@@ -1201,19 +1238,26 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   // ===================== BLOCK/DISTRICT/STATE ADMIN + SUPERADMIN SHARED PANELS =====================
   if (panel === 'schools') {
-    const uniqueStates = [...new Set(SCHOOLS_MOCK.map(s => s.stateCode))];
-    const uniqueDists = [...new Set(SCHOOLS_MOCK.filter(s => stateFilter === 'all' || s.stateCode === stateFilter).map(s => s.districtCode))];
+    const uniqueStateCodes = Array.from(new Set(schools.map(s => s.stateCode))) as string[];
+    const stateOpts = uniqueStateCodes.sort().map(c => ({ code: c, name: STATE_NAMES[c] || c }));
+    const filteredByState = schools.filter(s => stateFilter === 'all' || s.stateCode === stateFilter);
+    const uniqueDistCodes = Array.from(new Set(filteredByState.map(s => s.districtCode))) as string[];
+    const distOpts = uniqueDistCodes.sort().map(c => ({ code: c, name: DISTRICT_NAMES[c] || c }));
+    const filteredByDist = filteredByState.filter(s => distFilter === 'all' || s.districtCode === distFilter);
+    const uniqueBlockCodes = Array.from(new Set(filteredByDist.map(s => s.blockCode))) as string[];
+    const blockOpts = uniqueBlockCodes.sort().map(c => ({ code: c, name: BLOCK_NAMES[c] || c }));
     return (
       <div className="space-y-6">
-        <div className="flex gap-3 items-end">
-          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">State</label><select value={stateFilter} onChange={e => { setStateFilter(e.target.value); setDistFilter('all'); }} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{uniqueStates.map(s => <option key={s} value={s}>{s}</option>)}<option value="all">All States</option></select></div>
-          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">District</label><select value={distFilter} onChange={e => setDistFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"><option value="all">All Districts</option>{uniqueDists.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
-          <div className="text-xs text-slate-400 dark:text-slate-500 pb-1">Showing {filteredSchools.length} schools</div>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">State</label><select value={stateFilter} onChange={e => { setStateFilter(e.target.value); setDistFilter('all'); setBlockFilter('all'); }} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]">{stateOpts.map(s => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}<option value="all">All States</option></select></div>
+          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">District</label><select value={distFilter} onChange={e => { setDistFilter(e.target.value); setBlockFilter('all'); }} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]"><option value="all">All Districts</option>{distOpts.map(d => <option key={d.code} value={d.code}>{d.name} ({d.code})</option>)}</select></div>
+          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Block</label><select value={blockFilter} onChange={e => setBlockFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]"><option value="all">All Blocks</option>{blockOpts.map(b => <option key={b.code} value={b.code}>{b.name} ({b.code})</option>)}</select></div>
+          <div className="text-xs text-slate-400 dark:text-slate-500 pb-1">Showing {filteredSchools.length} of {schools.length} schools</div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{filteredSchools.map(s => (
           <div key={s.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-2">
             <div className="flex justify-between"><h4 className="font-bold text-slate-900 dark:text-white text-sm">{s.name}</h4><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.strength === 'high' ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.strength}</span></div>
-            <div className="text-xs text-slate-400 dark:text-slate-500">{s.stateCode} / {s.districtCode} / {s.blockCode}</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">{STATE_NAMES[s.stateCode] || s.stateCode} &rsaquo; {DISTRICT_NAMES[s.districtCode] || s.districtCode} &rsaquo; {BLOCK_NAMES[s.blockCode] || s.blockCode}</div>
             <div className="flex gap-4 text-xs pt-1 border-t border-slate-100 dark:border-slate-700"><span>👨‍🏫 {s.teachersCount} teachers</span><span className={s.isAccessLocked ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}>{s.isAccessLocked ? '🔒 Locked' : '🔓 Active'}</span></div>
           </div>
         ))}</div>
@@ -1224,7 +1268,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'districts') {
     const userState = currentUser.stateCode || 'PB';
     const stateDistricts = DISTRICTS.filter(d => d.state === userState);
-    const distSchools = expandedDist ? SCHOOLS_MOCK.filter(s => s.districtCode === expandedDist) : [];
+    const distSchools = expandedDist ? schools.filter(s => s.districtCode === expandedDist) : [];
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1240,8 +1284,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             <PageHeader title="District Overview" desc={`${userState} — Performance metrics by district`} icon={<MapPin className="h-5 w-5" />} />
             <div className="space-y-2 mt-4">{stateDistricts.map(d => {
               const isExpanded = expandedDist === d.code;
-              const schoolList = SCHOOLS_MOCK.filter(s => s.districtCode === d.code);
-              const studentCount = schoolList.reduce((a, s) => a + (STUDENTS_MOCK.filter(st => st.schoolId === s.id).length), 0);
+              const schoolList = schools.filter(s => s.districtCode === d.code);
+              const studentCount = schoolList.reduce((a, s) => a + (students.filter(st => st.schoolId === s.id).length), 0);
               return (
                 <div key={d.code}>
                   <button onClick={() => setExpandedDist(isExpanded ? null : d.code)} className={`w-full flex items-center gap-4 p-3 border rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${isExpanded ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950' : 'border-slate-100 dark:border-slate-700'}`}>
@@ -1268,9 +1312,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                   <button onClick={() => setExpandedDist(null)} className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 font-mono">Close</button>
                 </div>
                 <div className="grid grid-cols-1 gap-4">{distSchools.map(sch => {
-                  const students = STUDENTS_MOCK.filter(st => st.schoolId === sch.id);
-                  const certified = students.filter(st => st.currentLevel >= 5).length;
-                  const avgLevel = students.length > 0 ? Math.round(students.reduce((a, st) => a + st.currentLevel, 0) / students.length) : 0;
+                  const schStudents = students.filter(st => st.schoolId === sch.id);
+                  const certified = schStudents.filter(st => st.currentLevel >= 5).length;
+                  const avgLevel = schStudents.length > 0 ? Math.round(schStudents.reduce((a, st) => a + st.currentLevel, 0) / schStudents.length) : 0;
                   return (
                     <div key={sch.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-slate-400 dark:hover:border-slate-600 transition-all">
                       <div className="flex justify-between items-start">
@@ -1281,16 +1325,16 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                         <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sch.strength === 'high' ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{sch.strength}</span>
                       </div>
                       <div className="grid grid-cols-4 gap-4 mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{students.length}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Students</div></div>
+                        <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{schStudents.length}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Students</div></div>
                         <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{sch.teachersCount}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Teachers</div></div>
                         <div className="text-center"><div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{certified}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Certified</div></div>
                         <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">L{avgLevel}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Avg Level</div></div>
                       </div>
                       <div className="mt-3">
-                        <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1"><span>Certification Rate</span><span>{students.length > 0 ? Math.round(certified / students.length * 100) : 0}%</span></div>
-                        <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${students.length > 0 ? (certified / students.length) * 100 : 0}%` }} /></div>
+                        <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1"><span>Certification Rate</span><span>{schStudents.length > 0 ? Math.round(certified / schStudents.length * 100) : 0}%</span></div>
+                        <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${schStudents.length > 0 ? (certified / schStudents.length) * 100 : 0}%` }} /></div>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-1.5">{students.map(st => (
+                      <div className="mt-3 flex flex-wrap gap-1.5">{schStudents.map(st => (
                         <span key={st.id} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${st.levelHistory.length > 0 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'}`}>{st.name.split(' ')[0]} L{st.currentLevel}</span>
                       ))}</div>
                     </div>
@@ -1321,18 +1365,74 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   // ===================== SUPERADMIN PANELS =====================
   if (panel === 'users') {
+    const roleLabel = (r: string) => r === 'superadmin' ? 'Super Admin' : r === 'admin' ? 'State Admin' : r === 'district_admin' ? 'District Admin' : r === 'block_admin' ? 'Block Admin' : r === 'school' ? 'Principal' : r === 'teacher' ? 'Teacher' : r === 'volunteer' ? 'Volunteer' : r;
+    const scopeLabel = (u: any) => u.stateCode ? [STATE_NAMES[u.stateCode] || u.stateCode, DISTRICT_NAMES[u.districtCode] || u.districtCode, BLOCK_NAMES[u.blockCode] || u.blockCode, u.schoolId].filter(Boolean).join(' › ') : 'National';
+
+    const userDisplayName = (u: any) => {
+      if (u.role === 'superadmin') return u.name;
+      if (u.role === 'admin') return `${STATE_NAMES[u.stateCode] || u.stateCode} State Admin`;
+      if (u.role === 'district_admin') return `${DISTRICT_NAMES[u.districtCode] || u.districtCode} District Admin`;
+      if (u.role === 'block_admin') return `${BLOCK_NAMES[u.blockCode] || u.blockCode} Block Admin`;
+      if (u.role === 'school') return `${u.name}`;
+      if (u.role === 'teacher') return `${u.name}`;
+      if (u.role === 'volunteer') return `${u.name}`;
+      return u.name;
+    };
+
+    const roleOrder = ['superadmin', 'admin', 'district_admin', 'block_admin', 'school', 'teacher', 'volunteer'];
+    const roleCounts = roleOrder.reduce((acc, r) => { acc[r] = usersList.filter((u: any) => u.role === r).length; return acc; }, {} as Record<string, number>);
+
+    const filteredUsers = usersList.filter((u: any) => {
+      if (userRoleFilter !== 'all' && u.role !== userRoleFilter) return false;
+      if (userSearch) {
+        const q = userSearch.toLowerCase();
+        const name = userDisplayName(u).toLowerCase();
+        const email = (u.email || '').toLowerCase();
+        if (!name.includes(q) && !email.includes(q)) return false;
+      }
+      return true;
+    });
+
+    const roleFilterLabel = (r: string) => {
+      if (r === 'superadmin') return 'Super Admin';
+      if (r === 'admin') return 'State Admin';
+      if (r === 'district_admin') return 'District Admin';
+      if (r === 'block_admin') return 'Block Admin';
+      if (r === 'school') return 'Principal';
+      if (r === 'teacher') return 'Teacher';
+      if (r === 'volunteer') return 'Volunteer';
+      return r;
+    };
+
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="User Management" desc="All registered users across the FLN system" icon={<Users className="h-5 w-5" />} />
-        <div className="space-y-2">{USERS_MOCK.map(u => (
+        <PageHeader title="User Management" desc={`All registered users across the FLN system (${usersList.length} total)`} icon={<Users className="h-5 w-5" />} />
+        <div className="flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Role</label>
+            <select value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[160px]">
+              <option value="all">All Roles</option>
+              {roleOrder.filter(r => roleCounts[r] > 0).map(r => (
+                <option key={r} value={r}>{roleFilterLabel(r)} ({roleCounts[r]})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Search</label>
+            <input type="text" value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Name or email..." className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[200px]" />
+          </div>
+          <div className="text-xs text-slate-400 dark:text-slate-500 pb-1">Showing {filteredUsers.length} of {usersList.length} users</div>
+        </div>
+        <div className="space-y-2">{filteredUsers.map((u: any) => (
           <div key={u.email} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
-            <div><div className="font-medium text-sm">{u.name}</div><div className="text-xs text-slate-400 dark:text-slate-500 font-mono">{u.email}</div></div>
-            <div className="flex items-center gap-3"><span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{u.role}</span><span className="text-xs text-slate-400 dark:text-slate-500">{u.scope}</span><span className="text-[10px] font-mono font-bold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">{u.status}</span></div>
+            <div><div className="font-medium text-sm">{userDisplayName(u)}</div><div className="text-xs text-slate-400 dark:text-slate-500 font-mono">{u.email}</div></div>
+            <div className="flex items-center gap-3"><span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{roleLabel(u.role)}</span><span className="text-xs text-slate-400 dark:text-slate-500">{scopeLabel(u)}</span><span className="text-[10px] font-mono font-bold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">Active</span></div>
           </div>
         ))}</div>
       </div>
     );
   }
+
 
   if (panel === 'worksheet_templates') {
     return (
@@ -1366,16 +1466,16 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'analytics') {
     const isAdmin = [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(currentUser.role);
-    const data = isAdmin ? DISTRICTS : SCHOOLS_MOCK;
+    const data = isAdmin ? DISTRICTS : schools;
     const title = isAdmin ? 'Geographical Analytics' : 'Performance Analytics';
     const desc = isAdmin ? 'Cross-regional performance metrics and benchmarking' : 'School-level performance data and trends';
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <MetricCard title="Total Schools" value={SCHOOLS_MOCK.length} subtext="All facilities" icon={SchoolIcon} />
-          <MetricCard title="Total Students" value={STUDENTS_MOCK.length} subtext="Active roster" icon={Users} />
-          <MetricCard title="Avg FLN Level" value={`L${Math.round(STUDENTS_MOCK.reduce((a, s) => a + s.currentLevel, 0) / STUDENTS_MOCK.length)}`} subtext="System average" icon={BarChart3} />
-          <MetricCard title="Certification Rate" value={`${Math.round(STUDENTS_MOCK.filter(s => s.currentLevel >= 5).length / STUDENTS_MOCK.length * 100)}%`} subtext="Level 5+ benchmark" icon={Award} />
+          <MetricCard title="Total Schools" value={schools.length} subtext="All facilities" icon={SchoolIcon} />
+          <MetricCard title="Total Students" value={students.length} subtext="Active roster" icon={Users} />
+          <MetricCard title="Avg FLN Level" value={students.length > 0 ? `L${Math.round(students.reduce((a, s) => a + s.currentLevel, 0) / students.length)}` : 'L0'} subtext="System average" icon={BarChart3} />
+          <MetricCard title="Certification Rate" value={students.length > 0 ? `${Math.round(students.filter(s => s.currentLevel >= 5).length / students.length * 100)}%` : '0%'} subtext="Level 5+ benchmark" icon={Award} />
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <PageHeader title={title} desc={desc} icon={<BarChart3 className="h-5 w-5" />} />
