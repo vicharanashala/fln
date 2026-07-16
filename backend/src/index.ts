@@ -3,7 +3,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice, Set, SetStatus, generateSetId } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
@@ -778,6 +778,36 @@ async function startServer() {
     });
 
     res.json({ student, evaluation: { score, recommendedLevel, narrative }, report });
+  });
+
+  // Create a new District-Level Set (Batch)
+  app.post('/api/sets', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { name, assessmentName, schoolId, classGroup, studentIds } = req.body;
+    if (!name || !assessmentName || !schoolId || !classGroup || !studentIds) {
+      return res.status(400).json({ error: 'Missing required fields: name, assessmentName, schoolId, classGroup, and studentIds are all required.' });
+    }
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ error: 'studentIds must be a non-empty array.' });
+    }
+
+    const newSet: Set = {
+      id: generateSetId(),
+      name,
+      assessmentName,
+      schoolId,
+      classGroup,
+      studentIds,
+      status: 'Created',
+      createdAt: new Date().toISOString(),
+      createdByEmail: user.email
+    };
+
+    await dbStore.addSet(newSet);
+    res.json(newSet);
   });
 
   // Generate Personalized Class Worksheets
