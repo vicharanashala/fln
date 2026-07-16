@@ -10,6 +10,8 @@ import { dbStore, UserRole, User, Student, School, Question, Worksheet, LevelWor
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
+import { buildInterventionDashboard } from './interventionEngine';
+
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
@@ -1923,7 +1925,46 @@ async function startServer() {
     // District Admin, Admin, Superadmin see all
     res.json(interventions);
   });
+// Intervention Dashboard: auto-flags students who need attention (Low/
+  // Medium/High priority), derived from existing evaluation report history.
+  // Read-only and purely additive — does not touch grading, worksheet
+  // generation, or level progression anywhere else in the app.
+  app.get('/api/interventions/dashboard', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+    let students = await dbStore.getStudents();
+    if (user.role === UserRole.TEACHER) {
+      students = students.filter(s => s.teacherId === user.id);
+    } else if (user.role === UserRole.SCHOOL) {
+      students = students.filter(s => s.schoolId === user.schoolId);
+    } else if (user.role === UserRole.VOLUNTEER) {
+      const assignedSchools = user.assignedSchools || [];
+      students = students.filter(s => assignedSchools.includes(s.schoolId));
+    } else if (user.role === UserRole.BLOCK_ADMIN) {
+      const schools = await dbStore.getSchools();
+      const blockSchools = schools.filter(s => s.blockCode === user.blockCode).map(s => s.id);
+      students = students.filter(s => blockSchools.includes(s.schoolId));
+    }
+    // District Admin, Admin, Superadmin see all students.
+
+    const [allReports, allInterventions] = await Promise.all([
+      dbStore.getEvaluationReports(),
+      dbStore.getInterventions()
+    ]);
+
+    let dashboard = buildInterventionDashboard(students, allReports, allInterventions);
+
+    const { priority, classId, concept, status } = req.query;
+    if (priority) dashboard = dashboard.filter(d => d.priority === priority);
+    if (classId) dashboard = dashboard.filter(d => d.className === classId);
+    if (status) dashboard = dashboard.filter(d => d.status === status);
+    if (concept) {
+      dashboard = dashboard.filter(d => d.weakConcepts.includes(concept as string));
+    }
+
+    res.json(dashboard);
+  });
   // Get single intervention
   app.get('/api/interventions/:id', async (req, res) => {
     const user = getAuthUser(req);
