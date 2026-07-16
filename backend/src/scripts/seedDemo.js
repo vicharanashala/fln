@@ -52,9 +52,9 @@ async function run() {
       createdBy: admin._id,
     },
     {
-      title: "Class 5 Numeracy FA2 2025-26",
+      title: "Class 4 Numeracy FA2 2025-26",
       subject: "Numeracy",
-      grade: "Class 5",
+      grade: "Class 4",
       language: "Tamil",
       academicYear: "2025-26",
       duration: 60,

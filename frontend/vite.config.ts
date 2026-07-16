@@ -10,5 +10,16 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  server: { port: 5173 },
+  server: {
+    port: 5173,
+    proxy: {
+      "/api/assessments": { target: "http://localhost:5000", changeOrigin: true },
+      "/api/templates": { target: "http://localhost:5000", changeOrigin: true },
+      "/uploads": { target: "http://localhost:5000", changeOrigin: true },
+      "/extracted-images": { target: "http://localhost:5000", changeOrigin: true },
+      "/api": { target: "http://localhost:3000", changeOrigin: true },
+      "/output": { target: "http://localhost:3000", changeOrigin: true },
+      "/worksheets": { target: "http://localhost:3000", changeOrigin: true },
+    },
+  },
 });
