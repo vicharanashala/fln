@@ -258,7 +258,7 @@ export const SetsPanel: React.FC<{ token: string }> = ({ token }) => {
             return (
               <div className="flex flex-col gap-1 items-start w-32">
                 <a 
-                  href={`/api/sets/${row.id}/download`} 
+                  href={`/api/sets/${row.id}/download?token=${encodeURIComponent(token)}`} 
                   className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 text-center w-full block hover:bg-emerald-100 transition-colors font-mono"
                 >
                   Download Package

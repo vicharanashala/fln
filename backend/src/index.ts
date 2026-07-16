@@ -34,9 +34,14 @@ async function startServer() {
   // --- Auth Middleware & Helper ---
   // A simple token-based auth helper. Token is email address for easy stateless authentication.
   function getAuthUser(req: express.Request): User | null {
+    let email = '';
     const authHeader = req.headers.authorization;
-    if (!authHeader) return null;
-    const email = authHeader.replace('Bearer ', '').trim();
+    if (authHeader) {
+      email = authHeader.replace('Bearer ', '').trim();
+    } else if (req.query.token) {
+      email = String(req.query.token).trim();
+    }
+    if (!email) return null;
     
     // Find preseeded user in database
     const found = dbStore.getUserSync(email);
