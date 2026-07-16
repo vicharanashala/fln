@@ -15,21 +15,32 @@ import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import StatusChip from "../../components/ui/StatusChip";
 import assessmentApi from "../../services/assessmentApi";
-import type { AssessmentTemplate } from "../../types/assessment";
+import type { AssessmentTemplate } from "../../types";
 import { exportAnswerKeyPdf } from "../../utils/exportAnswerKeyPdf";
 import type { CreateAssessmentDTO } from "../../services/assessmentApi";
-import type { Assessment } from "../../types/assessment";
+import type { Assessment } from "../../types";
 import {
   ASSESSMENT_TYPES,
   SUBJECTS,
   GRADES,
   LANGUAGES,
-} from "../../types/assessment";
+} from "../../types";
 
 type Phase = "idle" | "uploading" | "extracting" | "ready";
 
-export default function AssessmentsListPage() {
+interface AssessmentsListPageProps {
+  onNavigateToReview?: (id: string) => void;
+}
+
+export default function AssessmentsListPage({ onNavigateToReview }: AssessmentsListPageProps = {}) {
   const navigate = useNavigate();
+  const goToReview = (id: string) => {
+    if (onNavigateToReview) {
+      onNavigateToReview(id);
+    } else {
+      navigate(`/answer-key-generator/${id}/review`);
+    }
+  };
   const [showCreate, setShowCreate] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState(0);
@@ -47,7 +58,7 @@ export default function AssessmentsListPage() {
       setPhase("uploading");
       setProgress(15);
       const createRes = await assessmentApi.createWithFiles(data, files);
-      const assessmentId = createRes.data.assessment._id;
+      const assessmentId = createRes.data.assessment._id!;
       setProgress(45);
 
       setPhase("extracting");
@@ -60,9 +71,7 @@ export default function AssessmentsListPage() {
     onSuccess: (data) => {
       toast.success("Uploaded & extracted — review the questions");
       setShowCreate(false);
-      navigate(`/answer-key-generator/${data.assessmentId}/review`, {
-        state: { template: data.preview, model: data.model },
-      });
+      goToReview(data.assessmentId);
     },
     onError: (e: Error) => {
       toast.error(e.message || "Something went wrong");
@@ -77,20 +86,31 @@ export default function AssessmentsListPage() {
       toast.error("No template data available");
       return;
     }
-    setPdfLoadingId(a._id);
+    setPdfLoadingId(a._id || null);
     try {
       // Always fetch the full template to get the questions array
-      const res = await assessmentApi.getTemplate(a._id);
+      const res = await assessmentApi.getTemplate(a._id!);
       const fullTpl: AssessmentTemplate = res.data.template;
       await exportAnswerKeyPdf({
         assessmentCode: a.assessmentCode || fullTpl.assessmentCode || "AS0000",
-        title: a.title,
+        title: a.title ?? a.name ?? '',
         grade: a.grade || "—",
         subject: a.subject || "—",
         setNumber: a.setNumber,
         status: fullTpl.status || "Approved",
         totalMarks: fullTpl.totalMarks || 0,
-        questions: fullTpl.questions || [],
+        questions: (fullTpl.questions || []).map((q) => ({
+          questionNo: q.questionNo || 0,
+          pageNumber: q.pageNumber,
+          questionText: q.questionText || "",
+          questionType: q.questionType || "",
+          difficulty: q.difficulty || "",
+          marks: q.marks || 0,
+          correctAnswer: q.correctAnswer || "",
+          alternateAnswers: q.alternateAnswers || [],
+          evaluationRule: q.evaluationRule || "",
+          images: q.images || [],
+        })),
         approvedAt: fullTpl.verifiedAt || undefined,
       });
       toast.success("Answer key PDF downloaded ✓");
@@ -138,7 +158,7 @@ export default function AssessmentsListPage() {
                       <Badge tone="slate">{a.subject}</Badge>
                       <span className="flex items-center gap-0.5">
                         <Clock className="w-2.5 h-2.5" />
-                        {new Date(a.createdAt).toLocaleDateString()}
+                        {a.createdAt ? new Date(a.createdAt).toLocaleDateString() : "—"}
                       </span>
                     </div>
                   </div>
@@ -151,7 +171,7 @@ export default function AssessmentsListPage() {
                     )}
                     <Button
                       size="sm"
-                      onClick={() => navigate(`/answer-key-generator/${a._id}/review`)}
+                      onClick={() => goToReview(a._id!)}
                     >
                       <Edit className="w-3 h-3" /> Edit
                     </Button>

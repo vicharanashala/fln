@@ -14,8 +14,8 @@ import Select from "../../components/ui/Select";
 import Input from "../../components/ui/Input";
 import assessmentApi from "../../services/assessmentApi";
 import { exportAnswerKeyPdf } from "../../utils/exportAnswerKeyPdf";
-import type { Question } from "../../types/assessment";
-import { QUESTION_TYPES, DIFFICULTY } from "../../types/assessment";
+import type { Question } from "../../types";
+import { QUESTION_TYPES, DIFFICULTY } from "../../types";
 
 type WorkflowStep = "upload" | "processing" | "review" | "approved";
 
@@ -41,10 +41,25 @@ interface EditableQuestion extends Question {
 
 const EVAL_RULES = ["exact", "contains", "tolerance", "range", "subjective", "manual"];
 
-export default function TemplateReviewPage() {
-  const { id } = useParams<{ id: string }>();
+interface TemplateReviewPageProps {
+  embeddedId?: string;
+  onBack?: () => void;
+}
+
+export default function TemplateReviewPage({ embeddedId, onBack }: TemplateReviewPageProps = {}) {
+  const { id: routeId } = useParams<{ id: string }>();
+  const id = embeddedId || routeId;
   const location = useLocation();
   const navigate = useNavigate();
+  
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      navigate("/answer-key-generator");
+    }
+  };
+
   const locationState = location.state as { template?: { questions?: EditableQuestion[] }; model?: string } | null;
   const [questions, setQuestions] = useState<EditableQuestion[]>(locationState?.template?.questions || []);
   const [modelName, setModelName] = useState(locationState?.model || "mock");
@@ -110,7 +125,7 @@ export default function TemplateReviewPage() {
       );
       setEditingId(null);
       toast.success("Template approved & saved to database ✓");
-      setTimeout(() => navigate("/answer-key-generator"), 800);
+      setTimeout(() => handleBack(), 800);
     },
     onError: (e: Error) => {
       toast.error(e.message);
@@ -143,15 +158,15 @@ export default function TemplateReviewPage() {
         status: existingTemplate?.status || assessment?.templateStatus || "Draft",
         totalMarks: existingTemplate?.totalMarks || questions.reduce((s, q) => s + (q.marks || 0), 0),
         questions: questions.map((q) => ({
-          questionNo: q.questionNo,
+          questionNo: q.questionNo || 0,
           pageNumber: q.pageNumber,
-          questionText: q.questionText,
-          questionType: q.questionType,
-          difficulty: q.difficulty,
-          marks: q.marks,
-          correctAnswer: q.correctAnswer,
+          questionText: q.questionText || "",
+          questionType: q.questionType || "",
+          difficulty: q.difficulty || "",
+          marks: q.marks || 0,
+          correctAnswer: q.correctAnswer || "",
           alternateAnswers: q.alternateAnswers || [],
-          evaluationRule: q.evaluationRule,
+          evaluationRule: q.evaluationRule || "",
           images: q.images || [],
         })),
         approvedAt: existingTemplate?.verifiedAt || undefined,
@@ -195,7 +210,7 @@ export default function TemplateReviewPage() {
     setQuestions((qs) =>
       qs.map((q, i) =>
         i === idx
-          ? { ...q, alternateAnswers: q.alternateAnswers.filter((_, j) => j !== altIdx), _edit: true }
+          ? { ...q, alternateAnswers: (q.alternateAnswers || []).filter((_, j) => j !== altIdx), _edit: true }
           : q
       )
     );
@@ -376,7 +391,7 @@ export default function TemplateReviewPage() {
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between">
-        <Button variant="secondary" onClick={() => navigate("/answer-key-generator")}>
+        <Button variant="secondary" onClick={() => handleBack()}>
           <ChevronLeft className="w-4 h-4" /> Back
         </Button>
         <div className="flex items-center gap-2">
@@ -457,14 +472,14 @@ function QuestionCard({
           </Badge>
           <Badge tone="purple">{q.questionType}</Badge>
           <Badge tone="slate">{q.marks} marks</Badge>
-          {saving && <Badge tone="amber" withDot><Loader2 className="w-2.5 h-2.5 animate-spin mr-0.5" />Saving…</Badge>}
+          {saving && <Badge tone="orange" withDot><Loader2 className="w-2.5 h-2.5 animate-spin mr-0.5" />Saving…</Badge>}
           {!saving && justSaved && (
             <Badge tone="green" withDot>
               <Check className="w-2.5 h-2.5 mr-0.5" />
               Approved &amp; Saved to DB
             </Badge>
           )}
-          {q._edit && !justSaved && !saving && <Badge tone="amber" withDot>Edited — pending approval</Badge>}
+          {q._edit && !justSaved && !saving && <Badge tone="orange" withDot>Edited — pending approval</Badge>}
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -710,7 +725,7 @@ function QuestionCard({
                 {(q.alternateAnswers || []).length > 0 && (
                   <div className="mt-1.5 flex flex-wrap items-center gap-1">
                     <span className="text-[10px] text-slate-500">Also accepted:</span>
-                    {q.alternateAnswers.map((alt, i) => (
+                    {(q.alternateAnswers || []).map((alt, i) => (
                       <span
                         key={i}
                         className="px-1.5 py-0.5 rounded bg-white border border-green-200 text-[10px] text-slate-600"

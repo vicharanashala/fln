@@ -1,5 +1,5 @@
 import api from "./api";
-import type { Assessment, AssessmentTemplate } from "../types/assessment";
+import type { Assessment, AssessmentTemplate } from "../types";
 
 export interface CreateAssessmentDTO {
   title: string;
@@ -97,7 +97,7 @@ const assessmentApi = {
   },
 
   regenerateQuestion(assessmentId: string, questionIndex: number, promptHint?: string) {
-    return api.post<{ ok: boolean; question: import("../types/assessment").Question }>(
+    return api.post<{ ok: boolean; question: import("../types").Question }>(
       `/templates/${assessmentId}/regenerate/${questionIndex}`,
       { promptHint: promptHint || "Provide a complete answer for this single question. If the question references an image, look at it carefully and provide your best specific answer." }
     );
