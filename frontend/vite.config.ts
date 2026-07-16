@@ -13,13 +13,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api/assessments": { target: "http://localhost:5000", changeOrigin: true },
-      "/api/templates": { target: "http://localhost:5000", changeOrigin: true },
-      "/uploads": { target: "http://localhost:5000", changeOrigin: true },
-      "/extracted-images": { target: "http://localhost:5000", changeOrigin: true },
-      "/api": { target: "http://localhost:3000", changeOrigin: true },
-      "/output": { target: "http://localhost:3000", changeOrigin: true },
-      "/worksheets": { target: "http://localhost:3000", changeOrigin: true },
+      "/api/assessments": { target: "http://127.0.0.1:5000", changeOrigin: true },
+      "/api/templates": { target: "http://127.0.0.1:5000", changeOrigin: true },
+      "/uploads": { target: "http://127.0.0.1:5000", changeOrigin: true },
+      "/extracted-images": { target: "http://127.0.0.1:5000", changeOrigin: true },
+      "/api": { target: "http://127.0.0.1:3000", changeOrigin: true },
+      "/output": { target: "http://127.0.0.1:3000", changeOrigin: true },
+      "/worksheets": { target: "http://127.0.0.1:3000", changeOrigin: true },
     },
   },
 });
