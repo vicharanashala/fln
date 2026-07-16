@@ -78,3 +78,45 @@ html.dark body {
 
 /* Dynamic color helpers for inline class names like bg-blue-50 etc. */
 .bg-blue-50, .bg-green-50, .bg-orange-50, .bg-purple-50, .bg-yellow-50, .bg-pink-50, .bg-indigo-50, .bg-emerald-50, .bg-rose-50, .bg-cyan-50 { color: inherit; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-shake {
+  animation: shake 0.2s ease-in-out 2;
+}
+
+/* Custom scrollbars for a cleaner UI */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
