@@ -660,7 +660,7 @@ export const INITIAL_LOGS: any[] = [
     id: 'log-002',
     time: '2026-07-05 04:00 PM',
     type: 'Access Review',
-    details: 'Security credentials review completed for 28 state admins.',
+    details: 'Security credentials audit completed for 28 state admins.',
     level: 'superadmin'
   },
   {
