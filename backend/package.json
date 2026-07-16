@@ -23,6 +23,7 @@
     "http-status": "^2.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
+    "jszip": "^3.10.1",
     "pdf-lib": "^1.17.1",
     "puppeteer": "^25.3.0"
   },

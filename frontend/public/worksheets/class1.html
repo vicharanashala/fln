@@ -30,8 +30,6 @@
     background:#fff;
     width:210mm;
     min-height:297mm;
-    max-height:297mm;
-    overflow:hidden;
     padding:8mm 12mm 8mm 12mm;
     border:1px solid #999;
     box-shadow:0 0 10px rgba(0,0,0,0.15);
@@ -57,13 +55,42 @@
   .ws-header-cont{text-align:center;border-bottom:2px dashed #000;padding-bottom:5px;margin-bottom:7px;}
   .ws-title{font-size:21px;font-weight:bold;letter-spacing:0.5px;}
   .ws-sub{font-size:15px;margin-top:2px;font-weight:bold;}
+  .ws-header .ws-sub{display:none;}
   .ws-sub-pg{font-size:13px;color:#555;margin-top:2px;}
   .ws-fields{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;flex-wrap:wrap;gap:6px;}
   .ws-fields span{border-bottom:1px solid #000;padding:0 4px 2px 4px;min-width:120px;display:inline-block;}
+  /* Keep the child details and QR visible; begin questions directly below. */
+  .ws-fields{display:none;}
+  .ws-header{min-height:18mm;box-sizing:border-box;}
+  .ws-header-cont{display:none;}
 
   /* ── QUESTIONS ── */
   .section{margin:8px 0 11px 0;}
+  .section, table, tr{break-inside:avoid;page-break-inside:avoid;}
   .qinstr{font-size:14.5px;font-weight:bold;margin:0 0 6px 0;background:#f5f5f5;padding:4px 8px;border-left:4px solid #000;}
+  /* Compact two-page layout: visual size changes only; answer data is unchanged. */
+  .compact-page{padding:6mm 8mm;}
+  .compact-page .section{margin:3px 0 5px;}
+  .compact-page .qinstr{font-size:11px;margin-bottom:3px;padding:2px 5px;border-left-width:3px;}
+  .compact-page .matchwrap{gap:10px;}
+  .compact-page .matchitem{margin:2px 0;}
+  .compact-page .matchitem .micontent{gap:4px;font-size:11px;}
+  .compact-page .imgbox{padding:2px;}
+  .compact-page .imgbox svg{width:42px !important;height:42px !important;}
+  .compact-page .group-compare{gap:8px;margin:2px 0;}
+  .compact-page .group-box{padding:3px 5px;min-width:72px;min-height:44px;gap:2px;}
+  .compact-page .qrow{margin:2px 0;font-size:10px;}
+  .compact-page .numseq-row{gap:5px;margin:3px 0;}
+  .compact-page .numseq-box{width:34px;height:34px;font-size:16px;}
+  .compact-page .container-row,.compact-page .basket-row{gap:12px;margin:2px 0;}
+  .compact-page .coin-row{gap:4px;padding:2px 0;}
+  .compact-page .coin-row svg{width:42px !important;height:42px !important;}
+  .compact-page .zero-strip{margin:3px 0;}
+  .compact-page .zero-panel{min-height:90px;padding:6px 3px 4px;}
+  .compact-page .zero-choice-row{gap:10px;margin-top:4px;}
+  .compact-page .zero-choice{padding:4px 18px;font-size:18px;}
+  .compact-page .pair-box{min-width:70px;min-height:64px;padding:4px;gap:2px;}
+  .compact-page .basket-label{font-size:13px;}
 
   /* ── MATCHING ── */
   .matchwrap{display:flex;justify-content:space-between;gap:20px;}
@@ -132,11 +159,14 @@
 <script src="./html2canvas.min.js"></script>
 <script src="./jspdf.umd.min.js"></script>
 <script src="./jszip.min.js"></script>
+<script src="./qrcode.min.js"></script>
 </head>
 <body>
 
 <div class="toolbar no-print">
   <h1>Class 1 — Math Worksheet (v3 · 3-Page A4)</h1>
+  <label>Student name: <input id="studentName" type="text" placeholder="Student name"></label>
+  <label>Student ID: <input id="studentId" type="text" placeholder="Roll/Student ID"></label>
   <label>Sets: <input type="number" id="setCount" min="1" max="5000" value="5"></label>
   <button class="btn" id="generateBtn">Generate</button>
   <button class="btn" id="printBtn">Print current set</button>
@@ -726,6 +756,11 @@ function section9(){
 // Q1-Q4 → Page 1   |   Q5-Q9 → Page 2
 // ══════════════════════════════════════════════════════════════════════════════
 const PX_PER_MM=96/25.4;
+function worksheetQRHtml(setNum){
+  const student={studentName:document.getElementById('studentName')?.value.trim()||'UNASSIGNED',studentId:document.getElementById('studentId')?.value.trim()||'UNASSIGNED',classLevel:'CLASS_1',set:setNum};
+  const qr=qrcode(0,'M');qr.addData(JSON.stringify(student));qr.make();
+  return '<img class="worksheet-qr" alt="Student worksheet QR" style="width:18mm;height:18mm;float:right" src="'+qr.createDataURL(3,2)+'">';
+}
 
 function buildWorksheet(setNum){
   const builders=[section1,section2,section3,section4,section5,section6,section7,section8,section9];
@@ -741,11 +776,18 @@ function buildWorksheet(setNum){
     '<div class="reg-sq bl"></div><div class="reg-sq br"></div>';
   const pid='SET-'+String(setNum).padStart(5,'0');
 
+  const studentName = document.getElementById('studentName')?.value.trim();
+  const studentId = document.getElementById('studentId')?.value.trim();
+  const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
+  const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
+  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+
   const headerP1=
     '<div class="ws-header">'+
-      '<div class="ws-title">CLASS 1 — MATHEMATICS PRACTICE WORKSHEET</div>'+
-      '<div class="ws-sub">Set '+setNum+' &nbsp;·&nbsp; Page 1 of 3</div>'+
-      '<div class="ws-fields"><span>Name:</span><span>Date:</span><span>Roll No.:</span><span>Marks: ____ / 40</span></div>'+
+      '<div style="font-size:16px;font-weight:bold;text-align:left;float:left;margin-top:4px;">CLASS 1 — MATHEMATICS PRACTICE WORKSHEET</div>'+
+      worksheetQRHtml(setNum)+
+      '<div style="clear:both;"></div>'+
+      studentDetails+
     '</div>';
 
   const headerP2=
@@ -763,26 +805,27 @@ function buildWorksheet(setNum){
   // Page 1: Q1–Q4
   const page1Html=
     '<div class="page-wrapper">'+reg+
-    '<div class="page" id="page1-set-'+setNum+'">'+
+    '<div class="page compact-page" id="page1-set-'+setNum+'">'+
       headerP1+
       '<div class="section">'+sections[0]+'</div>'+
       '<div class="section">'+sections[1]+'</div>'+
       '<div class="section">'+sections[2]+'</div>'+
       '<div class="section">'+sections[3]+'</div>'+
-      '<div class="ws-footer">Class 1 · Math FLN Practice · Set '+setNum+' · Page 1 of 3</div>'+
+      '<div class="ws-footer">Class 1 · Math FLN Practice · Set '+setNum+' · Page 1 of 2</div>'+
       '<div class="ws-page-id">'+pid+'-P1</div>'+
     '</div></div>';
 
   // Page 2: Q5–Q8
   const page2Html=
     '<div class="page-wrapper">'+reg+
-    '<div class="page" id="page2-set-'+setNum+'">'+
+    '<div class="page compact-page" id="page2-set-'+setNum+'">'+
       headerP2+
       '<div class="section">'+sections[4]+'</div>'+
       '<div class="section">'+sections[5]+'</div>'+
       '<div class="section">'+sections[6]+'</div>'+
       '<div class="section">'+sections[7]+'</div>'+
-      '<div class="ws-footer">Class 1 · Math FLN Practice · Set '+setNum+' · Page 2 of 3</div>'+
+      '<div class="section">'+sections[8]+'</div>'+
+      '<div class="ws-footer">Class 1 · Math FLN Practice · Set '+setNum+' · Page 2 of 2</div>'+
       '<div class="ws-page-id">'+pid+'-P2</div>'+
     '</div></div>';
 
@@ -796,7 +839,7 @@ function buildWorksheet(setNum){
       '<div class="ws-page-id">'+pid+'-P3</div>'+
     '</div></div>';
 
-  const html = page1Html + page2Html + page3Html;
+  const html = page1Html + page2Html;
   return {html,answers,coordHintsByQ};
 }
 
@@ -863,6 +906,20 @@ function buildMasterJSON(setNum,liveCoords){
   });
   const regCoords=liveCoords?{tl:liveCoords['reg_sq_tl']||null,tr:liveCoords['reg_sq_tr']||null,bl:liveCoords['reg_sq_bl']||null,br:liveCoords['reg_sq_br']||null}:null;
   return {meta:{set:setNum,pid:'SET-'+String(setNum).padStart(5,'0'),gen:new Date().toISOString(),qs:9,coord_unit:'mm',icr_version:'1.0',layout:'3-page-A4'},registration_marks:regCoords,questions};
+}
+
+// Student-facing question data: retain the generated questions and field IDs,
+// but remove every value that can reveal an answer.
+const QUESTION_ANSWER_FIELDS=new Set(['answer','answers','ans','correct_answer','expected_answer','expected','expected_value','expected_choice','expected_label','expected_side','matches','pairs','target_type','expected_count','circle','tick','matchesTo','correctRank','scanned_response','is_correct']);
+function questionOnly(value){
+  if(Array.isArray(value)) return value.map(questionOnly);
+  if(value&&typeof value==='object') return Object.fromEntries(Object.entries(value).filter(([key])=>!QUESTION_ANSWER_FIELDS.has(key)).map(([key,item])=>[key,questionOnly(item)]));
+  return value;
+}
+function buildQuestionPaperJSON(setNum,liveCoords){
+  const paper=questionOnly(buildMasterJSON(setNum,liveCoords));
+  paper.meta={...paper.meta,artifact:'question_paper',includes_answers:false};
+  return paper;
 }
 
 function buildCSV(start,end){
@@ -987,6 +1044,8 @@ document.getElementById('downloadAnswerKeyBtn').addEventListener('click',()=>{
   const n=worksheetAnswers.length,pw=String(n).length;
   const allSets={meta:{gen:new Date().toISOString(),totalSets:n,layout:'3-page-A4'},sets:worksheetAnswers.map((_,i)=>buildMasterJSON(i+1,null))};
   triggerTextDownload('AnswerKey_Sets001-'+String(n).padStart(pw,'0')+'.json',JSON.stringify(allSets,null,2),'application/json');
+  const allQuestionSets={meta:{gen:new Date().toISOString(),totalSets:n,layout:'3-page-A4',artifact:'question_papers',includes_answers:false},sets:worksheetAnswers.map((_,i)=>buildQuestionPaperJSON(i+1,null))};
+  triggerTextDownload('QuestionPapers_Sets001-'+String(n).padStart(pw,'0')+'.json',JSON.stringify(allQuestionSets,null,2),'application/json');
   triggerTextDownload('AnswerKey_Sets001-'+String(n).padStart(pw,'0')+'.csv',buildCSV(1,n),'text/csv');
 });
 
@@ -1001,8 +1060,9 @@ document.getElementById('downloadSingleSetBtn').addEventListener('click',async()
     await downloadBlob(pdfBlob,'Set_'+padded+'.pdf');
     const masterJson=buildMasterJSON(setNum,coords);
     triggerTextDownload('MasterKey_Set'+padded+'.json',JSON.stringify(masterJson,null,2),'application/json');
+    triggerTextDownload('QuestionPaper_Set'+padded+'.json',JSON.stringify(buildQuestionPaperJSON(setNum,coords),null,2),'application/json');
     triggerTextDownload('AnswerKey_Set'+padded+'.csv',buildCSV(setNum,setNum),'text/csv');
-    pr.textContent='Done — Set '+setNum+' downloaded (3 pages).';
+    pr.textContent='Done — worksheet, answer key, coordinates and question JSON downloaded.';
   }catch(e){console.error(e);pr.textContent='Failed: '+(e.message||e);}
   finally{allBtns().forEach(b=>b.disabled=false);}
 });
@@ -1025,6 +1085,7 @@ document.getElementById('downloadAllZipBtn').addEventListener('click',async()=>{
         zip.file('Class1_Set_'+padded+'.pdf',pdfBlob);
         const masterJson=buildMasterJSON(i,coords);
         zip.file('MasterKey_Set_'+padded+'.json',JSON.stringify(masterJson,null,2));
+        zip.file('QuestionPaper_Set_'+padded+'.json',JSON.stringify(buildQuestionPaperJSON(i,coords),null,2));
         zip.file('AnswerKey_Set_'+padded+'.csv',buildCSV(i,i));
         if(i%5===0||i===partEnd){const el=Math.round((performance.now()-t0)/1000);pr.textContent='Rendered '+i+'/'+n+' sets… ('+el+'s elapsed)';await new Promise(r=>setTimeout(r,0));}
       }
@@ -1043,6 +1104,7 @@ document.getElementById('downloadAllZipBtn').addEventListener('click',async()=>{
 window.generateSets=generateSets;
 window.captureCoords=captureCoords;
 window.buildMasterJSON=buildMasterJSON;
+window.buildQuestionPaperJSON=buildQuestionPaperJSON;
 window.buildCSV=buildCSV;
 window.activateSet=activateSet;
 window.buildWorksheet=buildWorksheet;

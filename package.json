@@ -5,12 +5,13 @@
   "description": "FLN Assessment & Personalized Worksheet Platform — monorepo (frontend + backend + ai-services)",
   "workspaces": [
     "frontend",
-    "backend"
+    "backend",
+    "backend/fln-backend"
   ],
   "scripts": {
     "dev": "npm run dev --workspace @fln/backend",
     "dev:frontend": "npm run dev --workspace @fln/frontend",
-    "dev:backend": "npm run dev --workspace @fln/backend",
+    "dev:backend": "node scripts/dev-backend.js",
     "build": "npm run build:frontend && npm run build:backend",
     "build:frontend": "npm run build --workspace @fln/frontend",
     "build:backend": "npm run build --workspace @fln/backend",

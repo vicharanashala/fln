@@ -6,6 +6,8 @@ import { randomUUID } from 'crypto';
 import { Question } from './db';
 import { renderBatch } from './worksheetRenderer';
 import { mergeAndStamp } from './pdfMerge';
+import { drawQrCode } from './qrCode';
+import JSZip from 'jszip';
 
 // Resolve __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -22,6 +24,8 @@ export interface PaperGenerationResult {
   totalSets: number;
   studentOrder: Array<{ setNum: number; studentName: string }>;
   questions: Question[];
+  pdfFileName?: string;
+  pdfFilePath?: string;
 }
 
 export interface WorksheetPdfResult {
@@ -40,7 +44,7 @@ export async function generateDiagnosticPaper({
   onProgress
 }: {
   classNumber: number;
-  students: Array<{ name: string }>;
+  students: Array<{ name: string; studentId?: string; rollNo?: string; qrData?: Record<string, unknown> }>;
   onProgress?: (setNum: number, total: number) => void;
 }): Promise<PaperGenerationResult> {
   if (!Array.isArray(students) || students.length === 0) {
@@ -48,7 +52,7 @@ export async function generateDiagnosticPaper({
   }
 
   const classLevel = `CLASS_${classNumber}`;
-  const results = await renderBatch(classLevel, students.length, onProgress);
+  const results = await renderBatch(classLevel, students.length, onProgress, undefined, students);
 
   // Extract questions from results[0].masterJson
   let questions: Question[] = [];
@@ -91,13 +95,87 @@ export async function generateDiagnosticPaper({
     students
   );
 
-  const fileName = `class${classNumber}_diagnostic_${randomUUID()}.pdf`;
+  const zip = new JSZip();
+
+  // Add the merged PDF for bulk printing
+  const mergedFileName = `class${classNumber}_bulk_diagnostic.pdf`;
+  zip.file(mergedFileName, mergedBuffer);
+
+  // Add a manifest.json
+  const manifestData = {
+    classNumber,
+    generatedAt: new Date().toISOString(),
+    totalSets: students.length,
+    students: students.map((s, idx) => ({
+      name: s.name,
+      studentId: s.studentId || s.rollNo || `STUDENT_${idx + 1}`,
+      setNum: idx + 1,
+      files: ['worksheet.pdf', 'answer_key.json', 'coords.json', 'question_paper.json']
+    }))
+  };
+  zip.file('manifest.json', JSON.stringify(manifestData, null, 2));
+
+  // Loop through results and add student directories and flat PDFs
+  results.forEach((r, idx) => {
+    const student = students[idx];
+    const sName = student.name;
+    const sId = student.studentId || student.rollNo || `STUDENT_${idx + 1}`;
+    
+    // Sanitize names for folder structure
+    const folderName = `Set_${String(idx + 1).padStart(3, '0')}_RollNo-${sId.replace(/[^a-zA-Z0-9_\-]+/g, '')}_${sName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]+/g, '')}`;
+
+    // Add individual student files
+    const pdfBuf = Buffer.from(r.pdfBase64, 'base64');
+    zip.file(`${folderName}/worksheet.pdf`, pdfBuf);
+
+    if (r.masterJson) {
+      zip.file(`${folderName}/answer_key.json`, JSON.stringify(r.masterJson, null, 2));
+    }
+    if (r.coords) {
+      zip.file(`${folderName}/coords.json`, JSON.stringify(r.coords, null, 2));
+    }
+    if (r.questionPaperJson) {
+      zip.file(`${folderName}/question_paper.json`, JSON.stringify(r.questionPaperJson, null, 2));
+    }
+
+    // Add flat copies to all_worksheets/ for easy single-folder access
+    zip.file(`all_worksheets/${folderName}.pdf`, pdfBuf);
+    if (r.masterJson) {
+      zip.file(`all_worksheets/${folderName}_answer_key.json`, JSON.stringify(r.masterJson, null, 2));
+    }
+    if (r.coords) {
+      zip.file(`all_worksheets/${folderName}_coords.json`, JSON.stringify(r.coords, null, 2));
+    }
+    if (r.questionPaperJson) {
+      zip.file(`all_worksheets/${folderName}_question_paper.json`, JSON.stringify(r.questionPaperJson, null, 2));
+    }
+  });
+
+  const pdfFileName = `class${classNumber}_diagnostic_${randomUUID()}.pdf`;
+  const pdfFilePath = path.join(OUTPUT_DIR, pdfFileName);
+  fs.writeFileSync(pdfFilePath, mergedBuffer);
+
+  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+  const fileName = `class${classNumber}_diagnostic_${randomUUID()}.zip`;
   const filePath = path.join(OUTPUT_DIR, fileName);
-  fs.writeFileSync(filePath, mergedBuffer);
+  fs.writeFileSync(filePath, zipBuffer);
+
+  // Write corresponding answer keys, coords, and question papers for each set to output/ for logs/verification
+  const baseName = fileName.replace(/\.zip$/, '');
+  const answerKeys = results.map(r => r.masterJson);
+  const coordsList = results.map(r => r.coords);
+  const questionPapers = results.map(r => r.questionPaperJson);
+
+  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_answer_key.json`), JSON.stringify(answerKeys, null, 2));
+  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_coords.json`), JSON.stringify(coordsList, null, 2));
+  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_question_paper.json`), JSON.stringify(questionPapers, null, 2));
 
   return {
     fileName,
     filePath,
+    pdfFileName,
+    pdfFilePath,
     totalSets: students.length,
     studentOrder: students.map((s, i) => ({
       setNum: i + 1,
@@ -144,7 +222,11 @@ export async function generateLevelWorksheet({
     const htmlPath = path.join(worksheetAssetsDir, "levels_main.html");
     await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0' as any, timeout: 30000 });
 
-    const data = await page.evaluate(({ levelId, subIdx }) => {
+    const data = await page.evaluate(({ levelId, subIdx, studentId, studentName }) => {
+      const nameInput = document.getElementById('studentName') as HTMLInputElement | null;
+      const idInput = document.getElementById('studentId') as HTMLInputElement | null;
+      if (nameInput) nameInput.value = studentName;
+      if (idInput) idInput.value = studentId;
       // @ts-ignore
       worksheetHTMLs = [];
       // @ts-ignore
@@ -166,7 +248,7 @@ export async function generateLevelWorksheet({
         // @ts-ignore
         meta: meta[iterations - 1]
       };
-    }, { levelId, subIdx });
+    }, { levelId, subIdx, studentId, studentName });
 
     await page.close();
 
@@ -295,6 +377,7 @@ export async function renderWorksheetPdf({
   section: string;
   cycle: string;
   studentsWithQuestions: Array<{
+    studentId: string;
     name: string;
     currentLevel: number;
     currentSubLevel: number;
@@ -368,6 +451,16 @@ export async function renderWorksheetPdf({
       font: font,
       color: rgb(0.4, 0.45, 0.5),
     });
+
+    drawQrCode(page, {
+      studentName: swq.name,
+      studentId: swq.studentId,
+      className,
+      section,
+      currentLevel: swq.currentLevel,
+      currentSubLevel: swq.currentSubLevel,
+      worksheetId,
+    }, width - 105, height - 150, 45);
 
     // Draw student-specific personalized questions
     let currentY = height - 220;

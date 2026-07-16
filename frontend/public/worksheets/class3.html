@@ -43,7 +43,11 @@
   .ws-sub{font-size:14px;margin-top:2px;font-weight:bold;}
   .ws-fields{display:flex;justify-content:space-between;font-size:12.5px;margin-top:8px;flex-wrap:wrap;gap:4px;}
   .ws-fields span{border-bottom:1px solid #000;padding:0 4px 2px;min-width:110px;display:inline-block;}
+  /* Keep the child details and QR visible; begin questions directly below. */
+  .ws-fields{display:none;}
+  .ws-header{min-height:18mm;box-sizing:border-box;}
   .section{margin:8px 0 12px 0;}
+  .section, table, tr{break-inside:avoid;page-break-inside:avoid;}
   .section h2{font-size:13px;background:#000;color:#fff;padding:3px 7px;margin:0 0 5px 0;display:inline-block;}
   .instr{font-size:11.5px;font-style:italic;margin:0 0 4px 0;}
   table.wstable{width:100%;border-collapse:collapse;margin:3px 0;}
@@ -53,6 +57,9 @@
   .blankline.sm{width:32px;}
   .blankline.lg{width:110px;}
   .compbox{display:inline-block;border:2px solid #000;width:30px;height:30px;vertical-align:middle;}
+  .two-col-questions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px;margin:3px 0;}
+  .two-col-question{border:1.4px solid #000;padding:5px 7px;min-height:42px;display:flex;align-items:center;}
+  .two-col-question .rn{flex:0 0 22px;text-align:center;font-weight:bold;font-size:12px;}
   .calcgrid{display:flex;gap:18px;flex-wrap:wrap;margin:4px 0;align-items:flex-start;}
   .calcbox{border:1.5px solid #000;padding:8px 14px 10px;min-width:90px;display:inline-block;vertical-align:top;}
   .calcbox .qnum{font-size:11px;font-weight:normal;margin-bottom:2px;}
@@ -145,11 +152,14 @@
 <script src="./html2canvas.min.js"></script>
 <script src="./jspdf.umd.min.js"></script>
 <script src="./jszip.min.js"></script>
+<script src="./qrcode.min.js"></script>
 </head>
 <body>
 
 <div class="toolbar no-print">
   <h1>Class 3 — Math Worksheet Generator</h1>
+  <label>Student name: <input id="studentName" type="text" placeholder="Student name"></label>
+  <label>Student ID: <input id="studentId" type="text" placeholder="Roll/Student ID"></label>
   <label>Sets: <input type="number" id="setCount" min="1" max="5000" value="5"></label>
   <button class="btn" id="generateBtn">Generate</button>
   <button class="btn" id="printBtn">Print current set</button>
@@ -441,18 +451,18 @@ function section1(secObj){
 /* ===== EXAMPLE: SECTION 2 (q2) ===== */
 function section2(secObj){
   const types=shuffle(['eq','lt','gt','lt','gt']);
-  let rows='';
+  let questions='';
   types.forEach((t,i)=>{
     let a,b,sym;
     if(t==='eq'){a=ri(10,99);b=a;sym='=';}
     else if(t==='lt'){a=ri(10,88);b=ri(a+1,99);sym='<';}
     else{a=ri(11,99);b=ri(10,a-1);sym='>';}
     const id=`q2-ans-${i+1}`;
-    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:15px;font-weight:bold;">${a} &nbsp;<span data-omr="${id}" class="compbox"></span>&nbsp; ${b}</td></tr>`;
+    questions+=`<div class="two-col-question"><span class="rn">${i+1}</span><span style="font-size:15px;font-weight:bold;">${a} &nbsp;<span data-omr="${id}" class="compbox"></span>&nbsp; ${b}</span></div>`;
     secObj.items.push(mkItem(i+1,{question:i+1,left:a,right:b,answer:sym},
       {detect:'handwritten_symbol',expected:sym,options:['<','>','=']}));
   });
-  return `<p class="instr">Put &lt;, &gt;, or = in the box.</p><table class="wstable">${rows}</table>`;
+  return `<p class="instr">Put &lt;, &gt;, or = in the box.</p><div class="two-col-questions">${questions}</div>`;
 }
 
 function section3(secObj){
@@ -469,13 +479,13 @@ function section3(secObj){
     ['◹','Parallelogram',4],
   ];
   const chosen=sample(shapes,5);
-  let rows='';
+  let questions='';
   chosen.forEach(([sym,name,sides],i)=>{
     const id=`q3-ans-${i+1}`;
-    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:22px;text-align:center;width:50px;">${sym}</td><td style="font-size:12px;">${name}</td><td><span data-omr="${id}" class="blankline sm"></span></td></tr>`;
+    questions+=`<div class="two-col-question"><span class="rn">${i+1}</span><span style="font-size:22px;text-align:center;width:38px;">${sym}</span><span style="font-size:12px;flex:1;">${name}</span><span data-omr="${id}" class="blankline sm"></span></div>`;
     secObj.items.push(mkItem(i+1,{question:i+1,symbol:sym,shape:name,answer:sides},{detect:'handwritten_digit',expected:sides}));
   });
-  return `<p class="instr">Write the number of sides for each shape.</p><table class="wstable" style="max-width:340px;"><tr><th style="width:22px;">#</th><th>Shape</th><th>Name</th><th>Sides</th></tr>${rows}</table>`;
+  return `<p class="instr">Write the number of sides for each shape.</p><div class="two-col-questions">${questions}</div>`;
 }
 
 function section4(secObj){
@@ -493,7 +503,7 @@ function section4(secObj){
     {text:`△ △ ○ △ △ ○ △ △ ○ _____ _____ _____`,answer:'△, △, ○',answerArr:['△','△','○']},
     {text:`□ ○ ○ □ ○ ○ □ ○ ○ _____ _____ _____`,answer:'□, ○, ○',answerArr:['□','○','○']},
   ];
-  const all=[...sample(nPats,3).map(f=>f()),...sample(sPats,2)];
+  const all=[...sample(nPats,2).map(f=>f()),...sample(sPats,1)];
   const mixed=shuffle(all);
   let rows='';
   mixed.forEach((p,i)=>{
@@ -579,7 +589,7 @@ function section10(secObj){
   const coinMap={1:'coin1',2:'coin2',5:'coin5',10:'coin10'};
   const allDenoms=[{v:1,type:'coin'},{v:2,type:'coin'},{v:5,type:'coin'},{v:10,type:'coin'},{v:10,type:'note'},{v:20,type:'note'},{v:50,type:'note'},{v:100,type:'note'},{v:200,type:'note'},{v:500,type:'note'}];
   let rows='';
-  for(let i=0;i<5;i++){
+  for(let i=0;i<3;i++){
     const d1=pick(allDenoms), d2=pick(allDenoms);
     const key1=d1.type==='coin'?coinMap[d1.v]:noteMap[d1.v];
     const key2=d2.type==='coin'?coinMap[d2.v]:noteMap[d2.v];
@@ -696,25 +706,7 @@ function section16(secObj){
     secObj.items.push(mkItem(null,{item,count:cnt,field:'tally'},{detect:'tally_marks',expected:tallyString(cnt)}));
     secObj.items.push(mkItem(null,{item,count:cnt,field:'total'},{detect:'handwritten_digit',expected:cnt}));
   });
-  const [fi,fc]=counts[0];
-  const most=counts.reduce((a,b)=>b[1]>a[1]?b:a);
-  const least=counts.reduce((a,b)=>b[1]<a[1]?b:a);
-  const total=counts.reduce((s,c)=>s+c[1],0);
-  const qs=[
-    `1. How many students chose ${fi}? <span data-omr="q15-ans-1" class="blankline sm"></span>`,
-    `2. Which is the favourite of most students? <span data-omr="q15-ans-2" class="blankline"></span>`,
-    `3. Which is the least favourite? <span data-omr="q15-ans-3" class="blankline"></span>`,
-    `4. How many more chose ${most[0]} than ${least[0]}? <span data-omr="q15-ans-4" class="blankline sm"></span>`,
-    `5. Total students in survey? <span data-omr="q15-ans-5" class="blankline sm"></span>`,
-  ].map(q=>`<div style="font-size:11.5px;margin:3px 0;">${q}</div>`).join('');
-  [
-    [1,`How many students chose ${fi}?`,fc],
-    [2,'Favourite of most students?',most[0]],
-    [3,'Least favourite?',least[0]],
-    [4,`How many more chose ${most[0]} than ${least[0]}?`,most[1]-least[1]],
-    [5,'Total students in survey?',total],
-  ].forEach(([qn,ask,ans])=>secObj.items.push(mkItem(qn,{question:qn,ask,answer:ans},{detect:'handwritten_text_or_digit',expected:ans})));
-  return `<p class="instr">Part 1: Draw tally marks for each number. Part 2: Answer questions.</p><table class="wstable"><tr><th>${topic}</th><th>No. of Students</th><th>Tally Marks</th><th>Total</th></tr>${rows}</table><div style="margin-top:5px;">${qs}</div>`;
+  return `<p class="instr">Draw tally marks for each number and write the total.</p><table class="wstable"><tr><th>${topic}</th><th>No. of Students</th><th>Tally Marks</th><th>Total</th></tr>${rows}</table>`;
 }
 
 
@@ -765,6 +757,8 @@ const SECTIONS=[
   {t:'Section 16 — Multiplication',plain:'Section 16 — Multiplication',fn:section18},
   {t:'Section 17 — Division',plain:'Section 17 — Division',fn:section19},
 ];
+// Omitted sections stay out of both the worksheet and its matching JSON exports.
+const OMITTED_SECTIONS=new Set([section7,section13]);
 
 
 /* ===== ANSWER KEY BUILDER (replace existing buildAnswerKeyForSet) ===== */
@@ -848,15 +842,28 @@ function pageIdStamp(setNum,total){
 }
 
 /* ===== BUILD WORKSHEET (replace existing buildWorksheet) ===== */
+function worksheetQRHtml(setNum){
+  const student={studentName:document.getElementById('studentName')?.value.trim()||'UNASSIGNED',studentId:document.getElementById('studentId')?.value.trim()||'UNASSIGNED',classLevel:'CLASS_3',set:setNum};
+  const qr=qrcode(0,'M');qr.addData(JSON.stringify(student));qr.make();
+  return `<img class="worksheet-qr" alt="Student worksheet QR" style="width:18mm;height:18mm;float:right" src="${qr.createDataURL(3,2)}">`;
+}
 function buildWorksheet(n,totalSets){
   const secObjs=[];
-  const secs=SECTIONS.map(s=>{
+  const secs=SECTIONS.filter(s=>!OMITTED_SECTIONS.has(s.fn)).map(s=>{
     const secObj=newSecObj(s.plain.replace(/^Section \d+ — /,''), null);
     const html=s.fn(secObj);
+    if(s.fn===section3)secObj.section='Number of Sides';
     secObjs.push(secObj);
-    return `<div class="section"><h2>${s.t}</h2>${html}</div>`;
+    const title=s.fn===section3?'Section 3 &mdash; Write the Number of Sides':s.t;
+    return `<div class="section"><h2>${title}</h2>${html}</div>`;
   }).join('');
   const stamp=pageIdStamp(n,totalSets||n);
+  const studentName = document.getElementById('studentName')?.value.trim();
+  const studentId = document.getElementById('studentId')?.value.trim();
+  const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
+  const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
+  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+
   const html=`<div class="page-wrapper">
     <div class="reg-sq tl"></div>
     <div class="reg-sq tr"></div>
@@ -865,8 +872,9 @@ function buildWorksheet(n,totalSets){
     <div class="page">
       <div class="ws-header">
         <div class="ws-title">CLASS 3 — MATHEMATICS PRACTICE WORKSHEET</div>
+        ${worksheetQRHtml(n)}
         <div class="ws-sub">Set ${n}</div>
-        <div class="ws-fields"><span>Name:</span><span>Date:</span><span>Roll No.:</span><span>Marks: ____ / 100</span></div>
+        ${studentDetails}
       </div>${secs}
       <div class="ws-footer">Class 3 — Math Practice &nbsp;|&nbsp; Set ${n}</div>
       ${stamp}
@@ -1113,6 +1121,7 @@ async function buildPdfBlob(idx){
     '.mul-box',
     '.div-box',
     '.clock-item',
+    '.two-col-question',
     '.lenrow',
     '.wxrow',
     'div[style*="font-size:11.5px;margin:3px 0;"]'
@@ -1157,9 +1166,11 @@ document.getElementById('dlSingleSetBtn').addEventListener('click',async()=>{
     setTimeout(()=>URL.revokeObjectURL(pdfUrl),4000);
     // Download JSON key
     setTimeout(()=>downloadBlob(JSON.stringify(ak,null,2),'application/json',`Set_${padded}_AnswerKey.json`),400);
+    // Download question-paper JSON without answer values.
+    setTimeout(()=>downloadBlob(JSON.stringify(buildQuestionPaperJSON(n,n),null,2),'application/json',`Set_${padded}_QuestionPaper.json`),650);
     // Download CSV key
-    setTimeout(()=>downloadBlob(answerKeyToCSV(ak),'text/csv',`Set_${padded}_AnswerKey.csv`),800);
-    prog.textContent=`Set ${n}: PDF + JSON + CSV downloaded.`;
+    setTimeout(()=>downloadBlob(answerKeyToCSV(ak),'text/csv',`Set_${padded}_AnswerKey.csv`),900);
+    prog.textContent=`Set ${n}: worksheet, answer key, question JSON and CSV downloaded.`;
   }catch(e){console.error(e);prog.textContent='Download failed. See console.';}
   finally{btn.disabled=false;btn.textContent='Download This Set';}
 });
@@ -1172,6 +1183,18 @@ function buildMasterJSON(start,end){
     meta:{generated:new Date().toISOString(),totalSets:e-s+1,setsRange:`${s}-${e}`,note:"Combined answer keys. Each set's sections[].items[] hold question data+icr."},
     sets:answerKeys.slice(s-1,e)
   };
+}
+
+const QUESTION_ANSWER_FIELDS=new Set(['answer','answers','ans','correct_answer','expected_answer','expected','expected_value','expected_choice','expected_label','expected_side','matches','pairs','target_type','expected_count','circle','tick','matchesTo','correctRank','scanned_response','is_correct']);
+function questionOnly(value){
+  if(Array.isArray(value)) return value.map(questionOnly);
+  if(value&&typeof value==='object') return Object.fromEntries(Object.entries(value).filter(([key])=>!QUESTION_ANSWER_FIELDS.has(key)).map(([key,item])=>[key,questionOnly(item)]));
+  return value;
+}
+function buildQuestionPaperJSON(start,end){
+  const paper=questionOnly(buildMasterJSON(start,end));
+  paper.meta={...paper.meta,artifact:'question_paper',includes_answers:false,note:'Generated question data without answer values.'};
+  return paper;
 }
 
 /* ===== CHUNKED ZIP EXPORT ===== */
@@ -1201,6 +1224,7 @@ async function exportAll(){
         folder.file(`Set_${padded}_Worksheet.pdf`, await buildPdfBlob(i));
         const ak=answerKeys[i-1];
         folder.file(`Set_${padded}_AnswerKey.json`, JSON.stringify(ak,null,2));
+        folder.file(`Set_${padded}_QuestionPaper.json`, JSON.stringify(buildQuestionPaperJSON(i,i),null,2));
         folder.file(`Set_${padded}_AnswerKey.csv`, answerKeyToCSV(ak));
         await new Promise(r=>setTimeout(r,80));
       }
@@ -1208,6 +1232,7 @@ async function exportAll(){
       // Per-chunk master keys
       const chunkMasterJson=buildMasterJSON(chunkStart,chunkEnd);
       zip.file(`master_answer_key_Sets_${String(chunkStart).padStart(pad,'0')}-${String(chunkEnd).padStart(pad,'0')}.json`, JSON.stringify(chunkMasterJson,null,2));
+      zip.file(`question_papers_Sets_${String(chunkStart).padStart(pad,'0')}-${String(chunkEnd).padStart(pad,'0')}.json`, JSON.stringify(buildQuestionPaperJSON(chunkStart,chunkEnd),null,2));
       zip.file(`master_answer_key_Sets_${String(chunkStart).padStart(pad,'0')}-${String(chunkEnd).padStart(pad,'0')}.csv`, buildCSV(chunkStart,chunkEnd));
 
       const chunkElapsed=((Date.now()-t0)/1000).toFixed(0);
@@ -1236,6 +1261,7 @@ window.generateSets = generateSets;
 window.activateSet  = activateSet;
 window.captureCoords= captureCoords;
 window.buildMasterJSON = buildMasterJSON;
+window.buildQuestionPaperJSON = buildQuestionPaperJSON;
 window.buildCSV     = buildCSV;
 window.buildPdfBlob = buildPdfBlob;
 // Raw arrays

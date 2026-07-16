@@ -27,9 +27,10 @@ button:disabled{opacity:.5;cursor:not-allowed;}
 .reg-sq{position:absolute;width:19px;height:19px;background:#000;}
 .reg-sq.tl{top:8px;left:8px;} .reg-sq.tr{top:8px;right:8px;}
 .reg-sq.bl{bottom:8px;left:8px;} .reg-sq.br{bottom:8px;right:8px;}
-.page-header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:14px;}
+.page-header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:4px;margin-bottom:7px;min-height:18mm;}
 .page-header h1{font-size:18px;margin:0;}
 .page-header .sub{font-size:12px;color:var(--muted);}
+.student-details{font-size:12px;font-weight:600;margin-top:4px;color:#333;}
 .section{margin-bottom:20px;page-break-inside:avoid;}
 .section h3{font-size:14px;background:#eef2fb;padding:6px 8px;border-left:4px solid var(--accent);margin:0 0 8px 0;}
 .instr{font-size:12.5px;color:#333;margin:0 0 8px 2px;font-style:italic;}
@@ -79,8 +80,8 @@ button:disabled{opacity:.5;cursor:not-allowed;}
   body{background:#fff;}
   .page-wrapper{box-shadow:none;margin:0;}
 }
-.worksheet-header-full{border-bottom:3px solid var(--ink);padding-bottom:10px;margin-bottom:16px;}
-.wh-topline{display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px;}
+.worksheet-header-full{border-bottom:3px solid var(--ink);padding-bottom:5px;margin-bottom:7px;min-height:18mm;}
+.wh-topline{display:none;}
 .wh-title{font-size:30px;font-weight:800;text-align:center;letter-spacing:1px;margin:0;}
 .wh-subtitle{font-size:16px;font-weight:700;text-align:center;color:var(--muted);margin:2px 0 8px;letter-spacing:2px;}
 .wh-instr{font-size:13px;text-align:center;font-style:italic;margin:0;}
@@ -98,6 +99,12 @@ button:disabled{opacity:.5;cursor:not-allowed;}
     </label>
     <label>Sets per sublevel
       <input id="setsPerSub" type="number" min="1" max="20" value="1">
+    </label>
+    <label>Student name
+      <input id="studentName" type="text" placeholder="Student name">
+    </label>
+    <label>Student ID
+      <input id="studentId" type="text" placeholder="Roll/Student ID">
     </label>
     <button id="btnGenerateLevel">Generate This Level</button>
     <button id="btnGenerateAll" class="secondary">Generate ALL 59 Levels</button>
@@ -163,6 +170,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="icons.js"></script>
+<script src="qrcode.min.js"></script>
 <script>
 /* =========================================================
    FLN WORKSHEET GENERATOR — combined build, all 59 levels
@@ -8248,6 +8256,11 @@ const HEADER_OVERRIDES = {
   '34.2': {title:'LENGTH, WEIGHT & CAPACITY', subtitle:'COMPARISON ACTIVITY', instr:'Circle the correct answer for each question.'}
 };
 
+function worksheetQRHtml(level,sublevelId,setNum){
+  const student={studentName:document.getElementById('studentName')?.value.trim()||'UNASSIGNED',studentId:document.getElementById('studentId')?.value.trim()||'UNASSIGNED',classLevel:'LEVEL_PERSONALIZED',level:level.id,sublevel:sublevelId,set:setNum};
+  const qr=qrcode(0,'M');qr.addData(JSON.stringify(student));qr.make();
+  return `<img class="worksheet-qr" alt="Student worksheet QR" style="width:18mm;height:18mm;float:right" src="${qr.createDataURL(3,2)}">`;
+}
 function buildWorksheet(levelId, subIdx, setNum, totalForStamp){
   const level = LEVELS.find(l=>l.id===levelId);
   const subIds = levelSublevelIds(level);
@@ -8264,14 +8277,20 @@ function buildWorksheet(levelId, subIdx, setNum, totalForStamp){
     answers.forEach(a=>{ a.sectionId=a.sectionId||sectionId; a.sectionName=a.sectionName||sd.name; allAnswers.push(a); });
   });
   const hOverride = HEADER_OVERRIDES[sublevelId];
+  const studentName = document.getElementById('studentName')?.value.trim();
+  const studentId = document.getElementById('studentId')?.value.trim();
+  const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
+  const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
+  const studentDetails = `<div class="student-details">Name: <span style="font-family: monospace;">${esc(nameText)}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${esc(idText)}</span></div>`;
   const headerHtml = hOverride ? `
     <div class="worksheet-header-full">
-      <div class="wh-topline"><span>Name: _______________________</span><span>Date: _______________________</span></div>
+      ${worksheetQRHtml(level,sublevelId,setNum)}
+      ${studentDetails}
       <h1 class="wh-title">${esc(hOverride.title)}</h1>
       <div class="wh-subtitle">${esc(hOverride.subtitle)}</div>
       <p class="wh-instr">${esc(hOverride.instr)}</p>
     </div>` :
-    `<div class="page-header"><h1>Level ${level.id}: ${esc(level.title)}</h1><span class="sub">Sublevel ${sublevelId} &middot; Set ${setNum}</span></div>`;
+    `<div class="page-header"><div><h1>Level ${level.id}: ${esc(level.title)}</h1>${studentDetails}</div>${worksheetQRHtml(level,sublevelId,setNum)}</div>`;
 
   const pageHtml = `<div class="page-wrapper" data-level="${level.id}" data-sublevel="${sublevelId}" data-setnum="${setNum}">
     ${regSquares()}
@@ -8378,7 +8397,7 @@ async function buildPdfBlob(idx){
   wrapper.style.width='794px';
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   const sectionEls = Array.from(wrapper.querySelectorAll('.section'));
-  const headerEl = wrapper.querySelector('.page-header');
+  const headerEl = wrapper.querySelector('.page-header, .worksheet-header-full');
   let y = PDF_MARGIN_MM;
   let first=true;
   const {canvas:hc, heightMM:hh} = await renderEl(headerEl, PDF_CONTENT_W);
@@ -8489,6 +8508,32 @@ function buildCleanAnswerKey(ak){
   };
 }
 
+// Question-paper JSON mirrors the generated set without exposing answers.
+// It is safe to keep beside the printable worksheet and scanning artifacts.
+function buildQuestionPaperJSON(start,end){
+  if(!answerKeys.length) return null;
+  const s=Math.max(1,start||1), e=Math.min(answerKeys.length,end||answerKeys.length);
+  return {
+    meta:{generated:new Date().toISOString(),totalSets:e-s+1,setsRange:`${s}-${e}`,artifact:'question_paper',includes_answers:false},
+    sets:answerKeys.slice(s-1,e).map(ak=>({
+      setId:`L${ak.level}_${ak.slug}_set${String(ak.set).padStart(5,'0')}`,
+      level:ak.level,
+      levelTitle:ak.levelTitle,
+      sublevel:ak.sublevel,
+      setNumber:ak.set,
+      generatedAt:ak.generatedAt,
+      totalQuestions:ak.items.length,
+      questions:ak.items.map(it=>({
+        questionId:it.questionId,
+        section:it.sectionId,
+        sectionName:it.sectionName,
+        questionNumber:it.questionNo,
+        type:it.answerType
+      }))
+    }))
+  };
+}
+
 /* Renders a set off-screen just to capture its data-omr box coordinates
    (mm, relative to the page), for matching against a scanned sheet. */
 async function captureCoordsForIndex(idx){
@@ -8523,17 +8568,19 @@ async function exportSetsAsZip(indices, zipBaseName){
       const pdfBlob = await buildPdfBlob(idx);
       const coords = await captureCoordsForIndex(idx);
       const cleanKey = buildCleanAnswerKey(answerKeys[idx]);
+      const questionPaper = buildQuestionPaperJSON(idx+1,idx+1).sets[0];
       zip.file(`${folderName}/worksheet.pdf`, pdfBlob);
       zip.file(`${folderName}/answer_key.json`, JSON.stringify(cleanKey, null, 2));
+      zip.file(`${folderName}/question_paper.json`, JSON.stringify(questionPaper, null, 2));
       zip.file(`${folderName}/coords.json`, JSON.stringify(coords, null, 2));
-      manifest.push({folder:folderName, level:m.levelId, title:m.title, sublevel:m.sublevelId, setNumber:idx+1});
+      manifest.push({folder:folderName, level:m.levelId, title:m.title, sublevel:m.sublevelId, setNumber:idx+1, files:['worksheet.pdf','answer_key.json','question_paper.json','coords.json']});
     }
     zip.file('manifest.json', JSON.stringify({generatedAt:new Date().toISOString(), count:subset.length, sets:manifest}, null, 2));
     setStatus(`Compressing zip ${c+1}/${chunks}...`);
     const blob = await zip.generateAsync({type:'blob'}, p=>setStatus(`Compressing zip ${c+1}/${chunks} — ${p.percent.toFixed(0)}%`));
     downloadBlob(blob, 'application/zip', `${zipBaseName}_part${c+1}_of_${chunks}.zip`);
   }
-  setStatus(`Done — exported ${indices.length} set(s) (worksheet + answer key + coords) in ${chunks} zip file(s). Elapsed ${((Date.now()-t0)/1000).toFixed(1)}s`);
+  setStatus(`Done — exported ${indices.length} set(s) (worksheet + answer key + question paper + coords) in ${chunks} zip file(s). Elapsed ${((Date.now()-t0)/1000).toFixed(1)}s`);
 }
 
 /* =========================================================
@@ -8791,6 +8838,7 @@ function buildMasterJSON(start, end) {
   };
 }
 window.buildMasterJSON = buildMasterJSON;
+window.buildQuestionPaperJSON = buildQuestionPaperJSON;
 
 function buildCSV(start, end) {
   if (!answerKeys.length) return '';

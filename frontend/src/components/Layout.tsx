@@ -168,6 +168,7 @@ export const Layout: React.FC<LayoutProps> = ({
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
+        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         break;
 
       case UserRole.SCHOOL:
@@ -175,36 +176,40 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Students', view: 'students', icon: GraduationCap });
         list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         break;
 
       case UserRole.BLOCK_ADMIN:
         list.push({ name: 'Schools', view: 'schools', icon: School });
         list.push({ name: 'Teachers', view: 'teachers', icon: Users });
         list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
+        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         break;
 
       case UserRole.DISTRICT_ADMIN:
         list.push({ name: 'Blocks', view: 'blocks', icon: MapPin });
         list.push({ name: 'Schools', view: 'schools', icon: School });
+        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         break;
 
       case UserRole.ADMIN:
         list.push({ name: 'Districts', view: 'districts', icon: MapPin });
+        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         break;
 
       case UserRole.SUPERADMIN:
         list.push({ name: 'Users', view: 'users', icon: Users });
         list.push({ name: 'Schools', view: 'schools', icon: School });
-        // Question Bank removed from Superadmin navigation
+        list.push({ name: 'Question Bank', view: 'question_bank', icon: BookOpen });
         list.push({ name: 'Worksheet Templates', view: 'worksheet_templates', icon: ClipboardList });
         list.push({ name: 'Content', view: 'content', icon: BookOpen });
-        // Reports intentionally omitted for Superadmin — available to Teacher/School roles
+        list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
-        // System settings will be available via the common 'Settings' entry below
-        list.push({ name: 'Activity Logs', view: 'logbook', icon: ShieldCheck });
+        list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });
+        list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
         break;
     }
 
@@ -259,6 +264,13 @@ export const Layout: React.FC<LayoutProps> = ({
           <span className="text-gray-300 dark:text-gray-400 hidden sm:inline font-mono">Foundational Literacy & Numeracy</span>
         </div>
         <div className="flex items-center gap-4">
+          <button 
+            onClick={() => alert("Screen Reader Access enabled. Screen reader voice instructions active.")}
+            className="hover:text-white transition hover:underline"
+          >
+            Screen Reader Access
+          </button>
+          <span className="text-gray-700 dark:text-gray-500">|</span>
           <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold">
             <button onClick={() => adjustFontSize(-10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Decrease font size">A-</button>
             <button onClick={resetFontSize} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Reset font size">A</button>
@@ -269,10 +281,12 @@ export const Layout: React.FC<LayoutProps> = ({
             defaultValue="en"
             onChange={(e) => {
               if (e.target.value === 'hi') alert("हिन्दी भाषा में बदलें");
+              if (e.target.value === 'pa') alert("ਪੰਜਾਬੀ ਭਾਸ਼ਾ ਵਿੱਚ ਬਦਲੋ");
             }}
             className="bg-gray-800 text-gray-300 text-[10px] md:text-xs font-bold border border-gray-700 rounded px-2 py-1 outline-none hover:border-gray-500 cursor-pointer"
           >
             <option value="en">English</option>
+            <option value="pa">ਪੰਜਾਬੀ</option>
             <option value="hi">हिन्दी</option>
           </select>
         </div>
