@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
-import { generateDiagnosticPaper } from './paperGenerator';
+import { generateDiagnosticPaper, generateAdaptiveWorksheetPdf } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
@@ -1156,6 +1156,22 @@ async function startServer() {
     const { studentIds } = req.body;
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
       return res.status(400).json({ error: 'studentIds must be a non-empty array.' });
+
+  // Render an Adaptive AI Worksheet to A4 PDF
+  //   - Reuses generateAdaptiveWorksheetPdf() from paperGenerator.ts (pdf-lib,
+  //     same family as renderWorksheetPdf).
+  //   - Internally runs the same adaptive pipeline as
+  //     /api/adaptive/worksheet/generate so the rendered questions are
+  //     deterministic given (studentId, totalQuestions).
+  //   - Returns the PDF URL identical in shape to the other generator
+  //     endpoints, so the frontend can treat it the same way.
+  app.post('/api/worksheets/generate-adaptive-pdf', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { studentId, totalQuestions, classNumber } = req.body || {};
+    if (!studentId) {
+      return res.status(400).json({ error: 'studentId is required.' });
     }
 
     try {
@@ -1215,6 +1231,58 @@ async function startServer() {
     } catch (err: any) {
       console.error('Batch ZIP download failed:', err);
       res.status(502).json({ error: err.message });
+
+      const student = students.find(s => s.id === studentId);
+      if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+      // Role-based scoping (same rules as /api/adaptive/worksheet/generate)
+      if (user.role === UserRole.TEACHER && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.SCHOOL && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.VOLUNTEER && !user.assignedSchools?.includes(student.schoolId)) {
+        return res.status(403).json({ error: 'Forbidden: student outside your assigned schools.' });
+      }
+
+      // Compose the worksheet through the same pipeline
+      const { worksheet, context } = await generateAdaptiveWorksheet(studentId, {
+        totalQuestions,
+        classNumber
+      });
+
+      const result = await generateAdaptiveWorksheetPdf({
+        studentId: student.id,
+        studentName: student.name,
+        currentLevel: worksheet.baseLevel,
+        currentSubLevel: student.currentSubLevel || 0,
+        targetLevel: student.targetLevel || Math.min(59, worksheet.baseLevel + 1),
+        worksheetId: worksheet.id,
+        weakCompetencies: worksheet.weakCompetencies,
+        strongCompetencies: worksheet.strongCompetencies,
+        distribution: worksheet.distribution,
+        narrative: worksheet.narrative,
+        questions: worksheet.questions
+      });
+
+      await dbStore.addLog({
+        id: 'log_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        schoolId: student.schoolId,
+        schoolName: 'GPS',
+        userId: user.id,
+        userEmail: user.email,
+        userRole: user.role,
+        activityType: 'download',
+        status: 'Success',
+        details: `Generated adaptive PDF for ${student.name} → ${result.fileName} (eval history: ${context.hasHistory ? 'present' : 'fallback'})`
+      });
+
+      res.json({ success: true, pdfUrl: result.pdfUrl, fileName: result.fileName });
+    } catch (err: any) {
+      console.error('Adaptive PDF generation failed:', err);
+      res.status(500).json({ success: false, error: err.message || 'Adaptive PDF generation failed.' });
     }
   });
 

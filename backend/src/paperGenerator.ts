@@ -192,6 +192,429 @@ export interface LevelWorksheetResult {
   questions: Question[];
 }
 
+export interface AdaptiveWorksheetPdfInput {
+  studentId: string;
+  studentName: string;
+  currentLevel: number;
+  currentSubLevel: number;
+  targetLevel: number;
+  worksheetId: string;
+  weakCompetencies: string[];
+  strongCompetencies: string[];
+  distribution: { remediation: number; reinforcement: number; challenge: number };
+  narrative: string;
+  questions: Array<Question & {
+    adaptive?: { purpose: 'remediation' | 'reinforcement' | 'challenge'; competency: string; targetLevel: number; targetSubLevel: number };
+  }>;
+}
+
+export interface AdaptiveWorksheetPdfResult {
+  fileName: string;
+  filePath: string;
+  pdfUrl: string;
+}
+
+/**
+ * Render the Adaptive AI Worksheet as an A4 PDF using pdf-lib.
+ *
+ * Reuses the same pdf-lib primitives (PDFDocument, rgb, StandardFonts) as
+ * renderWorksheetPdf() above — no new dependencies. Pure JS, no Chrome /
+ * Puppeteer needed, so this runs in any deployment.
+ *
+ * Layout:
+ *   - FLN Portal header bar
+ *   - Student info card (Name, ID, Current Level, Target Level, Date)
+ *   - Adaptive strategy card (60% remediation / 20% reinforcement / 20% challenge)
+ *   - Numbered questions, each with a blank answer space
+ */
+/**
+ * pdf-lib's standard Helvetica font uses WinAnsi encoding which can only
+ * represent a small subset of Unicode. Question text sourced from
+ * levelGenerator can include emoji and other high-codepoint chars that
+ * WinAnsi cannot encode — sanitise them here so a single bad question
+ * doesn't fail the entire PDF render.
+ *
+ * Replacements are ASCII-friendly so the printed worksheet stays readable.
+ */
+function sanitizeForWinAnsi(s: string): string {
+  if (!s) return '';
+  // Common emoji / decoration replacements
+  const emojiMap: Record<string, string> = {
+    '\u{1F34E}': '[apple]',
+    '\u{1F95A}': '[apple]',
+    '\u2B50': '*',
+    '\u2605': '*',
+    '\u2606': '*',
+    '\u2705': '[v]',
+    '\u274C': '[x]',
+    '\u2713': '[v]',
+    '\u2717': '[x]',
+    '\u00B7': '-',
+    '\u2014': '--',
+    '\u2013': '-',
+    '\u2018': "'",
+    '\u2019': "'",
+    '\u201C': '"',
+    '\u201D': '"',
+    '\u2026': '...',
+    '\u2192': '->',
+    '\u2190': '<-'
+  };
+  let out = s;
+  for (const [k, v] of Object.entries(emojiMap)) {
+    out = out.split(k).join(v);
+  }
+  // Final safety net: drop any remaining character outside the WinAnsi-
+  // representable range (basic ASCII + Latin-1 supplement + a few typographic
+  // glyphs Helvetica covers). Code points > 0xFF cannot be encoded.
+  out = out.replace(/[\u0100-\uFFFF]/g, '?');
+  return out;
+}
+
+export async function generateAdaptiveWorksheetPdf(input: AdaptiveWorksheetPdfInput): Promise<AdaptiveWorksheetPdfResult> {
+  const {
+    studentId,
+    studentName: rawStudentName,
+    currentLevel,
+    currentSubLevel,
+    targetLevel,
+    worksheetId,
+    weakCompetencies: rawWeak,
+    strongCompetencies: rawStrong,
+    distribution,
+    narrative: rawNarrative,
+    questions: rawQuestions
+  } = input;
+
+  // Sanitize every free-text field up front — pdf-lib's Helvetica
+  // WinAnsi encoding rejects non-Latin-1 codepoints (emoji etc.).
+  const studentName = sanitizeForWinAnsi(rawStudentName);
+  const weakCompetencies = rawWeak.map(sanitizeForWinAnsi);
+  const strongCompetencies = rawStrong.map(sanitizeForWinAnsi);
+  const narrative = sanitizeForWinAnsi(rawNarrative);
+  const questions = rawQuestions.map(q => ({
+    ...q,
+    question: sanitizeForWinAnsi(q.question || ''),
+    topic: sanitizeForWinAnsi(q.topic || ''),
+    subtopic: sanitizeForWinAnsi(q.subtopic || ''),
+    difficulty: sanitizeForWinAnsi(q.difficulty || ''),
+    adaptive: q.adaptive
+      ? {
+          ...q.adaptive,
+          competency: sanitizeForWinAnsi(q.adaptive.competency || ''),
+          purpose: q.adaptive.purpose
+        }
+      : q.adaptive
+  }));
+
+  const pdf = await PDFDocument.create();
+  const helv = await pdf.embedFont(StandardFonts.Helvetica);
+  const helvBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const helvOblique = await pdf.embedFont(StandardFonts.HelveticaOblique);
+
+  // A4 portrait, points
+  const PAGE_W = 595.28;
+  const PAGE_H = 841.89;
+  const MARGIN_X = 50;
+  const MARGIN_TOP = 50;
+  const MARGIN_BOTTOM = 60;
+
+  // Theme colors (kept consistent with renderWorksheetPdf)
+  const INK = rgb(0.07, 0.09, 0.12);
+  const MUTED = rgb(0.4, 0.45, 0.5);
+  const ACCENT = rgb(0.06, 0.48, 0.35);
+  const ACCENT_BG = rgb(0.93, 0.97, 0.95);
+  const RULE = rgb(0.85, 0.9, 0.87);
+  const PANEL_BG = rgb(0.96, 0.98, 0.97);
+  const WEAK_BG = rgb(0.99, 0.95, 0.95);
+  const WEAK_BORDER = rgb(0.85, 0.6, 0.6);
+  const STRONG_BG = rgb(0.94, 0.97, 0.93);
+  const STRONG_BORDER = rgb(0.5, 0.7, 0.55);
+  const PURPOSE_REMEDIATION = rgb(0.78, 0.18, 0.18);
+  const PURPOSE_REINFORCEMENT = rgb(0.15, 0.36, 0.78);
+  const PURPOSE_CHALLENGE = rgb(0.06, 0.5, 0.35);
+
+  const safeName = studentName.replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/^-+|-+$/g, '') || 'student';
+
+  // Pagination of the question list
+  const QUESTIONS_PER_PAGE = 6;
+  const totalPages = Math.max(1, Math.ceil(questions.length / QUESTIONS_PER_PAGE));
+  const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  // ---- helpers (closures over fonts/colors so we don't re-pass them) ----
+  const wrapText = (text: string, font: typeof helv, size: number, maxWidth: number): string[] => {
+    // Sanitize first so non-WinAnsi glyphs (emoji, smart quotes, etc.)
+    // never reach the font encoder.
+    const safe = sanitizeForWinAnsi(text);
+    const words = safe.split(/\s+/);
+    const lines: string[] = [];
+    let current = '';
+    for (const w of words) {
+      const candidate = current ? `${current} ${w}` : w;
+      const width = font.widthOfTextAtSize(candidate, size);
+      if (width <= maxWidth) {
+        current = candidate;
+      } else {
+        if (current) lines.push(current);
+        // very long single word — just push it; pdf-lib will not clip
+        if (font.widthOfTextAtSize(w, size) > maxWidth) {
+          lines.push(w);
+          current = '';
+        } else {
+          current = w;
+        }
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  };
+
+  const drawPageChrome = (pageNum: number) => {
+    const page = pdf.getPages()[pageNum - 1] || pdf.addPage([PAGE_W, PAGE_H]);
+
+    // Top accent bar
+    page.drawRectangle({ x: 0, y: PAGE_H - 12, width: PAGE_W, height: 12, color: ACCENT });
+
+    // Portal header
+    page.drawText('FLN ASSESSMENT PORTAL', {
+      x: MARGIN_X, y: PAGE_H - 35, size: 11, font: helvBold, color: ACCENT
+    });
+    page.drawText('Adaptive AI-Personalised Worksheet', {
+      x: MARGIN_X, y: PAGE_H - 52, size: 16, font: helvBold, color: INK
+    });
+    page.drawText(`Adaptive Strategy: 60% Remediation · 20% Reinforcement · 20% Challenge`, {
+      x: MARGIN_X, y: PAGE_H - 70, size: 9, font: helvOblique, color: MUTED
+    });
+    page.drawText(`Date: ${dateStr}`, {
+      x: PAGE_W - MARGIN_X - 80, y: PAGE_H - 35, size: 9, font: helv, color: MUTED
+    });
+    page.drawText(`Page ${pageNum} of ${totalPages}`, {
+      x: PAGE_W - MARGIN_X - 80, y: PAGE_H - 50, size: 9, font: helv, color: MUTED
+    });
+
+    // Header rule
+    page.drawLine({
+      start: { x: MARGIN_X, y: PAGE_H - 78 },
+      end: { x: PAGE_W - MARGIN_X, y: PAGE_H - 78 },
+      thickness: 0.6, color: RULE
+    });
+
+    // Footer
+  page.drawText(`Student: ${studentName}  ·  ID: ${studentId}  ·  Level ${currentLevel}.${currentSubLevel} -> ${targetLevel}`, {
+    x: MARGIN_X, y: 32, size: 8, font: helv, color: MUTED
+  });
+    page.drawText(`Worksheet ID: ${worksheetId}`, {
+      x: MARGIN_X, y: 22, size: 8, font: helv, color: MUTED
+    });
+    page.drawText('Confidential — for classroom use only', {
+      x: PAGE_W - MARGIN_X - 160, y: 22, size: 8, font: helvOblique, color: MUTED
+    });
+  };
+
+  // ---- Page 1: header, student card, strategy, weak/strong boxes, narrative ----
+  let page = pdf.addPage([PAGE_W, PAGE_H]);
+  drawPageChrome(1);
+
+  // Student info card
+  let y = PAGE_H - 110;
+  page.drawRectangle({
+    x: MARGIN_X, y: y - 60, width: PAGE_W - 2 * MARGIN_X, height: 60,
+    color: PANEL_BG, borderColor: RULE, borderWidth: 0.6
+  });
+  page.drawText('STUDENT INFORMATION', {
+    x: MARGIN_X + 12, y: y - 16, size: 9, font: helvBold, color: ACCENT
+  });
+  page.drawText(`Name: ${studentName}`, {
+    x: MARGIN_X + 12, y: y - 32, size: 11, font: helvBold, color: INK
+  });
+  page.drawText(`Student ID: ${studentId}`, {
+    x: MARGIN_X + 12, y: y - 48, size: 9, font: helv, color: MUTED
+  });
+
+  // Right column on the same card
+  const rightX = PAGE_W / 2 + 20;
+  page.drawText(`Current Level: ${currentLevel}.${currentSubLevel}`, {
+    x: rightX, y: y - 32, size: 10, font: helvBold, color: INK
+  });
+  page.drawText(`Target Level: ${targetLevel}`, {
+    x: rightX, y: y - 48, size: 10, font: helv, color: MUTED
+  });
+  page.drawText(`Date: ${dateStr}`, {
+    x: PAGE_W - MARGIN_X - 130, y: y - 48, size: 9, font: helv, color: MUTED
+  });
+
+  y -= 80;
+
+  // Adaptive strategy strip
+  const distTotal = distribution.remediation + distribution.reinforcement + distribution.challenge || 1;
+  const strategyY = y - 56;
+  page.drawRectangle({
+    x: MARGIN_X, y: strategyY, width: PAGE_W - 2 * MARGIN_X, height: 56,
+    color: ACCENT_BG, borderColor: ACCENT, borderWidth: 0.8
+  });
+  page.drawText('ADAPTIVE STRATEGY (60 / 20 / 20)', {
+    x: MARGIN_X + 12, y: strategyY + 40, size: 9, font: helvBold, color: ACCENT
+  });
+  // Three columns
+  const colW = (PAGE_W - 2 * MARGIN_X - 24) / 3;
+  const drawCol = (idx: number, label: string, count: number, purposeLabel: string, purpose: 'remediation' | 'reinforcement' | 'challenge', color: ReturnType<typeof rgb>) => {
+    const x = MARGIN_X + 12 + idx * colW;
+    page.drawText(`${count} ${label}`, { x, y: strategyY + 22, size: 12, font: helvBold, color });
+    page.drawText(purposeLabel, { x, y: strategyY + 8, size: 8, font: helv, color: MUTED });
+  };
+  drawCol(0, 'Remediation Qs', distribution.remediation, 'weak topics', 'remediation', PURPOSE_REMEDIATION);
+  drawCol(1, 'Reinforcement Qs', distribution.reinforcement, 'current level', 'reinforcement', PURPOSE_REINFORCEMENT);
+  drawCol(2, 'Challenge Qs', distribution.challenge, 'above current level', 'challenge', PURPOSE_CHALLENGE);
+  page.drawText(`Total questions: ${questions.length}`, {
+    x: PAGE_W - MARGIN_X - 130, y: strategyY + 40, size: 8, font: helvOblique, color: MUTED
+  });
+
+  y = strategyY - 16;
+
+  // Weak / Strong competencies (two-column)
+  const halfW = (PAGE_W - 2 * MARGIN_X - 12) / 2;
+  const compY = y - 70;
+  page.drawRectangle({
+    x: MARGIN_X, y: compY, width: halfW, height: 70,
+    color: WEAK_BG, borderColor: WEAK_BORDER, borderWidth: 0.6
+  });
+  page.drawRectangle({
+    x: MARGIN_X + halfW + 12, y: compY, width: halfW, height: 70,
+    color: STRONG_BG, borderColor: STRONG_BORDER, borderWidth: 0.6
+  });
+  page.drawText('WEAK COMPETENCIES (focus)', {
+    x: MARGIN_X + 8, y: compY + 56, size: 8, font: helvBold, color: PURPOSE_REMEDIATION
+  });
+  page.drawText('STRONG COMPETENCIES (preserve)', {
+    x: MARGIN_X + halfW + 20, y: compY + 56, size: 8, font: helvBold, color: ACCENT
+  });
+  const weakText = weakCompetencies.length ? weakCompetencies.join(' · ') : 'None detected';
+  const strongText = strongCompetencies.length ? strongCompetencies.join(' · ') : 'None yet';
+  page.drawText(wrapText(weakText, helv, 10, halfW - 16).slice(0, 3).join('\n'), {
+    x: MARGIN_X + 8, y: compY + 42, size: 10, font: helv, color: INK
+  });
+  page.drawText(wrapText(strongText, helv, 10, halfW - 16).slice(0, 3).join('\n'), {
+    x: MARGIN_X + halfW + 20, y: compY + 42, size: 10, font: helv, color: INK
+  });
+  page.drawText('—'.repeat(40), {
+    x: MARGIN_X + 8, y: compY + 22, size: 8, font: helv, color: MUTED
+  });
+  page.drawText('—'.repeat(40), {
+    x: MARGIN_X + halfW + 20, y: compY + 22, size: 8, font: helv, color: MUTED
+  });
+  // Filler paragraphs to fill the bottom of the cards
+  const fillerLine = 'This section captures evidence about the student used by the engine.';
+  page.drawText(fillerLine, {
+    x: MARGIN_X + 8, y: compY + 8, size: 7, font: helvOblique, color: MUTED
+  });
+  page.drawText(fillerLine, {
+    x: MARGIN_X + halfW + 20, y: compY + 8, size: 7, font: helvOblique, color: MUTED
+  });
+
+  y = compY - 18;
+
+  // Narrative paragraph
+  const narrativeLines = wrapText(narrative || 'Adaptive worksheet.', helv, 9, PAGE_W - 2 * MARGIN_X);
+  page.drawText('ENGINE NOTES', {
+    x: MARGIN_X, y, size: 8, font: helvBold, color: ACCENT
+  });
+  y -= 12;
+  for (const line of narrativeLines.slice(0, 3)) {
+    page.drawText(line, { x: MARGIN_X, y, size: 9, font: helv, color: INK });
+    y -= 12;
+  }
+
+  // ---- Question pages ----
+  for (let p = 0; p < totalPages; p++) {
+    if (p > 0) {
+      page = pdf.addPage([PAGE_W, PAGE_H]);
+      drawPageChrome(p + 1);
+      y = PAGE_H - 100;
+      page.drawText(p === 0 ? 'QUESTIONS' : `QUESTIONS (continued)`, {
+        x: MARGIN_X, y: y, size: 11, font: helvBold, color: ACCENT
+      });
+      y -= 18;
+    } else {
+      y = y - 4;
+      page.drawText('QUESTIONS', {
+        x: MARGIN_X, y, size: 11, font: helvBold, color: ACCENT
+      });
+      y -= 18;
+    }
+
+    const slice = questions.slice(p * QUESTIONS_PER_PAGE, (p + 1) * QUESTIONS_PER_PAGE);
+    for (let i = 0; i < slice.length; i++) {
+      const q = slice[i];
+      const qNum = p * QUESTIONS_PER_PAGE + i + 1;
+      const purpose = q.adaptive?.purpose || 'reinforcement';
+      const purposeColor =
+        purpose === 'remediation' ? PURPOSE_REMEDIATION :
+        purpose === 'challenge' ? PURPOSE_CHALLENGE :
+        PURPOSE_REINFORCEMENT;
+      const competency = q.adaptive?.competency || q.topic || 'General';
+      const targetLvl = q.adaptive?.targetLevel ?? q.source_level ?? currentLevel;
+      const targetSub = q.adaptive?.targetSubLevel ?? currentSubLevel;
+
+      // Purpose tag (small)
+      page.drawRectangle({
+        x: MARGIN_X, y: y - 4, width: 4, height: 12, color: purposeColor
+      });
+      page.drawText(`Q${qNum}`, {
+        x: MARGIN_X + 10, y, size: 11, font: helvBold, color: INK
+      });
+      page.drawText(`[${purpose.toUpperCase()}]`, {
+        x: MARGIN_X + 36, y, size: 8, font: helvBold, color: purposeColor
+      });
+      page.drawText(`L${targetLvl}.${targetSub} · ${competency}`, {
+        x: MARGIN_X + 110, y, size: 8, font: helv, color: MUTED
+      });
+      page.drawText(`${q.difficulty || ''}`, {
+        x: PAGE_W - MARGIN_X - 40, y, size: 8, font: helvOblique, color: MUTED
+      });
+
+      y -= 14;
+
+      // Question text (wrapped)
+      const qLines = wrapText(q.question || '', helv, 10.5, PAGE_W - 2 * MARGIN_X - 10);
+      for (const line of qLines) {
+        if (y < MARGIN_BOTTOM + 60) break;
+        page.drawText(line, { x: MARGIN_X + 10, y, size: 10.5, font: helv, color: INK });
+        y -= 13;
+      }
+
+      // Answer box (full width with internal baseline)
+      if (y > MARGIN_BOTTOM + 50) {
+        const boxY = y - 28;
+        page.drawRectangle({
+          x: MARGIN_X + 10, y: boxY, width: PAGE_W - 2 * MARGIN_X - 20, height: 26,
+          color: rgb(1, 1, 1), borderColor: RULE, borderWidth: 0.6
+        });
+        page.drawText('Answer:', {
+          x: MARGIN_X + 16, y: boxY + 9, size: 8, font: helvOblique, color: MUTED
+        });
+        // Underline for writing space
+        page.drawLine({
+          start: { x: MARGIN_X + 60, y: boxY + 12 },
+          end: { x: PAGE_W - MARGIN_X - 20, y: boxY + 12 },
+          thickness: 0.4, color: RULE
+        });
+        y = boxY - 14;
+      }
+    }
+  }
+
+  const buffer = Buffer.from(await pdf.save());
+  const fileName = `adaptive-worksheet-${safeName}-${randomUUID().slice(0, 8)}.pdf`;
+  const filePath = path.join(OUTPUT_DIR, fileName);
+  fs.writeFileSync(filePath, buffer);
+
+  return {
+    fileName,
+    filePath,
+    pdfUrl: `/output/${fileName}`
+  };
+}
+
 export async function generateLevelWorksheet({
   studentId,
   studentName,

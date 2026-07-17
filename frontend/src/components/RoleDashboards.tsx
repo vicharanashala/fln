@@ -3177,6 +3177,7 @@ const AdaptiveWorksheetCard: React.FC<AdaptiveWorksheetCardProps> = ({ classStud
   const [totalQuestions, setTotalQuestions] = useState<number>(12);
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<AdaptiveProfile | null>(null);
   const [worksheet, setWorksheet] = useState<AdaptiveWorksheet | null>(null);
@@ -3245,6 +3246,51 @@ const AdaptiveWorksheetCard: React.FC<AdaptiveWorksheetCardProps> = ({ classStud
       setError(e?.message || 'Network error during generation.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!worksheet || !selectedStudentId) return;
+    setError(null);
+    setDownloadingPdf(true);
+    try {
+      const res = await fetch('/api/worksheets/generate-adaptive-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          totalQuestions
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'PDF generation failed.');
+        return;
+      }
+      // Fetch the actual PDF and trigger a browser download with the friendly filename.
+      const pdfRes = await fetch(data.pdfUrl);
+      const blob = await pdfRes.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.fileName || `adaptive-worksheet-${worksheet.studentName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setError(e?.message || 'Network error during PDF download.');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handlePrint = () => {
+    if (typeof window !== 'undefined') {
+      window.print();
     }
   };
 
@@ -3372,7 +3418,26 @@ const AdaptiveWorksheetCard: React.FC<AdaptiveWorksheetCardProps> = ({ classStud
 
       {worksheet && (
         <div className="space-y-3 pt-3 border-t border-zinc-100">
-          <div className="flex flex-wrap items-center gap-3 text-xs">
+          {/* Print-only CSS — hides dashboard / chrome and keeps only the printable worksheet area. */}
+          <style>{`
+            @media print {
+              @page { size: A4 portrait; margin: 12mm; }
+              html, body, #root { background: #fff !important; }
+              body * { visibility: hidden !important; }
+              #adaptive-printable-area, #adaptive-printable-area * { visibility: visible !important; }
+              #adaptive-printable-area {
+                position: absolute !important;
+                left: 0; top: 0; right: 0;
+                width: 100%;
+                padding: 0;
+                margin: 0;
+                background: #fff;
+              }
+              .no-print { display: none !important; }
+            }
+          `}</style>
+
+          <div className="flex flex-wrap items-center gap-3 text-xs no-print">
             <span className="font-mono font-bold text-zinc-700">
               {worksheet.totalQuestions} question(s)
             </span>
@@ -3381,39 +3446,79 @@ const AdaptiveWorksheetCard: React.FC<AdaptiveWorksheetCardProps> = ({ classStud
               {worksheet.distribution.remediation} remediation / {worksheet.distribution.reinforcement} reinforcement / {worksheet.distribution.challenge} challenge
             </span>
             {worksheet.fallbackUsed && (
-              <span className="ml-auto text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">
                 Grade-Aligned Fallback
               </span>
             )}
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={downloadingPdf || !worksheet}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs font-mono px-3 py-2 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                title="Download as A4 PDF"
+              >
+                {downloadingPdf ? (
+                  <><span className="animate-spin text-sm">⏳</span> Preparing…</>
+                ) : (
+                  <>📥 Download PDF</>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                disabled={!worksheet}
+                className="bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-800 font-semibold text-xs font-mono px-3 py-2 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                title="Open browser print dialog"
+              >
+                🖨 Print
+              </button>
+            </div>
           </div>
-          <div className="text-xs text-zinc-600 bg-zinc-50 border border-zinc-200 rounded p-3 font-mono leading-relaxed">
-            {worksheet.narrative}
-          </div>
-          <div className="max-h-72 overflow-y-auto divide-y divide-zinc-100 border border-zinc-200 rounded-lg bg-white">
-            {worksheet.questions.map((q: any, idx: number) => {
-              const meta = q.adaptive || {};
-              const purposeCls =
-                meta.purpose === 'remediation'
-                  ? 'bg-red-50 text-red-700 border-red-200'
-                  : meta.purpose === 'reinforcement'
-                  ? 'bg-blue-50 text-blue-700 border-blue-200'
-                  : 'bg-emerald-50 text-emerald-700 border-emerald-200';
-              return (
-                <div key={q.question_id || idx} className="p-3 text-xs space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${purposeCls}`}>
-                      {meta.purpose || 'q'}
-                    </span>
-                    <span className="font-mono text-zinc-500">L{meta.targetLevel}.{meta.targetSubLevel}</span>
-                    <span className="font-mono text-zinc-500">·</span>
-                    <span className="font-mono text-zinc-700">{meta.competency}</span>
-                    <span className="font-mono text-zinc-500">·</span>
-                    <span className="font-mono text-zinc-400 uppercase">{q.difficulty}</span>
+
+          <div id="adaptive-printable-area" className="bg-white text-zinc-900 rounded-lg border border-zinc-200">
+            {/* Print-only header — visible only when printing */}
+            <div className="hidden print:block px-6 pt-6 pb-3 border-b border-zinc-300">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-700">FLN Assessment Portal</div>
+              <div className="text-base font-bold">Adaptive AI Worksheet</div>
+              <div className="text-[10px] text-zinc-500">
+                Student: {worksheet.studentName} · ID: {worksheet.studentId} · Level {worksheet.baseLevel} · Date {new Date().toLocaleDateString('en-IN')}
+              </div>
+            </div>
+
+            <div className="text-xs text-zinc-600 bg-zinc-50 border-y border-zinc-200 p-3 font-mono leading-relaxed no-print">
+              {worksheet.narrative}
+            </div>
+
+            <div className="max-h-[28rem] overflow-y-auto divide-y divide-zinc-100 bg-white">
+              {worksheet.questions.map((q: any, idx: number) => {
+                const meta = q.adaptive || {};
+                const purposeCls =
+                  meta.purpose === 'remediation'
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : meta.purpose === 'reinforcement'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                return (
+                  <div key={q.question_id || idx} className="p-3 text-xs space-y-2 print:break-inside-avoid">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono font-bold text-zinc-900">Q{idx + 1}.</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${purposeCls}`}>
+                        {meta.purpose || 'q'}
+                      </span>
+                      <span className="font-mono text-zinc-500">L{meta.targetLevel}.{meta.targetSubLevel}</span>
+                      <span className="font-mono text-zinc-500">·</span>
+                      <span className="font-mono text-zinc-700">{meta.competency}</span>
+                      <span className="font-mono text-zinc-500">·</span>
+                      <span className="font-mono text-zinc-400 uppercase">{q.difficulty}</span>
+                    </div>
+                    <p className="text-zinc-800 leading-relaxed">{q.question}</p>
+                    {/* Answer space — always rendered, but only meaningful on paper */}
+                    <div className="mt-2 border-b border-dashed border-zinc-300 h-7 w-full" />
                   </div>
-                  <p className="text-zinc-800 leading-relaxed">{q.question}</p>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
