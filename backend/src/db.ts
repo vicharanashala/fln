@@ -1,8 +1,27 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { MongoClient, Db } from 'mongodb';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
+
+export let mongoClient: MongoClient | null = null;
+
+export const connectDB = async () => {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error("MONGODB_URI not set — cannot start server");
+    process.exit(1);
+  }
+  try {
+    mongoClient = new MongoClient(uri);
+    await mongoClient.connect();
+    console.log("MongoDB Connected");
+  } catch (err) {
+    console.error("MongoDB connection failed:", err.message);
+    process.exit(1);
+  }
+};
 
 // Types & Interfaces corresponding to MongoDB Collections in SRS §10
 export enum UserRole {
@@ -75,6 +94,28 @@ export interface Question {
   difficulty: 'easy' | 'medium' | 'hard';
   source_level: number; // Mapping to mathematical level
   svgAsset?: string; // Standard pre-built SVG asset category
+}
+
+/**
+ * One rendered file coming out of the standalone Levels_backend batch
+ * pipeline (POST /api/generate-batch) for a single student x sublevel x
+ * set. answerKey/coords are stored verbatim (shape from that service's
+ * buildCleanAnswerKey / captureCoords) so the ICR evaluation pipeline can
+ * mark against the real thing instead of a placeholder.
+ */
+export interface LevelWorksheet {
+  id: string;
+  batchId: string;
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  levelId: number;
+  sublevelId: string;
+  setNum: number;
+  pdfUrl: string;
+  answerKey: any;
+  coords: any;
+  generatedAt: string;
 }
 
 export interface Worksheet {
@@ -168,6 +209,57 @@ export interface Announcement {
   createdAt: string;
 }
 
+export type InterventionStrategyType = 'small_group' | 'one_on_one' | 'peer_tutoring' | 'visual_aids' | 'manipulatives' | 'worksheets' | 'game_based' | 'other';
+
+export interface Intervention {
+  id: string;
+  studentId: string;
+  studentName: string;
+  teacherId: string;
+  teacherName: string;
+  schoolId: string;
+  classId: string;
+  className: string;
+  section: string;
+  weakCompetencies: string[];
+  currentLevel: number;
+  strategyType: InterventionStrategyType;
+  strategyDescription: string;
+  duration: string;
+  startDate: string;
+  endDate?: string;
+  status: 'active' | 'completed' | 'pending_review';
+  outcome?: {
+    improved: boolean;
+    previousLevel: number;
+    newLevel?: number;
+    improvementDetails?: string;
+    assessmentId?: string;
+    detectedAt?: string;
+  };
+  isPromoted: boolean;
+  promotedAt?: string;
+  createdAt: string;
+}
+
+export interface BestPractice {
+  id: string;
+  interventionId: string;
+  teacherId: string;
+  teacherName: string;
+  schoolId: string;
+  weakCompetencies: string[];
+  strategyType: string;
+  strategyDescription: string;
+  levelBefore: number;
+  levelAfter: number;
+  levelJump: number;
+  duration: string;
+  tags: string[];
+  viewCount: number;
+  createdAt: string;
+}
+
 interface DatabaseSchema {
   users: User[];
   schools: School[];
@@ -175,93 +267,65 @@ interface DatabaseSchema {
   students: Student[];
   questions: Question[];
   worksheets: Worksheet[];
+  levelWorksheets: LevelWorksheet[];
   answerSubmissions: AnswerSubmission[];
   evaluationReports: EvaluationReport[];
   tickets: Ticket[];
   logbook: LogEntry[];
   announcements: Announcement[];
+  interventions: Intervention[];
+  bestPractices: BestPractice[];
 }
+
+const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
+  users: 'users',
+  schools: 'schools',
+  classes: 'classes',
+  students: 'students',
+  questions: 'questions',
+  worksheets: 'worksheets',
+  answerSubmissions: 'answer_submissions',
+  evaluationReports: 'evaluation_reports',
+  tickets: 'tickets',
+  logbook: 'logbook',
+  announcements: 'announcements',
+  interventions: 'interventions',
+  bestPractices: 'best_practices',
+};
 
 export class DBStore {
   private data: DatabaseSchema | null = null;
+  public useMongo: boolean = false;
+  private mongoDb: Db | null = null;
+
+  getDb() {
+    if (!mongoClient) throw new Error('MongoDB not connected');
+    return mongoClient.db();
+  }
 
   async init() {
-    try {
-      await fs.mkdir(DB_DIR, { recursive: true });
-    } catch (_) {}
-
-    try {
-      const content = await fs.readFile(DB_FILE, 'utf-8');
-      this.data = JSON.parse(content);
-      
-      // Auto-merge any newly defined pre-seeded users, schools, classes, and students
-      const seed = this.getSeedData();
-      let modified = false;
-
-      if (!this.data.users) {
-        this.data.users = [];
-        modified = true;
+    if (mongoClient) {
+      console.log('Loading data from MongoDB...');
+      this.mongoDb = mongoClient.db();
+      const db = this.mongoDb;
+      this.data = {} as DatabaseSchema;
+      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
+        const docs = await db.collection(collName).find().toArray();
+        (this.data as any)[key] = docs.map(({ _id, ...rest }) => rest);
       }
-      for (const u of seed.users) {
-        if (!this.data.users.some(existing => existing.email.toLowerCase() === u.email.toLowerCase())) {
-          this.data.users.push(u);
-          modified = true;
-        }
-      }
-
-      if (!this.data.schools) {
-        this.data.schools = [];
-        modified = true;
-      }
-      for (const s of seed.schools) {
-        if (!this.data.schools.some(existing => existing.id === s.id)) {
-          this.data.schools.push(s);
-          modified = true;
-        }
-      }
-
-      if (!this.data.classes) {
-        this.data.classes = [];
-        modified = true;
-      }
-      for (const c of seed.classes) {
-        if (!this.data.classes.some(existing => existing.id === c.id)) {
-          this.data.classes.push(c);
-          modified = true;
-        }
-      }
-
-      if (!this.data.students) {
-        this.data.students = [];
-        modified = true;
-      }
-      for (const std of seed.students) {
-        if (!this.data.students.some(existing => existing.id === std.id)) {
-          this.data.students.push(std);
-          modified = true;
-        }
-      }
-
-      if (!this.data.announcements) {
-        this.data.announcements = [];
-        modified = true;
-      }
-      if (!this.data.tickets) {
-        this.data.tickets = [];
-        modified = true;
-      }
-      if (!this.data.logbook) {
-        this.data.logbook = [];
-        modified = true;
-      }
-
-      if (modified) {
+      console.log(`MongoDB loaded: ${this.data.users?.length || 0} users, ${this.data.schools?.length || 0} schools, ${this.data.students?.length || 0} students`);
+    } else {
+      console.log('No MongoDB — falling back to file-based DB');
+      try {
+        await fs.mkdir(DB_DIR, { recursive: true });
+      } catch (_) {}
+      try {
+        const content = await fs.readFile(DB_FILE, 'utf-8');
+        this.data = JSON.parse(content);
+      } catch (_) {
+        this.data = this.getSeedData();
         await this.save();
       }
-    } catch (_) {
-      // If DB file does not exist, pre-seed data
-      this.data = this.getSeedData();
-      await this.save();
     }
   }
 
@@ -270,118 +334,231 @@ export class DBStore {
     await fs.writeFile(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
   }
 
+  private async persistCollection(key: keyof DatabaseSchema) {
+    if (!this.data || !mongoClient) return;
+    const db = this.getDb();
+    const collName = COLLECTION_NAMES[key];
+    const items = (this.data as any)[key] || [];
+    const coll = db.collection(collName);
+    await coll.deleteMany({});
+    if (items.length > 0) {
+      await coll.insertMany(items);
+    }
+  }
+
   async reset() {
     this.data = this.getSeedData();
-    await this.save();
+    if (mongoClient) {
+      const db = this.getDb();
+      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
+        const items = (this.data as any)[key] || [];
+        const coll = db.collection(collName);
+        await coll.deleteMany({});
+        if (items.length > 0) {
+          await coll.insertMany(items);
+        }
+      }
+    } else {
+      await this.save();
+    }
   }
 
   // --- Collection Accessors ---
 
-  async getUsers() { return this.data!.users; }
-  async getSchools() { return this.data!.schools; }
-  async getClasses() { return this.data!.classes; }
-  async getStudents() { return this.data!.students; }
-  async getQuestions() { return this.data!.questions; }
-  async getWorksheets() { return this.data!.worksheets; }
-  async getAnswerSubmissions() { return this.data!.answerSubmissions; }
-  async getEvaluationReports() { return this.data!.evaluationReports; }
-  async getTickets() { return this.data!.tickets; }
-  async getLogbook() { return this.data!.logbook; }
-  async getAnnouncements() { return this.data!.announcements; }
+  getUserSync(email: string): User | null {
+    if (!this.data || !this.data.users) return null;
+    return this.data.users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+  }
+
+  async getUsers() {
+    return await this.mongoDb!.collection<User>('users').find({}).toArray();
+  }
+  async getSchools() {
+    return await this.mongoDb!.collection<School>('schools').find({}).toArray();
+  }
+  async getClasses() {
+    return await this.mongoDb!.collection<ClassGroup>('classes').find({}).toArray();
+  }
+  async getStudents() {
+    return await this.mongoDb!.collection<Student>('students').find({}).toArray();
+  }
+  async getQuestions() {
+    return await this.mongoDb!.collection<Question>('questions').find({}).toArray();
+  }
+  async getWorksheets() {
+    return await this.mongoDb!.collection<Worksheet>('worksheets').find({}).toArray();
+  }
+  async getLevelWorksheets() {
+    return await this.mongoDb!.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
+  }
+  async getAnswerSubmissions() {
+    return await this.mongoDb!.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
+  }
+  async getEvaluationReports() {
+    return await this.mongoDb!.collection<EvaluationReport>('evaluationReports').find({}).toArray();
+  }
+  async getTickets() {
+    return await this.mongoDb!.collection<Ticket>('tickets').find({}).toArray();
+  }
+  async getLogbook() {
+    return await this.mongoDb!.collection<LogEntry>('logbook').find({}).toArray();
+  }
+  async getAnnouncements() {
+    return await this.mongoDb!.collection<Announcement>('announcements').find({}).toArray();
+  }
 
   // --- Write / Update Helpers ---
 
   async addUser(user: User) {
-    this.data!.users.push(user);
-    await this.save();
+    await this.mongoDb!.collection('users').insertOne(user);
+    if (this.data) this.data.users.push(user);
     return user;
   }
 
   async addStudent(student: Student) {
-    this.data!.students.push(student);
-    await this.save();
+    await this.mongoDb!.collection('students').insertOne(student);
+    if (this.data) this.data.students.push(student);
     return student;
   }
 
   async updateStudent(studentId: string, updates: Partial<Student>) {
-    const s = this.data!.students.find(x => x.id === studentId);
-    if (s) {
-      Object.assign(s, updates);
-      await this.save();
+    await this.mongoDb!.collection('students').updateOne({ id: studentId }, { $set: updates });
+    const s = await this.mongoDb!.collection<Student>('students').findOne({ id: studentId });
+    if (s && this.data) {
+      const idx = this.data.students.findIndex(x => x.id === studentId);
+      if (idx !== -1) this.data.students[idx] = s;
     }
-    return s;
+    return s || undefined;
   }
 
   async addWorksheet(ws: Worksheet) {
-    this.data!.worksheets.push(ws);
-    await this.save();
+    await this.mongoDb!.collection('worksheets').insertOne(ws);
+    if (this.data) this.data.worksheets.push(ws);
     return ws;
   }
 
   async updateWorksheet(worksheetId: string, updates: Partial<Worksheet>) {
-    const ws = this.data!.worksheets.find(x => x.id === worksheetId);
-    if (ws) {
-      Object.assign(ws, updates);
-      await this.save();
+    await this.mongoDb!.collection('worksheets').updateOne({ id: worksheetId }, { $set: updates });
+    const ws = await this.mongoDb!.collection<Worksheet>('worksheets').findOne({ id: worksheetId });
+    if (ws && this.data) {
+      const idx = this.data.worksheets.findIndex(x => x.id === worksheetId);
+      if (idx !== -1) this.data.worksheets[idx] = ws;
     }
+    return ws || undefined;
+  }
+
+  async addLevelWorksheet(ws: LevelWorksheet) {
+    await this.mongoDb!.collection('levelWorksheets').insertOne(ws);
+    if (this.data) this.data.levelWorksheets.push(ws);
     return ws;
   }
 
   async addAnswerSubmission(sub: AnswerSubmission) {
-    this.data!.answerSubmissions.push(sub);
-    await this.save();
+    await this.mongoDb!.collection('answerSubmissions').insertOne(sub);
+    if (this.data) this.data.answerSubmissions.push(sub);
     return sub;
   }
 
   async addEvaluationReport(rep: EvaluationReport) {
-    this.data!.evaluationReports.push(rep);
-    await this.save();
+    await this.mongoDb!.collection('evaluationReports').insertOne(rep);
+    if (this.data) this.data.evaluationReports.push(rep);
     return rep;
   }
 
   async addTicket(t: Ticket) {
-    this.data!.tickets.push(t);
-    await this.save();
+    await this.mongoDb!.collection('tickets').insertOne(t);
+    if (this.data) this.data.tickets.push(t);
     return t;
   }
 
   async updateTicket(id: string, updates: Partial<Ticket>) {
-    const t = this.data!.tickets.find(x => x.id === id);
-    if (t) {
-      Object.assign(t, updates);
-      await this.save();
+    await this.mongoDb!.collection('tickets').updateOne({ id }, { $set: updates });
+    const t = await this.mongoDb!.collection<Ticket>('tickets').findOne({ id });
+    if (t && this.data) {
+      const idx = this.data.tickets.findIndex(x => x.id === id);
+      if (idx !== -1) this.data.tickets[idx] = t;
     }
-    return t;
+    return t || undefined;
   }
 
   async updateUser(userId: string, updates: Partial<User>) {
-    const u = this.data!.users.find(x => x.id === userId);
-    if (u) {
-      Object.assign(u, updates);
-      await this.save();
+    await this.mongoDb!.collection('users').updateOne({ id: userId }, { $set: updates });
+    const u = await this.mongoDb!.collection<User>('users').findOne({ id: userId });
+    if (u && this.data) {
+      const idx = this.data.users.findIndex(x => x.id === userId);
+      if (idx !== -1) this.data.users[idx] = u;
     }
-    return u;
+    return u || undefined;
   }
 
   async updateSchool(schoolId: string, updates: Partial<School>) {
-    const s = this.data!.schools.find(x => x.id === schoolId);
-    if (s) {
-      Object.assign(s, updates);
-      await this.save();
+    await this.mongoDb!.collection('schools').updateOne({ id: schoolId }, { $set: updates });
+    const s = await this.mongoDb!.collection<School>('schools').findOne({ id: schoolId });
+    if (s && this.data) {
+      const idx = this.data.schools.findIndex(x => x.id === schoolId);
+      if (idx !== -1) this.data.schools[idx] = s;
     }
-    return s;
+    return s || undefined;
+  }
+
+  async addSchool(school: School) {
+    await this.mongoDb!.collection('schools').insertOne(school);
+    if (this.data) this.data.schools.push(school);
+    return school;
   }
 
   async addLog(log: LogEntry) {
-    this.data!.logbook.unshift(log);
-    await this.save();
+    await this.mongoDb!.collection('logbook').insertOne(log);
+    if (this.data) this.data.logbook.unshift(log);
     return log;
   }
 
   async addAnnouncement(ann: Announcement) {
-    this.data!.announcements.unshift(ann);
-    await this.save();
+    await this.mongoDb!.collection('announcements').insertOne(ann);
+    if (this.data) this.data.announcements.unshift(ann);
     return ann;
+  }
+
+  // --- Intervention & Best Practice Methods ---
+
+  async getInterventions() {
+    return await this.mongoDb!.collection<Intervention>('interventions').find({}).toArray();
+  }
+
+  async addIntervention(intervention: Intervention) {
+    await this.mongoDb!.collection('interventions').insertOne(intervention);
+    if (this.data) this.data.interventions.push(intervention);
+    return intervention;
+  }
+
+  async updateIntervention(id: string, updates: Partial<Intervention>) {
+    await this.mongoDb!.collection('interventions').updateOne({ id }, { $set: updates });
+    const i = await this.mongoDb!.collection<Intervention>('interventions').findOne({ id });
+    if (i && this.data) {
+      const idx = this.data.interventions.findIndex(x => x.id === id);
+      if (idx !== -1) this.data.interventions[idx] = i;
+    }
+    return i || undefined;
+  }
+
+  async getBestPractices() {
+    return await this.mongoDb!.collection<BestPractice>('bestPractices').find({}).toArray();
+  }
+
+  async addBestPractice(bp: BestPractice) {
+    await this.mongoDb!.collection('bestPractices').insertOne(bp);
+    if (this.data) this.data.bestPractices.push(bp);
+    return bp;
+  }
+
+  async updateBestPractice(id: string, updates: Partial<BestPractice>) {
+    await this.mongoDb!.collection('bestPractices').updateOne({ id }, { $set: updates });
+    const bp = await this.mongoDb!.collection<BestPractice>('bestPractices').findOne({ id });
+    if (bp && this.data) {
+      const idx = this.data.bestPractices.findIndex(x => x.id === id);
+      if (idx !== -1) this.data.bestPractices[idx] = bp;
+    }
+    return bp || undefined;
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -570,10 +747,10 @@ export class DBStore {
       { id: 'u6_amb', email: 'gps-amb-003.t01@fln.org', name: 'Meena Kumari (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-amb-003' },
       { id: 'u6_jai', email: 'gps-jai-004.t01@fln.org', name: 'Ram Gopal (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-jai-004' },
       { id: 'u6_lko', email: 'gps-lko-005.t01@fln.org', name: 'Suresh Kumar (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-lko-005' },
-      { id: 'u7', email: 'vol.rahul@fln.org', name: 'Rahul Kumar (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002'] },
+      { id: 'u7', email: 'vol.rahul@fln.org', name: 'Punjab Volunteer (Rahul)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002'] },
       { id: 'u7_amit', email: 'vol.amit@fln.org', name: 'Amit Saini (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002', 'gps-jai-004'] },
       { id: 'u7_sneha', email: 'vol.up_sneha@fln.org', name: 'Sneha Verma (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-lko-005'] },
-      { id: 'u7_vipin', email: 'vol.hr_vipin@fln.org', name: 'Vipin Yadav (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-amb-003'] },
+      { id: 'u7_vipin', email: 'vol.hr_vipin@fln.org', name: 'Haryana Volunteer (Vipin)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-amb-003'] },
       // District admins for new districts
       { id: 'u3_bth', email: 'district.bth@fln.org', name: 'Bathinda District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'PB', districtCode: 'BTH' },
       { id: 'u3_asr', email: 'district.asr@fln.org', name: 'Amritsar District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'PB', districtCode: 'ASR' },
@@ -2171,6 +2348,128 @@ export class DBStore {
       }
     ];
 
+    const interventions: Intervention[] = [
+      {
+        id: 'int1',
+        studentId: 's2',
+        studentName: 'Jasmine Kaur',
+        teacherId: 'u5',
+        teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001',
+        classId: 'c1',
+        className: 'Class 2',
+        section: 'A',
+        weakCompetencies: ['Shapes', 'Patterns'],
+        currentLevel: 8,
+        strategyType: 'visual_aids',
+        strategyDescription: 'Used flashcards with shape outlines and colour-coded pattern strips. Practised daily for 15 minutes during morning assembly. Jasmine responded well to colour-based matching exercises.',
+        duration: '2 weeks',
+        startDate: '2026-06-15',
+        endDate: '2026-06-29',
+        status: 'completed',
+        outcome: {
+          improved: true,
+          previousLevel: 8,
+          newLevel: 10,
+          improvementDetails: 'Jasmine improved from Level 8 to Level 10. Shapes recognition went from Needs Practice to Satisfactory. Pattern completion improved significantly.',
+          assessmentId: 'ws_mid_001',
+          detectedAt: '2026-07-02T10:00:00Z'
+        },
+        isPromoted: true,
+        promotedAt: '2026-07-03T08:00:00Z',
+        createdAt: '2026-06-15T09:00:00Z'
+      },
+      {
+        id: 'int2',
+        studentId: 's5',
+        studentName: 'Arjun Verma',
+        teacherId: 'u5',
+        teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001',
+        classId: 'c1',
+        className: 'Class 2',
+        section: 'A',
+        weakCompetencies: ['Subtraction', 'Number Sense'],
+        currentLevel: 6,
+        strategyType: 'manipulatives',
+        strategyDescription: 'Used physical counting beads and number blocks for hands-on subtraction practice. Grouped Arjun with two peers for peer learning during math station time.',
+        duration: '3 weeks',
+        startDate: '2026-06-10',
+        status: 'active',
+        isPromoted: false,
+        createdAt: '2026-06-10T09:00:00Z'
+      },
+      {
+        id: 'int3',
+        studentId: 's19',
+        studentName: 'Rohan Das',
+        teacherId: 'u6_amb',
+        teacherName: 'Meena Kumari',
+        schoolId: 'gps-amb-003',
+        classId: 'c5',
+        className: 'Class 3',
+        section: 'A',
+        weakCompetencies: ['Number Operations', 'Multiplication'],
+        currentLevel: 8,
+        strategyType: 'game_based',
+        strategyDescription: 'Introduced multiplication table songs and number-line hop games. Used a dice-based addition game during break time to reinforce basic operations. Rohan showed high engagement with game-based activities.',
+        duration: '2 weeks',
+        startDate: '2026-06-20',
+        endDate: '2026-07-04',
+        status: 'completed',
+        outcome: {
+          improved: true,
+          previousLevel: 8,
+          newLevel: 12,
+          improvementDetails: 'Rohan jumped from Level 8 to Level 12 (two full levels). Multiplication tables 2-5 mastered. Addition speed improved by 40%.',
+          assessmentId: 'ws_mid_003',
+          detectedAt: '2026-07-05T10:00:00Z'
+        },
+        isPromoted: false,
+        createdAt: '2026-06-20T09:00:00Z'
+      },
+      {
+        id: 'int4',
+        studentId: 's7',
+        studentName: 'Simran Kaur',
+        teacherId: 'u5',
+        teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001',
+        classId: 'c3',
+        className: 'Class 1',
+        section: 'A',
+        weakCompetencies: ['Number Sense', 'Counting'],
+        currentLevel: 4,
+        strategyType: 'one_on_one',
+        strategyDescription: 'Conducted daily one-on-one counting sessions using real objects (pencils, erasers). Practised number tracing on sandpaper numbers. Focused on building confidence before introducing new concepts.',
+        duration: '1 month',
+        startDate: '2026-06-01',
+        status: 'active',
+        isPromoted: false,
+        createdAt: '2026-06-01T09:00:00Z'
+      }
+    ];
+
+    const bestPractices: BestPractice[] = [
+      {
+        id: 'bp1',
+        interventionId: 'int1',
+        teacherId: 'u5',
+        teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001',
+        weakCompetencies: ['Shapes', 'Patterns'],
+        strategyType: 'visual_aids',
+        strategyDescription: 'Used flashcards with shape outlines and colour-coded pattern strips. Practised daily for 15 minutes during morning assembly. Responded well to colour-based matching exercises.',
+        levelBefore: 8,
+        levelAfter: 10,
+        levelJump: 2,
+        duration: '2 weeks',
+        tags: ['Shapes', 'Patterns', 'Visual Learning', 'Preschool 3', 'Class 1', 'Quick Win'],
+        viewCount: 12,
+        createdAt: '2026-07-03T08:00:00Z'
+      }
+    ];
+
     return {
       users,
       schools,
@@ -2178,11 +2477,14 @@ export class DBStore {
       students,
       questions: seedQuestions,
       worksheets,
+      levelWorksheets: [],
       answerSubmissions,
       evaluationReports,
       tickets,
       logbook,
-      announcements
+      announcements,
+      interventions,
+      bestPractices
     };
   }
 }
