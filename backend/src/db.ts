@@ -1,4 +1,27 @@
+import fs from 'fs/promises';
+import path from 'path';
 import { MongoClient, Db } from 'mongodb';
+
+const DB_DIR = path.resolve(process.cwd(), 'data');
+const DB_FILE = path.resolve(DB_DIR, 'db.json');
+
+export let mongoClient: MongoClient | null = null;
+
+export const connectDB = async () => {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error("MONGODB_URI not set — cannot start server");
+    process.exit(1);
+  }
+  try {
+    mongoClient = new MongoClient(uri);
+    await mongoClient.connect();
+    console.log("MongoDB Connected");
+  } catch (err) {
+    console.error("MongoDB connection failed:", err.message);
+    process.exit(1);
+  }
+};
 
 // Types & Interfaces corresponding to MongoDB Collections in SRS §10
 export enum UserRole {
@@ -260,16 +283,31 @@ interface DatabaseSchema {
   settings: SystemSettings[];
 }
 
+const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
+  users: 'users',
+  schools: 'schools',
+  classes: 'classes',
+  students: 'students',
+  questions: 'questions',
+  worksheets: 'worksheets',
+  answerSubmissions: 'answer_submissions',
+  evaluationReports: 'evaluation_reports',
+  tickets: 'tickets',
+  logbook: 'logbook',
+  announcements: 'announcements',
+  interventions: 'interventions',
+  bestPractices: 'best_practices',
+};
+
 export class DBStore {
   private data: DatabaseSchema | null = null;
   public useMongo: boolean = false;
   private mongoDb: Db | null = null;
 
-  async init() {
-    const mongoUri = process.env.MONGO_URI;
-    if (!mongoUri) {
-      throw new Error('MONGO_URI not set. A MongoDB connection string is required.');
-    }
+  getDb() {
+    if (!mongoClient) throw new Error('MongoDB not connected');
+    return mongoClient.db();
+  }
 
     try {
       console.log('[Database] Connecting to MongoDB...');
@@ -308,15 +346,26 @@ export class DBStore {
           console.log(`[Database] Seeded collection: ${coll.name} with ${coll.data.length} records`);
         }
       }
-
-      // Force update pre-seeded users in MongoDB to ensure volunteer names are updated
-      for (const u of seed.users) {
-        await this.mongoDb.collection('users').updateOne(
-          { email: u.email.toLowerCase() },
-          { $set: { name: u.name, role: u.role, assignedSchools: u.assignedSchools } },
-          { upsert: true }
-        );
+      console.log(`MongoDB loaded: ${this.data.users?.length || 0} users, ${this.data.schools?.length || 0} schools, ${this.data.students?.length || 0} students`);
+    } else {
+      console.log('No MongoDB — falling back to file-based DB');
+      try {
+        await fs.mkdir(DB_DIR, { recursive: true });
+      } catch (_) {}
+      try {
+        const content = await fs.readFile(DB_FILE, 'utf-8');
+        this.data = JSON.parse(content);
+      } catch (_) {
+        this.data = this.getSeedData();
+        await this.save();
       }
+    }
+  }
+
+  private async save() {
+    if (!this.data) return;
+    await fs.writeFile(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
+  }
 
       // Cache the seeded/existing MongoDB data into this.data for lightning-fast synchronous operations (like auth checks)
       this.data = {
@@ -343,18 +392,19 @@ export class DBStore {
   }
 
   async reset() {
-    if (!this.useMongo || !this.mongoDb) {
-      throw new Error('Database not connected.');
-    }
-    console.log('[Database] Resetting MongoDB data...');
-    const seed = this.getSeedData();
-    const collections = [
-      'users', 'schools', 'classes', 'students', 'questions',
-      'worksheets', 'levelWorksheets', 'answerSubmissions', 'evaluationReports',
-      'tickets', 'logbook', 'announcements', 'interventions', 'bestPractices'
-    ];
-    for (const cName of collections) {
-      await this.mongoDb.collection(cName).deleteMany({});
+    this.data = this.getSeedData();
+    if (mongoClient) {
+      const db = this.getDb();
+      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
+        const items = (this.data as any)[key] || [];
+        const coll = db.collection(collName);
+        await coll.deleteMany({});
+        if (items.length > 0) {
+          await coll.insertMany(items);
+        }
+      }
+    } else {
+      await this.save();
     }
     await this.mongoDb.collection('users').insertMany(seed.users);
     await this.mongoDb.collection('schools').insertMany(seed.schools);

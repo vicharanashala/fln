@@ -9,9 +9,9 @@
     "dev": "concurrently -n old,new -c yellow,cyan \"npm run dev:old\" \"npm run dev:new\"",
     "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "seed": "tsx src/utils/seed.ts",
-    "seed:geo": "tsx src/utils/seedGeo.ts",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "seed": "tsx src/seed.ts",
+    "seed:geo": "tsx src/utils/seedGeo.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
