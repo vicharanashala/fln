@@ -224,7 +224,7 @@ export default function App() {
                 )}
 
                 {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(activePanel) && (
-                  <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
+                  <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectPanel={setActivePanel} />
                 )}
 
                 {toast && (

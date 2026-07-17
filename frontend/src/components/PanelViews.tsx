@@ -4,11 +4,13 @@ import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCir
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
+import { ReportCardView } from './ReportCardView';
 
 interface PanelViewsProps {
   activePanel: string;
   currentUser: User;
   token: string;
+  onSelectPanel?: (panel: string) => void;
 }
 
 const STUDENTS_FALLBACK: Student[] = [
@@ -184,7 +186,7 @@ function EmptyStudents({ students }: { students: Student[] }) {
   return <Table data={students} columns={cols} searchPlaceholder="Search students..." searchKey="name" />;
 }
 
-export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token }) => {
+export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectPanel }) => {
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
   const [distFilter, setDistFilter] = useState('all');
@@ -436,6 +438,10 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                 <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 <span className="flex-1 truncate">{s.name}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              <button onClick={() => { setSel(s.id); onSelectPanel?.('report_card'); }} className="ml-2 flex items-center gap-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 px-3 py-2 text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors cursor-pointer">
+                <FileText className="w-3 h-3" />
+                Report Card
               </button>
               {showDropdown && (
                 <>
@@ -871,6 +877,20 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           </div>
         )}
       </div>
+    );
+  }
+
+  if (panel === 'report_card') {
+    const s = students.find(x => x.id === sel) || students[0];
+    const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
+    const studentSchool = schools.find(sch => sch.id === s.schoolId);
+    return (
+      <ReportCardView
+        student={s}
+        reports={reports}
+        schoolName={studentSchool?.name || 'Government Primary School'}
+        onBack={() => {}}
+      />
     );
   }
 

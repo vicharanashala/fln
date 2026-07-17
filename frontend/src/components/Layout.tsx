@@ -139,7 +139,8 @@ export const Layout: React.FC<LayoutProps> = ({
           subItems: [
             { name: 'Student List', view: 'student_list' },
             { name: 'Student Profile', view: 'student_profile' },
-            { name: 'Performance', view: 'performance' }
+            { name: 'Performance', view: 'performance' },
+            { name: 'Report Card', view: 'report_card' }
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
@@ -164,7 +165,8 @@ export const Layout: React.FC<LayoutProps> = ({
           subItems: [
             { name: 'Student List', view: 'student_list' },
             { name: 'Student Profile', view: 'student_profile' },
-            { name: 'Performance', view: 'performance' }
+            { name: 'Performance', view: 'performance' },
+            { name: 'Report Card', view: 'report_card' }
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
