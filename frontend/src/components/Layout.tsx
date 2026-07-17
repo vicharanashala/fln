@@ -48,13 +48,6 @@ export const Layout: React.FC<LayoutProps> = ({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    try {
-      return localStorage.getItem('fln_dark_mode') === 'true';
-    } catch {
-      return false;
-    }
-  });
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const [fontSize, setFontSize] = useState(() => {
     try {
@@ -84,16 +77,6 @@ export const Layout: React.FC<LayoutProps> = ({
   React.useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;
   }, []);
-
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    localStorage.setItem('fln_dark_mode', String(darkMode));
-  }, [darkMode]);
 
   const collapsed = false;
 
@@ -254,7 +237,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const breadcrumbs = getBreadcrumb();
 
   return (
-    <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+    <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 antialiased">
 
       {/* Accessibility / Top strip */}
       <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-gray-800 shrink-0">
@@ -339,14 +322,7 @@ export const Layout: React.FC<LayoutProps> = ({
             <span className="text-emerald-700 text-[10px] uppercase tracking-wider">MongoDB Connected</span>
           </div>
 
-          {/* Theme Toggle Button */}
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 transition dark:text-slate-400 dark:hover:bg-slate-800"
-            title="Toggle Theme"
-          >
-            {darkMode ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
-          </button>
+
 
           {/* Notifications bell */}
           <div className="relative">
