@@ -1158,22 +1158,6 @@ async function startServer() {
     const { studentIds } = req.body;
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
       return res.status(400).json({ error: 'studentIds must be a non-empty array.' });
-
-  // Render an Adaptive AI Worksheet to A4 PDF
-  //   - Reuses generateAdaptiveWorksheetPdf() from paperGenerator.ts (pdf-lib,
-  //     same family as renderWorksheetPdf).
-  //   - Internally runs the same adaptive pipeline as
-  //     /api/adaptive/worksheet/generate so the rendered questions are
-  //     deterministic given (studentId, totalQuestions).
-  //   - Returns the PDF URL identical in shape to the other generator
-  //     endpoints, so the frontend can treat it the same way.
-  app.post('/api/worksheets/generate-adaptive-pdf', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-
-    const { studentId, totalQuestions, classNumber } = req.body || {};
-    if (!studentId) {
-      return res.status(400).json({ error: 'studentId is required.' });
     }
 
     try {
@@ -1233,7 +1217,28 @@ async function startServer() {
     } catch (err: any) {
       console.error('Batch ZIP download failed:', err);
       res.status(502).json({ error: err.message });
+    }
+  });
 
+  // Render an Adaptive AI Worksheet to A4 PDF
+  //   - Reuses generateAdaptiveWorksheetPdf() from paperGenerator.ts (pdf-lib,
+  //     same family as renderWorksheetPdf).
+  //   - Internally runs the same adaptive pipeline as
+  //     /api/adaptive/worksheet/generate so the rendered questions are
+  //     deterministic given (studentId, totalQuestions).
+  //   - Returns the PDF URL identical in shape to the other generator
+  //     endpoints, so the frontend can treat it the same way.
+  app.post('/api/worksheets/generate-adaptive-pdf', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { studentId, totalQuestions, classNumber } = req.body || {};
+    if (!studentId) {
+      return res.status(400).json({ error: 'studentId is required.' });
+    }
+
+    try {
+      const students = await dbStore.getStudents();
       const student = students.find(s => s.id === studentId);
       if (!student) return res.status(404).json({ error: 'Student not found.' });
 
