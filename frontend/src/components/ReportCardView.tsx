@@ -9,21 +9,29 @@ interface ReportCardViewProps {
   onBack: () => void;
 }
 
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+const MASTERY_PRIORITY: Record<string, number> = { 'Strong': 3, 'Satisfactory': 2, 'Needs Practice': 1 };
+
 export const ReportCardView: React.FC<ReportCardViewProps> = ({ student, reports, schoolName, onBack }) => {
-  const latestReport = reports.length > 0 ? reports[0] : null;
+  const sortedReports = [...reports].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const latestReport = sortedReports.length > 0 ? sortedReports[0] : null;
   const avgScore = reports.length > 0
     ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reports.length)
     : 0;
   const allConceptMastery: Record<string, 'Strong' | 'Needs Practice' | 'Satisfactory'> = {};
   reports.forEach(r => {
-    Object.entries(r.conceptMastery).forEach(([topic, mastery]) => {
-      if (!allConceptMastery[topic] || mastery === 'Strong') {
-        allConceptMastery[topic] = mastery as 'Strong' | 'Needs Practice' | 'Satisfactory';
+    Object.entries(r.conceptMastery).forEach(([topic, mastery]: [string, 'Strong' | 'Needs Practice' | 'Satisfactory']) => {
+      const current = allConceptMastery[topic];
+      if (!current || (MASTERY_PRIORITY[mastery] ?? 0) > (MASTERY_PRIORITY[current] ?? 0)) {
+        allConceptMastery[topic] = mastery;
       }
     });
   });
   const certified = student.currentLevel >= 5;
-  const progressPct = Math.round((student.currentLevel / 59) * 100);
+  const progressPct = Math.min(100, Math.round((student.currentLevel / 59) * 100));
   const scoreBand = avgScore >= 80 ? 'Strong' : avgScore >= 60 ? 'Satisfactory' : 'Needs Practice';
 
   const handlePrint = () => {
@@ -35,11 +43,11 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({ student, reports
 
     const conceptRows = Object.entries(allConceptMastery).map(([topic, mastery]) => `
       <tr>
-        <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:500;">${topic}</td>
+        <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:500;">${escapeHtml(topic)}</td>
         <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:center;">
           <span style="display:inline-block;padding:3px 10px;font-size:10px;font-weight:700;border-radius:4px;text-transform:uppercase;font-family:monospace;
             ${mastery === 'Strong' ? 'background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;' : mastery === 'Satisfactory' ? 'background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;' : 'background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;'}">
-            ${mastery}
+            ${escapeHtml(mastery)}
           </span>
         </td>
       </tr>
@@ -49,7 +57,7 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({ student, reports
       const pct = Math.round((r.score / r.totalQuestions) * 100);
       return `
         <tr>
-          <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;">${r.worksheetId}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;">${escapeHtml(r.worksheetId)}</td>
           <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:600;font-family:monospace;">${r.score}/${r.totalQuestions}</td>
           <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:700;color:${pct >= 80 ? '#065f46' : pct >= 60 ? '#92400e' : '#991b1b'};">${pct}%</td>
           <td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-size:11px;">${new Date(r.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
@@ -60,7 +68,7 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({ student, reports
     const levelHistoryRows = student.levelHistory.map(lh => `
       <tr>
         <td style="padding:8px 14px;border-bottom:1px solid #e2e8f0;font-family:monospace;font-weight:600;">L${lh.level}.${lh.subLevel ?? 0}</td>
-        <td style="padding:8px 14px;border-bottom:1px solid #e2e8f0;">${lh.reason}</td>
+        <td style="padding:8px 14px;border-bottom:1px solid #e2e8f0;">${escapeHtml(lh.reason)}</td>
         <td style="padding:8px 14px;border-bottom:1px solid #e2e8f0;">${new Date(lh.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
       </tr>
     `).join('');
@@ -69,7 +77,7 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({ student, reports
       <!DOCTYPE html>
       <html>
       <head>
-        <title>FLN Report Card - ${student.name}</title>
+        <title>FLN Report Card - ${escapeHtml(student.name)}</title>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -122,16 +130,16 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({ student, reports
         <div class="page">
           <div class="report-header">
             <div class="govt-badge">National Education Policy 2020</div>
-            <div class="school-name">${schoolName || 'Government Primary School'}</div>
+            <div class="school-name">${escapeHtml(schoolName || 'Government Primary School')}</div>
             <div class="report-subtitle">Foundational Literacy and Numeracy Assessment</div>
             <div class="report-type">Student Progress Report Card</div>
           </div>
 
           <div class="student-banner">
             <div>
-              <div class="name">${student.name}</div>
-              <div class="meta">${student.classGroup} - ${student.section} | ID: ${student.id} | Age: ${student.age} years</div>
-              <div class="meta">School ID: ${student.schoolId} | Aadhaar: ${student.aadharMasked}</div>
+              <div class="name">${escapeHtml(student.name)}</div>
+              <div class="meta">${escapeHtml(student.classGroup)} - ${escapeHtml(student.section)} | ID: ${escapeHtml(student.id)} | Age: ${student.age} years</div>
+              <div class="meta">School ID: ${escapeHtml(student.schoolId)} | Aadhaar: ${escapeHtml(student.aadharMasked)}</div>
             </div>
             <div class="cert-badge ${certified ? 'cert-pass' : 'cert-progress'}">
               ${certified ? 'FLN Certified' : 'In Progress'}
@@ -202,7 +210,7 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({ student, reports
 
           ${latestReport ? `
           <div class="section-title">Teacher Evaluation Summary</div>
-          <div class="narrative-box">${latestReport.narrative}</div>
+          <div class="narrative-box">${escapeHtml(latestReport.narrative)}</div>
           ` : ''}
 
           ${student.levelHistory.length > 0 ? `
@@ -284,7 +292,7 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({ student, reports
           </button>
           <button onClick={handlePrint} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
             <Download className="h-4 w-4" />
-            Save as PDF
+            Print / Save as PDF
           </button>
         </div>
       </div>

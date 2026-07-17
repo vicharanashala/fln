@@ -24,18 +24,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
   const [forgotLoading, setForgotLoading] = useState(false);
 
   const mockUsersList = [
-    { label: 'Superadmin 🌐', email: 'superadmin@fln.org', pass: 'Fln@2026' },
-    { label: 'Punjab Admin 🌾', email: 'admin.pb@fln.org', pass: 'Fln@2026' },
-    { label: 'Haryana Admin 🌾', email: 'admin.hr@fln.org', pass: 'Fln@2026' },
-    { label: 'UP Admin 🏛️', email: 'admin.up@fln.org', pass: 'Fln@2026' },
-    { label: 'Rajasthan Admin 🏰', email: 'admin.rj@fln.org', pass: 'Fln@2026' },
-    { label: 'Ludhiana Dist 🏢', email: 'district.ldh@fln.org', pass: 'Fln@2026' },
-    { label: 'Ambala Dist 🏢', email: 'district.amb@fln.org', pass: 'Fln@2026' },
-    { label: 'Ludhiana Block 🏫', email: 'block.ldh-01@fln.org', pass: 'Fln@2026' },
-    { label: 'Punjab Principal 🎓', email: 'gps-mt-001@fln.org', pass: 'Fln@2026' },
-    { label: 'Haryana Teacher 👩‍🏫', email: 'gps-amb-003.t01@fln.org', pass: 'Fln@2026' },
-    { label: 'Punjab Volunteer 🤝', email: 'vol.rahul@fln.org', pass: 'Fln@2026' },
-    { label: 'Haryana Volunteer 🤝', email: 'vol.hr_vipin@fln.org', pass: 'Fln@2026' }
+    { label: 'Superadmin', email: 'superadmin@fln.org', pass: 'Fln@2026' },
+    { label: 'AP State Admin', email: 'admin.ap@fln.org', pass: 'Fln@2026' },
+    { label: 'Guntur District', email: 'district.gnt@fln.org', pass: 'Fln@2026' },
+    { label: 'Guntur Block', email: 'block.gnt_01@fln.org', pass: 'Fln@2026' },
+    { label: 'School Principal', email: 'school.ap_gnt_gnt_01_01@fln.org', pass: 'Fln@2026' },
+    { label: 'Class 2 Teacher', email: 'teacher.ap_gnt_gnt_01_01.c2@fln.org', pass: 'Fln@2026' },
+    { label: 'Class 3 Teacher', email: 'teacher.ap_gnt_gnt_01_01.c3@fln.org', pass: 'Fln@2026' },
+    { label: 'Volunteer', email: 'vol.ap_gnt_gnt_01_03@fln.org', pass: 'Fln@2026' },
   ];
 
   const handleLogin = async (e?: React.FormEvent, customEmail?: string, customPass?: string) => {
@@ -70,16 +66,19 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
     if (!forgotEmail) return;
     setForgotLoading(true);
     try {
-      await fetch('/api/reset', {
+      const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail })
       });
-      setForgotSent(true);
+      if (!res.ok && res.status !== 404) {
+        throw new Error('Request failed');
+      }
     } catch {
-      setForgotSent(true);
+      // Silently succeed — we don't reveal whether the email exists
     } finally {
       setForgotLoading(false);
+      setForgotSent(true);
     }
   };
 
@@ -182,8 +181,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
             {mockUsersList.map(u => (
               <button
                 key={u.email}
+                disabled={loading}
                 onClick={() => handleLogin(undefined, u.email, u.pass)}
-                className="rounded-lg bg-slate-50 dark:bg-slate-800 p-2 text-left border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition hover:bg-amber-50/70 dark:hover:bg-amber-950/40 hover:border-amber-300 dark:hover:border-amber-800 hover:text-indigo-700 dark:hover:text-amber-400 cursor-pointer"
+                className="rounded-lg bg-slate-50 dark:bg-slate-800 p-2 text-left border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition hover:bg-amber-50/70 dark:hover:bg-amber-950/40 hover:border-amber-300 dark:hover:border-amber-800 hover:text-indigo-700 dark:hover:text-amber-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="font-extrabold truncate text-slate-900 dark:text-white">
                   {u.label}
@@ -211,14 +211,20 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
 
       {/* Forgot Password Modal */}
       {showForgotPassword && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="forgot-password-title"
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowForgotPassword(false); }}
+        >
           <div className="w-full max-w-md rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <KeyRound className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">Reset Password</h3>
+                <h3 id="forgot-password-title" className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">Reset Password</h3>
               </div>
-              <button onClick={() => setShowForgotPassword(false)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+              <button onClick={() => setShowForgotPassword(false)} aria-label="Close" className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
                 <X className="h-4 w-4" />
               </button>
             </div>

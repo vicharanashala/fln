@@ -5,6 +5,7 @@ import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
 import { ReportCardView } from './ReportCardView';
+import { NotFoundView } from './NotFoundView';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -881,7 +882,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'report_card') {
-    const s = students.find(x => x.id === sel) || students[0];
+    const s = students.find(x => x.id === sel) ?? students[0];
+    if (!s) return <NotFoundView onNavigateHome={() => onSelectPanel?.('workspace')} />;
     const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
     const studentSchool = schools.find(sch => sch.id === s.schoolId);
     return (
@@ -889,7 +891,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         student={s}
         reports={reports}
         schoolName={studentSchool?.name || 'Government Primary School'}
-        onBack={() => {}}
+        onBack={() => onSelectPanel?.('student_profile')}
       />
     );
   }
@@ -1546,6 +1548,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  // Fallback for any unmatched panel — renders the roles workspace (dashboard) as the content
-  return null;
+  // Fallback for any unmatched panel
+  return <NotFoundView onNavigateHome={() => onSelectPanel?.('workspace')} />;
 };

@@ -32,7 +32,7 @@ export const NotFoundView: React.FC<NotFoundViewProps> = ({ onNavigateHome }) =>
             Back to Home
           </button>
           <button
-            onClick={() => window.history.back()}
+            onClick={onNavigateHome}
             className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-3 text-xs font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
