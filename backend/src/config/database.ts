@@ -17,7 +17,7 @@ export async function connectDatabase(): Promise<void> {
 
   try {
     await mongoose.connect(env.mongodbUri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
     });
   } catch (error) {

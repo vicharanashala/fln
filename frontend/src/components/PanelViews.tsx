@@ -197,29 +197,39 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [activityFilter, setActivityFilter] = useState<'all' | 'assessment' | 'level_change'>('all');
   const [expandedDistRpt, setExpandedDistRpt] = useState<string | null>(null);
   const [expandedDist, setExpandedDist] = useState<string | null>(null);
-  const [userRoleFilter, setUserRoleFilter] = useState('superadmin');
-  const [userSearch, setUserSearch] = useState('');
-
-  const [apiStudents, setApiStudents] = useState<Student[]>([]);
-  const [apiSchools, setApiSchools] = useState<School[]>([]);
-  const [apiUsers, setApiUsers] = useState<any[]>([]);
+  const [systemSettings, setSystemSettings] = useState<any>(null);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   useEffect(() => {
-    const headers = { 'Authorization': `Bearer ${token}` };
-    fetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
-    fetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
-    fetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
-  }, [token]);
-
-  const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
-  const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
-  const usersList = apiUsers.length > 0 ? apiUsers : USERS_FALLBACK;
-
-  useEffect(() => {
-    if (students.length > 0 && !sel) {
-      setSel(students[0].id);
+    if (activePanel === 'system_settings' && token) {
+      fetch('/api/settings', { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(res => res.json())
+        .then(data => setSystemSettings(data))
+        .catch(console.error);
     }
-  }, [students, sel]);
+  }, [activePanel, token]);
+
+  const toggleImageOptimization = async () => {
+    if (!systemSettings) return;
+    setIsSavingSettings(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isImageOptimizationEnabled: !systemSettings.isImageOptimizationEnabled })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSystemSettings(updated);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setIsSavingSettings(false);
+  };
 
   const filteredSchools = schools.filter(s => {
     if (stateFilter !== 'all' && s.stateCode !== stateFilter) return false;
@@ -1497,6 +1507,21 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="System Configuration" desc="Core platform settings and infrastructure" icon={<Settings className="h-5 w-5" />} />
+          
+          <div className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between mb-4">
+            <div>
+              <h4 className="font-semibold text-sm text-slate-900 dark:text-white">Browser Image Optimization Pipeline</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Compress and process answer sheets on user's device before upload.</p>
+            </div>
+            <button 
+              onClick={toggleImageOptimization}
+              disabled={isSavingSettings || !systemSettings}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${systemSettings?.isImageOptimizationEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${systemSettings?.isImageOptimizationEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+
           <div className="space-y-3">{[
             { label: 'Platform Name', value: 'National FLN Assessment Portal' },
             { label: 'Version', value: 'v2.4.1 (Build 2026.07)' },

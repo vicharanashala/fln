@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Student, ClassGroup, Question, EvaluationReport, User } from '../types';
+import { optimizeImage } from '../utils/imageOptimizer';
 
 interface IcrScannerProps {
   token: string;
@@ -23,8 +24,16 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const [paper, setPaper] = useState<{ id: string; questions: Question[] } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanPhase, setScanPhase] = useState<'idle' | 'feeding' | 'scanning' | 'done'>('idle');
-  const [extractedAnswers, setExtractedAnswers] = useState<{ [questionId: string]: string }>({});
+  const [extractedAnswers, setExtractedAnswers] = useState<{ [questionId: string]: string | any }>({});
   const [report, setReport] = useState<EvaluationReport | null>(null);
+  const [timing, setTiming] = useState({ client: 0, network: 0, total: 0 });
+  const [clientStats, setClientStats] = useState<any>(null);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    else return (bytes / 1048576).toFixed(2) + ' MB';
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,9 +60,9 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const selectedStudent = students.find(s => s.id === selectedStudentId);
   const filteredStudents = selectedClassId
     ? students.filter(s => {
-        const cls = classes.find(c => c.id === selectedClassId);
-        return cls && s.classGroup === cls.className && s.section === cls.section;
-      })
+      const cls = classes.find(c => c.id === selectedClassId);
+      return cls && s.classGroup === cls.className && s.section === cls.section;
+    })
     : [];
 
   const generatePaper = async () => {
@@ -80,46 +89,86 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     }
   };
 
-  const startScan = () => {
+  const startScan = async (file: File) => {
     setIsScanning(true);
     setScanPhase('feeding');
+    setError('');
 
-    // Phase 1: Paper feeds into scanner (1s)
-    setTimeout(() => {
+    const startTime = performance.now();
+    try {
+      // 1. Check System Settings for Optimization Toggle
+      let isOptimizationEnabled = true; // default
+      try {
+        const settingsRes = await fetch('/api/settings', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          if (settingsData && settingsData.isImageOptimizationEnabled !== undefined) {
+            isOptimizationEnabled = settingsData.isImageOptimizationEnabled;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch settings, defaulting to enabled', err);
+      }
+
+      // 2. Client-side Image Optimization (if enabled)
+      let finalBlob: Blob = file;
+      if (isOptimizationEnabled) {
+        const { blob: optimizedBlob, timeTakenMs, stats } = await optimizeImage(file);
+        finalBlob = optimizedBlob;
+        setClientStats(stats);
+      } else {
+        setClientStats({
+          originalSize: file.size,
+          optimizedSize: file.size,
+          heightFloor: '-',
+          iterations: 0,
+          overheadMs: 0,
+          sizeGuard: 'bypassed (disabled by admin)'
+        });
+      }
+
+      const clientDoneTime = performance.now();
+      const clientTimeMs = Math.round(clientDoneTime - startTime);
       setScanPhase('scanning');
 
-      // Phase 2: Scanning bar moves (2s)
-      setTimeout(() => {
-        setScanPhase('done');
-        simulateIcrExtraction();
+      // 3. Network & Backend OCR Engine
+      const formData = new FormData();
+      formData.append('image', finalBlob, file.name);
+      // Omit appending 'questions' completely for raw text mode
 
-        // Phase 3: Done, move to verify
-        setTimeout(() => {
-          setIsScanning(false);
-          setStep('verify');
-        }, 800);
-      }, 2000);
-    }, 1000);
-  };
+      const res = await fetch('/api/icr/extract', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
 
-  const simulateIcrExtraction = () => {
-    if (!paper) return;
-    const extracted: { [key: string]: string } = {};
-    paper.questions.forEach((q) => {
-      if (q.answer_type === 'choice') {
-        const randomIdx = Math.floor(Math.random() * (q.choices?.length || 1));
-        extracted[q.question_id] = q.choices?.[randomIdx] || '';
-      } else {
-        const correct = q.answer;
-        const shouldCorrect = Math.random() > 0.3;
-        if (q.answer_type === 'number') {
-          extracted[q.question_id] = shouldCorrect ? correct : String(parseInt(correct, 10) + (Math.random() > 0.5 ? 1 : -1));
-        } else {
-          extracted[q.question_id] = shouldCorrect ? correct : correct.split('').reverse().join('');
-        }
+      if (!res.ok) {
+        throw new Error('Failed to extract answers');
       }
-    });
-    setExtractedAnswers(extracted);
+
+      const data = await res.json();
+      const networkDoneTime = performance.now();
+      const networkTimeMs = Math.round(networkDoneTime - clientDoneTime);
+      const totalTimeMs = Math.round(networkDoneTime - startTime);
+
+      setTiming({
+        client: clientTimeMs,
+        network: networkTimeMs,
+        total: totalTimeMs
+      });
+
+      setExtractedAnswers(data.extracted_answers || {});
+      setScanPhase('done');
+
+      setTimeout(() => {
+        setIsScanning(false);
+        setStep('verify');
+      }, 800);
+    } catch (err: any) {
+      setError(err.message || 'Scanning failed');
+      setIsScanning(false);
+      setScanPhase('idle');
+    }
   };
 
   const handleAnswerChange = (qId: string, value: string) => {
@@ -342,12 +391,24 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
           </div>
 
           <div className="text-center">
-            <button
-              onClick={startScan}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-3 px-10 rounded-xl transition-colors shadow-lg hover:shadow-emerald-200/50"
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              id="file-upload"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  startScan(e.target.files[0]);
+                }
+              }}
+            />
+            <label
+              htmlFor="file-upload"
+              className={`${isScanning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} inline-flex bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-3 px-10 rounded-xl transition-colors shadow-lg hover:shadow-emerald-200/50 items-center justify-center`}
             >
-              Start Scan
-            </button>
+              Select Answer Sheet Photo
+            </label>
           </div>
         </div>
       )}
@@ -373,9 +434,8 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 <div className="bg-zinc-800 rounded-t-xl rounded-b-lg px-6 pt-8 pb-6 shadow-xl border-2 border-zinc-700">
                   <div className="bg-zinc-900 rounded-lg h-40 border-2 border-zinc-600 relative overflow-hidden">
                     {/* Paper being pulled through */}
-                    <div className={`absolute inset-x-0 bg-white rounded-sm border border-zinc-300 flex items-center justify-center transition-all duration-700 ease-in-out ${
-                      scanPhase === 'feeding' ? 'top-full h-0' : scanPhase === 'scanning' ? 'top-1/4 h-1/2' : 'top-2 bottom-2'
-                    }`}>
+                    <div className={`absolute inset-x-0 bg-white rounded-sm border border-zinc-300 flex items-center justify-center transition-all duration-700 ease-in-out ${scanPhase === 'feeding' ? 'top-full h-0' : scanPhase === 'scanning' ? 'top-1/4 h-1/2' : 'top-2 bottom-2'
+                      }`}>
                       {scanPhase !== 'feeding' && (
                         <div className="text-center text-zinc-500">
                           <svg className="w-6 h-6 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -411,36 +471,56 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       )}
 
       {/* Step: Verify extracted answers */}
-      {step === 'verify' && paper && (
+      {step === 'verify' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-4">
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 shadow-sm">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center shadow-md">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
+            {/* OCR Output Panel */}
+            {extractedAnswers.raw_text !== undefined && (
+              <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+                <div className="flex justify-between items-center px-4 py-3 border-b border-zinc-100 bg-zinc-50">
+                  <span className="text-[11px] font-mono font-bold tracking-wider text-zinc-500 uppercase">OCR OUTPUT</span>
+                  <span className="text-[11px] font-mono font-medium text-zinc-400">{extractedAnswers.raw_text?.length || 0} chars</span>
                 </div>
-                <div>
-                  <h4 className="text-sm font-display font-semibold text-zinc-900">ICR Extraction Complete</h4>
-                  <p className="text-xs text-zinc-500">AI scanned & extracted {Object.keys(extractedAnswers).length} answers</p>
+                <textarea
+                  readOnly
+                  className="w-full h-96 p-5 text-sm bg-white focus:outline-none font-mono text-slate-800 leading-relaxed resize-y"
+                  value={extractedAnswers.raw_text}
+                />
+                <div className="grid grid-cols-3 gap-4 border-t border-zinc-100 py-3 bg-zinc-50/50">
+                  <div className="text-center">
+                    <span className="block text-[10px] font-mono text-zinc-500 uppercase mb-1">Client Prep</span>
+                    <span className="text-lg font-display font-bold text-slate-700">{timing?.client || 0}ms</span>
+                  </div>
+                  <div className="text-center border-x border-zinc-200">
+                    <span className="block text-[10px] font-mono text-zinc-500 uppercase mb-1">Network & OCR</span>
+                    <span className="text-lg font-display font-bold text-slate-700">{timing?.network || 0}ms</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[10px] font-mono text-zinc-500 uppercase mb-1">Total Time</span>
+                    <span className="text-lg font-display font-bold text-emerald-600">{timing?.total || 0}ms</span>
+                  </div>
                 </div>
               </div>
-              <p className="text-xs text-zinc-600 leading-relaxed bg-white/60 p-3 rounded-lg border border-emerald-100">
-                Review each extracted answer below. Items highlighted in amber differ from the answer key — verify and correct before submission.
-              </p>
-            </div>
+            )}
 
-            <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-center">
-              <div className="text-3xl font-display font-bold text-zinc-800">{selectedStudent?.name}</div>
-              <div className="text-xs font-mono text-zinc-400 mt-1">
-                {selectedStudent?.classGroup} · Section {selectedStudent?.section}
-              </div>
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  setStep('select');
+                  setScanPhase('idle');
+                  setIsScanning(false);
+                  setExtractedAnswers({});
+                }}
+                className="w-full bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-sm font-medium py-2.5 rounded-lg transition-colors shadow-sm"
+              >
+                Scan Another
+              </button>
             </div>
           </div>
 
@@ -450,49 +530,50 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Review each answer and correct any ICR misreads before final submission.</p>
 
               <div className="space-y-4">
-                {paper.questions.map((q, idx) => (
-                  <div key={q.question_id} className="p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
-                          Q{idx + 1}
-                        </span>
-                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 capitalize">Level {q.source_level} · {q.topic}</span>
-                      </div>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                        (extractedAnswers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase()
+                {paper ? (
+                  paper.questions.map((q, idx) => (
+                    <div key={q.question_id} className="p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+                            Q{idx + 1}
+                          </span>
+                          <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 capitalize">Level {q.source_level} · {q.topic}</span>
+                        </div>
+                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${(extractedAnswers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase()
                           ? 'bg-green-50 text-green-700 border border-green-200'
                           : 'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}>
-                        {(extractedAnswers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase() ? 'Match' : 'Differs from key'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-zinc-700 dark:text-zinc-200">{q.question}</p>
+                          }`}>
+                          {(extractedAnswers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase() ? 'Match' : 'Differs from key'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-zinc-700 dark:text-zinc-200">{q.question}</p>
 
-                    {q.answer_type === 'choice' && q.choices ? (
-                      <select
-                        value={extractedAnswers[q.question_id] || ''}
-                        onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
-                        className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
-                      >
-                        <option value="">Select option...</option>
-                        {q.choices.map(c => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
+                      {q.answer_type === 'choice' && q.choices ? (
+                        <select
                           value={extractedAnswers[q.question_id] || ''}
                           onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
-                          className="flex-1 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none font-mono"
-                        />
-                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 self-center">Key: {q.answer}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                          className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
+                        >
+                          <option value="">Select option...</option>
+                          {q.choices.map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={extractedAnswers[q.question_id] || ''}
+                            onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
+                            className="flex-1 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none font-mono"
+                          />
+                          <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 self-center">Key: {q.answer}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : null}
               </div>
 
               <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
@@ -546,9 +627,8 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 {Object.entries(report.conceptMastery).map(([topic, mastery]) => (
                   <div key={topic} className="flex justify-between items-center p-2.5 border border-zinc-100 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800">
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{topic}</span>
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                      mastery === 'Strong' ? 'bg-green-100 text-green-800' : mastery === 'Satisfactory' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${mastery === 'Strong' ? 'bg-green-100 text-green-800' : mastery === 'Satisfactory' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                      }`}>
                       {mastery}
                     </span>
                   </div>

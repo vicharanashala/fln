@@ -211,3 +211,8 @@ export interface BestPractice {
   viewCount: number;
   createdAt: string;
 }
+
+export interface SystemSettings {
+  id: string;
+  isImageOptimizationEnabled: boolean;
+}

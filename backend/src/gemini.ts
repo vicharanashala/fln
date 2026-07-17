@@ -644,3 +644,76 @@ Generate a narrative report summarizing strengths and learning gaps.`;
     narrative: `Determined deterministically: ${studentName} successfully completed ${score} out of ${questions.length} questions (${percent.toFixed(0)}%). Demonstrates clear progress. Progression: recommended level is Level ${recommendedLevel}.`
   };
 }
+
+/**
+ * Extracts handwritten text answers from an uploaded answer sheet using Gemini Vision.
+ */
+export async function extractAnswersFromImage(imageBuffer: Buffer, mimeType: string, questions: Question[]): Promise<Record<string, string>> {
+  if (!questions || questions.length === 0) {
+    const prompt = `You are an expert OCR AI. Extract all handwritten or printed text from the provided image. Return ONLY the extracted text exactly as it appears.`;
+    const contents = [
+      {
+        role: 'user',
+        parts: [
+          { text: prompt },
+          { inlineData: { data: imageBuffer.toString('base64'), mimeType } }
+        ]
+      }
+    ];
+    try {
+      const response = await generateContentWithRetry({
+        model: "gemini-1.5-flash",
+        contents,
+      });
+      return { raw_text: response.text };
+    } catch (error) {
+      console.error("OCR Extraction Error:", error);
+      throw error;
+    }
+  }
+
+  const prompt = `You are an expert OCR AI that grades handwritten answer sheets.
+I will provide an image of a student's answer sheet and a list of questions that they were answering.
+Your task is to extract the student's handwritten answers for each question exactly as they wrote them.
+
+Here are the questions:
+${questions.map(q => `Question ID: ${q.question_id}\\nQuestion: ${q.question}`).join('\\n\\n')}
+
+Return a JSON object where the keys are the Question IDs and the values are the extracted handwritten answers.
+If an answer is blank or unreadable, return an empty string for that Question ID.`;
+
+  const contents = [
+    {
+      role: 'user',
+      parts: [
+        { text: prompt },
+        { inlineData: { data: imageBuffer.toString('base64'), mimeType } }
+      ]
+    }
+  ];
+
+  const config = {
+    responseMimeType: 'application/json',
+    responseSchema: {
+      type: Type.OBJECT,
+      properties: questions.reduce((acc, q) => {
+        acc[q.question_id] = { type: Type.STRING };
+        return acc;
+      }, {} as Record<string, any>),
+      required: questions.map(q => q.question_id)
+    }
+  };
+
+  try {
+    const response = await generateContentWithRetry({
+      model: "gemini-1.5-flash",
+      contents,
+      config
+    });
+    const text = response.text;
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("OCR Extraction Error:", error);
+    throw error;
+  }
+}

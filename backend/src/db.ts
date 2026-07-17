@@ -260,6 +260,11 @@ export interface BestPractice {
   createdAt: string;
 }
 
+export interface SystemSettings {
+  id: string;
+  isImageOptimizationEnabled: boolean;
+}
+
 interface DatabaseSchema {
   users: User[];
   schools: School[];
@@ -275,6 +280,7 @@ interface DatabaseSchema {
   announcements: Announcement[];
   interventions: Intervention[];
   bestPractices: BestPractice[];
+  settings: SystemSettings[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -303,15 +309,42 @@ export class DBStore {
     return mongoClient.db();
   }
 
-  async init() {
-    if (mongoClient) {
-      console.log('Loading data from MongoDB...');
-      this.mongoDb = mongoClient.db();
-      const db = this.mongoDb;
-      this.data = {} as DatabaseSchema;
-      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
-        const docs = await db.collection(collName).find().toArray();
-        (this.data as any)[key] = docs.map(({ _id, ...rest }) => rest);
+    try {
+      console.log('[Database] Connecting to MongoDB...');
+      const client = new MongoClient(mongoUri, {
+        serverSelectionTimeoutMS: 5000
+      });
+      await client.connect();
+      this.mongoDb = client.db();
+      this.useMongo = true;
+      console.log('[Database] Connected to MongoDB successfully.');
+
+      // Seed any empty collections in MongoDB
+      const seed = this.getSeedData();
+      const collections = [
+        { name: 'users', data: seed.users },
+        { name: 'schools', data: seed.schools },
+        { name: 'classes', data: seed.classes },
+        { name: 'students', data: seed.students },
+        { name: 'questions', data: seed.questions },
+        { name: 'worksheets', data: seed.worksheets },
+        { name: 'levelWorksheets', data: seed.levelWorksheets },
+        { name: 'answerSubmissions', data: seed.answerSubmissions },
+        { name: 'evaluationReports', data: seed.evaluationReports },
+        { name: 'tickets', data: seed.tickets },
+        { name: 'logbook', data: seed.logbook },
+        { name: 'announcements', data: seed.announcements },
+        { name: 'interventions', data: seed.interventions },
+        { name: 'bestPractices', data: seed.bestPractices },
+        { name: 'settings', data: seed.settings }
+      ];
+
+      for (const coll of collections) {
+        const count = await this.mongoDb.collection(coll.name).countDocuments();
+        if (count === 0 && coll.data.length > 0) {
+          await this.mongoDb.collection(coll.name).insertMany(coll.data);
+          console.log(`[Database] Seeded collection: ${coll.name} with ${coll.data.length} records`);
+        }
       }
       console.log(`MongoDB loaded: ${this.data.users?.length || 0} users, ${this.data.schools?.length || 0} schools, ${this.data.students?.length || 0} students`);
     } else {
@@ -334,15 +367,27 @@ export class DBStore {
     await fs.writeFile(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
   }
 
-  private async persistCollection(key: keyof DatabaseSchema) {
-    if (!this.data || !mongoClient) return;
-    const db = this.getDb();
-    const collName = COLLECTION_NAMES[key];
-    const items = (this.data as any)[key] || [];
-    const coll = db.collection(collName);
-    await coll.deleteMany({});
-    if (items.length > 0) {
-      await coll.insertMany(items);
+      // Cache the seeded/existing MongoDB data into this.data for lightning-fast synchronous operations (like auth checks)
+      this.data = {
+        users: await this.mongoDb.collection<User>('users').find({}).toArray(),
+        schools: await this.mongoDb.collection<School>('schools').find({}).toArray(),
+        classes: await this.mongoDb.collection<ClassGroup>('classes').find({}).toArray(),
+        students: await this.mongoDb.collection<Student>('students').find({}).toArray(),
+        questions: await this.mongoDb.collection<Question>('questions').find({}).toArray(),
+        worksheets: await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray(),
+        levelWorksheets: await this.mongoDb.collection<LevelWorksheet>('levelWorksheets').find({}).toArray(),
+        answerSubmissions: await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray(),
+        evaluationReports: await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({}).toArray(),
+        tickets: await this.mongoDb.collection<Ticket>('tickets').find({}).toArray(),
+        logbook: await this.mongoDb.collection<LogEntry>('logbook').find({}).toArray(),
+        announcements: await this.mongoDb.collection<Announcement>('announcements').find({}).toArray(),
+        interventions: await this.mongoDb.collection<Intervention>('interventions').find({}).toArray(),
+        bestPractices: await this.mongoDb.collection<BestPractice>('bestPractices').find({}).toArray(),
+        settings: await this.mongoDb.collection<SystemSettings>('settings').find({}).toArray()
+      };
+      console.log('[Database] MongoDB memory cache synchronized successfully.');
+    } catch (err: any) {
+      throw new Error(`Failed to connect to MongoDB: ${err?.message || err}`);
     }
   }
 
@@ -361,6 +406,21 @@ export class DBStore {
     } else {
       await this.save();
     }
+    await this.mongoDb.collection('users').insertMany(seed.users);
+    await this.mongoDb.collection('schools').insertMany(seed.schools);
+    await this.mongoDb.collection('classes').insertMany(seed.classes);
+    await this.mongoDb.collection('students').insertMany(seed.students);
+    await this.mongoDb.collection('questions').insertMany(seed.questions);
+    await this.mongoDb.collection('worksheets').insertMany(seed.worksheets);
+    await this.mongoDb.collection('answerSubmissions').insertMany(seed.answerSubmissions);
+    await this.mongoDb.collection('evaluationReports').insertMany(seed.evaluationReports);
+    await this.mongoDb.collection('tickets').insertMany(seed.tickets);
+    await this.mongoDb.collection('logbook').insertMany(seed.logbook);
+    await this.mongoDb.collection('announcements').insertMany(seed.announcements);
+    await this.mongoDb.collection('interventions').insertMany(seed.interventions);
+    await this.mongoDb.collection('bestPractices').insertMany(seed.bestPractices);
+    await this.mongoDb.collection('settings').insertMany(seed.settings);
+    console.log('[Database] MongoDB reset and re-seeded successfully.');
   }
 
   // --- Collection Accessors ---
@@ -387,6 +447,13 @@ export class DBStore {
   }
   async getWorksheets() {
     return await this.mongoDb!.collection<Worksheet>('worksheets').find({}).toArray();
+  }
+  async getSystemSettings() {
+    return await this.mongoDb!.collection<SystemSettings>('settings').find({}).toArray();
+  }
+  async updateSystemSettings(id: string, updates: Partial<SystemSettings>) {
+    await this.mongoDb!.collection('settings').updateOne({ id }, { $set: updates }, { upsert: true });
+    this.data.settings = await this.mongoDb!.collection<SystemSettings>('settings').find({}).toArray();
   }
   async getLevelWorksheets() {
     return await this.mongoDb!.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
@@ -559,6 +626,26 @@ export class DBStore {
       if (idx !== -1) this.data.bestPractices[idx] = bp;
     }
     return bp || undefined;
+  }
+
+  // --- Settings ---
+
+  async getSettings() {
+    return await this.mongoDb!.collection<SystemSettings>('settings').findOne({ id: 'global' });
+  }
+
+  async updateSettings(updates: Partial<SystemSettings>) {
+    await this.mongoDb!.collection('settings').updateOne({ id: 'global' }, { $set: updates }, { upsert: true });
+    const s = await this.mongoDb!.collection<SystemSettings>('settings').findOne({ id: 'global' });
+    if (s && this.data) {
+      const idx = this.data.settings.findIndex(x => x.id === 'global');
+      if (idx !== -1) {
+        this.data.settings[idx] = s;
+      } else {
+        this.data.settings.push(s);
+      }
+    }
+    return s || undefined;
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -2484,7 +2571,10 @@ export class DBStore {
       logbook,
       announcements,
       interventions,
-      bestPractices
+      bestPractices,
+      settings: [
+        { id: 'global', isImageOptimizationEnabled: true }
+      ]
     };
   }
 }

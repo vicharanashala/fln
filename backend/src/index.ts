@@ -2,9 +2,14 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
-import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
+import express from 'express';
+import multer from 'multer';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+import { dbStore, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
+import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet, extractAnswersFromImage } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
@@ -24,6 +29,7 @@ async function startServer() {
   await dbStore.init();
 
   const app = express();
+  const upload = multer({ storage: multer.memoryStorage() });
   app.use(express.json());
 
   // Serve Puppeteer output PDF sheets statically
@@ -257,6 +263,34 @@ async function startServer() {
     const { status } = req.body; // Reviewed or Resolved
     const updated = await dbStore.updateTicket(req.params.id, { status });
     res.json(updated);
+  });
+
+  // ICR Image Upload Endpoint
+  app.post('/api/icr/extract', upload.single('image'), async (req, res) => {
+    try {
+      const user = getAuthUser(req);
+      if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+      if (!req.file) {
+        return res.status(400).json({ error: 'No image uploaded' });
+      }
+
+      let questions: Question[] = [];
+      if (req.body.questions) {
+        try {
+          questions = JSON.parse(req.body.questions);
+        } catch (e) {
+          return res.status(400).json({ error: 'Invalid questions JSON format' });
+        }
+      }
+
+      const extractedAnswers = await extractAnswersFromImage(req.file.buffer, req.file.mimetype, questions);
+      return res.json({ extracted_answers: extractedAnswers });
+
+    } catch (error: any) {
+      console.error('OCR Extraction Endpoint Error:', error);
+      res.status(500).json({ error: 'Failed to extract text from image' });
+    }
   });
 
   // Logbook
@@ -2068,6 +2102,25 @@ async function startServer() {
     await dbStore.updateBestPractice(bp.id, { viewCount: (bp.viewCount || 0) + 1 });
     res.json({ ...bp, viewCount: (bp.viewCount || 0) + 1 });
   });
+
+  // --- NEW ROUTES ---
+  app.get('/api/settings', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const settings = await dbStore.getSystemSettings();
+    const globalSettings = settings.find(s => s.id === 'global') || { id: 'global', isImageOptimizationEnabled: false };
+    res.json(globalSettings);
+  });
+
+  app.post('/api/settings', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== 'superadmin') return res.status(403).json({ error: 'Forbidden' });
+    const { isImageOptimizationEnabled } = req.body;
+    await dbStore.updateSystemSettings('global', { isImageOptimizationEnabled });
+    res.json({ id: 'global', isImageOptimizationEnabled });
+  });
+
+
 
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).
