@@ -214,7 +214,7 @@ export interface AnnouncementRead {
   announcementId: string;
   userId: string;
   userEmail: string;
-  readAt: string;
+  readAt: string;}
 export type InterventionStrategyType = 'small_group' | 'one_on_one' | 'peer_tutoring' | 'visual_aids' | 'manipulatives' | 'worksheets' | 'game_based' | 'other';
 
 export interface Intervention {
@@ -2590,7 +2590,7 @@ getUserSync(email: string): User | null {
       tickets,
       logbook,
       announcements,
-      announcementReads: []
+      announcementReads: [],
       interventions,
       bestPractices
     };
