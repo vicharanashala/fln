@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { User, UserRole, Student, ClassGroup, School, LogEntry, Ticket } from '../types';
 import { DiagnosticWorkflow } from './DiagnosticWorkflow';
@@ -2345,6 +2345,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             token={token}
           />
 
+          {/* 📚 Bulk Adaptive Worksheet Generator — class-wide */}
+          <BulkAdaptiveWorksheetCard
+            classStudents={classStudents}
+            activeClass={activeClass}
+            token={token}
+          />
+
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Class roster table */}
           <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
@@ -3520,6 +3527,346 @@ const AdaptiveWorksheetCard: React.FC<AdaptiveWorksheetCardProps> = ({ classStud
               })}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+// Bulk Adaptive Worksheet Generator card
+//
+// Operates over an entire class roster. Calls the existing bulk backend
+// endpoints (/api/worksheets/bulk-adaptive/*) — no duplication of
+// adaptive composition or PDF logic. Leaves the single-student
+// AdaptiveWorksheetCard above untouched.
+// ────────────────────────────────────────────────────────────────────────────
+
+interface BulkProgressSkip {
+  id: string;
+  name: string;
+  reason: string;
+}
+interface BulkProgressGenerated {
+  studentId: string;
+  studentName: string;
+  fileName: string;
+}
+interface BulkProgress {
+  jobId: string;
+  className: string;
+  section: string;
+  totalEligible: number;
+  completed: number;
+  failed: number;
+  currentStudentIndex: number;
+  currentStudentName: string;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: string;
+  completedAt: string;
+  error: string;
+  skipped: BulkProgressSkip[];
+  generated: BulkProgressGenerated[];
+  zipReady: boolean;
+  zipFileName: string;
+  zipDownloadUrl: string | null;
+  combinedPdfReady: boolean;
+  combinedPdfFileName: string;
+  combinedPdfUrl: string | null;
+}
+
+interface BulkAdaptiveWorksheetCardProps {
+  classStudents: Student[];
+  activeClass: ClassGroup | null;
+  token: string;
+}
+
+const BulkAdaptiveWorksheetCard: React.FC<BulkAdaptiveWorksheetCardProps> = ({
+  classStudents,
+  activeClass,
+  token
+}) => {
+  const [totalQuestions, setTotalQuestions] = useState<number>(8);
+  const [bulkJobId, setBulkJobId] = useState<string | null>(null);
+  const [progress, setProgress] = useState<BulkProgress | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const eligibleCount = classStudents.filter(
+    s => (s.levelHistory && s.levelHistory.length > 0) || (s.currentLevel && s.currentLevel > 0)
+  ).length;
+  const skipPreviewCount = classStudents.length - eligibleCount;
+
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+
+  const startPolling = (jobId: string) => {
+    stopPolling();
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/worksheets/bulk-adaptive/${jobId}/progress`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'Polling failed.');
+          stopPolling();
+          return;
+        }
+        setProgress(data);
+        if (data.status === 'completed' || data.status === 'failed') {
+          stopPolling();
+        }
+      } catch (e: any) {
+        setError(e?.message || 'Network error during polling.');
+        stopPolling();
+      }
+    }, 700);
+  };
+
+  useEffect(() => () => stopPolling(), []);
+
+  const handleStart = async () => {
+    if (!activeClass) {
+      setError('Pick an active class first.');
+      return;
+    }
+    if (eligibleCount === 0) {
+      setError('No placed students in this class — diagnostic is pending for everyone.');
+      return;
+    }
+    setError(null);
+    setProgress(null);
+    setBulkJobId(null);
+    setStarting(true);
+    try {
+      const res = await fetch('/api/worksheets/bulk-adaptive', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          className: activeClass.className,
+          section: activeClass.section,
+          schoolId: activeClass.schoolId,
+          totalQuestions,
+          cycle: 'Adhoc'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to start bulk job.');
+        return;
+      }
+      setBulkJobId(data.jobId);
+      // Seed initial progress so the UI shows context immediately
+      setProgress({
+        jobId: data.jobId,
+        className: data.className,
+        section: data.section,
+        totalEligible: data.totalEligible,
+        completed: 0,
+        failed: 0,
+        currentStudentIndex: 0,
+        currentStudentName: '',
+        status: 'running',
+        startedAt: new Date().toISOString(),
+        completedAt: '',
+        error: '',
+        skipped: data.skipped || [],
+        generated: [],
+        zipReady: false,
+        zipFileName: '',
+        zipDownloadUrl: null,
+        combinedPdfReady: false,
+        combinedPdfFileName: '',
+        combinedPdfUrl: null
+      });
+      startPolling(data.jobId);
+    } catch (e: any) {
+      setError(e?.message || 'Network error starting bulk job.');
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const handleDownloadZip = async () => {
+    if (!progress?.zipDownloadUrl) return;
+    const res = await fetch(progress.zipDownloadUrl, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = progress.zipFileName || 'adaptive-worksheets.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrintAll = () => {
+    if (!progress?.combinedPdfUrl) return;
+    // Open the combined PDF in a new tab; user can print from the browser's
+    // PDF viewer with the standard Ctrl/Cmd-P shortcut.
+    window.open(progress.combinedPdfUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const running = progress?.status === 'running';
+  const done = progress?.status === 'completed';
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h3 className="font-display font-semibold text-zinc-900 text-sm flex items-center gap-2">
+            <span>📚</span>
+            <span>Bulk Adaptive Worksheet Generator</span>
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded">
+              Class-Wide
+            </span>
+          </h3>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Reuses the existing adaptive engine + PDF generator for every student in the active class.
+            Skips students pending diagnostic.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-green-50 text-green-700 border border-green-200">
+            {eligibleCount} Placed
+          </span>
+          {skipPreviewCount > 0 && (
+            <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">
+              {skipPreviewCount} Pending
+            </span>
+          )}
+          <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
+            {classStudents.length} Total
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-end">
+        <div>
+          <label className="block text-[10px] font-mono font-semibold text-zinc-500 uppercase mb-1">Class</label>
+          <div className="text-sm font-mono text-zinc-800 bg-zinc-50 border border-zinc-200 rounded-lg p-2.5">
+            {activeClass ? `${activeClass.className} - ${activeClass.section}` : 'No active class selected'}
+          </div>
+        </div>
+        <div>
+          <label className="block text-[10px] font-mono font-semibold text-zinc-500 uppercase mb-1"># Questions</label>
+          <input
+            type="number"
+            min={4}
+            max={40}
+            value={totalQuestions}
+            onChange={(e) => setTotalQuestions(Math.max(4, Math.min(40, Number(e.target.value) || 8)))}
+            disabled={running || starting}
+            className="w-24 text-sm border border-zinc-200 rounded-lg p-2.5 bg-white focus:border-indigo-400 outline-none disabled:opacity-50"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleStart}
+          disabled={starting || running || eligibleCount === 0 || !activeClass}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+        >
+          {starting || running ? (
+            <><span className="animate-spin text-sm">⏳</span> Generating…</>
+          ) : (
+            <>📚 Generate Worksheets for Entire Class</>
+          )}
+        </button>
+      </div>
+
+      {error && (
+        <div className="p-3 text-xs bg-red-50 text-red-700 border border-red-100 rounded-lg">{error}</div>
+      )}
+
+      {/* Live progress strip */}
+      {progress && (
+        <div className="space-y-3 pt-3 border-t border-zinc-100">
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <span className="font-mono text-zinc-600">
+              Student {Math.min(progress.currentStudentIndex, progress.totalEligible)}/{progress.totalEligible}
+              {progress.currentStudentName ? ` — ${progress.currentStudentName}` : ''}
+            </span>
+            <div className="flex-1 min-w-[160px] bg-zinc-100 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  done
+                    ? (progress.failed > 0 ? 'bg-amber-500' : 'bg-green-500')
+                    : 'bg-indigo-500'
+                }`}
+                style={{ width: `${progress.totalEligible === 0 ? 0 : Math.round((progress.completed / progress.totalEligible) * 100)}%` }}
+              />
+            </div>
+            <span className="font-mono font-bold text-zinc-700">
+              {progress.totalEligible === 0 ? 0 : Math.round((progress.completed / progress.totalEligible) * 100)}%
+            </span>
+          </div>
+
+          {done && (
+            <div className="text-xs font-mono bg-green-50 text-green-700 border border-green-200 rounded p-3 leading-relaxed">
+              <strong>✅ Generated {progress.completed} {progress.completed === 1 ? 'Worksheet' : 'Worksheets'} Successfully</strong>
+              {progress.totalEligible > 0 && (
+                <span className="text-zinc-600"> ({progress.totalEligible} eligible in class)</span>
+              )}
+              {progress.failed > 0 && (
+                <span className="text-amber-700"> · {progress.failed} failed</span>
+              )}
+            </div>
+          )}
+
+          {progress.skipped && progress.skipped.length > 0 && (
+            <div className="text-xs bg-amber-50 border border-amber-200 rounded p-3 leading-relaxed">
+              <div className="font-mono font-bold text-amber-700 mb-1">
+                ⚠ Skipped {progress.skipped.length} {progress.skipped.length === 1 ? 'student' : 'students'}
+              </div>
+              <div className="text-zinc-600 mb-1">Reason:</div>
+              <ul className="text-zinc-700 space-y-0.5 font-mono">
+                {progress.skipped.map(s => (
+                  <li key={s.id}>
+                    · {s.name} — {s.reason || 'Diagnostic Pending'}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {done && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleDownloadZip}
+                disabled={!progress.zipReady}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                📥 Download ZIP
+              </button>
+              <button
+                type="button"
+                onClick={handlePrintAll}
+                disabled={!progress.combinedPdfReady}
+                className="bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-800 font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                🖨 Print All
+              </button>
+              {progress.zipFileName && (
+                <span className="text-[10px] font-mono text-zinc-500">
+                  {progress.zipFileName}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
