@@ -230,17 +230,22 @@ export class StudentService {
       id: student.id,
       name: student.name,
       age: student.age,
-      // Seeded docs do not carry a `gender` field yet. Surface as null so
-      // the display layer can render "Not Available".
-      gender: null,
+      // Phase 3: `gender` is editable via PATCH /api/students/:id, so
+      // we now read it straight off the stored document. Seeded docs
+      // (and any future doc without a `gender` field) fall back to
+      // `null` so the display layer can render "Not Available".
+      gender: student.gender ?? null,
       classGroup: student.classGroup,
       section: student.section,
       schoolId: student.schoolId,
       schoolName: school?.name ?? null,
       currentLevel: student.currentLevel,
       currentSubLevel: student.currentSubLevel ?? null,
-      // Seeded docs do not carry an `enrollmentDate` field yet. Surface
-      // as null so the display layer can render "Not Available".
+      // `enrollmentDate` is not yet exposed via PATCH, so seeded docs
+      // (and any doc without the field) continue to surface as `null`.
+      // Once that field becomes editable, this line should follow the
+      // `student.fieldName ?? null` pattern used for the Phase 3
+      // personal / contact fields below.
       enrollmentDate: null,
       // Phase 3: Editable personal / contact fields. Any field that is
       // absent on the stored document comes back as `null` so the
