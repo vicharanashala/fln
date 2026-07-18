@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Eye, EyeOff, AlertCircle, ArrowLeft, KeyRound, CheckCircle2, X } from 'lucide-react';
-import { User, UserRole } from '../types';
+import { User } from '../types';
 
 interface LoginViewProps {
   onLoginSuccess: (token: string, user: User) => void;

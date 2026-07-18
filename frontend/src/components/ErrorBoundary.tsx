@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, type ReactNode, type ErrorInfo } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface ErrorBoundaryProps {

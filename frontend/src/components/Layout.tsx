@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { User, UserRole, Announcement } from '../types';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
-  LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound,   Clock
+  LayoutDashboard, BookOpen, HelpCircle, Settings, Users, ShieldCheck,
+  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList
 } from 'lucide-react';
 import { StudentSearch } from './StudentSearch';
 
@@ -100,7 +100,7 @@ export const Layout: React.FC<LayoutProps> = ({
     localStorage.setItem('fln_dark_mode', String(darkMode));
   }, [darkMode]);
 
-  const collapsed = false;
+  const collapsed = sidebarCollapsed;
 
   const toggleSidebar = () => {
     setSidebarCollapsed((prev: boolean) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
-import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { User, UserRole, Student, School, EvaluationReport } from '../types';
+import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, CheckCircle2, XCircle, SlidersHorizontal, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, GraduationCap, BookMarked, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
@@ -188,7 +188,6 @@ function EmptyStudents({ students }: { students: Student[] }) {
 }
 
 export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectPanel }) => {
-  const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
   const [distFilter, setDistFilter] = useState('all');
   const [blockFilter, setBlockFilter] = useState('all');
