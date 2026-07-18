@@ -2069,6 +2069,11 @@ async function startServer() {
     res.json({ ...bp, viewCount: (bp.viewCount || 0) + 1 });
   });
 
+  // Catch-all: any unmatched API route gets a proper 404 instead of hanging
+  app.use('/api/*', (_req, res) => {
+    res.status(404).json({ error: 'Endpoint not found' });
+  });
+
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).
   if (process.env.NODE_ENV !== "production") {
