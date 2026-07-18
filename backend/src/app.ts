@@ -11,12 +11,16 @@ import classRoutes from './routes/class.routes';
 import studentRoutes from './routes/student.routes';
 import adminRoutes from './routes/admin.routes';
 import diagnosticRoutes from './routes/diagnostic.routes';
+import path from "path";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const outputDir = path.join(process.cwd(), "output");
+
+app.use("/output", express.static(outputDir));
 
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ success: true, message: 'Server is running', data: null });

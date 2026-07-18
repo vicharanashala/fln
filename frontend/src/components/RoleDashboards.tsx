@@ -2073,6 +2073,38 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     return () => clearInterval(interval);
   }, [bulkJob?.jobId, bulkJob?.status]);
 
+  const handleBulkDownload = async () => {
+    if (!bulkJob?.downloadUrl) return;
+
+    try {
+      const res = await fetch(bulkJob.downloadUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        alert("Download failed");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "bulk_diagnostic.zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Download failed");
+    }
+  };
+
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
@@ -2478,12 +2510,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                         <span className="text-green-700 dark:text-green-300 font-bold text-sm">✅ {bulkJob.total} Diagnostic Papers Generated Successfully</span>
                       </div>
                       <div className="flex gap-3">
-                        <a
-                          href={bulkJob.downloadUrl}
-                          className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer shadow-sm"
-                        >
-                          📥 Download ZIP Package
-                        </a>
+                        <button
+  type="button"
+  onClick={handleBulkDownload}
+  className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer shadow-sm"
+>
+  📥 Download ZIP Package
+</button>
                         {bulkJob.pdfUrl && (
                           <a
                             href={bulkJob.pdfUrl}
@@ -2858,6 +2891,38 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
     return () => clearInterval(interval);
   }, [bulkJob?.jobId, bulkJob?.status]);
 
+  const handleBulkDownload = async () => {
+  if (!bulkJob?.downloadUrl) return;
+
+  try {
+    const res = await fetch(bulkJob.downloadUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      alert("Download failed");
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "bulk_diagnostic.zip";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert("Download failed");
+  }
+};
+
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError('');
@@ -3201,9 +3266,13 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                     </div>
                     {bulkJob.status === 'completed' && bulkJob.downloadUrl && (
                       <div className="flex gap-2 pt-1">
-                        <a href={bulkJob.downloadUrl} className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer">
-                          📥 Download ZIP Package ({bulkJob.total} sets)
-                        </a>
+                        <button
+  type="button"
+  onClick={handleBulkDownload}
+  className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer shadow-sm"
+>
+  📥 Download ZIP Package
+</button>
                         {bulkJob.pdfUrl && (
                           <a href={bulkJob.pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-mono font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer">
                             📄 Open PDF
