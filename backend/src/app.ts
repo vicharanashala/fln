@@ -7,6 +7,8 @@ import blockRoutes from './routes/block.routes';
 import schoolRoutes from './routes/school.routes';
 import authRoutes from './routes/auth.routes';
 import teacherRoutes from './routes/teacher.routes';
+import classRoutes from './routes/class/class.routes';
+import studentRoutes from './routes/student/student.routes';
 
 const app = express();
 
@@ -24,6 +26,8 @@ app.use('/api/districts', districtRoutes);
 app.use('/api/blocks', blockRoutes);
 app.use('/api/schools', schoolRoutes);
 app.use('/api/teachers', teacherRoutes);
+app.use('/api/classes', classRoutes);
+app.use('/api/students', studentRoutes);
 
 app.use(errorHandler);
 
