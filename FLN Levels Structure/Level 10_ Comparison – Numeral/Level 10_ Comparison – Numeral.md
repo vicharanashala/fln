@@ -1,4 +1,4 @@
-# Level 11: Comparison – Numeral
+# Level 10: Comparison – Numeral
 
 **Class:** Preschool 3 | **Age Group:** Age 5-6
 

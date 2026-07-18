@@ -44,6 +44,6 @@ Difference between sublevels:
 
 | Level | Difficulty | Support |
 |---|---|---|
-| 19.0 | Standard | No Support on i side of the sheet and frog jump/number line on other side |
-| 19.1 | Easier | Frog jumps,number lines,hints |
-| 19.2 | Remediation | Very small patterns,heavy visual support |
+| 20.0 | Standard | No Support on i side of the sheet and frog jump/number line on other side |
+| 20.1 | Easier | Frog jumps,number lines,hints |
+| 20.2 | Remediation | Very small patterns,heavy visual support |
