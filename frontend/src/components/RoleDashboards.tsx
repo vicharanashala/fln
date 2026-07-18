@@ -474,7 +474,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
 // 1. SUPERADMIN (NATIONAL) DASHBOARD
 // ==========================================
 export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'coordinators' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'coordinators' | 'analytics' | 'logbook'>('overview');
   
   // Overview data
   const [schools, setSchools] = useState<School[]>([]);
@@ -751,6 +751,14 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
             }`}
           >
             📊 Geographical Analytics
+          </button>
+          <button
+            onClick={() => setActiveTab('logbook')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              activeTab === 'logbook' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+            }`}
+          >
+            📜 Audit Logbook
           </button>
         </div>
 
@@ -1160,6 +1168,10 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       {activeTab === 'analytics' && (
         <RegionalAnalyticsView token={token} user={user} />
       )}
+
+      {activeTab === 'logbook' && (
+        <LogbookView token={token} user={user} />
+      )}
     </div>
   );
 };
@@ -1169,7 +1181,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 // 2. STATE ADMIN / DISTRICT ADMIN / BLOCK ADMIN DASHBOARDS
 // ==========================================
 export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'access'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'access' | 'logbook'>('overview');
   const [schools, setSchools] = useState<School[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -1314,6 +1326,14 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             }`}
           >
             🛡️ Access Control & Defaulters
+          </button>
+          <button
+            onClick={() => setActiveTab('logbook')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              activeTab === 'logbook' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+            }`}
+          >
+            📜 Audit Logbook
           </button>
         </div>
       </div>
@@ -1566,6 +1586,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           </div>
         </div>
       )}
+
+      {activeTab === 'logbook' && (
+        <LogbookView token={token} user={user} />
+      )}
     </div>
   );
 };
@@ -1663,6 +1687,9 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           </div>
         </div>
       </div>
+
+      {/* In-App Feedback / Ticketing */}
+      <TicketSubmission token={token} userRole={user.role} />
     </div>
   );
 };
@@ -2455,6 +2482,9 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       </div>
       )}
       <FLNLevelReferenceModal isOpen={showLevelRef} onClose={() => setShowLevelRef(false)} />
+
+      {/* In-App Feedback / Ticketing */}
+      <TicketSubmission token={token} userRole={user.role} />
     </div>
   );
 };
