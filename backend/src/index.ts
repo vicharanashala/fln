@@ -352,7 +352,24 @@ async function startServer() {
 
   // Schools
   app.get('/api/schools', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
     const schools = await dbStore.getSchools();
+    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
+      return res.json(schools);
+    }
+    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+      return res.json(schools.filter(s => s.id === user.schoolId));
+    }
+    if (user.role === UserRole.VOLUNTEER) {
+      return res.json(schools.filter(s => user.assignedSchools?.includes(s.id)));
+    }
+    if (user.role === UserRole.DISTRICT_ADMIN) {
+      return res.json(schools.filter(s => s.districtCode === user.districtCode));
+    }
+    if (user.role === UserRole.BLOCK_ADMIN) {
+      return res.json(schools.filter(s => s.blockCode === user.blockCode));
+    }
     res.json(schools);
   });
 
@@ -1541,7 +1558,21 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const users = await dbStore.getUsers();
-    // Return all users for audit and coordination
+    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
+      return res.json(users);
+    }
+    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+      return res.json(users.filter(u => u.schoolId === user.schoolId));
+    }
+    if (user.role === UserRole.VOLUNTEER) {
+      return res.json(users.filter(u => user.assignedSchools?.includes(u.schoolId || '')));
+    }
+    if (user.role === UserRole.DISTRICT_ADMIN) {
+      return res.json(users.filter(u => u.districtCode === user.districtCode));
+    }
+    if (user.role === UserRole.BLOCK_ADMIN) {
+      return res.json(users.filter(u => u.blockCode === user.blockCode));
+    }
     res.json(users);
   });
 

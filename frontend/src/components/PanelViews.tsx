@@ -211,9 +211,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     fetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
   }, [token]);
 
-  const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
-  const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
-  const usersList = apiUsers.length > 0 ? apiUsers : USERS_FALLBACK;
+  const students = apiStudents;
+  const schools = apiSchools;
+  const usersList = apiUsers;
 
   useEffect(() => {
     if (students.length > 0 && !sel) {

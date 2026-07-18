@@ -332,12 +332,13 @@ export class DBStore {
       console.log('Connecting to MongoDB...');
       this.mongoDb = mongoClient.db();
       this.data = {} as DatabaseSchema;
-      // Load lightweight counts for the in-memory cache (used by write methods)
       const db = this.mongoDb;
       for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
         (this.data as any)[key] = [];
       }
-      const userCount = await db.collection('users').countDocuments();
+      // Load users into memory for sync auth lookups (getUserSync)
+      this.data.users = await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
+      const userCount = this.data.users.length;
       const schoolCount = await db.collection('schools').countDocuments();
       const studentCount = await db.collection('students').countDocuments();
       console.log(`MongoDB ready: ${userCount} users, ${schoolCount} schools, ${studentCount} students`);

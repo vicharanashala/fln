@@ -1675,8 +1675,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
-
-  // Modal / workflow triggers
+  const [showAllStudents, setShowAllStudents] = useState(true);
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
   const [showWorksheetPortal, setShowWorksheetPortal] = useState(false);
@@ -1954,7 +1953,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   }
 
   // Filter students under selected active class
-  const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : [];
+  const classStudents = showAllStudents ? students : (activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : []);
 
   if (showWorksheetPortal) {
     const effectiveClass = activeClass || (classes.length > 0 ? classes[0] : null);
@@ -2097,12 +2096,20 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
       {/* Class picker tabs */}
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">
+        <button
+          onClick={() => { setShowAllStudents(true); setActiveClass(null); }}
+          className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
+            showAllStudents ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+          }`}
+        >
+          All Students ({students.length})
+        </button>
         {classes.map(c => (
           <button
             key={c.id}
-            onClick={() => setActiveClass(c)}
+            onClick={() => { setShowAllStudents(false); setActiveClass(c); }}
             className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
-              activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+              !showAllStudents && activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
           >
             {c.className} - {c.section}
@@ -2110,8 +2117,10 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         ))}
       </div>
 
-      {activeClass && (
+      {classStudents.length > 0 && (
         <div className="space-y-6">
+          {!showAllStudents && activeClass && (
+            <>
           {/* 💊 Intervention Quick Action */}
           <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950 dark:to-purple-950 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 shadow-sm">
             <div className="flex items-center justify-between">
@@ -2338,18 +2347,24 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               </div>
             )}
           </div>
+            </>
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Class roster table */}
           <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b border-zinc-150 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
-              <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">Classroom Student Roster ({classStudents.length})</h3>
+              <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">
+                {showAllStudents ? `All Students — School Roster (${classStudents.length})` : `Classroom Student Roster (${classStudents.length})`}
+              </h3>
+              {!showAllStudents && activeClass && (
               <button
-                onClick={() => setShowWorksheetPortal(true)} // Open worksheets flow
+                onClick={() => setShowWorksheetPortal(true)}
                 className="bg-white dark:bg-slate-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-mono text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer hover:border-zinc-400 transition-colors"
               >
                 Trigger Worksheets Flow
               </button>
+              )}
             </div>
             <div className="p-4">
               {(() => {
