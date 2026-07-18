@@ -1,10 +1,18 @@
-# Dependencies
+﻿# Archive and outputs
+archive/
+mvp/
+output/
+
+# Node
 node_modules/
 
 # Build outputs
 dist/
-output/
-archive/
+backend/dist/
+frontend/dist/
+
+# Backend data (local seed files) - keep ignored by default
+backend/data/
 
 # Environment / secrets
 .env
@@ -19,4 +27,18 @@ __pycache__/
 *.pyc
 
 # Logs
+*.log
+
+# Misc
+# Add any IDE/editor folders you want to ignore
+.vscode/
+.idea/
+archive/
+mvp/
+node_modules/
+.DS_Store
+.env
+backend/data/
+backend/dist/
+frontend/dist/
 *.log
