@@ -48,12 +48,25 @@ export function selectQuestionBankItems(
   questionBank: Question[],
   targetLevel: number,
   count = 4,
-  seed = 'default'
+  seed = 'default',
+  targetSubLevel?: number
 ): Question[] {
   const printable = questionBank.filter(isSelfContained);
-  const ranked = [...printable].sort((left, right) => {
+  const exactLevelQuestions = printable.filter(question =>
+    question.source_level === targetLevel &&
+    (targetSubLevel === undefined || question.source_sublevel === targetSubLevel || question.source_sublevel === undefined)
+  );
+  const selectionPool = exactLevelQuestions.length >= count
+    ? exactLevelQuestions
+    : [...exactLevelQuestions, ...printable.filter(question => !exactLevelQuestions.includes(question))];
+  const ranked = [...selectionPool].sort((left, right) => {
     const levelDifference = Math.abs(left.source_level - targetLevel) - Math.abs(right.source_level - targetLevel);
     if (levelDifference !== 0) return levelDifference;
+    if (targetSubLevel !== undefined) {
+      const leftSubLevelDifference = left.source_sublevel === undefined ? 99 : Math.abs(left.source_sublevel - targetSubLevel);
+      const rightSubLevelDifference = right.source_sublevel === undefined ? 99 : Math.abs(right.source_sublevel - targetSubLevel);
+      if (leftSubLevelDifference !== rightSubLevelDifference) return leftSubLevelDifference - rightSubLevelDifference;
+    }
     const difficultyRank = { easy: 0, medium: 1, hard: 2 };
     const difficultyDifference = difficultyRank[left.difficulty] - difficultyRank[right.difficulty];
     if (difficultyDifference !== 0) return difficultyDifference;
@@ -98,13 +111,17 @@ export async function generateDiagnosticPaper({
   const generationSeed = randomUUID();
 
   const paperStudents: ScanTemplateStudent[] = students.map((student, index) => {
-    const studentId = student.studentId || student.rollNo || `PLACEHOLDER_${classNumber}_${index + 1}`;
+    const studentId = student.studentId || student.rollNo;
+    if (!studentId) {
+      throw new Error(`Student ${index + 1} is missing a database student ID or roll number.`);
+    }
     const rosterStudent = roster.find(item => item.id === studentId);
     const targetLevel = rosterStudent?.currentLevel || classNumber;
+    const targetSubLevel = rosterStudent?.currentSubLevel ?? 0;
     return {
       name: student.name,
       studentId,
-      questions: selectQuestionBankItems(questionBank, targetLevel, 4, `${generationSeed}:${studentId}`)
+      questions: selectQuestionBankItems(questionBank, targetLevel, 4, `${generationSeed}:${studentId}`, targetSubLevel)
     };
   });
 
@@ -135,7 +152,7 @@ export async function generateLevelWorksheet({
   subIdx: number;
 }): Promise<LevelWorksheetResult> {
   const questionBank = await dbStore.getQuestions();
-  const questions = selectQuestionBankItems(questionBank, levelId, 4, `level:${levelId}:${subIdx}:${studentId}:${randomUUID()}`);
+  const questions = selectQuestionBankItems(questionBank, levelId, 4, `level:${levelId}:${subIdx}:${studentId}:${randomUUID()}`, subIdx);
   const result = await persistGeneratedPaper(await generateScanTemplatePaper({
     classNumber: Math.max(1, Math.ceil(levelId / 12)),
     students: [{ name: studentName, studentId, questions }],

@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { Db, MongoClient } from 'mongodb';
+import { generateQuestionsForLevel } from './levelGenerator';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
@@ -77,6 +78,7 @@ export interface Question {
   subtopic: string;
   difficulty: 'easy' | 'medium' | 'hard';
   source_level: number; // Mapping to mathematical level
+  source_sublevel?: number;
   svgAsset?: string; // Standard pre-built SVG asset category
 }
 
@@ -453,7 +455,19 @@ export class DBStore {
         const names = Object.keys(seed) as Array<keyof DatabaseSchema>;
         for (const name of names) {
           const collection = mongoDb.collection(String(name));
-          if (await collection.countDocuments() === 0 && seed[name].length > 0) {
+          if (name === 'questions') {
+            if (seed.questions.length > 0) {
+              await collection.bulkWrite(seed.questions.map(question => ({
+                updateOne: {
+                  filter: { question_id: question.question_id },
+                  update: question.source_sublevel === undefined
+                    ? { $setOnInsert: question }
+                    : { $set: question },
+                  upsert: true
+                }
+              })), { ordered: false });
+            }
+          } else if (await collection.countDocuments() === 0 && seed[name].length > 0) {
             await collection.insertMany(seed[name] as any[]);
           }
         }
@@ -676,9 +690,9 @@ export class DBStore {
     return bestPractice;
   }
 
-  // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
+  // Curated examples plus a deterministic bank for every FLN level and sublevel.
   private getSeedQuestions(): Question[] {
-    return [
+    const curatedQuestions: Question[] = [
       // Level 1: Preschool & Intro Counting
       {
         question_id: 'L1_Q1',
@@ -856,6 +870,13 @@ export class DBStore {
         svgAsset: 'numbers'
       }
     ];
+    const generatedQuestions = Array.from({ length: 59 }, (_, levelIndex) => levelIndex + 1)
+      .flatMap(level => [0, 1, 2].flatMap(subLevel => generateQuestionsForLevel(level, subLevel)));
+    const questionsById = new Map<string, Question>();
+    for (const question of [...curatedQuestions, ...generatedQuestions]) {
+      questionsById.set(question.question_id, question);
+    }
+    return [...questionsById.values()];
   }
 
   // --- Comprehensive Pre-Seeded Workspace Data ---

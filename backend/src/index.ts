@@ -135,6 +135,27 @@ async function startServer() {
     });
   });
 
+  app.get('/api/question-bank/coverage', async (_req, res) => {
+    const questions = await dbStore.getQuestions();
+    const levels = Array.from({ length: 59 }, (_, index) => index + 1).map(level => {
+      const levelQuestions = questions.filter(question => question.source_level === level);
+      const generatedQuestions = levelQuestions.filter(question => question.source_sublevel !== undefined);
+      return {
+        level,
+        totalQuestions: levelQuestions.length,
+        generatedQuestions: generatedQuestions.length,
+        sublevels: [...new Set(generatedQuestions.map(question => question.source_sublevel))].sort()
+      };
+    });
+    res.json({
+      totalQuestions: questions.length,
+      expectedLevels: 59,
+      levelsCovered: levels.filter(level => level.totalQuestions > 0).length,
+      complete: levels.every(level => level.generatedQuestions >= 12 && level.sublevels.length === 3),
+      levels
+    });
+  });
+
   app.get('/api/states', async (_req, res) => {
     const schools = await dbStore.getSchools();
     const codes = [...new Set(schools.map(school => school.stateCode).filter(Boolean))].sort();

@@ -1,9 +1,4 @@
-import { Question } from './db';
-
-// Helper to generate a random integer
-function randomVal(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+import type { Question } from './db';
 
 // Programmatic math builder for all 59 levels and 3 sub-levels
 export function generateQuestionsForLevel(level: number, subLevel: number): Question[] {
@@ -24,6 +19,12 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
 
   // Build 4 questions per level
   for (let qIdx = 1; qIdx <= 4; qIdx++) {
+    let valueSequence = 0;
+    const randomVal = (min: number, max: number): number => {
+      const range = max - min + 1;
+      const seed = level * 1009 + subLevel * 101 + qIdx * 17 + valueSequence++ * 31;
+      return min + (seed % range);
+    };
     const questionId = `${levelStr}_Q${qIdx}`;
     let questionText = '';
     let answerText = '';
@@ -95,14 +96,14 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
       case 4:
         topic = 'Number Sense';
         const stars = adjust(randomVal(7, 10), randomVal(4, 6), randomVal(1, 3));
-        questionText = `Count the stars: ${Array(stars).fill('★').join(' ')}. How many are there?`;
+        questionText = `Count the marks: ${Array(stars).fill('*').join(' ')}. How many are there?`;
         answerText = String(stars);
         break;
 
       case 5:
         topic = 'Number Sense';
         const fingers = adjust(5, 3, 2);
-        questionText = `Count the fingers shown in gesture: [🖐️ showing ${fingers} fingers]. How many?`;
+        questionText = `A hand shows ${fingers} raised fingers. How many fingers are raised?`;
         answerText = String(fingers);
         break;
 
@@ -125,14 +126,14 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
       case 7:
         const addA = adjust(randomVal(4, 6), randomVal(2, 4), randomVal(1, 2));
         const addB = adjust(randomVal(3, 4), randomVal(1, 2), 1);
-        questionText = `Add using objects: ${Array(addA).fill('🍎').join('')} + ${Array(addB).fill('🍎').join('')} = How many apples in total?`;
+        questionText = `There are ${addA} apples in one group and ${addB} apples in another group. How many apples are there in total?`;
         answerText = String(addA + addB);
         break;
 
       case 8:
         const subA = adjust(randomVal(8, 10), randomVal(5, 7), randomVal(3, 4));
         const subB = adjust(randomVal(3, 4), randomVal(2, 3), 1);
-        questionText = `Subtract using objects: ${Array(subA).fill('🎈').join('')} minus ${subB} balloons. How many left?`;
+        questionText = `There are ${subA} balloons. ${subB} balloons are removed. How many balloons are left?`;
         answerText = String(subA - subB);
         break;
 
@@ -397,14 +398,14 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
       case 50:
         const m50A = adjust(45, 25, 12);
         const m50B = adjust(12, 10, 5);
-        questionText = `Solve: ${m50A} × ${m50B} = ?`;
+        questionText = `Solve: ${m50A} x ${m50B} = ?`;
         answerText = String(m50A * m50B);
         break;
 
       case 51:
         const d51A = adjust(125, 75, 45);
         const d51B = adjust(5, 5, 3);
-        questionText = `Solve: ${d51A} ÷ ${d51B} = ?`;
+        questionText = `Solve: ${d51A} / ${d51B} = ?`;
         answerText = String(d51A / d51B);
         break;
 
@@ -460,11 +461,25 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
       case 59:
       default:
         topic = 'Number Sense';
-        const reviewAddA = adjust(12, 8, 4);
+        const reviewAddA = adjust(12, 8, 4) + qIdx - 1;
         const reviewAddB = adjust(5, 3, 2);
         questionText = `Review Assessment: What is ${reviewAddA} + ${reviewAddB}?`;
         answerText = String(reviewAddA + reviewAddB);
         break;
+    }
+
+    if (qIdx === 2 && type === 'number') {
+      const numericAnswer = Number(answerText);
+      if (Number.isFinite(numericAnswer)) {
+        const distractors = [numericAnswer + 1, Math.max(0, numericAnswer - 1), numericAnswer + 2];
+        choices = [answerText, ...distractors.map(String)].filter((value, index, values) => values.indexOf(value) === index);
+        type = 'choice';
+        questionText = `Choose the correct answer: ${questionText}`;
+      }
+    } else if (qIdx === 3) {
+      questionText = `Practice item: ${questionText}`;
+    } else if (qIdx === 4) {
+      questionText = `Challenge item: ${questionText}`;
     }
 
     questions.push({
@@ -472,11 +487,13 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
       question: questionText,
       answer: answerText,
       answer_type: type,
+      question_format: type === 'choice' ? 'multiple_choice' : type === 'number' ? 'fill_blank' : 'text',
       choices,
       topic,
       subtopic,
       difficulty: qIdx <= 2 ? 'easy' : qIdx === 3 ? 'medium' : 'hard',
       source_level: level,
+      source_sublevel: subLevel,
       svgAsset
     });
   }
