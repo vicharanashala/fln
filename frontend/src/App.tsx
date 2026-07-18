@@ -23,6 +23,8 @@ import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
+import { SessionTimeout } from './components/SessionTimeout';
+import { KeyboardShortcuts, useKeyboardShortcuts } from './components/KeyboardShortcuts';
 
 export default function App() {
   const navigate = useNavigate();
@@ -32,6 +34,9 @@ export default function App() {
   const [activePanel, setActivePanel] = useState<string>('workspace');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  useKeyboardShortcuts(() => setShowShortcuts(p => !p));
 
   const triggerToast = (msg: string) => {
     setToast(msg);
@@ -242,6 +247,11 @@ export default function App() {
                 )}
               </Layout>
             )}
+
+            {currentView === 'dashboard' && currentUser && token && (
+              <SessionTimeout timeoutMinutes={30} warningMinutes={5} onLogout={handleLogout} />
+            )}
+            <KeyboardShortcuts visible={showShortcuts} onClose={() => setShowShortcuts(false)} />
           </div>
         }
       />

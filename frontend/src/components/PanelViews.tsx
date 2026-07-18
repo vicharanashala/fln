@@ -6,6 +6,7 @@ import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
 import { ReportCardView } from './ReportCardView';
 import { NotFoundView } from './NotFoundView';
+import { SystemHealthPanel } from './SystemHealthPanel';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -1511,6 +1512,10 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         </div>
       </div>
     );
+  }
+
+  if (panel === 'system_health') {
+    return <SystemHealthPanel token={token} />;
   }
 
   if (panel === 'system_settings') {
