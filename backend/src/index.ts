@@ -132,6 +132,19 @@ async function startServer() {
     res.json(template);
   });
 
+  app.get('/api/question-bank/:level', async (req, res) => {
+    const level = parseInt(req.params.level, 10);
+    if (isNaN(level)) return res.status(400).json({ error: 'Invalid level number' });
+    const count = parseInt(req.query.count as string) || 10;
+    const sectionType = req.query.sectionType as string | undefined;
+    let questions = await dbStore.getQuestionBankRandom(level, Math.min(count, 50));
+    if (sectionType) {
+      questions = questions.filter(q => q.sectionType === sectionType);
+      if (questions.length > count) questions = questions.slice(0, count);
+    }
+    res.json(questions);
+  });
+
   // Auth: Login
   app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;

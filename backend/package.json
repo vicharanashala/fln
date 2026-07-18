@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit",
     "seed": "tsx src/seed.ts",
     "seed:html": "tsx src/seedLevelHtml.ts",
+    "seed:question-bank": "tsx src/seedQuestionBank.ts",
     "seed:geo": "tsx src/utils/seedGeo.ts"
   },
   "dependencies": {

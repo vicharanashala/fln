@@ -126,6 +126,17 @@ export interface LevelHtmlTemplate {
   createdAt: string;
 }
 
+export interface QuestionBankEntry {
+  level: number;
+  levelTitle: string;
+  section: string;
+  sectionType: string;
+  questionNumber: number;
+  questionText: string;
+  answer: string;
+  svgHtml: string;
+}
+
 export interface Worksheet {
   id: string; // Exam ID
   classId: string;
@@ -277,6 +288,7 @@ interface DatabaseSchema {
   worksheets: Worksheet[];
   levelWorksheets: LevelWorksheet[];
   levelHtmlTemplates: LevelHtmlTemplate[];
+  questionBank: QuestionBankEntry[];
   answerSubmissions: AnswerSubmission[];
   evaluationReports: EvaluationReport[];
   tickets: Ticket[];
@@ -295,6 +307,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   worksheets: 'worksheets',
   levelWorksheets: 'levelWorksheets',
   levelHtmlTemplates: 'levelHtmlTemplates',
+  questionBank: 'questionBank',
   answerSubmissions: 'answer_submissions',
   evaluationReports: 'evaluation_reports',
   tickets: 'tickets',
@@ -410,6 +423,15 @@ export class DBStore {
   }
   async getLevelHtmlTemplate(levelNumber: number) {
     return await this.mongoDb!.collection<LevelHtmlTemplate>('levelHtmlTemplates').findOne({ levelNumber });
+  }
+  async getQuestionBankByLevel(level: number) {
+    return await this.mongoDb!.collection<QuestionBankEntry>('questionBank').find({ level }).toArray();
+  }
+  async getQuestionBankRandom(level: number, count: number) {
+    return await this.mongoDb!.collection<QuestionBankEntry>('questionBank').aggregate([
+      { $match: { level } },
+      { $sample: { size: count } }
+    ]).toArray();
   }
   async getAnswerSubmissions() {
     return await this.mongoDb!.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
@@ -2498,6 +2520,7 @@ export class DBStore {
       questions: seedQuestions,
       worksheets,
       levelWorksheets: [],
+      questionBank: [],
       answerSubmissions,
       evaluationReports,
       tickets,

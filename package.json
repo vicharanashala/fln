@@ -16,7 +16,8 @@
     "build:frontend": "npm run build --workspace @fln/frontend",
     "build:backend": "npm run build --workspace @fln/backend",
     "start": "npm run start --workspace @fln/backend",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "seed:question-bank": "npm run seed:question-bank --workspace @fln/backend"
   },
   "dependencies": {
     "mongodb": "^7.5.0",
