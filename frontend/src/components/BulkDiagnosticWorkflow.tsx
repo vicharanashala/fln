@@ -112,29 +112,28 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3 text-sm text-red-700 dark:text-red-300">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600" />
+        <div className="flex items-center gap-3 rounded-[20px] border border-red-200 bg-red-50/90 p-4 text-sm font-semibold text-red-700 shadow-sm dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-600" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Batch Control Form */}
-      <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm">
+      <div className="rounded-[28px] border border-zinc-200/80 bg-white/90 p-6 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-zinc-700/80 dark:bg-slate-900/80">
         <form onSubmit={handleGenerateBulk} className="space-y-6">
           <div>
-            <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 block mb-2">
+            <label className="mb-3 block text-sm font-semibold text-zinc-700 dark:text-zinc-200">
               Baseline Class Level
             </label>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[1, 2, 3, 4].map(lvl => (
                 <button
                   key={lvl}
                   type="button"
                   onClick={() => setClassLevel(lvl)}
-                  className={`py-3 text-center border font-display font-bold text-sm rounded-xl transition-all cursor-pointer ${
+                  className={`rounded-2xl border py-3 text-center text-sm font-semibold transition-all ${
                     classLevel === lvl
-                      ? 'bg-zinc-950 text-white border-zinc-950 shadow-sm'
-                      : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                      ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm'
+                      : 'border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
                   }`}
                 >
                   Class {lvl}
@@ -144,7 +143,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 block mb-2" htmlFor="total-students">
+            <label className="mb-2 block text-sm font-semibold text-zinc-700 dark:text-zinc-200" htmlFor="total-students">
               Number of Students
             </label>
             <input
@@ -155,9 +154,9 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
               value={totalStudents}
               onChange={(e) => setTotalStudents(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value) || 1))}
               placeholder="e.g. 30"
-              className="w-full text-base rounded-xl border-zinc-300 dark:border-zinc-600 focus:ring-zinc-950 focus:border-zinc-950 text-zinc-905 px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border font-mono"
+              className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 px-4 py-3 text-base font-mono text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-white dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
             />
-            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 font-mono">
+            <p className="mt-2 text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
               Accepts 1 - 1000 sheets per diagnostic batch.
             </p>
           </div>
@@ -165,16 +164,16 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
           <button
             type="submit"
             disabled={loading || totalStudents === '' || totalStudents <= 0 || job?.status === 'running'}
-            className="w-full bg-zinc-950 hover:bg-zinc-850 text-white font-semibold py-3 px-4 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer shadow-md"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-4 py-3 font-semibold text-white shadow-[0_16px_28px_-16px_rgba(15,23,42,0.95)] transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? (
               <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 Initializing batch...
               </>
             ) : (
               <>
-                <Download className="w-5 h-5" />
+                <Download className="h-5 w-5" />
                 Generate & Print Class {classLevel} Papers ({totalStudents || 0} Sets)
               </>
             )}

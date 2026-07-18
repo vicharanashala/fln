@@ -96,18 +96,18 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Create ticket form or Admin Notice */}
         {userRole !== UserRole.SUPERADMIN ? (
-          <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm h-fit">
-            <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-4">Raise a New Ticket</h3>
+          <div className="lg:col-span-1 h-fit rounded-[28px] border border-zinc-200/80 bg-white/90 p-6 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-zinc-700/80 dark:bg-slate-900/80">
+            <h3 className="mb-4 text-lg font-display font-medium text-zinc-900 dark:text-white">Raise a New Ticket</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && <div className="p-3 text-xs bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded border border-red-100 dark:border-red-800">{error}</div>}
-              {success && <div className="p-3 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded border border-green-100 dark:border-green-800">{success}</div>}
+              {error && <div className="rounded-2xl border border-red-200 bg-red-50/90 p-3 text-xs font-semibold text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">{error}</div>}
+              {success && <div className="rounded-2xl border border-green-200 bg-green-50/90 p-3 text-xs font-semibold text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300">{success}</div>}
 
-              <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Ticket Type</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-300">Ticket Type</label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as 'general' | 'curriculum')}
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 focus:border-zinc-500 focus:ring-0 outline-none text-zinc-900 dark:text-white"
+                  className="w-full rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-zinc-800/80 dark:text-white dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 >
                   <option value="general">General / Process (All Roles)</option>
                   {(userRole === UserRole.TEACHER || userRole === UserRole.VOLUNTEER) && (
@@ -116,32 +116,32 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Subject</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-300">Subject</label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Brief summary of the issue..."
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 focus:border-zinc-500 focus:ring-0 outline-none bg-white dark:bg-slate-800 text-zinc-900 dark:text-white"
+                  className="w-full rounded-2xl border border-zinc-200/80 bg-white/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-slate-800/80 dark:text-white dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Detailed Description</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-600 dark:text-zinc-300">Detailed Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                   placeholder="Elaborate on the topic, syllabus reference, or observed issue..."
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 focus:border-zinc-500 focus:ring-0 outline-none bg-white dark:bg-slate-800 text-zinc-900 dark:text-white"
+                  className="w-full rounded-[20px] border border-zinc-200/80 bg-white/90 p-2.75 text-sm text-zinc-900 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-zinc-700/80 dark:bg-slate-800/80 dark:text-white dark:focus:border-indigo-400 dark:focus:ring-indigo-400/15"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-zinc-900 text-white font-medium text-sm py-2.5 px-4 rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50 cursor-pointer"
+                className="w-full rounded-2xl bg-zinc-900 px-4 py-2.75 text-sm font-semibold text-white shadow-[0_14px_28px_-18px_rgba(15,23,42,0.95)] transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? 'Submitting...' : 'Submit Ticket'}
               </button>

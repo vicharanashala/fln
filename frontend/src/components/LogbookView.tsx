@@ -286,17 +286,17 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
       </div>
 
       {/* Audit Logs Table */}
-      <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 bg-zinc-50/50 dark:bg-zinc-800/50 border-b border-zinc-150 dark:border-zinc-700 flex justify-between items-center">
-          <span className="text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase">
+      <div className="overflow-hidden rounded-[24px] border border-zinc-200/80 bg-white/90 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-zinc-700/80 dark:bg-slate-900/80">
+        <div className="flex items-center justify-between border-b border-zinc-200/80 bg-zinc-50/60 p-4 dark:border-zinc-700/80 dark:bg-zinc-800/50">
+          <span className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
             Viewing {filteredLogs.length} matching audit logs
           </span>
         </div>
         
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 text-[10px] font-mono font-semibold uppercase">
+        <div className="max-h-[70vh] overflow-auto">
+          <table className="w-full border-collapse text-left">
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-zinc-200/80 bg-zinc-50/95 text-[10px] font-mono font-semibold uppercase tracking-[0.2em] text-zinc-500 backdrop-blur dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:text-zinc-400">
                 <th className="p-4">Timestamp</th>
                 <th className="p-4">Log ID</th>
                 <th className="p-4">Correspondent</th>
@@ -306,7 +306,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
                 <th className="p-4 w-96">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 text-sm text-zinc-700 dark:text-zinc-200">
+            <tbody className="bg-white text-sm text-zinc-700 dark:bg-slate-900 dark:text-zinc-200">
               {filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-12 text-center text-zinc-400 font-sans text-xs">
@@ -318,20 +318,20 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
                   const sMatch = schools.find(sch => sch.id === l.schoolId);
                   const nodeScope = sMatch ? `${sMatch.stateCode} / ${sMatch.districtCode} / ${sMatch.blockCode}` : 'National';
                   return (
-                    <tr key={l.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors">
-                      <td className="p-4 font-mono text-[10px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+                    <tr key={l.id} className="border-b border-zinc-100/80 odd:bg-white even:bg-zinc-50/70 transition-colors hover:bg-indigo-50/70 dark:border-zinc-800/70 dark:odd:bg-slate-900 dark:even:bg-zinc-900/70 dark:hover:bg-zinc-800/70">
+                      <td className="p-4 whitespace-nowrap font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
                         {new Date(l.timestamp).toLocaleString()}
                       </td>
                       <td className="p-4 font-mono text-xs text-zinc-400 dark:text-zinc-500">
                         {l.id}
                       </td>
                       <td className="p-4">
-                        <div className="font-semibold text-zinc-900 dark:text-white text-xs">{l.userEmail}</div>
-                        <div className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono uppercase mt-0.5">{l.userRole}</div>
+                        <div className="text-xs font-semibold text-zinc-900 dark:text-white">{l.userEmail}</div>
+                        <div className="mt-0.5 text-[10px] font-mono uppercase text-zinc-400 dark:text-zinc-500">{l.userRole}</div>
                       </td>
                       <td className="p-4 whitespace-nowrap text-xs">
                         <div className="font-medium text-zinc-800 dark:text-zinc-100">{l.schoolName || 'National Framework'}</div>
-                        <div className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono uppercase mt-0.5">{nodeScope}</div>
+                        <div className="mt-0.5 text-[10px] font-mono uppercase text-zinc-400 dark:text-zinc-500">{nodeScope}</div>
                       </td>
                       <td className="p-4 whitespace-nowrap">
                         <span className="font-mono text-xs capitalize text-zinc-800 dark:text-zinc-100">
@@ -339,13 +339,13 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
                         </span>
                       </td>
                       <td className="p-4 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase ${
-                          l.status === 'Success' ? 'bg-green-100 text-green-800 border border-green-200' : l.status === 'Delayed' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-red-100 text-red-800 border border-red-200'
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-mono font-semibold uppercase ${
+                          l.status === 'Success' ? 'border-green-200 bg-green-100 text-green-800' : l.status === 'Delayed' ? 'border-amber-200 bg-amber-100 text-amber-800' : 'border-red-200 bg-red-100 text-red-800'
                         }`}>
                           {l.status}
                         </span>
                       </td>
-                      <td className="p-4 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                      <td className="p-4 text-xs leading-relaxed text-zinc-600 dark:text-zinc-300">
                         {l.details}
                       </td>
                     </tr>

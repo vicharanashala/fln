@@ -188,11 +188,11 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
       </div>
 
       {/* Logs Table / List */}
-      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-gray-100 text-[10px] font-extrabold uppercase text-slate-700 dark:bg-gray-950/40 dark:border-gray-800">
+      <div className="overflow-hidden rounded-[24px] border border-gray-200/80 bg-white/90 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-gray-800/80 dark:bg-gray-900/80">
+        <div className="max-h-[70vh] overflow-auto">
+          <table className="w-full border-collapse text-left text-xs">
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-gray-200/80 bg-slate-50/95 text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-600 backdrop-blur dark:border-gray-800/80 dark:bg-gray-950/80 dark:text-slate-400">
                 <th className="px-6 py-3.5 text-primary-navy font-bold">Timestamp</th>
                 <th className="px-6 py-3.5 text-primary-navy font-bold">Log Type</th>
                 <th className="px-6 py-3.5 text-primary-navy font-bold">Initiated Level</th>
@@ -200,9 +200,9 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
                 <th className="px-6 py-3.5 text-primary-navy font-bold">Operation Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <tbody className="bg-white text-sm text-slate-700 dark:bg-gray-900 dark:text-slate-300">
               {finalLogs.map(log => (
-                <tr key={log.id} className="hover:bg-gray-50/70 transition-colors dark:hover:bg-gray-950/40">
+                <tr key={log.id} className="border-b border-gray-100/80 odd:bg-white even:bg-slate-50/70 transition-colors hover:bg-indigo-50/70 dark:border-gray-800/70 dark:odd:bg-gray-900 dark:even:bg-gray-950/40 dark:hover:bg-gray-800/70">
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                     <span className="font-mono text-[11px]">{log.time}</span>

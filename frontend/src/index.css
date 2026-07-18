@@ -23,15 +23,45 @@
 @variant dark (&:where(.dark, .dark *));
 
 html, body {
-  background-color: #F8FAFC;
-  color: #1E293B;
+  background-color: #f8fafc;
+  color: #0f172a;
   font-family: var(--font-sans);
   transition: background-color 0.2s ease, color 0.2s ease;
+  min-height: 100%;
 }
 
 html.dark, html.dark body {
   background-color: #020617;
-  color: #F1F5F9;
+  color: #f8fafc;
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.25);
+  color: inherit;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 40px -24px rgba(15, 23, 42, 0.35);
+}
+
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(71, 85, 105, 0.45);
+  box-shadow: 0 16px 40px -24px rgba(2, 6, 23, 0.7);
 }
 
 /* Custom class for top indicator ribbon */
@@ -62,6 +92,16 @@ input, select, textarea {
   75% { transform: translateX(4px); }
 }
 
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.25s ease-out forwards;
 }
@@ -72,6 +112,55 @@ input, select, textarea {
 
 .animate-shake {
   animation: shake 0.2s ease-in-out 2;
+}
+
+.ui-card {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.ui-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px -24px rgba(15, 23, 42, 0.35);
+}
+
+.ui-button {
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+.ui-button:hover {
+  transform: translateY(-1px);
+}
+
+.ui-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.ui-sidebar {
+  transition: width 220ms ease, opacity 220ms ease, transform 220ms ease, border-color 220ms ease;
+}
+
+.ui-dropdown {
+  animation: dropdownIn 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ui-modal-backdrop {
+  animation: fadeIn 180ms ease-out;
+}
+
+.ui-modal-panel {
+  animation: modalIn 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-card,
+  .ui-button,
+  .ui-sidebar,
+  .ui-dropdown,
+  .ui-modal-backdrop,
+  .ui-modal-panel {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Custom scrollbars for a cleaner UI */

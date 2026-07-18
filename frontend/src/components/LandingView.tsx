@@ -69,10 +69,10 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 transition-colors duration-200">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.08),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.15),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_24%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] text-slate-800 transition-colors duration-200">
       
       {/* 1. Accessibility / Top strip (neutral branding) */}
-      <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-gray-800">
+      <div className="w-full bg-slate-950/95 text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-slate-800/90 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <span className="font-bold">FLN Portal</span>
           <span className="text-gray-500">|</span>
@@ -99,7 +99,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
       </div>
 
       {/* 3. Main portal banner header */}
-      <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-950/50">
+      <header className="border-b border-slate-200/70 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
             {/* Authentic Sarnath Pillar representative icon */}
@@ -125,7 +125,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
           <div className="flex items-center gap-3">
             <button
               onClick={onNavigateToLogin}
-              className="rounded-lg bg-indigo-700 dark:bg-indigo-800 px-6 py-2.5 text-xs font-extrabold text-white shadow-md dark:shadow-slate-950/50 transition-all duration-150 hover:bg-indigo-600 dark:hover:bg-indigo-700 border border-indigo-300 dark:border-indigo-700 active:scale-[0.98] uppercase tracking-wider"
+              className="rounded-full bg-indigo-600 px-6 py-2.5 text-xs font-semibold text-white shadow-[0_12px_28px_-16px_rgba(79,70,229,0.75)] transition-all duration-150 hover:bg-indigo-500 active:scale-[0.98] uppercase tracking-[0.2em] border border-indigo-400/60"
             >
               Sign In to Dashboard
             </button>
@@ -161,7 +161,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
             return (
               <div
                 key={index}
-                className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm dark:shadow-slate-950/50 transition hover:shadow-md dark:hover:shadow-slate-950/50"
+                className="flex items-center gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 p-6 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.35)] backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_-24px_rgba(15,23,42,0.45)]"
               >
                 <div className={`rounded-xl p-3 ${stat.color}`}>
                   <Icon className="h-6 w-6" />
@@ -187,7 +187,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
         </div>
 
         {/* Vision Section */}
-        <div className="mt-20 rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 shadow-sm dark:shadow-slate-950/50">
+        <div className="mt-20 rounded-[28px] border border-slate-200/80 dark:border-slate-700/80 bg-white/75 dark:bg-slate-900/75 p-8 shadow-[0_24px_48px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             <div>
               <h3 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">

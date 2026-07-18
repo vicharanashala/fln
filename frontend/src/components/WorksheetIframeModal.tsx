@@ -46,8 +46,8 @@ export const WorksheetIframeModal: React.FC<WorksheetIframeModalProps> = ({
   const src = CLASS_FILE_MAP[className];
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div className="ui-modal-backdrop fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-md">
+      <div className="ui-modal-panel bg-white dark:bg-slate-900 rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
         {/* Modal Header */}
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-700 flex justify-between items-center bg-zinc-55 dark:bg-slate-800 px-6">
           <div>
