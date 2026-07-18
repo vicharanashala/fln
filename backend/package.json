@@ -6,11 +6,12 @@
   "scripts": {
     "dev:old": "tsx src/index.ts",
     "dev:new": "tsx src/server.ts",
-    "dev": "concurrently -n old,new -c yellow,cyan \"npm run dev:old\" \"npm run dev:new\"",
+    "dev": "npm run dev:old",
     "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
     "seed": "tsx src/seed.ts",
+    "seed:html": "tsx src/seedLevelHtml.ts",
     "seed:geo": "tsx src/utils/seedGeo.ts"
   },
   "dependencies": {

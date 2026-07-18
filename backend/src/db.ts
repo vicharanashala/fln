@@ -118,6 +118,14 @@ export interface LevelWorksheet {
   generatedAt: string;
 }
 
+export interface LevelHtmlTemplate {
+  levelNumber: number;
+  title: string;
+  fileName: string;
+  htmlContent: string;
+  createdAt: string;
+}
+
 export interface Worksheet {
   id: string; // Exam ID
   classId: string;
@@ -268,6 +276,7 @@ interface DatabaseSchema {
   questions: Question[];
   worksheets: Worksheet[];
   levelWorksheets: LevelWorksheet[];
+  levelHtmlTemplates: LevelHtmlTemplate[];
   answerSubmissions: AnswerSubmission[];
   evaluationReports: EvaluationReport[];
   tickets: Ticket[];
@@ -284,6 +293,8 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   students: 'students',
   questions: 'questions',
   worksheets: 'worksheets',
+  levelWorksheets: 'levelWorksheets',
+  levelHtmlTemplates: 'levelHtmlTemplates',
   answerSubmissions: 'answer_submissions',
   evaluationReports: 'evaluation_reports',
   tickets: 'tickets',
@@ -305,15 +316,18 @@ export class DBStore {
 
   async init() {
     if (mongoClient) {
-      console.log('Loading data from MongoDB...');
+      console.log('Connecting to MongoDB...');
       this.mongoDb = mongoClient.db();
-      const db = this.mongoDb;
       this.data = {} as DatabaseSchema;
+      // Load lightweight counts for the in-memory cache (used by write methods)
+      const db = this.mongoDb;
       for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
-        const docs = await db.collection(collName).find().toArray();
-        (this.data as any)[key] = docs.map(({ _id, ...rest }) => rest);
+        (this.data as any)[key] = [];
       }
-      console.log(`MongoDB loaded: ${this.data.users?.length || 0} users, ${this.data.schools?.length || 0} schools, ${this.data.students?.length || 0} students`);
+      const userCount = await db.collection('users').countDocuments();
+      const schoolCount = await db.collection('schools').countDocuments();
+      const studentCount = await db.collection('students').countDocuments();
+      console.log(`MongoDB ready: ${userCount} users, ${schoolCount} schools, ${studentCount} students`);
     } else {
       console.log('No MongoDB — falling back to file-based DB');
       try {
@@ -390,6 +404,12 @@ export class DBStore {
   }
   async getLevelWorksheets() {
     return await this.mongoDb!.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
+  }
+  async getLevelHtmlTemplates() {
+    return await this.mongoDb!.collection<LevelHtmlTemplate>('levelHtmlTemplates').find({}).sort({ levelNumber: 1 }).toArray();
+  }
+  async getLevelHtmlTemplate(levelNumber: number) {
+    return await this.mongoDb!.collection<LevelHtmlTemplate>('levelHtmlTemplates').findOne({ levelNumber });
   }
   async getAnswerSubmissions() {
     return await this.mongoDb!.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();

@@ -118,6 +118,20 @@ async function startServer() {
     });
   });
 
+  // Level HTML Templates
+  app.get('/api/level-html', async (_req, res) => {
+    const templates = await dbStore.getLevelHtmlTemplates();
+    res.json(templates.map(t => ({ levelNumber: t.levelNumber, title: t.title, fileName: t.fileName })));
+  });
+
+  app.get('/api/level-html/:level', async (req, res) => {
+    const level = parseInt(req.params.level, 10);
+    if (isNaN(level)) return res.status(400).json({ error: 'Invalid level number' });
+    const template = await dbStore.getLevelHtmlTemplate(level);
+    if (!template) return res.status(404).json({ error: `Level ${level} not found` });
+    res.json(template);
+  });
+
   // Auth: Login
   app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
