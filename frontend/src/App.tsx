@@ -21,6 +21,7 @@ import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
 
 export default function App() {
@@ -128,9 +129,11 @@ export default function App() {
             {currentView === 'dashboard' && currentUser && token && (
               <Layout
                 currentUser={currentUser}
+                token={token}
                 onRoleSwitch={handleRoleSwitch}
                 activeView={activePanel}
                 onSelectView={setActivePanel}
+                onSelectPanel={setActivePanel}
                 notifications={announcements}
                 onMarkNotificationRead={handleMarkNotificationRead}
                 onClearNotifications={handleClearNotifications}
@@ -224,7 +227,9 @@ export default function App() {
                 )}
 
                 {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(activePanel) && (
-                  <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectPanel={setActivePanel} />
+                  <ErrorBoundary fallbackTitle="Panel Error">
+                    <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectPanel={setActivePanel} />
+                  </ErrorBoundary>
                 )}
 
                 {toast && (

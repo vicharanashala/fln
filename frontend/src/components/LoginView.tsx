@@ -58,7 +58,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
       } else {
         setError(data.error || 'Invalid email or password');
       }
-    } catch (err) {
+    } catch {
       setError('Connection failed. Verify server state.');
     } finally {
       setLoading(false);

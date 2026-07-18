@@ -86,6 +86,11 @@ async function startServer() {
 
   // --- API Endpoints ---
 
+  // Health check endpoint (no auth required)
+  app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() });
+  });
+
   // Public stats (no auth required — used by landing page)
   app.get('/api/stats', async (_req, res) => {
     const db = dbStore.getDb();
