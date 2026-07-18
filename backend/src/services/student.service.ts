@@ -32,6 +32,21 @@ export interface IStudentProfile {
   currentLevel: number;
   currentSubLevel?: number | null;
   enrollmentDate?: string | null;
+  // Phase 3: Editable personal / contact fields. Surfaced through
+  // GET /api/students/:id so the Teacher Dashboard "View Profile"
+  // modal reflects whatever the teacher has edited via PATCH. None of
+  // these existed in the seeded docs at the time this interface was
+  // extended, so all of them are `?: string | null` (or `boolean | null`
+  // for midDayMeal) and the display layer falls back to "Not Available".
+  dateOfBirth?: string | null;
+  bloodGroup?: string | null;
+  disabilityStatus?: string | null;
+  guardianName?: string | null;
+  guardianRelation?: string | null;
+  contactNumber?: string | null;
+  residentialAddress?: string | null;
+  midDayMeal?: boolean | null;
+  busRoute?: string | null;
 }
 
 /**
@@ -227,6 +242,164 @@ export class StudentService {
       // Seeded docs do not carry an `enrollmentDate` field yet. Surface
       // as null so the display layer can render "Not Available".
       enrollmentDate: null,
+      // Phase 3: Editable personal / contact fields. Any field that is
+      // absent on the stored document comes back as `null` so the
+      // Teacher Dashboard modal can show "Not Available" exactly the
+      // same way it does for `gender` and `enrollmentDate`. Once the
+      // teacher saves via PATCH, the field round-trips through this
+      // endpoint on the next View Profile click.
+      dateOfBirth: student.dateOfBirth ?? null,
+      bloodGroup: student.bloodGroup ?? null,
+      disabilityStatus: student.disabilityStatus ?? null,
+      guardianName: student.guardianName ?? null,
+      guardianRelation: student.guardianRelation ?? null,
+      contactNumber: student.contactNumber ?? null,
+      residentialAddress: student.residentialAddress ?? null,
+      midDayMeal: student.midDayMeal ?? null,
+      busRoute: student.busRoute ?? null,
     };
+  }
+
+  /**
+   * Patch the editable personal fields of a single student.
+   *
+   * Wire shape (caller-controlled, must already be the diff-only payload):
+   *   {
+   *     name?, age?, gender?, dateOfBirth?, bloodGroup?, disabilityStatus?,
+   *     guardianName?, guardianRelation?, contactNumber?, residentialAddress?,
+   *     midDayMeal?, busRoute?,
+   *   }
+   *
+   * Out-of-bounds fields are silently dropped here; the controller is
+   * responsible for whitelisting what the caller is allowed to change
+   * before forwarding to this method. Read-only fields
+   * (`id`, `schoolId`, `classGroup`, `section`, `currentLevel`,
+   * `targetLevel`, `streak`, `levelHistory`, `aadharMasked`, etc.) are
+   * never accepted by this method even if the caller puts them in the
+   * patch.
+   *
+   * Auth & scoping:
+   *  - superadmin: bypasses school-scope so they can patch any student.
+   *  - any other role: must match `actingUser.schoolId` against the
+   *    student's `schoolId`; otherwise 403.
+   *
+   * Status codes (via `AppError`):
+   *  - 400 when the patch is empty or no editable fields are present.
+   *  - 403 on cross-school patch attempts by non-superadmin callers.
+   *  - 404 when no student matches `studentId`.
+   *
+   * Returns the freshly-updated student (plain object, lean) so the
+   * controller can pipe it straight to the wire. Role-based Aadhar
+   * masking (superadmin sees raw, others see `XXXX-XXXX-1234`) is
+   * applied at the controller layer, not here.
+   */
+  async updateStudent(
+    studentId: string,
+    patch: Record<string, unknown>,
+    actingUser: { role?: string; schoolId?: string }
+  ): Promise<IStudent> {
+    if (!studentId || typeof studentId !== 'string' || studentId.trim() === '') {
+      throw new AppError('Student id is required.', httpStatus.BAD_REQUEST);
+    }
+
+    // Whitelist of editable fields. Anything else in the patch is
+    // silently dropped — read-only fields (id, schoolId, classGroup,
+    // section, currentLevel, targetLevel, streak, levelHistory,
+    // aadharMasked, teacherId) cannot be modified from this endpoint.
+    const EDITABLE: readonly string[] = [
+      'name',
+      'age',
+      'gender',
+      'dateOfBirth',
+      'bloodGroup',
+      'disabilityStatus',
+      'guardianName',
+      'guardianRelation',
+      'contactNumber',
+      'residentialAddress',
+      'midDayMeal',
+      'busRoute',
+    ];
+
+    const sanitized: Record<string, unknown> = {};
+    for (const key of EDITABLE) {
+      if (key in patch) sanitized[key] = patch[key];
+    }
+
+    if (Object.keys(sanitized).length === 0) {
+      throw new AppError(
+        'No editable fields provided.',
+        httpStatus.BAD_REQUEST
+      );
+    }
+
+    // Light validation of well-known constraints. Failures here produce
+    // 400s; the controller does not add its own validation layer.
+    if ('name' in sanitized) {
+      const name = sanitized.name;
+      if (typeof name !== 'string' || name.trim() === '') {
+        throw new AppError('Name cannot be empty.', httpStatus.BAD_REQUEST);
+      }
+      sanitized.name = name.trim();
+    }
+    if ('age' in sanitized) {
+      const age = sanitized.age;
+      const ageNum = typeof age === 'number' ? age : Number(age);
+      if (!Number.isFinite(ageNum) || ageNum < 3 || ageNum > 25) {
+        throw new AppError('Age must be between 3 and 25.', httpStatus.BAD_REQUEST);
+      }
+      sanitized.age = ageNum;
+    }
+    if ('contactNumber' in sanitized) {
+      const contact = sanitized.contactNumber;
+      if (contact != null && contact !== '') {
+        const digits = String(contact).replace(/[^0-9]/g, '');
+        if (digits.length < 7 || digits.length > 15) {
+          throw new AppError(
+            'Contact number must contain between 7 and 15 digits.',
+            httpStatus.BAD_REQUEST
+          );
+        }
+        // Preserve the user-entered format (e.g. "+91-9876543210") in the
+        // DB so the frontend can display it the way the teacher typed it.
+        // Only the digit count is validated; sanitization is left to the
+        // view layer.
+        sanitized.contactNumber = String(contact).trim();
+      }
+    }
+    if ('dateOfBirth' in sanitized) {
+      const dob = sanitized.dateOfBirth;
+      if (dob != null && dob !== '') {
+        const d = new Date(dob as string);
+        if (isNaN(d.getTime())) {
+          throw new AppError('Date of birth is not a valid date.', httpStatus.BAD_REQUEST);
+        }
+      }
+    }
+
+    // Scope check. Read the student first so we know its school before
+    // we attempt the update — same auth pattern as `getStudentProfile`.
+    const existing = await this.repository.findById(studentId.trim());
+    if (!existing) {
+      throw new AppError('Student not found.', httpStatus.NOT_FOUND);
+    }
+
+    const role = (actingUser.role || '').toLowerCase();
+    if (role !== 'superadmin') {
+      if (actingUser.schoolId && existing.schoolId !== actingUser.schoolId) {
+        throw new AppError(
+          'You are not authorized to edit this student.',
+          httpStatus.FORBIDDEN
+        );
+      }
+    }
+
+    const updated = await this.repository.updateById(studentId.trim(), sanitized);
+    if (!updated) {
+      // Defensive: the doc disappeared between findById and updateById.
+      throw new AppError('Student not found.', httpStatus.NOT_FOUND);
+    }
+
+    return updated;
   }
 }

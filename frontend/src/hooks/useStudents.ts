@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchStudents, createStudent, CreateStudentPayload } from '../services/studentService';
+import {
+  fetchStudents,
+  createStudent,
+  updateStudent,
+  CreateStudentPayload,
+  UpdateStudentPayload,
+} from '../services/studentService';
 import { Student } from '../types';
 
 /**
@@ -28,6 +34,32 @@ export function useCreateStudent() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateStudentPayload) => createStudent(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+  });
+}
+
+/**
+ * Phase 3 (Edit Personal Details): PATCH a student's editable personal
+ * fields. Invalidates the `['students']` query on success so the
+ * Dashboard, Student List, Registration, and Student Profile all
+ * re-render with the freshly-updated values.
+ *
+ * Caller is responsible for sending a diff-only payload (only the keys
+ * the user actually changed). The backend's whitelist silently drops
+ * read-only fields if any slip through.
+ *
+ * The mutation returns the updated student (already Aadhar-masked by
+ * the controller) so callers can do optimistic updates if desired. The
+ * default `onSuccess` invalidates the cache; a 200 response means the
+ * cache will refetch on the next read.
+ */
+export function useUpdateStudent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateStudentPayload }) =>
+      updateStudent(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
     },

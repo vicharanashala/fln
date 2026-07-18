@@ -1711,6 +1711,22 @@ const StudentProfileModal: React.FC<{
           currentLevel: number;
           currentSubLevel: number | null;
           enrollmentDate: string | null;
+          // Phase 3: Editable personal / contact fields surfaced from
+          // GET /api/students/:id so the Teacher Dashboard "View
+          // Profile" modal shows the same values the teacher can edit
+          // from the Student Profile page. Auto-refresh on the next
+          // modal open after a PATCH; the modal does NOT subscribe to
+          // the React Query ['students'] cache because each open does a
+          // fresh GET /api/students/:id fetch.
+          dateOfBirth: string | null;
+          bloodGroup: string | null;
+          disabilityStatus: string | null;
+          guardianName: string | null;
+          guardianRelation: string | null;
+          contactNumber: string | null;
+          residentialAddress: string | null;
+          midDayMeal: boolean | null;
+          busRoute: string | null;
         };
       };
 
@@ -1736,7 +1752,7 @@ const StudentProfileModal: React.FC<{
         }
         setState({ status: 'ok', data: body });
       } catch {
-        if (!cancelled) setState({ status: 'error', message: 'Network error loading profile.' });
+        if (!cancelled) setState({ status: 'error', message: 'Network error loading student record.' });
       }
     })();
     return () => {
@@ -1776,6 +1792,9 @@ const StudentProfileModal: React.FC<{
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               Read-only snapshot. Editing, performance, and worksheet actions are available from the roster.
+            </p>
+            <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mt-1.5">
+              Profile data reflects the latest PATCH /api/students/:id edits.
             </p>
           </div>
           <button
@@ -1860,6 +1879,83 @@ const StudentProfileModal: React.FC<{
                 <dd className="text-sm text-zinc-700 dark:text-zinc-200">
                   {renderValue(state.data.enrollmentDate)}
                   {renderMissingChip(state.data.enrollmentDate === null || state.data.enrollmentDate === '')}
+                </dd>
+              </div>
+
+              {/* Phase 3: Editable personal / contact fields. Rendered
+                  after the original 10 fields so the modal grows downward
+                  rather than reshuffling. Each row uses the same
+                  renderValue / renderMissingChip pair as the rest of the
+                  modal so unset values still show "Not Available" with
+                  the chip. Auto-refresh: the modal fetches on every open,
+                  so a PATCH from the Student Profile page is reflected
+                  the next time the teacher clicks "View Profile". */}
+
+              <div>
+                <dt className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500 mb-1">Date of Birth</dt>
+                <dd className="text-sm text-zinc-700 dark:text-zinc-200">
+                  {renderValue(state.data.dateOfBirth)}
+                  {renderMissingChip(state.data.dateOfBirth === null || state.data.dateOfBirth === '')}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500 mb-1">Blood Group</dt>
+                <dd className="text-sm text-zinc-700 dark:text-zinc-200">
+                  {renderValue(state.data.bloodGroup)}
+                  {renderMissingChip(state.data.bloodGroup === null || state.data.bloodGroup === '')}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500 mb-1">Disability Status</dt>
+                <dd className="text-sm text-zinc-700 dark:text-zinc-200">
+                  {renderValue(state.data.disabilityStatus)}
+                  {renderMissingChip(state.data.disabilityStatus === null || state.data.disabilityStatus === '')}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500 mb-1">Mid-Day Meal</dt>
+                <dd className="text-sm text-zinc-700 dark:text-zinc-200">
+                  {state.data.midDayMeal === true
+                    ? 'Yes'
+                    : state.data.midDayMeal === false
+                      ? 'No'
+                      : 'Not Available'}
+                  {renderMissingChip(state.data.midDayMeal === null)}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500 mb-1">Guardian Name</dt>
+                <dd className="text-sm text-zinc-700 dark:text-zinc-200">
+                  {renderValue(state.data.guardianName)}
+                  {renderMissingChip(state.data.guardianName === null || state.data.guardianName === '')}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500 mb-1">Relation</dt>
+                <dd className="text-sm text-zinc-700 dark:text-zinc-200">
+                  {renderValue(state.data.guardianRelation)}
+                  {renderMissingChip(state.data.guardianRelation === null || state.data.guardianRelation === '')}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500 mb-1">Contact Number</dt>
+                <dd className="text-sm text-zinc-700 dark:text-zinc-200">
+                  {renderValue(state.data.contactNumber)}
+                  {renderMissingChip(state.data.contactNumber === null || state.data.contactNumber === '')}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500 mb-1">Bus Route</dt>
+                <dd className="text-sm text-zinc-700 dark:text-zinc-200">
+                  {renderValue(state.data.busRoute)}
+                  {renderMissingChip(state.data.busRoute === null || state.data.busRoute === '')}
+                </dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500 mb-1">Residential Address</dt>
+                <dd className="text-sm text-zinc-700 dark:text-zinc-200">
+                  {renderValue(state.data.residentialAddress)}
+                  {renderMissingChip(state.data.residentialAddress === null || state.data.residentialAddress === '')}
                 </dd>
               </div>
             </dl>

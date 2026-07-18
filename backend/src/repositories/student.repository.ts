@@ -65,4 +65,38 @@ export class StudentRepository {
     const doc = await Student.findOne({ id }).lean().exec();
     return (doc as unknown as IStudent) ?? null;
   }
+
+  /**
+   * Patch a student document identified by its business `id`. The
+   * `patch` object is forwarded straight into Mongoose `$set` so the
+   * service / controller can pass only the fields the user actually
+   * edited (no full-document replacement).
+   *
+   * Returns the updated document as a plain JS object (no Mongoose
+   * wrappers) so the controller can JSON-serialize it directly. The
+   * schema's `toJSON` transform strips `__v` so the response shape
+   * matches `findAll` / `create` conventions.
+   *
+   * Returns `null` when no student matches the supplied id; the service
+   * layer is responsible for mapping that to a 404.
+   *
+   * `runValidators: true` is left at its default-off because the seeded
+   * `students` collection predates the new optional fields and many
+   * seeded docs have legacy nulls that Mongoose's strict validators
+   * would reject. The service-layer validation is the single source of
+   * truth for input shape — the repository is a thin wrapper.
+   */
+  async updateById(
+    id: string,
+    patch: Partial<IStudent>
+  ): Promise<IStudent | null> {
+    const updated = await Student.findOneAndUpdate(
+      { id },
+      { $set: patch },
+      { new: true }
+    )
+      .lean()
+      .exec();
+    return (updated as unknown as IStudent) ?? null;
+  }
 }

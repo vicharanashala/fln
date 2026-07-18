@@ -30,6 +30,22 @@ export interface IStudent {
   aadharMasked: string;
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
+  // Editable personal / contact details. All optional on the schema so the
+  // existing seeded docs (which do not carry these fields) keep loading
+  // without migration. The Student Profile "Edit Personal Details" feature
+  // (Phase 3) writes here via PATCH /api/students/:id; reads coalesce null
+  // -> "N/A" at the response edge so the UI degrades gracefully.
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  bloodGroup?: string | null;
+  disabilityStatus?: string | null;
+  guardianName?: string | null;
+  guardianRelation?: string | null;
+  contactNumber?: string | null;
+  residentialAddress?: string | null;
+  midDayMeal?: boolean | null;
+  busRoute?: string | null;
+  enrollmentDate?: string | null;
 }
 
 // Mongoose's `Document` already declares an `id` getter (typed as `any`).

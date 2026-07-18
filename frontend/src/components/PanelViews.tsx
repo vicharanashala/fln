@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useStudents } from '../hooks/useStudents';
+import { useStudents, useUpdateStudent } from '../hooks/useStudents';
 import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
-import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown, Edit3, Save, X, Loader2, AlertCircle } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
@@ -255,7 +255,34 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [blockFilter, setBlockFilter] = useState('all');
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
   const [sel, setSel] = useState('');
+  // Student Profile scope selectors — drive which class+section the
+  // dropdown and quick-stats operate over. Initialized as empty strings so
+  // the auto-init effect (below) picks them up from the first available
+  // student once the roster arrives.
+  const [scopeClassGroup, setScopeClassGroup] = useState('');
+  const [scopeSection, setScopeSection] = useState('');
   const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
+  // Edit Personal Details (Phase 3). `editingPersonal` is the master
+  // toggle; `personalDraft` holds the in-progress edit values; the
+  // original snapshot (taken when the user clicks Edit) is used by
+  // Cancel and by the unsaved-changes guard.
+  const [editingPersonal, setEditingPersonal] = useState(false);
+  const [personalDraft, setPersonalDraft] = useState<Record<string, string>>({});
+  const [personalOriginal, setPersonalOriginal] = useState<Record<string, string>>({});
+  const [personalErrors, setPersonalErrors] = useState<Record<string, string>>({});
+  const [personalSaving, setPersonalSaving] = useState(false);
+  const [personalToast, setPersonalToast] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+  // Tracks whether the draft has been mutated since Edit was clicked.
+  // Used by the unsaved-changes guard (student / tab / scope changes).
+  const [personalDirty, setPersonalDirty] = useState(false);
+  // Tracks when the user has acknowledged the unsaved-changes prompt
+  // (Save / Discard / Cancel) so the navigation can proceed.
+  const [pendingUnsavedPrompt, setPendingUnsavedPrompt] = useState<
+    | null
+    | { kind: 'student'; next: string }
+    | { kind: 'tab'; next: 'overview' | 'academic' | 'personal' | 'activity' }
+    | { kind: 'scope'; nextClass: string; nextSection: string }
+  >(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [activityFilter, setActivityFilter] = useState<'all' | 'assessment' | 'level_change'>('all');
@@ -265,6 +292,11 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [userSearch, setUserSearch] = useState('');
 
   const { data: students = [], isLoading: studentsLoading, isError: studentsError } = useStudents();
+  // Phase 3: Edit Personal Details PATCH mutation. The mutation itself
+  // invalidates the ['students'] cache (see useStudents.ts), so the
+  // freshly-updated student re-renders in Dashboard / Student List /
+  // Registration / Profile on success.
+  const updateStudentMutation = useUpdateStudent();
   const [apiSchools, setApiSchools] = useState<School[]>([]);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
 
@@ -288,8 +320,271 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       if (!sel || !stillExists) {
         setSel(students[0].id);
       }
+      // Initialize the Class/Section scope selectors from the
+      // currently-selected (or first) student, but only if they haven't
+      // been set yet. Subsequent changes flow from the user via the
+      // dropdowns in the Student Profile header.
+      if (!scopeClassGroup) setScopeClassGroup(students[0].classGroup);
+      if (!scopeSection) setScopeSection(students[0].section);
     }
-  }, [students, sel]);
+  }, [students, sel, scopeClassGroup, scopeSection]);
+
+  // Phase 3: Edit Personal Details — derived helpers.
+  //
+  // `startEditPersonal(student)` snapshots the current values from the
+  // selected student into `personalOriginal` so Cancel can restore them
+  // exactly, copies the same values into `personalDraft` so the form is
+  // pre-populated, and flips the master toggle on. Dirty is reset
+  // because the snapshot is identical to the draft at this point.
+  //
+  // `cancelEditPersonal()` is the symmetric exit path: it discards the
+  // draft, clears errors / dirty / saving state, and flips the master
+  // toggle off. It does NOT touch `personalOriginal` (kept around in
+  // case the user re-enters edit mode on the same student before the
+  // roster refetches).
+  //
+  // `saveEditPersonal(student)` runs the inline validation, builds a
+  // diff-only payload, fires the PATCH mutation, and shows a toast.
+  // React Query invalidates ['students'] on success so every consumer
+  // refetches and re-renders with the new values.
+  const startEditPersonal = (student: Student) => {
+    const snapshot: Record<string, string> = {
+      name: student.name || '',
+      dateOfBirth: student.dateOfBirth || '',
+      age: String(student.age ?? ''),
+      gender: student.gender || '',
+      bloodGroup: student.bloodGroup || '',
+      disabilityStatus: student.disabilityStatus || '',
+      guardianName: student.guardianName || '',
+      guardianRelation: student.guardianRelation || '',
+      contactNumber: student.contactNumber || '',
+      residentialAddress: student.residentialAddress || '',
+      midDayMeal:
+        student.midDayMeal === true
+          ? 'yes'
+          : student.midDayMeal === false
+            ? 'no'
+            : '',
+      busRoute: student.busRoute || '',
+    };
+    setPersonalOriginal(snapshot);
+    setPersonalDraft(snapshot);
+    setPersonalErrors({});
+    setPersonalDirty(false);
+    setPersonalToast(null);
+    setEditingPersonal(true);
+  };
+
+  const cancelEditPersonal = () => {
+    setEditingPersonal(false);
+    setPersonalDraft({});
+    setPersonalErrors({});
+    setPersonalDirty(false);
+    setPersonalToast(null);
+  };
+
+  const saveEditPersonal = async (student: Student) => {
+    // Inline validation — mirror the backend rules so the user gets
+    // instant feedback before the network round-trip.
+    const errs: Record<string, string> = {};
+    if (!personalDraft.name || personalDraft.name.trim() === '') {
+      errs.name = 'Name is required.';
+    }
+    const ageNum = Number(personalDraft.age);
+    if (
+      personalDraft.age === '' ||
+      !Number.isFinite(ageNum) ||
+      ageNum < 3 ||
+      ageNum > 25
+    ) {
+      errs.age = 'Age must be between 3 and 25.';
+    }
+    if (personalDraft.contactNumber && personalDraft.contactNumber.trim() !== '') {
+      const digits = personalDraft.contactNumber.replace(/[^0-9]/g, '');
+      if (digits.length < 7 || digits.length > 15) {
+        errs.contactNumber = 'Contact number must contain 7–15 digits.';
+      }
+    }
+    if (personalDraft.dateOfBirth && personalDraft.dateOfBirth.trim() !== '') {
+      const d = new Date(personalDraft.dateOfBirth);
+      if (isNaN(d.getTime())) {
+        errs.dateOfBirth = 'Date of birth is not a valid date.';
+      }
+    }
+    if (Object.keys(errs).length > 0) {
+      setPersonalErrors(errs);
+      setPersonalToast({
+        kind: 'error',
+        message: 'Please fix the highlighted fields before saving.',
+      });
+      return;
+    }
+    setPersonalErrors({});
+
+    // Build the diff-only payload. We only emit keys whose draft value
+    // differs from the snapshot, and we never send null/undefined for
+    // optional fields (we send the user-entered string so the backend
+    // can store it verbatim; an empty string means "clear the field").
+    const payload: Record<string, unknown> = {};
+    const draftKeyToBackendKey: Record<string, string> = {
+      name: 'name',
+      dateOfBirth: 'dateOfBirth',
+      age: 'age',
+      gender: 'gender',
+      bloodGroup: 'bloodGroup',
+      disabilityStatus: 'disabilityStatus',
+      guardianName: 'guardianName',
+      guardianRelation: 'guardianRelation',
+      contactNumber: 'contactNumber',
+      residentialAddress: 'residentialAddress',
+      busRoute: 'busRoute',
+    };
+    for (const [draftKey, backendKey] of Object.entries(draftKeyToBackendKey)) {
+      const original = personalOriginal[draftKey] ?? '';
+      const edited = personalDraft[draftKey] ?? '';
+      if (edited !== original) {
+        payload[backendKey] = backendKey === 'age' ? Number(edited) : edited;
+      }
+    }
+    // midDayMeal is a boolean; the draft stores 'yes' | 'no' | ''. Only
+    // include it in the payload when the choice changed (or was set
+    // for the first time on a student that previously had it unset).
+    const draftMdm = personalDraft.midDayMeal || '';
+    const origMdm = personalOriginal.midDayMeal || '';
+    if (draftMdm !== origMdm) {
+      payload.midDayMeal = draftMdm === 'yes' ? true : draftMdm === 'no' ? false : null;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      // Nothing to save — exit edit mode without making a request.
+      setPersonalToast({
+        kind: 'success',
+        message: 'No changes to save.',
+      });
+      setEditingPersonal(false);
+      setPersonalDirty(false);
+      return;
+    }
+
+    setPersonalSaving(true);
+    setPersonalToast(null);
+    try {
+      await updateStudentMutation.mutateAsync({ id: student.id, payload });
+      setPersonalToast({
+        kind: 'success',
+        message: 'Personal details updated successfully.',
+      });
+      setEditingPersonal(false);
+      setPersonalDirty(false);
+      // Refresh the snapshot so a subsequent Edit click starts from the
+      // freshly-saved values, not the pre-edit ones.
+      setPersonalOriginal({ ...personalDraft });
+    } catch (e: any) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        'Failed to save changes. Please try again.';
+      setPersonalToast({ kind: 'error', message: msg });
+    } finally {
+      setPersonalSaving(false);
+    }
+  };
+
+  // When the user switches tabs / students / scope while editing, we
+  // prompt them with a Save / Discard / Cancel dialog before letting
+  // the navigation proceed. The dialog state is held in
+  // `pendingUnsavedPrompt`; the actual switch happens in `confirmUnsaved*`
+  // helpers below.
+  const trySwitchStudent = (nextId: string) => {
+    if (editingPersonal && personalDirty && nextId !== sel) {
+      setPendingUnsavedPrompt({ kind: 'student', next: nextId });
+      return;
+    }
+    setSel(nextId);
+    setProfileTab('overview');
+    setShowDropdown(false);
+    setSearchQuery('');
+  };
+  const trySwitchTab = (next: 'overview' | 'academic' | 'personal' | 'activity') => {
+    if (editingPersonal && personalDirty && next !== profileTab) {
+      setPendingUnsavedPrompt({ kind: 'tab', next });
+      return;
+    }
+    setProfileTab(next);
+  };
+  const trySwitchScope = (nextClass: string, nextSection: string) => {
+    if (
+      editingPersonal &&
+      personalDirty &&
+      (nextClass !== scopeClassGroup || nextSection !== scopeSection)
+    ) {
+      setPendingUnsavedPrompt({ kind: 'scope', nextClass, nextSection });
+      return;
+    }
+    setScopeClassGroup(nextClass);
+    setScopeSection(nextSection);
+    const first = students.find(
+      (x) => x.classGroup === nextClass && x.section === nextSection
+    );
+    if (first) setSel(first.id);
+  };
+
+  const confirmUnsavedSave = async () => {
+    const target = students.find((x) => x.id === sel);
+    if (!target) {
+      setPendingUnsavedPrompt(null);
+      return;
+    }
+    await saveEditPersonal(target);
+    // If save succeeded, exit edit mode and complete the pending nav.
+    // If save failed, stay in edit mode and let the user fix / discard.
+    if (!personalSaving && !Object.keys(personalErrors).length) {
+      const prompt = pendingUnsavedPrompt;
+      setPendingUnsavedPrompt(null);
+      if (!prompt) return;
+      if (prompt.kind === 'student') {
+        setSel(prompt.next);
+        setProfileTab('overview');
+        setShowDropdown(false);
+        setSearchQuery('');
+      } else if (prompt.kind === 'tab') {
+        setProfileTab(prompt.next);
+      } else {
+        setScopeClassGroup(prompt.nextClass);
+        setScopeSection(prompt.nextSection);
+        const first = students.find(
+          (x) =>
+            x.classGroup === prompt.nextClass &&
+            x.section === prompt.nextSection
+        );
+        if (first) setSel(first.id);
+      }
+    }
+  };
+  const confirmUnsavedDiscard = () => {
+    const prompt = pendingUnsavedPrompt;
+    cancelEditPersonal();
+    setPendingUnsavedPrompt(null);
+    if (!prompt) return;
+    if (prompt.kind === 'student') {
+      setSel(prompt.next);
+      setProfileTab('overview');
+      setShowDropdown(false);
+      setSearchQuery('');
+    } else if (prompt.kind === 'tab') {
+      setProfileTab(prompt.next);
+    } else {
+      setScopeClassGroup(prompt.nextClass);
+      setScopeSection(prompt.nextSection);
+      const first = students.find(
+        (x) =>
+          x.classGroup === prompt.nextClass &&
+          x.section === prompt.nextSection
+      );
+      if (first) setSel(first.id);
+    }
+  };
+  const cancelUnsavedPrompt = () => setPendingUnsavedPrompt(null);
 
   const filteredSchools = schools.filter(s => {
     if (stateFilter !== 'all' && s.stateCode !== stateFilter) return false;
@@ -483,31 +778,54 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       );
     }
 
-    // Restrict the dropdown to the currently-selected student's
-    // class + section. Search is applied on top of that scope.
+    // Available classes / sections for the scope selectors. These are
+    // derived from the live roster (the same array that drives the
+    // Dashboard and Student List) so the selectors always reflect
+    // exactly what `useStudents()` returned. If the teacher-suggested
+    // scope no longer matches a class that exists in the data, snap
+    // back to the first available class+section.
+    const availableClasses = Array.from(new Set(students.map(x => x.classGroup))).sort();
+    const availableSectionsForClass = Array.from(
+      new Set(students.filter(x => x.classGroup === scopeClassGroup).map(x => x.section))
+    ).sort();
+    const effectiveScopeClass = availableClasses.includes(scopeClassGroup) ? scopeClassGroup : (availableClasses[0] || '');
+    const effectiveScopeSection = availableSectionsForClass.includes(scopeSection) ? scopeSection : (availableSectionsForClass[0] || '');
+
+    // Restrict the dropdown to the teacher-selected Class + Section
+    // (driven by the scope selectors in the header). Search is applied
+    // on top of that scope. The selectors derive their lists from the
+    // live roster, so they always reflect what `useStudents()` returned.
     const scopedStudents = students.filter(
-      x => x.classGroup === s.classGroup && x.section === s.section
+      x => x.classGroup === effectiveScopeClass && x.section === effectiveScopeSection
     );
     const filteredStudents = scopedStudents.filter(x =>
       x.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       x.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const EXTENDED_PROFILES: Record<string, any> = {
-      s1: { gender: 'Male', dob: '2018-04-12', guardian: 'Gurpreet Singh', relation: 'Father', contact: '+91-98765-43210', address: 'House #42, Model Town, Ludhiana, PB-141001', enrollmentDate: '2025-04-01', lastMedical: '2026-01-15', bloodGroup: 'B+', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 7 - Model Town Stop', notes: 'Consistent performer. Shows strong number sense. Encourage peer tutoring.', sibblings: 'Elder sister in Class 5' },
-      s2: { gender: 'Female', dob: '2019-01-25', guardian: 'Harjeet Kaur', relation: 'Mother', contact: '+91-98123-45678', address: 'Village Dhandra, PO Box 23, Ludhiana', enrollmentDate: '2025-07-15', lastMedical: '2026-03-10', bloodGroup: 'O+', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 12 - Village Dhandra', notes: 'Struggles with pattern recognition. Needs visual learning aids. Regular attendance.', sibblings: 'Younger brother in Class 1' },
-      s3: { gender: 'Male', dob: '2017-08-30', guardian: 'Suresh Kumar', relation: 'Father', contact: '+91-99887-76655', address: '456, Green Avenue, Ludhiana, PB-141002', enrollmentDate: '2025-04-01', lastMedical: '2026-02-20', bloodGroup: 'A+', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 3 - Green Ave Stop', notes: 'Top performer in class. Ready for advanced multiplication. Consider skipping to Level 41.', sibblings: 'None' },
-      s4: { gender: 'Female', dob: '2018-11-05', guardian: 'Rajesh Sharma', relation: 'Father', contact: '+91-97654-32100', address: 'Flat 12B, Krishna Apartments, Civil Lines, Ludhiana', enrollmentDate: '2026-01-10', lastMedical: '2026-04-05', bloodGroup: 'AB+', disability: 'None', midDayMeal: 'No', busRoute: 'Route 7 - Civil Lines', notes: 'Newly enrolled. Baseline diagnostic pending. Parents report confidence in basic counting.', sibblings: 'Elder brother in Class 5' },
-      s5: { gender: 'Male', dob: '2019-05-18', guardian: 'Mandeep Verma', relation: 'Mother', contact: '+91-95432-10987', address: 'Ward 3, Basti Jodhewal, Ludhiana', enrollmentDate: '2025-07-15', lastMedical: '2025-12-01', bloodGroup: 'B-', disability: 'Mild visual impairment (corrected)', midDayMeal: 'Yes', busRoute: 'Route 7 - Basti Stop', notes: 'Diagnosed with mild myopia, wears glasses. Performing well in number sense.', sibblings: 'Younger sister (not in school yet)' },
-      s6: { gender: 'Female', dob: '2017-12-22', guardian: 'Vikram Gupta', relation: 'Father', contact: '+91-93210-87654', address: 'H.No. 88, Sarabha Nagar, Ludhiana', enrollmentDate: '2025-04-01', lastMedical: '2026-05-15', bloodGroup: 'O-', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 3 - Sarabha Nagar', notes: 'Exemplary in multiplication. Should be challenged with word problems.', sibblings: 'None' },
-      s7: { gender: 'Female', dob: '2020-03-10', guardian: 'Balwinder Kaur', relation: 'Mother', contact: '+91-98765-01234', address: 'Street 5, Daresi Market Area, Ludhiana', enrollmentDate: '2026-01-10', lastMedical: '2026-02-28', bloodGroup: 'A-', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 12 - Daresi Stop', notes: 'Youngest in class. Recently enrolled. Shows enthusiasm for tracing activities.', sibblings: 'Two elder siblings in school' },
-    };
-
-    const profile = EXTENDED_PROFILES[s.id] || {};
-    const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
+    // Demo / legacy fallback data removed. The Student Profile must now
+    // operate entirely on the live `students` array returned by
+    // `useStudents()` above (line 267) — the same array that drives the
+    // Teacher Dashboard, Student Registration, and Student List. Per the
+    // migration brief, any field that the backend does not currently
+    // Phase 3: the legacy `profile: Record<string, any> = {}` mock
+    // placeholder has been removed. Personal / contact fields are read
+    // directly from the live student document (`s`) so they always
+    // reflect the latest PATCH edits. Out-of-scope legacy fields
+    // (notes, siblings, lastMedical) intentionally show their
+    // 'N/A' fallback inline at the call site; they are not backed by
+    // the Student schema in Phase 3 and will be re-introduced in a
+    // future phase alongside the dedicated `/notes` and `/siblings`
+    // endpoints.
+    const reports: EvaluationReport[] = [];
+    const att: { student: string; class: string; present: number; total: number; percentage: number } | undefined = undefined;
     const studentSchool = schools.find(sch => sch.id === s.schoolId);
-    const att = ATTENDANCE_MOCK.find(a => a.student === s.name);
-    const daysSinceEnroll = Math.floor((Date.now() - new Date(profile.enrollmentDate || s.id).getTime()) / 86400000);
+    const enrollmentTimestamp = s.enrollmentDate
+      ? new Date(s.enrollmentDate).getTime()
+      : NaN;
+    const daysSinceEnroll = isNaN(enrollmentTimestamp)
+      ? null
+      : Math.floor((Date.now() - enrollmentTimestamp) / 86400000);
     const classStudents = students.filter(st => st.classGroup === s.classGroup);
     const classAvg = Math.round(classStudents.reduce((a, st) => a + st.currentLevel, 0) / Math.max(1, classStudents.length));
     const avgScore = reports.length > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reports.length) : 0;
@@ -543,7 +861,39 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                 <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">ID: {s.id}</span>
                 <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.levelHistory.length > 0 ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.levelHistory.length > 0 ? 'Active' : 'Pending Diagnostic'}</span>
               </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate"><strong>{studentSchool?.name || 'N/A'}</strong> · {s.classGroup} - {s.section} · Enrolled {daysSinceEnroll} days ago</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate"><strong>{studentSchool?.name || 'N/A'}</strong> · {s.classGroup} - {s.section} · Enrolled {daysSinceEnroll != null ? `${daysSinceEnroll} days ago` : 'date pending'}</p>
+            </div>
+            {/* Class + Section scope selectors — drive the student dropdown below. */}
+            <div className="flex items-center gap-2 shrink-0">
+              <select
+                value={effectiveScopeClass}
+                onChange={(e) => {
+                  // When class changes, snap section to the first one that
+                  // actually has students in the newly-chosen class.
+                  const secs = Array.from(
+                    new Set(students.filter(x => x.classGroup === e.target.value).map(x => x.section))
+                  ).sort();
+                  trySwitchScope(e.target.value, secs[0] || '');
+                }}
+                className="text-xs font-mono font-bold uppercase bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-slate-700 dark:text-slate-200 focus:border-indigo-400 outline-none"
+                aria-label="Filter student profile by class"
+              >
+                {availableClasses.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <select
+                value={effectiveScopeSection}
+                onChange={(e) => {
+                  trySwitchScope(effectiveScopeClass, e.target.value);
+                }}
+                className="text-xs font-mono font-bold uppercase bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-slate-700 dark:text-slate-200 focus:border-indigo-400 outline-none"
+                aria-label="Filter student profile by section"
+              >
+                {availableSectionsForClass.map(sec => (
+                  <option key={sec} value={sec}>Sec {sec}</option>
+                ))}
+              </select>
             </div>
             {/* Searchable student selector */}
             <div className="relative shrink-0">
@@ -564,9 +914,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                         <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-4">No students found.</p>
                       ) : filteredStudents.map(x => {
                         const isSelected = x.id === sel;
-                        const xAtt = ATTENDANCE_MOCK.find(a => a.student === x.name);
+                        const xAtt: { student: string; class: string; present: number; total: number; percentage: number } | undefined = undefined;
                         return (
-                          <button key={x.id} onClick={() => { setSel(x.id); setProfileTab('overview'); setShowDropdown(false); setSearchQuery(''); }}
+                          <button key={x.id} onClick={() => trySwitchStudent(x.id)}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-950' : ''}`}>
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>{x.name.charAt(0)}</div>
                             <div className="flex-1 min-w-0">
@@ -600,7 +950,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         {/* Tab navigation */}
         <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 w-fit">
           {tabs.map(t => (
-            <button key={t.key} onClick={() => setProfileTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${profileTab === t.key ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>
+            <button key={t.key} onClick={() => trySwitchTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${profileTab === t.key ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>
               <t.icon className="w-3.5 h-3.5" /> {t.label}
             </button>
           ))}
@@ -642,7 +992,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
               {/* Quick Info */}
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-2.5 text-sm">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Quick Info</h3>
-                {[['Age', `${s.age} yrs`], ['Gender', profile.gender], ['Blood Group', profile.bloodGroup], ['Guardian', profile.guardian], ['Contact', profile.contact], ['Attendance', att ? `${att.present}/${att.total} (${att.percentage}%)` : 'N/A']].map(([l, v]) => (
+                {[['Age', `${s.age} yrs`], ['Gender', s.gender || 'N/A'], ['Blood Group', s.bloodGroup || 'N/A'], ['Guardian', s.guardianName || 'N/A'], ['Contact', s.contactNumber || 'N/A'], ['Attendance', att ? `${att.present}/${att.total} (${att.percentage}%)` : 'N/A']].map(([l, v]) => (
                   <div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v || 'N/A'}</span></div>
                 ))}
               </div>
@@ -754,7 +1104,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
               {/* Teacher Notes */}
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Teacher Notes</h3>
-                <div className="text-sm text-slate-700 dark:text-slate-200 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 leading-relaxed">{profile.notes || 'No notes recorded.'}</div>
+                <div className="text-sm text-slate-700 dark:text-slate-200 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 leading-relaxed">{'No notes recorded.'}</div>
               </div>
 
               {/* Recommended Focus */}
@@ -913,27 +1263,311 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         {profileTab === 'personal' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
-              <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Personal Information</h3>
-              <div className="space-y-2.5 text-sm">{[
-                ['Full Name', s.name], ['Date of Birth', profile.dob || 'N/A'], ['Age', `${s.age} years`], ['Gender', profile.gender || 'N/A'], ['Blood Group', profile.bloodGroup || 'N/A'], ['Disability Status', profile.disability || 'None'], ['Aadhar Number', s.aadharMasked], ['Enrollment Date', profile.enrollmentDate || 'N/A'], ['Class & Section', `${s.classGroup} - ${s.section}`], ['School', studentSchool?.name || 'N/A'], ['School ID', s.schoolId],
-              ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Personal Information</h3>
+                {!editingPersonal && (
+                  <button
+                    type="button"
+                    onClick={() => startEditPersonal(s)}
+                    className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 px-2.5 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors"
+                    aria-label="Edit personal information"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" /> Edit
+                  </button>
+                )}
+              </div>
+              {personalToast && (
+                <div
+                  role="status"
+                  className={`flex items-start gap-2 text-xs px-3 py-2 rounded-lg border ${
+                    personalToast.kind === 'success'
+                      ? 'bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                  }`}
+                >
+                  {personalToast.kind === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  )}
+                  <span>{personalToast.message}</span>
+                </div>
+              )}
+              {editingPersonal ? (
+                <div className="space-y-3 text-sm">
+                  {[
+                    { key: 'name', label: 'Full Name', type: 'text', required: true },
+                    { key: 'dateOfBirth', label: 'Date of Birth', type: 'date' },
+                    { key: 'age', label: 'Age', type: 'number' },
+                  ].map((f) => (
+                    <div key={f.key}>
+                      <label className="flex justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                        <span>{f.label}{f.required ? ' *' : ''}</span>
+                      </label>
+                      <input
+                        type={f.type}
+                        value={personalDraft[f.key] || ''}
+                        disabled={personalSaving}
+                        onChange={(e) => {
+                          setPersonalDraft((prev) => ({ ...prev, [f.key]: e.target.value }));
+                          setPersonalDirty(true);
+                          if (personalErrors[f.key]) {
+                            setPersonalErrors((prev) => {
+                              const next = { ...prev };
+                              delete next[f.key];
+                              return next;
+                            });
+                          }
+                        }}
+                        className={`w-full text-sm border rounded-lg px-3 py-2 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${
+                          personalErrors[f.key]
+                            ? 'border-red-300 dark:border-red-700'
+                            : 'border-slate-200 dark:border-slate-700'
+                        } ${personalSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      />
+                      {personalErrors[f.key] && (
+                        <p className="text-[10px] text-red-600 dark:text-red-400 mt-1">{personalErrors[f.key]}</p>
+                      )}
+                    </div>
+                  ))}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="flex justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1"><span>Gender</span></label>
+                      <select
+                        value={personalDraft.gender || ''}
+                        disabled={personalSaving}
+                        onChange={(e) => {
+                          setPersonalDraft((prev) => ({ ...prev, gender: e.target.value }));
+                          setPersonalDirty(true);
+                        }}
+                        className={`w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${personalSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      >
+                        <option value="">— Select —</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="flex justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1"><span>Blood Group</span></label>
+                      <select
+                        value={personalDraft.bloodGroup || ''}
+                        disabled={personalSaving}
+                        onChange={(e) => {
+                          setPersonalDraft((prev) => ({ ...prev, bloodGroup: e.target.value }));
+                          setPersonalDirty(true);
+                        }}
+                        className={`w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${personalSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      >
+                        <option value="">— Select —</option>
+                        {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                          <option key={bg} value={bg}>{bg}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1"><span>Disability Status</span></label>
+                    <select
+                      value={personalDraft.disabilityStatus || ''}
+                      disabled={personalSaving}
+                      onChange={(e) => {
+                        setPersonalDraft((prev) => ({ ...prev, disabilityStatus: e.target.value }));
+                        setPersonalDirty(true);
+                      }}
+                      className={`w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${personalSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    >
+                      <option value="">None</option>
+                      <option value="Visual">Visual</option>
+                      <option value="Hearing">Hearing</option>
+                      <option value="Mobility">Mobility</option>
+                      <option value="Cognitive">Cognitive</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="flex justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1"><span>Guardian Name</span></label>
+                      <input
+                        type="text"
+                        value={personalDraft.guardianName || ''}
+                        disabled={personalSaving}
+                        onChange={(e) => {
+                          setPersonalDraft((prev) => ({ ...prev, guardianName: e.target.value }));
+                          setPersonalDirty(true);
+                        }}
+                        className={`w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${personalSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      />
+                    </div>
+                    <div>
+                      <label className="flex justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1"><span>Relation</span></label>
+                      <input
+                        type="text"
+                        value={personalDraft.guardianRelation || ''}
+                        disabled={personalSaving}
+                        onChange={(e) => {
+                          setPersonalDraft((prev) => ({ ...prev, guardianRelation: e.target.value }));
+                          setPersonalDirty(true);
+                        }}
+                        className={`w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${personalSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1"><span>Contact Number</span></label>
+                    <input
+                      type="text"
+                      value={personalDraft.contactNumber || ''}
+                      disabled={personalSaving}
+                      onChange={(e) => {
+                        setPersonalDraft((prev) => ({ ...prev, contactNumber: e.target.value }));
+                        setPersonalDirty(true);
+                        if (personalErrors.contactNumber) {
+                          setPersonalErrors((prev) => {
+                            const next = { ...prev };
+                            delete next.contactNumber;
+                            return next;
+                          });
+                        }
+                      }}
+                      className={`w-full text-sm border rounded-lg px-3 py-2 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${
+                        personalErrors.contactNumber
+                          ? 'border-red-300 dark:border-red-700'
+                          : 'border-slate-200 dark:border-slate-700'
+                      } ${personalSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    />
+                    {personalErrors.contactNumber && (
+                      <p className="text-[10px] text-red-600 dark:text-red-400 mt-1">{personalErrors.contactNumber}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="flex justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1"><span>Residential Address</span></label>
+                    <textarea
+                      value={personalDraft.residentialAddress || ''}
+                      disabled={personalSaving}
+                      onChange={(e) => {
+                        setPersonalDraft((prev) => ({ ...prev, residentialAddress: e.target.value }));
+                        setPersonalDirty(true);
+                      }}
+                      rows={2}
+                      className={`w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${personalSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="flex justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1"><span>Mid-Day Meal</span></label>
+                      <select
+                        value={personalDraft.midDayMeal || ''}
+                        disabled={personalSaving}
+                        onChange={(e) => {
+                          setPersonalDraft((prev) => ({ ...prev, midDayMeal: e.target.value }));
+                          setPersonalDirty(true);
+                        }}
+                        className={`w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${personalSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      >
+                        <option value="">— Select —</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="flex justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1"><span>Bus Route</span></label>
+                      <input
+                        type="text"
+                        value={personalDraft.busRoute || ''}
+                        disabled={personalSaving}
+                        onChange={(e) => {
+                          setPersonalDraft((prev) => ({ ...prev, busRoute: e.target.value }));
+                          setPersonalDirty(true);
+                        }}
+                        className={`w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${personalSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      />
+                    </div>
+                  </div>
+                  {/* Read-only fields are still surfaced below so the teacher
+                      has full context while editing. */}
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-1.5">
+                    <h4 className="text-[10px] font-mono font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">Read-only</h4>
+                    {[
+                      ['Aadhar Number', s.aadharMasked],
+                      ['Class & Section', `${s.classGroup} - ${s.section}`],
+                      ['School', studentSchool?.name || 'N/A'],
+                      ['School ID', s.schoolId],
+                    ].map(([l, v]) => (
+                      <div key={l as string} className="flex justify-between text-xs">
+                        <span className="text-slate-500 dark:text-slate-400">{l}</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-200 text-right max-w-[55%]">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={cancelEditPersonal}
+                      disabled={personalSaving}
+                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <X className="w-3.5 h-3.5" /> Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => saveEditPersonal(s)}
+                      disabled={personalSaving || !personalDirty}
+                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {personalSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      {personalSaving ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2.5 text-sm">{[
+                  ['Full Name', s.name],
+                  ['Date of Birth', s.dateOfBirth || 'N/A'],
+                  ['Age', `${s.age} years`],
+                  ['Gender', s.gender || 'N/A'],
+                  ['Blood Group', s.bloodGroup || 'N/A'],
+                  ['Disability Status', s.disabilityStatus || 'None'],
+                  ['Aadhar Number', s.aadharMasked],
+                  ['Class & Section', `${s.classGroup} - ${s.section}`],
+                  ['School', studentSchool?.name || 'N/A'],
+                  ['School ID', s.schoolId],
+                ].map(([l, v]) => (
+                  <div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5">
+                    <span className="text-slate-500 dark:text-slate-400">{l}</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span>
+                  </div>
+                ))}</div>
+              )}
             </div>
             <div className="space-y-6">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><UserCheck className="w-3.5 h-3.5" /> Guardian & Contact</h3>
                 <div className="space-y-2.5 text-sm">{[
-                  ['Guardian Name', profile.guardian || 'N/A'], ['Relation', profile.relation || 'N/A'], ['Contact Number', profile.contact || 'N/A'], ['Residential Address', profile.address || 'N/A'], ['Mid-Day Meal', profile.midDayMeal || 'N/A'], ['Bus Route', profile.busRoute || 'N/A'],
+                  ['Guardian Name', s.guardianName || 'N/A'],
+                  ['Relation', s.guardianRelation || 'N/A'],
+                  ['Contact Number', s.contactNumber || 'N/A'],
+                  ['Residential Address', s.residentialAddress || 'N/A'],
+                  ['Mid-Day Meal', s.midDayMeal === true ? 'Yes' : s.midDayMeal === false ? 'No' : 'N/A'],
+                  ['Bus Route', s.busRoute || 'N/A'],
                 ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Additional Information</h3>
                 <div className="text-sm space-y-2">{[
-                  ['Siblings in School', profile.sibblings || 'N/A'], ['Last Medical Check-up', profile.lastMedical || 'N/A'], ['Mid-Day Meal Beneficiary', profile.midDayMeal || 'N/A'],
+                  // Phase 3: MDM displays from the live editable field on the
+                  // student doc. `Siblings in School` and `Last Medical
+                  // Check-up` are not in scope for Phase 3 and continue to
+                  // show 'N/A' until a future phase adds them to the
+                  // Student schema.
+                  ['Siblings in School', 'N/A'],
+                  ['Last Medical Check-up', 'N/A'],
+                  ['Mid-Day Meal Beneficiary', s.midDayMeal === true ? 'Yes' : s.midDayMeal === false ? 'No' : 'N/A'],
                 ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v}</span></div>))}</div>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Teacher Notes</h3>
-                <div className="text-sm text-slate-700 dark:text-slate-200 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 leading-relaxed">{profile.notes || 'No notes recorded.'}</div>
+                <div className="text-sm text-slate-700 dark:text-slate-200 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 leading-relaxed">{'No notes recorded.'}</div>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Attendance Record</h3>

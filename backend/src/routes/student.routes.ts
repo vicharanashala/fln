@@ -23,5 +23,6 @@ router.use(authenticate);
 router.get('/', controller.getAll);
 router.get('/:id', controller.getById);
 router.post('/', controller.create);
+router.patch('/:id', controller.update);
 
 export default router;

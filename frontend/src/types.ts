@@ -55,6 +55,22 @@ export interface Student {
   aadharMasked: string;
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
+  // Editable personal / contact fields (Phase 3). All optional so the
+  // existing seeded docs (which do not carry these fields) keep loading
+  // without migration. The PATCH /api/students/:id backend endpoint
+  // whitelists these for write; read paths coalesce `null | undefined`
+  // to a graceful "N/A" placeholder at the display layer.
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  bloodGroup?: string | null;
+  disabilityStatus?: string | null;
+  guardianName?: string | null;
+  guardianRelation?: string | null;
+  contactNumber?: string | null;
+  residentialAddress?: string | null;
+  midDayMeal?: boolean | null;
+  busRoute?: string | null;
+  enrollmentDate?: string | null;
 }
 
 export interface Question {

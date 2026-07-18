@@ -125,4 +125,61 @@ export class StudentController {
       next(error);
     }
   }
+
+  /**
+   * PATCH /api/students/:id
+   *
+   * Body: the diff-only editable payload, e.g.
+   *   {
+   *     name?, age?, gender?, dateOfBirth?, bloodGroup?, disabilityStatus?,
+   *     guardianName?, guardianRelation?, contactNumber?, residentialAddress?,
+   *     midDayMeal?, busRoute?,
+   *   }
+   *
+   * Read-only fields are never accepted even if the caller sends them
+   * (the service whitelist silently drops them). The service is also
+   * the single source of truth for school-scope enforcement, 404, and
+   * input validation.
+   *
+   * On success returns the freshly-updated student as a raw JSON object
+   * (no envelope), with role-based Aadhar masking applied at the
+   * response edge so Superadmin sees the raw value and other roles see
+   * `XXXX-XXXX-1234`. Same wire shape as the legacy POST response, so
+   * the frontend's `useUpdateStudent` hook can call
+   * `queryClient.setQueryData(['students'], …)` or `invalidateQueries`
+   * interchangeably.
+   *
+   * Status codes:
+   *   200 — patched
+   *   400 — bad id, empty patch, or validation failure
+   *   403 — cross-school patch attempt by non-superadmin
+   *   404 — no student with the given id
+   */
+  async update(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const studentId = req.params.id;
+      const updated = await studentService.updateStudent(
+        studentId || '',
+        (req.body && typeof req.body === 'object' ? req.body : {}) as Record<string, unknown>,
+        {
+          role: req.user?.role,
+          schoolId: req.user?.schoolId,
+        }
+      );
+
+      const userRole = req.user?.role;
+      const masked =
+        userRole !== 'superadmin'
+          ? {
+              ...updated,
+              aadharMasked:
+                'XXXX-XXXX-' + (updated.aadharMasked || '').slice(-4),
+            }
+          : updated;
+
+      res.status(httpStatus.OK).json(masked);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

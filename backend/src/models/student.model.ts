@@ -65,6 +65,64 @@ const studentSchema = new Schema<IStudentDocument>(
       type: Number,
       default: 0,
     },
+    // Editable personal / contact details (Phase 3). All optional so the
+    // existing seeded docs keep loading without a migration. Values are
+    // trimmed strings (or booleans for midDayMeal) so the controller can
+    // read them straight from the wire without post-processing.
+    dateOfBirth: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    gender: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    bloodGroup: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    disabilityStatus: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    guardianName: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    guardianRelation: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    contactNumber: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    residentialAddress: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    midDayMeal: {
+      type: Boolean,
+      default: null,
+    },
+    busRoute: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    enrollmentDate: {
+      type: String,
+      trim: true,
+      default: null,
+    },
   },
   {
     // Seeded collection has no createdAt/updatedAt. Do not introduce them.
