@@ -10,11 +10,14 @@ import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import cors from 'cors';
+
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ROOT_DIR = path.resolve(__dirname, '..');
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+
 
 async function startServer() {
   // Connect to MongoDB
@@ -159,21 +162,24 @@ async function startServer() {
   // Announcements
   app.get('/api/announcements', async (req, res) => {
     const anns = await dbStore.getAnnouncements();
-    const user = getAuthUser(req);
+   const user = getAuthUser(req);
     if (!user) return res.json(anns);
 
-    const reads = await dbStore.getAnnouncementReads();
-    const readIds = new Set(reads.filter(r => r.userId === user.id).map(r => r.announcementId));
-    const withReadStatus = anns.map(a => ({ ...a, readByMe: readIds.has(a.id) }));
-    res.json(withReadStatus);
-  });
+  const reads = await dbStore.getAnnouncementReads();
+  const readIds = new Set(reads.filter(r => r.userId === user.id).map(r => r.announcementId));
+
+  const withReadStatus = anns.map(a => ({ ...a, readByMe: readIds.has(a.id) }));
+
+  res.json(withReadStatus);
+});
 
   app.post('/api/announcements/create', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user || user.role !== UserRole.SUPERADMIN) {
-      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
-    }
-    const { title, message, isUrgent } = req.body;
+  const user = getAuthUser(req);
+  if (!user || user.role !== UserRole.SUPERADMIN) {
+    return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
+  }
+
+  const { title, message, isUrgent } = req.body;
     const newAnn: Announcement = {
       id: 'ann_' + Date.now(),
       title,
@@ -2173,7 +2179,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }

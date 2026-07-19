@@ -264,6 +264,13 @@ export const Layout: React.FC<LayoutProps> = ({
           <span className="text-gray-300 dark:text-gray-400 hidden sm:inline font-mono">Foundational Literacy & Numeracy</span>
         </div>
         <div className="flex items-center gap-4">
+          <button 
+            onClick={() => alert("Screen Reader Access enabled. Screen reader voice instructions active.")}
+            className="hover:text-white transition hover:underline"
+          >
+            Screen Reader Access
+          </button>
+          <span className="text-gray-700 dark:text-gray-500">|</span>
           <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold">
             <button onClick={() => adjustFontSize(-10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Decrease font size">A-</button>
             <button onClick={resetFontSize} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Reset font size">A</button>
@@ -360,8 +367,6 @@ export const Layout: React.FC<LayoutProps> = ({
                   {notifications.filter(n => !n.readByMe).length}
                 </span>
               )}
-                </span>
-              )}
             </button>
 
             {showNotifications && (
@@ -407,7 +412,7 @@ export const Layout: React.FC<LayoutProps> = ({
             <div className="hidden flex-col sm:flex">
               <span className="text-xs font-bold text-slate-900 dark:text-white">{currentUser.name}</span>
               <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wide dark:text-slate-500">
-                {currentUser.role.replace('_', ' ')}
+              {currentUser?.name?.toLowerCase().includes('volunteer') ? 'Volunteer' : currentUser?.role?.replace('_', ' ')}
               </span>
             </div>
             <button

@@ -291,11 +291,13 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   students: 'students',
   questions: 'questions',
   worksheets: 'worksheets',
+  levelWorksheets: 'levelWorksheets',
   answerSubmissions: 'answer_submissions',
   evaluationReports: 'evaluation_reports',
   tickets: 'tickets',
   logbook: 'logbook',
   announcements: 'announcements',
+  announcementReads: 'announcementReads',
   interventions: 'interventions',
   bestPractices: 'best_practices',
 };
@@ -335,71 +337,11 @@ export class DBStore {
       }
     }
   }
+  
 
   private async save() {
     if (!this.data) return;
     await fs.writeFile(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
-  }
-
-// Seed any empty collections in MongoDB
-      const seed = this.getSeedData();
-      const collections = [
-        { name: 'users', data: seed.users },
-        { name: 'schools', data: seed.schools },
-        { name: 'classes', data: seed.classes },
-        { name: 'students', data: seed.students },
-        { name: 'questions', data: seed.questions },
-        { name: 'worksheets', data: seed.worksheets },
-        { name: 'levelWorksheets', data: seed.levelWorksheets },
-        { name: 'answerSubmissions', data: seed.answerSubmissions },
-        { name: 'evaluationReports', data: seed.evaluationReports },
-        { name: 'tickets', data: seed.tickets },
-        { name: 'logbook', data: seed.logbook },
-        { name: 'announcements', data: seed.announcements },
-        { name: 'announcementReads', data: seed.announcementReads },
-    
-        { name: 'interventions', data: seed.interventions },
-        { name: 'bestPractices', data: seed.bestPractices }
-      ];
-
-      for (const coll of collections) {
-        const count = await this.mongoDb.collection(coll.name).countDocuments();
-        if (count === 0 && coll.data.length > 0) {
-          await this.mongoDb.collection(coll.name).insertMany(coll.data);
-          console.log(`[Database] Seeded collection: ${coll.name} with ${coll.data.length} records`);
-        }
-      }
-
-      // Force update pre-seeded users in MongoDB to ensure volunteer names are updated
-      for (const u of seed.users) {
-        await this.mongoDb.collection('users').updateOne(
-          { email: u.email.toLowerCase() },
-          { $set: { name: u.name, role: u.role, assignedSchools: u.assignedSchools } },
-          { upsert: true }
-        );
-      }
-
-      // Cache the seeded/existing MongoDB data into this.data for lightning-fast synchronous operations (like auth checks)
-      this.data = {
-        users: await this.mongoDb.collection<User>('users').find({}).toArray(),
-        schools: await this.mongoDb.collection<School>('schools').find({}).toArray(),
-        classes: await this.mongoDb.collection<ClassGroup>('classes').find({}).toArray(),
-        students: await this.mongoDb.collection<Student>('students').find({}).toArray(),
-        questions: await this.mongoDb.collection<Question>('questions').find({}).toArray(),
-        worksheets: await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray(),
-        levelWorksheets: await this.mongoDb.collection<LevelWorksheet>('levelWorksheets').find({}).toArray(),
-        answerSubmissions: await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray(),
-        evaluationReports: await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({}).toArray(),
-        tickets: await this.mongoDb.collection<Ticket>('tickets').find({}).toArray(),
-        logbook: await this.mongoDb.collection<LogEntry>('logbook').find({}).toArray(),
-        announcements: await this.mongoDb.collection<Announcement>('announcements').find({}).toArray(),
-        interventions: await this.mongoDb.collection<Intervention>('interventions').find({}).toArray(),
-        bestPractices: await this.mongoDb.collection<BestPractice>('bestPractices').find({}).toArray()
-      };
-      console.log('[Database] MongoDB memory cache synchronized successfully.');
-    } catch (err: any) {
-      throw new Error(`Failed to connect to MongoDB: ${err?.message || err}`);
-    }
   }
 
   private async persistCollection(key: keyof DatabaseSchema) {
@@ -412,7 +354,6 @@ export class DBStore {
       await coll.insertMany(items);
     }
   }
-    
 
   async reset() {
     this.data = this.getSeedData();
@@ -426,41 +367,11 @@ export class DBStore {
           await coll.insertMany(items);
         }
       }
+      console.log('[Database] MongoDB reset and re-seeded successfully.');
     } else {
       await this.save();
     }
-console.log('[Database] Resetting MongoDB data...');
-    const db = this.mongoDb;
-    if (!db) throw new Error("Database not connected");
-    
-    const seed = this.getSeedData();
-
-    const collections = [
-      'users', 'schools', 'classes', 'students', 'questions',
-      'worksheets', 'levelWorksheets', 'answerSubmissions', 'evaluationReports',
-      'tickets', 'logbook', 'announcements', 'announcementReads', 'interventions'
-    ];
-  
-    for (const cName of collections) {
-      await db.collection(cName).deleteMany({});
-    }
-    await db.collection('users').insertMany(seed.users);
-    await db.collection('schools').insertMany(seed.schools);
-    await db.collection('classes').insertMany(seed.classes);
-    await db.collection('students').insertMany(seed.students);
-    await db.collection('questions').insertMany(seed.questions);
-    await db.collection('worksheets').insertMany(seed.worksheets);
-    await db.collection('answerSubmissions').insertMany(seed.answerSubmissions);
-    await db.collection('evaluationReports').insertMany(seed.evaluationReports);
-    await db.collection('tickets').insertMany(seed.tickets);
-    await db.collection('logbook').insertMany(seed.logbook);
-    await db.collection('announcements').insertMany(seed.announcements);
-    await db.collection('announcementReads').insertMany(seed.announcementReads);
-    await db.collection('interventions').insertMany(seed.interventions);
-    await db.collection('bestPractices').insertMany(seed.bestPractices);
-    console.log('[Database] MongoDB reset and re-seeded successfully.');set and re-seeded successfully.');
   }
-
   // --- Collection Accessors ---
 getUserSync(email: string): User | null {
     if (!this.data || !this.data.users) return null;
