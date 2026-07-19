@@ -13,15 +13,17 @@
 | Stage | Testable levels | Non-testable (oral-only) |
 |---|---|---|
 | 1 — Preschool 1 (age 3–4) | 7 | 0 |
-| 2 — Preschool 2 (age 4–5) | 9 | 0 |
-| 3 — Preschool 3 / Balvatika (age 5–6) | 9 | 0 |
-| 4 — Class 1 (age 6–7) | 14 | 1 (poems) |
+| 2 — Preschool 2 (age 4–5) | 10 | 0 |
+| 3 — Preschool 3 / Balvatika (age 5–6) | 10 | 0 |
+| 4 — Class 1 (age 6–7) | 15 | 1 (poems) |
 | 5 — Class 2 (age 7–8) | 19 | 1 (riddles) |
 | 6 — Class 3 (age 8–9) ★ MPL | 14 | 0 |
-| 7 — Class 4 (age 9–10) | 13 | 0 |
-| **Total** | **85** | **2** |
+| 7 — Class 4 (age 9–10) | 18 | 0 |
+| **Total** | **93** | **2** |
 
-This is a genuine count from decomposing the research, not a target to hit — it's organized by cognitive dependency within 10 strand-chains (see Part 2), not by an arbitrary sequential number, so it isn't directly comparable 1:1 to the repo's 59 until the actual comparison pass (still pending). (Eight nodes — zero, subitizing, the number line, ordinals, and skip-counting — were added to the framework during review; see the **Appendix: How These Documents Were Built** for the full drafting history of both this document and its companion.)
+This is a genuine count from decomposing the research, not a target to hit — it's organized by cognitive dependency within 10 strand-chains (see Part 2), not by an arbitrary sequential number, so it isn't directly comparable 1:1 to the repo's 59. **This count is not fixed and isn't expected to stay fixed** — it grew from 77→85 during the framework's own review rounds, and from 85→93 on 2026-07-19 after the repo comparison surfaced a genuine missing shape-composition sub-strand (Stage 2/3/4, +3 nodes) and four uncited-but-standard Class-4 topics plus the resolved Perimeter/Area gap (Stage 7, +5 nodes) — see the **Appendix: How These Documents Were Built** for the full history, and `fln_framework_evolution_log.md` for the repo-comparison reasoning specifically. Treat every count in this document as current-as-of-its-last-edit, not permanent.
+
+**Note on Part 3's worked diagnostic example, below:** it predates the 2026-07-19 Stage 2/3 additions and has not yet been recomputed to include the new nodes (S2.10, S3.10) — flagged at the point it appears rather than silently left inconsistent.
 
 ---
 
@@ -91,12 +93,13 @@ The number-line nodes (S4.14, S5.18) are sequence-typed side branches with no pr
 | S6.4 | S7.1 (Place value, thousands) | → | |
 | S7.1 | S7.2 (Large numbers/regrouping) | → | |
 | S4.1 (Numeral comparison, abstract) | S4.2 | → | |
+| S7.1 | S7.15 (Decimals, introduction) *(added 2026-07-19)* | → | Decimal place value (tenths, hundredths) genuinely extends the same tens-grouping logic as whole-number place value — a child who doesn't yet grasp thousands-place grouping isn't ready to reinterpret that grouping running in the other direction (tenths, hundredths) |
 
 *Compact summary string (for readability only — the table above is authoritative):* `S1.4⇢S1.5→S2.4→S2.5→S3.1→S3.2→S3.6→[S4.3→S4.4→S4.5→S5.1→S5.2→S5.3→S6.1→S6.2→S6.3→S6.4→S7.1→S7.2 (trunk)]`, with `S1.7→S2.9` (∥ to trunk), `S4.1→S4.2` (∥, long-range → S6.3), `S3.6→S4.13`, `{S2.4,S3.2}→S4.12→S5.17`, and `S4.14`/`S5.18` as non-gating side branches.
 
 *Why this is still the backbone:* almost every other chain has a genuine prereq edge pointing into this one — it's the single point of failure if a node here is mis-sequenced, which is why the Level-10 finding (S3.3→S4.1) matters disproportionately.
 
-### Chain C — Number Operations (13 nodes)
+### Chain C — Number Operations (14 nodes — grown from 13, see S7.14 below)
 
 Backward inference within this chain works across every stage boundary — a same-family ladder connects 2-digit carrying/borrowing through to 3-digit word problems and beyond (S5.4/S5.5→S6.5→S7.3), and the multiplication-tables progression connects tables 2,3,4 through to tables 2–10 (S5.8→S6.6). This matters most precisely where ASER data says most children actually are: behind grade level in arithmetic, so a diagnostic needs to be able to infer backward reliably.
 
@@ -126,16 +129,48 @@ Backward inference within this chain works across every stage boundary — a sam
 | S7.1/S7.2 (Chain B) | S7.3 | → | Place-value-to-thousands required for multi-digit carrying |
 | S7.3 | S7.4 (Tables to 15; mult. to 2-digit×2-digit) | ⇢ | Taught in the same window, no dependency |
 | S7.4 | S7.5 (Formal division, 4 methods) | → | Multiplication fluency is a genuine prereq for the mult-division-relationship route, one of the four NCERT-named routes into division |
+| S6.6/S6.7 | S7.14 (Factors & multiples) *(added 2026-07-19)* | → | Identifying factors/multiples of a number is built directly on the multiplication/division facts already fluent from Stage 6 — genuinely can't reliably find factors of 24 without knowing what multiplies to 24 |
 
 *Boundary check, for completeness:* S5.6/S5.7 (multiplication/division concepts) correctly need no cross-stage successors beyond what's drawn above — the multiplication line is carried forward by S5.8→S6.6→...→S7.4→S7.5 and the equal-sharing line hands off into S7.5's four-routes node via S7.4, not via S5.7 directly. The reconnection gap was confined to the addition/subtraction ladder and the tables ladder.
 
-### Chain D — Shapes & Spatial (8 nodes)
+### Chain D — Shapes & Spatial (13 nodes — grown from 8, see below)
+
+**Updated 2026-07-19, driven by the repo comparison (`fln_framework_evolution_log.md`), not internal re-review.** This chain previously had no dependency-tested edges at all — every edge was typed sequence-only, and the note above literally called out the need for "a dedicated Shapes-strand cognitive-dependency study." Two sources now provide that:
+
+- **The Van Hiele model of geometric thinking** (van Hiele & van Hiele-Geldof) — 5 levels, sequential by experience/instruction rather than age: Level 0 Visualization (holistic, "this looks like X"), Level 1 Analysis (property-based reasoning, "a triangle has 3 sides"), Level 2 Informal deduction (reasoning about how parts relate to compose wholes), Levels 3–4 (Deduction, Rigor — not reached at this age range). Because the levels are genuinely sequential — a child cannot reliably reason at Level 1 without having gone through Level 0 — this gives real **prereq** edges for the shape-identification/properties sub-thread, not just curricular convention.
+- **Clements, Sarama, Baroody, Joswick & Wolfe (2019)'s shape-composition learning trajectory** (Piece Assembler → Picture Maker → Shape Composer/Decomposer) — an empirically-validated trajectory for a *different* skill (combining shapes into new shapes) that the original 8 nodes never covered at all. Three new nodes (S2.10, S3.10, S4.15) added to cover it — the same kind of "genuinely missing sub-strand" the framework's own Round-1 review found for subitizing/zero/the number line, just caught two rounds later by external comparison instead of internal re-review.
+
+**Sub-thread 1 — shape identification & properties (Van Hiele-grounded, now partly a real prereq chain):**
 
 | Source | Target | Type | Note |
 |---|---|---|---|
-| S1.6 → S2.6 → S3.9 → S4.8 → S5.12 → S5.13 → S6.9 → S7.9 | | ⇢ (all) | Every edge in this chain is sequence-only, not prereq — NIPUN Bharat's own Lakshya doesn't move strictly 2D-before-3D (it introduces 3D properties at Class 1 and only formalizes the 2D shape set at Class 2), so no edge here is asserted as a hard cognitive dependency, pending a dedicated Shapes-strand cognitive-dependency study |
+| S1.6 (Shape matching, perceptual) | S2.6 (Shape identification, named) | ⇢ | Still both Van Hiele Level 0 (holistic/appearance-based) — naming builds on matching but NIPUN Bharat doesn't assert a hard gate here |
+| S1.6 | S3.9 (Shape properties, basic) | → | **Retyped 2026-07-19, was ⇢.** Van Hiele Level 0 → Level 1 is a genuine sequential dependency — a child reliably reasoning about *why* a shape is a triangle (Level 1) has near-certainly already mastered holistic shape recognition (Level 0) |
+| S2.6 | S4.8 (3D shape properties) | → | **Retyped 2026-07-19, was ⇢.** Same Level-0→Level-1 logic, extended to 3D property vocabulary |
+| S3.9 | S4.8 | ⇢ | Both Level 1 (Analysis) — 2D-properties-first vs. 3D-properties-first isn't itself a hard dependency, just NIPUN Bharat's own sequencing (introduces 3D properties at Class 1, formalizes the 2D named set at Class 2 — genuinely not strictly 2D-before-3D, so this specific edge stays sequence-only) |
+| S4.8 | S5.12 (2D shape ID, named set) | ⇢ | Curricular order only, same reasoning as above |
+| S5.12 → S5.13 (Spatial vocabulary) | | ⇢ | Co-occurring Class-2 targets, no dependency |
+| S4.8 | S6.9 (Relating 2D to 3D) | → | Van Hiele Level 1 → Level 2 — reasoning about how 2D faces *compose* a 3D solid (Level 2, informal deduction) requires the property vocabulary from Level 1 first |
+| S6.9 | S7.9 (3D shapes, nets) | → | Level 2 skill, extended — unfolding a solid into its net requires the same part-whole reasoning as relating faces to solids, one step further |
 
-### Chain E — Measurement (8 nodes)
+**Sub-thread 2 — shape composition (new 2026-07-19, Clements & Sarama-grounded, independent of Sub-thread 1):**
+
+| Source | Target | Type | Note |
+|---|---|---|---|
+| S2.10 (Shape composition, piece assembly) | S3.10 (Shape composition, picture making) | → | Direct trajectory dependency per Clements et al. (2019) — Picture Maker is documented as building on Piece Assembler, not a co-equal alternative |
+| S3.10 | S4.15 (Shape composition & decomposition) | → | Same trajectory, one level further — Shape Composer/Decomposer is the documented next step after Picture Maker |
+| S1.6 | S2.10 | ⇢ | Different skill (matching/naming vs. combining) taught in the same general window — no cross-thread dependency asserted |
+
+**Sub-thread 3 — two new Class-4 topics, each with only a thin, single-edge connection back to Sub-thread 1 (not independently verified against a Van-Hiele-specific source):**
+
+| Source | Target | Type | Note |
+|---|---|---|---|
+| S4.8 (3D shape properties) | S7.16 (Angles) *(added 2026-07-19)* | ⇢ | Angles plausibly extends Level-1 property-based reasoning to a new shape attribute (angle size), but this specific edge is asserted on general Van-Hiele grounds only, not a source that studied angles specifically — kept as sequence, not prereq, until that's checked |
+| S6.9 (Relating 2D to 3D) | S7.17 (Symmetry & reflection) *(added 2026-07-19)* | ⇢ | Both involve reasoning about shape relationships, but no source consulted here asserts symmetry recognition depends on the 2D-3D relating skill specifically |
+
+**Not yet resolved:** whether Sub-thread 2 (composition) has any real dependency *into* Sub-thread 1 (identification/properties) — e.g., whether reliably composing shapes requires Level-1 property knowledge — isn't addressed by either source consulted here and is left as a genuinely open question, not assumed either way.
+
+### Chain E — Measurement (9 nodes — grown from 8, see S7.18 below)
 
 | Source | Target | Type | Note |
 |---|---|---|---|
@@ -150,6 +185,7 @@ Backward inference within this chain works across every stage boundary — a sam
 | S6.8 | S7.8 (Measurement word problems) | → | Standard units are genuinely required for word problems |
 | S7.7 | S7.8 | ⇢ | Not every measurement word problem requires unit conversion (e.g. "a rope is 4m, another is 7m, total?" needs none at all), so passing S7.8 doesn't certify S7.7 — the two are taught in the same window without one gating the other |
 | Chain C (add/sub fluency, matching stage) | S6.8, S7.8 | → | A measurement word problem is an arithmetic word problem wearing a measurement costume |
+| S6.8 | S7.18 (Perimeter & area) *(added 2026-07-19 — resolves what was previously a flagged gap, not a node)* | → | Both perimeter and area calculations assume standard-unit fluency; area additionally leans on Chain C's multiplication (length×width) | 
 
 *Flagged gap (not a fillable node):* Weight has no non-standard-measurement step between Stage 2's vocabulary and Stage 6's standard units — inherited honestly from the Lakshya, which only lists length/capacity for non-standard estimation.
 
@@ -320,3 +356,14 @@ This document and its companion (`fln_framework_from_scratch.md`) went through t
 - **Cross-chain interaction effects** (how much a weakness in one chain should discount confidence in a dependent chain) are documented as existing but not quantified — a deliberate scope decision, not an oversight, since doing this properly needs either a probabilistic model or a considered manual rule.
 - **The item counts in the diagnostic blueprint** are a reasoned default, not validated against real student data.
 - **The per-chain-vs-single-number recommendation question** is flagged as a genuine open architectural decision for the platform team, not resolved here one way or the other.
+
+### Round 4 — driven by the 2026-07-19 repo comparison, growing Chain D, C, E, and B
+
+Same trigger as the companion framework document's own Round 4 (see its appendix for the full reasoning) — external comparison against the repo, not internal re-review. Applied here:
+
+- **Chain D grew from 8 to 13 nodes and gained its first genuine prereq edges**, sourced to the Van Hiele model (shape-identification/properties sub-thread: S1.6→S3.9 and S2.6→S4.8 retyped from sequence to prereq; S4.8→S6.9→S7.9 given a citable Level-1→Level-2 rationale) and to Clements, Sarama, Baroody, Joswick & Wolfe (2019)'s shape-composition trajectory (an entirely new sub-thread: S2.10→S3.10→S4.15). Two further nodes (S7.16 Angles, S7.17 Symmetry) were added with only thin sequence-only connections back to the main sub-thread — flagged honestly as not independently verified against a Van-Hiele-specific source, rather than forcing a prereq typing the sources don't actually support.
+- **Chain C gained S7.14 (Factors & Multiples)**, a genuine prereq off the Stage-6 multiplication/division facts.
+- **Chain E gained S7.18 (Perimeter & Area)**, resolving what the companion document previously carried only as a flagged, uncited gap — the repo comparison confirmed the content is actually taught (Level 56), and the citation trail already existed (GPF + Math Magic's "Fields and Fences"/tiling chapters), so this was a matter of promoting a known gap to a real, cited node.
+- **Chain B gained S7.15 (Decimals)**, a prereq off the thousands-place-value node (S7.1).
+- **Total node count: 85 → 93.** Not treated as a new fixed number — see the note at the top of Part 1.
+- **Not yet done, flagged rather than silently skipped:** Part 3's worked Stage-3 diagnostic blueprint (24 items, tier counts 12/8/4) predates the Stage-2/3 shape-composition additions (S2.10, S3.10) and has not been recomputed to include them. Whoever picks this up next should treat that blueprint as stale until it's redone, not as still-authoritative.
