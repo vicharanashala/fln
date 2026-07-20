@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { User, UserRole, Student, ClassGroup, School, LogEntry, Ticket } from '../types';
 import { DiagnosticWorkflow } from './DiagnosticWorkflow';
@@ -2339,6 +2339,19 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             )}
           </div>
 
+          {/* 🧠 Adaptive AI-Personalised Worksheet Generator */}
+          <AdaptiveWorksheetCard
+            classStudents={classStudents}
+            token={token}
+          />
+
+          {/* 📚 Bulk Adaptive Worksheet Generator — class-wide */}
+          <BulkAdaptiveWorksheetCard
+            classStudents={classStudents}
+            activeClass={activeClass}
+            token={token}
+          />
+
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Class roster table */}
           <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
@@ -3116,6 +3129,746 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
       </div>
       )}
       <FLNLevelReferenceModal isOpen={showLevelRef} onClose={() => setShowLevelRef(false)} />
+    </div>
+  );
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+// Adaptive AI-Personalised Worksheet Generator card
+//
+// Sits next to the Level-Wise Paper Generator card on the Teacher dashboard.
+// Calls the real backend at /api/adaptive/* (the mock fetch interceptor passes
+// those routes through to the Vite proxy -> backend on :3000). Keeps the
+// design extensible: when an LLM engine is plugged into the backend, this
+// card will pick it up without changes here.
+// ────────────────────────────────────────────────────────────────────────────
+
+interface AdaptiveProfile {
+  studentId: string;
+  studentName: string;
+  hasHistory: boolean;
+  currentLevel: number;
+  currentSubLevel: number;
+  weakCompetencies: string[];
+  strongCompetencies: string[];
+  competencies: { topic: string; status: string; accuracy: number; attempts: number }[];
+  rationale: string;
+  generatedBy: string;
+  focusDistribution: { weak: number; reinforcement: number; challenge: number };
+}
+
+interface AdaptiveWorksheet {
+  id: string;
+  studentId: string;
+  studentName: string;
+  baseLevel: number;
+  totalQuestions: number;
+  distribution: { remediation: number; reinforcement: number; challenge: number };
+  weakCompetencies: string[];
+  strongCompetencies: string[];
+  narrative: string;
+  fallbackUsed: boolean;
+  generatedBy: string;
+  generatedAt: string;
+  questions: any[];
+  profile: AdaptiveProfile;
+}
+
+interface AdaptiveWorksheetCardProps {
+  classStudents: Student[];
+  token: string;
+}
+
+const AdaptiveWorksheetCard: React.FC<AdaptiveWorksheetCardProps> = ({ classStudents, token }) => {
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [totalQuestions, setTotalQuestions] = useState<number>(12);
+  const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<AdaptiveProfile | null>(null);
+  const [worksheet, setWorksheet] = useState<AdaptiveWorksheet | null>(null);
+
+  const eligible = classStudents;
+
+  const handleAnalyze = async () => {
+    if (!selectedStudentId) {
+      setError('Select a student first.');
+      return;
+    }
+    setError(null);
+    setAnalyzing(true);
+    setWorksheet(null);
+    try {
+      const res = await fetch(`/api/adaptive/analyze/${encodeURIComponent(selectedStudentId)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Analysis failed.');
+        setProfile(null);
+      } else {
+        setProfile(data.profile);
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Network error during analysis.');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedStudentId) {
+      setError('Select a student first.');
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    setWorksheet(null);
+    try {
+      const res = await fetch('/api/adaptive/worksheet/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          totalQuestions
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Generation failed.');
+      } else {
+        setWorksheet(data.worksheet);
+        setProfile(data.worksheet?.profile || null);
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Network error during generation.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!worksheet || !selectedStudentId) return;
+    setError(null);
+    setDownloadingPdf(true);
+    try {
+      const res = await fetch('/api/worksheets/generate-adaptive-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          totalQuestions
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'PDF generation failed.');
+        return;
+      }
+      // Fetch the actual PDF and trigger a browser download with the friendly filename.
+      const pdfRes = await fetch(data.pdfUrl);
+      const blob = await pdfRes.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.fileName || `adaptive-worksheet-${worksheet.studentName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setError(e?.message || 'Network error during PDF download.');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handlePrint = () => {
+    if (typeof window !== 'undefined') {
+      window.print();
+    }
+  };
+
+  const competencyBadge = (status: string) => {
+    const cls =
+      status === 'Strong'
+        ? 'bg-green-50 text-green-700 border-green-200'
+        : status === 'Needs Practice'
+        ? 'bg-red-50 text-red-700 border-red-200'
+        : 'bg-amber-50 text-amber-700 border-amber-200';
+    return `inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${cls}`;
+  };
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h3 className="font-display font-semibold text-zinc-900 text-sm flex items-center gap-2">
+            <span>🧠</span>
+            <span>Adaptive AI Worksheet Generator</span>
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded">
+              New
+            </span>
+          </h3>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Reads the student's evaluation history, identifies weak and strong competencies, and composes a 60/20/20 worksheet (remediation / reinforcement / challenge).
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200">
+            {eligible.length} Eligible
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3 items-end">
+        <div>
+          <label className="block text-[10px] font-mono font-semibold text-zinc-500 uppercase mb-1">Student</label>
+          <select
+            value={selectedStudentId}
+            onChange={(e) => { setSelectedStudentId(e.target.value); setWorksheet(null); setProfile(null); setError(null); }}
+            className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-white focus:border-purple-400 outline-none"
+          >
+            <option value="">Select a student…</option>
+            {eligible.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.name} · L{s.currentLevel}.{s.currentSubLevel ?? 0}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[10px] font-mono font-semibold text-zinc-500 uppercase mb-1"># Questions</label>
+          <input
+            type="number"
+            min={4}
+            max={40}
+            value={totalQuestions}
+            onChange={(e) => setTotalQuestions(Math.max(4, Math.min(40, Number(e.target.value) || 12)))}
+            className="w-24 text-sm border border-zinc-200 rounded-lg p-2.5 bg-white focus:border-purple-400 outline-none"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleAnalyze}
+          disabled={analyzing || !selectedStudentId}
+          className="bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-200 font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {analyzing ? 'Analysing…' : 'Analyse Profile'}
+        </button>
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={loading || !selectedStudentId}
+          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+        >
+          {loading ? (
+            <><span className="animate-spin text-sm">⏳</span> Generating…</>
+          ) : (
+            <>Generate Adaptive Worksheet</>
+          )}
+        </button>
+      </div>
+
+      {error && (
+        <div className="p-3 text-xs bg-red-50 text-red-700 border border-red-100 rounded-lg">{error}</div>
+      )}
+
+      {profile && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-zinc-100">
+          <div className="space-y-2">
+            <div className="text-[10px] font-mono font-bold uppercase text-zinc-500">Weak Competencies</div>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.weakCompetencies.length === 0 && (
+                <span className="text-xs text-zinc-400 italic">None detected</span>
+              )}
+              {profile.weakCompetencies.map(t => (
+                <span key={t} className={competencyBadge('Needs Practice')}>{t}</span>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] font-mono font-bold uppercase text-zinc-500">Strong Competencies</div>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.strongCompetencies.length === 0 && (
+                <span className="text-xs text-zinc-400 italic">None yet</span>
+              )}
+              {profile.strongCompetencies.map(t => (
+                <span key={t} className={competencyBadge('Strong')}>{t}</span>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] font-mono font-bold uppercase text-zinc-500">Focus Distribution</div>
+            <div className="text-xs font-mono text-zinc-700">
+              {Math.round(profile.focusDistribution.weak * 100)}% remediation · {Math.round(profile.focusDistribution.reinforcement * 100)}% reinforcement · {Math.round(profile.focusDistribution.challenge * 100)}% challenge
+            </div>
+            <div className="text-[10px] font-mono text-zinc-400">Engine: {profile.generatedBy}</div>
+          </div>
+          <div className="md:col-span-3 text-xs text-zinc-600 bg-zinc-50 border border-zinc-200 rounded p-3 font-mono leading-relaxed">
+            {profile.rationale}
+          </div>
+        </div>
+      )}
+
+      {worksheet && (
+        <div className="space-y-3 pt-3 border-t border-zinc-100">
+          {/* Print-only CSS — hides dashboard / chrome and keeps only the printable worksheet area. */}
+          <style>{`
+            @media print {
+              @page { size: A4 portrait; margin: 12mm; }
+              html, body, #root { background: #fff !important; }
+              body * { visibility: hidden !important; }
+              #adaptive-printable-area, #adaptive-printable-area * { visibility: visible !important; }
+              #adaptive-printable-area {
+                position: absolute !important;
+                left: 0; top: 0; right: 0;
+                width: 100%;
+                padding: 0;
+                margin: 0;
+                background: #fff;
+              }
+              .no-print { display: none !important; }
+            }
+          `}</style>
+
+          <div className="flex flex-wrap items-center gap-3 text-xs no-print">
+            <span className="font-mono font-bold text-zinc-700">
+              {worksheet.totalQuestions} question(s)
+            </span>
+            <span className="font-mono text-zinc-500">·</span>
+            <span className="font-mono text-zinc-600">
+              {worksheet.distribution.remediation} remediation / {worksheet.distribution.reinforcement} reinforcement / {worksheet.distribution.challenge} challenge
+            </span>
+            {worksheet.fallbackUsed && (
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">
+                Grade-Aligned Fallback
+              </span>
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={downloadingPdf || !worksheet}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs font-mono px-3 py-2 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                title="Download as A4 PDF"
+              >
+                {downloadingPdf ? (
+                  <><span className="animate-spin text-sm">⏳</span> Preparing…</>
+                ) : (
+                  <>📥 Download PDF</>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                disabled={!worksheet}
+                className="bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-800 font-semibold text-xs font-mono px-3 py-2 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                title="Open browser print dialog"
+              >
+                🖨 Print
+              </button>
+            </div>
+          </div>
+
+          <div id="adaptive-printable-area" className="bg-white text-zinc-900 rounded-lg border border-zinc-200">
+            {/* Print-only header — visible only when printing */}
+            <div className="hidden print:block px-6 pt-6 pb-3 border-b border-zinc-300">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-700">FLN Assessment Portal</div>
+              <div className="text-base font-bold">Adaptive AI Worksheet</div>
+              <div className="text-[10px] text-zinc-500">
+                Student: {worksheet.studentName} · ID: {worksheet.studentId} · Level {worksheet.baseLevel} · Date {new Date().toLocaleDateString('en-IN')}
+              </div>
+            </div>
+
+            <div className="text-xs text-zinc-600 bg-zinc-50 border-y border-zinc-200 p-3 font-mono leading-relaxed no-print">
+              {worksheet.narrative}
+            </div>
+
+            <div className="max-h-[28rem] overflow-y-auto divide-y divide-zinc-100 bg-white">
+              {worksheet.questions.map((q: any, idx: number) => {
+                const meta = q.adaptive || {};
+                const purposeCls =
+                  meta.purpose === 'remediation'
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : meta.purpose === 'reinforcement'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                return (
+                  <div key={q.question_id || idx} className="p-3 text-xs space-y-2 print:break-inside-avoid">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono font-bold text-zinc-900">Q{idx + 1}.</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${purposeCls}`}>
+                        {meta.purpose || 'q'}
+                      </span>
+                      <span className="font-mono text-zinc-500">L{meta.targetLevel}.{meta.targetSubLevel}</span>
+                      <span className="font-mono text-zinc-500">·</span>
+                      <span className="font-mono text-zinc-700">{meta.competency}</span>
+                      <span className="font-mono text-zinc-500">·</span>
+                      <span className="font-mono text-zinc-400 uppercase">{q.difficulty}</span>
+                    </div>
+                    <p className="text-zinc-800 leading-relaxed">{q.question}</p>
+                    {/* Answer space — always rendered, but only meaningful on paper */}
+                    <div className="mt-2 border-b border-dashed border-zinc-300 h-7 w-full" />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+// Bulk Adaptive Worksheet Generator card
+//
+// Operates over an entire class roster. Calls the existing bulk backend
+// endpoints (/api/worksheets/bulk-adaptive/*) — no duplication of
+// adaptive composition or PDF logic. Leaves the single-student
+// AdaptiveWorksheetCard above untouched.
+// ────────────────────────────────────────────────────────────────────────────
+
+interface BulkProgressSkip {
+  id: string;
+  name: string;
+  reason: string;
+}
+interface BulkProgressGenerated {
+  studentId: string;
+  studentName: string;
+  fileName: string;
+}
+interface BulkProgress {
+  jobId: string;
+  className: string;
+  section: string;
+  totalEligible: number;
+  completed: number;
+  failed: number;
+  currentStudentIndex: number;
+  currentStudentName: string;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: string;
+  completedAt: string;
+  error: string;
+  skipped: BulkProgressSkip[];
+  generated: BulkProgressGenerated[];
+  zipReady: boolean;
+  zipFileName: string;
+  zipDownloadUrl: string | null;
+  combinedPdfReady: boolean;
+  combinedPdfFileName: string;
+  combinedPdfUrl: string | null;
+}
+
+interface BulkAdaptiveWorksheetCardProps {
+  classStudents: Student[];
+  activeClass: ClassGroup | null;
+  token: string;
+}
+
+const BulkAdaptiveWorksheetCard: React.FC<BulkAdaptiveWorksheetCardProps> = ({
+  classStudents,
+  activeClass,
+  token
+}) => {
+  const [totalQuestions, setTotalQuestions] = useState<number>(8);
+  const [bulkJobId, setBulkJobId] = useState<string | null>(null);
+  const [progress, setProgress] = useState<BulkProgress | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const eligibleCount = classStudents.filter(
+    s => (s.levelHistory && s.levelHistory.length > 0) || (s.currentLevel && s.currentLevel > 0)
+  ).length;
+  const skipPreviewCount = classStudents.length - eligibleCount;
+
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+
+  const startPolling = (jobId: string) => {
+    stopPolling();
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/worksheets/bulk-adaptive/${jobId}/progress`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'Polling failed.');
+          stopPolling();
+          return;
+        }
+        setProgress(data);
+        if (data.status === 'completed' || data.status === 'failed') {
+          stopPolling();
+        }
+      } catch (e: any) {
+        setError(e?.message || 'Network error during polling.');
+        stopPolling();
+      }
+    }, 700);
+  };
+
+  useEffect(() => () => stopPolling(), []);
+
+  const handleStart = async () => {
+    if (!activeClass) {
+      setError('Pick an active class first.');
+      return;
+    }
+    if (eligibleCount === 0) {
+      setError('No placed students in this class — diagnostic is pending for everyone.');
+      return;
+    }
+    setError(null);
+    setProgress(null);
+    setBulkJobId(null);
+    setStarting(true);
+    try {
+      const res = await fetch('/api/worksheets/bulk-adaptive', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          className: activeClass.className,
+          section: activeClass.section,
+          schoolId: activeClass.schoolId,
+          totalQuestions,
+          cycle: 'Adhoc'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to start bulk job.');
+        return;
+      }
+      setBulkJobId(data.jobId);
+      // Seed initial progress so the UI shows context immediately
+      setProgress({
+        jobId: data.jobId,
+        className: data.className,
+        section: data.section,
+        totalEligible: data.totalEligible,
+        completed: 0,
+        failed: 0,
+        currentStudentIndex: 0,
+        currentStudentName: '',
+        status: 'running',
+        startedAt: new Date().toISOString(),
+        completedAt: '',
+        error: '',
+        skipped: data.skipped || [],
+        generated: [],
+        zipReady: false,
+        zipFileName: '',
+        zipDownloadUrl: null,
+        combinedPdfReady: false,
+        combinedPdfFileName: '',
+        combinedPdfUrl: null
+      });
+      startPolling(data.jobId);
+    } catch (e: any) {
+      setError(e?.message || 'Network error starting bulk job.');
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const handleDownloadZip = async () => {
+    if (!progress?.zipDownloadUrl) return;
+    const res = await fetch(progress.zipDownloadUrl, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = progress.zipFileName || 'adaptive-worksheets.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrintAll = () => {
+    if (!progress?.combinedPdfUrl) return;
+    // Open the combined PDF in a new tab; user can print from the browser's
+    // PDF viewer with the standard Ctrl/Cmd-P shortcut.
+    window.open(progress.combinedPdfUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const running = progress?.status === 'running';
+  const done = progress?.status === 'completed';
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h3 className="font-display font-semibold text-zinc-900 text-sm flex items-center gap-2">
+            <span>📚</span>
+            <span>Bulk Adaptive Worksheet Generator</span>
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded">
+              Class-Wide
+            </span>
+          </h3>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Reuses the existing adaptive engine + PDF generator for every student in the active class.
+            Skips students pending diagnostic.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-green-50 text-green-700 border border-green-200">
+            {eligibleCount} Placed
+          </span>
+          {skipPreviewCount > 0 && (
+            <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">
+              {skipPreviewCount} Pending
+            </span>
+          )}
+          <span className="text-xs font-mono font-bold px-2 py-1 rounded bg-zinc-100 text-zinc-700 border border-zinc-200">
+            {classStudents.length} Total
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-end">
+        <div>
+          <label className="block text-[10px] font-mono font-semibold text-zinc-500 uppercase mb-1">Class</label>
+          <div className="text-sm font-mono text-zinc-800 bg-zinc-50 border border-zinc-200 rounded-lg p-2.5">
+            {activeClass ? `${activeClass.className} - ${activeClass.section}` : 'No active class selected'}
+          </div>
+        </div>
+        <div>
+          <label className="block text-[10px] font-mono font-semibold text-zinc-500 uppercase mb-1"># Questions</label>
+          <input
+            type="number"
+            min={4}
+            max={40}
+            value={totalQuestions}
+            onChange={(e) => setTotalQuestions(Math.max(4, Math.min(40, Number(e.target.value) || 8)))}
+            disabled={running || starting}
+            className="w-24 text-sm border border-zinc-200 rounded-lg p-2.5 bg-white focus:border-indigo-400 outline-none disabled:opacity-50"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleStart}
+          disabled={starting || running || eligibleCount === 0 || !activeClass}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+        >
+          {starting || running ? (
+            <><span className="animate-spin text-sm">⏳</span> Generating…</>
+          ) : (
+            <>📚 Generate Worksheets for Entire Class</>
+          )}
+        </button>
+      </div>
+
+      {error && (
+        <div className="p-3 text-xs bg-red-50 text-red-700 border border-red-100 rounded-lg">{error}</div>
+      )}
+
+      {/* Live progress strip */}
+      {progress && (
+        <div className="space-y-3 pt-3 border-t border-zinc-100">
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <span className="font-mono text-zinc-600">
+              Student {Math.min(progress.currentStudentIndex, progress.totalEligible)}/{progress.totalEligible}
+              {progress.currentStudentName ? ` — ${progress.currentStudentName}` : ''}
+            </span>
+            <div className="flex-1 min-w-[160px] bg-zinc-100 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  done
+                    ? (progress.failed > 0 ? 'bg-amber-500' : 'bg-green-500')
+                    : 'bg-indigo-500'
+                }`}
+                style={{ width: `${progress.totalEligible === 0 ? 0 : Math.round((progress.completed / progress.totalEligible) * 100)}%` }}
+              />
+            </div>
+            <span className="font-mono font-bold text-zinc-700">
+              {progress.totalEligible === 0 ? 0 : Math.round((progress.completed / progress.totalEligible) * 100)}%
+            </span>
+          </div>
+
+          {done && (
+            <div className="text-xs font-mono bg-green-50 text-green-700 border border-green-200 rounded p-3 leading-relaxed">
+              <strong>✅ Generated {progress.completed} {progress.completed === 1 ? 'Worksheet' : 'Worksheets'} Successfully</strong>
+              {progress.totalEligible > 0 && (
+                <span className="text-zinc-600"> ({progress.totalEligible} eligible in class)</span>
+              )}
+              {progress.failed > 0 && (
+                <span className="text-amber-700"> · {progress.failed} failed</span>
+              )}
+            </div>
+          )}
+
+          {progress.skipped && progress.skipped.length > 0 && (
+            <div className="text-xs bg-amber-50 border border-amber-200 rounded p-3 leading-relaxed">
+              <div className="font-mono font-bold text-amber-700 mb-1">
+                ⚠ Skipped {progress.skipped.length} {progress.skipped.length === 1 ? 'student' : 'students'}
+              </div>
+              <div className="text-zinc-600 mb-1">Reason:</div>
+              <ul className="text-zinc-700 space-y-0.5 font-mono">
+                {progress.skipped.map(s => (
+                  <li key={s.id}>
+                    · {s.name} — {s.reason || 'Diagnostic Pending'}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {done && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleDownloadZip}
+                disabled={!progress.zipReady}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                📥 Download ZIP
+              </button>
+              <button
+                type="button"
+                onClick={handlePrintAll}
+                disabled={!progress.combinedPdfReady}
+                className="bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-800 font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                🖨 Print All
+              </button>
+              {progress.zipFileName && (
+                <span className="text-[10px] font-mono text-zinc-500">
+                  {progress.zipFileName}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

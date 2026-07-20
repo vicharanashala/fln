@@ -5,11 +5,17 @@ import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
-import { generateDiagnosticPaper } from './paperGenerator';
+import { generateDiagnosticPaper, generateAdaptiveWorksheetPdf } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
+import JSZip from 'jszip';
+import { PDFDocument } from 'pdf-lib';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import {
+  analyzeStudentForWorksheet,
+  generateAdaptiveWorksheet
+} from './modules/adaptive-engine';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1214,6 +1220,79 @@ async function startServer() {
     }
   });
 
+  // Render an Adaptive AI Worksheet to A4 PDF
+  //   - Reuses generateAdaptiveWorksheetPdf() from paperGenerator.ts (pdf-lib,
+  //     same family as renderWorksheetPdf).
+  //   - Internally runs the same adaptive pipeline as
+  //     /api/adaptive/worksheet/generate so the rendered questions are
+  //     deterministic given (studentId, totalQuestions).
+  //   - Returns the PDF URL identical in shape to the other generator
+  //     endpoints, so the frontend can treat it the same way.
+  app.post('/api/worksheets/generate-adaptive-pdf', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { studentId, totalQuestions, classNumber } = req.body || {};
+    if (!studentId) {
+      return res.status(400).json({ error: 'studentId is required.' });
+    }
+
+    try {
+      const students = await dbStore.getStudents();
+      const student = students.find(s => s.id === studentId);
+      if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+      // Role-based scoping (same rules as /api/adaptive/worksheet/generate)
+      if (user.role === UserRole.TEACHER && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.SCHOOL && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.VOLUNTEER && !user.assignedSchools?.includes(student.schoolId)) {
+        return res.status(403).json({ error: 'Forbidden: student outside your assigned schools.' });
+      }
+
+      // Compose the worksheet through the same pipeline
+      const { worksheet, context } = await generateAdaptiveWorksheet(studentId, {
+        totalQuestions,
+        classNumber
+      });
+
+      const result = await generateAdaptiveWorksheetPdf({
+        studentId: student.id,
+        studentName: student.name,
+        currentLevel: worksheet.baseLevel,
+        currentSubLevel: student.currentSubLevel || 0,
+        targetLevel: student.targetLevel || Math.min(59, worksheet.baseLevel + 1),
+        worksheetId: worksheet.id,
+        weakCompetencies: worksheet.weakCompetencies,
+        strongCompetencies: worksheet.strongCompetencies,
+        distribution: worksheet.distribution,
+        narrative: worksheet.narrative,
+        questions: worksheet.questions
+      });
+
+      await dbStore.addLog({
+        id: 'log_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        schoolId: student.schoolId,
+        schoolName: 'GPS',
+        userId: user.id,
+        userEmail: user.email,
+        userRole: user.role,
+        activityType: 'download',
+        status: 'Success',
+        details: `Generated adaptive PDF for ${student.name} → ${result.fileName} (eval history: ${context.hasHistory ? 'present' : 'fallback'})`
+      });
+
+      res.json({ success: true, pdfUrl: result.pdfUrl, fileName: result.fileName });
+    } catch (err: any) {
+      console.error('Adaptive PDF generation failed:', err);
+      res.status(500).json({ success: false, error: err.message || 'Adaptive PDF generation failed.' });
+    }
+  });
+
   // Submit Completed Worksheet (ICR Structured Ingestion) & Scoring Engine
   app.post('/api/evaluation/submit', async (req, res) => {
     const user = getAuthUser(req);
@@ -1610,6 +1689,114 @@ async function startServer() {
   });
 
   // ══════════════════════════════════════════
+  // ADAPTIVE AI WORKSHEET GENERATION
+  //   - Analyse a student's existing profile + evaluation history to
+  //     identify weak / strong competencies.
+  //   - Compose an adaptive worksheet weighted 60% remediation of weak
+  //     competencies, 20% reinforcement at current level, 20% challenge
+  //     above current level.
+  //   - Falls back to a grade-aligned default worksheet when no
+  //     evaluation history exists.
+  //   - Engine selection is centralised in
+  //     modules/adaptive-engine/engine.ts so an LLM-backed engine can
+  //     be swapped in later without changing this route.
+  // ══════════════════════════════════════════
+
+  app.post('/api/adaptive/analyze/:studentId', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const studentId = req.params.studentId;
+    if (!studentId) return res.status(400).json({ error: 'studentId is required.' });
+
+    try {
+      const students = await dbStore.getStudents();
+      const student = students.find(s => s.id === studentId);
+      if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+      // Role-based scoping: teachers / schools see their own roster only.
+      if (user.role === UserRole.TEACHER && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.SCHOOL && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.VOLUNTEER && !user.assignedSchools?.includes(student.schoolId)) {
+        return res.status(403).json({ error: 'Forbidden: student outside your assigned schools.' });
+      }
+
+      const { profile, context } = await analyzeStudentForWorksheet(studentId, {
+        classNumber: req.body?.classNumber
+      });
+
+      res.json({
+        studentId,
+        hasHistory: context.hasHistory,
+        evaluationCount: context.evaluationReports.length,
+        profile
+      });
+    } catch (err: any) {
+      console.error('Adaptive analyze failed:', err);
+      res.status(500).json({ error: err?.message || 'Adaptive analysis failed.' });
+    }
+  });
+
+  app.post('/api/adaptive/worksheet/generate', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { studentId, totalQuestions, classNumber } = req.body || {};
+    if (!studentId) {
+      return res.status(400).json({ error: 'studentId is required.' });
+    }
+
+    try {
+      const students = await dbStore.getStudents();
+      const student = students.find(s => s.id === studentId);
+      if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+      if (user.role === UserRole.TEACHER && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.SCHOOL && student.schoolId !== user.schoolId) {
+        return res.status(403).json({ error: 'Forbidden: student outside your school scope.' });
+      }
+      if (user.role === UserRole.VOLUNTEER && !user.assignedSchools?.includes(student.schoolId)) {
+        return res.status(403).json({ error: 'Forbidden: student outside your assigned schools.' });
+      }
+
+      const { worksheet, profile, context } = await generateAdaptiveWorksheet(studentId, {
+        totalQuestions,
+        classNumber
+      });
+
+      await dbStore.addLog({
+        id: 'log_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        schoolId: student.schoolId,
+        schoolName: 'GPS',
+        userId: user.id,
+        userEmail: user.email,
+        userRole: user.role,
+        activityType: 'download',
+        status: 'Success',
+        details: `Generated adaptive worksheet for ${student.name} (Level ${worksheet.baseLevel}, ${worksheet.totalQuestions} questions, fallback=${worksheet.fallbackUsed})`
+      });
+
+      res.json({
+        success: true,
+        studentId,
+        hasHistory: context.hasHistory,
+        evaluationCount: context.evaluationReports.length,
+        worksheet
+      });
+    } catch (err: any) {
+      console.error('Adaptive worksheet generation failed:', err);
+      res.status(500).json({ error: err?.message || 'Adaptive worksheet generation failed.' });
+    }
+  });
+
+  // ══════════════════════════════════════════
   // DATABASE RESET (Development convenience)
   // ══════════════════════════════════════════
   app.post('/api/reset', async (req, res) => {
@@ -1621,6 +1808,293 @@ async function startServer() {
   app.get('/api/reset', async (req, res) => {
     await dbStore.reset();
     res.json({ success: true, message: 'Database reset to fresh seed data. Navigate back to / to continue.' });
+  });
+
+  // ══════════════════════════════════════════
+  // BULK ADAPTIVE WORKSHEET GENERATION ENDPOINTS
+  //   - Mirrors /api/diagnostic/bulk style: start job → poll progress → download.
+  //   - Reuses generateAdaptiveWorksheet() + generateAdaptiveWorksheetPdf() —
+  //     no duplicated composition logic.
+  //   - Skips students without placement (levelHistory empty).
+  //   - ZIP filename: adaptive-worksheets-<class>-<date>.zip
+  //   - Combined PDF (Print All): every worksheet concatenated, one file.
+  // ══════════════════════════════════════════
+
+  interface BulkAdaptiveJob {
+    jobId: string;
+    schoolId: string;
+    className: string;
+    section: string;
+    cycle: 'Baseline' | 'Mid-year' | 'End-of-year' | 'Adhoc';
+    totalQuestions: number;
+    studentIds: string[];
+    eligibleStudents: Array<{ id: string; name: string }>;
+    skippedStudents: Array<{ id: string; name: string; reason: string }>;
+    completed: number;
+    failed: number;
+    status: 'running' | 'completed' | 'failed';
+    currentStudentName: string;
+    currentStudentIndex: number;
+    startedAt: string;
+    completedAt: string;
+    error: string;
+    generatedFiles: Array<{ studentId: string; studentName: string; fileName: string; pdfBytes: Buffer }>;
+    zipPath: string;
+    zipFileName: string;
+    combinedPdfPath: string;
+    combinedPdfFileName: string;
+  }
+
+  const bulkAdaptiveJobs = new Map<string, BulkAdaptiveJob>();
+
+  function safeFilenameSegment(s: string): string {
+    return s.replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/^-+|-+$/g, '') || 'student';
+  }
+
+  app.post('/api/worksheets/bulk-adaptive', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { className, section, schoolId, totalQuestions, cycle } = req.body || {};
+    if (!className || !section || !schoolId) {
+      return res.status(400).json({ error: 'className, section and schoolId are required.' });
+    }
+
+    const students = await dbStore.getStudents();
+    const classStudents = students.filter(
+      s => s.classGroup === className && s.section === section && s.schoolId === schoolId
+    );
+
+    if (classStudents.length === 0) {
+      return res.status(404).json({ error: `No students found for ${className} - ${section}.` });
+    }
+
+    // Role-based scoping
+    if (user.role === UserRole.TEACHER && user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'Forbidden: class outside your school scope.' });
+    }
+    if (user.role === UserRole.SCHOOL && user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'Forbidden: class outside your school scope.' });
+    }
+    if (user.role === UserRole.VOLUNTEER && !user.assignedSchools?.includes(schoolId)) {
+      return res.status(403).json({ error: 'Forbidden: class outside your assigned schools.' });
+    }
+
+    // Skip students without placement (levelHistory empty AND no currentLevel)
+    const eligible: Array<{ id: string; name: string }> = [];
+    const skipped: Array<{ id: string; name: string; reason: string }> = [];
+    for (const s of classStudents) {
+      const hasPlacement = (s.levelHistory && s.levelHistory.length > 0) || (s.currentLevel && s.currentLevel > 0);
+      if (!hasPlacement) {
+        skipped.push({ id: s.id, name: s.name, reason: 'Diagnostic Pending' });
+      } else {
+        eligible.push({ id: s.id, name: s.name });
+      }
+    }
+
+    if (eligible.length === 0) {
+      return res.status(400).json({
+        error: 'No eligible students in this class (all are pending diagnostic).',
+        skippedCount: skipped.length,
+        skipped
+      });
+    }
+
+    const jobId = 'bulkadaptive_' + randomUUID();
+    const job: BulkAdaptiveJob = {
+      jobId,
+      schoolId,
+      className,
+      section,
+      cycle: cycle || 'Adhoc',
+      totalQuestions: totalQuestions || 12,
+      studentIds: eligible.map(e => e.id),
+      eligibleStudents: eligible,
+      skippedStudents: skipped,
+      completed: 0,
+      failed: 0,
+      status: 'running',
+      currentStudentName: '',
+      currentStudentIndex: 0,
+      startedAt: new Date().toISOString(),
+      completedAt: '',
+      error: '',
+      generatedFiles: [],
+      zipPath: '',
+      zipFileName: '',
+      combinedPdfPath: '',
+      combinedPdfFileName: ''
+    };
+    bulkAdaptiveJobs.set(jobId, job);
+
+    // Run in background (sequential per student — keeps DB writes & logs deterministic)
+    (async () => {
+      try {
+        const allStudents = await dbStore.getStudents();
+        for (let i = 0; i < eligible.length; i++) {
+          const student = allStudents.find(s => s.id === eligible[i].id);
+          if (!student) {
+            job.skippedStudents.push({ id: eligible[i].id, name: eligible[i].name, reason: 'Student record not found' });
+            continue;
+          }
+          job.currentStudentIndex = i + 1;
+          job.currentStudentName = student.name;
+          try {
+            const { worksheet } = await generateAdaptiveWorksheet(student.id, {
+              totalQuestions: job.totalQuestions
+            });
+            const pdfResult = await generateAdaptiveWorksheetPdf({
+              studentId: student.id,
+              studentName: student.name,
+              currentLevel: worksheet.baseLevel,
+              currentSubLevel: student.currentSubLevel || 0,
+              targetLevel: student.targetLevel || Math.min(59, worksheet.baseLevel + 1),
+              worksheetId: worksheet.id,
+              weakCompetencies: worksheet.weakCompetencies,
+              strongCompetencies: worksheet.strongCompetencies,
+              distribution: worksheet.distribution,
+              narrative: worksheet.narrative,
+              questions: worksheet.questions
+            });
+            const pdfBytes = fs.readFileSync(pdfResult.filePath);
+            job.generatedFiles.push({
+              studentId: student.id,
+              studentName: student.name,
+              fileName: pdfResult.fileName,
+              pdfBytes
+            });
+            job.completed++;
+          } catch (err: any) {
+            job.failed++;
+            console.error(`Bulk adaptive failed for student ${student.id}:`, err?.message || err);
+            job.skippedStudents.push({
+              id: student.id,
+              name: student.name,
+              reason: err?.message || 'Generation failed'
+            });
+          }
+        }
+
+        // Build ZIP via JSZip
+        if (job.generatedFiles.length > 0) {
+          const zip = new JSZip();
+          for (const f of job.generatedFiles) {
+            const niceName = `${safeFilenameSegment(f.studentName)}.pdf`;
+            zip.file(niceName, f.pdfBytes);
+          }
+          const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+          const zipName = `adaptive-worksheets-${safeFilenameSegment(job.className)}-${safeFilenameSegment(job.section)}-${Date.now()}.zip`;
+          const outDir = path.resolve(ROOT_DIR, 'output');
+          if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+          const zipPath = path.join(outDir, zipName);
+          fs.writeFileSync(zipPath, zipBuffer);
+          job.zipFileName = zipName;
+          job.zipPath = zipPath;
+
+          // Combined PDF (for "Print All")
+          try {
+            const merged = await PDFDocument.create();
+            for (const f of job.generatedFiles) {
+              const src = await PDFDocument.load(f.pdfBytes);
+              const copiedPages = await merged.copyPages(src, src.getPageIndices());
+              copiedPages.forEach(p => merged.addPage(p));
+            }
+            const combinedBytes = Buffer.from(await merged.save());
+            const combinedName = `adaptive-worksheets-combined-${safeFilenameSegment(job.className)}-${safeFilenameSegment(job.section)}-${Date.now()}.pdf`;
+            const combinedPath = path.join(outDir, combinedName);
+            fs.writeFileSync(combinedPath, combinedBytes);
+            job.combinedPdfFileName = combinedName;
+            job.combinedPdfPath = combinedPath;
+          } catch (mergeErr: any) {
+            console.warn('Combined PDF creation failed (non-fatal):', mergeErr?.message || mergeErr);
+          }
+        }
+
+        job.status = 'completed';
+        job.completedAt = new Date().toISOString();
+
+        await dbStore.addLog({
+          id: 'log_' + Date.now(),
+          timestamp: new Date().toISOString(),
+          schoolId: job.schoolId,
+          schoolName: 'GPS',
+          userId: user.id,
+          userEmail: user.email,
+          userRole: user.role,
+          activityType: 'download',
+          status: job.failed > 0 ? 'Failed' : 'Success',
+          details: `Bulk adaptive: ${job.className} ${job.section}, ${job.completed} generated, ${job.failed} failed, ${job.skippedStudents.length} skipped (${skipped.length} pre + ${job.failed} runtime)`
+        });
+      } catch (err: any) {
+        job.status = 'failed';
+        job.error = err?.message || 'Unknown bulk error';
+        job.completedAt = new Date().toISOString();
+        console.error('Bulk adaptive job failed:', err);
+      }
+    })();
+
+    res.status(202).json({
+      jobId,
+      className,
+      section,
+      totalEligible: eligible.length,
+      skippedCount: skipped.length,
+      skipped,
+      status: 'running',
+      progressUrl: `/api/worksheets/bulk-adaptive/${jobId}/progress`
+    });
+  });
+
+  app.get('/api/worksheets/bulk-adaptive/:jobId/progress', (req, res) => {
+    const job = bulkAdaptiveJobs.get(req.params.jobId);
+    if (!job) return res.status(404).json({ error: 'Job not found.' });
+    res.json({
+      jobId: job.jobId,
+      className: job.className,
+      section: job.section,
+      cycle: job.cycle,
+      totalEligible: job.eligibleStudents.length,
+      completed: job.completed,
+      failed: job.failed,
+      currentStudentIndex: job.currentStudentIndex,
+      currentStudentName: job.currentStudentName,
+      status: job.status,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+      error: job.error,
+      skipped: job.skippedStudents,
+      generated: job.generatedFiles.map(f => ({ studentId: f.studentId, studentName: f.studentName, fileName: f.fileName })),
+      zipReady: !!job.zipPath,
+      zipFileName: job.zipFileName,
+      zipDownloadUrl: job.zipPath ? `/api/worksheets/bulk-adaptive/${job.jobId}/download` : null,
+      combinedPdfReady: !!job.combinedPdfPath,
+      combinedPdfFileName: job.combinedPdfFileName,
+      combinedPdfUrl: job.combinedPdfPath ? `/api/worksheets/bulk-adaptive/${job.jobId}/combined-pdf` : null
+    });
+  });
+
+  app.get('/api/worksheets/bulk-adaptive/:jobId/download', (req, res) => {
+    const job = bulkAdaptiveJobs.get(req.params.jobId);
+    if (!job) return res.status(404).json({ error: 'Job not found.' });
+    if (job.status !== 'completed' || !job.zipPath) {
+      return res.status(400).json({ error: 'Job not yet completed.' });
+    }
+    if (!fs.existsSync(job.zipPath)) {
+      return res.status(404).json({ error: 'ZIP file not found on disk.' });
+    }
+    res.download(job.zipPath, job.zipFileName);
+  });
+
+  app.get('/api/worksheets/bulk-adaptive/:jobId/combined-pdf', (req, res) => {
+    const job = bulkAdaptiveJobs.get(req.params.jobId);
+    if (!job) return res.status(404).json({ error: 'Job not found.' });
+    if (job.status !== 'completed' || !job.combinedPdfPath) {
+      return res.status(400).json({ error: 'Job not yet completed or combined PDF unavailable.' });
+    }
+    if (!fs.existsSync(job.combinedPdfPath)) {
+      return res.status(404).json({ error: 'Combined PDF file not found on disk.' });
+    }
+    res.download(job.combinedPdfPath, job.combinedPdfFileName);
   });
 
   // ══════════════════════════════════════════
