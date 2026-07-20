@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
-import { User, UserRole } from '../types';
+import { Eye, EyeOff, AlertCircle, ArrowLeft, KeyRound, CheckCircle2, X } from 'lucide-react';
+import { User } from '../types';
 
 interface LoginViewProps {
   onLoginSuccess: (token: string, user: User) => void;
@@ -18,20 +18,20 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const mockUsersList = [
-    { label: 'Superadmin 🌐', email: 'superadmin@fln.org', pass: 'Fln@2026' },
-    { label: 'Punjab Admin 🌾', email: 'admin.pb@fln.org', pass: 'Fln@2026' },
-    { label: 'Haryana Admin 🌾', email: 'admin.hr@fln.org', pass: 'Fln@2026' },
-    { label: 'UP Admin 🏛️', email: 'admin.up@fln.org', pass: 'Fln@2026' },
-    { label: 'Rajasthan Admin 🏰', email: 'admin.rj@fln.org', pass: 'Fln@2026' },
-    { label: 'Ludhiana Dist 🏢', email: 'district.ldh@fln.org', pass: 'Fln@2026' },
-    { label: 'Ambala Dist 🏢', email: 'district.amb@fln.org', pass: 'Fln@2026' },
-    { label: 'Ludhiana Block 🏫', email: 'block.ldh-01@fln.org', pass: 'Fln@2026' },
-    { label: 'Punjab Principal 🎓', email: 'gps-mt-001@fln.org', pass: 'Fln@2026' },
-    { label: 'Haryana Teacher 👩‍🏫', email: 'gps-amb-003.t01@fln.org', pass: 'Fln@2026' },
-    { label: 'Punjab Volunteer 🤝', email: 'vol.rahul@fln.org', pass: 'Fln@2026' },
-    { label: 'Haryana Volunteer 🤝', email: 'vol.hr_vipin@fln.org', pass: 'Fln@2026' }
+    { label: 'Superadmin', email: 'superadmin@fln.org', pass: 'Fln@2026' },
+    { label: 'AP State Admin', email: 'admin.ap@fln.org', pass: 'Fln@2026' },
+    { label: 'Guntur District', email: 'district.gnt@fln.org', pass: 'Fln@2026' },
+    { label: 'Guntur Block', email: 'block.gnt_01@fln.org', pass: 'Fln@2026' },
+    { label: 'School Principal', email: 'school.ap_gnt_gnt_01_01@fln.org', pass: 'Fln@2026' },
+    { label: 'Class 2 Teacher', email: 'teacher.ap_gnt_gnt_01_01.c2@fln.org', pass: 'Fln@2026' },
+    { label: 'Class 3 Teacher', email: 'teacher.ap_gnt_gnt_01_01.c3@fln.org', pass: 'Fln@2026' },
+    { label: 'Volunteer', email: 'vol.ap_gnt_gnt_01_03@fln.org', pass: 'Fln@2026' },
   ];
 
   const handleLogin = async (e?: React.FormEvent, customEmail?: string, customPass?: string) => {
@@ -43,21 +43,50 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
     const loginPass = customPass || password;
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password: loginPass })
+        body: JSON.stringify({ email: loginEmail, password: loginPass }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json();
       if (res.ok) {
         onLoginSuccess(data.token, data.user);
       } else {
         setError(data.error || 'Invalid email or password');
       }
-    } catch (err) {
+    } catch {
       setError('Connection failed. Verify server state.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setForgotLoading(true);
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!res.ok && res.status !== 404) {
+        throw new Error('Request failed');
+      }
+    } catch {
+      // Silently succeed — we don't reveal whether the email exists
+    } finally {
+      setForgotLoading(false);
+      setForgotSent(true);
     }
   };
 
@@ -126,6 +155,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            <div className="flex justify-end">
+              <button type="button" onClick={() => { setShowForgotPassword(true); setForgotSent(false); setForgotEmail(''); }} className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline">
+                Forgot Password?
+              </button>
+            </div>
           </div>
 
           {/* Validation Alerts */}
@@ -155,8 +189,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
             {mockUsersList.map(u => (
               <button
                 key={u.email}
+                disabled={loading}
                 onClick={() => handleLogin(undefined, u.email, u.pass)}
-                className="rounded-lg bg-slate-50 dark:bg-slate-800 p-2 text-left border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition hover:bg-amber-50/70 dark:hover:bg-amber-950/40 hover:border-amber-300 dark:hover:border-amber-800 hover:text-indigo-700 dark:hover:text-amber-400 cursor-pointer"
+                className="rounded-lg bg-slate-50 dark:bg-slate-800 p-2 text-left border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition hover:bg-amber-50/70 dark:hover:bg-amber-950/40 hover:border-amber-300 dark:hover:border-amber-800 hover:text-indigo-700 dark:hover:text-amber-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="font-extrabold truncate text-slate-900 dark:text-white">
                   {u.label}
@@ -181,6 +216,68 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
           Warning: Unauthorized access to this system is strictly prohibited under the IT Act, 2000. All activities are monitored.
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="forgot-password-title"
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowForgotPassword(false); }}
+        >
+          <div className="w-full max-w-md rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                <h3 id="forgot-password-title" className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">Reset Password</h3>
+              </div>
+              <button onClick={() => setShowForgotPassword(false)} aria-label="Close" className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {!forgotSent ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Enter your registered email address and we will send you a password reset link.
+                </p>
+                <input
+                  type="email"
+                  required
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  className="w-full rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 text-sm text-slate-950 dark:text-white placeholder-slate-400 focus:border-indigo-700 focus:outline-none focus:ring-1 focus:ring-indigo-700 font-medium"
+                  placeholder="Enter your email address"
+                />
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="w-full rounded-lg bg-indigo-700 dark:bg-indigo-800 py-2.5 text-xs font-extrabold text-white uppercase tracking-widest hover:bg-indigo-600 disabled:opacity-50 transition-colors"
+                >
+                  {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+                </button>
+              </form>
+            ) : (
+              <div className="text-center py-4 space-y-3">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">Reset link sent!</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  If an account exists with <strong>{forgotEmail}</strong>, you will receive a password reset link shortly. Check your inbox and spam folder.
+                </p>
+                <button
+                  onClick={() => setShowForgotPassword(false)}
+                  className="mt-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Back to Login
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

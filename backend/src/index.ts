@@ -86,6 +86,11 @@ async function startServer() {
 
   // --- API Endpoints ---
 
+  // Health check endpoint (no auth required)
+  app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() });
+  });
+
   // Public stats (no auth required — used by landing page)
   app.get('/api/stats', async (_req, res) => {
     const db = dbStore.getDb();
@@ -2067,6 +2072,11 @@ async function startServer() {
     if (!bp) return res.status(404).json({ error: 'Best practice not found.' });
     await dbStore.updateBestPractice(bp.id, { viewCount: (bp.viewCount || 0) + 1 });
     res.json({ ...bp, viewCount: (bp.viewCount || 0) + 1 });
+  });
+
+  // Catch-all: any unmatched API route gets a proper 404 instead of hanging
+  app.use('/api/*', (_req, res) => {
+    res.status(404).json({ error: 'Endpoint not found' });
   });
 
   // In development, serve the frontend using Vite development middleware.

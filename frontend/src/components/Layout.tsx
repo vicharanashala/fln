@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { User, UserRole, Announcement } from '../types';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
-  LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound,   Clock
+  LayoutDashboard, BookOpen, HelpCircle, Settings, Users, ShieldCheck,
+  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList
 } from 'lucide-react';
+import { StudentSearch } from './StudentSearch';
 
 interface NavigationItem {
   name: string;
@@ -16,9 +17,11 @@ interface NavigationItem {
 
 interface LayoutProps {
   currentUser: User;
+  token: string;
   onRoleSwitch: (role: UserRole) => void;
   activeView: string;
   onSelectView: (view: string) => void;
+  onSelectPanel: (panel: string) => void;
   notifications: Announcement[];
   onMarkNotificationRead: (id: string) => void;
   onClearNotifications: () => void;
@@ -28,9 +31,11 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({
   currentUser,
+  token,
   onRoleSwitch,
   activeView,
   onSelectView,
+  onSelectPanel,
   notifications,
   onMarkNotificationRead,
   onClearNotifications,
@@ -95,7 +100,7 @@ export const Layout: React.FC<LayoutProps> = ({
     localStorage.setItem('fln_dark_mode', String(darkMode));
   }, [darkMode]);
 
-  const collapsed = false;
+  const collapsed = sidebarCollapsed;
 
   const toggleSidebar = () => {
     setSidebarCollapsed((prev: boolean) => {
@@ -139,7 +144,8 @@ export const Layout: React.FC<LayoutProps> = ({
           subItems: [
             { name: 'Student List', view: 'student_list' },
             { name: 'Student Profile', view: 'student_profile' },
-            { name: 'Performance', view: 'performance' }
+            { name: 'Performance', view: 'performance' },
+            { name: 'Report Card', view: 'report_card' }
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
@@ -164,7 +170,8 @@ export const Layout: React.FC<LayoutProps> = ({
           subItems: [
             { name: 'Student List', view: 'student_list' },
             { name: 'Student Profile', view: 'student_profile' },
-            { name: 'Performance', view: 'performance' }
+            { name: 'Performance', view: 'performance' },
+            { name: 'Report Card', view: 'report_card' }
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
@@ -338,6 +345,9 @@ export const Layout: React.FC<LayoutProps> = ({
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             <span className="text-emerald-700 text-[10px] uppercase tracking-wider">MongoDB Connected</span>
           </div>
+
+          {/* Global Student Search */}
+          <StudentSearch token={token} onSelectStudent={(id) => { onSelectPanel('student_profile'); }} />
 
           {/* Theme Toggle Button */}
           <button
