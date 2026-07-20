@@ -1,0 +1,39 @@
+{
+  "scanPageId": "sp_demo",
+  "assessmentId": "asm_demo_math_baseline",
+  "studentId": "stu_demo_001",
+  "results": [
+    {
+      "questionId": "q_demo_2",
+      "recognizedAnswer": "",
+      "confidence": 0.486,
+      "needsReview": true,
+      "modelName": "smartfln-template-assisted",
+      "modelVersion": "0.5.3",
+      "providerStatus": "blank_or_unreadable",
+      "diagnostics": {
+        "engine": "template_assisted",
+        "summary": "No usable dark handwriting strokes detected inside the answer box.",
+        "ink": {
+          "inkPixels": 0,
+          "inkDensity": 0.0,
+          "bbox": null,
+          "usableInk": false
+        },
+        "questionType": "numeric",
+        "scoring": {
+          "awardedMarks": 0.0,
+          "maxMarks": 1.0,
+          "confidence": 0.486,
+          "confidenceBand": "very_low",
+          "needsReview": true,
+          "status": "needs_review",
+          "isCorrect": false,
+          "matchScore": 0.0,
+          "normalizedAnswer": "",
+          "normalizedKey": "5"
+        }
+      }
+    }
+  ]
+}

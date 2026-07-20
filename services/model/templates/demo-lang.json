@@ -1,0 +1,80 @@
+{
+  "paper_id": "demo-lang",
+  "test_id": "asm_lang_words",
+  "answer_key_id": "ak_demo_language_words_v1",
+  "title": "SmartFLN Language Word Check",
+  "subtitle": "Grade 1 English - Structured Answer Paper",
+  "page": {
+    "width": 2480,
+    "height": 3508
+  },
+  "box_markers_required": true,
+  "questions": [
+    {
+      "question_id": "q_lang_1",
+      "label": "Q1",
+      "type": "short_text",
+      "prompt": "Write the word shown by the picture: sun.",
+      "answer_key": "sun",
+      "marks": 1,
+      "roi": {
+        "x": 198,
+        "y": 850,
+        "width": 920,
+        "height": 430
+      }
+    },
+    {
+      "question_id": "q_lang_2",
+      "label": "Q2",
+      "type": "short_text",
+      "prompt": "Write the word shown by the picture: cat.",
+      "answer_key": "cat",
+      "marks": 1,
+      "roi": {
+        "x": 1362,
+        "y": 850,
+        "width": 920,
+        "height": 430
+      }
+    },
+    {
+      "question_id": "q_lang_3",
+      "label": "Q3",
+      "type": "short_text",
+      "prompt": "Complete the sentence: I can __.",
+      "answer_key": "run",
+      "marks": 1,
+      "roi": {
+        "x": 198,
+        "y": 1580,
+        "width": 2084,
+        "height": 430
+      }
+    },
+    {
+      "question_id": "q_lang_4",
+      "label": "Q4",
+      "type": "matching",
+      "prompt": "Match the word to the picture number.",
+      "answer_key": {
+        "1": "sun",
+        "2": "cat"
+      },
+      "marks": 2,
+      "auto_score": false,
+      "roi": {
+        "x": 198,
+        "y": 2310,
+        "width": 2084,
+        "height": 430
+      }
+    }
+  ],
+  "sample_answers": {
+    "q_lang_1": "sun",
+    "q_lang_2": "cat",
+    "q_lang_3": "run",
+    "q_lang_4": "1-sun, 2-cat"
+  }
+}

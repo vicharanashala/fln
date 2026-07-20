@@ -1,15 +1,16 @@
 {
-  "name": "fln-platform",
+  "name": "smartfln-platform",
   "private": true,
-  "version": "0.0.0",
-  "description": "FLN Assessment & Personalized Worksheet Platform — monorepo (frontend + backend + ai-services)",
+  "version": "0.1.0",
+  "description": "SmartFLN frontend, backend, and local TrOCR model service",
   "workspaces": [
     "frontend",
     "backend",
     "backend/fln-backend"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @fln/backend",
+    "setup": "node scripts/dev.mjs --setup-only",
+    "dev": "node scripts/dev.mjs",
     "dev:frontend": "npm run dev --workspace @fln/frontend",
     "dev:backend": "node scripts/dev-backend.js",
     "build": "npm run build:frontend && npm run build:backend",
@@ -17,6 +18,9 @@
     "build:backend": "npm run build --workspace @fln/backend",
     "start": "npm run start --workspace @fln/backend",
     "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "mongodb": "^7.5.0",

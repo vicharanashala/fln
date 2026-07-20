@@ -1,9 +1,7 @@
-import 'dotenv/config';
-import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
+import express from 'express';
+import dotenv from 'dotenv';
+import { dbStore, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, ScanPaperTemplate, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
@@ -11,20 +9,17 @@ import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const ROOT_DIR = path.resolve(__dirname, '..');
+const MODULE_DIR = path.dirname(path.resolve(process.argv[1] || path.join(process.cwd(), 'server', 'index.ts')));
+const ROOT_DIR = path.resolve(MODULE_DIR, '..');
+dotenv.config({ path: path.resolve(ROOT_DIR, '..', '.env') });
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 async function startServer() {
-  // Connect to MongoDB
-  await connectDB();
-
-  // Initialize file-based DB
+  // Uses MongoDB when configured, with the Dev 2 JSON database as a local fallback.
   await dbStore.init();
 
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '25mb' }));
 
   // Serve Puppeteer output PDF sheets statically
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
@@ -89,7 +84,29 @@ async function startServer() {
   // Public stats (no auth required — used by landing page)
   app.get('/api/stats', async (_req, res) => {
     const db = dbStore.getDb();
-    if (!db) return res.json({ totalStates: 0, totalDistricts: 0, totalSchools: 0, totalStudents: 0, totalAssessments: 0, avgFlnLevel: 0, totalUsers: 0, certifiedCount: 0, certifiedPercent: 0 });
+    if (!db) {
+      const [schools, students, users, worksheets] = await Promise.all([
+        dbStore.getSchools(),
+        dbStore.getStudents(),
+        dbStore.getUsers(),
+        dbStore.getWorksheets()
+      ]);
+      const certifiedCount = students.filter(student => student.currentLevel >= 5).length;
+      const avgFlnLevel = students.length
+        ? Math.round(students.reduce((sum, student) => sum + student.currentLevel, 0) / students.length)
+        : 0;
+      return res.json({
+        totalStates: new Set(schools.map(school => school.stateCode)).size,
+        totalDistricts: new Set(schools.map(school => school.districtCode)).size,
+        totalSchools: schools.length,
+        totalStudents: students.length,
+        totalAssessments: worksheets.length,
+        avgFlnLevel,
+        totalUsers: users.length,
+        certifiedCount,
+        certifiedPercent: students.length ? Math.round((certifiedCount / students.length) * 100) : 0
+      });
+    }
 
     const [totalSchools, totalStudents, totalUsers, totalAssessments, stateCodes, districtCodes, avgResult, certifiedResult] = await Promise.all([
       db.collection('schools').countDocuments(),
@@ -115,6 +132,90 @@ async function startServer() {
       totalUsers,
       certifiedCount,
       certifiedPercent: totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0,
+    });
+  });
+
+  app.get('/api/states', async (_req, res) => {
+    const schools = await dbStore.getSchools();
+    const codes = [...new Set(schools.map(school => school.stateCode).filter(Boolean))].sort();
+    res.json({ success: true, data: codes.map(code => ({ id: code, code, name: code })) });
+  });
+
+  app.get('/api/districts/by-state/:stateId', async (req, res) => {
+    const schools = await dbStore.getSchools();
+    const codes = [...new Set(
+      schools
+        .filter(school => school.stateCode === req.params.stateId)
+        .map(school => school.districtCode)
+        .filter(Boolean)
+    )].sort();
+    res.json({
+      success: true,
+      data: codes.map(code => ({ id: code, code, name: code, state: req.params.stateId }))
+    });
+  });
+
+  app.get('/api/blocks/by-district/:districtId', async (req, res) => {
+    const schools = await dbStore.getSchools();
+    const matching = schools.filter(school => school.districtCode === req.params.districtId);
+    const codes = [...new Set(matching.map(school => school.blockCode).filter(Boolean))].sort();
+    res.json({
+      success: true,
+      data: codes.map(code => ({
+        id: code,
+        code,
+        name: code,
+        district: req.params.districtId,
+        state: matching.find(school => school.blockCode === code)?.stateCode || ''
+      }))
+    });
+  });
+
+  app.get('/api/schools/by-block/:blockId', async (req, res) => {
+    const schools = await dbStore.getSchools();
+    res.json({
+      success: true,
+      data: schools
+        .filter(school => school.blockCode === req.params.blockId)
+        .map(school => ({
+          id: school.id,
+          code: school.id,
+          name: school.name,
+          block: school.blockCode,
+          district: school.districtCode,
+          state: school.stateCode,
+          strength: school.strength
+        }))
+    });
+  });
+
+  app.post('/api/teachers', async (req, res) => {
+    const { firstName, lastName, email, phoneNumber, school } = req.body || {};
+    if (!firstName || !lastName || !email || !school) {
+      return res.status(400).json({ success: false, message: 'Name, email, and school are required.' });
+    }
+    const users = await dbStore.getUsers();
+    if (users.some(user => user.email.toLowerCase() === String(email).toLowerCase())) {
+      return res.status(409).json({ success: false, message: 'A user with this email already exists.' });
+    }
+    const teacher: User = {
+      id: `teacher_${randomUUID().slice(0, 8)}`,
+      name: `${String(firstName).trim()} ${String(lastName).trim()}`.trim(),
+      email: String(email).trim().toLowerCase(),
+      role: UserRole.TEACHER,
+      schoolId: String(school),
+      phoneNumber: phoneNumber ? String(phoneNumber) : undefined
+    };
+    await dbStore.addUser(teacher);
+    res.status(201).json({
+      success: true,
+      message: 'Teacher registered successfully.',
+      data: {
+        teacherId: teacher.id,
+        firstName: String(firstName).trim(),
+        lastName: String(lastName).trim(),
+        email: teacher.email
+      }
     });
   });
 
@@ -506,11 +607,7 @@ async function startServer() {
     const classMatch = student.classGroup.match(/\d+/);
     const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
 
-    let questions: Question[];
-    let pdfUrl = '';
-
     try {
-      // Generate the official PDF worksheet paper via Puppeteer
       const result = await generateDiagnosticPaper({
         classNumber,
         students: [{
@@ -524,38 +621,24 @@ async function startServer() {
           }
         }]
       });
-      questions = result.questions;
-      pdfUrl = `/output/${result.fileName}`;
+      res.json({
+        student,
+        diagnosticPaper: {
+          id: 'diag_' + student.id + '_' + Date.now(),
+          studentId: student.id,
+          studentName: student.name,
+          questions: result.questions,
+          pdfUrl: `/output/${result.fileName}`,
+          templateUrl: result.templateUrl || ''
+        }
+      });
     } catch (err: any) {
-      console.error("Puppeteer paper generation failed, using level generator mock:", err);
-      const startLevel = (classNumber - 1) * 12 + 1;
-      questions = [];
-      for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-        const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 59), 0);
-        lvlQuestions.forEach(q => {
-          questions.push({
-            ...q,
-            question_id: `DIAG_${lvl}_${q.question_id}`,
-            source_level: Math.min(lvl, 59)
-          });
-        });
-      }
-      questions = questions.slice(0, 12);
+      console.error('Database-backed diagnostic generation failed:', err);
+      res.status(500).json({ error: err?.message || 'Failed to generate SmartFLN diagnostic paper.' });
     }
-
-    res.json({
-      student,
-      diagnosticPaper: {
-        id: 'diag_' + student.id + '_' + Date.now(),
-        studentId: student.id,
-        studentName: student.name,
-        questions,
-        pdfUrl
-      }
-    });
   });
 
-  // Generate multi-student PDF worksheet paper (Puppeteer pipeline)
+  // Generate multi-student SmartFLN papers from the persisted question bank.
   app.post('/api/paper/generate', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -578,6 +661,8 @@ async function startServer() {
       res.json({
         success: true,
         pdfUrl,
+        templateUrl: result.templateUrl || '',
+        questions: result.questions,
         totalSets: result.totalSets,
         studentOrder: result.studentOrder
       });
@@ -728,7 +813,7 @@ async function startServer() {
     });
 
     // Create a special Evaluation Report with dynamic mock concept mastery
-    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {
+    const conceptMastery: EvaluationReport['conceptMastery'] = {
       'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
       'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
       'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
@@ -973,7 +1058,7 @@ async function startServer() {
         cycle: ws.cycle,
         studentsWithQuestions
       });
-      res.json({ success: true, pdfUrl: result.pdfUrl });
+      res.json({ success: true, pdfUrl: result.pdfUrl, templateUrl: result.templateUrl || '' });
     } catch (err: any) {
       console.error('Worksheet PDF generation failed:', err);
       res.status(500).json({ success: false, error: err.message });
@@ -1134,12 +1219,398 @@ async function startServer() {
           levelId: student.currentLevel,
           subIdx: student.currentSubLevel || 0
         });
-        res.json({ success: true, pdfUrl: result.pdfUrl, fallback: true });
+        res.json({
+          success: true,
+          pdfUrl: result.pdfUrl,
+          templateUrl: result.templateUrl || '',
+          questions: result.questions,
+          fallback: true
+        });
       }
     } catch (err: any) {
       console.error('Level worksheet generation failed:', err);
       res.status(500).json({ success: false, error: err.message });
     }
+  });
+
+  type ScanQrIdentity = { studentId?: string; paperId?: string; testId?: string; pageNumber?: number; raw: string };
+
+  function parseScanQrPayload(rawText: string): ScanQrIdentity {
+    const raw = String(rawText || '').trim();
+    const parsed: ScanQrIdentity = { raw };
+    if (!raw) return parsed;
+
+    if (raw.startsWith('{')) {
+      try {
+        const payload = JSON.parse(raw);
+        return {
+          studentId: payload.student_id || payload.studentId,
+          paperId: payload.paper_id || payload.paperId || payload.paperPageId,
+          testId: payload.test_id || payload.testId || payload.assessmentId,
+          pageNumber: Number(payload.page || payload.pageNumber || 1),
+          raw
+        };
+      } catch {
+        return parsed;
+      }
+    }
+
+    if (raw.includes('|') && !raw.includes(':')) {
+      const [studentId, paperId, testId, page] = raw.split('|').map(part => part.trim());
+      return { studentId, paperId, testId, pageNumber: Number(page) || 1, raw };
+    }
+
+    raw.split('|').forEach(part => {
+      const [rawKey, ...rest] = part.split(':');
+      const key = rawKey.trim().toUpperCase();
+      const value = rest.join(':').trim();
+      if (key === 'SID' || key === 'STUDENT' || key === 'STUDENT_ID') parsed.studentId = value;
+      if (key === 'PAPER' || key === 'PAPER_ID') parsed.paperId = value;
+      if (key === 'TEST' || key === 'TEST_ID') parsed.testId = value;
+      if (key === 'PAGE' || key === 'PAGE_NUMBER') parsed.pageNumber = Number(value) || 1;
+    });
+    return parsed;
+  }
+
+  function questionFromScanTemplate(q: any, student: Student): Question {
+    const questionType = q.questionType || 'text';
+    return {
+      question_id: q.questionId,
+      question: q.prompt || `${q.questionLabel} ${questionType.replace('_', ' ')}`,
+      answer: q.answerKey || '',
+      answer_type: q.answerType || (questionType === 'multiple_choice' ? 'choice' : 'text'),
+      question_format: questionType,
+      choices: q.choices,
+      topic: questionType,
+      subtopic: 'scan-template',
+      difficulty: 'medium',
+      source_level: student.currentLevel || 1
+    };
+  }
+
+  function modelQuestionType(questionType: string) {
+    if (questionType === 'fill_blank') return 'numeric';
+    if (questionType === 'multiple_choice') return 'mcq';
+    if (questionType === 'match_pair') return 'matching';
+    return 'short_text';
+  }
+
+  function toModelTemplate(template: ScanPaperTemplate) {
+    const modelPage = { width: 2480, height: 3508 };
+    const scaleX = modelPage.width / template.page.width;
+    const scaleY = modelPage.height / template.page.height;
+    const scaleRoi = (roi: { x: number; y: number; width: number; height: number }) => ({
+      x: Math.round(roi.x * scaleX),
+      y: Math.round(roi.y * scaleY),
+      width: Math.max(1, Math.round(roi.width * scaleX)),
+      height: Math.max(1, Math.round(roi.height * scaleY))
+    });
+    const topLeftMarker = template.fiducials.topLeft;
+
+    return {
+      paper_id: template.paperId,
+      test_id: template.testId,
+      answer_key_id: `${template.testId}:answer-key`,
+      box_markers_required: false,
+      page: {
+        ...modelPage,
+        marker_center_inset_x: Math.round((topLeftMarker.x + topLeftMarker.width / 2) * scaleX),
+        marker_center_inset_y: Math.round((topLeftMarker.y + topLeftMarker.height / 2) * scaleY)
+      },
+      questions: template.questions.map(question => {
+        const textBased = question.questionType === 'text' || question.questionType === 'fill_blank';
+        const selectedRoi = textBased ? question.answerBoxes[0] : question.questionBox;
+        if (!selectedRoi) throw new Error(`Question ${question.questionId} does not contain a scan ROI.`);
+        return {
+          question_id: question.questionId,
+          label: question.questionLabel,
+          type: modelQuestionType(question.questionType),
+          source_question_type: question.questionType,
+          prompt: question.prompt,
+          answer_key: question.answerKey,
+          marks: question.marks,
+          roi: scaleRoi(selectedRoi),
+          auto_score: textBased && question.autoScoreEligible
+        };
+      })
+    };
+  }
+
+  async function scanContext(qrText: string) {
+    const identity = parseScanQrPayload(qrText);
+    if (!identity.studentId || !identity.paperId || !identity.testId) {
+      return { error: 'QR must include student ID, paper ID, and test ID.', status: 400, identity } as const;
+    }
+
+    const pageNumber = identity.pageNumber || 1;
+    const paperTemplate = await dbStore.getScanPaperTemplate(identity.paperId, pageNumber);
+    if (!paperTemplate) {
+      return { error: `No database scan template found for paper ${identity.paperId}, page ${pageNumber}.`, status: 404, identity } as const;
+    }
+    if (paperTemplate.studentId !== identity.studentId || paperTemplate.testId !== identity.testId) {
+      return { error: 'QR identity does not match the stored paper template.', status: 409, identity } as const;
+    }
+
+    const students = await dbStore.getStudents();
+    const student = students.find(item => item.id === identity.studentId);
+    if (!student) return { error: `Student ${identity.studentId} was not found.`, status: 404, identity } as const;
+    return { identity, paperTemplate, student } as const;
+  }
+
+  app.post('/api/ocr/scan/template', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const context = await scanContext(req.body?.qrText || '');
+    if ('error' in context) return res.status(context.status).json({ error: context.error, detectedQr: context.identity });
+    const { identity, paperTemplate, student } = context;
+
+    const questions = paperTemplate.questions.map((q: any) => questionFromScanTemplate(q, student));
+    res.json({
+      detectedQr: {
+        studentId: identity.studentId,
+        paperId: identity.paperId,
+        testId: identity.testId,
+        pageNumber: identity.pageNumber || 1,
+        raw: identity.raw
+      },
+      student,
+      paper: {
+        id: identity.paperId,
+        testId: identity.testId,
+        pageNumber: identity.pageNumber || 1,
+        page: paperTemplate.page,
+        templateVersion: paperTemplate.templateVersion,
+        qrSchema: paperTemplate.qrSchema,
+        questions: paperTemplate.questions,
+        questionModels: questions,
+        templateUrl: `/output/${paperTemplate.templateFileName}`
+      }
+    });
+  });
+
+  app.post('/api/ocr/scan/process', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { qrText, imageDataUrl } = req.body || {};
+    if (!qrText || !imageDataUrl) return res.status(400).json({ error: 'qrText and imageDataUrl are required.' });
+
+    const context = await scanContext(qrText);
+    if ('error' in context) return res.status(context.status).json({ error: context.error, detectedQr: context.identity });
+    const { identity, paperTemplate, student } = context;
+    const serviceUrl = process.env.SMARTFLN_MODEL_SERVICE_URL || process.env.SMARTFLN_TROCR_URL || process.env.TROCR_SERVICE_URL || '';
+    if (!serviceUrl) {
+      return res.status(503).json({ error: 'The full-page model service is not configured. Set SMARTFLN_MODEL_SERVICE_URL.' });
+    }
+
+    try {
+      const inferUrl = serviceUrl.endsWith('/v1/infer') ? serviceUrl : `${serviceUrl.replace(/\/$/, '')}/v1/infer`;
+      const modelResponse = await fetch(inferUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(Number(process.env.SMARTFLN_MODEL_TIMEOUT_MS || 120000)),
+        body: JSON.stringify({
+          scanPageId: `scan_${identity.paperId}_${Date.now()}`,
+          qrText,
+          imageDataUrl,
+          template: toModelTemplate(paperTemplate)
+        })
+      });
+      const modelScan: any = await modelResponse.json().catch(() => ({}));
+      if (!modelResponse.ok) {
+        return res.status(502).json({ error: modelScan.error || modelScan.message || `Model service returned HTTP ${modelResponse.status}.` });
+      }
+      if (!modelScan.valid_paper || modelScan.ocr_started === false) {
+        return res.status(422).json({
+          error: modelScan.message || 'Scan rejected. A valid QR and all four corner fiducials are required.',
+          invalidReason: modelScan.invalid_reason,
+          validation: modelScan.validation,
+          page: modelScan.page
+        });
+      }
+
+      res.json({
+        detectedQr: {
+          studentId: identity.studentId,
+          paperId: identity.paperId,
+          testId: identity.testId,
+          pageNumber: identity.pageNumber || 1,
+          raw: identity.raw
+        },
+        student,
+        paper: {
+          id: paperTemplate.paperId,
+          testId: paperTemplate.testId,
+          pageNumber: paperTemplate.pageNumber,
+          page: paperTemplate.page,
+          templateVersion: paperTemplate.templateVersion,
+          qrSchema: paperTemplate.qrSchema,
+          questions: paperTemplate.questions,
+          templateUrl: `/output/${paperTemplate.templateFileName}`
+        },
+        modelScan
+      });
+    } catch (error: any) {
+      res.status(502).json({ error: error.message || 'The full-page model service is unreachable.' });
+    }
+  });
+
+  app.post('/api/ocr/trocr', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { imageDataUrl, questionId, questionType, prompt, expectedAnswer, studentId, paperId, testId } = req.body || {};
+    if (!imageDataUrl || !questionId) {
+      return res.status(400).json({ error: 'imageDataUrl and questionId are required.' });
+    }
+
+    const serviceUrl = process.env.SMARTFLN_MODEL_SERVICE_URL || process.env.SMARTFLN_TROCR_URL || process.env.TROCR_SERVICE_URL || '';
+    if (!serviceUrl) {
+      return res.json({
+        questionId,
+        extractedText: '',
+        confidence: 0,
+        modelName: 'microsoft/trocr-base-handwritten',
+        modelStatus: 'not_configured',
+        needsReview: true,
+        error: 'TrOCR service is not configured. Set SMARTFLN_MODEL_SERVICE_URL to the dev-2 model service, for example http://127.0.0.1:8090.'
+      });
+    }
+
+    try {
+      const inferUrl = serviceUrl.endsWith('/v1/infer') ? serviceUrl : `${serviceUrl.replace(/\/$/, '')}/v1/infer`;
+      const modelQuestionType =
+        questionType === 'fill_blank' ? 'numeric' :
+          questionType === 'multiple_choice' ? 'mcq' :
+            questionType === 'match_pair' ? 'matching' :
+              'short_text';
+      const trocrRes = await fetch(inferUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanPageId: paperId || questionId,
+          assessmentId: testId || paperId || 'scan-template',
+          studentId: studentId || 'unknown',
+          crops: [{
+            questionId,
+            questionType: modelQuestionType,
+            prompt: prompt || '',
+            answerKey: expectedAnswer || '',
+            imageDataUrl
+          }]
+        })
+      });
+      const data: any = await trocrRes.json().catch(() => ({}));
+      if (!trocrRes.ok) {
+        return res.json({
+          questionId,
+          extractedText: '',
+          confidence: 0,
+          modelName: 'microsoft/trocr-base-handwritten',
+          modelStatus: 'service_error',
+          needsReview: true,
+          error: data.error || data.message || `TrOCR service returned HTTP ${trocrRes.status}`
+        });
+      }
+      const result = Array.isArray(data.results) ? data.results.find((item: any) => item.questionId === questionId) || data.results[0] : data;
+      const confidence = Math.max(0, Math.min(1, Number(result.confidence ?? result.score ?? result.diagnostics?.scoring?.confidence ?? 0)));
+      res.json({
+        questionId,
+        extractedText: String(result.recognizedAnswer ?? result.extractedText ?? result.text ?? result.recognized_text ?? ''),
+        confidence,
+        modelName: result.modelName || result.model_name || 'microsoft/trocr-base-handwritten',
+        modelStatus: result.providerStatus || result.modelStatus || result.status || 'ok',
+        modelVersion: result.modelVersion || '',
+        needsReview: Boolean(result.needsReview ?? confidence < 0.4),
+        diagnostics: result.diagnostics || {}
+      });
+    } catch (error: any) {
+      res.json({
+        questionId,
+        extractedText: '',
+        confidence: 0,
+        modelName: 'microsoft/trocr-base-handwritten',
+        modelStatus: 'unreachable',
+        needsReview: true,
+        error: error.message || 'TrOCR service is unreachable.'
+      });
+    }
+  });
+
+  app.post('/api/ocr/scan/finalize', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { studentId, paperId, testId, reviewItems } = req.body || {};
+    if (!studentId || !paperId || !Array.isArray(reviewItems)) {
+      return res.status(400).json({ error: 'studentId, paperId, and reviewItems are required.' });
+    }
+
+    const students = await dbStore.getStudents();
+    const student = students.find(s => s.id === studentId);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+    const unresolved = reviewItems.some((item: any) => item.needsReview && !item.finalMark);
+    if (unresolved) return res.status(400).json({ error: 'Every volunteer-review answer must be marked before saving.' });
+
+    const answers: { [questionId: string]: string } = {};
+    reviewItems.forEach((item: any) => {
+      answers[item.questionId] = JSON.stringify({
+        finalMark: item.finalMark,
+        marks: Number(item.marks || 0),
+        confidence: Number(item.confidence || 0),
+        ocrOutput: item.extractedText || '',
+        expectedAnswer: item.expectedAnswer || '',
+        reviewStatus: item.needsReview ? 'volunteer_reviewed' : 'auto_evaluated',
+        modelName: item.modelName || '',
+        questionType: item.questionType || '',
+        roi: item.roi || null
+      });
+    });
+
+    const score = reviewItems.reduce((sum: number, item: any) => sum + Number(item.marks || 0), 0);
+    const submission: AnswerSubmission = {
+      id: 'sub_scan_' + Date.now(),
+      worksheetId: paperId,
+      studentId: student.id,
+      studentName: student.name,
+      schoolId: student.schoolId,
+      classId: student.classGroup,
+      submittedAt: new Date().toISOString(),
+      isDelayed: false,
+      answers
+    };
+    await dbStore.addAnswerSubmission(submission);
+
+    const report: EvaluationReport = {
+      id: 'rep_scan_' + Date.now(),
+      studentId: student.id,
+      worksheetId: paperId,
+      score,
+      totalQuestions: reviewItems.length,
+      conceptMastery: { OCR: score >= reviewItems.length * 0.7 ? 'Strong' : 'Needs Practice' },
+      narrative: `OCR scan saved for ${student.name}. Test ${testId || paperId} scored ${score}/${reviewItems.length}; confidence, OCR output, marks, and review status were stored per question.`,
+      recommendedLevel: student.currentLevel,
+      recommendedSubLevel: student.currentSubLevel || 0,
+      timestamp: new Date().toISOString()
+    };
+    await dbStore.addEvaluationReport(report);
+
+    await dbStore.addLog({
+      id: 'log_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      schoolId: student.schoolId,
+      schoolName: 'GPS',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'scan',
+      status: 'Success',
+      details: `OCR scan finalized for ${student.name}.`
+    });
+
+    res.json({ submission, report });
   });
 
   // Generate Personalized Level-Wise Worksheets for a whole roster of
@@ -1637,6 +2108,7 @@ async function startServer() {
     fileName: string;
     filePath: string;
     pdfUrl: string;
+    templateUrl: string;
     error: string;
     startedAt: string;
     completedAt: string;
@@ -1704,6 +2176,7 @@ async function startServer() {
       fileName: '',
       filePath: '',
       pdfUrl: '',
+      templateUrl: '',
       error: '',
       startedAt: new Date().toISOString(),
       completedAt: ''
@@ -1725,6 +2198,7 @@ async function startServer() {
         job.fileName = result.fileName;
         job.filePath = result.filePath;
         job.pdfUrl = `/output/${result.pdfFileName || result.fileName}`;
+        job.templateUrl = result.templateUrl || '';
         job.status = 'completed';
         job.completedAt = new Date().toISOString();
         job.completed = job.totalSets;
@@ -1770,6 +2244,7 @@ async function startServer() {
       completed: job.completed,
       status: job.status,
       pdfUrl: job.pdfUrl,
+      templateUrl: job.templateUrl,
       error: job.error,
       downloadUrl: job.status === 'completed' ? `/api/diagnostic/bulk/${job.jobId}/download` : null
     });
@@ -1785,7 +2260,7 @@ async function startServer() {
       return res.status(404).json({ error: 'PDF file not found on disk.' });
     }
 
-    res.download(job.filePath, `class${job.classNumber}_bulk_diagnostic.zip`);
+    res.download(job.filePath, `class${job.classNumber}_bulk_diagnostic.pdf`);
   });
 
   // Generate diagnostic for a single student (enhanced with PDF download)
@@ -1827,55 +2302,21 @@ async function startServer() {
       const classMatch = student.classGroup.match(/\d+/);
       const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
 
-      let questions: Question[];
-      let pdfUrl = '';
-      let useMock = false;
-
-      try {
-        const result = await generateDiagnosticPaper({
-          classNumber,
-          students: [{
-            name: student.name,
-            studentId: student.id,
-            qrData: {
-              age: student.age, classGroup: student.classGroup, section: student.section,
-              schoolId: student.schoolId, currentLevel: student.currentLevel,
-              currentSubLevel: student.currentSubLevel, targetLevel: student.targetLevel,
-              streak: student.streak
-            }
-          }]
-        });
-        questions = result.questions;
-        pdfUrl = `/output/${result.fileName}`;
-      } catch (err: any) {
-        console.error("Puppeteer paper generation failed, using generateQuestionsForLevel mock:", err);
-        useMock = true;
-        // Generate questions across multiple levels using the level generator
-        const startLevel = (classNumber - 1) * 12 + 1;
-        questions = [];
-        for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-          const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 59), 0);
-          lvlQuestions.forEach(q => {
-            questions.push({
-              ...q,
-              question_id: `DIAG_${lvl}_${q.question_id}`,
-              source_level: Math.min(lvl, 59)
-            });
-          });
-        }
-        // Limit to 12 questions for a reasonable diagnostic
-        questions = questions.slice(0, 12);
-      }
+      const result = await generateDiagnosticPaper({
+        classNumber,
+        students: [{ name: student.name, studentId: student.id }]
+      });
 
       res.json({
         student,
-        mockMode: useMock,
+        mockMode: false,
         diagnosticPaper: {
           id: 'diag_' + student.id + '_' + Date.now(),
           studentId: student.id,
           studentName: student.name,
-          questions,
-          pdfUrl
+          questions: result.questions,
+          pdfUrl: `/output/${result.fileName}`,
+          templateUrl: result.templateUrl || ''
         }
       });
     } catch (err: any) {

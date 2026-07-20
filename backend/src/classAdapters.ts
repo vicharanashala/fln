@@ -1,14 +1,13 @@
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const MODULE_DIR = path.dirname(path.resolve(process.argv[1] || path.join(process.cwd(), 'src', 'index.ts')));
 
 // Worksheet HTML templates (class1..4.html) live in the frontend package; the
 // backend reads them for Puppeteer PDF rendering. Overridable via env so the
 // backend can be deployed independently of the frontend source tree.
 const WORKSHEETS_DIR =
   process.env.WORKSHEET_ASSETS_DIR ||
-  path.resolve(__dirname, "..", "..", "frontend", "public", "worksheets");
+  path.resolve(MODULE_DIR, "..", "..", "frontend", "public", "worksheets");
 
 export interface Adapter {
   file: string;

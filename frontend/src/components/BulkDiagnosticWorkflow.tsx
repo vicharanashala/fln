@@ -16,6 +16,7 @@ interface JobStatus {
   completed: number;
   status: 'running' | 'completed' | 'failed';
   pdfUrl: string;
+  templateUrl?: string;
   error: string;
   downloadUrl: string | null;
 }
@@ -100,7 +101,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
             Bulk Diagnostic Generator
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Specify the class level and the number of students to generate and print baseline diagnostic papers
+            Generate scan-ready diagnostic papers with real QR identity, corner markers, and stored ROI template data.
           </p>
         </div>
         <button
@@ -175,7 +176,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
             ) : (
               <>
                 <Download className="w-5 h-5" />
-                Generate & Print Class {classLevel} Papers ({totalStudents || 0} Sets)
+                Generate Scan-Ready Class {classLevel} Papers ({totalStudents || 0} Sets)
               </>
             )}
           </button>
@@ -187,7 +188,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
         <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="font-display font-medium text-zinc-900 dark:text-white">
-              Diagnostic Paper Batch Progress (Class {job.classNumber})
+              Scan-Ready Paper Batch Progress (Class {job.classNumber})
             </h3>
             <span className="text-xs font-mono text-zinc-400 dark:text-zinc-500">Job ID: {job.jobId}</span>
           </div>
@@ -228,7 +229,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
                 className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium text-sm py-2.5 px-5 rounded-xl transition-all shadow-sm cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                Download Merged PDF ({job.totalStudents} papers)
+                Download Scan-Ready PDF ({job.totalStudents} papers)
               </a>
               {job.pdfUrl && (
                 <a
@@ -241,6 +242,20 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
                   Print / Open PDF
                 </a>
               )}
+              {job.templateUrl && (
+                <a
+                  href={job.templateUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-200 font-medium text-sm py-2.5 px-5 rounded-xl transition-all shadow-sm cursor-pointer"
+                >
+                  <FileText className="w-4 h-4" />
+                  Open ROI Template JSON
+                </a>
+              )}
+              <p className="basis-full text-xs text-green-700 font-mono">
+                Format: real QR, four page-corner markers, boxed questions, Q anchors, answer ROI coordinates.
+              </p>
             </div>
           )}
 

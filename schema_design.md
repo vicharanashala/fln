@@ -1,6 +1,6 @@
 # MongoDB Schema Design
 
-This document details the MongoDB schema and collection design configured for the Foundational Literacy & Numeracy (FLN) Assessment Portal. 
+This document details the MongoDB schema and collection design configured for the Foundational Literacy & Numeracy (FLN) Assessment Portal.
 
 The application utilizes a dual-persistence strategy: it automatically connects to a MongoDB database if the `MONGO_URI` environment variable is defined, and gracefully falls back to a local structured JSON database (`data/db.json`) in its absence.
 
@@ -161,7 +161,7 @@ interface AnswerSubmission {
   submittedAt: string;      // ISO Timestamp
   isDelayed: boolean;       // Marked delayed if submitted after 'timing.submissionWindowEnd'
   answers: {                // Key-Value of question IDs to submitted string answers
-    [questionId: string]: string; 
+    [questionId: string]: string;
   };
 }
 ```

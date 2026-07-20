@@ -120,8 +120,8 @@ export const LogbookPanel: React.FC<LogbookPanelProps> = ({ currentUser, logs })
             </h4>
             <p className="text-xs text-blue-800/90 leading-relaxed dark:text-blue-400/90">
               Your logged-in role is <strong className="font-bold">{ROLE_LABELS[currentUser.role]}</strong>. Under standard FLN security directives, 
-              <strong> only higher or equal level users can audit lower-level activities</strong>. 
-              You can monitor your level's actions and all activities logged by roles underneath you. Actions by superior hierarchies remain strictly confidential and redacted.
+                <strong> only higher or equal level users can audit lower-level activities</strong>.
+                You can monitor your level's actions and all activities logged by roles underneath you. Actions by superior hierarchies remain strictly confidential and redacted.
             </p>
             
             {/* Visual Steps of Hierarchy */}

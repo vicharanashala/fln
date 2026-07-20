@@ -1,27 +1,9 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { MongoClient, Db } from 'mongodb';
+import { Db, MongoClient } from 'mongodb';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
-
-export let mongoClient: MongoClient | null = null;
-
-export const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    console.error("MONGODB_URI not set — cannot start server");
-    process.exit(1);
-  }
-  try {
-    mongoClient = new MongoClient(uri);
-    await mongoClient.connect();
-    console.log("MongoDB Connected");
-  } catch (err) {
-    console.error("MongoDB connection failed:", err.message);
-    process.exit(1);
-  }
-};
 
 // Types & Interfaces corresponding to MongoDB Collections in SRS §10
 export enum UserRole {
@@ -44,6 +26,7 @@ export interface User {
   blockCode?: string;
   schoolId?: string;
   assignedSchools?: string[]; // for Volunteers
+  phoneNumber?: string;
   delayedAttemptsCount?: number;
   isBanned?: boolean;
 }
@@ -88,6 +71,7 @@ export interface Question {
   question: string;
   answer: string;
   answer_type: 'text' | 'number' | 'choice';
+  question_format?: 'text' | 'multiple_choice' | 'match_pair' | 'fill_blank';
   choices?: string[];
   topic: string;
   subtopic: string;
@@ -96,13 +80,57 @@ export interface Question {
   svgAsset?: string; // Standard pre-built SVG asset category
 }
 
-/**
- * One rendered file coming out of the standalone Levels_backend batch
- * pipeline (POST /api/generate-batch) for a single student x sublevel x
- * set. answerKey/coords are stored verbatim (shape from that service's
- * buildCleanAnswerKey / captureCoords) so the ICR evaluation pipeline can
- * mark against the real thing instead of a placeholder.
- */
+export interface ScanRoiRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ScanTemplateQuestion {
+  questionId: string;
+  questionLabel: string;
+  questionType: NonNullable<Question['question_format']>;
+  prompt: string;
+  answerKey: string;
+  answerType: Question['answer_type'];
+  choices?: string[];
+  marks: number;
+  autoScoreEligible: boolean;
+  questionBox: ScanRoiRect;
+  answerBoxes: ScanRoiRect[];
+  anchor: ScanRoiRect;
+}
+
+export interface ScanPaperTemplate {
+  templateVersion: 'scan-template-v3';
+  qrSchema: 'studentId|paperId|testId|pageNumber';
+  studentId: string;
+  studentName: string;
+  paperId: string;
+  testId: string;
+  pageNumber: number;
+  pageCount: number;
+  page: {
+    size: 'A4';
+    width: number;
+    height: number;
+    unit: 'pt';
+    coordinateOrigin: 'top-left';
+  };
+  qrPayload: string;
+  fiducials: {
+    topLeft: ScanRoiRect;
+    topRight: ScanRoiRect;
+    bottomLeft: ScanRoiRect;
+    bottomRight: ScanRoiRect;
+  };
+  questions: ScanTemplateQuestion[];
+  generatedAt: string;
+  pdfFileName: string;
+  templateFileName: string;
+}
+
 export interface LevelWorksheet {
   id: string;
   batchId: string;
@@ -113,8 +141,8 @@ export interface LevelWorksheet {
   sublevelId: string;
   setNum: number;
   pdfUrl: string;
-  answerKey: any;
-  coords: any;
+  answerKey: unknown;
+  coords: unknown;
   generatedAt: string;
 }
 
@@ -266,6 +294,7 @@ interface DatabaseSchema {
   classes: ClassGroup[];
   students: Student[];
   questions: Question[];
+  scanPaperTemplates: ScanPaperTemplate[];
   worksheets: Worksheet[];
   levelWorksheets: LevelWorksheet[];
   answerSubmissions: AnswerSubmission[];
@@ -277,288 +306,374 @@ interface DatabaseSchema {
   bestPractices: BestPractice[];
 }
 
-const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
-  users: 'users',
-  schools: 'schools',
-  classes: 'classes',
-  students: 'students',
-  questions: 'questions',
-  worksheets: 'worksheets',
-  answerSubmissions: 'answer_submissions',
-  evaluationReports: 'evaluation_reports',
-  tickets: 'tickets',
-  logbook: 'logbook',
-  announcements: 'announcements',
-  interventions: 'interventions',
-  bestPractices: 'best_practices',
-};
-
 export class DBStore {
   private data: DatabaseSchema | null = null;
-  public useMongo: boolean = false;
+  private saveQueue: Promise<void> = Promise.resolve();
+  public useMongo = false;
+  private mongoClient: MongoClient | null = null;
   private mongoDb: Db | null = null;
 
   getDb() {
-    if (!mongoClient) throw new Error('MongoDB not connected');
-    return mongoClient.db();
+    return this.mongoDb;
   }
 
   async init() {
-    if (mongoClient) {
-      console.log('Loading data from MongoDB...');
-      this.mongoDb = mongoClient.db();
-      const db = this.mongoDb;
-      this.data = {} as DatabaseSchema;
-      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
-        const docs = await db.collection(collName).find().toArray();
-        (this.data as any)[key] = docs.map(({ _id, ...rest }) => rest);
-      }
-      console.log(`MongoDB loaded: ${this.data.users?.length || 0} users, ${this.data.schools?.length || 0} schools, ${this.data.students?.length || 0} students`);
-    } else {
-      console.log('No MongoDB — falling back to file-based DB');
-      try {
-        await fs.mkdir(DB_DIR, { recursive: true });
-      } catch (_) {}
-      try {
-        const content = await fs.readFile(DB_FILE, 'utf-8');
-        this.data = JSON.parse(content);
-      } catch (_) {
-        this.data = this.getSeedData();
-        await this.save();
-      }
+    const mongoUri = (process.env.MONGO_URI || process.env.MONGODB_URI)?.trim();
+    if (mongoUri) {
+      await this.initMongo(mongoUri);
+      return;
     }
-  }
 
-  private async save() {
-    if (!this.data) return;
-    await fs.writeFile(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
-  }
+    try {
+      await fs.mkdir(DB_DIR, { recursive: true });
+    } catch (_) {}
 
-  private async persistCollection(key: keyof DatabaseSchema) {
-    if (!this.data || !mongoClient) return;
-    const db = this.getDb();
-    const collName = COLLECTION_NAMES[key];
-    const items = (this.data as any)[key] || [];
-    const coll = db.collection(collName);
-    await coll.deleteMany({});
-    if (items.length > 0) {
-      await coll.insertMany(items);
-    }
-  }
+    try {
+      const content = await fs.readFile(DB_FILE, 'utf-8');
+      this.data = JSON.parse(content);
+      
+      // Auto-merge any newly defined pre-seeded users, schools, classes, and students
+      const seed = this.getSeedData();
+      let modified = false;
 
-  async reset() {
-    this.data = this.getSeedData();
-    if (mongoClient) {
-      const db = this.getDb();
-      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
-        const items = (this.data as any)[key] || [];
-        const coll = db.collection(collName);
-        await coll.deleteMany({});
-        if (items.length > 0) {
-          await coll.insertMany(items);
+      if (!this.data.users) {
+        this.data.users = [];
+        modified = true;
+      }
+      for (const u of seed.users) {
+        if (!this.data.users.some(existing => existing.email.toLowerCase() === u.email.toLowerCase())) {
+          this.data.users.push(u);
+          modified = true;
         }
       }
-    } else {
+
+      if (!this.data.schools) {
+        this.data.schools = [];
+        modified = true;
+      }
+      for (const s of seed.schools) {
+        if (!this.data.schools.some(existing => existing.id === s.id)) {
+          this.data.schools.push(s);
+          modified = true;
+        }
+      }
+
+      if (!this.data.classes) {
+        this.data.classes = [];
+        modified = true;
+      }
+      for (const c of seed.classes) {
+        if (!this.data.classes.some(existing => existing.id === c.id)) {
+          this.data.classes.push(c);
+          modified = true;
+        }
+      }
+
+      if (!this.data.students) {
+        this.data.students = [];
+        modified = true;
+      }
+      for (const std of seed.students) {
+        if (!this.data.students.some(existing => existing.id === std.id)) {
+          this.data.students.push(std);
+          modified = true;
+        }
+      }
+
+      if (!this.data.announcements) {
+        this.data.announcements = [];
+        modified = true;
+      }
+      if (!this.data.tickets) {
+        this.data.tickets = [];
+        modified = true;
+      }
+      if (!this.data.logbook) {
+        this.data.logbook = [];
+        modified = true;
+      }
+      if (!this.data.questions) {
+        this.data.questions = seed.questions;
+        modified = true;
+      } else {
+        for (const seedQuestion of seed.questions) {
+          const existing = this.data.questions.find(question => question.question_id === seedQuestion.question_id);
+          if (!existing) {
+            this.data.questions.push(seedQuestion);
+            modified = true;
+          } else if (!existing.question_format && seedQuestion.question_format) {
+            existing.question_format = seedQuestion.question_format;
+            modified = true;
+          }
+        }
+      }
+      if (!this.data.scanPaperTemplates) {
+        this.data.scanPaperTemplates = [];
+        modified = true;
+      }
+      if (!this.data.levelWorksheets) {
+        this.data.levelWorksheets = [];
+        modified = true;
+      }
+      if (!this.data.interventions) {
+        this.data.interventions = [];
+        modified = true;
+      }
+      if (!this.data.bestPractices) {
+        this.data.bestPractices = [];
+        modified = true;
+      }
+
+      if (modified) {
+        await this.save();
+      }
+    } catch (_) {
+      // If DB file does not exist, pre-seed data
+      this.data = this.getSeedData();
       await this.save();
     }
   }
 
+  private async initMongo(mongoUri: string) {
+    const maxAttempts = 3;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const client = new MongoClient(mongoUri, {
+        connectTimeoutMS: 15000,
+        serverSelectionTimeoutMS: 15000
+      });
+
+      try {
+        await client.connect();
+        const mongoDb = client.db();
+        await mongoDb.command({ ping: 1 });
+
+        const seed = this.getSeedData();
+        const names = Object.keys(seed) as Array<keyof DatabaseSchema>;
+        for (const name of names) {
+          const collection = mongoDb.collection(String(name));
+          if (await collection.countDocuments() === 0 && seed[name].length > 0) {
+            await collection.insertMany(seed[name] as any[]);
+          }
+        }
+
+        this.data = {} as DatabaseSchema;
+        for (const name of names) {
+          this.data[name] = await mongoDb.collection(String(name)).find({}).toArray() as any;
+        }
+
+        this.mongoClient = client;
+        this.mongoDb = mongoDb;
+        this.useMongo = true;
+        console.log(`[Database] Connected to MongoDB database "${mongoDb.databaseName}".`);
+        return;
+      } catch (error) {
+        lastError = error;
+        await client.close().catch(() => undefined);
+        if (attempt < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+        }
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('MongoDB connection failed.');
+  }
+
+  private async save() {
+    if (!this.data) return;
+    const snapshot = structuredClone(this.data);
+    this.saveQueue = this.saveQueue.then(async () => {
+      if (this.mongoDb) {
+        for (const name of Object.keys(snapshot) as Array<keyof DatabaseSchema>) {
+          const collection = this.mongoDb.collection(String(name));
+          await collection.deleteMany({});
+          if (snapshot[name].length > 0) await collection.insertMany(snapshot[name] as any[]);
+        }
+        return;
+      }
+      await fs.writeFile(DB_FILE, JSON.stringify(snapshot, null, 2), 'utf-8');
+    });
+    await this.saveQueue;
+  }
+
+  async reset() {
+    this.data = this.getSeedData();
+    await this.save();
+  }
+
   // --- Collection Accessors ---
 
-  getUserSync(email: string): User | null {
-    if (!this.data || !this.data.users) return null;
-    return this.data.users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+  async getUsers() { return this.data!.users; }
+  async getSchools() { return this.data!.schools; }
+  async getClasses() { return this.data!.classes; }
+  async getStudents() { return this.data!.students; }
+  async getQuestions() { return this.data!.questions; }
+  async getScanPaperTemplates() { return this.data!.scanPaperTemplates; }
+  async getScanPaperTemplate(paperId: string, pageNumber = 1) {
+    return this.data!.scanPaperTemplates.find(template => template.paperId === paperId && template.pageNumber === pageNumber);
   }
+  async getWorksheets() { return this.data!.worksheets; }
+  async getLevelWorksheets() { return this.data!.levelWorksheets; }
+  async getAnswerSubmissions() { return this.data!.answerSubmissions; }
+  async getEvaluationReports() { return this.data!.evaluationReports; }
+  async getTickets() { return this.data!.tickets; }
+  async getLogbook() { return this.data!.logbook; }
+  async getAnnouncements() { return this.data!.announcements; }
+  async getInterventions() { return this.data!.interventions; }
+  async getBestPractices() { return this.data!.bestPractices; }
 
-  async getUsers() {
-    return await this.mongoDb!.collection<User>('users').find({}).toArray();
-  }
-  async getSchools() {
-    return await this.mongoDb!.collection<School>('schools').find({}).toArray();
-  }
-  async getClasses() {
-    return await this.mongoDb!.collection<ClassGroup>('classes').find({}).toArray();
-  }
-  async getStudents() {
-    return await this.mongoDb!.collection<Student>('students').find({}).toArray();
-  }
-  async getQuestions() {
-    return await this.mongoDb!.collection<Question>('questions').find({}).toArray();
-  }
-  async getWorksheets() {
-    return await this.mongoDb!.collection<Worksheet>('worksheets').find({}).toArray();
-  }
-  async getLevelWorksheets() {
-    return await this.mongoDb!.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
-  }
-  async getAnswerSubmissions() {
-    return await this.mongoDb!.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
-  }
-  async getEvaluationReports() {
-    return await this.mongoDb!.collection<EvaluationReport>('evaluationReports').find({}).toArray();
-  }
-  async getTickets() {
-    return await this.mongoDb!.collection<Ticket>('tickets').find({}).toArray();
-  }
-  async getLogbook() {
-    return await this.mongoDb!.collection<LogEntry>('logbook').find({}).toArray();
-  }
-  async getAnnouncements() {
-    return await this.mongoDb!.collection<Announcement>('announcements').find({}).toArray();
+  getUserSync(email: string): User | null {
+    return this.data?.users.find(user => user.email.toLowerCase() === email.toLowerCase()) || null;
   }
 
   // --- Write / Update Helpers ---
 
   async addUser(user: User) {
-    await this.mongoDb!.collection('users').insertOne(user);
-    if (this.data) this.data.users.push(user);
+    this.data!.users.push(user);
+    await this.save();
     return user;
   }
 
   async addStudent(student: Student) {
-    await this.mongoDb!.collection('students').insertOne(student);
-    if (this.data) this.data.students.push(student);
+    this.data!.students.push(student);
+    await this.save();
     return student;
   }
 
   async updateStudent(studentId: string, updates: Partial<Student>) {
-    await this.mongoDb!.collection('students').updateOne({ id: studentId }, { $set: updates });
-    const s = await this.mongoDb!.collection<Student>('students').findOne({ id: studentId });
-    if (s && this.data) {
-      const idx = this.data.students.findIndex(x => x.id === studentId);
-      if (idx !== -1) this.data.students[idx] = s;
+    const s = this.data!.students.find(x => x.id === studentId);
+    if (s) {
+      Object.assign(s, updates);
+      await this.save();
     }
-    return s || undefined;
+    return s;
   }
 
   async addWorksheet(ws: Worksheet) {
-    await this.mongoDb!.collection('worksheets').insertOne(ws);
-    if (this.data) this.data.worksheets.push(ws);
+    this.data!.worksheets.push(ws);
+    await this.save();
     return ws;
   }
 
-  async updateWorksheet(worksheetId: string, updates: Partial<Worksheet>) {
-    await this.mongoDb!.collection('worksheets').updateOne({ id: worksheetId }, { $set: updates });
-    const ws = await this.mongoDb!.collection<Worksheet>('worksheets').findOne({ id: worksheetId });
-    if (ws && this.data) {
-      const idx = this.data.worksheets.findIndex(x => x.id === worksheetId);
-      if (idx !== -1) this.data.worksheets[idx] = ws;
+  async upsertScanPaperTemplates(templates: ScanPaperTemplate[]) {
+    for (const template of templates) {
+      const existingIndex = this.data!.scanPaperTemplates.findIndex(item =>
+        item.paperId === template.paperId && item.pageNumber === template.pageNumber
+      );
+      if (existingIndex >= 0) this.data!.scanPaperTemplates[existingIndex] = template;
+      else this.data!.scanPaperTemplates.push(template);
     }
-    return ws || undefined;
+    await this.save();
+    return templates;
+  }
+
+  async updateWorksheet(worksheetId: string, updates: Partial<Worksheet>) {
+    const ws = this.data!.worksheets.find(x => x.id === worksheetId);
+    if (ws) {
+      Object.assign(ws, updates);
+      await this.save();
+    }
+    return ws;
   }
 
   async addLevelWorksheet(ws: LevelWorksheet) {
-    await this.mongoDb!.collection('levelWorksheets').insertOne(ws);
-    if (this.data) this.data.levelWorksheets.push(ws);
+    this.data!.levelWorksheets.push(ws);
+    await this.save();
     return ws;
   }
 
   async addAnswerSubmission(sub: AnswerSubmission) {
-    await this.mongoDb!.collection('answerSubmissions').insertOne(sub);
-    if (this.data) this.data.answerSubmissions.push(sub);
+    this.data!.answerSubmissions.push(sub);
+    await this.save();
     return sub;
   }
 
   async addEvaluationReport(rep: EvaluationReport) {
-    await this.mongoDb!.collection('evaluationReports').insertOne(rep);
-    if (this.data) this.data.evaluationReports.push(rep);
+    this.data!.evaluationReports.push(rep);
+    await this.save();
     return rep;
   }
 
   async addTicket(t: Ticket) {
-    await this.mongoDb!.collection('tickets').insertOne(t);
-    if (this.data) this.data.tickets.push(t);
+    this.data!.tickets.push(t);
+    await this.save();
     return t;
   }
 
   async updateTicket(id: string, updates: Partial<Ticket>) {
-    await this.mongoDb!.collection('tickets').updateOne({ id }, { $set: updates });
-    const t = await this.mongoDb!.collection<Ticket>('tickets').findOne({ id });
-    if (t && this.data) {
-      const idx = this.data.tickets.findIndex(x => x.id === id);
-      if (idx !== -1) this.data.tickets[idx] = t;
+    const t = this.data!.tickets.find(x => x.id === id);
+    if (t) {
+      Object.assign(t, updates);
+      await this.save();
     }
-    return t || undefined;
+    return t;
   }
 
   async updateUser(userId: string, updates: Partial<User>) {
-    await this.mongoDb!.collection('users').updateOne({ id: userId }, { $set: updates });
-    const u = await this.mongoDb!.collection<User>('users').findOne({ id: userId });
-    if (u && this.data) {
-      const idx = this.data.users.findIndex(x => x.id === userId);
-      if (idx !== -1) this.data.users[idx] = u;
+    const u = this.data!.users.find(x => x.id === userId);
+    if (u) {
+      Object.assign(u, updates);
+      await this.save();
     }
-    return u || undefined;
+    return u;
   }
 
   async updateSchool(schoolId: string, updates: Partial<School>) {
-    await this.mongoDb!.collection('schools').updateOne({ id: schoolId }, { $set: updates });
-    const s = await this.mongoDb!.collection<School>('schools').findOne({ id: schoolId });
-    if (s && this.data) {
-      const idx = this.data.schools.findIndex(x => x.id === schoolId);
-      if (idx !== -1) this.data.schools[idx] = s;
+    const s = this.data!.schools.find(x => x.id === schoolId);
+    if (s) {
+      Object.assign(s, updates);
+      await this.save();
     }
-    return s || undefined;
+    return s;
   }
 
   async addSchool(school: School) {
-    await this.mongoDb!.collection('schools').insertOne(school);
-    if (this.data) this.data.schools.push(school);
+    this.data!.schools.push(school);
+    await this.save();
     return school;
   }
 
   async addLog(log: LogEntry) {
-    await this.mongoDb!.collection('logbook').insertOne(log);
-    if (this.data) this.data.logbook.unshift(log);
+    this.data!.logbook.unshift(log);
+    await this.save();
     return log;
   }
 
   async addAnnouncement(ann: Announcement) {
-    await this.mongoDb!.collection('announcements').insertOne(ann);
-    if (this.data) this.data.announcements.unshift(ann);
+    this.data!.announcements.unshift(ann);
+    await this.save();
     return ann;
   }
 
-  // --- Intervention & Best Practice Methods ---
-
-  async getInterventions() {
-    return await this.mongoDb!.collection<Intervention>('interventions').find({}).toArray();
-  }
-
   async addIntervention(intervention: Intervention) {
-    await this.mongoDb!.collection('interventions').insertOne(intervention);
-    if (this.data) this.data.interventions.push(intervention);
+    this.data!.interventions.push(intervention);
+    await this.save();
     return intervention;
   }
 
   async updateIntervention(id: string, updates: Partial<Intervention>) {
-    await this.mongoDb!.collection('interventions').updateOne({ id }, { $set: updates });
-    const i = await this.mongoDb!.collection<Intervention>('interventions').findOne({ id });
-    if (i && this.data) {
-      const idx = this.data.interventions.findIndex(x => x.id === id);
-      if (idx !== -1) this.data.interventions[idx] = i;
+    const intervention = this.data!.interventions.find(item => item.id === id);
+    if (intervention) {
+      Object.assign(intervention, updates);
+      await this.save();
     }
-    return i || undefined;
+    return intervention;
   }
 
-  async getBestPractices() {
-    return await this.mongoDb!.collection<BestPractice>('bestPractices').find({}).toArray();
-  }
-
-  async addBestPractice(bp: BestPractice) {
-    await this.mongoDb!.collection('bestPractices').insertOne(bp);
-    if (this.data) this.data.bestPractices.push(bp);
-    return bp;
+  async addBestPractice(bestPractice: BestPractice) {
+    this.data!.bestPractices.push(bestPractice);
+    await this.save();
+    return bestPractice;
   }
 
   async updateBestPractice(id: string, updates: Partial<BestPractice>) {
-    await this.mongoDb!.collection('bestPractices').updateOne({ id }, { $set: updates });
-    const bp = await this.mongoDb!.collection<BestPractice>('bestPractices').findOne({ id });
-    if (bp && this.data) {
-      const idx = this.data.bestPractices.findIndex(x => x.id === id);
-      if (idx !== -1) this.data.bestPractices[idx] = bp;
+    const bestPractice = this.data!.bestPractices.find(item => item.id === id);
+    if (bestPractice) {
+      Object.assign(bestPractice, updates);
+      await this.save();
     }
-    return bp || undefined;
+    return bestPractice;
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -570,6 +685,7 @@ export class DBStore {
         question: 'Count the apples in the picture. How many apples are there?',
         answer: '5',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Number Sense',
         subtopic: 'Counting',
         difficulty: 'easy',
@@ -581,6 +697,7 @@ export class DBStore {
         question: 'Count the circles and write the total number.',
         answer: '3',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Shapes',
         subtopic: 'Recognition',
         difficulty: 'easy',
@@ -593,6 +710,7 @@ export class DBStore {
         question: 'Calculate: 3 + 4 = ?',
         answer: '7',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Number Operations',
         subtopic: 'Addition',
         difficulty: 'easy',
@@ -604,6 +722,7 @@ export class DBStore {
         question: 'Complete the pattern: Red Circle, Blue Circle, Red Circle, ?',
         answer: 'Blue Circle',
         answer_type: 'choice',
+        question_format: 'multiple_choice',
         choices: ['Red Circle', 'Blue Circle', 'Green Circle'],
         topic: 'Patterns',
         subtopic: 'Completing Patterns',
@@ -611,12 +730,36 @@ export class DBStore {
         source_level: 2,
         svgAsset: 'shapes'
       },
+      {
+        question_id: 'L2_Q3',
+        question: 'Write the number name for 14.',
+        answer: 'fourteen',
+        answer_type: 'text',
+        question_format: 'text',
+        topic: 'Number Sense',
+        subtopic: 'Number Names',
+        difficulty: 'easy',
+        source_level: 2
+      },
+      {
+        question_id: 'L2_Q4',
+        question: 'Match each number name with its numeral.',
+        answer: 'One=1, Three=3, Five=5',
+        answer_type: 'text',
+        question_format: 'match_pair',
+        choices: ['One = 1', 'Three = 3', 'Five = 5'],
+        topic: 'Number Sense',
+        subtopic: 'Match Pairs',
+        difficulty: 'easy',
+        source_level: 2
+      },
       // Level 3: Class 2 Measurement, Time, Simple Operations
       {
         question_id: 'L3_Q1',
         question: 'If a pencil is 8 centimeters long and we cut 3 centimeters off, how long is it now?',
         answer: '5',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Measurement',
         subtopic: 'Length Subtraction',
         difficulty: 'medium',
@@ -628,6 +771,7 @@ export class DBStore {
         question: 'Look at the clock. If the short hand points to 3 and the long hand points to 12, what hour is it?',
         answer: '3',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Calendar and Time',
         subtopic: 'Reading Hours',
         difficulty: 'easy',
@@ -640,6 +784,7 @@ export class DBStore {
         question: 'Ramu has a pizza cut into 4 equal slices. He eats 1 slice. What fraction of the pizza is left?',
         answer: '3/4',
         answer_type: 'choice',
+        question_format: 'multiple_choice',
         choices: ['1/4', '2/4', '3/4', '4/4'],
         topic: 'Fractions',
         subtopic: 'Fraction Representation',
@@ -652,6 +797,7 @@ export class DBStore {
         question: 'You buy a toy for 15 rupees and give the shopkeeper a 50-rupee note. How many rupees do you get back?',
         answer: '35',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Money',
         subtopic: 'Transaction Change',
         difficulty: 'hard',
@@ -664,6 +810,7 @@ export class DBStore {
         question: 'Multiply: 12 x 5 = ?',
         answer: '60',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Number Operations',
         subtopic: 'Multiplication',
         difficulty: 'easy',
@@ -675,6 +822,7 @@ export class DBStore {
         question: 'In a class there are 5 benches. Each bench holds 4 students. How many students can sit in total?',
         answer: '20',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Data Handling',
         subtopic: 'Simple Arithmetic Multiplication',
         difficulty: 'medium',
@@ -687,6 +835,7 @@ export class DBStore {
         question: 'Divide: 48 / 6 = ?',
         answer: '8',
         answer_type: 'number',
+        question_format: 'fill_blank',
         topic: 'Number Operations',
         subtopic: 'Division',
         difficulty: 'medium',
@@ -698,6 +847,7 @@ export class DBStore {
         question: 'If July 1st is a Monday, what day of the week is July 8th?',
         answer: 'Monday',
         answer_type: 'choice',
+        question_format: 'multiple_choice',
         choices: ['Monday', 'Tuesday', 'Sunday', 'Wednesday'],
         topic: 'Calendar and Time',
         subtopic: 'Calendar Arithmetic',
@@ -747,10 +897,10 @@ export class DBStore {
       { id: 'u6_amb', email: 'gps-amb-003.t01@fln.org', name: 'Meena Kumari (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-amb-003' },
       { id: 'u6_jai', email: 'gps-jai-004.t01@fln.org', name: 'Ram Gopal (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-jai-004' },
       { id: 'u6_lko', email: 'gps-lko-005.t01@fln.org', name: 'Suresh Kumar (Teacher)', role: UserRole.TEACHER, schoolId: 'gps-lko-005' },
-      { id: 'u7', email: 'vol.rahul@fln.org', name: 'Punjab Volunteer (Rahul)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002'] },
+      { id: 'u7', email: 'vol.rahul@fln.org', name: 'Rahul Kumar (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002'] },
       { id: 'u7_amit', email: 'vol.amit@fln.org', name: 'Amit Saini (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-vl-002', 'gps-jai-004'] },
       { id: 'u7_sneha', email: 'vol.up_sneha@fln.org', name: 'Sneha Verma (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-lko-005'] },
-      { id: 'u7_vipin', email: 'vol.hr_vipin@fln.org', name: 'Haryana Volunteer (Vipin)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-amb-003'] },
+      { id: 'u7_vipin', email: 'vol.hr_vipin@fln.org', name: 'Vipin Yadav (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-amb-003'] },
       // District admins for new districts
       { id: 'u3_bth', email: 'district.bth@fln.org', name: 'Bathinda District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'PB', districtCode: 'BTH' },
       { id: 'u3_asr', email: 'district.asr@fln.org', name: 'Amritsar District Officer', role: UserRole.DISTRICT_ADMIN, stateCode: 'PB', districtCode: 'ASR' },
@@ -2350,125 +2500,47 @@ export class DBStore {
 
     const interventions: Intervention[] = [
       {
-        id: 'int1',
-        studentId: 's2',
-        studentName: 'Jasmine Kaur',
-        teacherId: 'u5',
-        teacherName: 'Ritu Sharma',
-        schoolId: 'gps-mt-001',
-        classId: 'c1',
-        className: 'Class 2',
-        section: 'A',
-        weakCompetencies: ['Shapes', 'Patterns'],
-        currentLevel: 8,
-        strategyType: 'visual_aids',
+        id: 'int1', studentId: 's2', studentName: 'Jasmine Kaur', teacherId: 'u5', teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001', classId: 'c1', className: 'Class 2', section: 'A',
+        weakCompetencies: ['Shapes', 'Patterns'], currentLevel: 8, strategyType: 'visual_aids',
         strategyDescription: 'Used flashcards with shape outlines and colour-coded pattern strips. Practised daily for 15 minutes during morning assembly. Jasmine responded well to colour-based matching exercises.',
-        duration: '2 weeks',
-        startDate: '2026-06-15',
-        endDate: '2026-06-29',
-        status: 'completed',
-        outcome: {
-          improved: true,
-          previousLevel: 8,
-          newLevel: 10,
-          improvementDetails: 'Jasmine improved from Level 8 to Level 10. Shapes recognition went from Needs Practice to Satisfactory. Pattern completion improved significantly.',
-          assessmentId: 'ws_mid_001',
-          detectedAt: '2026-07-02T10:00:00Z'
-        },
-        isPromoted: true,
-        promotedAt: '2026-07-03T08:00:00Z',
-        createdAt: '2026-06-15T09:00:00Z'
+        duration: '2 weeks', startDate: '2026-06-15', endDate: '2026-06-29', status: 'completed',
+        outcome: { improved: true, previousLevel: 8, newLevel: 10, improvementDetails: 'Jasmine improved from Level 8 to Level 10. Shapes recognition went from Needs Practice to Satisfactory. Pattern completion improved significantly.', assessmentId: 'ws_mid_001', detectedAt: '2026-07-02T10:00:00Z' },
+        isPromoted: true, promotedAt: '2026-07-03T08:00:00Z', createdAt: '2026-06-15T09:00:00Z'
       },
       {
-        id: 'int2',
-        studentId: 's5',
-        studentName: 'Arjun Verma',
-        teacherId: 'u5',
-        teacherName: 'Ritu Sharma',
-        schoolId: 'gps-mt-001',
-        classId: 'c1',
-        className: 'Class 2',
-        section: 'A',
-        weakCompetencies: ['Subtraction', 'Number Sense'],
-        currentLevel: 6,
-        strategyType: 'manipulatives',
+        id: 'int2', studentId: 's5', studentName: 'Arjun Verma', teacherId: 'u5', teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001', classId: 'c1', className: 'Class 2', section: 'A',
+        weakCompetencies: ['Subtraction', 'Number Sense'], currentLevel: 6, strategyType: 'manipulatives',
         strategyDescription: 'Used physical counting beads and number blocks for hands-on subtraction practice. Grouped Arjun with two peers for peer learning during math station time.',
-        duration: '3 weeks',
-        startDate: '2026-06-10',
-        status: 'active',
-        isPromoted: false,
-        createdAt: '2026-06-10T09:00:00Z'
+        duration: '3 weeks', startDate: '2026-06-10', status: 'active', isPromoted: false, createdAt: '2026-06-10T09:00:00Z'
       },
       {
-        id: 'int3',
-        studentId: 's19',
-        studentName: 'Rohan Das',
-        teacherId: 'u6_amb',
-        teacherName: 'Meena Kumari',
-        schoolId: 'gps-amb-003',
-        classId: 'c5',
-        className: 'Class 3',
-        section: 'A',
-        weakCompetencies: ['Number Operations', 'Multiplication'],
-        currentLevel: 8,
-        strategyType: 'game_based',
+        id: 'int3', studentId: 's19', studentName: 'Rohan Das', teacherId: 'u6_amb', teacherName: 'Meena Kumari',
+        schoolId: 'gps-amb-003', classId: 'c5', className: 'Class 3', section: 'A',
+        weakCompetencies: ['Number Operations', 'Multiplication'], currentLevel: 8, strategyType: 'game_based',
         strategyDescription: 'Introduced multiplication table songs and number-line hop games. Used a dice-based addition game during break time to reinforce basic operations. Rohan showed high engagement with game-based activities.',
-        duration: '2 weeks',
-        startDate: '2026-06-20',
-        endDate: '2026-07-04',
-        status: 'completed',
-        outcome: {
-          improved: true,
-          previousLevel: 8,
-          newLevel: 12,
-          improvementDetails: 'Rohan jumped from Level 8 to Level 12 (two full levels). Multiplication tables 2-5 mastered. Addition speed improved by 40%.',
-          assessmentId: 'ws_mid_003',
-          detectedAt: '2026-07-05T10:00:00Z'
-        },
-        isPromoted: false,
-        createdAt: '2026-06-20T09:00:00Z'
+        duration: '2 weeks', startDate: '2026-06-20', endDate: '2026-07-04', status: 'completed',
+        outcome: { improved: true, previousLevel: 8, newLevel: 12, improvementDetails: 'Rohan jumped from Level 8 to Level 12 (two full levels). Multiplication tables 2-5 mastered. Addition speed improved by 40%.', assessmentId: 'ws_mid_003', detectedAt: '2026-07-05T10:00:00Z' },
+        isPromoted: false, createdAt: '2026-06-20T09:00:00Z'
       },
       {
-        id: 'int4',
-        studentId: 's7',
-        studentName: 'Simran Kaur',
-        teacherId: 'u5',
-        teacherName: 'Ritu Sharma',
-        schoolId: 'gps-mt-001',
-        classId: 'c3',
-        className: 'Class 1',
-        section: 'A',
-        weakCompetencies: ['Number Sense', 'Counting'],
-        currentLevel: 4,
-        strategyType: 'one_on_one',
+        id: 'int4', studentId: 's7', studentName: 'Simran Kaur', teacherId: 'u5', teacherName: 'Ritu Sharma',
+        schoolId: 'gps-mt-001', classId: 'c3', className: 'Class 1', section: 'A',
+        weakCompetencies: ['Number Sense', 'Counting'], currentLevel: 4, strategyType: 'one_on_one',
         strategyDescription: 'Conducted daily one-on-one counting sessions using real objects (pencils, erasers). Practised number tracing on sandpaper numbers. Focused on building confidence before introducing new concepts.',
-        duration: '1 month',
-        startDate: '2026-06-01',
-        status: 'active',
-        isPromoted: false,
-        createdAt: '2026-06-01T09:00:00Z'
+        duration: '1 month', startDate: '2026-06-01', status: 'active', isPromoted: false, createdAt: '2026-06-01T09:00:00Z'
       }
     ];
 
-    const bestPractices: BestPractice[] = [
-      {
-        id: 'bp1',
-        interventionId: 'int1',
-        teacherId: 'u5',
-        teacherName: 'Ritu Sharma',
-        schoolId: 'gps-mt-001',
-        weakCompetencies: ['Shapes', 'Patterns'],
-        strategyType: 'visual_aids',
-        strategyDescription: 'Used flashcards with shape outlines and colour-coded pattern strips. Practised daily for 15 minutes during morning assembly. Responded well to colour-based matching exercises.',
-        levelBefore: 8,
-        levelAfter: 10,
-        levelJump: 2,
-        duration: '2 weeks',
-        tags: ['Shapes', 'Patterns', 'Visual Learning', 'Preschool 3', 'Class 1', 'Quick Win'],
-        viewCount: 12,
-        createdAt: '2026-07-03T08:00:00Z'
-      }
-    ];
+    const bestPractices: BestPractice[] = [{
+      id: 'bp1', interventionId: 'int1', teacherId: 'u5', teacherName: 'Ritu Sharma', schoolId: 'gps-mt-001',
+      weakCompetencies: ['Shapes', 'Patterns'], strategyType: 'visual_aids',
+      strategyDescription: 'Used flashcards with shape outlines and colour-coded pattern strips. Practised daily for 15 minutes during morning assembly. Responded well to colour-based matching exercises.',
+      levelBefore: 8, levelAfter: 10, levelJump: 2, duration: '2 weeks',
+      tags: ['Shapes', 'Patterns', 'Visual Learning', 'Preschool 3', 'Class 1', 'Quick Win'], viewCount: 12,
+      createdAt: '2026-07-03T08:00:00Z'
+    }];
 
     return {
       users,
@@ -2476,6 +2548,7 @@ export class DBStore {
       classes,
       students,
       questions: seedQuestions,
+      scanPaperTemplates: [],
       worksheets,
       levelWorksheets: [],
       answerSubmissions,

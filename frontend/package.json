@@ -10,6 +10,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "jsqr": "^1.4.0",
     "@tanstack/react-query": "^5.101.2",
     "axios": "^1.18.1",
     "lucide-react": "^0.546.0",

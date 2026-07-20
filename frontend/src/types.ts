@@ -62,6 +62,7 @@ export interface Question {
   question: string;
   answer: string;
   answer_type: 'text' | 'number' | 'choice';
+  question_format?: 'text' | 'multiple_choice' | 'match_pair' | 'fill_blank';
   choices?: string[];
   topic: string;
   subtopic: string;

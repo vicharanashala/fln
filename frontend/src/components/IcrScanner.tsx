@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Student, ClassGroup, Question, EvaluationReport, User } from '../types';
+import React, { useState } from 'react';
+import jsQR from 'jsqr';
+import { EvaluationReport, Student, User } from '../types';
 
 interface IcrScannerProps {
   token: string;
@@ -7,595 +8,577 @@ interface IcrScannerProps {
   onBack: () => void;
 }
 
-type ScannerStep = 'select' | 'paper' | 'scanning' | 'verify' | 'result';
+type ScannerStep = 'select' | 'processing' | 'review' | 'result';
+type ScanSource = 'upload' | 'camera';
+type FinalMark = 'correct' | 'partial' | 'incorrect';
 
-export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) => {
-  const [classes, setClasses] = useState<ClassGroup[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState('');
-  const [selectedStudentId, setSelectedStudentId] = useState('');
+interface RoiRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
+interface QrIdentity {
+  studentId: string;
+  paperId: string;
+  testId: string;
+  pageNumber: number;
+  raw: string;
+}
+
+interface TemplateQuestion {
+  questionId: string;
+  questionLabel: string;
+  questionType: 'text' | 'multiple_choice' | 'match_pair' | 'fill_blank' | string;
+  prompt?: string;
+  answerKey?: string;
+  choices?: string[];
+  marks?: number;
+  autoScoreEligible?: boolean;
+  questionBox: RoiRect;
+  answerBoxes: RoiRect[];
+}
+
+interface ReviewItem {
+  questionId: string;
+  questionLabel: string;
+  questionType: string;
+  question: string;
+  expectedAnswer: string;
+  roi: RoiRect | null;
+  cropImageDataUrl: string;
+  extractedText: string;
+  confidence: number;
+  modelName: string;
+  modelStatus: string;
+  autoEvaluated: boolean;
+  needsReview: boolean;
+  finalMark: FinalMark | null;
+  marks: number;
+  maxMarks: number;
+}
+
+interface ScanResult {
+  detectedQr: QrIdentity;
+  student: Student;
+  paper: {
+    id: string;
+    testId: string;
+    pageNumber: number;
+    page: { width: number; height: number };
+    questions: TemplateQuestion[];
+    templateUrl: string;
+  };
+  modelScan: {
+    answers: Array<{
+      question_id: string;
+      recognized_answer?: string;
+      confidence?: number;
+      needs_teacher_review?: boolean;
+      status?: string;
+      roi?: RoiRect;
+      crop_image_data_url?: string;
+      ocr?: {
+        model_name?: string;
+        provider_status?: string;
+      };
+    }>;
+    page?: {
+      alignment?: {
+        perspectiveCorrected?: boolean;
+        status?: string;
+      };
+    };
+  };
+}
+
+function parseQrPayload(rawText: string): QrIdentity | null {
+  const raw = rawText.trim();
+  if (!raw) return null;
+
+  if (raw.startsWith('{')) {
+    try {
+      const payload = JSON.parse(raw);
+      return {
+        studentId: payload.student_id || payload.studentId || '',
+        paperId: payload.paper_id || payload.paperId || payload.paperPageId || '',
+        testId: payload.test_id || payload.testId || payload.assessmentId || '',
+        pageNumber: Number(payload.page || payload.pageNumber || 1),
+        raw
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  if (raw.includes('|') && !raw.includes(':')) {
+    const [studentId, paperId, testId, page] = raw.split('|').map(part => part.trim());
+    return { studentId, paperId, testId, pageNumber: Number(page) || 1, raw };
+  }
+
+  const parsed: QrIdentity = { studentId: '', paperId: '', testId: '', pageNumber: 1, raw };
+  raw.split('|').forEach(part => {
+    const [rawKey, ...rest] = part.split(':');
+    const key = rawKey.trim().toUpperCase();
+    const value = rest.join(':').trim();
+    if (key === 'SID' || key === 'STUDENT' || key === 'STUDENT_ID') parsed.studentId = value;
+    if (key === 'PAPER' || key === 'PAPER_ID') parsed.paperId = value;
+    if (key === 'TEST' || key === 'TEST_ID') parsed.testId = value;
+    if (key === 'PAGE' || key === 'PAGE_NUMBER') parsed.pageNumber = Number(value) || 1;
+  });
+  return parsed.studentId && parsed.paperId && parsed.testId ? parsed : null;
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('Could not read the selected paper image.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Could not load the selected paper image.'));
+    image.src = src;
+  });
+}
+
+function decodeCanvasQr(canvas: HTMLCanvasElement, crop?: { x: number; y: number; width: number; height: number; scale?: number }) {
+  const sourceContext = canvas.getContext('2d', { willReadFrequently: true });
+  if (!sourceContext) return null;
+  if (!crop) {
+    const imageData = sourceContext.getImageData(0, 0, canvas.width, canvas.height);
+    return jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+  }
+
+  const scale = crop.scale || 1;
+  const workCanvas = document.createElement('canvas');
+  workCanvas.width = Math.max(1, Math.round(crop.width * scale));
+  workCanvas.height = Math.max(1, Math.round(crop.height * scale));
+  const workContext = workCanvas.getContext('2d', { willReadFrequently: true });
+  if (!workContext) return null;
+  workContext.imageSmoothingEnabled = false;
+  workContext.drawImage(
+    canvas,
+    Math.max(0, crop.x),
+    Math.max(0, crop.y),
+    Math.min(canvas.width - crop.x, crop.width),
+    Math.min(canvas.height - crop.y, crop.height),
+    0,
+    0,
+    workCanvas.width,
+    workCanvas.height
+  );
+  const imageData = workContext.getImageData(0, 0, workCanvas.width, workCanvas.height);
+  return jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+}
+
+async function decodeQrFromImage(imageDataUrl: string) {
+  const BarcodeDetectorCtor = (window as any).BarcodeDetector;
+  const image = await loadImage(imageDataUrl);
+  if (BarcodeDetectorCtor) {
+    const detector = new BarcodeDetectorCtor({ formats: ['qr_code'] });
+    const results = await detector.detect(image);
+    const qr = results.find((item: any) => item.format === 'qr_code') || results[0];
+    if (qr?.rawValue) return String(qr.rawValue);
+  }
+
+  const canvas = document.createElement('canvas');
+  const maxSide = 1800;
+  const scale = Math.min(1, maxSide / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height));
+  canvas.width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+  canvas.height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) throw new Error('Could not prepare the image for QR decoding.');
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  const fullDecoded = decodeCanvasQr(canvas);
+  if (fullDecoded?.data) return fullDecoded.data;
+
+  const regions = [
+    { x: canvas.width * 0.58, y: 0, width: canvas.width * 0.42, height: canvas.height * 0.28, scale: 3 },
+    { x: canvas.width * 0.68, y: 0, width: canvas.width * 0.32, height: canvas.height * 0.22, scale: 4 },
+    { x: canvas.width * 0.72, y: canvas.height * 0.02, width: canvas.width * 0.24, height: canvas.height * 0.18, scale: 5 },
+    { x: canvas.width * 0.45, y: 0, width: canvas.width * 0.55, height: canvas.height * 0.35, scale: 3 }
+  ];
+  for (const region of regions) {
+    const decoded = decodeCanvasQr(canvas, region);
+    if (decoded?.data) return decoded.data;
+  }
+  throw new Error('No QR code detected. Upload a clear image of the newly generated paper with the QR visible.');
+}
+
+function isTextQuestion(questionType: string) {
+  return questionType === 'text' || questionType === 'fill_blank';
+}
+
+function normalizeAnswer(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function reviewMarkToMarks(mark: FinalMark | null, maxMarks = 1) {
+  if (mark === 'correct') return maxMarks;
+  if (mark === 'partial') return maxMarks / 2;
+  return 0;
+}
+
+export const IcrScanner: React.FC<IcrScannerProps> = ({ token, onBack }) => {
   const [step, setStep] = useState<ScannerStep>('select');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  const [paper, setPaper] = useState<{ id: string; questions: Question[] } | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanPhase, setScanPhase] = useState<'idle' | 'feeding' | 'scanning' | 'done'>('idle');
-  const [extractedAnswers, setExtractedAnswers] = useState<{ [questionId: string]: string }>({});
+  const [scanSource, setScanSource] = useState<ScanSource | null>(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
   const [report, setReport] = useState<EvaluationReport | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [clsRes, stdRes] = await Promise.all([
-          fetch('/api/classes', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } })
-        ]);
-        if (clsRes.ok) {
-          const clsData = await clsRes.json();
-          if (Array.isArray(clsData)) setClasses(clsData);
-        }
-        if (stdRes.ok) {
-          const stdData = await stdRes.json();
-          if (Array.isArray(stdData)) setStudents(stdData);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchData();
-  }, [token]);
+  const processPaperImage = async (file: File | undefined, source: ScanSource) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload or scan an image file. PDF-to-image conversion is not part of this MVP workflow.');
+      return;
+    }
 
-  const selectedStudent = students.find(s => s.id === selectedStudentId);
-  const filteredStudents = selectedClassId
-    ? students.filter(s => {
-        const cls = classes.find(c => c.id === selectedClassId);
-        return cls && s.classGroup === cls.className && s.section === cls.section;
-      })
-    : [];
-
-  const generatePaper = async () => {
-    if (!selectedStudent) return;
+    setStep('processing');
     setLoading(true);
     setError('');
+    setSuccess('');
+    setReport(null);
+    setReviewItems([]);
+    setScanResult(null);
+    setScanSource(source);
+
     try {
-      const res = await fetch(`/api/students/${selectedStudent.id}/diagnostic`, {
+      const imageDataUrl = await readFileAsDataUrl(file);
+      setPreviewUrl(imageDataUrl);
+      const qrText = await decodeQrFromImage(imageDataUrl);
+      const parsed = parseQrPayload(qrText);
+      if (!parsed) throw new Error('QR decoded, but the payload format is not valid.');
+
+      const scanRes = await fetch('/api/ocr/scan/process', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ qrText, imageDataUrl })
       });
-      const data = await res.json();
-      if (res.ok) {
-        setPaper(data.diagnosticPaper);
-        setStep('paper');
-        setScanPhase('idle');
-      } else {
-        setError(data.error || 'Failed to generate diagnostic paper.');
-      }
-    } catch {
-      setError('Network error generating diagnostic.');
+      const scanData: ScanResult & { error?: string } = await scanRes.json();
+      if (!scanRes.ok) throw new Error(scanData.error || 'The full-page scan was rejected. Verify the QR and all four corner markers.');
+
+      const items: ReviewItem[] = (scanData.paper.questions as TemplateQuestion[]).map(question => {
+        const textBased = isTextQuestion(question.questionType);
+        const modelAnswer = scanData.modelScan.answers.find(answer => answer.question_id === question.questionId);
+        if (!modelAnswer) throw new Error(`The model did not return a crop for ${question.questionLabel}.`);
+        const maxMarks = Number(question.marks || 1);
+        const confidence = textBased ? Math.max(0, Math.min(1, Number(modelAnswer.confidence || 0))) : 0;
+        const extractedText = textBased ? String(modelAnswer.recognized_answer || '') : '';
+        const autoEvaluated = textBased && confidence >= 0.4;
+        const isCorrect = autoEvaluated && normalizeAnswer(extractedText) === normalizeAnswer(question.answerKey || '');
+        return {
+          questionId: question.questionId,
+          questionLabel: question.questionLabel,
+          questionType: question.questionType,
+          question: question.prompt || question.questionLabel,
+          expectedAnswer: question.answerKey || '',
+          roi: modelAnswer.roi || null,
+          cropImageDataUrl: modelAnswer.crop_image_data_url || '',
+          extractedText,
+          confidence,
+          modelName: modelAnswer.ocr?.model_name || (textBased ? 'microsoft/trocr-base-handwritten' : 'manual-visual-review'),
+          modelStatus: modelAnswer.ocr?.provider_status || modelAnswer.status || 'needs_review',
+          autoEvaluated,
+          needsReview: !autoEvaluated,
+          finalMark: autoEvaluated ? (isCorrect ? 'correct' : 'incorrect') : null,
+          marks: autoEvaluated ? (isCorrect ? maxMarks : 0) : 0,
+          maxMarks
+        };
+      });
+
+      setScanResult(scanData);
+      setReviewItems(items);
+      setStep('review');
+      const alignmentStatus = scanData.modelScan.page?.alignment?.status || 'perspective_corrected';
+      setSuccess(`QR and four fiducials verified. Student detected: ${scanData.student.name}. ${items.length} ROIs were extracted from the aligned page (${alignmentStatus}).`);
+    } catch (err: any) {
+      setError(err.message || 'OCR scan failed.');
+      setStep('select');
     } finally {
       setLoading(false);
     }
   };
 
-  const startScan = () => {
-    setIsScanning(true);
-    setScanPhase('feeding');
-
-    // Phase 1: Paper feeds into scanner (1s)
-    setTimeout(() => {
-      setScanPhase('scanning');
-
-      // Phase 2: Scanning bar moves (2s)
-      setTimeout(() => {
-        setScanPhase('done');
-        simulateIcrExtraction();
-
-        // Phase 3: Done, move to verify
-        setTimeout(() => {
-          setIsScanning(false);
-          setStep('verify');
-        }, 800);
-      }, 2000);
-    }, 1000);
+  const setFinalMark = (questionId: string, finalMark: FinalMark) => {
+    setReviewItems(prev => prev.map(item => {
+      if (item.questionId !== questionId) return item;
+      return { ...item, finalMark, marks: reviewMarkToMarks(finalMark, item.maxMarks) };
+    }));
   };
 
-  const simulateIcrExtraction = () => {
-    if (!paper) return;
-    const extracted: { [key: string]: string } = {};
-    paper.questions.forEach((q) => {
-      if (q.answer_type === 'choice') {
-        const randomIdx = Math.floor(Math.random() * (q.choices?.length || 1));
-        extracted[q.question_id] = q.choices?.[randomIdx] || '';
-      } else {
-        const correct = q.answer;
-        const shouldCorrect = Math.random() > 0.3;
-        if (q.answer_type === 'number') {
-          extracted[q.question_id] = shouldCorrect ? correct : String(parseInt(correct, 10) + (Math.random() > 0.5 ? 1 : -1));
-        } else {
-          extracted[q.question_id] = shouldCorrect ? correct : correct.split('').reverse().join('');
-        }
-      }
-    });
-    setExtractedAnswers(extracted);
-  };
+  const finalizeScan = async () => {
+    if (!scanResult) return;
+    const unresolved = reviewItems.some(item => item.needsReview && !item.finalMark);
+    if (unresolved) {
+      setError('Please mark every volunteer-review answer before saving.');
+      return;
+    }
 
-  const handleAnswerChange = (qId: string, value: string) => {
-    setExtractedAnswers(prev => ({ ...prev, [qId]: value }));
-  };
-
-  const submitEvaluation = async () => {
-    if (!selectedStudent || !paper) return;
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/students/${selectedStudent.id}/diagnostic/submit`, {
+      const res = await fetch('/api/ocr/scan/finalize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          questions: paper.questions,
-          answers: extractedAnswers
+          studentId: scanResult.detectedQr.studentId,
+          paperId: scanResult.detectedQr.paperId,
+          testId: scanResult.detectedQr.testId,
+          reviewItems
         })
       });
       const data = await res.json();
-      if (res.ok) {
-        setReport(data.report);
-        setStep('result');
-        setSuccess(`ICR scan and evaluation complete for ${selectedStudent.name}.`);
-      } else {
-        setError(data.error || 'Evaluation failed.');
-      }
-    } catch {
-      setError('Network error submitting evaluation.');
+      if (!res.ok) throw new Error(data.error || 'Failed to save OCR evaluation.');
+      setReport(data.report);
+      setSuccess('Final OCR evaluation saved with marks, confidence, OCR output, and review status.');
+      setStep('result');
+    } catch (err: any) {
+      setError(err.message || 'Failed to save OCR evaluation.');
     } finally {
       setLoading(false);
     }
   };
 
   const resetScanner = () => {
-    setPaper(null);
-    setExtractedAnswers({});
-    setReport(null);
     setStep('select');
+    setLoading(false);
     setError('');
     setSuccess('');
-    setScanPhase('idle');
-    setIsScanning(false);
+    setScanSource(null);
+    setPreviewUrl('');
+    setScanResult(null);
+    setReviewItems([]);
+    setReport(null);
   };
+
+  const reviewCount = reviewItems.filter(item => item.needsReview).length;
+  const autoCount = reviewItems.filter(item => item.autoEvaluated).length;
 
   return (
     <div className="space-y-6" id="icr-scanner">
-      <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-4">
+      <div className="flex justify-between items-center border-b border-zinc-200 pb-4">
         <div>
-          <button onClick={onBack} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white text-xs font-mono mb-2 block">
-            ← Back to Dashboard
+          <button onClick={onBack} className="text-zinc-500 hover:text-zinc-800 text-xs font-mono mb-2 block">
+            Back to Dashboard
           </button>
-          <h2 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">
-            ICR Answer Sheet Scanner
+          <h2 className="text-2xl font-display font-semibold text-zinc-900 tracking-tight">
+            OCR Answer Sheet Scanner
           </h2>
-          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-0.5">
-            Place the completed answer sheet into the scanner for AI-powered ICR extraction and evaluation
+          <p className="text-zinc-500 text-sm mt-0.5">
+            Upload or scan the complete QR-coded page. All four corner markers are required for perspective-corrected ROI extraction.
           </p>
         </div>
         {step !== 'select' && (
-          <button
-            onClick={resetScanner}
-            className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-white text-xs font-mono border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-lg"
-          >
+          <button onClick={resetScanner} className="text-zinc-500 hover:text-zinc-700 text-xs font-mono border border-zinc-200 hover:bg-zinc-50 px-3 py-1.5 rounded-lg">
             New Scan
           </button>
         )}
       </div>
 
-      {error && <div className="p-3 text-sm bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-800 rounded-lg">{error}</div>}
-      {success && <div className="p-3 text-sm bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-800 rounded-lg">{success}</div>}
+      {error && <div className="p-3 text-sm bg-red-50 text-red-700 border border-red-100 rounded-lg">{error}</div>}
+      {success && <div className="p-3 text-sm bg-green-50 text-green-700 border border-green-100 rounded-lg">{success}</div>}
 
-      {/* Step progress indicator */}
-      <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 dark:text-zinc-500">
-        {(['select', 'paper', 'verify', 'result'] as ScannerStep[]).map((s, i) => {
-          const stepsMap: Record<ScannerStep, string> = {
-            select: 'Select Student',
-            paper: 'Place in Scanner',
-            scanning: 'Scanning...',
-            verify: 'Verify Answers',
-            result: 'Results'
-          };
-          const orderedSteps: ScannerStep[] = ['select', 'paper', 'verify', 'result'];
-          const effectiveStep = step === 'scanning' ? 'paper' : step;
-          const stepIndex = orderedSteps.indexOf(effectiveStep);
-          const thisIndex = orderedSteps.indexOf(s);
-          return (
-            <React.Fragment key={s}>
-              {i > 0 && <span className="text-zinc-300 dark:text-zinc-600">→</span>}
-              <span className={`${thisIndex < stepIndex ? 'text-green-600 dark:text-green-400' : thisIndex === stepIndex ? 'text-zinc-900 dark:text-white font-bold' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                {thisIndex < stepIndex ? '✓ ' : ''}{stepsMap[s]}
-              </span>
-            </React.Fragment>
-          );
-        })}
+      <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
+        <span className={step === 'select' ? 'text-zinc-900 font-bold' : 'text-green-600'}>{step !== 'select' ? 'Done: ' : ''}Upload / Scan</span>
+        <span className="text-zinc-300">/</span>
+        <span className={step === 'processing' ? 'text-zinc-900 font-bold' : step === 'review' || step === 'result' ? 'text-green-600' : 'text-zinc-300'}>QR + ROI + TrOCR</span>
+        <span className="text-zinc-300">/</span>
+        <span className={step === 'review' ? 'text-zinc-900 font-bold' : step === 'result' ? 'text-green-600' : 'text-zinc-300'}>Review</span>
+        <span className="text-zinc-300">/</span>
+        <span className={step === 'result' ? 'text-zinc-900 font-bold' : 'text-zinc-300'}>Saved</span>
       </div>
 
-      {/* Step: Select Student */}
       {step === 'select' && (
-        <div className="bg-white dark:bg-slate-900 p-8 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
+        <div className="bg-white p-8 border border-zinc-200 rounded-2xl shadow-sm max-w-3xl mx-auto space-y-6">
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto">
-              <svg className="w-8 h-8 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">Prepare for ICR Scan</h3>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm max-w-md mx-auto">
-              Select a class and student, then generate a diagnostic paper. Once printed and answered, place the sheet into the physical scanner.
+            <h3 className="text-xl font-display font-semibold text-zinc-900">OCR Scan</h3>
+            <p className="text-zinc-500 text-sm max-w-md mx-auto">
+              No manual student selection. Upload a scan or use camera capture; QR identifies the student and template.
             </p>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 rounded-xl p-5 cursor-pointer transition">
+              <span className="block text-xs font-mono font-bold uppercase text-indigo-900">Upload Paper</span>
+              <span className="block text-sm text-indigo-950 mt-1">Upload a clear scanned answer-sheet image.</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => processPaperImage(e.target.files?.[0], 'upload')} />
+            </label>
+            <label className="border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-xl p-5 cursor-pointer transition">
+              <span className="block text-xs font-mono font-bold uppercase text-emerald-900">Scan Paper</span>
+              <span className="block text-sm text-emerald-950 mt-1">Use camera capture on mobile or supported devices.</span>
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => processPaperImage(e.target.files?.[0], 'camera')} />
+            </label>
+          </div>
+        </div>
+      )}
 
+      {step === 'processing' && (
+        <div className="bg-zinc-900 rounded-2xl shadow-xl max-w-2xl mx-auto p-8 border border-zinc-700 text-center space-y-4">
+          <h3 className="text-xl font-display font-semibold text-white">{loading ? 'Validating QR + Fiducials, Aligning Page, Running TrOCR...' : 'Processing'}</h3>
+          <p className="text-zinc-400 text-sm">
+            Source: {scanSource === 'camera' ? 'Scan Paper' : 'Upload Paper'}. Text crops are processed by Microsoft TrOCR after perspective correction.
+          </p>
+        </div>
+      )}
+
+      {step === 'review' && scanResult && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Class</label>
-              <select
-                value={selectedClassId}
-                onChange={(e) => { setSelectedClassId(e.target.value); setSelectedStudentId(''); }}
-                className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
-              >
-                <option value="">Choose a class...</option>
-                {classes.map(c => (
-                  <option key={c.id} value={c.id}>{c.className} - Section {c.section}</option>
-                ))}
-              </select>
+            <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm">
+              <h4 className="text-sm font-display font-semibold text-zinc-900">Detected Student</h4>
+              <div className="mt-3 space-y-1 text-xs font-mono text-zinc-500">
+                <div>Name: <span className="text-zinc-900">{scanResult.student.name}</span></div>
+                <div>Student ID: <span className="text-zinc-900">{scanResult.detectedQr.studentId}</span></div>
+                <div>Paper ID: <span className="text-zinc-900">{scanResult.detectedQr.paperId}</span></div>
+                <div>Test ID: <span className="text-zinc-900">{scanResult.detectedQr.testId}</span></div>
+                <div>Page: <span className="text-zinc-900">{scanResult.detectedQr.pageNumber}</span></div>
+              </div>
             </div>
-
-            <div>
-              <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Student</label>
-              <select
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-                disabled={!selectedClassId}
-                className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none disabled:opacity-50"
-              >
-                <option value="">Choose a student...</option>
-                {filteredStudents.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} (L{s.currentLevel}.{s.currentSubLevel ?? 0})</option>
-                ))}
-              </select>
+            <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-xs font-mono text-zinc-600">
+              Auto-evaluated: {autoCount}<br />
+              Needs volunteer review: {reviewCount}<br />
+              Template: <a className="underline" href={scanResult.paper.templateUrl} target="_blank" rel="noreferrer">ROI JSON</a>
             </div>
-
-            {selectedStudent && (
-              <div className="bg-zinc-50 dark:bg-zinc-800 p-4 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-zinc-500 dark:text-zinc-400">Student</span>
-                  <span className="font-medium text-zinc-900 dark:text-white">{selectedStudent.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500 dark:text-zinc-400">Current Level</span>
-                  <span className="font-mono font-bold">L{selectedStudent.currentLevel}.{selectedStudent.currentSubLevel ?? 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500 dark:text-zinc-400">Diagnostic Status</span>
-                  <span className={`font-mono text-xs font-bold ${selectedStudent.levelHistory.length === 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                    {selectedStudent.levelHistory.length === 0 ? 'Pending' : 'Completed'}
-                  </span>
-                </div>
+            {previewUrl && (
+              <div className="bg-white border border-zinc-200 rounded-xl p-3">
+                <img src={previewUrl} alt="Uploaded answer sheet" className="w-full max-h-64 object-contain bg-white" />
               </div>
             )}
           </div>
 
-          <button
-            onClick={generatePaper}
-            disabled={!selectedStudent || loading}
-            className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-6 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Generating Diagnostic Paper...' : 'Generate Paper & Proceed to Scanner'}
-          </button>
-        </div>
-      )}
+          <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-xl p-6 shadow-sm space-y-4">
+            <div>
+              <h4 className="text-lg font-display font-medium text-zinc-900">Question Review</h4>
+              <p className="text-xs text-zinc-500 mt-1">
+                Visual answers and text answers below 40% confidence require volunteer marking.
+              </p>
+            </div>
 
-      {/* Step: Place paper in scanner */}
-      {step === 'paper' && paper && !isScanning && (
-        <div className="bg-white dark:bg-slate-900 p-8 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
-          <div className="text-center space-y-2">
-            <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">Place Paper in Scanner</h3>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-              Insert the completed answer sheet for <strong>{selectedStudent?.name}</strong> into the scanner tray below.
-            </p>
-          </div>
+            {reviewItems.map(item => (
+              <div key={item.questionId} className={`border rounded-lg p-4 space-y-3 ${item.needsReview ? 'border-amber-200 bg-amber-50/40' : 'border-green-200 bg-green-50/40'}`}>
+                <div className="flex justify-between items-start gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold bg-zinc-900 text-white px-2 py-0.5 rounded">{item.questionLabel}</span>
+                      <span className="text-[10px] font-mono text-zinc-500">{item.questionType}</span>
+                    </div>
+                    <p className="text-sm text-zinc-800 mt-2">{item.question}</p>
+                  </div>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded ${item.needsReview ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
+                    {item.needsReview ? 'Volunteer Review' : 'Auto Evaluated'}
+                  </span>
+                </div>
 
-          {/* Scanner Machine */}
-          <div className="flex justify-center py-6">
-            <div className="relative w-80">
-              {/* Scanner body */}
-              <div className="bg-zinc-800 rounded-t-xl rounded-b-lg px-6 pt-8 pb-6 shadow-xl border-2 border-zinc-700">
-                {/* Scanner glass surface */}
-                <div className="bg-zinc-900 rounded-lg h-40 border-2 border-zinc-600 relative overflow-hidden">
-                  {/* Paper sitting on top of glass */}
-                  <div className="absolute inset-x-4 top-2 bottom-2 bg-white rounded shadow-inner border border-zinc-300 flex items-center justify-center">
-                    <div className="text-center text-zinc-400">
-                      <svg className="w-8 h-8 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <p className="text-[10px] font-mono font-semibold">Answer Sheet</p>
-                      <p className="text-[8px] font-mono">{selectedStudent?.name}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="border border-dashed border-zinc-300 bg-white rounded-lg p-3">
+                    <span className="block text-[9px] font-mono font-bold uppercase text-zinc-400 mb-2">Student Cropped Answer</span>
+                    {item.cropImageDataUrl ? (
+                      <img src={item.cropImageDataUrl} alt={`${item.questionLabel} cropped answer`} className="w-full max-h-40 object-contain border border-zinc-100 bg-white" />
+                    ) : (
+                      <div className="text-xs font-mono text-zinc-500">No crop available</div>
+                    )}
+                    <div className="text-[10px] text-zinc-400 mt-1">
+                      ROI: {item.roi ? `${Math.round(item.roi.x)}, ${Math.round(item.roi.y)}, ${Math.round(item.roi.width)} x ${Math.round(item.roi.height)}` : 'not available'}
                     </div>
                   </div>
-                </div>
-
-                {/* Scanner control panel */}
-                <div className="flex justify-between items-center mt-4">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-[10px] font-mono text-zinc-400">READY</span>
+                  <div className="border border-zinc-200 bg-white rounded-lg p-3">
+                    <span className="block text-[9px] font-mono font-bold uppercase text-zinc-400 mb-2">Answer Key / Expected Answer</span>
+                    <div className="min-h-20 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-base font-mono font-bold text-zinc-950">
+                      {item.expectedAnswer || 'Manual reference needed'}
+                    </div>
+                    <p className="mt-2 text-[10px] text-zinc-500">
+                      Use this key to mark the cropped student answer as correct, partial, or incorrect.
+                    </p>
                   </div>
-                  <div className="text-[9px] font-mono text-zinc-500">ICR-9000</div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                  <div className="bg-white border border-zinc-200 rounded-lg p-3">
+                    <span className="block text-[9px] font-mono font-bold uppercase text-zinc-400">Extracted OCR Text</span>
+                    <span className="font-mono text-zinc-900">{item.extractedText || 'N/A'}</span>
+                  </div>
+                  <div className="bg-white border border-zinc-200 rounded-lg p-3">
+                    <span className="block text-[9px] font-mono font-bold uppercase text-zinc-400">Confidence</span>
+                    <span className="font-mono text-zinc-900">{Math.round(item.confidence * 100)}%</span>
+                  </div>
+                  <div className="bg-white border border-zinc-200 rounded-lg p-3">
+                    <span className="block text-[9px] font-mono font-bold uppercase text-zinc-400">Model</span>
+                    <span className="font-mono text-zinc-900">{item.modelName}</span>
+                    <span className="block text-[10px] text-zinc-400">{item.modelStatus}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {(['correct', 'partial', 'incorrect'] as FinalMark[]).map(mark => (
+                    <button
+                      key={mark}
+                      type="button"
+                      onClick={() => setFinalMark(item.questionId, mark)}
+                      className={`text-xs font-mono font-bold px-3 py-2 rounded border capitalize ${
+                        item.finalMark === mark
+                          ? mark === 'correct'
+                            ? 'bg-green-600 text-white border-green-600'
+                            : mark === 'partial'
+                              ? 'bg-amber-500 text-white border-amber-500'
+                              : 'bg-red-600 text-white border-red-600'
+                          : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+                      }`}
+                    >
+                      {mark}
+                    </button>
+                  ))}
                 </div>
               </div>
+            ))}
 
-              {/* Paper feed slot */}
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-56 h-3 bg-zinc-700 rounded-t border-x-2 border-t-2 border-zinc-600">
-                <div className="text-[7px] font-mono text-zinc-500 text-center leading-3">FEED</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <button
-              onClick={startScan}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-3 px-10 rounded-xl transition-colors shadow-lg hover:shadow-emerald-200/50"
-            >
-              Start Scan
+            <button onClick={finalizeScan} disabled={loading} className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50">
+              {loading ? 'Saving...' : 'Save Final OCR Evaluation'}
             </button>
           </div>
         </div>
       )}
 
-      {/* Step: Scanning animation */}
-      {step === 'paper' && isScanning && (
-        <div className="bg-zinc-900 rounded-2xl shadow-xl max-w-2xl mx-auto p-8 border border-zinc-700">
-          <div className="text-center space-y-6">
-            <h3 className="text-xl font-display font-semibold text-white">
-              {scanPhase === 'feeding' && 'Feeding Paper...'}
-              {scanPhase === 'scanning' && 'Scanning Answer Sheet...'}
-              {scanPhase === 'done' && 'ICR Extraction Complete'}
-            </h3>
-            <p className="text-zinc-400 text-sm">
-              {scanPhase === 'feeding' && 'The answer sheet is being fed into the scanner...'}
-              {scanPhase === 'scanning' && 'Optical sensors are reading handwritten responses...'}
-              {scanPhase === 'done' && 'AI is interpreting the extracted characters...'}
-            </p>
-
-            {/* Scanner machine with animation */}
-            <div className="flex justify-center py-4">
-              <div className="relative w-80">
-                <div className="bg-zinc-800 rounded-t-xl rounded-b-lg px-6 pt-8 pb-6 shadow-xl border-2 border-zinc-700">
-                  <div className="bg-zinc-900 rounded-lg h-40 border-2 border-zinc-600 relative overflow-hidden">
-                    {/* Paper being pulled through */}
-                    <div className={`absolute inset-x-0 bg-white rounded-sm border border-zinc-300 flex items-center justify-center transition-all duration-700 ease-in-out ${
-                      scanPhase === 'feeding' ? 'top-full h-0' : scanPhase === 'scanning' ? 'top-1/4 h-1/2' : 'top-2 bottom-2'
-                    }`}>
-                      {scanPhase !== 'feeding' && (
-                        <div className="text-center text-zinc-500">
-                          <svg className="w-6 h-6 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Scanning light bar */}
-                    {scanPhase === 'scanning' && (
-                      <div className="absolute left-0 right-0 h-1 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-scan-bar z-10" />
-                    )}
-                  </div>
-
-                  <div className="flex justify-between items-center mt-4">
-                    <div className="flex items-center gap-1.5">
-                      <div className={`w-2 h-2 rounded-full ${scanPhase === 'done' ? 'bg-green-400' : 'bg-amber-400'} animate-pulse`} />
-                      <span className="text-[10px] font-mono text-zinc-400">
-                        {scanPhase === 'feeding' ? 'FEEDING' : scanPhase === 'scanning' ? 'SCANNING' : 'COMPLETE'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {scanPhase === 'scanning' && (
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map(i => (
-                            <div key={i} className="w-1 h-3 bg-emerald-500 rounded animate-scan-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step: Verify extracted answers */}
-      {step === 'verify' && paper && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-4">
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 shadow-sm">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center shadow-md">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="text-sm font-display font-semibold text-zinc-900">ICR Extraction Complete</h4>
-                  <p className="text-xs text-zinc-500">AI scanned & extracted {Object.keys(extractedAnswers).length} answers</p>
-                </div>
-              </div>
-              <p className="text-xs text-zinc-600 leading-relaxed bg-white/60 p-3 rounded-lg border border-emerald-100">
-                Review each extracted answer below. Items highlighted in amber differ from the answer key — verify and correct before submission.
-              </p>
-            </div>
-
-            <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-center">
-              <div className="text-3xl font-display font-bold text-zinc-800">{selectedStudent?.name}</div>
-              <div className="text-xs font-mono text-zinc-400 mt-1">
-                {selectedStudent?.classGroup} · Section {selectedStudent?.section}
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm">
-              <h4 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-1">Verified Extracted Answers</h4>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Review each answer and correct any ICR misreads before final submission.</p>
-
-              <div className="space-y-4">
-                {paper.questions.map((q, idx) => (
-                  <div key={q.question_id} className="p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
-                          Q{idx + 1}
-                        </span>
-                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 capitalize">Level {q.source_level} · {q.topic}</span>
-                      </div>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                        (extractedAnswers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase()
-                          ? 'bg-green-50 text-green-700 border border-green-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}>
-                        {(extractedAnswers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase() ? 'Match' : 'Differs from key'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-zinc-700 dark:text-zinc-200">{q.question}</p>
-
-                    {q.answer_type === 'choice' && q.choices ? (
-                      <select
-                        value={extractedAnswers[q.question_id] || ''}
-                        onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
-                        className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
-                      >
-                        <option value="">Select option...</option>
-                        {q.choices.map(c => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={extractedAnswers[q.question_id] || ''}
-                          onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
-                          className="flex-1 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none font-mono"
-                        />
-                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 self-center">Key: {q.answer}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-                <button
-                  onClick={submitEvaluation}
-                  disabled={loading}
-                  className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {loading ? 'Submitting...' : 'Submit Verified Answers'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step: Results */}
       {step === 'result' && report && (
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-16 h-16 bg-green-50 dark:bg-green-950 rounded-full flex items-center justify-center mx-auto border border-green-200 dark:border-green-800">
-                <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">ICR Scan & Evaluation Complete</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Answers for <strong>{selectedStudent?.name}</strong> have been evaluated.
-              </p>
+        <div className="max-w-2xl mx-auto bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-5 text-center">
+          <h3 className="text-xl font-display font-semibold text-zinc-900">OCR Evaluation Saved</h3>
+          <div className="grid grid-cols-2 gap-4 border-y border-zinc-200 py-4">
+            <div>
+              <span className="block text-xs font-mono text-zinc-400 uppercase">Score</span>
+              <span className="text-2xl font-display font-bold text-zinc-900">{report.score} / {report.totalQuestions}</span>
             </div>
-
-            <div className="grid grid-cols-3 gap-4 border-y border-zinc-200 dark:border-zinc-700 py-4">
-              <div className="text-center">
-                <span className="block text-xs font-mono text-zinc-400 dark:text-zinc-500 uppercase">Score</span>
-                <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">{report.score} / {report.totalQuestions}</span>
-              </div>
-              <div className="text-center border-x border-zinc-200 dark:border-zinc-700">
-                <span className="block text-xs font-mono text-zinc-400 dark:text-zinc-500 uppercase">Placed Level</span>
-                <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">L{report.recommendedLevel}.{report.recommendedSubLevel ?? 0}</span>
-              </div>
-              <div className="text-center">
-                <span className="block text-xs font-mono text-zinc-400 uppercase">Status</span>
-                <span className="text-2xl font-display font-bold text-green-600">Certified</span>
-              </div>
+            <div>
+              <span className="block text-xs font-mono text-zinc-400 uppercase">Status</span>
+              <span className="text-2xl font-display font-bold text-green-600">Saved</span>
             </div>
-
-            <div className="space-y-3">
-              <h4 className="text-[10px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500 tracking-wider">Concept Mastery</h4>
-              <div className="grid grid-cols-1 gap-1.5">
-                {Object.entries(report.conceptMastery).map(([topic, mastery]) => (
-                  <div key={topic} className="flex justify-between items-center p-2.5 border border-zinc-100 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800">
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{topic}</span>
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                      mastery === 'Strong' ? 'bg-green-100 text-green-800' : mastery === 'Satisfactory' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {mastery}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-zinc-50 dark:bg-zinc-800 p-5 rounded-xl border border-zinc-200 dark:border-zinc-700 space-y-1">
-              <h4 className="text-[9px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500 tracking-wider">AI Narrative Summary</h4>
-              <p className="text-zinc-700 dark:text-zinc-200 text-sm leading-relaxed">{report.narrative}</p>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={resetScanner}
-                className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 rounded-lg transition-colors"
-              >
-                Scan Another Student
-              </button>
-              <button
-                onClick={onBack}
-                className="flex-1 bg-white dark:bg-slate-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 font-medium text-sm py-2.5 rounded-lg transition-colors"
-              >
-                Back to Dashboard
-              </button>
-            </div>
+          </div>
+          <p className="text-sm text-zinc-600">{report.narrative}</p>
+          <div className="flex gap-3">
+            <button onClick={resetScanner} className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 rounded-lg">
+              Scan Another Paper
+            </button>
+            <button onClick={onBack} className="flex-1 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-medium text-sm py-2.5 rounded-lg">
+              Back to Dashboard
+            </button>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes scan-bar {
-          0% { top: 0; }
-          50% { top: 100%; }
-          100% { top: 0; }
-        }
-        .animate-scan-bar {
-          animation: scan-bar 2s ease-in-out infinite;
-        }
-        @keyframes scan-bounce {
-          0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
-          50% { transform: scaleY(1); opacity: 1; }
-        }
-        .animate-scan-bounce {
-          animation: scan-bounce 0.6s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 };

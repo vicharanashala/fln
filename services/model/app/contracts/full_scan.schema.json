@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartfln.local/contracts/model/full-scan.schema.json",
+  "title": "SmartFLN Full Scan Inference Request",
+  "type": "object",
+  "required": ["imageDataUrl"],
+  "properties": {
+    "scanPageId": {
+      "type": "string"
+    },
+    "qrText": {
+      "type": "string",
+      "description": "QR text decoded from the uploaded paper by browser/API, or omitted when the model service has OpenCV QR decoding enabled."
+    },
+    "student_id": {
+      "type": "string",
+      "description": "Optional metadata only. Full-page validation requires student_id from QR."
+    },
+    "paper_id": {
+      "type": "string",
+      "description": "Optional metadata only. Full-page validation requires paper_id from QR."
+    },
+    "test_id": {
+      "type": "string",
+      "description": "Optional metadata only. Full-page validation requires test_id from QR."
+    },
+    "imageDataUrl": {
+      "type": "string",
+      "description": "Full scanned answer-sheet image as a data URL."
+    },
+    "template": {
+      "type": "object",
+      "description": "Optional inline template. If omitted, the service loads services/model/templates/{paper_id}.json."
+    }
+  },
+  "additionalProperties": true
+}
