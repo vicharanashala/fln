@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Student, ClassGroup, Question, EvaluationReport, User } from '../types';
+import {
+  optimizeAnswerSheetImage,
+  isSupportedImageType,
+  ImageOptimizationError,
+  type ImageOptimizationResult,
+} from '../utils/imageOptimization';
+import { isImageOptimizationEnabled } from '../utils/imageOptimizationSettings';
 
 interface IcrScannerProps {
   token: string;
@@ -25,6 +32,11 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const [scanPhase, setScanPhase] = useState<'idle' | 'feeding' | 'scanning' | 'done'>('idle');
   const [extractedAnswers, setExtractedAnswers] = useState<{ [questionId: string]: string }>({});
   const [report, setReport] = useState<EvaluationReport | null>(null);
+
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimizationMeta, setOptimizationMeta] = useState<ImageOptimizationResult | null>(null);
+  const [uploadedFileMeta, setUploadedFileMeta] = useState<{ name: string; size: number } | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,6 +112,53 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
         }, 800);
       }, 2000);
     }, 1000);
+  };
+
+  // Silently run the image optimization pipeline on the uploaded photo,
+  // then trigger the scan animation. The teacher never sees the pipeline steps —
+  // just a brief "Processing image…" indicator while it runs.
+  const handlePhotoUpload = async (file: File) => {
+    if (!isSupportedImageType(file)) {
+      setError(`Unsupported image type: ${file.type || file.name}. Use JPEG, PNG, WEBP, or BMP.`);
+      return;
+    }
+
+    setError('');
+    setUploadedFileMeta({ name: file.name, size: file.size });
+    setOptimizationMeta(null);
+
+    const pipelineOn = isImageOptimizationEnabled();
+    let processedBlob: Blob = file;
+
+    if (pipelineOn) {
+      setOptimizing(true);
+      try {
+        const result = await optimizeAnswerSheetImage(file);
+        processedBlob = result.blob;
+        setOptimizationMeta(result);
+      } catch (err) {
+        const msg = err instanceof ImageOptimizationError ? err.message : 'Image optimization failed.';
+        setError(msg);
+        setOptimizing(false);
+        return;
+      }
+      setOptimizing(false);
+    } else {
+      setOptimizationMeta(null);
+    }
+
+    // Stash the processed bytes for the future OCR upload (kept in-memory only).
+    if (typeof window !== 'undefined') {
+      (window as unknown as { __lastProcessedSheet?: Blob }).__lastProcessedSheet = processedBlob;
+    }
+
+    startScan();
+  };
+
+  const onPhotoInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) void handlePhotoUpload(file);
+    e.target.value = '';
   };
 
   const simulateIcrExtraction = () => {
@@ -341,13 +400,25 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
             </div>
           </div>
 
-          <div className="text-center">
+          <div className="text-center space-y-3">
             <button
-              onClick={startScan}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-3 px-10 rounded-xl transition-colors shadow-lg hover:shadow-emerald-200/50"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={optimizing}
+              data-testid="icr-upload-photo"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-3 px-10 rounded-xl transition-colors shadow-lg hover:shadow-emerald-200/50 disabled:opacity-60 disabled:cursor-wait"
             >
-              Start Scan
+              {optimizing ? 'Processing image…' : 'Upload Completed Sheet Photo'}
             </button>
+            <div className="text-[11px] font-mono text-zinc-400 dark:text-zinc-500">
+              Photo is processed in your browser for fast, accurate OCR.
+            </div>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/bmp"
+              className="hidden"
+              onChange={onPhotoInputChange}
+            />
           </div>
         </div>
       )}

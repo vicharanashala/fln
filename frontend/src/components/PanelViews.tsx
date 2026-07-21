@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
-import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown, Zap, Power } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
+import { useImageOptimizationSettings } from '../hooks/useImageOptimizationSettings';
+import { IMAGE_PIPELINE_CONFIG, formatBytes } from '../utils/imageOptimization';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -203,6 +205,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [apiStudents, setApiStudents] = useState<Student[]>([]);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
+
+  const { enabled: imageOptEnabled, setEnabled: setImageOptEnabled } = useImageOptimizationSettings();
 
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${token}` };
@@ -1494,7 +1498,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'system_settings') {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="System Configuration" desc="Core platform settings and infrastructure" icon={<Settings className="h-5 w-5" />} />
           <div className="space-y-3">{[
@@ -1521,6 +1525,75 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             </div>
           ))}</div>
           <button className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mt-2"><RefreshCw className="w-3 h-3" /> Refresh Status</button>
+        </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
+          <PageHeader title="Image Optimization Pipeline" desc="Browser-side pre-processing for answer-sheet OCR uploads" icon={<Zap className="h-5 w-5 text-amber-500" />} />
+
+          <div className="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+            <div>
+              <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <Power className="w-4 h-4 text-slate-500" />
+                Pipeline Status
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Runs on the user's device before upload
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={imageOptEnabled}
+              onClick={() => setImageOptEnabled(!imageOptEnabled)}
+              data-testid="image-optimization-toggle"
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${
+                imageOptEnabled ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  imageOptEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
+            State: <span className={imageOptEnabled ? 'text-emerald-600 font-semibold' : 'text-slate-500 font-semibold'}>
+              {imageOptEnabled ? 'ON' : 'OFF'}
+            </span>
+            <span className="mx-1.5">·</span>
+            Default: ON
+            <span className="mx-1.5">·</span>
+            Storage: local-only
+          </div>
+
+          <div className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
+            <div className="font-semibold text-slate-700 dark:text-slate-200 text-[10px] uppercase tracking-wider">Pipeline stages</div>
+            <ol className="space-y-1 list-decimal list-inside">
+              <li>Load photo into hidden canvas</li>
+              <li>Shrink to {IMAGE_PIPELINE_CONFIG.TARGET_HEIGHT_PX}px tall (proportional width)</li>
+              <li>Convert to grayscale</li>
+              <li>Apply brightness + contrast filter chain</li>
+              <li>Export as JPEG @ q{IMAGE_PIPELINE_CONFIG.JPEG_QUALITY}</li>
+              <li>Recursive size guard (−{IMAGE_PIPELINE_CONFIG.HEIGHT_STEP_PX}px to floor {IMAGE_PIPELINE_CONFIG.MIN_HEIGHT_PX}px)</li>
+            </ol>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div className="p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+              <div className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-mono">Raw input</div>
+              <div className="font-semibold text-slate-700 dark:text-slate-200">1.5 – 4 MB</div>
+            </div>
+            <div className="p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/40">
+              <div className="text-[9px] uppercase tracking-wider text-emerald-700 dark:text-emerald-400 font-mono">Optimized</div>
+              <div className="font-semibold text-emerald-700 dark:text-emerald-300">150 – 350 {formatBytes(200 * 1024).split(' ')[1]}</div>
+            </div>
+          </div>
+
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed border-t border-slate-100 dark:border-slate-700 pt-3">
+            When <strong>OFF</strong>, the browser skips optimization and forwards the raw photo to the OCR engine — useful for debugging raw-OCR behavior and comparing server load.
+            Processed images stay on-device and are never stored.
+          </div>
         </div>
       </div>
     );
