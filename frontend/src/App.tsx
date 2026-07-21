@@ -415,27 +415,29 @@ const RegionalDashboardComponent = (RoleDashboards as any).RegionalAnalyticsView
     setCurrentUser({ ...currentUser, role });
     triggerToast('Role switched');
   };
+// ✅ REPLACE WITH THIS:
 const markAnnouncementAsRead = async (id: string) => {
-    // 🛑 Avoid sending a network request if it's a mock frontend ID string
-    if (!id || id.startsWith('mock-')) {
-      console.log("Skipping backend sync for mock announcement entry.");
-      return;
-    }
+  if (!id) return;
 
-    try {
-      const token = localStorage.getItem('fln_token');
+  try {
+    const token = localStorage.getItem('fln_token');
 
-      await fetch(`/api/announcements/${id}/read`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
-      });
-    } catch (err) {
-      console.error('Failed to persist read receipt:', err);
-    }
-  };
+    await fetch(`/api/announcements/${id}/read`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      // 🟢 SEND THE CURRENT USER ID HERE:
+      body: JSON.stringify({ 
+        userId: currentUser?.id, 
+        userEmail: currentUser?.email 
+      })
+    });
+  } catch (err) {
+    console.error('Failed to persist read receipt:', err);
+  }
+};
 
   const handleMarkNotificationRead = (id: string) => {
     setAnnouncements((prev) => prev.map((a) => (a.id === id ? { ...a, readByMe: true } : a)));

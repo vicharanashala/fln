@@ -502,6 +502,8 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const d = await res.json();
+        console.log("FETCHED READ STATS FROM BACKEND:", d);
+        console.log("READ USERS LIST FROM BACKEND:", d.readUsers);
         setStats(d);
       } catch (e) {
         console.error(e);

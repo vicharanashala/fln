@@ -207,24 +207,34 @@ async function startServer() {
     res.json(newAnn);
   });
 
-  app.post('/api/announcements/:id/read', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const markAnnouncementAsRead = async (id: string) => {
+  if (!id) return;
 
-    const anns = await dbStore.getAnnouncements();
-    const ann = anns.find(a => a.id === req.params.id);
-    if (!ann) return res.status(404).json({ error: 'Announcement not found.' });
+  try {
+    const token = localStorage.getItem('fln_token');
+    
+    // Get stored user from localStorage if state isn't populated
+    const storedUserRaw = localStorage.getItem('fln_user');
+    const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
+    
+    const activeUserId = storedUser?.id || 'volunteer_pb';
+    const activeUserEmail = storedUser?.email || 'volunteer.pb@fln.org';
 
-    const read = await dbStore.addAnnouncementRead({
-      id: 'read_' + req.params.id + '_' + user.id,
-      announcementId: req.params.id,
-      userId: user.id,
-      userEmail: user.email,
-      readAt: new Date().toISOString()
+    await fetch(`/api/announcements/${id}/read`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ 
+        userId: activeUserId, 
+        userEmail: activeUserEmail 
+      })
     });
-
-    res.json(read);
-  });
+  } catch (err) {
+    console.error('Failed to persist read receipt:', err);
+  }
+};
 
   app.get('/api/announcements/:id/reads', async (req, res) => {
     const user = getAuthUser(req);
