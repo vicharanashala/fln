@@ -1,3 +1,4 @@
+import { apiFetch } from '../services/apiClient';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -43,7 +44,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
     const loginPass = customPass || password;
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPass })
