@@ -203,14 +203,8 @@ export async function generateLevelWorksheet({
   levelId: number;
   subIdx: number;
 }): Promise<LevelWorksheetResult> {
-  const puppeteer = await import('puppeteer');
-  const CHROME_EXECUTABLE_PATH = process.env.CHROME_EXECUTABLE_PATH || undefined;
-
-  const browser = await puppeteer.default.launch({
-    headless: true,
-    executablePath: CHROME_EXECUTABLE_PATH,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  const { launchBrowser } = await import('./browser');
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();
