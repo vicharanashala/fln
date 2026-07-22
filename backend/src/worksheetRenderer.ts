@@ -1,7 +1,5 @@
-import puppeteer from 'puppeteer';
 import { getAdapter, MAX_SETS_PER_PAGE_LOAD } from './classAdapters';
-
-const CHROME_EXECUTABLE_PATH = process.env.CHROME_EXECUTABLE_PATH || undefined;
+import { launchBrowser } from './browser';
 
 export interface RenderedResult {
   index: number;
@@ -34,11 +32,7 @@ export async function renderBatch(
     throw new Error("studentIdentities must contain one entry for every generated worksheet.");
   }
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: CHROME_EXECUTABLE_PATH,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();
