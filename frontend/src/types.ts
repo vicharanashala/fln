@@ -211,3 +211,20 @@ export interface BestPractice {
   viewCount: number;
   createdAt: string;
 }
+
+export interface ConceptScore {
+  topic: string;
+  totalAttempts: number;
+  correctCount: number;
+  masteryPct: number;
+  status: 'Strong' | 'Satisfactory' | 'Needs Practice';
+  lastAssessedAt: string;
+  consecutiveMasteryCount: number;
+}
+
+export interface ConceptMasteryProfile {
+  id: string;
+  studentId: string;
+  concepts: ConceptScore[];
+  updatedAt: string;
+}

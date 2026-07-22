@@ -27,11 +27,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
     { label: 'Rajasthan Admin 🏰', email: 'admin.rj@fln.org', pass: 'Fln@2026' },
     { label: 'Ludhiana Dist 🏢', email: 'district.ldh@fln.org', pass: 'Fln@2026' },
     { label: 'Ambala Dist 🏢', email: 'district.amb@fln.org', pass: 'Fln@2026' },
-    { label: 'Ludhiana Block 🏫', email: 'block.ldh-01@fln.org', pass: 'Fln@2026' },
-    { label: 'Punjab Principal 🎓', email: 'gps-mt-001@fln.org', pass: 'Fln@2026' },
-    { label: 'Haryana Teacher 👩‍🏫', email: 'gps-amb-003.t01@fln.org', pass: 'Fln@2026' },
-    { label: 'Punjab Volunteer 🤝', email: 'vol.rahul@fln.org', pass: 'Fln@2026' },
-    { label: 'Haryana Volunteer 🤝', email: 'vol.hr_vipin@fln.org', pass: 'Fln@2026' }
+    { label: 'Ludhiana Block 🏫', email: 'block.ldh_01@fln.org', pass: 'Fln@2026' },
+    { label: 'Punjab Principal 🎓', email: 'school.pb_ldh_ldh_01_01@fln.org', pass: 'Fln@2026' },
+    { label: 'Haryana Teacher 👩‍🏫', email: 'teacher.hr_amb_amb_01_01.c2@fln.org', pass: 'Fln@2026' },
+    { label: 'Punjab Volunteer 🤝', email: 'vol.pb_ldh_ldh_01_03@fln.org', pass: 'Fln@2026' },
+    { label: 'Haryana Volunteer 🤝', email: 'vol.hr_amb_amb_01_03@fln.org', pass: 'Fln@2026' }
   ];
 
   const handleLogin = async (e?: React.FormEvent, customEmail?: string, customPass?: string) => {

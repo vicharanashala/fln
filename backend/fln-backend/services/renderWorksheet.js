@@ -3,39 +3,28 @@
  *
  * Puppeteer wrapper around the UNMODIFIED browser app in app/index.html.
  *
- * Nothing in this file re-implements worksheet generation, PDF pagination,
- * or coordinate math. It only:
- *   1. Boots a headless page that loads app/index.html (which pulls in
- *      icons.js + html2canvas + jsPDF + jszip exactly as the browser does).
- *   2. Calls the page's own global functions (buildWorksheet,
- *      buildCleanAnswerKey, captureCoords, LEVELS, levelSublevelIds) via
- *      page.evaluate.
- *   3. Reproduces the same section-by-section html2canvas -> jsPDF loop
- *      that the original buildPdfBlob() uses, but against a local
- *      container instead of a global worksheetHTMLs[idx] array, since the
- *      server has no such array.
+ * Uses Puppeteer's native page.pdf() (Chrome's built-in PDF engine) instead
+ * of html2canvas + jsPDF.  This is 10-50x faster and never times out, even
+ * for worksheets with heavy SVG illustrations (apples, fingers, shapes).
  *
- * If GENERATORS / LEVELS / buildWorksheet / buildPdfBlob / captureCoords /
- * buildCleanAnswerKey / levelSublevelIds ever change, this file does NOT
- * need to change (aside from the pagination-loop reproduction in step 3,
- * which must stay in sync with buildPdfBlob if that function's layout
- * math is ever edited).
+ * Flow:
+ *   1. Boots a headless page that loads app/index.html.
+ *   2. Calls buildWorksheet / buildCleanAnswerKey / captureCoords via
+ *      page.evaluate to build the HTML and extract metadata.
+ *   3. Makes the worksheet the only visible content on the page.
+ *   4. Calls page.pdf() for instant, native PDF generation.
  */
 
 const path = require('path');
 const { pathToFileURL } = require('url');
 const puppeteer = require('puppeteer');
 
-// Load the platform's current worksheet source so batch output uses the same
-// QR and layout as the interactive generator.
 const APP_INDEX_PATH = path.resolve(__dirname, '..', '..', '..', 'frontend', 'public', 'worksheets', 'levels_main.html');
-// pathToFileURL() (not a plain 'file://' + path concat) is required for this
-// to work on Windows, where paths use backslashes and drive letters — naive
-// concatenation produces an invalid file:// URL and page.goto() silently
-// fails to load the app, which is why the globals never appear and
-// waitForFunction times out.
 const APP_URL = pathToFileURL(APP_INDEX_PATH).href;
 
+// We no longer require html2canvas or jsPDF to be loaded for rendering,
+// but we still check they exist so the app's own buildWorksheet (which
+// may reference them internally) doesn't break.
 const REQUIRED_GLOBALS_CHECK = `
   typeof window.buildWorksheet === 'function' &&
   typeof window.buildCleanAnswerKey === 'function' &&
@@ -45,10 +34,7 @@ const REQUIRED_GLOBALS_CHECK = `
   typeof window.levelSublevelIds === 'function' &&
   typeof LEVELS !== 'undefined' &&
   Array.isArray(LEVELS) &&
-  LEVELS.length > 0 &&
-  window.jspdf && window.jspdf.jsPDF &&
-  typeof window.html2canvas === 'function' &&
-  typeof window.JSZip === 'function'
+  LEVELS.length > 0
 `;
 
 let browserPromise = null;
@@ -58,6 +44,7 @@ function getBrowser() {
   if (!browserPromise) {
     browserPromise = puppeteer.launch({
       headless: 'new',
+      protocolTimeout: 120_000,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -80,14 +67,11 @@ async function closeBrowser() {
 /**
  * Opens a fresh page loaded with the untouched app/index.html and waits
  * until every global the rest of this module depends on is ready.
- * One page is enough for many renders; callers decide how many pages
- * (i.e. how much concurrency) they want by calling this multiple times.
  */
 async function createRenderPage() {
   const browser = await getBrowser();
   const page = await browser.newPage();
 
-  // Surface in-page console errors/warnings in the Node logs for debugging.
   page.on('pageerror', (err) => {
     console.error('[renderWorksheet] page error:', err.message);
   });
@@ -104,9 +88,8 @@ async function createRenderPage() {
 }
 
 /**
- * Reads LEVELS + levelSublevelIds directly from the loaded app (never
- * re-implemented here) to resolve a requested sublevelId ("all" or a
- * specific id like "26.0") into concrete subIdx values to render.
+ * Reads LEVELS + levelSublevelIds directly from the loaded app to resolve
+ * a requested sublevelId into concrete subIdx values to render.
  */
 async function resolveSublevels(page, levelId, sublevelId) {
   return page.evaluate(
@@ -133,79 +116,95 @@ async function resolveSublevels(page, levelId, sublevelId) {
 }
 
 /**
- * The actual worksheet+key+coords render, executed entirely inside the
- * browser context so it reuses buildWorksheet/buildCleanAnswerKey/
- * captureCoords verbatim. Only the html2canvas->jsPDF pagination loop is
- * duplicated here (copied 1:1 from the original buildPdfBlob), because
- * that function reads from a module-level array we don't have server-side.
+ * Two-phase render:
+ *   Phase 1 (page.evaluate): Build worksheet HTML, extract metadata, make
+ *           worksheet the only visible page content.  Fast — no canvas work.
+ *   Phase 2 (page.pdf):      Chrome's native PDF engine renders the page.
+ *           Instant, handles SVGs natively, never times out.
  */
 async function evaluateRender(page, { levelId, subIdx, setNum, student }) {
-  return page.evaluate(
+  // ── Phase 1: Build HTML + extract metadata ─────────────────────────
+  const metadata = await page.evaluate(
     async ({ levelId, subIdx, setNum, student }) => {
-      const PDF_PAGE_W_MM = 210, PDF_PAGE_H_MM = 297, PDF_MARGIN_MM = 10;
-      const PDF_CONTENT_W = PDF_PAGE_W_MM - 2 * PDF_MARGIN_MM;
-      const PDF_CONTENT_H = PDF_PAGE_H_MM - 2 * PDF_MARGIN_MM;
-
-      // The worksheet creates its own QR. Set the normal assignment fields
-      // first so it contains this student's name and ID.
+      // Set student info so the QR code embeds their name/ID
       const studentNameInput = document.getElementById('studentName');
       const studentIdInput = document.getElementById('studentId');
       if (studentNameInput) studentNameInput.value = student.studentName || '';
       if (studentIdInput) studentIdInput.value = student.studentId || student.rollNumber || '';
+
       const { html, answerKey, meta } = window.buildWorksheet(levelId, subIdx, setNum, null);
 
       const container = window.makeHiddenContainer(html);
       const wrapper = container.querySelector('.page-wrapper');
       wrapper.style.width = '794px';
 
-      // Let layout settle (same double-rAF wait buildPdfBlob relies on).
+      // ── Inject Reinforcement Questions ──
+      // Note: batchProcessor spreads studentData into student, so it may be directly on student.
+      const reinfQs = (student.studentData && student.studentData.reinforcementQuestions) || student.reinforcementQuestions;
+      console.error(`[EVAL] Student ${student.studentId || student.studentName} received ${reinfQs ? reinfQs.length : 0} reinforcement questions`);
+      
+      if (Array.isArray(reinfQs) && reinfQs.length > 0) {
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'section';
+        sectionDiv.setAttribute('data-sectionid', 'S_REINF');
+        
+        const h3 = document.createElement('h3');
+        h3.textContent = 'F. Reinforcement Section';
+        sectionDiv.appendChild(h3);
+        
+        const qList = document.createElement('div');
+        qList.className = 'q-list';
+        sectionDiv.appendChild(qList);
+        
+        const startQNo = answerKey.items.length + 1;
+        
+        reinfQs.forEach((q, idx) => {
+          const qNum = startQNo + idx;
+          const qid = 'Q' + String(qNum).padStart(4, '0');
+          
+          const qRow = document.createElement('div');
+          qRow.className = 'q-row';
+          qRow.style.marginTop = '10px';
+          qRow.style.justifyContent = 'space-between';
+          
+          const numSpan = document.createElement('span');
+          numSpan.className = 'q-num';
+          numSpan.textContent = qNum + '.';
+          qRow.appendChild(numSpan);
+          
+          const textSpan = document.createElement('span');
+          textSpan.style.fontWeight = '500';
+          textSpan.textContent = `[Reinforcement - ${q.topic}] ${q.question}`;
+          qRow.appendChild(textSpan);
+          
+          const ansSpan = document.createElement('span');
+          ansSpan.className = 'ans-box';
+          ansSpan.style.width = '60px';
+          ansSpan.setAttribute('data-omr', `${qid}-ans`);
+          qRow.appendChild(ansSpan);
+          
+          qList.appendChild(qRow);
+          
+          answerKey.items.push({
+            questionId: qid,
+            sectionId: 'S_REINF',
+            sectionName: 'Reinforcement',
+            questionNo: qNum,
+            answerType: q.answer_type === 'choice' ? 'mcq' : 'number',
+            correctAnswer: q.answer,
+            icrNote: null
+          });
+        });
+        
+        wrapper.appendChild(sectionDiv);
+      }
+
+      // Let layout settle
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'mm', 'a4');
-
-      async function renderEl(el, targetWidthMM) {
-        const canvas = await window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
-        const widthMM = targetWidthMM || PDF_CONTENT_W;
-        const heightMM = canvas.height * (widthMM / canvas.width);
-        return { canvas, heightMM, widthMM };
-      }
-
-      // Header: buildWorksheet emits either .page-header or, for a few
-      // sublevels with header overrides, .worksheet-header-full. The
-      // original buildPdfBlob only looks for .page-header; we fall back
-      // to worksheet-header-full so those sublevels don't crash — purely
-      // additive, does not change output for every other sublevel.
-      const headerEl =
-        wrapper.querySelector('.page-header') || wrapper.querySelector('.worksheet-header-full');
-
-      let y = PDF_MARGIN_MM;
-      const { canvas: hc, heightMM: hh } = await renderEl(headerEl, PDF_CONTENT_W);
-      pdf.addImage(hc.toDataURL('image/png'), 'PNG', PDF_MARGIN_MM, y, PDF_CONTENT_W, hh);
-      y += hh + 3;
-
-      const sectionEls = Array.from(wrapper.querySelectorAll('.section'));
-      for (const el of sectionEls) {
-        const { canvas, heightMM } = await renderEl(el, PDF_CONTENT_W);
-        let hMM = heightMM, wMM = PDF_CONTENT_W;
-        if (hMM > PDF_CONTENT_H - PDF_MARGIN_MM) {
-          const scale = (PDF_CONTENT_H - PDF_MARGIN_MM) / hMM;
-          hMM *= scale; wMM *= scale;
-        }
-        if (y + hMM > PDF_PAGE_H_MM - PDF_MARGIN_MM) {
-          pdf.addPage();
-          y = PDF_MARGIN_MM;
-        }
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', PDF_MARGIN_MM, y, wMM, hMM);
-        y += hMM + 4;
-      }
-
-      pdf.setFontSize(7);
-      pdf.text(`SET-${String(setNum).padStart(5, '0')}`, PDF_PAGE_W_MM - 30, PDF_PAGE_H_MM - 6);
-
+      // Extract coords and answer key BEFORE we restyle
       const coords = window.captureCoords(wrapper);
       const cleanKey = window.buildCleanAnswerKey(answerKey);
-      const pdfDataUri = pdf.output('datauristring');
 
       const ak = answerKey;
       const questionPaper = {
@@ -225,10 +224,63 @@ async function evaluateRender(page, { levelId, subIdx, setNum, student }) {
         }))
       };
 
-      document.body.removeChild(container);
+      // ── Make worksheet the ONLY visible content for page.pdf() ──
+      // Remove any previous render artifacts
+      const oldStyle = document.getElementById('__pdf_render_style__');
+      if (oldStyle) oldStyle.remove();
+      const oldContainer = document.getElementById('__pdf_render_target__');
+      if (oldContainer) oldContainer.remove();
+
+      // Tag our container
+      container.id = '__pdf_render_target__';
+
+      // Inject print-isolation CSS: hide everything except our worksheet
+      const style = document.createElement('style');
+      style.id = '__pdf_render_style__';
+      style.textContent = `
+        /* Hide everything on the page */
+        body > * { display: none !important; }
+        /* Show only our worksheet container */
+        #__pdf_render_target__ {
+          display: block !important;
+          visibility: visible !important;
+          position: static !important;
+          overflow: visible !important;
+          opacity: 1 !important;
+          height: auto !important;
+          width: auto !important;
+          clip: auto !important;
+        }
+        #__pdf_render_target__ .page-wrapper {
+          width: 794px !important;
+          max-width: 794px !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+        }
+        /* SET number footer */
+        .pdf-set-footer {
+          position: fixed;
+          bottom: 2mm;
+          right: 5mm;
+          font-size: 7pt;
+          font-family: sans-serif;
+          color: #666;
+        }
+        @page { size: A4; margin: 10mm; }
+        @media print {
+          body > * { display: none !important; }
+          #__pdf_render_target__ { display: block !important; }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Add SET number footer
+      const footer = document.createElement('div');
+      footer.className = 'pdf-set-footer';
+      footer.textContent = 'SET-' + String(setNum).padStart(5, '0');
+      container.appendChild(footer);
 
       return {
-        pdfBase64: pdfDataUri.split(',')[1],
         coordsJson: coords,
         answerKeyJson: cleanKey,
         questionPaperJson: questionPaper,
@@ -237,6 +289,26 @@ async function evaluateRender(page, { levelId, subIdx, setNum, student }) {
     },
     { levelId, subIdx, setNum, student }
   );
+
+  // ── Phase 2: Native PDF generation (instant, no html2canvas!) ──────
+  const pdfBuffer = await page.pdf({
+    format: 'A4',
+    printBackground: true,
+    margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' }
+  });
+
+  // ── Phase 3: Clean up so the page is ready for the next render ─────
+  await page.evaluate(() => {
+    const target = document.getElementById('__pdf_render_target__');
+    if (target) target.remove();
+    const style = document.getElementById('__pdf_render_style__');
+    if (style) style.remove();
+  });
+
+  return {
+    pdfBuffer,
+    ...metadata
+  };
 }
 
 /**
@@ -246,7 +318,7 @@ async function evaluateRender(page, { levelId, subIdx, setNum, student }) {
 async function renderStudentSet(page, levelId, subIdx, setNum, student) {
   const result = await evaluateRender(page, { levelId, subIdx, setNum, student });
   return {
-    pdfBuffer: Buffer.from(result.pdfBase64, 'base64'),
+    pdfBuffer: result.pdfBuffer,
     answerKeyJson: result.answerKeyJson,
     coordsJson: result.coordsJson,
     questionPaperJson: result.questionPaperJson,

@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { MongoClient, Db } from 'mongodb';
+import { ConceptMasteryProfile } from './conceptMastery';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
@@ -8,9 +9,9 @@ const DB_FILE = path.resolve(DB_DIR, 'db.json');
 export let mongoClient: MongoClient | null = null;
 
 export const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
   if (!uri) {
-    console.error("MONGODB_URI not set — cannot start server");
+    console.error("MONGODB_URI or MONGO_URI not set — cannot start server");
     process.exit(1);
   }
   try {
@@ -275,6 +276,7 @@ interface DatabaseSchema {
   announcements: Announcement[];
   interventions: Intervention[];
   bestPractices: BestPractice[];
+  conceptMasteryProfiles: ConceptMasteryProfile[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -284,6 +286,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   students: 'students',
   questions: 'questions',
   worksheets: 'worksheets',
+  levelWorksheets: 'level_worksheets',
   answerSubmissions: 'answer_submissions',
   evaluationReports: 'evaluation_reports',
   tickets: 'tickets',
@@ -291,6 +294,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   announcements: 'announcements',
   interventions: 'interventions',
   bestPractices: 'best_practices',
+  conceptMasteryProfiles: 'concept_mastery_profiles',
 };
 
 export class DBStore {
@@ -559,6 +563,29 @@ export class DBStore {
       if (idx !== -1) this.data.bestPractices[idx] = bp;
     }
     return bp || undefined;
+  }
+
+  // --- Concept Mastery Profile Methods ---
+
+  async getConceptMasteryProfile(studentId: string): Promise<ConceptMasteryProfile | null> {
+    const doc = await this.mongoDb!.collection<ConceptMasteryProfile>('concept_mastery_profiles').findOne({ studentId });
+    return doc || null;
+  }
+
+  async upsertConceptMasteryProfile(profile: ConceptMasteryProfile): Promise<void> {
+    await this.mongoDb!.collection('concept_mastery_profiles').updateOne(
+      { studentId: profile.studentId },
+      { $set: profile },
+      { upsert: true }
+    );
+    if (this.data) {
+      const idx = this.data.conceptMasteryProfiles.findIndex(x => x.studentId === profile.studentId);
+      if (idx !== -1) {
+        this.data.conceptMasteryProfiles[idx] = profile;
+      } else {
+        this.data.conceptMasteryProfiles.push(profile);
+      }
+    }
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -2484,7 +2511,8 @@ export class DBStore {
       logbook,
       announcements,
       interventions,
-      bestPractices
+      bestPractices,
+      conceptMasteryProfiles: []
     };
   }
 }

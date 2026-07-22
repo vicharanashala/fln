@@ -7,6 +7,7 @@ import { dbStore, connectDB, UserRole, User, Student, School, Question, Workshee
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
+import { updateConceptMastery, getReinforcementQuestions } from './reinforcementEngine';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
@@ -764,6 +765,13 @@ async function startServer() {
 
     await dbStore.addEvaluationReport(report);
 
+    // Update rolling concept mastery profile
+    try {
+      await updateConceptMastery(student.id, questions, answers, dbStore);
+    } catch (e) {
+      console.error('Failed to update student concept mastery profile after diagnostic:', e);
+    }
+
     await dbStore.addLog({
       id: 'log_' + Date.now(),
       timestamp: new Date().toISOString(),
@@ -858,6 +866,20 @@ async function startServer() {
           question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
         });
       });
+
+      // Inject reinforcement questions for weak concepts
+      try {
+        const reinfQs = await getReinforcementQuestions(student.id, student.currentLevel, dbStore);
+        reinfQs.forEach(q => {
+          compiledQuestions.push({
+            ...q,
+            question_id: `${student.id}_REINF_${q.question_id}`,
+            question: `[For ${student.name} - Reinforcement: ${q.topic}] ${q.question}`
+          });
+        });
+      } catch (reinfErr) {
+        console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
+      }
     }
 
     // Setup strict Timing Windows (§1.4 Sequential timings)
@@ -1005,17 +1027,26 @@ async function startServer() {
     setNum: number;
     pdfUrl: string;
   }>> {
-    const roster: levelsBackendClient.RosterEntry[] = students.map(s => ({
-      studentName: s.name,
-      rollNumber: s.id,
-      levelId: s.currentLevel,
-      sublevelId: s.currentSubLevel != null ? `${s.currentLevel}.${s.currentSubLevel}` : 'all',
-      setsPerSub: 1,
-      studentData: {
-        age: s.age, classGroup: s.classGroup, section: s.section, schoolId: s.schoolId,
-        currentLevel: s.currentLevel, currentSubLevel: s.currentSubLevel,
-        targetLevel: s.targetLevel, streak: s.streak
+    const roster: levelsBackendClient.RosterEntry[] = await Promise.all(students.map(async s => {
+      let reinfQs: Question[] = [];
+      try {
+        reinfQs = await getReinforcementQuestions(s.id, s.currentLevel, dbStore);
+      } catch (err) {
+        console.error(`Error getting reinforcement questions for student ${s.id}:`, err);
       }
+      return {
+        studentName: s.name,
+        rollNumber: s.id,
+        levelId: s.currentLevel,
+        sublevelId: `${s.currentLevel}.${s.currentSubLevel ?? 0}`,
+        setsPerSub: 1,
+        studentData: {
+          age: s.age, classGroup: s.classGroup, section: s.section, schoolId: s.schoolId,
+          currentLevel: s.currentLevel, currentSubLevel: s.currentSubLevel,
+          targetLevel: s.targetLevel, streak: s.streak,
+          reinforcementQuestions: reinfQs
+        }
+      };
     }));
 
     const batchResult = await levelsBackendClient.generateBatch(roster);
@@ -1290,6 +1321,13 @@ async function startServer() {
 
     await dbStore.addEvaluationReport(report);
 
+    // Update rolling concept mastery profile
+    try {
+      await updateConceptMastery(student.id, studentQuestions, answers, dbStore);
+    } catch (e) {
+      console.error('Failed to update student concept mastery profile after worksheet submission:', e);
+    }
+
     // If correct, update student levels
     const levelHistory = [...student.levelHistory];
     if (evaluation.recommendedLevel !== student.currentLevel || newSubLevel !== (student.currentSubLevel || 0)) {
@@ -1396,6 +1434,28 @@ async function startServer() {
     const reps = await dbStore.getEvaluationReports();
     const filtered = reps.filter(r => r.studentId === req.params.studentId);
     res.json(filtered);
+  });
+
+  // Concept Mastery Profile
+  app.get('/api/students/:id/concept-mastery', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      const profile = await dbStore.getConceptMasteryProfile(req.params.id);
+      if (!profile) {
+        // Return a fresh empty profile structure if not assessed yet
+        return res.json({
+          studentId: req.params.id,
+          concepts: [],
+          updatedAt: new Date().toISOString()
+        });
+      }
+      res.json(profile);
+    } catch (err: any) {
+      console.error('Failed to retrieve concept mastery profile:', err);
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // Roll up Analytics for Dashboards scoped by Role (§14)

@@ -22,9 +22,9 @@ export default defineConfig(() => {
       // Forward all /api calls to the real backend server (Express, :3000).
       // Override the target with VITE_API_TARGET if the backend runs elsewhere.
       proxy: {
-        '/api': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true },
-        '/output': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true },
-        '/worksheets': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true },
+        '/api': { target: process.env.VITE_API_TARGET || 'http://127.0.0.1:3000', changeOrigin: true },
+        '/output': { target: process.env.VITE_API_TARGET || 'http://127.0.0.1:3000', changeOrigin: true },
+        '/worksheets': { target: process.env.VITE_API_TARGET || 'http://127.0.0.1:3000', changeOrigin: true },
       },
     },
   };
