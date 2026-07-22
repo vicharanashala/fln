@@ -79,6 +79,7 @@ const teacherSchema = new Schema<ITeacherDocument>(
     toJSON: {
       transform(_doc, ret) {
         ret.id = ret._id;
+        ret.name = `${ret.firstName} ${ret.lastName}`.trim();
         delete ret._id;
         delete ret.__v;
         delete ret.password;

@@ -55,7 +55,14 @@ export default function App() {
         }
 
         const data = await res.json();
-        setCurrentUser(data.user);
+        if (data.success && data.data && data.data.user) {
+          setCurrentUser(data.data.user);
+        } else if (data.user) {
+          // Fallback in case backend doesn't wrap in sendSuccess
+          setCurrentUser(data.user);
+        } else {
+          throw new Error('Invalid user payload');
+        }
         setCurrentView('dashboard');
       } catch {
         setToken(null);

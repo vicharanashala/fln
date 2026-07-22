@@ -51,9 +51,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
       });
       const data = await res.json();
       if (res.ok) {
-        onLoginSuccess(data.token, data.user);
+        if (data.success && data.data) {
+          // New backend format
+          onLoginSuccess(data.data.token, data.data.user);
+        } else if (data.token && data.user) {
+          // Old mock backend format
+          onLoginSuccess(data.token, data.user);
+        } else {
+          setError('Invalid response format from server');
+        }
       } else {
-        setError(data.error || 'Invalid email or password');
+        setError(data.message || data.error || 'Invalid email or password');
       }
     } catch (err) {
       setError('Connection failed. Verify server state.');
