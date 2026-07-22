@@ -1,10 +1,17 @@
 import fs from 'fs/promises';
 import path from 'path';
+import bcrypt from 'bcrypt';
 import { MongoClient, Db } from 'mongodb';
 import { ConceptMasteryProfile } from './conceptMastery';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
+
+// Every seeded demo account shares one password, stored ONLY as a bcrypt hash
+// (never as plaintext). Defaults to the well-known demo password shown on the login
+// screen; override with SEED_DEMO_PASSWORD for a private deployment.
+const SEED_DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD || 'Fln@2026';
+const SEED_DEMO_PASSWORD_HASH = bcrypt.hashSync(SEED_DEMO_PASSWORD, 10);
 
 export let mongoClient: MongoClient | null = null;
 
@@ -40,6 +47,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  passwordHash?: string; // bcrypt hash; verified at login. Never sent to clients.
   stateCode?: string;
   districtCode?: string;
   blockCode?: string;
@@ -823,6 +831,9 @@ export class DBStore {
       { id: 'u7_knp_vol', email: 'vol.knp@fln.org', name: 'Anita Singh (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-knp-012'] },
       { id: 'u7_ldh2_vol', email: 'vol.ldh2@fln.org', name: 'Gurpreet Kaur (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-pb-ldh2-013'] }
     ];
+
+    // Give every seeded account the shared demo password as a bcrypt hash.
+    users.forEach(u => { u.passwordHash = SEED_DEMO_PASSWORD_HASH; });
 
     const classes: ClassGroup[] = [
       { id: 'c1', schoolId: 'gps-mt-001', className: 'Class 2', section: 'A', teacherId: 'u6' },

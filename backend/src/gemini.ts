@@ -1,6 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "./db";
 
+// Valid Gemini model IDs, primary first then fallbacks (used by generateContentWithRetry).
+// Centralized here so the call sites below don't drift; these match the IDs the
+// ai-services Python pipeline uses (ai-services/scripts/_api.py). The previous IDs
+// ("gemini-3.5-flash" / "gemini-3.1-*") do not exist and made every AI call 404.
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"] as const;
+const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
+
 // Helper to get Gemini client or null if key is missing
 let aiClient: GoogleGenAI | null = null;
 
@@ -32,9 +39,8 @@ async function generateContentWithRetry(params: {
   model?: string;
 }): Promise<any> {
   const modelsToTry = [
-    params.model || "gemini-3.5-flash",
-    "gemini-3.1-flash-lite",
-    "gemini-3.1-pro-preview"
+    params.model || DEFAULT_GEMINI_MODEL,
+    ...GEMINI_MODELS.slice(1),
   ];
 
   let lastError: any = null;
@@ -391,7 +397,7 @@ Implement "Weakest-Level Mapping" (SRS §6.2): Assign the student to the lowest 
 Provide a clean narrative feedback summary.`;
 
     const response = await generateContentWithRetry({
-      model: "gemini-3.5-flash",
+      model: DEFAULT_GEMINI_MODEL,
       contents: prompt,
       config: {
         systemInstruction: "You are an automated math scoring system for Foundational Literacy & Numeracy.",
@@ -469,7 +475,7 @@ export async function generateAIPersonalizedWorksheet(
   try {
     const category = topicCategories[Math.floor(Math.random() * topicCategories.length)] || "Number Sense";
     const response = await generateContentWithRetry({
-      model: "gemini-3.5-flash",
+      model: DEFAULT_GEMINI_MODEL,
       contents: `Create exactly 3 math assessment questions for a student named ${studentName} who is currently at Level ${level}.
 The main topic area should be around: ${category}.
 Include at least one easy, one medium, and one hard difficulty question.
@@ -579,7 +585,7 @@ Recommended Level progression rules:
 Generate a narrative report summarizing strengths and learning gaps.`;
 
     const response = await generateContentWithRetry({
-      model: "gemini-3.5-flash",
+      model: DEFAULT_GEMINI_MODEL,
       contents: prompt,
       config: {
         systemInstruction: "You are a professional teacher grading and narrative-writing engine.",

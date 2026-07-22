@@ -11,11 +11,31 @@ import { updateConceptMastery, getReinforcementQuestions } from './reinforcement
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+// Python evaluation pipeline: interpreter + location (the pipeline lives in ai-services/,
+// a sibling of backend/). Both overridable by env for non-standard deployments.
+const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
+const AI_SERVICES_DIR = process.env.AI_SERVICES_DIR || path.resolve(ROOT_DIR, '..', 'ai-services');
+
+// --- Auth config (signed JWTs) ---
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+if (JWT_SECRET === 'dev-insecure-secret-change-me' && process.env.NODE_ENV === 'production') {
+  console.warn('[auth] WARNING: JWT_SECRET is unset in production — set it to a strong random value.');
+}
+
+// Strip fields that must never be sent to clients (e.g. the bcrypt password hash).
+function sanitizeUser(user: User): Omit<User, 'passwordHash'> {
+  const { passwordHash, ...safe } = user;
+  return safe;
+}
 
 async function startServer() {
   // Connect to MongoDB
@@ -31,58 +51,24 @@ async function startServer() {
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
   app.use('/worksheets', express.static(path.join(ROOT_DIR, 'public', 'worksheets')));
   // --- Auth Middleware & Helper ---
-  // A simple token-based auth helper. Token is email address for easy stateless authentication.
+  // Verifies the signed JWT issued by /api/auth/login and resolves the current user
+  // from the database. There is deliberately NO role synthesis from the email/prefix:
+  // only real, seeded users with a valid signed token authenticate.
   function getAuthUser(req: express.Request): User | null {
     const authHeader = req.headers.authorization;
     if (!authHeader) return null;
-    const email = authHeader.replace('Bearer ', '').trim();
-    
-    // Find preseeded user in database
-    const found = dbStore.getUserSync(email);
-    if (found) return found;
+    const token = authHeader.replace('Bearer ', '').trim();
+    if (!token) return null;
 
-    // Direct fallback mapping if not pre-seeded but conforms to email format
-    if (email.endsWith('@fln.org')) {
-      const parts = email.split('@')[0];
-      let role = UserRole.TEACHER;
-      let name = 'User';
-      let schoolId = undefined;
-
-      if (email === 'superadmin@fln.org') {
-        role = UserRole.SUPERADMIN;
-        name = 'Jinal Gupta';
-      } else if (email.startsWith('admin.')) {
-        role = UserRole.ADMIN;
-        name = 'State Admin';
-      } else if (email.startsWith('district.')) {
-        role = UserRole.DISTRICT_ADMIN;
-        name = 'District Officer';
-      } else if (email.startsWith('block.')) {
-        role = UserRole.BLOCK_ADMIN;
-        name = 'Block Coordinator';
-      } else if (email.startsWith('vol.')) {
-        role = UserRole.VOLUNTEER;
-        name = 'Volunteer';
-      } else if (parts.includes('.t')) {
-        role = UserRole.TEACHER;
-        name = 'Teacher';
-        schoolId = parts.split('.t')[0];
-      } else {
-        role = UserRole.SCHOOL;
-        name = 'School Principal';
-        schoolId = parts;
-      }
-
-      return {
-        id: 'u_' + Math.random().toString(36).substr(2, 9),
-        email,
-        name,
-        role,
-        schoolId
-      };
+    let payload: { email?: string };
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as { email?: string };
+    } catch {
+      return null; // invalid signature or expired token
     }
+    if (!payload?.email) return null;
 
-    return null;
+    return dbStore.getUserSync(payload.email);
   }
 
   // --- API Endpoints ---
@@ -141,10 +127,23 @@ async function startServer() {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // In a real production app we'd hash and compare, here we return JWT-like email token
+    // Verify the submitted password against the stored bcrypt hash.
+    const passwordOk = user.passwordHash
+      ? await bcrypt.compare(password, user.passwordHash)
+      : false;
+    if (!passwordOk) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Issue a signed JWT; it is verified on every subsequent request (see getAuthUser).
+    const token = jwt.sign(
+      { sub: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions
+    );
     return res.json({
-      token: user.email,
-      user
+      token,
+      user: sanitizeUser(user)
     });
   });
 
@@ -154,7 +153,7 @@ async function startServer() {
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    return res.json({ user });
+    return res.json({ user: sanitizeUser(user) });
   });
 
   // Announcements
@@ -604,7 +603,7 @@ async function startServer() {
 
     // Connect to Python Evaluation Metrics Pipeline
     const dateStr = new Date().toISOString().split('T')[0];
-    const pipelineDir = path.join(ROOT_DIR, 'evaluation_metrics');
+    const pipelineDir = AI_SERVICES_DIR;
     const responseDir = path.join(pipelineDir, 'student_responses', `class_${classNumber}`, 'phrase_1');
     fs.mkdirSync(responseDir, { recursive: true });
 
@@ -638,18 +637,20 @@ async function startServer() {
     let narrative = '';
 
     try {
-      const { execSync } = await import('child_process');
+      const { execFileSync } = await import('child_process');
       console.log(`Running evaluation pipeline for student ${student.id}...`);
-      
-      // Run the comparison, evaluation, and report card generation pipeline
-      execSync(`python run_pipeline.py ${classNumber} phrase_1 ${student.id}`, {
+
+      // Run the comparison, evaluation, and report card generation pipeline.
+      // execFile (no shell) with array args means classNumber/student.id are passed
+      // literally and can never be interpreted as shell syntax.
+      execFileSync(PYTHON_BIN, ['run_pipeline.py', String(classNumber), 'phrase_1', student.id], {
         cwd: pipelineDir,
         env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
       });
 
       // If failed, run the personalized exam pipeline too
       try {
-        execSync(`python personalized_evaluation_pipeline.py ${student.id} ${classNumber} phrase_1`, {
+        execFileSync(PYTHON_BIN, ['personalized_evaluation_pipeline.py', student.id, String(classNumber), 'phrase_1'], {
           cwd: pipelineDir,
           env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
         });
@@ -1574,8 +1575,8 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const users = await dbStore.getUsers();
-    // Return all users for audit and coordination
-    res.json(users);
+    // Return all users for audit and coordination (without password hashes).
+    res.json(users.map(sanitizeUser));
   });
 
   // Revive Banned Teacher (§6.5)
@@ -1670,17 +1671,18 @@ async function startServer() {
   });
 
   // ══════════════════════════════════════════
-  // DATABASE RESET (Development convenience)
+  // DATABASE RESET (Superadmin only)
   // ══════════════════════════════════════════
+  // Wipes every collection and re-seeds. Requires an authenticated superadmin.
+  // Deliberately POST-only: a GET reset was removed because it let any prefetch,
+  // crawler, or <img>/link trigger a full database wipe with no credentials.
   app.post('/api/reset', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.SUPERADMIN) {
+      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
+    }
     await dbStore.reset();
     res.json({ success: true, message: 'Database reset to fresh seed data.' });
-  });
-
-  // Also accept GET for easy browser-bar reset
-  app.get('/api/reset', async (req, res) => {
-    await dbStore.reset();
-    res.json({ success: true, message: 'Database reset to fresh seed data. Navigate back to / to continue.' });
   });
 
   // ══════════════════════════════════════════

@@ -1,3 +1,4 @@
+import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { LogEntry, UserRole, User, School } from '../types';
 import { Download, Search, SlidersHorizontal } from 'lucide-react';
@@ -22,7 +23,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
   // Fetch logbook entries
   const fetchLogs = async () => {
     try {
-      const res = await fetch('/api/logbook', {
+      const res = await apiFetch('/api/logbook', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -37,7 +38,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
   // Fetch school list for geographical lookup
   const fetchSchools = async () => {
     try {
-      const res = await fetch('/api/schools');
+      const res = await apiFetch('/api/schools');
       const data = await res.json();
       if (Array.isArray(data)) {
         setSchools(data);
