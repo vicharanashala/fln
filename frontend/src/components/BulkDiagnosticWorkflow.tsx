@@ -1,3 +1,4 @@
+import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { UserRole } from '../types';
 import { FileText, Download, Clock, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
@@ -32,7 +33,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
     if (!job || job.status !== 'running') return;
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/diagnostic/bulk/${job.jobId}/progress`);
+        const res = await apiFetch(`/api/diagnostic/bulk/${job.jobId}/progress`);
         if (res.ok) {
           const data = await res.json();
           setJob(data);
@@ -66,7 +67,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
     setJob(null);
 
     try {
-      const res = await fetch('/api/diagnostic/bulk', {
+      const res = await apiFetch('/api/diagnostic/bulk', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
