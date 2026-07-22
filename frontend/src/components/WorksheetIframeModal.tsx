@@ -1,3 +1,4 @@
+import { withBase } from '../services/apiClient';
 import React, { useEffect, useRef } from 'react';
 import { X, ExternalLink } from 'lucide-react';
 
@@ -9,12 +10,12 @@ interface WorksheetIframeModalProps {
 }
 
 const CLASS_FILE_MAP: { [key: string]: string } = {
-  'Class 1': '/worksheets/class1.html',
-  'Class 2': '/worksheets/class2.html',
-  'Class 3': '/worksheets/class3.html',
-  'Class 4': '/worksheets/class4.html',
-  'LEVEL_PERSONALIZED': '/worksheets/levels_main.html',
-  'Level Personalized': '/worksheets/levels_main.html',
+  'Class 1': withBase('/worksheets/class1.html'),
+  'Class 2': withBase('/worksheets/class2.html'),
+  'Class 3': withBase('/worksheets/class3.html'),
+  'Class 4': withBase('/worksheets/class4.html'),
+  'LEVEL_PERSONALIZED': withBase('/worksheets/levels_main.html'),
+  'Level Personalized': withBase('/worksheets/levels_main.html'),
 };
 
 export const WorksheetIframeModal: React.FC<WorksheetIframeModalProps> = ({
