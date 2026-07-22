@@ -10,11 +10,26 @@ import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+// --- Auth config (signed JWTs) ---
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+if (JWT_SECRET === 'dev-insecure-secret-change-me' && process.env.NODE_ENV === 'production') {
+  console.warn('[auth] WARNING: JWT_SECRET is unset in production — set it to a strong random value.');
+}
+
+// Strip fields that must never be sent to clients (e.g. the bcrypt password hash).
+function sanitizeUser(user: User): Omit<User, 'passwordHash'> {
+  const { passwordHash, ...safe } = user;
+  return safe;
+}
 
 async function startServer() {
   // Connect to MongoDB
@@ -30,58 +45,24 @@ async function startServer() {
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
   app.use('/worksheets', express.static(path.join(ROOT_DIR, 'public', 'worksheets')));
   // --- Auth Middleware & Helper ---
-  // A simple token-based auth helper. Token is email address for easy stateless authentication.
+  // Verifies the signed JWT issued by /api/auth/login and resolves the current user
+  // from the database. There is deliberately NO role synthesis from the email/prefix:
+  // only real, seeded users with a valid signed token authenticate.
   function getAuthUser(req: express.Request): User | null {
     const authHeader = req.headers.authorization;
     if (!authHeader) return null;
-    const email = authHeader.replace('Bearer ', '').trim();
-    
-    // Find preseeded user in database
-    const found = dbStore.getUserSync(email);
-    if (found) return found;
+    const token = authHeader.replace('Bearer ', '').trim();
+    if (!token) return null;
 
-    // Direct fallback mapping if not pre-seeded but conforms to email format
-    if (email.endsWith('@fln.org')) {
-      const parts = email.split('@')[0];
-      let role = UserRole.TEACHER;
-      let name = 'User';
-      let schoolId = undefined;
-
-      if (email === 'superadmin@fln.org') {
-        role = UserRole.SUPERADMIN;
-        name = 'Jinal Gupta';
-      } else if (email.startsWith('admin.')) {
-        role = UserRole.ADMIN;
-        name = 'State Admin';
-      } else if (email.startsWith('district.')) {
-        role = UserRole.DISTRICT_ADMIN;
-        name = 'District Officer';
-      } else if (email.startsWith('block.')) {
-        role = UserRole.BLOCK_ADMIN;
-        name = 'Block Coordinator';
-      } else if (email.startsWith('vol.')) {
-        role = UserRole.VOLUNTEER;
-        name = 'Volunteer';
-      } else if (parts.includes('.t')) {
-        role = UserRole.TEACHER;
-        name = 'Teacher';
-        schoolId = parts.split('.t')[0];
-      } else {
-        role = UserRole.SCHOOL;
-        name = 'School Principal';
-        schoolId = parts;
-      }
-
-      return {
-        id: 'u_' + Math.random().toString(36).substr(2, 9),
-        email,
-        name,
-        role,
-        schoolId
-      };
+    let payload: { email?: string };
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as { email?: string };
+    } catch {
+      return null; // invalid signature or expired token
     }
+    if (!payload?.email) return null;
 
-    return null;
+    return dbStore.getUserSync(payload.email);
   }
 
   // --- API Endpoints ---
@@ -140,10 +121,23 @@ async function startServer() {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // In a real production app we'd hash and compare, here we return JWT-like email token
+    // Verify the submitted password against the stored bcrypt hash.
+    const passwordOk = user.passwordHash
+      ? await bcrypt.compare(password, user.passwordHash)
+      : false;
+    if (!passwordOk) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Issue a signed JWT; it is verified on every subsequent request (see getAuthUser).
+    const token = jwt.sign(
+      { sub: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions
+    );
     return res.json({
-      token: user.email,
-      user
+      token,
+      user: sanitizeUser(user)
     });
   });
 
@@ -153,7 +147,7 @@ async function startServer() {
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    return res.json({ user });
+    return res.json({ user: sanitizeUser(user) });
   });
 
   // Announcements
@@ -1514,8 +1508,8 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const users = await dbStore.getUsers();
-    // Return all users for audit and coordination
-    res.json(users);
+    // Return all users for audit and coordination (without password hashes).
+    res.json(users.map(sanitizeUser));
   });
 
   // Revive Banned Teacher (§6.5)
