@@ -81,6 +81,31 @@ export default function App() {
     triggerToast('Role switched');
   };
 
+const markAnnouncementAsRead = async (id: string) => {
+    try {
+      await fetch(`/api/announcements/${id}/read`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Failed to persist read receipt:', err);
+    }
+  };
+
+
+const handleMarkNotificationRead = (id: string) => {
+    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, readByMe: true } : a));
+    markAnnouncementAsRead(id);
+  };
+
+  const handleClearNotifications = () => {
+    const unread = announcements.filter(a => !a.readByMe);
+    unread.forEach(a => markAnnouncementAsRead(a.id));
+    const ids = announcements.map(a => a.id);
+    const cleared = JSON.parse(localStorage.getItem('fln_cleared_notifications') || '[]') as string[];
+    const merged = [...new Set([...cleared, ...ids])];
+    localStorage.setItem('fln_cleared_notifications', JSON.stringify(merged));
+    setAnnouncements([]);
   const handleMarkNotificationRead = (id: string) => {
     setAnnouncements(prev => prev.map(a => (a.id === id ? { ...a, read: true } : a)));
   };

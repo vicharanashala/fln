@@ -1,5 +1,6 @@
 import { apiFetch, withBase } from '../services/apiClient';
 import React, { useState, useEffect, useMemo } from 'react';
+import { Announcement, AnnouncementReadStats } from '../types';
 import { Link } from 'react-router-dom';
 import { User, UserRole, Student, ClassGroup, School, LogEntry, Ticket } from '../types';
 import { DiagnosticWorkflow } from './DiagnosticWorkflow';
@@ -468,14 +469,190 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
 
     </div>
   );
+};export const AnnouncementComplianceView: React.FC<{ token: string }> = ({ token }) => {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [selectedId, setSelectedId] = useState('');
+  const [stats, setStats] = useState<AnnouncementReadStats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showList, setShowList] = useState<'read' | 'unread'>('unread');
+
+  useEffect(() => {
+    const fetchAnns = async () => {
+      try {
+        const res = await fetch('/api/announcements', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setAnnouncements(data);
+          if (data.length > 0) setSelectedId(data[0].id);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchAnns();
+  }, [token]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const fetchStats = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/announcements/${selectedId}/reads`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const d = await res.json();
+        setStats(d);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, [selectedId, token]);
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
+        <h3 className="text-lg font-display font-medium text-zinc-900">Announcement Compliance Dashboard</h3>
+        <select
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+          className="w-full md:w-96 text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500"
+        >
+          {announcements.map(a => (
+            <option key={a.id} value={a.id}>{a.title}</option>
+          ))}
+        </select>
+      </div>
+
+      {loading && (
+        <div className="p-8 text-center text-zinc-400 font-mono text-xs">Loading compliance data...</div>
+      )}
+
+      {!loading && stats && (
+        <>
+          {/* Summary cards + progress bar */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <MetricCard title="Total Recipients" value={stats.totalRecipients} />
+            <MetricCard title="Read" value={stats.readCount} subtext={`${stats.readPercent}% of recipients`} />
+            <MetricCard title="Unread" value={stats.unreadCount} />
+            <MetricCard
+              title="Last Viewed"
+              value={stats.lastViewedAt ? new Date(stats.lastViewedAt).toLocaleTimeString() : '—'}
+              subtext={stats.firstViewedAt ? `First: ${new Date(stats.firstViewedAt).toLocaleTimeString()}` : undefined}
+            />
+          </div>
+
+          <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-2">
+            <div className="flex justify-between text-xs font-medium">
+              <span className="text-zinc-600">Overall Read Rate</span>
+              <span className="font-semibold text-zinc-900">{stats.readPercent}%</span>
+            </div>
+            <div className="w-full bg-zinc-100 rounded-full h-3">
+              <div
+                className="bg-emerald-500 h-3 rounded-full transition-all"
+                style={{ width: `${stats.readPercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Role + District breakdowns side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-3">
+              <h4 className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest">By Role</h4>
+              {Object.entries(stats.byRole).map(([role, s]) => (
+                <div key={role} className="space-y-1">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-zinc-600 capitalize">{role.replace('_', ' ')}</span>
+                    <span className="font-semibold text-zinc-900">{s.read}/{s.total}</span>
+                  </div>
+                  <div className="w-full bg-zinc-100 rounded-full h-1.5">
+                    <div
+                      className="bg-indigo-500 h-1.5 rounded-full transition-all"
+                      style={{ width: `${s.total ? (s.read / s.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-3">
+              <h4 className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest">By District</h4>
+              {Object.entries(stats.byDistrict).map(([district, s]) => (
+                <div key={district} className="space-y-1">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-zinc-600">{district}</span>
+                    <span className="font-semibold text-zinc-900">{s.read}/{s.total}</span>
+                  </div>
+                  <div className="w-full bg-zinc-100 rounded-full h-1.5">
+                    <div
+                      className="bg-amber-500 h-1.5 rounded-full transition-all"
+                      style={{ width: `${s.total ? (s.read / s.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Toggleable recipient list */}
+          <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
+            <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 w-fit">
+              <button
+                onClick={() => setShowList('unread')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  showList === 'unread' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                ○ Unread ({stats.unreadUsers.length})
+              </button>
+              <button
+                onClick={() => setShowList('read')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  showList === 'read' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                ✓ Read ({stats.readUsers.length})
+              </button>
+            </div>
+
+            <div className="max-h-72 overflow-y-auto space-y-1.5">
+              {(showList === 'unread' ? stats.unreadUsers : stats.readUsers).map(u => (
+                <div key={u.id} className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-lg border border-zinc-100">
+                  <div>
+                    <span className="text-xs font-semibold text-zinc-900">{showList === 'unread' ? '○ ' : '✓ '}{u.name}</span>
+                    <span className="block text-[10px] text-zinc-400 font-mono">{u.email}</span>
+                  </div>
+                  <span className="text-[9px] font-mono font-bold uppercase text-zinc-400">{u.role.replace('_', ' ')}</span>
+                </div>
+              ))}
+              {(showList === 'unread' ? stats.unreadUsers : stats.readUsers).length === 0 && (
+                <div className="p-4 text-center text-zinc-400 text-xs font-mono">No {showList} recipients.</div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
 };
+
+
+
+
+
+
+
 
 
 // ==========================================
 // 1. SUPERADMIN (NATIONAL) DASHBOARD
 // ==========================================
 export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'coordinators' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'coordinators' | 'analytics' | 'compliance'>('overview');
   
   // Overview data
   const [schools, setSchools] = useState<School[]>([]);
@@ -754,6 +931,14 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
             📊 Geographical Analytics
           </button>
         </div>
+        <button
+            onClick={() => setActiveTab('compliance')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              activeTab === 'compliance' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+            }`}
+          >
+            📨 Announcement Read Tracking
+          </button>
 
         {/* DB Reset for easy demo */}
         <button
@@ -850,7 +1035,9 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         );
       })()}
 
-
+      {activeTab === 'compliance' && (
+        <AnnouncementComplianceView token={token} />
+      )}
       {activeTab === 'coordinators' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Admin registration form */}
