@@ -18,6 +18,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
+// Python evaluation pipeline: interpreter + location (the pipeline lives in ai-services/,
+// a sibling of backend/). Both overridable by env for non-standard deployments.
+const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
+const AI_SERVICES_DIR = process.env.AI_SERVICES_DIR || path.resolve(ROOT_DIR, '..', 'ai-services');
+
 // --- Auth config (signed JWTs) ---
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -597,7 +602,7 @@ async function startServer() {
 
     // Connect to Python Evaluation Metrics Pipeline
     const dateStr = new Date().toISOString().split('T')[0];
-    const pipelineDir = path.join(ROOT_DIR, 'evaluation_metrics');
+    const pipelineDir = AI_SERVICES_DIR;
     const responseDir = path.join(pipelineDir, 'student_responses', `class_${classNumber}`, 'phrase_1');
     fs.mkdirSync(responseDir, { recursive: true });
 
@@ -631,18 +636,20 @@ async function startServer() {
     let narrative = '';
 
     try {
-      const { execSync } = await import('child_process');
+      const { execFileSync } = await import('child_process');
       console.log(`Running evaluation pipeline for student ${student.id}...`);
-      
-      // Run the comparison, evaluation, and report card generation pipeline
-      execSync(`python run_pipeline.py ${classNumber} phrase_1 ${student.id}`, {
+
+      // Run the comparison, evaluation, and report card generation pipeline.
+      // execFile (no shell) with array args means classNumber/student.id are passed
+      // literally and can never be interpreted as shell syntax.
+      execFileSync(PYTHON_BIN, ['run_pipeline.py', String(classNumber), 'phrase_1', student.id], {
         cwd: pipelineDir,
         env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
       });
 
       // If failed, run the personalized exam pipeline too
       try {
-        execSync(`python personalized_evaluation_pipeline.py ${student.id} ${classNumber} phrase_1`, {
+        execFileSync(PYTHON_BIN, ['personalized_evaluation_pipeline.py', student.id, String(classNumber), 'phrase_1'], {
           cwd: pipelineDir,
           env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
         });
