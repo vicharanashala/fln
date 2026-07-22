@@ -1604,17 +1604,18 @@ async function startServer() {
   });
 
   // ══════════════════════════════════════════
-  // DATABASE RESET (Development convenience)
+  // DATABASE RESET (Superadmin only)
   // ══════════════════════════════════════════
+  // Wipes every collection and re-seeds. Requires an authenticated superadmin.
+  // Deliberately POST-only: a GET reset was removed because it let any prefetch,
+  // crawler, or <img>/link trigger a full database wipe with no credentials.
   app.post('/api/reset', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.SUPERADMIN) {
+      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
+    }
     await dbStore.reset();
     res.json({ success: true, message: 'Database reset to fresh seed data.' });
-  });
-
-  // Also accept GET for easy browser-bar reset
-  app.get('/api/reset', async (req, res) => {
-    await dbStore.reset();
-    res.json({ success: true, message: 'Database reset to fresh seed data. Navigate back to / to continue.' });
   });
 
   // ══════════════════════════════════════════

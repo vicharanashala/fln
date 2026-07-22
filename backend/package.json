@@ -11,7 +11,8 @@
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
     "seed": "tsx src/seed.ts",
-    "seed:geo": "tsx src/utils/seedGeo.ts"
+    "seed:geo": "tsx src/utils/seedGeo.ts",
+    "reseed": "tsx src/reseed.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
