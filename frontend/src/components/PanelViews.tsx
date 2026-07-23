@@ -394,7 +394,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     const studentSchool = schools.find(sch => sch.id === s.schoolId);
     const att = ATTENDANCE_MOCK.find(a => a.student === s.name);
     const daysSinceEnroll = Math.floor((Date.now() - new Date(profile.enrollmentDate || s.id).getTime()) / 86400000);
-    const classStudents = students.filter(st => st.classGroup === s.classGroup);
+    const classStudents = students.filter(st => st.classGroup === s.classGroup && st.schoolId === s.schoolId);
     const classAvg = Math.round(classStudents.reduce((a, st) => a + st.currentLevel, 0) / Math.max(1, classStudents.length));
     const avgScore = reports.length > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reports.length) : 0;
     const allSkills = new Map<string, { mastery: string; date: string }[]>();

@@ -7,7 +7,8 @@ import { dbStore, connectDB, UserRole, User, Student, School, Question, Workshee
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
-import { updateConceptMastery, getReinforcementQuestions } from './reinforcementEngine';
+import { updateConceptMastery, getReinforcementQuestions, mixWorksheetQuestions } from './reinforcementEngine';
+import { selectPlacedStudents } from './worksheetBatch';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
@@ -75,34 +76,37 @@ async function startServer() {
 
   // Public stats (no auth required — used by landing page)
   app.get('/api/stats', async (_req, res) => {
-    const db = dbStore.getDb();
-    if (!db) return res.json({ totalStates: 0, totalDistricts: 0, totalSchools: 0, totalStudents: 0, totalAssessments: 0, avgFlnLevel: 0, totalUsers: 0, certifiedCount: 0, certifiedPercent: 0 });
+    try {
+      const [schools, students, users, worksheets] = await Promise.all([
+        dbStore.getSchools(),
+        dbStore.getStudents(),
+        dbStore.getUsers(),
+        dbStore.getWorksheets(),
+      ]);
 
-    const [totalSchools, totalStudents, totalUsers, totalAssessments, stateCodes, districtCodes, avgResult, certifiedResult] = await Promise.all([
-      db.collection('schools').countDocuments(),
-      db.collection('students').countDocuments(),
-      db.collection('users').countDocuments(),
-      db.collection('worksheets').countDocuments(),
-      db.collection('schools').distinct('stateCode'),
-      db.collection('schools').distinct('districtCode'),
-      db.collection('students').aggregate([{ $group: { _id: null, avg: { $avg: '$currentLevel' } } }]).toArray(),
-      db.collection('students').aggregate([{ $match: { currentLevel: { $gte: 5 } } }, { $count: 'count' }]).toArray(),
-    ]);
+      const stateCodes = new Set(schools.map(s => s.stateCode));
+      const districtCodes = new Set(schools.map(s => s.districtCode));
+      const totalStudents = students.length;
+      const avgFlnLevel = totalStudents > 0
+        ? Math.round(students.reduce((sum, s) => sum + (s.currentLevel || 0), 0) / totalStudents)
+        : 0;
+      const certifiedCount = students.filter(s => (s.currentLevel || 0) >= 5).length;
 
-    const certifiedCount = certifiedResult[0]?.count ?? 0;
-    const avgFlnLevel = totalStudents > 0 ? Math.round(avgResult[0]?.avg ?? 0) : 0;
-
-    res.json({
-      totalStates: stateCodes.length,
-      totalDistricts: districtCodes.length,
-      totalSchools,
-      totalStudents,
-      totalAssessments,
-      avgFlnLevel,
-      totalUsers,
-      certifiedCount,
-      certifiedPercent: totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0,
-    });
+      res.json({
+        totalStates: stateCodes.size,
+        totalDistricts: districtCodes.size,
+        totalSchools: schools.length,
+        totalStudents,
+        totalAssessments: worksheets.length,
+        avgFlnLevel,
+        totalUsers: users.length,
+        certifiedCount,
+        certifiedPercent: totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0,
+      });
+    } catch (err) {
+      console.error('Stats endpoint error:', err);
+      res.json({ totalStates: 0, totalDistricts: 0, totalSchools: 0, totalStudents: 0, totalAssessments: 0, avgFlnLevel: 0, totalUsers: 0, certifiedCount: 0, certifiedPercent: 0 });
+    }
   });
 
   // Auth: Login
@@ -849,6 +853,7 @@ async function startServer() {
     const students = await dbStore.getStudents();
     const classStudents = students.filter(s => s.classGroup === classObj.className && s.section === classObj.section && s.schoolId === classObj.schoolId);
 
+    console.log(`[Worksheet Gen Log] Selected ${classStudents.length} student(s) for class ${classObj.className} ${classObj.section} worksheet generation.`);
     if (classStudents.length === 0) {
       return res.status(400).json({ error: 'No students found in this class roster.' });
     }
@@ -859,6 +864,7 @@ async function startServer() {
     for (const student of classStudents) {
       const subLvl = student.currentSubLevel || 0;
       const qs = generateQuestionsForLevel(student.currentLevel, subLvl);
+      console.log(`[Worksheet Gen Log] Student: ${student.name} (${student.id}) | Current Level: ${student.currentLevel}.${subLvl} | Generated ${qs.length} standard questions.`);
       // Map question IDs to be student-specific to prevent duplicate collisions
       qs.forEach(q => {
         compiledQuestions.push({
@@ -868,16 +874,20 @@ async function startServer() {
         });
       });
 
-      // Inject reinforcement questions for weak concepts
       try {
         const reinfQs = await getReinforcementQuestions(student.id, student.currentLevel, dbStore);
-        reinfQs.forEach(q => {
-          compiledQuestions.push({
-            ...q,
-            question_id: `${student.id}_REINF_${q.question_id}`,
-            question: `[For ${student.name} - Reinforcement: ${q.topic}] ${q.question}`
-          });
-        });
+        if (reinfQs.length > 0) {
+          console.log(`[Worksheet Gen Log] Student: ${student.name} (${student.id}) | Injecting ${reinfQs.length} reinforcement question(s).`);
+          const mappedReinforcement = reinfQs.map(q => ({
+              ...q,
+              question_id: `${student.id}_REINF_${q.question_id}`,
+              question: `[For ${student.name} - Reinforcement: ${q.topic}] ${q.question}`
+            }));
+          const studentQuestions = compiledQuestions.splice(compiledQuestions.length - qs.length, qs.length);
+          compiledQuestions.push(...mixWorksheetQuestions(studentQuestions, mappedReinforcement));
+        } else {
+          console.log(`[Worksheet Gen Log] Student: ${student.name} (${student.id}) | No reinforcement questions generated.`);
+        }
       } catch (reinfErr) {
         console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
       }
@@ -1124,6 +1134,12 @@ async function startServer() {
       });
     }
 
+    const generatedStudentIds = new Set(out.map(item => item.studentId));
+    const missingStudents = students.filter(student => !generatedStudentIds.has(student.id));
+    if (missingStudents.length > 0) {
+      throw new Error(`Levels backend did not generate worksheets for placed students: ${missingStudents.map(student => student.id).join(', ')}`);
+    }
+
     return out;
   }
 
@@ -1188,20 +1204,11 @@ async function startServer() {
 
     try {
       const students = await dbStore.getStudents();
-      const targets: Student[] = [];
-      const skipped: Array<{ studentId: string; reason: string }> = [];
+      const { targets, skipped } = selectPlacedStudents(students, studentIds);
 
-      for (const id of studentIds) {
-        const student = students.find(s => s.id === id);
-        if (!student) {
-          skipped.push({ studentId: id, reason: 'Student not found.' });
-          continue;
-        }
-        if (student.currentLevel == null) {
-          skipped.push({ studentId: id, reason: 'Student has not completed their diagnostic test.' });
-          continue;
-        }
-        targets.push(student);
+      console.log(`[Level Batch Gen Log] Beginning level-wise batch generation for ${studentIds.length} student IDs.`);
+      for (const student of targets) {
+        console.log(`[Level Batch Gen Log] Selected student ${student.name} (${student.id}) at level ${student.currentLevel}.${student.currentSubLevel || 0} for batch generation.`);
       }
 
       if (targets.length === 0) {
@@ -2130,6 +2137,8 @@ async function startServer() {
     await dbStore.updateBestPractice(bp.id, { viewCount: (bp.viewCount || 0) + 1 });
     res.json({ ...bp, viewCount: (bp.viewCount || 0) + 1 });
   });
+
+
 
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).

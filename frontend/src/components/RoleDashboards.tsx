@@ -1599,7 +1599,7 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   }, [token]);
 
   if (activeClass) {
-    const classStudents = students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section);
+    const classStudents = students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section && s.schoolId === activeClass.schoolId);
     return (
       <WorksheetWorkflow
         classGroup={activeClass}
@@ -1955,13 +1955,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   }
 
   // Filter students under selected active class
-  const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : [];
+  const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section && s.schoolId === activeClass.schoolId) : [];
 
   if (showWorksheetPortal) {
     const effectiveClass = activeClass || (classes.length > 0 ? classes[0] : null);
     if (effectiveClass) {
       const effectiveStudents = students.filter(
-        s => s.classGroup === effectiveClass.className && s.section === effectiveClass.section
+        s => s.classGroup === effectiveClass.className && s.section === effectiveClass.section && s.schoolId === effectiveClass.schoolId
       );
       return (
         <WorksheetWorkflow
@@ -2671,13 +2671,13 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
     );
   }
 
-  const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : [];
+  const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section && s.schoolId === activeClass.schoolId) : [];
 
   if (showWorksheetPortal) {
     const effectiveClass = activeClass || (classes.length > 0 ? classes[0] : null);
     if (effectiveClass) {
       const effectiveStudents = students.filter(
-        s => s.classGroup === effectiveClass.className && s.section === effectiveClass.section
+        s => s.classGroup === effectiveClass.className && s.section === effectiveClass.section && s.schoolId === effectiveClass.schoolId
       );
       return (
         <WorksheetWorkflow

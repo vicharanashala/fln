@@ -25,6 +25,11 @@ export interface ConceptScore {
    * is considered fully mastered and reinforcement stops.
    */
   consecutiveMasteryCount: number;
+  // --- Adaptive Reinforcement Fields ---
+  recentAnswers?: { level: number; correct: boolean }[];
+  reinforcementTriggeredAtLevel?: number;
+  isReinforcementActive?: boolean;
+  consecutiveReinforcementMasteryCount?: number;
 }
 
 export interface ConceptMasteryProfile {
@@ -50,11 +55,11 @@ export const MASTERY_CONSECUTIVE_THRESHOLD = 2;
 
 // ── Reinforcement question counts per weakness tier ─────────────────
 
-/** Extra questions injected for concepts marked "Needs Practice" (very weak) */
-export const REINF_COUNT_NEEDS_PRACTICE = 2;
+/** Extra questions injected for concepts below 30% mastery. */
+export const REINF_COUNT_NEEDS_PRACTICE = 3;
 
 /** Extra questions injected for concepts marked "Satisfactory" */
-export const REINF_COUNT_SATISFACTORY = 1;
+export const REINF_COUNT_SATISFACTORY = 2;
 
 /**
  * Extra verification question for concepts that are "Strong" but

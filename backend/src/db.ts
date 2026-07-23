@@ -18,16 +18,18 @@ export let mongoClient: MongoClient | null = null;
 export const connectDB = async () => {
   const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
   if (!uri) {
-    console.error("MONGODB_URI or MONGO_URI not set — cannot start server");
-    process.exit(1);
+    console.warn("⚠️  MONGODB_URI or MONGO_URI not set — using file-based DB fallback.");
+    return;
   }
   try {
     mongoClient = new MongoClient(uri);
     await mongoClient.connect();
-    console.log("MongoDB Connected");
-  } catch (err) {
-    console.error("MongoDB connection failed:", err.message);
-    process.exit(1);
+    console.log("✅ MongoDB Connected");
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("❌ MongoDB connection failed:", message);
+    console.warn("⚠️  Server will start without MongoDB. Using file-based DB fallback.");
+    mongoClient = null;
   }
 };
 
@@ -311,7 +313,7 @@ export class DBStore {
   private mongoDb: Db | null = null;
 
   getDb() {
-    if (!mongoClient) throw new Error('MongoDB not connected');
+    if (!mongoClient) return null;
     return mongoClient.db();
   }
 
@@ -383,209 +385,287 @@ export class DBStore {
   }
 
   async getUsers() {
-    return await this.mongoDb!.collection<User>('users').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<User>('users').find({}).toArray();
+    return this.data?.users || [];
   }
   async getSchools() {
-    return await this.mongoDb!.collection<School>('schools').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<School>('schools').find({}).toArray();
+    return this.data?.schools || [];
   }
   async getClasses() {
-    return await this.mongoDb!.collection<ClassGroup>('classes').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<ClassGroup>('classes').find({}).toArray();
+    return this.data?.classes || [];
   }
   async getStudents() {
-    return await this.mongoDb!.collection<Student>('students').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Student>('students').find({}).toArray();
+    return this.data?.students || [];
   }
   async getQuestions() {
-    return await this.mongoDb!.collection<Question>('questions').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Question>('questions').find({}).toArray();
+    return this.data?.questions || [];
   }
   async getWorksheets() {
-    return await this.mongoDb!.collection<Worksheet>('worksheets').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray();
+    return this.data?.worksheets || [];
   }
   async getLevelWorksheets() {
-    return await this.mongoDb!.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
+    return this.data?.levelWorksheets || [];
   }
   async getAnswerSubmissions() {
-    return await this.mongoDb!.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
+    return this.data?.answerSubmissions || [];
   }
   async getEvaluationReports() {
-    return await this.mongoDb!.collection<EvaluationReport>('evaluationReports').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({}).toArray();
+    return this.data?.evaluationReports || [];
   }
   async getTickets() {
-    return await this.mongoDb!.collection<Ticket>('tickets').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Ticket>('tickets').find({}).toArray();
+    return this.data?.tickets || [];
   }
   async getLogbook() {
-    return await this.mongoDb!.collection<LogEntry>('logbook').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<LogEntry>('logbook').find({}).toArray();
+    return this.data?.logbook || [];
   }
   async getAnnouncements() {
-    return await this.mongoDb!.collection<Announcement>('announcements').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Announcement>('announcements').find({}).toArray();
+    return this.data?.announcements || [];
   }
 
-  // --- Write / Update Helpers ---
-
   async addUser(user: User) {
-    await this.mongoDb!.collection('users').insertOne(user);
+    if (this.mongoDb) await this.mongoDb.collection('users').insertOne(user);
     if (this.data) this.data.users.push(user);
+    if (!this.mongoDb) await this.save();
     return user;
   }
 
   async addStudent(student: Student) {
-    await this.mongoDb!.collection('students').insertOne(student);
+    if (this.mongoDb) await this.mongoDb.collection('students').insertOne(student);
     if (this.data) this.data.students.push(student);
+    if (!this.mongoDb) await this.save();
     return student;
   }
 
   async updateStudent(studentId: string, updates: Partial<Student>) {
-    await this.mongoDb!.collection('students').updateOne({ id: studentId }, { $set: updates });
-    const s = await this.mongoDb!.collection<Student>('students').findOne({ id: studentId });
-    if (s && this.data) {
-      const idx = this.data.students.findIndex(x => x.id === studentId);
-      if (idx !== -1) this.data.students[idx] = s;
+    if (this.mongoDb) {
+      await this.mongoDb.collection('students').updateOne({ id: studentId }, { $set: updates });
+      const s = await this.mongoDb.collection<Student>('students').findOne({ id: studentId });
+      if (s && this.data) {
+        const idx = this.data.students.findIndex(x => x.id === studentId);
+        if (idx !== -1) this.data.students[idx] = s;
+      }
+      return s || undefined;
     }
-    return s || undefined;
+    if (this.data) {
+      const idx = this.data.students.findIndex(x => x.id === studentId);
+      if (idx !== -1) { Object.assign(this.data.students[idx], updates); await this.save(); return this.data.students[idx]; }
+    }
+    return undefined;
   }
 
   async addWorksheet(ws: Worksheet) {
-    await this.mongoDb!.collection('worksheets').insertOne(ws);
+    if (this.mongoDb) await this.mongoDb.collection('worksheets').insertOne(ws);
     if (this.data) this.data.worksheets.push(ws);
+    if (!this.mongoDb) await this.save();
     return ws;
   }
 
   async updateWorksheet(worksheetId: string, updates: Partial<Worksheet>) {
-    await this.mongoDb!.collection('worksheets').updateOne({ id: worksheetId }, { $set: updates });
-    const ws = await this.mongoDb!.collection<Worksheet>('worksheets').findOne({ id: worksheetId });
-    if (ws && this.data) {
-      const idx = this.data.worksheets.findIndex(x => x.id === worksheetId);
-      if (idx !== -1) this.data.worksheets[idx] = ws;
+    if (this.mongoDb) {
+      await this.mongoDb.collection('worksheets').updateOne({ id: worksheetId }, { $set: updates });
+      const ws = await this.mongoDb.collection<Worksheet>('worksheets').findOne({ id: worksheetId });
+      if (ws && this.data) {
+        const idx = this.data.worksheets.findIndex(x => x.id === worksheetId);
+        if (idx !== -1) this.data.worksheets[idx] = ws;
+      }
+      return ws || undefined;
     }
-    return ws || undefined;
+    if (this.data) {
+      const idx = this.data.worksheets.findIndex(x => x.id === worksheetId);
+      if (idx !== -1) { Object.assign(this.data.worksheets[idx], updates); await this.save(); return this.data.worksheets[idx]; }
+    }
+    return undefined;
   }
 
   async addLevelWorksheet(ws: LevelWorksheet) {
-    await this.mongoDb!.collection('levelWorksheets').insertOne(ws);
+    if (this.mongoDb) await this.mongoDb.collection('levelWorksheets').insertOne(ws);
     if (this.data) this.data.levelWorksheets.push(ws);
+    if (!this.mongoDb) await this.save();
     return ws;
   }
 
   async addAnswerSubmission(sub: AnswerSubmission) {
-    await this.mongoDb!.collection('answerSubmissions').insertOne(sub);
+    if (this.mongoDb) await this.mongoDb.collection('answerSubmissions').insertOne(sub);
     if (this.data) this.data.answerSubmissions.push(sub);
+    if (!this.mongoDb) await this.save();
     return sub;
   }
 
   async addEvaluationReport(rep: EvaluationReport) {
-    await this.mongoDb!.collection('evaluationReports').insertOne(rep);
+    if (this.mongoDb) await this.mongoDb.collection('evaluationReports').insertOne(rep);
     if (this.data) this.data.evaluationReports.push(rep);
+    if (!this.mongoDb) await this.save();
     return rep;
   }
 
   async addTicket(t: Ticket) {
-    await this.mongoDb!.collection('tickets').insertOne(t);
+    if (this.mongoDb) await this.mongoDb.collection('tickets').insertOne(t);
     if (this.data) this.data.tickets.push(t);
+    if (!this.mongoDb) await this.save();
     return t;
   }
 
   async updateTicket(id: string, updates: Partial<Ticket>) {
-    await this.mongoDb!.collection('tickets').updateOne({ id }, { $set: updates });
-    const t = await this.mongoDb!.collection<Ticket>('tickets').findOne({ id });
-    if (t && this.data) {
-      const idx = this.data.tickets.findIndex(x => x.id === id);
-      if (idx !== -1) this.data.tickets[idx] = t;
+    if (this.mongoDb) {
+      await this.mongoDb.collection('tickets').updateOne({ id }, { $set: updates });
+      const t = await this.mongoDb.collection<Ticket>('tickets').findOne({ id });
+      if (t && this.data) {
+        const idx = this.data.tickets.findIndex(x => x.id === id);
+        if (idx !== -1) this.data.tickets[idx] = t;
+      }
+      return t || undefined;
     }
-    return t || undefined;
+    if (this.data) {
+      const idx = this.data.tickets.findIndex(x => x.id === id);
+      if (idx !== -1) { Object.assign(this.data.tickets[idx], updates); await this.save(); return this.data.tickets[idx]; }
+    }
+    return undefined;
   }
 
   async updateUser(userId: string, updates: Partial<User>) {
-    await this.mongoDb!.collection('users').updateOne({ id: userId }, { $set: updates });
-    const u = await this.mongoDb!.collection<User>('users').findOne({ id: userId });
-    if (u && this.data) {
-      const idx = this.data.users.findIndex(x => x.id === userId);
-      if (idx !== -1) this.data.users[idx] = u;
+    if (this.mongoDb) {
+      await this.mongoDb.collection('users').updateOne({ id: userId }, { $set: updates });
+      const u = await this.mongoDb.collection<User>('users').findOne({ id: userId });
+      if (u && this.data) {
+        const idx = this.data.users.findIndex(x => x.id === userId);
+        if (idx !== -1) this.data.users[idx] = u;
+      }
+      return u || undefined;
     }
-    return u || undefined;
+    if (this.data) {
+      const idx = this.data.users.findIndex(x => x.id === userId);
+      if (idx !== -1) { Object.assign(this.data.users[idx], updates); await this.save(); return this.data.users[idx]; }
+    }
+    return undefined;
   }
 
   async updateSchool(schoolId: string, updates: Partial<School>) {
-    await this.mongoDb!.collection('schools').updateOne({ id: schoolId }, { $set: updates });
-    const s = await this.mongoDb!.collection<School>('schools').findOne({ id: schoolId });
-    if (s && this.data) {
-      const idx = this.data.schools.findIndex(x => x.id === schoolId);
-      if (idx !== -1) this.data.schools[idx] = s;
+    if (this.mongoDb) {
+      await this.mongoDb.collection('schools').updateOne({ id: schoolId }, { $set: updates });
+      const s = await this.mongoDb.collection<School>('schools').findOne({ id: schoolId });
+      if (s && this.data) {
+        const idx = this.data.schools.findIndex(x => x.id === schoolId);
+        if (idx !== -1) this.data.schools[idx] = s;
+      }
+      return s || undefined;
     }
-    return s || undefined;
+    if (this.data) {
+      const idx = this.data.schools.findIndex(x => x.id === schoolId);
+      if (idx !== -1) { Object.assign(this.data.schools[idx], updates); await this.save(); return this.data.schools[idx]; }
+    }
+    return undefined;
   }
 
   async addSchool(school: School) {
-    await this.mongoDb!.collection('schools').insertOne(school);
+    if (this.mongoDb) await this.mongoDb.collection('schools').insertOne(school);
     if (this.data) this.data.schools.push(school);
+    if (!this.mongoDb) await this.save();
     return school;
   }
 
   async addLog(log: LogEntry) {
-    await this.mongoDb!.collection('logbook').insertOne(log);
+    if (this.mongoDb) await this.mongoDb.collection('logbook').insertOne(log);
     if (this.data) this.data.logbook.unshift(log);
+    if (!this.mongoDb) await this.save();
     return log;
   }
 
   async addAnnouncement(ann: Announcement) {
-    await this.mongoDb!.collection('announcements').insertOne(ann);
+    if (this.mongoDb) await this.mongoDb.collection('announcements').insertOne(ann);
     if (this.data) this.data.announcements.unshift(ann);
+    if (!this.mongoDb) await this.save();
     return ann;
   }
 
   // --- Intervention & Best Practice Methods ---
 
   async getInterventions() {
-    return await this.mongoDb!.collection<Intervention>('interventions').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Intervention>('interventions').find({}).toArray();
+    return this.data?.interventions || [];
   }
 
   async addIntervention(intervention: Intervention) {
-    await this.mongoDb!.collection('interventions').insertOne(intervention);
+    if (this.mongoDb) await this.mongoDb.collection('interventions').insertOne(intervention);
     if (this.data) this.data.interventions.push(intervention);
+    if (!this.mongoDb) await this.save();
     return intervention;
   }
 
   async updateIntervention(id: string, updates: Partial<Intervention>) {
-    await this.mongoDb!.collection('interventions').updateOne({ id }, { $set: updates });
-    const i = await this.mongoDb!.collection<Intervention>('interventions').findOne({ id });
-    if (i && this.data) {
-      const idx = this.data.interventions.findIndex(x => x.id === id);
-      if (idx !== -1) this.data.interventions[idx] = i;
+    if (this.mongoDb) {
+      await this.mongoDb.collection('interventions').updateOne({ id }, { $set: updates });
+      const i = await this.mongoDb.collection<Intervention>('interventions').findOne({ id });
+      if (i && this.data) {
+        const idx = this.data.interventions.findIndex(x => x.id === id);
+        if (idx !== -1) this.data.interventions[idx] = i;
+      }
+      return i || undefined;
     }
-    return i || undefined;
+    if (this.data) {
+      const idx = this.data.interventions.findIndex(x => x.id === id);
+      if (idx !== -1) { Object.assign(this.data.interventions[idx], updates); await this.save(); return this.data.interventions[idx]; }
+    }
+    return undefined;
   }
 
   async getBestPractices() {
-    return await this.mongoDb!.collection<BestPractice>('bestPractices').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<BestPractice>('bestPractices').find({}).toArray();
+    return this.data?.bestPractices || [];
   }
 
   async addBestPractice(bp: BestPractice) {
-    await this.mongoDb!.collection('bestPractices').insertOne(bp);
+    if (this.mongoDb) await this.mongoDb.collection('bestPractices').insertOne(bp);
     if (this.data) this.data.bestPractices.push(bp);
+    if (!this.mongoDb) await this.save();
     return bp;
   }
 
   async updateBestPractice(id: string, updates: Partial<BestPractice>) {
-    await this.mongoDb!.collection('bestPractices').updateOne({ id }, { $set: updates });
-    const bp = await this.mongoDb!.collection<BestPractice>('bestPractices').findOne({ id });
-    if (bp && this.data) {
-      const idx = this.data.bestPractices.findIndex(x => x.id === id);
-      if (idx !== -1) this.data.bestPractices[idx] = bp;
+    if (this.mongoDb) {
+      await this.mongoDb.collection('bestPractices').updateOne({ id }, { $set: updates });
+      const bp = await this.mongoDb.collection<BestPractice>('bestPractices').findOne({ id });
+      if (bp && this.data) {
+        const idx = this.data.bestPractices.findIndex(x => x.id === id);
+        if (idx !== -1) this.data.bestPractices[idx] = bp;
+      }
+      return bp || undefined;
     }
-    return bp || undefined;
+    if (this.data) {
+      const idx = this.data.bestPractices.findIndex(x => x.id === id);
+      if (idx !== -1) { Object.assign(this.data.bestPractices[idx], updates); await this.save(); return this.data.bestPractices[idx]; }
+    }
+    return undefined;
   }
 
   // --- Concept Mastery Profile Methods ---
 
   async getConceptMasteryProfile(studentId: string): Promise<ConceptMasteryProfile | null> {
-    const doc = await this.mongoDb!.collection<ConceptMasteryProfile>('concept_mastery_profiles').findOne({ studentId });
-    return doc || null;
+    if (this.mongoDb) {
+      const doc = await this.mongoDb.collection<ConceptMasteryProfile>('concept_mastery_profiles').findOne({ studentId });
+      return doc || null;
+    }
+    return this.data?.conceptMasteryProfiles?.find(x => x.studentId === studentId) || null;
   }
 
   async upsertConceptMasteryProfile(profile: ConceptMasteryProfile): Promise<void> {
-    await this.mongoDb!.collection('concept_mastery_profiles').updateOne(
-      { studentId: profile.studentId },
-      { $set: profile },
-      { upsert: true }
-    );
+    if (this.mongoDb) {
+      await this.mongoDb.collection('concept_mastery_profiles').updateOne(
+        { studentId: profile.studentId },
+        { $set: profile },
+        { upsert: true }
+      );
+    }
     if (this.data) {
       const idx = this.data.conceptMasteryProfiles.findIndex(x => x.studentId === profile.studentId);
       if (idx !== -1) {
@@ -593,6 +673,7 @@ export class DBStore {
       } else {
         this.data.conceptMasteryProfiles.push(profile);
       }
+      if (!this.mongoDb) await this.save();
     }
   }
 

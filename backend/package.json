@@ -6,10 +6,11 @@
   "scripts": {
     "dev:old": "tsx src/index.ts",
     "dev:new": "tsx src/server.ts",
-    "dev": "concurrently -n old,new -c yellow,cyan \"npm run dev:old\" \"npm run dev:new\"",
+    "dev": "tsx src/index.ts",
     "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
+    "test": "tsx --test src/reinforcementEngine.test.ts src/worksheetBatch.test.ts",
     "seed": "tsx src/seed.ts",
     "seed:geo": "tsx src/utils/seedGeo.ts",
     "reseed": "tsx src/reseed.ts"

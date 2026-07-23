@@ -1,10 +1,8 @@
 import { DBStore, Question } from './db';
 import {
   ConceptMasteryProfile,
-  ConceptScore,
   STRONG_THRESHOLD,
   SATISFACTORY_THRESHOLD,
-  MASTERY_CONSECUTIVE_THRESHOLD,
   ROLLING_WEIGHT_LATEST,
   REINF_COUNT_NEEDS_PRACTICE,
   REINF_COUNT_SATISFACTORY,
@@ -14,7 +12,7 @@ import { generateQuestionsForLevel } from './levelGenerator';
 
 /**
  * Updates a student's cumulative concept mastery profile based on the results of an assessment.
- * Calculates rolling average accuracy for each topic and updates consecutive mastery counters.
+ * Categorizes questions into regular and reinforcement to apply adaptive trigger and stop rules.
  */
 export async function updateConceptMastery(
   studentId: string,
@@ -33,27 +31,46 @@ export async function updateConceptMastery(
     };
   }
 
-  // 2. Count attempts and correct answers per topic in the latest assessment
-  const topicStats: { [topic: string]: { total: number; correct: number } } = {};
-  
+  // 2. Separate questions by topic, and categorize them into regular and reinforcement
+  const topicStats: {
+    [topic: string]: {
+      regularAttempts: { level: number; correct: boolean }[];
+      reinfTotal: number;
+      reinfCorrect: number;
+    }
+  } = {};
+
   questions.forEach(q => {
     const topic = q.topic || 'Number Sense';
     if (!topicStats[topic]) {
-      topicStats[topic] = { total: 0, correct: 0 };
+      topicStats[topic] = { regularAttempts: [], reinfTotal: 0, reinfCorrect: 0 };
     }
-    
-    topicStats[topic].total++;
-    
+
     const submitted = (answers[q.question_id] || '').trim().toLowerCase();
-    const correct = q.answer.trim().toLowerCase();
-    if (submitted === correct) {
-      topicStats[topic].correct++;
+    const correct = (q.answer || '').trim().toLowerCase();
+    const isCorrect = submitted === correct;
+
+    // Check if this is a reinforcement question
+    const isReinf = q.question_id.includes('_REINF_') || q.question_id.toLowerCase().includes('reinf_') || q.subtopic === 'Reinforcement';
+
+    if (isReinf) {
+      topicStats[topic].reinfTotal++;
+      if (isCorrect) {
+        topicStats[topic].reinfCorrect++;
+      }
+    } else {
+      topicStats[topic].regularAttempts.push({ level: q.source_level, correct: isCorrect });
     }
   });
 
   const nowStr = new Date().toISOString();
 
-  // 3. Update the rolling mastery metrics
+  // Load student to get their current level
+  const studentsList = await dbStore.getStudents();
+  const student = studentsList.find(s => s.id === studentId);
+  const currentStudentLevel = student ? student.currentLevel : 1;
+
+  // 3. Update the rolling mastery metrics and reinforcement status
   for (const [topic, stats] of Object.entries(topicStats)) {
     let concept = profile.concepts.find(c => c.topic.toLowerCase() === topic.toLowerCase());
     
@@ -65,43 +82,90 @@ export async function updateConceptMastery(
         masteryPct: 0,
         status: 'Needs Practice',
         lastAssessedAt: nowStr,
-        consecutiveMasteryCount: 0
+        consecutiveMasteryCount: 0,
+        recentAnswers: [],
+        consecutiveReinforcementMasteryCount: 0,
+        isReinforcementActive: false
       };
       profile.concepts.push(concept);
     }
 
-    const accuracyLatest = (stats.correct / stats.total) * 100;
-    const oldMasteryPct = concept.masteryPct;
-    
-    // Update cumulative stats
-    concept.totalAttempts += stats.total;
-    concept.correctCount += stats.correct;
-    
-    // Rolling mastery formula: weighted average biased towards recent performance
-    if (concept.totalAttempts === stats.total) {
-      concept.masteryPct = Math.round(accuracyLatest);
-    } else {
-      concept.masteryPct = Math.round(
-        (accuracyLatest * ROLLING_WEIGHT_LATEST) + 
-        (oldMasteryPct * (1 - ROLLING_WEIGHT_LATEST))
-      );
+    // Initialize optional fields if they don't exist
+    if (!concept.recentAnswers) concept.recentAnswers = [];
+    if (concept.isReinforcementActive === undefined) concept.isReinforcementActive = false;
+    if (concept.consecutiveReinforcementMasteryCount === undefined) concept.consecutiveReinforcementMasteryCount = 0;
+
+    // Process Regular Attempts
+    if (stats.regularAttempts.length > 0) {
+      // Update rolling legacy averages
+      const correctRegular = stats.regularAttempts.filter(a => a.correct).length;
+      const totalRegular = stats.regularAttempts.length;
+
+      concept.totalAttempts += totalRegular;
+      concept.correctCount += correctRegular;
+
+      const accuracyLatest = (correctRegular / totalRegular) * 100;
+      const oldMasteryPct = concept.masteryPct;
+      if (concept.totalAttempts === totalRegular) {
+        concept.masteryPct = Math.round(accuracyLatest);
+      } else {
+        concept.masteryPct = Math.round(
+          (accuracyLatest * ROLLING_WEIGHT_LATEST) + 
+          (oldMasteryPct * (1 - ROLLING_WEIGHT_LATEST))
+        );
+      }
+
+      // Legacy status updating (keeps compatibility with status queries)
+      if (concept.masteryPct >= STRONG_THRESHOLD) {
+        concept.status = 'Strong';
+        concept.consecutiveMasteryCount = concept.status === 'Strong' ? concept.consecutiveMasteryCount + 1 : 1;
+      } else {
+        if (concept.masteryPct >= SATISFACTORY_THRESHOLD) {
+          concept.status = 'Satisfactory';
+        } else {
+          concept.status = 'Needs Practice';
+        }
+        concept.consecutiveMasteryCount = 0;
+      }
+
+      // Add to recentAnswers
+      concept.recentAnswers.push(...stats.regularAttempts);
+      // Keep only last 5
+      if (concept.recentAnswers.length > 5) {
+        concept.recentAnswers = concept.recentAnswers.slice(-5);
+      }
+
+      // Check Trigger Rule: ≥3/5 questions wrong in a concept (or accuracy <= 40% in last 5 attempts)
+      const wrongCount = concept.recentAnswers.filter(a => !a.correct).length;
+      if (wrongCount >= 3) {
+        if (!concept.isReinforcementActive) {
+          concept.isReinforcementActive = true;
+          concept.reinforcementTriggeredAtLevel = currentStudentLevel;
+          concept.consecutiveReinforcementMasteryCount = 0;
+          console.log(`[Reinf Log] TRIGGERED: Student ${studentId} triggered reinforcement for ${topic}. Got ${wrongCount}/${concept.recentAnswers.length} wrong. Trigger level: ${currentStudentLevel}.`);
+        }
+      }
     }
 
-    // Determine status and consecutive mastery counts
-    const prevStatus = concept.status;
-    if (concept.masteryPct >= STRONG_THRESHOLD) {
-      concept.status = 'Strong';
-      // Only increment if they were strong or this is a new mastery achievement
-      concept.consecutiveMasteryCount = (prevStatus === 'Strong') 
-        ? concept.consecutiveMasteryCount + 1 
-        : 1;
-    } else {
-      if (concept.masteryPct >= SATISFACTORY_THRESHOLD) {
-        concept.status = 'Satisfactory';
+    // Process Reinforcement Attempts
+    if (stats.reinfTotal > 0) {
+      const accuracyReinf = stats.reinfCorrect / stats.reinfTotal;
+      if (accuracyReinf >= 0.8) {
+        concept.consecutiveReinforcementMasteryCount++;
+        console.log(`[Reinf Log] REINFORCEMENT MASTERY ACHIEVED: Student ${studentId} achieved ${Math.round(accuracyReinf*100)}% on reinforcement worksheet for ${topic}. Consecutive Mastery count: ${concept.consecutiveReinforcementMasteryCount}.`);
       } else {
-        concept.status = 'Needs Practice';
+        concept.consecutiveReinforcementMasteryCount = 0;
+        console.log(`[Reinf Log] REINFORCEMENT MASTERY FAILED: Student ${studentId} got ${stats.reinfCorrect}/${stats.reinfTotal} correct (${Math.round(accuracyReinf*100)}%) on reinforcement for ${topic}. Resetting consecutive count.`);
       }
-      concept.consecutiveMasteryCount = 0;
+
+      // Check Stop Rule: Stop after 80% mastery in two consecutive reinforcement worksheets
+      if (concept.consecutiveReinforcementMasteryCount >= 2) {
+        concept.isReinforcementActive = false;
+        concept.consecutiveReinforcementMasteryCount = 0;
+        // Also clear recent answers so they don't immediately re-trigger reinforcement
+        concept.recentAnswers = [];
+        console.log(`[Reinf Log] STOPPED: Reinforcement stopped for student ${studentId} on concept ${topic} after 2 consecutive mastery worksheets.`);
+      }
     }
 
     concept.lastAssessedAt = nowStr;
@@ -115,8 +179,8 @@ export async function updateConceptMastery(
 }
 
 /**
- * Returns reinforcement questions for concepts the student has not yet mastered.
- * More questions are generated for weaker concepts, tapering off to zero once mastered.
+ * Returns reinforcement questions for concepts the student has active reinforcement for.
+ * Reinforcement questions start after skipping one level (not immediately).
  */
 export async function getReinforcementQuestions(
   studentId: string,
@@ -124,46 +188,37 @@ export async function getReinforcementQuestions(
   dbStore: DBStore
 ): Promise<Question[]> {
   const profile = await dbStore.getConceptMasteryProfile(studentId);
-  console.log(`[Reinf] Profile for ${studentId}:`, profile ? 'Found' : 'NULL');
   if (!profile) {
+    console.log(`[Reinf Log] Student ${studentId} has no concept mastery profile. No reinforcement.`);
     return [];
   }
 
-  // Filter for concepts that require practice/verification
-  const weakConcepts = profile.concepts.filter(c => 
-    c.status !== 'Strong' || c.consecutiveMasteryCount < MASTERY_CONSECUTIVE_THRESHOLD
-  );
-  console.log(`[Reinf] Weak concepts for ${studentId}:`, weakConcepts.length);
-
-  if (weakConcepts.length === 0) {
+  // Filter active reinforcement concepts
+  const activeConcepts = profile.concepts.filter(c => c.isReinforcementActive);
+  
+  if (activeConcepts.length === 0) {
+    console.log(`[Reinf Log] Student ${studentId} has no active reinforcement concepts.`);
     return [];
   }
 
   const reinforcementQuestions: Question[] = [];
 
-  for (const concept of weakConcepts) {
-    let targetCount = 0;
-    if (concept.status === 'Needs Practice') {
-      targetCount = REINF_COUNT_NEEDS_PRACTICE;
-    } else if (concept.status === 'Satisfactory') {
-      targetCount = REINF_COUNT_SATISFACTORY;
-    } else if (concept.status === 'Strong') {
-      targetCount = REINF_COUNT_VERIFICATION;
+  for (const concept of activeConcepts) {
+    const triggerLvl = concept.reinforcementTriggeredAtLevel || currentLevel;
+    
+    if (currentLevel < triggerLvl + 2 || currentLevel > triggerLvl + 4) {
+      console.log(`[Reinf Log] OUTSIDE WINDOW: Reinforcement for ${studentId} on ${concept.topic} is inactive at level ${currentLevel}; eligible levels are ${triggerLvl + 2}-${triggerLvl + 4}.`);
+      continue;
     }
 
-    if (targetCount <= 0) continue;
-
+    const targetCount = getReinforcementQuestionCount(concept.masteryPct);
+    if (targetCount === 0) continue;
     const foundQs: Question[] = [];
     
-    // Traverse downwards from student's current level to find appropriate questions.
-    // Try to match the sublevel (0 = Mastery, 1 = Easier, 2 = Remedial) with their mastery tier.
-    const subLvl = concept.status === 'Needs Practice' ? 2 : concept.status === 'Satisfactory' ? 1 : 0;
-
-    for (let lvl = currentLevel; lvl >= 1 && foundQs.length < targetCount; lvl--) {
-      const levelQs = generateQuestionsForLevel(lvl, subLvl);
+    // Search levels starting from triggerLvl downwards
+    for (let lvl = triggerLvl; lvl >= 1 && foundQs.length < targetCount; lvl--) {
+      const levelQs = generateQuestionsForLevel(lvl, 0); // Always retrieve subLevel 0 (Mastery) for reinforcement
       const matching = levelQs.filter(q => q.topic.toLowerCase() === concept.topic.toLowerCase());
-      
-      console.log(`[Reinf] Level ${lvl} subLvl ${subLvl}, topic '${concept.topic}', levelQs=${levelQs.length}, matching=${matching.length}`);
       
       for (const mq of matching) {
         if (foundQs.length < targetCount && !foundQs.some(fq => fq.question === mq.question)) {
@@ -172,8 +227,8 @@ export async function getReinforcementQuestions(
       }
     }
 
-    // Fallback: search subLevel 0 (mastery) if still short of targetCount
     if (foundQs.length < targetCount) {
+      // Fallback: search up to currentLevel downwards
       for (let lvl = currentLevel; lvl >= 1 && foundQs.length < targetCount; lvl--) {
         const levelQs = generateQuestionsForLevel(lvl, 0);
         const matching = levelQs.filter(q => q.topic.toLowerCase() === concept.topic.toLowerCase());
@@ -192,10 +247,38 @@ export async function getReinforcementQuestions(
         ...q,
         question_id: `reinf_${concept.topic.replace(/\s+/g, '_')}_${idx}_${Date.now()}`,
         subtopic: 'Reinforcement',
-        difficulty: concept.status === 'Needs Practice' ? 'easy' : 'medium'
+        difficulty: 'medium'
       });
     });
+
+    console.log(`[Reinf Log] SELECTED: Selected ${foundQs.length} reinforcement questions on ${concept.topic} for student ${studentId} at current level ${currentLevel} (triggered at level ${triggerLvl}).`);
   }
 
   return reinforcementQuestions;
+}
+
+export function getReinforcementQuestionCount(masteryPct: number): number {
+  if (masteryPct < 30) return REINF_COUNT_NEEDS_PRACTICE;
+  if (masteryPct <= 50) return REINF_COUNT_SATISFACTORY;
+  if (masteryPct <= 70) return REINF_COUNT_VERIFICATION;
+  return 0;
+}
+
+export function mixWorksheetQuestions(currentQuestions: Question[], reinforcementQuestions: Question[]): Question[] {
+  if (reinforcementQuestions.length === 0) return currentQuestions;
+  const mixed: Question[] = [];
+  const reinforcementEvery = Math.max(1, Math.ceil(currentQuestions.length / (reinforcementQuestions.length + 1)));
+  let reinforcementIndex = 0;
+
+  currentQuestions.forEach((question, index) => {
+    mixed.push(question);
+    if ((index + 1) % reinforcementEvery === 0 && reinforcementIndex < reinforcementQuestions.length) {
+      mixed.push(reinforcementQuestions[reinforcementIndex++]);
+    }
+  });
+
+  while (reinforcementIndex < reinforcementQuestions.length) {
+    mixed.push(reinforcementQuestions[reinforcementIndex++]);
+  }
+  return mixed;
 }
