@@ -26,7 +26,20 @@ const {
   saveManifest
 } = require('./storage');
 
-const CONCURRENCY = Math.max(1, parseInt(process.env.RENDER_CONCURRENCY || '4', 10));
+// Native PDF generation is memory-heavy and can fail intermittently when
+// several Chromium pages render at once. Keep the default reliable; operators
+// can opt into higher parallelism explicitly with RENDER_CONCURRENCY.
+const CONCURRENCY = Math.max(1, parseInt(process.env.RENDER_CONCURRENCY || '1', 10));
+const MAX_RENDER_ATTEMPTS = Math.max(1, parseInt(process.env.RENDER_MAX_ATTEMPTS || '3', 10));
+const RENDER_TIMEOUT_MS = Math.max(10_000, parseInt(process.env.RENDER_TIMEOUT_MS || '60_000', 10));
+
+function withTimeout(promise, timeoutMs, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 /** batchId -> {status, processed, total, message, startedAt, finishedAt, error} */
 const batchStatus = new Map();
@@ -154,24 +167,37 @@ async function processBatch(roster, existingBatchId) {
       async (job, _jobIndex, workerIndex) => {
         // Each worker exclusively owns one page. Sharing a page makes
         // page.evaluate calls queue and defeats concurrent rendering.
-        const page = pages[workerIndex];
-        try {
-          const rendered = await renderStudentSet(page, job.levelId, job.subIdx, job.setNum, {
-            studentName: job.studentName,
-            studentId: job.rollNumber,
-            ...job.studentData
-          });
-          await saveStudentSet(batchId, job.folder, job.sublevelId, job.setNum, rendered);
-        } catch (err) {
-          console.error(`[batchProcessor] failed job`, job, err);
-          errors.push({ job: { ...job }, error: err.message });
-        } finally {
-          processed++;
-          updateStatus(batchId, {
-            processed,
-            message: `Rendered ${processed}/${jobs.length} (${job.studentName} — ${job.sublevelId} set ${job.setNum})`
-          });
+        let page = pages[workerIndex];
+        let lastError;
+        for (let attempt = 1; attempt <= MAX_RENDER_ATTEMPTS; attempt += 1) {
+          try {
+            const rendered = await withTimeout(renderStudentSet(page, job.levelId, job.subIdx, job.setNum, {
+              studentName: job.studentName,
+              studentId: job.rollNumber,
+              ...job.studentData
+            }), RENDER_TIMEOUT_MS, `Render timed out after ${RENDER_TIMEOUT_MS}ms`);
+            await saveStudentSet(batchId, job.folder, job.sublevelId, job.setNum, rendered);
+            lastError = null;
+            break;
+          } catch (err) {
+            lastError = err;
+            console.error(`[batchProcessor] failed job attempt ${attempt}/${MAX_RENDER_ATTEMPTS}`, job, err);
+            await page.close().catch(() => {});
+            if (attempt < MAX_RENDER_ATTEMPTS) {
+              page = await createRenderPage();
+              pages[workerIndex] = page;
+              await new Promise(resolve => setTimeout(resolve, 250 * attempt));
+            }
+          }
         }
+        if (lastError) {
+          errors.push({ job: { ...job }, error: lastError.message });
+        }
+        processed++;
+        updateStatus(batchId, {
+          processed,
+          message: `Rendered ${processed}/${jobs.length} (${job.studentName} — ${job.sublevelId} set ${job.setNum})`
+        });
       },
       CONCURRENCY
     );

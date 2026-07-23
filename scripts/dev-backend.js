@@ -10,12 +10,13 @@ const processes = [];
 
 function isPortInUse(port) {
   return new Promise((resolve, reject) => {
-    const probe = net.createServer();
-    // Sandboxed environments can report EACCES while a local dev server is
-    // already bound. Treat it as unavailable so we do not start a duplicate.
-    probe.once('error', (error) => ['EADDRINUSE', 'EACCES'].includes(error.code) ? resolve(true) : reject(error));
-    probe.once('listening', () => probe.close(() => resolve(false)));
-    probe.listen(port, '127.0.0.1');
+    const probe = net.createConnection({ port, host: '127.0.0.1' });
+    probe.once('connect', () => probe.destroy(resolve(true)));
+    probe.once('error', (error) => {
+      probe.destroy();
+      if (error.code === 'ECONNREFUSED') resolve(false);
+      else reject(error);
+    });
   });
 }
 

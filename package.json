@@ -9,7 +9,7 @@
     "backend/fln-backend"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @fln/backend",
+    "dev": "node scripts/dev-backend.js",
     "dev:frontend": "npm run dev --workspace @fln/frontend",
     "dev:backend": "node scripts/dev-backend.js",
     "build": "npm run build:frontend && npm run build:backend",
