@@ -269,9 +269,28 @@ export async function generateLevelWorksheet({
   const qs = questions || generateMultiTopicQuestions(levelId, subIdx, 5);
 
   let currentY = height - 160;
-  qs.slice(0, 5).forEach((q, idx) => {
+  qs.slice(0, 4).forEach((q, idx) => {
+    // Check if this is a reinforcement question
+    const isReinforcement = q.subtopic === 'Reinforcement' || q.question_id.includes('REINF');
+    
+    // If reinforcement, draw a small label above the question
+    if (isReinforcement) {
+      page.drawText(sanitizeForPdf(`[Reinforcement - ${q.topic}]`), {
+        x: 50,
+        y: currentY + 10,
+        size: 7,
+        font: boldFont,
+        color: rgb(0.4, 0.2, 0.8), // Purple for reinforcement
+      });
+    }
+    
     // Wrap question text if it's too long
-    const questionText = `Q${idx + 1}. ${q.question}`;
+    // Strip internal metadata prefixes for clean PDF display
+    let cleanQuestion = q.question
+      .replace(/^\[For [^\]]+\]\s*/g, '')
+      .replace(/^\[Reinforcement - [^\]]+\]\s*/g, '')
+      .replace(/^\[REINFORCEMENT\]\s*/g, '');
+    const questionText = `Q${idx + 1}. ${cleanQuestion}`;
     const words = questionText.split(' ');
     let line = '';
     const lines: string[] = [];
@@ -290,7 +309,7 @@ export async function generateLevelWorksheet({
         y: currentY - (lIdx * 14),
         size: 9.5,
         font: boldFont,
-        color: rgb(0.15, 0.15, 0.15),
+        color: isReinforcement ? rgb(0.4, 0.2, 0.8) : rgb(0.15, 0.15, 0.15),
       });
     });
 
@@ -301,7 +320,7 @@ export async function generateLevelWorksheet({
       width: 150,
       height: 20,
       color: rgb(1, 1, 1),
-      borderColor: rgb(0.7, 0.7, 0.7),
+      borderColor: isReinforcement ? rgb(0.4, 0.2, 0.8) : rgb(0.7, 0.7, 0.7),
       borderWidth: 1,
     });
 

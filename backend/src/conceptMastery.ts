@@ -57,17 +57,17 @@ export const MASTERY_CONSECUTIVE_THRESHOLD = 2;
 
 // ── Reinforcement question counts per weakness tier ─────────────────
 
-/** Extra questions injected for concepts below 30% mastery. */
-export const REINF_COUNT_NEEDS_PRACTICE = 3;
+/** Reinforcement questions for concepts with mastery ≤50%. */
+export const REINF_COUNT_WEAK = 2;
 
-/** Extra questions injected for concepts marked "Satisfactory" */
-export const REINF_COUNT_SATISFACTORY = 2;
+/** Reinforcement questions for concepts with mastery 51-75%. */
+export const REINF_COUNT_MODERATE = 1;
 
-/**
- * Extra verification question for concepts that are "Strong" but
- * haven't yet hit the consecutive-mastery threshold.
- */
-export const REINF_COUNT_VERIFICATION = 1;
+/** Fixed worksheet size — total questions per worksheet, never more. */
+export const WORKSHEET_QUESTION_COUNT = 4;
+
+/** Maximum reinforcement questions that can replace normal questions in one worksheet. */
+export const MAX_REINFORCEMENT_PER_WORKSHEET = 2;
 
 /**
  * Weight given to the latest assessment when computing the rolling

@@ -4,9 +4,9 @@ import {
   STRONG_THRESHOLD,
   SATISFACTORY_THRESHOLD,
   ROLLING_WEIGHT_LATEST,
-  REINF_COUNT_NEEDS_PRACTICE,
-  REINF_COUNT_SATISFACTORY,
-  REINF_COUNT_VERIFICATION
+  REINF_COUNT_WEAK,
+  REINF_COUNT_MODERATE,
+  MAX_REINFORCEMENT_PER_WORKSHEET
 } from './conceptMastery';
 import { generateQuestionsForLevel } from './levelGenerator';
 
@@ -307,14 +307,20 @@ export async function getReinforcementQuestions(
     await dbStore.upsertConceptMasteryProfile(profile);
   }
 
-  return reinforcementQuestions;
+  // Cap total reinforcement questions to MAX_REINFORCEMENT_PER_WORKSHEET
+  // to ensure worksheet size stays fixed at exactly WORKSHEET_QUESTION_COUNT
+  const capped = reinforcementQuestions.slice(0, MAX_REINFORCEMENT_PER_WORKSHEET);
+  if (capped.length < reinforcementQuestions.length) {
+    console.log(`[Reinf Log] CAPPED: Reduced ${reinforcementQuestions.length} reinforcement questions to ${capped.length} (max ${MAX_REINFORCEMENT_PER_WORKSHEET} per worksheet).`);
+  }
+
+  return capped;
 }
 
 export function getReinforcementQuestionCount(masteryPct: number): number {
-  if (masteryPct < 30) return REINF_COUNT_NEEDS_PRACTICE;
-  if (masteryPct <= 50) return REINF_COUNT_SATISFACTORY;
-  if (masteryPct <= 70) return REINF_COUNT_VERIFICATION;
-  return 0;
+  if (masteryPct <= 50) return REINF_COUNT_WEAK;    // Score ≤50% → 2 reinforcement questions
+  if (masteryPct <= 75) return REINF_COUNT_MODERATE; // Score 51–75% → 1 reinforcement question
+  return 0;                                          // Score >75% → 0 reinforcement questions
 }
 
 export function mixWorksheetQuestions(currentQuestions: Question[], reinforcementQuestions: Question[]): Question[] {
