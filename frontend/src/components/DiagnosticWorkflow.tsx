@@ -1,3 +1,4 @@
+import { apiFetch } from '../services/apiClient';
 import React, { useState } from 'react';
 import { Student, Question, EvaluationReport } from '../types';
 import { SvgLibraryResolver } from './SvgLibraryResolver';
@@ -21,7 +22,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/students/${student.id}/diagnostic`, {
+      const res = await apiFetch(`/api/students/${student.id}/diagnostic`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -53,7 +54,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/students/${student.id}/diagnostic/submit`, {
+      const res = await apiFetch(`/api/students/${student.id}/diagnostic/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

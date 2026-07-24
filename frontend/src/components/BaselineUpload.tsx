@@ -1,3 +1,4 @@
+import { apiFetch } from '../services/apiClient';
 import React, { useState } from 'react';
 import { ArrowLeft, Upload, FileJson, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Student } from '../types';
@@ -66,7 +67,7 @@ export const BaselineUpload: React.FC<BaselineUploadProps> = ({ student, token, 
     setError('');
     setResult(null);
     try {
-      const res = await fetch(`/api/students/${student.id}/baseline/submit`, {
+      const res = await apiFetch(`/api/students/${student.id}/baseline/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ classNumber, studentName: student.name, answers })

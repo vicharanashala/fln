@@ -1,3 +1,4 @@
+import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { Ticket, UserRole } from '../types';
 
@@ -17,7 +18,7 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
 
   const fetchTickets = async () => {
     try {
-      const res = await fetch('/api/tickets', {
+      const res = await apiFetch('/api/tickets', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -44,7 +45,7 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
     setLoading(true);
 
     try {
-      const res = await fetch('/api/tickets/create', {
+      const res = await apiFetch('/api/tickets/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,7 +71,7 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
 
   const handleResolve = async (ticketId: string, nextStatus: 'Reviewed' | 'Resolved') => {
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/resolve`, {
+      const res = await apiFetch(`/api/tickets/${ticketId}/resolve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

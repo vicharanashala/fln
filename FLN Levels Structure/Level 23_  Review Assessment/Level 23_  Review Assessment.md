@@ -4,11 +4,11 @@
 
 ## Objective
 
-Assess mastery of all concepts learned from Levels 12–2.
+Assess mastery of all concepts learned from Levels 12–22.
 
 ## Description
 
-This level serves as a comprehensive review assessment of all concepts introduced from Levels 12–2.
+This level serves as a comprehensive review assessment of all concepts introduced from Levels 12–22.
 
 ## Learning Outcome
 

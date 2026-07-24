@@ -1,3 +1,4 @@
+import { apiFetch } from './services/apiClient';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -42,7 +43,7 @@ export default function App() {
       if (!token) return;
 
       try {
-        const res = await fetch('/api/auth/me', {
+        const res = await apiFetch('/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
 
