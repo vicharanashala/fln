@@ -5,7 +5,7 @@ import { Question } from "./db";
 // Centralized here so the call sites below don't drift; these match the IDs the
 // ai-services Python pipeline uses (ai-services/scripts/_api.py). The previous IDs
 // ("gemini-3.5-flash" / "gemini-3.1-*") do not exist and made every AI call 404.
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"] as const;
+const GEMINI_MODELS = ["gemini-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-lite-latest"] as const;
 const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
 
 // Helper to get Gemini client or null if key is missing

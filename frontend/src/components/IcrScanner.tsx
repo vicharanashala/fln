@@ -49,6 +49,8 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const [success, setSuccess] = useState('');
 
   const [extractedAnswers, setExtractedAnswers] = useState<{ [questionId: string]: string }>({});
+  const [originalOcrAnswers, setOriginalOcrAnswers] = useState<{ [questionId: string]: string }>({});
+  const [questions, setQuestions] = useState<Array<{ id: string; question: string; correctAnswer: string; topic?: string }>>([]);
   const [report, setReport] = useState<EvaluationReport | null>(null);
 
   useEffect(() => {
@@ -93,7 +95,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
         setClasses(loadedClasses);
         setStudents(loadedStudents);
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load classes/students:', err);
       }
     };
     fetchData();
@@ -104,12 +106,17 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setUploadedFile(e.target.files[0]);
+      setError('');
     }
   };
 
-  const runOcrEvaluation = async () => {
-    if (!selectedClassId || !uploadedFile) {
-      setError('Please select a class and upload an image (PNG, JPG) or PDF answer sheet file.');
+  const scanAnswerSheet = async () => {
+    if (!selectedClassId) {
+      setError('Please select a class first.');
+      return;
+    }
+    if (!uploadedFile) {
+      setError('Please choose an answer sheet PDF or image file to scan.');
       return;
     }
 
@@ -144,7 +151,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               setStep('result');
               setSuccess(`Fast EasyOCR evaluation complete! Evaluated ${data.totalEvaluated} student answer sheets.`);
             } else if (data.results && data.results.length > 0) {
-              const firstRes: BulkResultItem = data.results[0];
+              const firstRes: BulkResultItem & { questions?: Array<{ id: string; question: string; correctAnswer: string; topic?: string }> } = data.results[0];
               setOcrPreviewData(firstRes.ocrAnalysis || {
                 rawOcrText: 'Q1: 42 | Q2: 15 | Q3: 8 | Q4: 100',
                 extractedTokens: [{ text: '42', confidence: 0.98 }],
@@ -152,6 +159,16 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 ocrEngine: 'EasyOCR (PyTorch Fast Reader)'
               });
               setExtractedAnswers(firstRes.extractedAnswers || {});
+              setOriginalOcrAnswers(firstRes.extractedAnswers || {});
+              if (firstRes.questions && firstRes.questions.length > 0) {
+                setQuestions(firstRes.questions);
+              } else {
+                setQuestions(Object.keys(firstRes.extractedAnswers || {}).map((qId, i) => ({
+                  id: qId,
+                  question: `Diagnostic Question #${i + 1}`,
+                  correctAnswer: firstRes.extractedAnswers[qId] || '0'
+                })));
+              }
               setReport({
                 id: 'rep_' + Date.now(),
                 studentId: firstRes.studentId,
@@ -169,7 +186,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 timestamp: new Date().toISOString()
               });
               setStep('verify');
-              setSuccess(`EasyOCR scan complete for ${firstRes.studentName}. Review detected text below before final verification!`);
+              setSuccess(`EasyOCR scan complete for ${firstRes.studentName}. Review detected text & side-by-side question comparison below. You can edit any OCR mistake before saving!`);
             }
           } else {
             setError(data.error || 'Failed to process answer sheet file.');
@@ -331,7 +348,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                     <span className="font-bold">File Attached:</span> {uploadedFile.name} ({(uploadedFile.size / 1024).toFixed(1)} KB)
                   </div>
                   <button
-                    onClick={runOcrEvaluation}
+                    onClick={scanAnswerSheet}
                     disabled={loading}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 px-5 rounded-lg transition-colors shadow-sm disabled:opacity-50"
                   >
@@ -402,40 +419,88 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
           </div>
 
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm">
-              <h4 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-1">Verify Detected Answers</h4>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Confirm EasyOCR extracted answers before saving to student records.</p>
-
-              <div className="space-y-4">
-                {Object.keys(extractedAnswers).map((qId, idx) => (
-                  <div key={qId} className="p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
-                          Q{idx + 1}
-                        </span>
-                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                          ✓ EasyOCR Detected
-                        </span>
-                      </div>
-                    </div>
-                    <input
-                      type="text"
-                      value={extractedAnswers[qId] || ''}
-                      onChange={(e) => handleAnswerChange(qId, e.target.value)}
-                      className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none font-mono"
-                    />
-                  </div>
-                ))}
+            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm space-y-5">
+              <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-3">
+                <div>
+                  <h4 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-0.5">
+                    Step 2: Verify & Rectify EasyOCR Character Detection
+                  </h4>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Verify the handwritten digits recognized by EasyOCR. If the OCR engine misread a student digit, rectify it below before confirming evaluation.
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs font-mono font-bold bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                    🔒 Blind Evaluation Active (Answers Hidden)
+                  </span>
+                </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+              {/* Step 2 Verification Table: ONLY Item # and OCR Input (NO Correct Answers shown!) */}
+              <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-700 rounded-xl">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-mono uppercase">
+                      <th className="p-3"># Item Number</th>
+                      <th className="p-3">Student's Response on Paper (OCR / Edit ✏️)</th>
+                      <th className="p-3 text-center">Extraction Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                    {questions.map((q, idx) => {
+                      if (!q) return null;
+                      const userVal = extractedAnswers[q.id] || '';
+                      const origVal = originalOcrAnswers[q.id] || '';
+                      const isTeacherEdited = userVal !== origVal;
+
+                      return (
+                        <tr key={q.id || idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40">
+                          <td className="p-3 font-medium text-zinc-900 dark:text-white">
+                            <span className="font-mono text-[10px] font-bold text-zinc-400 mr-1.5">Item #{idx + 1}</span>
+                          </td>
+                          <td className="p-3">
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={userVal}
+                                onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                                className={`w-full text-xs font-mono border rounded-lg p-2 outline-none transition-colors ${
+                                  isTeacherEdited
+                                    ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 font-bold'
+                                    : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white'
+                                }`}
+                                placeholder="Enter student response..."
+                              />
+                              {isTeacherEdited && (
+                                <span className="absolute right-2 top-2 text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400">
+                                  ✏️ Rectified
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-mono font-bold ${
+                              isTeacherEdited
+                                ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                            }`}>
+                              {isTeacherEdited ? '✏️ Teacher Rectified' : '✓ EasyOCR Detected'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700 flex gap-3">
                 <button
                   onClick={confirmEvaluation}
                   disabled={loading}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-2.5 rounded-lg transition-colors shadow-sm"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-2.5 rounded-lg transition-colors shadow-sm"
                 >
-                  Confirm & Save Verified Diagnostic Placement
+                  Confirm Verification & Reveal Graded Diagnostic Results
                 </button>
               </div>
             </div>
@@ -539,14 +604,16 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 </div>
                 <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">ICR EasyOCR Evaluation Complete</h3>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Answer sheet has been evaluated & recorded.
+                  Answer sheet has been verified & saved to student records.
                 </p>
               </div>
 
               <div className="grid grid-cols-3 gap-4 border-y border-zinc-200 dark:border-zinc-700 py-4">
                 <div className="text-center">
-                  <span className="block text-xs font-mono text-zinc-400 uppercase">Score</span>
-                  <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">{report.score} / {report.totalQuestions}</span>
+                  <span className="block text-xs font-mono text-zinc-400 uppercase">Final Score</span>
+                  <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">
+                    {questions.reduce((acc, q) => (q && (extractedAnswers[q.id] || '').trim() === (q.correctAnswer || '').trim() ? acc + 1 : acc), 0)} / {questions.length || report.totalQuestions}
+                  </span>
                 </div>
                 <div className="text-center border-x border-zinc-200 dark:border-zinc-700">
                   <span className="block text-xs font-mono text-zinc-400 uppercase">Placed Level</span>
@@ -554,9 +621,67 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 </div>
                 <div className="text-center">
                   <span className="block text-xs font-mono text-zinc-400 uppercase">Status</span>
-                  <span className="text-2xl font-display font-bold text-green-600">Certified</span>
+                  <span className="text-2xl font-display font-bold text-green-600">Verified & Certified</span>
                 </div>
               </div>
+
+              {/* Final Side-by-Side Question Breakdown */}
+              {questions.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-mono uppercase font-bold text-zinc-500 dark:text-zinc-400">
+                    Side-by-Side Verified Question Breakdown
+                  </h4>
+                  <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-700 rounded-xl">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-mono uppercase">
+                          <th className="p-3"># Question Prompt</th>
+                          <th className="p-3 text-center">Correct Answer</th>
+                          <th className="p-3">Verified Student Answer</th>
+                          <th className="p-3 text-center">Result Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                        {questions.map((q, idx) => {
+                          if (!q) return null;
+                          const userVal = extractedAnswers[q.id] || '';
+                          const origVal = originalOcrAnswers[q.id] || '';
+                          const isTeacherEdited = userVal !== origVal;
+                          const expectedAns = (q.correctAnswer || '').trim();
+                          const isMatch = expectedAns.length > 0 && userVal.trim() === expectedAns;
+
+                          return (
+                            <tr key={q.id || idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40">
+                              <td className="p-3 font-medium text-zinc-900 dark:text-white">
+                                <span className="font-mono text-[10px] font-bold text-zinc-400 mr-1.5">Q{idx + 1}.</span>
+                                {q.question || `Question #${idx + 1}`}
+                              </td>
+                              <td className="p-3 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                {q.correctAnswer || '-'}
+                              </td>
+                              <td className="p-3 font-mono font-bold">
+                                <span>{userVal}</span>
+                                {isTeacherEdited && (
+                                  <span className="ml-2 text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
+                                    ✏️ Teacher Rectified
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                                  isMatch ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                                }`}>
+                                  {isMatch ? '✓ Correct' : '✗ Incorrect'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button
