@@ -335,3 +335,88 @@ export function mixWorksheetQuestions(currentQuestions: Question[], reinforcemen
   }
   return mixed;
 }
+
+/**
+ * Returns a structured debug snapshot of a student's reinforcement state.
+ * Used for the verification panel in the frontend and console logging.
+ */
+export interface ReinforcementDebugInfo {
+  studentId: string;
+  currentLevel: number;
+  weakConcepts: Array<{
+    topic: string;
+    masteryPct: number;
+    status: string;
+    isReinforcementActive: boolean;
+    reinforcementTriggeredAtLevel: number | null;
+    nextReinforcementLevel: number | null;
+    reinforcementEligible: boolean;
+    eligibilityReason: string;
+    questionsToInject: number;
+  }>;
+  totalReinforcementQuestions: number;
+  hasActiveReinforcement: boolean;
+}
+
+export async function getReinforcementDebugInfo(
+  studentId: string,
+  currentLevel: number,
+  dbStore: DBStore
+): Promise<ReinforcementDebugInfo> {
+  const profile = await dbStore.getConceptMasteryProfile(studentId);
+
+  const debug: ReinforcementDebugInfo = {
+    studentId,
+    currentLevel,
+    weakConcepts: [],
+    totalReinforcementQuestions: 0,
+    hasActiveReinforcement: false,
+  };
+
+  if (!profile) return debug;
+
+  for (const concept of profile.concepts) {
+    const triggerLvl = concept.reinforcementTriggeredAtLevel || null;
+    const isActive = concept.isReinforcementActive || false;
+    // Next reinforcement level is trigger + 2 (skip immediate next)
+    const nextReinfLvl = triggerLvl != null ? triggerLvl + 2 : null;
+    const qCount = isActive ? getReinforcementQuestionCount(concept.masteryPct) : 0;
+
+    let eligible = false;
+    let reason = '';
+
+    if (!isActive) {
+      reason = 'Reinforcement not active for this concept';
+    } else if (triggerLvl == null) {
+      reason = 'No trigger level recorded';
+    } else if (currentLevel < triggerLvl + 2) {
+      reason = `Current level ${currentLevel} < trigger+2 (${triggerLvl + 2}): skipping immediate next level`;
+    } else if (currentLevel > triggerLvl + 4) {
+      reason = `Current level ${currentLevel} > trigger+4 (${triggerLvl + 4}): reinforcement window expired`;
+    } else {
+      eligible = true;
+      reason = `Active at level ${currentLevel} (window ${triggerLvl + 2}-${triggerLvl + 4})`;
+    }
+
+    if (concept.masteryPct < STRONG_THRESHOLD || isActive) {
+      debug.weakConcepts.push({
+        topic: concept.topic,
+        masteryPct: Math.round(concept.masteryPct * 10) / 10,
+        status: concept.status,
+        isReinforcementActive: isActive,
+        reinforcementTriggeredAtLevel: triggerLvl,
+        nextReinforcementLevel: nextReinfLvl,
+        reinforcementEligible: eligible,
+        eligibilityReason: reason,
+        questionsToInject: eligible ? qCount : 0,
+      });
+
+      if (eligible && qCount > 0) {
+        debug.totalReinforcementQuestions += qCount;
+        debug.hasActiveReinforcement = true;
+      }
+    }
+  }
+
+  return debug;
+}

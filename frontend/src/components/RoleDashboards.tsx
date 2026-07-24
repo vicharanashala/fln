@@ -1700,6 +1700,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [levelBatchSkipped, setLevelBatchSkipped] = useState<Array<{ studentId: string; reason: string }>>([]);
   const [levelBatchError, setLevelBatchError] = useState('');
   const [levelBatchDownloading, setLevelBatchDownloading] = useState(false);
+  const [levelBatchReinforcementDebug, setLevelBatchReinforcementDebug] = useState<Array<any>>([]);
 
   // New Student state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1752,6 +1753,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     setLevelBatchError('');
     setLevelBatchResults([]);
     setLevelBatchSkipped([]);
+    setLevelBatchReinforcementDebug([]);
     setLevelBatchId(null);
     try {
       const res = await apiFetch('/api/worksheets/generate-level-batch', {
@@ -1767,6 +1769,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         setLevelBatchId(data.batchId);
         setLevelBatchResults(data.results || []);
         setLevelBatchSkipped(data.skipped || []);
+        setLevelBatchReinforcementDebug(data.reinforcementDebug || []);
       } else {
         setLevelBatchError(data.error || 'Batch generation failed.');
       }
@@ -2334,6 +2337,85 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                 {levelBatchSkipped.length > 0 && (
                   <div className="p-2 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded text-xs text-amber-700 dark:text-amber-300">
                     Skipped: {levelBatchSkipped.map(s => s.reason).join('; ')}
+                  </div>
+                )}
+
+                {/* 🛡️ Reinforcement Verification Panel */}
+                {levelBatchReinforcementDebug && levelBatchReinforcementDebug.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-slate-800 space-y-3">
+                    <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+                      <span className="text-base">🛡️</span>
+                      <h4 className="text-xs font-display font-bold uppercase tracking-wider">Reinforcement Verification Panel</h4>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      Live reinforcement analysis and logic checks for the generated batch.
+                    </p>
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                      {levelBatchReinforcementDebug.map((dbg) => (
+                        <div key={dbg.studentId} className="p-3 bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-lg space-y-2 text-left">
+                          <div className="flex justify-between items-center border-b border-zinc-200 dark:border-slate-700 pb-1.5">
+                            <span className="text-xs font-bold text-zinc-800 dark:text-slate-200">{dbg.studentName}</span>
+                            <span className="text-[10px] font-mono bg-zinc-200 dark:bg-slate-700 text-zinc-700 dark:text-slate-300 px-2 py-0.5 rounded">
+                              Current Level: L{dbg.currentLevel}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[10px] text-zinc-650 dark:text-slate-350">
+                            <div>
+                              <span className="font-semibold block text-zinc-550 dark:text-slate-400">Current Worksheet Concepts:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {dbg.currentLevelConcepts && dbg.currentLevelConcepts.length > 0 ? (
+                                  dbg.currentLevelConcepts.map((c: string, idx: number) => (
+                                    <span key={idx} className="bg-zinc-100 dark:bg-slate-900 border border-zinc-250 dark:border-slate-650 px-1.5 py-0.5 rounded font-mono text-[9px]">{c}</span>
+                                  ))
+                                ) : (
+                                  <span className="italic text-zinc-400">None</span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="font-semibold block text-zinc-550 dark:text-slate-400">Reinforcement Concepts Added:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {dbg.reinforcementConcepts && dbg.reinforcementConcepts.length > 0 ? (
+                                  dbg.reinforcementConcepts.map((c: string, idx: number) => (
+                                    <span key={idx} className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 px-1.5 py-0.5 rounded font-mono text-[9px] font-bold">{c}</span>
+                                  ))
+                                ) : (
+                                  <span className="italic text-zinc-400">None</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {dbg.weakConcepts && dbg.weakConcepts.length > 0 ? (
+                            <div className="border-t border-zinc-200 dark:border-slate-700 pt-2 space-y-1.5">
+                              <span className="text-[9px] font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider block">Concept Streaks & Adaptive Decision Rules:</span>
+                              <div className="grid grid-cols-1 gap-1">
+                                {dbg.weakConcepts.map((wc: any, idx: number) => (
+                                  <div key={idx} className="flex flex-wrap justify-between items-center text-[10px] bg-white dark:bg-slate-900 border border-zinc-150 dark:border-slate-800 rounded p-1.5 gap-2">
+                                    <span className="font-medium text-zinc-700 dark:text-slate-200">{wc.topic}</span>
+                                    <div className="flex flex-wrap items-center gap-3 font-mono text-[9px]">
+                                      <span>Score: <strong className="text-zinc-800 dark:text-slate-250">{wc.masteryPct}%</strong></span>
+                                      <span>Active: <strong className={wc.isReinforcementActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-500'}>{wc.isReinforcementActive ? 'Yes' : 'No'}</strong></span>
+                                      <span>Trigger Lvl: <strong className="text-zinc-800 dark:text-slate-250">{wc.reinforcementTriggeredAtLevel ?? 'N/A'}</strong></span>
+                                      <span>Next Reinf. Lvl: <strong className={wc.nextReinforcementLevel ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-zinc-500'}>{wc.nextReinforcementLevel ?? 'N/A'}</strong></span>
+                                      <span className={`px-1.5 py-0.5 rounded font-bold uppercase ${wc.reinforcementEligible ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400' : 'bg-zinc-100 text-zinc-650 dark:bg-slate-800 dark:text-slate-400'}`} title={wc.eligibilityReason}>
+                                        Eligible: {wc.reinforcementEligible ? 'Yes' : 'No'}
+                                      </span>
+                                      {wc.reinforcementEligible && (
+                                        <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold">Inject: {wc.questionsToInject} Qs</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-green-600 font-mono italic">No weak concepts detected. All concepts fully mastered!</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

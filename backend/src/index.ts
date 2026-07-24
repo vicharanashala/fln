@@ -8,7 +8,7 @@ import { dbStore, connectDB, UserRole, User, Student, School, Question, Workshee
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel, generateMultiTopicQuestions } from './levelGenerator';
-import { updateConceptMastery, getReinforcementQuestions, mixWorksheetQuestions } from './reinforcementEngine';
+import { updateConceptMastery, getReinforcementQuestions, mixWorksheetQuestions, getReinforcementDebugInfo } from './reinforcementEngine';
 import { selectPlacedStudents } from './worksheetBatch';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
@@ -1359,6 +1359,7 @@ async function startServer() {
       }
 
       const generated: Array<any> = [];
+      const reinforcementDebugResults: Array<any> = [];
       const fallbackBatchId = `fallback_${Date.now()}`;
       
       const { generateLevelWorksheet } = await import('./paperGenerator');
@@ -1368,6 +1369,28 @@ async function startServer() {
         try {
           const subLvl = student.currentSubLevel || 0;
           const usedTexts = await getUsedQuestionsForStudent(student.id);
+          
+          // ── Reinforcement Debug Logging ─────────────────────────
+          const debugInfo = await getReinforcementDebugInfo(student.id, student.currentLevel!, dbStore);
+          
+          console.log(`\n╔══════════════════════════════════════════════════════════════`);
+          console.log(`║ [RL DEBUG] Student: ${student.name} (${student.id})`);
+          console.log(`║ Current Level: ${student.currentLevel}.${subLvl}`);
+          console.log(`║ Weak Concepts: ${debugInfo.weakConcepts.length}`);
+          for (const wc of debugInfo.weakConcepts) {
+            console.log(`║   ┌─ Topic: ${wc.topic}`);
+            console.log(`║   │  Mastery: ${wc.masteryPct}% (${wc.status})`);
+            console.log(`║   │  Reinforcement Active: ${wc.isReinforcementActive ? 'YES' : 'NO'}`);
+            console.log(`║   │  Triggered At Level: ${wc.reinforcementTriggeredAtLevel ?? 'N/A'}`);
+            console.log(`║   │  Next Reinf. Level: ${wc.nextReinforcementLevel ?? 'N/A'} (must be trigger+2, never immediate next)`);
+            console.log(`║   │  Eligible Now: ${wc.reinforcementEligible ? 'YES' : 'NO'}`);
+            console.log(`║   │  Reason: ${wc.eligibilityReason}`);
+            console.log(`║   └─ Questions to Inject: ${wc.questionsToInject}`);
+          }
+          console.log(`║ Total Reinforcement Questions: ${debugInfo.totalReinforcementQuestions}`);
+          console.log(`║ Has Active Reinforcement: ${debugInfo.hasActiveReinforcement ? 'YES' : 'NO'}`);
+          console.log(`╚══════════════════════════════════════════════════════════════\n`);
+          // ── End Debug Logging ───────────────────────────────────
           
           let reinfQs: Question[] = [];
           try {
@@ -1394,6 +1417,24 @@ async function startServer() {
             studentQs = mixWorksheetQuestions(studentQs, mappedReinforcement);
           }
 
+          // ── Log final concept distribution ──────────────────────
+          const conceptDist: { [topic: string]: { normal: number; reinforcement: number } } = {};
+          studentQs.forEach(q => {
+            const topic = q.topic || 'Unknown';
+            if (!conceptDist[topic]) conceptDist[topic] = { normal: 0, reinforcement: 0 };
+            if (q.question_id.includes('_REINF_') || q.subtopic === 'Reinforcement') {
+              conceptDist[topic].reinforcement++;
+            } else {
+              conceptDist[topic].normal++;
+            }
+          });
+          console.log(`[RL VERIFY] Final concept distribution for ${student.name}:`);
+          for (const [topic, counts] of Object.entries(conceptDist)) {
+            console.log(`  ${topic}: ${counts.normal} normal + ${counts.reinforcement} reinforcement = ${counts.normal + counts.reinforcement} total`);
+          }
+          console.log(`  TOTAL: ${studentQs.length} questions (${studentQs.filter(q => q.question_id.includes('_REINF_') || q.subtopic === 'Reinforcement').length} reinforcement)\n`);
+          // ── End concept distribution log ─────────────────────────
+
           const result = await generateLevelWorksheet({
             studentId: student.id,
             studentName: student.name,
@@ -1405,6 +1446,21 @@ async function startServer() {
           // Write corresponding JSONs alongside the PDF for single/batch files
           const baseName = result.fileName.replace(/\.pdf$/, '');
           fs.writeFileSync(path.join(localOutputDir, `${baseName}_question_paper.json`), JSON.stringify(studentQs, null, 2));
+          
+          // Build per-student reinforcement debug for API response
+          reinforcementDebugResults.push({
+            studentId: student.id,
+            studentName: student.name,
+            ...debugInfo,
+            currentLevelConcepts: Object.entries(conceptDist)
+              .filter(([, c]) => c.normal > 0)
+              .map(([topic, c]) => `${topic} (${c.normal})`),
+            reinforcementConcepts: Object.entries(conceptDist)
+              .filter(([, c]) => c.reinforcement > 0)
+              .map(([topic, c]) => `${topic} (${c.reinforcement})`),
+            totalNormalQuestions: studentQs.filter(q => !q.question_id.includes('_REINF_') && q.subtopic !== 'Reinforcement').length,
+            totalReinforcementQuestionsInjected: studentQs.filter(q => q.question_id.includes('_REINF_') || q.subtopic === 'Reinforcement').length,
+          });
           
           generated.push({
             studentId: student.id,
@@ -1454,7 +1510,8 @@ async function startServer() {
         studentsProcessed: targets.length - skipped.length,
         totalFiles: generated.length,
         results,
-        skipped
+        skipped,
+        reinforcementDebug: reinforcementDebugResults
       });
     } catch (err: any) {
       console.error('Level-wise batch generation failed:', err);
@@ -1501,6 +1558,29 @@ async function startServer() {
     } catch (err: any) {
       console.error('Batch ZIP download failed:', err);
       res.status(502).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/worksheets/reinforcement-debug/:studentId', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      const studentId = req.params.studentId;
+      const students = await dbStore.getStudents();
+      const student = students.find(s => s.id === studentId);
+      if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+      const currentLevel = student.currentLevel || 1;
+      const debugInfo = await getReinforcementDebugInfo(studentId, currentLevel, dbStore);
+
+      res.json({
+        success: true,
+        studentName: student.name,
+        ...debugInfo
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
     }
   });
 
