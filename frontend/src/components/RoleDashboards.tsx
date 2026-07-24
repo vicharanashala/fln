@@ -13,6 +13,8 @@ import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCir
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { Input, Select, Textarea } from './Form';
+import { SuperAdminExecutiveDashboard } from './SuperAdminExecutiveDashboard';
+
 
 
 export const FLN_LEVELS_LIST = [
@@ -768,87 +770,58 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         </button>
       </div>
 
-      {activeTab === 'overview' && (() => {
-        const schoolColumns: Column<School>[] = [
-          { header: 'School ID', accessor: 'id', sortKey: 'id', className: 'font-mono text-xs text-slate-500 dark:text-slate-400' },
-          { header: 'School Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-800 dark:text-slate-200' },
-          { header: 'State', accessor: 'stateCode', sortKey: 'stateCode', className: 'font-mono' },
-          {
-            header: 'Deployment',
-            accessor: (s) => (
-              <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400">{s.teachersCount ? `${s.teachersCount} teachers` : '—'}</span>
-            )
-          },
-          {
-            header: 'Avg Level',
-            accessor: () => <span className="font-mono font-bold text-emerald-600">Level 3.2</span>
-          }
-        ];
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <SuperAdminExecutiveDashboard user={user} token={token} />
 
-        return (
-          <>
-            {/* Analytics Card Deck */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <MetricCard title="Total Schools Tracked" value={schools.length} subtext="● 100% Active" icon={SchoolIcon} />
-              <MetricCard title="Primary FLN Students" value={stats?.totalStudents?.toLocaleString() ?? '—'} subtext="Across all classes" icon={Users} />
-              <MetricCard title="National FLN Score" value={stats?.avgFlnLevel ? `L${stats.avgFlnLevel}` : '—'} subtext="Average student level" icon={BarChart3} />
-              <MetricCard title="FLN Certification Rate" value={stats?.certifiedPercent != null ? `${stats.certifiedPercent}%` : '—'} subtext={stats?.certifiedCount != null ? `${stats.certifiedCount.toLocaleString()} students verified competent` : 'Loading...'} icon={Award} />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* National Schools Mapping */}
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
-                <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">State / School Performance Table</h3>
-                <Table data={schools} columns={schoolColumns} searchPlaceholder="Search schools by name..." searchKey="name" />
+          {/* Global Announcement Drawer */}
+          <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
+              <span>📣 Post Global Announcement & Email Escalate</span>
+            </h3>
+            <form onSubmit={postAnnouncement} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="md:col-span-1">
+                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Title</label>
+                <input
+                  type="text"
+                  value={announcementTitle}
+                  onChange={(e) => setAnnouncementTitle(e.target.value)}
+                  placeholder="Announcement title..."
+                  className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl p-2.5 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white outline-none focus:border-indigo-500"
+                />
               </div>
-
-
-            {/* Create announcement / Broadcast */}
-            <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm h-fit">
-              <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-4">Post Global Announcement</h3>
-              <form onSubmit={postAnnouncement} className="space-y-4">
-                {successMsg && <div className="p-3 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded border border-green-100 dark:border-green-800">{successMsg}</div>}
-                <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={announcementTitle}
-                    onChange={(e) => setAnnouncementTitle(e.target.value)}
-                    placeholder="Announcement title..."
-                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Message Content</label>
-                  <textarea
-                    value={announcementMsg}
-                    onChange={(e) => setAnnouncementMsg(e.target.value)}
-                    rows={3}
-                    placeholder="Details of the broadcast..."
-                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
-                  />
-                </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Message Content</label>
+                <input
+                  type="text"
+                  value={announcementMsg}
+                  onChange={(e) => setAnnouncementMsg(e.target.value)}
+                  placeholder="Broadcast message details..."
+                  className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl p-2.5 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div className="md:col-span-1 flex flex-col justify-end gap-2">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={isUrgent}
                     onChange={(e) => setIsUrgent(e.target.checked)}
-                    className="rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white focus:ring-zinc-900"
+                    className="rounded border-zinc-300 text-red-600 focus:ring-red-500"
                   />
-                  <span className="text-xs text-red-600 font-medium uppercase font-mono">Flag Urgent & Email Escalate</span>
+                  <span className="text-[11px] text-red-600 font-bold uppercase font-mono">Urgent Email</span>
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-zinc-900 text-white font-medium text-sm py-2 px-4 rounded-lg hover:bg-zinc-800 transition-colors"
+                  className="w-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-xs py-2.5 px-4 rounded-xl hover:bg-zinc-800 transition-colors"
                 >
-                  Broadcast Message
+                  Broadcast
                 </button>
-              </form>
-            </div>
+              </div>
+            </form>
+            {successMsg && <div className="mt-3 p-2 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded-xl border border-green-200">{successMsg}</div>}
           </div>
-        </>
-        );
-      })()}
+        </div>
+      )}
 
 
       {activeTab === 'coordinators' && (
