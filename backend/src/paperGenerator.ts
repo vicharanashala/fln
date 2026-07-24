@@ -19,6 +19,12 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
+// Strip characters that WinAnsi (StandardFonts) cannot encode.
+// Replaces any non-printable-ASCII / non-Latin-1 character with '?'.
+function sanitizeForPdf(text: string): string {
+  return text.replace(/[^\x20-\x7E\xA0-\xFF]/g, '?');
+}
+
 export interface PaperGenerationResult {
   fileName: string;
   filePath: string;
@@ -229,7 +235,7 @@ export async function generateLevelWorksheet({
     color: rgb(0.18, 0.43, 0.93),
   });
 
-  page.drawText(`STUDENT: ${studentName.toUpperCase()}`, {
+  page.drawText(sanitizeForPdf(`STUDENT: ${studentName.toUpperCase()}`), {
     x: 50,
     y: height - 85,
     size: 11,
@@ -276,7 +282,7 @@ export async function generateLevelWorksheet({
     if (line) lines.push(line);
 
     lines.forEach((l, lIdx) => {
-      page.drawText(l, {
+      page.drawText(sanitizeForPdf(l), {
         x: 50,
         y: currentY - (lIdx * 14),
         size: 9.5,
@@ -299,7 +305,7 @@ export async function generateLevelWorksheet({
     currentY = boxY - 30;
   });
 
-  page.drawText(`Student ID: ${studentId} · Page 1 of 1`, {
+  page.drawText(sanitizeForPdf(`Student ID: ${studentId} - Page 1 of 1`), {
     x: 50,
     y: 30,
     size: 8,
@@ -386,7 +392,7 @@ export async function renderWorksheetPdf({
       borderWidth: 1,
     });
 
-    page.drawText(`STUDENT: ${swq.name.toUpperCase()}`, {
+    page.drawText(sanitizeForPdf(`STUDENT: ${swq.name.toUpperCase()}`), {
       x: 65,
       y: height - 125,
       size: 10,
@@ -423,7 +429,7 @@ export async function renderWorksheetPdf({
     // Draw student-specific personalized questions
     let currentY = height - 220;
     swq.questions.slice(0, 4).forEach((q, idx) => {
-      page.drawText(`Q${idx + 1}. [${q.topic}] ${q.question}`, {
+      page.drawText(sanitizeForPdf(`Q${idx + 1}. [${q.topic}] ${q.question}`), {
         x: 50,
         y: currentY,
         size: 10.5,
@@ -444,7 +450,7 @@ export async function renderWorksheetPdf({
       currentY -= 80;
     });
 
-    page.drawText(`Worksheet ID: ${worksheetId} · Page 1 of 1`, {
+    page.drawText(sanitizeForPdf(`Worksheet ID: ${worksheetId} - Page 1 of 1`), {
       x: 50,
       y: 40,
       size: 7.5,
