@@ -1,3 +1,4 @@
+import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { ClassGroup, Worksheet, Student, AnswerSubmission, EvaluationReport } from '../types';
 import { SvgLibraryResolver } from './SvgLibraryResolver';
@@ -29,16 +30,16 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
   // Poll/fetch worksheet for this class
   const fetchWorksheets = async () => {
     try {
-      const res = await fetch('/api/classes', {
+      const res = await apiFetch('/api/classes', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         // Fetch all generated worksheets
-        const wsRes = await fetch('/api/logbook', { // logbook fetches can reveal ws stats, or list directly
+        const wsRes = await apiFetch('/api/logbook', { // logbook fetches can reveal ws stats, or list directly
           headers: { 'Authorization': `Bearer ${token}` }
         });
         // Simply pull directly from DB log details or find general worksheets
-        const activeWsRes = await fetch('/api/students', { // student lists
+        const activeWsRes = await apiFetch('/api/students', { // student lists
           headers: { 'Authorization': `Bearer ${token}` }
         });
       }
@@ -50,7 +51,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
     setError('');
     setSuccess('');
     try {
-      const res = await fetch('/api/worksheets/generate', {
+      const res = await apiFetch('/api/worksheets/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
     setError('');
     setEvaluationResult(null);
     try {
-      const res = await fetch('/api/evaluation/submit', {
+      const res = await apiFetch('/api/evaluation/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +113,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
     setPdfGenerating(true);
     setError('');
     try {
-      const res = await fetch('/api/worksheets/generate-pdf', {
+      const res = await apiFetch('/api/worksheets/generate-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

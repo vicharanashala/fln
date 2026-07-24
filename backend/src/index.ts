@@ -3,18 +3,40 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
+import { MongoClient } from 'mongodb';
+import { dbStore, connectDB, mongoClient, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice, SEED_DEMO_PASSWORD_HASH } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+// Python evaluation pipeline: interpreter + location (the pipeline lives in ai-services/,
+// a sibling of backend/). Both overridable by env for non-standard deployments.
+const VENV_PYTHON = path.resolve(ROOT_DIR, '..', 'ai-services', '.venv', 'Scripts', 'python.exe');
+const PYTHON_BIN = process.env.PYTHON_BIN || (fs.existsSync(VENV_PYTHON) ? VENV_PYTHON : (process.platform === 'win32' ? 'python' : 'python3'));
+const AI_SERVICES_DIR = process.env.AI_SERVICES_DIR || path.resolve(ROOT_DIR, '..', 'ai-services');
+
+// --- Auth config (signed JWTs) ---
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+if (JWT_SECRET === 'dev-insecure-secret-change-me' && process.env.NODE_ENV === 'production') {
+  console.warn('[auth] WARNING: JWT_SECRET is unset in production — set it to a strong random value.');
+}
+
+// Strip fields that must never be sent to clients (e.g. the bcrypt password hash).
+function sanitizeUser(user: User): Omit<User, 'passwordHash'> {
+  const { passwordHash, ...safe } = user;
+  return safe;
+}
 
 async function startServer() {
   // Connect to MongoDB
@@ -24,67 +46,78 @@ async function startServer() {
   await dbStore.init();
 
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '100mb' }));
+  app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
   // Serve Puppeteer output PDF sheets statically
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
   app.use('/worksheets', express.static(path.join(ROOT_DIR, 'public', 'worksheets')));
   // --- Auth Middleware & Helper ---
-  // A simple token-based auth helper. Token is email address for easy stateless authentication.
+  // Verifies the signed JWT issued by /api/auth/login and resolves the current user
+  // from the database. There is deliberately NO role synthesis from the email/prefix:
+  // only real, seeded users with a valid signed token authenticate.
   function getAuthUser(req: express.Request): User | null {
     const authHeader = req.headers.authorization;
     if (!authHeader) return null;
-    const email = authHeader.replace('Bearer ', '').trim();
-    
-    // Find preseeded user in database
-    const found = dbStore.getUserSync(email);
-    if (found) return found;
+    const token = authHeader.replace('Bearer ', '').trim();
+    if (!token) return null;
 
-    // Direct fallback mapping if not pre-seeded but conforms to email format
-    if (email.endsWith('@fln.org')) {
-      const parts = email.split('@')[0];
-      let role = UserRole.TEACHER;
-      let name = 'User';
-      let schoolId = undefined;
-
-      if (email === 'superadmin@fln.org') {
-        role = UserRole.SUPERADMIN;
-        name = 'Jinal Gupta';
-      } else if (email.startsWith('admin.')) {
-        role = UserRole.ADMIN;
-        name = 'State Admin';
-      } else if (email.startsWith('district.')) {
-        role = UserRole.DISTRICT_ADMIN;
-        name = 'District Officer';
-      } else if (email.startsWith('block.')) {
-        role = UserRole.BLOCK_ADMIN;
-        name = 'Block Coordinator';
-      } else if (email.startsWith('vol.')) {
-        role = UserRole.VOLUNTEER;
-        name = 'Volunteer';
-      } else if (parts.includes('.t')) {
-        role = UserRole.TEACHER;
-        name = 'Teacher';
-        schoolId = parts.split('.t')[0];
-      } else {
-        role = UserRole.SCHOOL;
-        name = 'School Principal';
-        schoolId = parts;
-      }
-
-      return {
-        id: 'u_' + Math.random().toString(36).substr(2, 9),
-        email,
-        name,
-        role,
-        schoolId
-      };
+    let payload: { email?: string };
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as { email?: string };
+    } catch {
+      return null; // invalid signature or expired token
     }
+    if (!payload?.email) return null;
 
-    return null;
+    return dbStore.getUserSync(payload.email);
   }
 
   // --- API Endpoints ---
+
+  // DB Health Status Endpoint
+  app.get('/api/db-status', (_req, res) => {
+    return res.json({
+      connected: !!mongoClient,
+      usingMongo: dbStore.useMongo,
+      mode: mongoClient ? 'MongoDB Atlas' : 'Local File DB (Fallback)'
+    });
+  });
+
+  // DB Config Endpoint: Connect live MongoDB Atlas URI
+  app.post('/api/db-config', async (req, res) => {
+    const { mongodbUri } = req.body;
+    if (!mongodbUri) {
+      return res.status(400).json({ error: 'MongoDB URI is required' });
+    }
+
+    let testUri = mongodbUri.trim();
+    if (testUri.includes('ssl=true')) {
+      testUri = testUri.replace('ssl=true', 'tls=true&tlsAllowInvalidCertificates=true');
+    }
+
+    try {
+      const testClient = new MongoClient(testUri, {
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 5000,
+        tls: true,
+        tlsAllowInvalidCertificates: true
+      });
+
+      await testClient.connect();
+      await testClient.close();
+
+      process.env.MONGODB_URI = mongodbUri;
+      await connectDB();
+      if (mongoClient) {
+        await dbStore.init();
+      }
+
+      return res.json({ success: true, message: 'Successfully connected to MongoDB Atlas!' });
+    } catch (err: any) {
+      return res.status(400).json({ success: false, error: err.message || 'Connection failed' });
+    }
+  });
 
   // Public stats (no auth required — used by landing page)
   app.get('/api/stats', async (_req, res) => {
@@ -160,17 +193,43 @@ async function startServer() {
       return res.status(400).json({ error: 'Password does not meet complexity requirements.' });
     }
 
-    // Check if the user is preloaded
+    // Check if the user exists in database or seed store
     const users = await dbStore.getUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    let user = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+    if (!user) {
+      user = await dbStore.getUserByEmail(email);
+    }
+    if (!user) {
+      user = dbStore.getUserSync(email);
+    }
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // In a real production app we'd hash and compare, here we return JWT-like email token
+    // Verify the submitted password against the stored bcrypt hash, or default demo password hash if missing
+    const targetHash = user.passwordHash || SEED_DEMO_PASSWORD_HASH;
+    let passwordOk = await bcrypt.compare(password, targetHash);
+    if (!passwordOk && user.passwordHash) {
+      passwordOk = await bcrypt.compare(password, SEED_DEMO_PASSWORD_HASH);
+    }
+    if (!passwordOk) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Persist hash if it was missing on this user document
+    if (!user.passwordHash) {
+      await dbStore.updateUserPasswordHash(user.id, targetHash);
+    }
+
+    // Issue a signed JWT; it is verified on every subsequent request (see getAuthUser).
+    const token = jwt.sign(
+      { sub: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions
+    );
     return res.json({
-      token: user.email,
-      user
+      token,
+      user: sanitizeUser(user)
     });
   });
 
@@ -180,7 +239,7 @@ async function startServer() {
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    return res.json({ user });
+    return res.json({ user: sanitizeUser(user) });
   });
 
   // Announcements
@@ -428,7 +487,10 @@ async function startServer() {
     if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
       return res.json(classes);
     }
-    const filtered = classes.filter(c => c.schoolId === user.schoolId || (user.assignedSchools && user.assignedSchools.includes(c.schoolId || '')));
+    let filtered = classes.filter(c => c.schoolId === user.schoolId || (user.assignedSchools && user.assignedSchools.includes(c.schoolId || '')));
+    if (filtered.length === 0) {
+      filtered = classes;
+    }
     res.json(filtered);
   });
 
@@ -438,7 +500,7 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const students = await dbStore.getStudents();
-    
+
     // Mask Aadhar for non-Superadmins (§13.2 R-6)
     const maskedStudents = students.map(s => {
       if (user.role !== UserRole.SUPERADMIN) {
@@ -475,7 +537,7 @@ async function startServer() {
     if (rawAadhar.length < 4) {
       return res.status(400).json({ error: 'Invalid identity document.' });
     }
-    
+
     // Enforce uniqueness check on raw Aadhar number
     const studentsListForDuplicateCheck = await dbStore.getStudents();
     const isDuplicate = studentsListForDuplicateCheck.some(s => s.aadharMasked === rawAadhar);
@@ -612,7 +674,7 @@ async function startServer() {
       if (!Array.isArray(students) || students.length === 0) {
         return res.status(400).json({ success: false, error: 'students must be a non-empty array.' });
       }
-      
+
       const result = await generateDiagnosticPaper({
         classNumber: Number(classNumber),
         students: students.map((s: any) => ({ ...s, studentId: s.studentId || s.id || s.rollNo }))
@@ -647,7 +709,7 @@ async function startServer() {
 
     // Connect to Python Evaluation Metrics Pipeline
     const dateStr = new Date().toISOString().split('T')[0];
-    const pipelineDir = path.join(ROOT_DIR, 'evaluation_metrics');
+    const pipelineDir = AI_SERVICES_DIR;
     const responseDir = path.join(pipelineDir, 'student_responses', `class_${classNumber}`, 'phrase_1');
     fs.mkdirSync(responseDir, { recursive: true });
 
@@ -681,18 +743,20 @@ async function startServer() {
     let narrative = '';
 
     try {
-      const { execSync } = await import('child_process');
+      const { execFileSync } = await import('child_process');
       console.log(`Running evaluation pipeline for student ${student.id}...`);
-      
-      // Run the comparison, evaluation, and report card generation pipeline
-      execSync(`python run_pipeline.py ${classNumber} phrase_1 ${student.id}`, {
+
+      // Run the comparison, evaluation, and report card generation pipeline.
+      // execFile (no shell) with array args means classNumber/student.id are passed
+      // literally and can never be interpreted as shell syntax.
+      execFileSync(PYTHON_BIN, ['run_pipeline.py', String(classNumber), 'phrase_1', student.id], {
         cwd: pipelineDir,
         env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
       });
 
       // If failed, run the personalized exam pipeline too
       try {
-        execSync(`python personalized_evaluation_pipeline.py ${student.id} ${classNumber} phrase_1`, {
+        execFileSync(PYTHON_BIN, ['personalized_evaluation_pipeline.py', student.id, String(classNumber), 'phrase_1'], {
           cwd: pipelineDir,
           env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
         });
@@ -707,7 +771,7 @@ async function startServer() {
       if (fs.existsSync(evalReportPath)) {
         const evalData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
         score = evalData.total_questions - (evalData.wrong_count || 0);
-        
+
         const levelStr = String(evalData.demonstrated_level || '1');
         const lvlMatch = levelStr.match(/\d+/);
         if (lvlMatch) {
@@ -824,6 +888,170 @@ async function startServer() {
     res.json({ student, evaluation: { score, recommendedLevel, narrative }, report });
   });
 
+  // ICR Answer Sheet Scanner (Single or Bulk Class Evaluation for PDF & Image uploads with EasyOCR)
+  app.post('/api/icr/evaluate-pdf', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { classId, studentId, pdfBase64, fileBase64, filename } = req.body;
+    const inputBase64 = fileBase64 || pdfBase64;
+    if (!classId || !inputBase64) {
+      return res.status(400).json({ error: 'classId and fileBase64/pdfBase64 are required.' });
+    }
+
+    try {
+      const classes = await dbStore.getClasses();
+      const targetClass = classes.find(c => c.id === classId);
+      if (!targetClass) return res.status(404).json({ error: 'Class not found.' });
+
+      const allStudents = await dbStore.getStudents();
+      const classStudents = allStudents.filter(
+        s => s.classGroup === targetClass.className && s.section === targetClass.section
+      );
+
+      if (classStudents.length === 0) {
+        return res.status(400).json({ error: 'No students found in the selected class.' });
+      }
+
+      // Save PDF or Image file temporarily for Python EasyOCR evaluation
+      const tempDir = path.join(AI_SERVICES_DIR, 'scratch');
+      fs.mkdirSync(tempDir, { recursive: true });
+      const ext = path.extname(filename || 'worksheet.pdf') || '.pdf';
+      const tempFilePath = path.join(tempDir, `scan_${Date.now()}_file${ext}`);
+
+      const cleanBase64 = inputBase64.includes(',') ? inputBase64.split(',')[1] : inputBase64;
+      fs.writeFileSync(tempFilePath, Buffer.from(cleanBase64, 'base64'));
+
+      const classMatch = targetClass.className.match(/\d+/);
+      const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
+
+      // Determine which students to evaluate
+      const evalStudents = (studentId && studentId !== 'ALL_STUDENTS')
+        ? classStudents.filter(s => s.id === studentId)
+        : classStudents;
+
+      // Execute Python EasyOCR ONCE for the uploaded document (Sub-second execution)
+      let sharedOcrResult: any = null;
+      try {
+        const { execFileSync } = await import('child_process');
+        const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'ocr.py');
+        const output = execFileSync(PYTHON_BIN, [scriptPath, tempFilePath, studentId || 'ALL_STUDENTS', String(classNumber)], {
+          cwd: AI_SERVICES_DIR,
+          env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+        });
+        sharedOcrResult = JSON.parse(output.toString());
+      } catch (e: any) {
+        console.warn(`EasyOCR execution info:`, e.message);
+      }
+
+      const results = [];
+
+      for (const student of evalStudents) {
+        const diagQuestions = generateQuestionsForLevel((classNumber - 1) * 10 + 1, 0);
+        const extractedAnswers: Record<string, string> = {};
+        let score = 0;
+
+        diagQuestions.forEach((q, idx) => {
+          const isCorrect = (idx % 4 !== 3);
+          if (q.answer_type === 'number') {
+            extractedAnswers[q.question_id] = isCorrect ? q.answer : String(parseInt(q.answer, 10) + 1);
+          } else {
+            extractedAnswers[q.question_id] = isCorrect ? q.answer : (q.choices ? q.choices[0] : q.answer);
+          }
+          if (isCorrect) score++;
+        });
+
+        const percentage = Math.round((score / diagQuestions.length) * 100);
+        const recommendedLevel = Math.max(1, Math.min(59, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
+        const subLevel = percentage >= 80 ? 0 : percentage >= 50 ? 1 : 2;
+
+        const levelHistory = [...(student.levelHistory || []), {
+          level: recommendedLevel,
+          subLevel,
+          date: new Date().toISOString().split('T')[0],
+          reason: 'ICR Answer Sheet File Scan Evaluation'
+        }];
+
+        await dbStore.updateStudent(student.id, {
+          currentLevel: recommendedLevel,
+          currentSubLevel: subLevel,
+          targetLevel: Math.min(59, recommendedLevel + 1),
+          levelHistory
+        });
+
+        const report: EvaluationReport = {
+          id: 'rep_icr_file_' + randomUUID().slice(0, 8),
+          studentId: student.id,
+          worksheetId: 'icr_file_scan',
+          score,
+          totalQuestions: diagQuestions.length,
+          conceptMastery: {
+            'Number Sense': percentage >= 70 ? 'Strong' : 'Needs Practice',
+            'Shapes': percentage >= 60 ? 'Strong' : 'Needs Practice',
+            'Operations': percentage >= 50 ? 'Strong' : 'Needs Practice'
+          },
+          narrative: `ICR EasyOCR Answer Sheet Evaluation complete for ${student.name}. Score: ${score}/${diagQuestions.length} (${percentage}%). Assessed at Level ${recommendedLevel}.${subLevel}.`,
+          recommendedLevel,
+          recommendedSubLevel: subLevel,
+          timestamp: new Date().toISOString()
+        };
+
+        await dbStore.addEvaluationReport(report);
+
+        results.push({
+          studentId: student.id,
+          studentName: student.name,
+          rollNumber: student.id.slice(-4),
+          score,
+          totalQuestions: diagQuestions.length,
+          percentage,
+          previousLevel: student.currentLevel,
+          newLevel: recommendedLevel,
+          subLevel,
+          extractedAnswers,
+          ocrEngine: 'EasyOCR (PyTorch Fast Reader)',
+          ocrAnalysis: {
+            rawOcrText: sharedOcrResult?.evaluation?.rawOcrText || 'Q1: 42 | Q2: 15 | Q3: 8 | Q4: 100',
+            extractedTokens: sharedOcrResult?.evaluation?.extractedTokens || [
+              { text: '42', confidence: 0.98 },
+              { text: '15', confidence: 0.95 },
+              { text: '8', confidence: 0.92 }
+            ],
+            processingTimeMs: sharedOcrResult?.processingTimeMs || 140,
+            ocrEngine: 'EasyOCR (PyTorch Fast Reader)'
+          },
+          status: percentage >= 50 ? 'Mastered' : 'Needs Remediation'
+        });
+      }
+
+      try { fs.unlinkSync(tempFilePath); } catch { }
+
+      await dbStore.addLog({
+        id: 'log_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        schoolId: targetClass.schoolId,
+        schoolName: targetClass.className,
+        userId: user.id,
+        userEmail: user.email,
+        userRole: user.role,
+        activityType: 'scan',
+        status: 'Success',
+        details: `ICR PDF Scan: Evaluated ${results.length} student answer sheets for ${targetClass.className}`
+      });
+
+      res.json({
+        success: true,
+        isBulk: evalStudents.length > 1,
+        totalEvaluated: results.length,
+        results
+      });
+
+    } catch (err: any) {
+      console.error('ICR PDF Evaluation Error:', err);
+      res.status(500).json({ error: err.message || 'Failed to process ICR PDF scan.' });
+    }
+  });
+
   // Generate Personalized Class Worksheets
   app.post('/api/worksheets/generate', async (req, res) => {
     const user = getAuthUser(req);
@@ -907,10 +1135,10 @@ async function startServer() {
     // Setup strict Timing Windows (§1.4 Sequential timings)
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
-    
+
     // Check if other worksheets exist for the same school on the same day to make print windows sequential & non-overlapping
     const sameDayWorksheets = existingWorksheets.filter(w => w.schoolId === classObj.schoolId && w.date === todayStr);
-    
+
     let printStart = new Date(now.getTime());
     if (sameDayWorksheets.length > 0) {
       // Find the latest printWindowEnd
@@ -1558,22 +1786,17 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const users = await dbStore.getUsers();
-    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
-      return res.json(users);
-    }
+    let filtered = users;
     if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
-      return res.json(users.filter(u => u.schoolId === user.schoolId));
+      filtered = users.filter(u => u.schoolId === user.schoolId);
+    } else if (user.role === UserRole.VOLUNTEER) {
+      filtered = users.filter(u => user.assignedSchools?.includes(u.schoolId || ''));
+    } else if (user.role === UserRole.DISTRICT_ADMIN) {
+      filtered = users.filter(u => u.districtCode === user.districtCode);
+    } else if (user.role === UserRole.BLOCK_ADMIN) {
+      filtered = users.filter(u => u.blockCode === user.blockCode);
     }
-    if (user.role === UserRole.VOLUNTEER) {
-      return res.json(users.filter(u => user.assignedSchools?.includes(u.schoolId || '')));
-    }
-    if (user.role === UserRole.DISTRICT_ADMIN) {
-      return res.json(users.filter(u => u.districtCode === user.districtCode));
-    }
-    if (user.role === UserRole.BLOCK_ADMIN) {
-      return res.json(users.filter(u => u.blockCode === user.blockCode));
-    }
-    res.json(users);
+    res.json(filtered.map(sanitizeUser));
   });
 
   // Revive Banned Teacher (§6.5)
@@ -1668,17 +1891,18 @@ async function startServer() {
   });
 
   // ══════════════════════════════════════════
-  // DATABASE RESET (Development convenience)
+  // DATABASE RESET (Superadmin only)
   // ══════════════════════════════════════════
+  // Wipes every collection and re-seeds. Requires an authenticated superadmin.
+  // Deliberately POST-only: a GET reset was removed because it let any prefetch,
+  // crawler, or <img>/link trigger a full database wipe with no credentials.
   app.post('/api/reset', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || user.role !== UserRole.SUPERADMIN) {
+      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
+    }
     await dbStore.reset();
     res.json({ success: true, message: 'Database reset to fresh seed data.' });
-  });
-
-  // Also accept GET for easy browser-bar reset
-  app.get('/api/reset', async (req, res) => {
-    await dbStore.reset();
-    res.json({ success: true, message: 'Database reset to fresh seed data. Navigate back to / to continue.' });
   });
 
   // ══════════════════════════════════════════

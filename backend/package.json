@@ -13,7 +13,8 @@
     "seed": "tsx src/seed.ts",
     "seed:html": "tsx src/seedLevelHtml.ts",
     "seed:question-bank": "tsx src/seedQuestionBank.ts",
-    "seed:geo": "tsx src/utils/seedGeo.ts"
+    "seed:geo": "tsx src/utils/seedGeo.ts",
+    "reseed": "tsx src/reseed.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

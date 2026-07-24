@@ -128,6 +128,7 @@ export async function generateDiagnosticPaper({
     const pdfBuf = Buffer.from(r.pdfBase64, 'base64');
     zip.file(`${folderName}/worksheet.pdf`, pdfBuf);
 
+    // Add individual student metadata and answer keys
     if (r.masterJson) {
       zip.file(`${folderName}/answer_key.json`, JSON.stringify(r.masterJson, null, 2));
     }
@@ -137,25 +138,17 @@ export async function generateDiagnosticPaper({
     if (r.questionPaperJson) {
       zip.file(`${folderName}/question_paper.json`, JSON.stringify(r.questionPaperJson, null, 2));
     }
-
-    // Add flat copies to all_worksheets/ for easy single-folder access
-    zip.file(`all_worksheets/${folderName}.pdf`, pdfBuf);
-    if (r.masterJson) {
-      zip.file(`all_worksheets/${folderName}_answer_key.json`, JSON.stringify(r.masterJson, null, 2));
-    }
-    if (r.coords) {
-      zip.file(`all_worksheets/${folderName}_coords.json`, JSON.stringify(r.coords, null, 2));
-    }
-    if (r.questionPaperJson) {
-      zip.file(`all_worksheets/${folderName}_question_paper.json`, JSON.stringify(r.questionPaperJson, null, 2));
-    }
   });
 
   const pdfFileName = `class${classNumber}_diagnostic_${randomUUID()}.pdf`;
   const pdfFilePath = path.join(OUTPUT_DIR, pdfFileName);
   fs.writeFileSync(pdfFilePath, mergedBuffer);
 
-  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+  const zipBuffer = await zip.generateAsync({
+    type: 'nodebuffer',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 6 }
+  });
 
   const fileName = `class${classNumber}_diagnostic_${randomUUID()}.zip`;
   const filePath = path.join(OUTPUT_DIR, fileName);
@@ -203,14 +196,8 @@ export async function generateLevelWorksheet({
   levelId: number;
   subIdx: number;
 }): Promise<LevelWorksheetResult> {
-  const puppeteer = await import('puppeteer');
-  const CHROME_EXECUTABLE_PATH = process.env.CHROME_EXECUTABLE_PATH || undefined;
-
-  const browser = await puppeteer.default.launch({
-    headless: true,
-    executablePath: CHROME_EXECUTABLE_PATH,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  const { launchBrowser } = await import('./browser');
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();
@@ -223,8 +210,9 @@ export async function generateLevelWorksheet({
     await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0' as any, timeout: 30000 });
 
     const data = await page.evaluate(({ levelId, subIdx, studentId, studentName }) => {
-      const nameInput = document.getElementById('studentName') as HTMLInputElement | null;
-      const idInput = document.getElementById('studentId') as HTMLInputElement | null;
+      const doc = (globalThis as any).document;
+      const nameInput = doc.getElementById('studentName');
+      const idInput = doc.getElementById('studentId');
       if (nameInput) nameInput.value = studentName;
       if (idInput) idInput.value = studentId;
       // @ts-ignore
@@ -235,7 +223,7 @@ export async function generateLevelWorksheet({
       meta = [];
       
       // Run generation a random number of times to yield different question selections and layouts
-      const iterations = Math.floor(Math.random() * 20) + 1;
+      const iterations = 1;
       for (let i = 0; i < iterations; i++) {
         // @ts-ignore
         generateOneSet(levelId, subIdx);

@@ -1,25 +1,55 @@
 import fs from 'fs/promises';
 import path from 'path';
+import bcrypt from 'bcrypt';
 import { MongoClient, Db } from 'mongodb';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
 
+// Every seeded demo account shares one password, stored ONLY as a bcrypt hash
+// (never as plaintext). Defaults to the well-known demo password shown on the login
+// screen; override with SEED_DEMO_PASSWORD for a private deployment.
+export const SEED_DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD || 'Fln@2026';
+export const SEED_DEMO_PASSWORD_HASH = bcrypt.hashSync(SEED_DEMO_PASSWORD, 10);
+
 export let mongoClient: MongoClient | null = null;
 
 export const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  let uri = process.env.MONGODB_URI;
   if (!uri) {
-    console.error("MONGODB_URI not set — cannot start server");
-    process.exit(1);
+    console.log("MONGODB_URI not set — using local DB");
+    return;
   }
-  try {
-    mongoClient = new MongoClient(uri);
-    await mongoClient.connect();
-    console.log("MongoDB Connected");
-  } catch (err) {
-    console.error("MongoDB connection failed:", err.message);
-    process.exit(1);
+  if (uri.includes('ssl=true')) {
+    uri = uri.replace('ssl=true', 'tls=true&tlsAllowInvalidCertificates=true');
+  }
+  let connected = false;
+  let attempt = 1;
+  const maxAttempts = 3;
+  while (!connected && attempt <= maxAttempts) {
+    try {
+      mongoClient = new MongoClient(uri, {
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 8000,
+        tls: true,
+        tlsAllowInvalidCertificates: true
+      });
+      await mongoClient.connect();
+      console.log("MongoDB Connected");
+      connected = true;
+    } catch (err: any) {
+      console.error(`MongoDB connection attempt ${attempt}/${maxAttempts} failed: ${err.message}`);
+      attempt++;
+      if (attempt <= maxAttempts) {
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+  }
+
+  if (!connected) {
+    console.warn("Could not connect to remote MongoDB — falling back to local file DB so server runs reliably.");
+    mongoClient = null;
   }
 };
 
@@ -39,6 +69,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  passwordHash?: string; // bcrypt hash; verified at login. Never sent to clients.
   stateCode?: string;
   districtCode?: string;
   blockCode?: string;
@@ -93,6 +124,7 @@ export interface Question {
   subtopic: string;
   difficulty: 'easy' | 'medium' | 'hard';
   source_level: number; // Mapping to mathematical level
+  conceptId?: string; // Concept ID from 93-node framework (e.g. S1.1, S3.3)
   svgAsset?: string; // Standard pre-built SVG asset category
 }
 
@@ -128,6 +160,7 @@ export interface LevelHtmlTemplate {
 
 export interface QuestionBankEntry {
   level: number;
+  conceptId?: string; // Immutable concept tag (S1.1 - S7.18)
   levelTitle: string;
   section: string;
   sectionType: string;
@@ -322,15 +355,19 @@ export class DBStore {
   public useMongo: boolean = false;
   private mongoDb: Db | null = null;
 
-  getDb() {
-    if (!mongoClient) throw new Error('MongoDB not connected');
-    return mongoClient.db();
+  getDb(): Db | null {
+    if (this.mongoDb) return this.mongoDb;
+    if (mongoClient) {
+      this.mongoDb = mongoClient.db('test');
+      return this.mongoDb;
+    }
+    return null;
   }
 
   async init() {
     if (mongoClient) {
-      console.log('Connecting to MongoDB...');
-      this.mongoDb = mongoClient.db();
+      console.log('Connecting to MongoDB Atlas database "test"...');
+      this.mongoDb = mongoClient.db('test');
       this.data = {} as DatabaseSchema;
       const db = this.mongoDb;
       for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
@@ -341,12 +378,18 @@ export class DBStore {
       const userCount = this.data.users.length;
       const schoolCount = await db.collection('schools').countDocuments();
       const studentCount = await db.collection('students').countDocuments();
-      console.log(`MongoDB ready: ${userCount} users, ${schoolCount} schools, ${studentCount} students`);
+
+      // If MongoDB Atlas users collection is empty, merge local seed users into memory without modifying MongoDB
+      if (userCount === 0) {
+        const seed = this.getSeedData();
+        this.data.users = seed.users;
+      }
+      console.log(`MongoDB ready: ${userCount} users in Atlas (${this.data.users.length} active), ${schoolCount} schools, ${studentCount} students`);
     } else {
       console.log('No MongoDB — falling back to file-based DB');
       try {
         await fs.mkdir(DB_DIR, { recursive: true });
-      } catch (_) {}
+      } catch (_) { }
       try {
         const content = await fs.readFile(DB_FILE, 'utf-8');
         this.data = JSON.parse(content);
@@ -398,56 +441,94 @@ export class DBStore {
     return this.data.users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
   }
 
+  async getUserByEmail(email: string): Promise<User | null> {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (this.mongoDb) {
+      try {
+        const u = await this.mongoDb.collection<User>('users').findOne({
+          email: { $regex: new RegExp(`^${cleanEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') }
+        });
+        if (u) {
+          if (this.data && this.data.users) {
+            const idx = this.data.users.findIndex(x => x.email.toLowerCase() === cleanEmail || x.id === u.id);
+            if (idx >= 0) this.data.users[idx] = u;
+            else this.data.users.push(u);
+          }
+          return u;
+        }
+      } catch (_) {}
+    }
+    return this.getUserSync(cleanEmail);
+  }
+
   async getUsers() {
-    return await this.mongoDb!.collection<User>('users').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<User>('users').find({}).toArray();
+    return this.data?.users || [];
   }
   async getSchools() {
-    return await this.mongoDb!.collection<School>('schools').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<School>('schools').find({}).toArray();
+    return this.data?.schools || [];
   }
   async getClasses() {
-    return await this.mongoDb!.collection<ClassGroup>('classes').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<ClassGroup>('classes').find({}).toArray();
+    return this.data?.classes || [];
   }
   async getStudents() {
-    return await this.mongoDb!.collection<Student>('students').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Student>('students').find({}).toArray();
+    return this.data?.students || [];
   }
   async getQuestions() {
-    return await this.mongoDb!.collection<Question>('questions').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Question>('questions').find({}).toArray();
+    return this.data?.questions || [];
   }
   async getWorksheets() {
-    return await this.mongoDb!.collection<Worksheet>('worksheets').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray();
+    return this.data?.worksheets || [];
   }
   async getLevelWorksheets() {
-    return await this.mongoDb!.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
+    return this.data?.levelWorksheets || [];
   }
   async getLevelHtmlTemplates() {
-    return await this.mongoDb!.collection<LevelHtmlTemplate>('levelHtmlTemplates').find({}).sort({ levelNumber: 1 }).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<LevelHtmlTemplate>('levelHtmlTemplates').find({}).sort({ levelNumber: 1 }).toArray();
+    return this.data?.levelHtmlTemplates || [];
   }
   async getLevelHtmlTemplate(levelNumber: number) {
-    return await this.mongoDb!.collection<LevelHtmlTemplate>('levelHtmlTemplates').findOne({ levelNumber });
+    if (this.mongoDb) return await this.mongoDb.collection<LevelHtmlTemplate>('levelHtmlTemplates').findOne({ levelNumber });
+    return this.data?.levelHtmlTemplates?.find(t => t.levelNumber === levelNumber) || null;
   }
   async getQuestionBankByLevel(level: number) {
-    return await this.mongoDb!.collection<QuestionBankEntry>('questionBank').find({ level }).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<QuestionBankEntry>('questionBank').find({ level }).toArray();
+    return [];
   }
   async getQuestionBankRandom(level: number, count: number) {
-    return await this.mongoDb!.collection<QuestionBankEntry>('questionBank').aggregate([
-      { $match: { level } },
-      { $sample: { size: count } }
-    ]).toArray();
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<QuestionBankEntry>('questionBank').aggregate([
+        { $match: { level } },
+        { $sample: { size: count } }
+      ]).toArray();
+    }
+    return [];
   }
   async getAnswerSubmissions() {
-    return await this.mongoDb!.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
+    return this.data?.answerSubmissions || [];
   }
   async getEvaluationReports() {
-    return await this.mongoDb!.collection<EvaluationReport>('evaluationReports').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({}).toArray();
+    return this.data?.evaluationReports || [];
   }
   async getTickets() {
-    return await this.mongoDb!.collection<Ticket>('tickets').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Ticket>('tickets').find({}).toArray();
+    return this.data?.tickets || [];
   }
   async getLogbook() {
-    return await this.mongoDb!.collection<LogEntry>('logbook').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<LogEntry>('logbook').find({}).toArray();
+    return this.data?.logbook || [];
   }
   async getAnnouncements() {
-    return await this.mongoDb!.collection<Announcement>('announcements').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Announcement>('announcements').find({}).toArray();
+    return this.data?.announcements || [];
   }
 
   // --- Write / Update Helpers ---
@@ -456,6 +537,10 @@ export class DBStore {
     await this.mongoDb!.collection('users').insertOne(user);
     if (this.data) this.data.users.push(user);
     return user;
+  }
+
+  async updateUserPasswordHash(userId: string, passwordHash: string) {
+    await this.mongoDb!.collection('users').updateOne({ id: userId }, { $set: { passwordHash } });
   }
 
   async addStudent(student: Student) {
@@ -839,6 +924,9 @@ export class DBStore {
       { id: 'u7_knp_vol', email: 'vol.knp@fln.org', name: 'Anita Singh (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-knp-012'] },
       { id: 'u7_ldh2_vol', email: 'vol.ldh2@fln.org', name: 'Gurpreet Kaur (Volunteer)', role: UserRole.VOLUNTEER, assignedSchools: ['gps-pb-ldh2-013'] }
     ];
+
+    // Give every seeded account the shared demo password as a bcrypt hash.
+    users.forEach(u => { u.passwordHash = SEED_DEMO_PASSWORD_HASH; });
 
     const classes: ClassGroup[] = [
       { id: 'c1', schoolId: 'gps-mt-001', className: 'Class 2', section: 'A', teacherId: 'u6' },
@@ -2521,6 +2609,7 @@ export class DBStore {
       questions: seedQuestions,
       worksheets,
       levelWorksheets: [],
+      levelHtmlTemplates: [],
       questionBank: [],
       answerSubmissions,
       evaluationReports,
