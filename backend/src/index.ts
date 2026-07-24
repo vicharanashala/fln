@@ -1168,7 +1168,13 @@ async function startServer() {
         if (ws.questions) {
           for (const q of ws.questions) {
             if (q.question_id.startsWith(studentId + '_')) {
-              const cleanText = q.question.replace(/^\[For [^\]]+\]\s*/, '').trim().toLowerCase();
+              const cleanText = q.question
+                .replace(/^\[For [^\]]+\]\s*/g, '')
+                .replace(/^\[Reinforcement - [^\]]+\]\s*/g, '')
+                .replace(/^\[REINFORCEMENT\]\s*/g, '')
+                .replace(/^\(Weak Concept:[^\)]+\)\s*/g, '')
+                .trim()
+                .toLowerCase();
               usedTexts.add(cleanText);
             }
           }
@@ -1192,7 +1198,13 @@ async function startServer() {
               if (Array.isArray(paperData)) {
                 paperData.forEach((q: any) => {
                   if (q.question) {
-                    const cleanText = q.question.replace(/^\[For [^\]]+\]\s*/, '').trim().toLowerCase();
+                    const cleanText = q.question
+                      .replace(/^\[For [^\]]+\]\s*/g, '')
+                      .replace(/^\[Reinforcement - [^\]]+\]\s*/g, '')
+                      .replace(/^\[REINFORCEMENT\]\s*/g, '')
+                      .replace(/^\(Weak Concept:[^\)]+\)\s*/g, '')
+                      .trim()
+                      .toLowerCase();
                     usedTexts.add(cleanText);
                   }
                 });
@@ -1298,23 +1310,28 @@ async function startServer() {
       }
       
       const subLvl = student.currentSubLevel || 0;
-      const normalCount = Math.max(4, reinfQs.length * 4);
+      const WORKSHEET_SIZE = 4;
+      const reinfCount = Math.min(reinfQs.length, WORKSHEET_SIZE - 1);
+      const normalCount = WORKSHEET_SIZE - reinfCount;
+      
       const qs = generateFreshMultiTopicQuestions(student.currentLevel, subLvl, normalCount, usedTexts);
       
-      let studentQs = qs.map(q => ({
+      let studentQs: Question[] = qs.map(q => ({
         ...q,
         question_id: `${student.id}_${q.question_id}`,
         question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
       }));
 
-      if (reinfQs.length > 0) {
-        const mappedReinforcement = reinfQs.map(q => ({
+      if (reinfCount > 0) {
+        const mappedReinforcement = reinfQs.slice(0, reinfCount).map(q => ({
             ...q,
             question_id: `${student.id}_REINF_${q.question_id}`,
-            question: `[For ${student.name}] [REINFORCEMENT] ${q.question}`
+            question: `[For ${student.name}] [Reinforcement - ${q.topic}] ${q.question}`
           }));
         studentQs = mixWorksheetQuestions(studentQs, mappedReinforcement);
       }
+      
+      studentQs = studentQs.slice(0, WORKSHEET_SIZE);
 
       const result = await generateLevelWorksheet({
         studentId: student.id,
@@ -1328,7 +1345,9 @@ async function startServer() {
       const baseName = result.fileName.replace(/\.pdf$/, '');
       fs.writeFileSync(path.join(localOutputDir, `${baseName}_question_paper.json`), JSON.stringify(studentQs, null, 2));
 
-      res.json({ success: true, pdfUrl: result.pdfUrl });
+      const debugInfo = await getReinforcementDebugInfo(student.id, student.currentLevel, dbStore);
+
+      res.json({ success: true, pdfUrl: result.pdfUrl, questions: studentQs, debugInfo });
     } catch (err: any) {
       console.error('Level worksheet generation failed:', err);
       res.status(500).json({ success: false, error: err.message });

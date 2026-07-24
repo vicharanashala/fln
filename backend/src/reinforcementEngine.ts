@@ -137,16 +137,16 @@ export async function updateConceptMastery(
         concept.recentAnswers = concept.recentAnswers.slice(-5);
       }
 
-      // Check Trigger Rule: >3 questions wrong in a concept (more than 3 wrong)
+      // Check Trigger Rule: any wrong answers in regular attempts or mastery <= 75%
       const wrongCount = concept.recentAnswers.filter(a => !a.correct).length;
-      if (wrongCount > 3) {
+      if (wrongCount > 0 || concept.masteryPct <= 75) {
         if (!concept.isReinforcementActive) {
           concept.isReinforcementActive = true;
           concept.reinforcementTriggeredAtLevel = currentStudentLevel;
           concept.consecutiveReinforcementMasteryCount = 0;
           concept.reinforcedQuestionIds = [];
           concept.reinforcementCyclesCompleted = 0;
-          console.log(`[Reinf Log] TRIGGERED: Student ${studentId} triggered reinforcement for ${topic}. Got ${wrongCount}/${concept.recentAnswers.length} wrong. Trigger level: ${currentStudentLevel}.`);
+          console.log(`[Reinf Log] TRIGGERED: Student ${studentId} triggered reinforcement for ${topic}. Got ${wrongCount}/${concept.recentAnswers.length} wrong (Mastery: ${concept.masteryPct}%). Trigger level: ${currentStudentLevel}.`);
           await dbStore.addLog({
             id: 'LOG_' + Math.random().toString(36).substr(2, 9),
             title: 'Reinforcement Triggered',
@@ -283,7 +283,7 @@ export async function getReinforcementQuestions(
           question_id: `reinf_${concept.topic.replace(/\s+/g, '_')}_${idx}_${Date.now()}`,
           subtopic: 'Reinforcement',
           difficulty: 'medium',
-          question: `[REINFORCEMENT] (Weak Concept: ${concept.topic} | Score: ${concept.masteryPct}% - ${concept.status} | Cycle: ${concept.reinforcementCyclesCompleted! + 1}/3 | Target Level: L${triggerLvl + 2}) ${q.question}`
+          question: q.question
         });
       });
 
