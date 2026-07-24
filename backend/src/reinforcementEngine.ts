@@ -94,6 +94,8 @@ export async function updateConceptMastery(
     if (!concept.recentAnswers) concept.recentAnswers = [];
     if (concept.isReinforcementActive === undefined) concept.isReinforcementActive = false;
     if (concept.consecutiveReinforcementMasteryCount === undefined) concept.consecutiveReinforcementMasteryCount = 0;
+    if (concept.reinforcedQuestionIds === undefined) concept.reinforcedQuestionIds = [];
+    if (concept.reinforcementCyclesCompleted === undefined) concept.reinforcementCyclesCompleted = 0;
 
     // Process Regular Attempts
     if (stats.regularAttempts.length > 0) {
@@ -142,7 +144,17 @@ export async function updateConceptMastery(
           concept.isReinforcementActive = true;
           concept.reinforcementTriggeredAtLevel = currentStudentLevel;
           concept.consecutiveReinforcementMasteryCount = 0;
+          concept.reinforcedQuestionIds = [];
+          concept.reinforcementCyclesCompleted = 0;
           console.log(`[Reinf Log] TRIGGERED: Student ${studentId} triggered reinforcement for ${topic}. Got ${wrongCount}/${concept.recentAnswers.length} wrong. Trigger level: ${currentStudentLevel}.`);
+          await dbStore.addLog({
+            id: 'LOG_' + Math.random().toString(36).substr(2, 9),
+            title: 'Reinforcement Triggered',
+            message: `Student ${studentId} triggered reinforcement for ${topic} at level ${currentStudentLevel}.`,
+            level: 'info',
+            timestamp: nowStr,
+            source: 'system'
+          });
         }
       }
     }
@@ -152,19 +164,28 @@ export async function updateConceptMastery(
       const accuracyReinf = stats.reinfCorrect / stats.reinfTotal;
       if (accuracyReinf >= 0.8) {
         concept.consecutiveReinforcementMasteryCount++;
-        console.log(`[Reinf Log] REINFORCEMENT MASTERY ACHIEVED: Student ${studentId} achieved ${Math.round(accuracyReinf*100)}% on reinforcement worksheet for ${topic}. Consecutive Mastery count: ${concept.consecutiveReinforcementMasteryCount}.`);
+        console.log(`[Reinf Log] REINFORCEMENT MASTERY ACHIEVED: Student ${studentId} achieved ${Math.round(accuracyReinf*100)}% on reinforcement worksheet for ${topic}.`);
       } else {
         concept.consecutiveReinforcementMasteryCount = 0;
-        console.log(`[Reinf Log] REINFORCEMENT MASTERY FAILED: Student ${studentId} got ${stats.reinfCorrect}/${stats.reinfTotal} correct (${Math.round(accuracyReinf*100)}%) on reinforcement for ${topic}. Resetting consecutive count.`);
+        console.log(`[Reinf Log] REINFORCEMENT MASTERY FAILED: Student ${studentId} got ${stats.reinfCorrect}/${stats.reinfTotal} correct (${Math.round(accuracyReinf*100)}%) on reinforcement for ${topic}.`);
       }
 
-      // Check Stop Rule: Stop after 80% mastery in two consecutive reinforcement worksheets
-      if (concept.consecutiveReinforcementMasteryCount >= 2) {
+      // Check Stop Rule: Stop after 80% mastery in ONE reinforcement worksheet or 3 cycles
+      if (accuracyReinf >= 0.8 || (concept.reinforcementCyclesCompleted && concept.reinforcementCyclesCompleted >= 3)) {
         concept.isReinforcementActive = false;
         concept.consecutiveReinforcementMasteryCount = 0;
         // Also clear recent answers so they don't immediately re-trigger reinforcement
         concept.recentAnswers = [];
-        console.log(`[Reinf Log] STOPPED: Reinforcement stopped for student ${studentId} on concept ${topic} after 2 consecutive mastery worksheets.`);
+        const stopReason = accuracyReinf >= 0.8 ? '80% mastery achieved' : 'completed 3 cycles';
+        console.log(`[Reinf Log] STOPPED: Reinforcement stopped for student ${studentId} on concept ${topic} because: ${stopReason}.`);
+        await dbStore.addLog({
+          id: 'LOG_' + Math.random().toString(36).substr(2, 9),
+          title: 'Reinforcement Stopped',
+          message: `Reinforcement stopped for student ${studentId} on concept ${topic} (${stopReason}).`,
+          level: 'info',
+          timestamp: nowStr,
+          source: 'system'
+        });
       }
     }
 
@@ -215,13 +236,18 @@ export async function getReinforcementQuestions(
     if (targetCount === 0) continue;
     const foundQs: Question[] = [];
     
+    if (!concept.reinforcedQuestionIds) concept.reinforcedQuestionIds = [];
+    if (concept.reinforcementCyclesCompleted === undefined) concept.reinforcementCyclesCompleted = 0;
+
     // Search levels starting from triggerLvl downwards
     for (let lvl = triggerLvl; lvl >= 1 && foundQs.length < targetCount; lvl--) {
       const levelQs = generateQuestionsForLevel(lvl, 0); // Always retrieve subLevel 0 (Mastery) for reinforcement
       const matching = levelQs.filter(q => q.topic.toLowerCase() === concept.topic.toLowerCase());
       
       for (const mq of matching) {
-        if (foundQs.length < targetCount && !foundQs.some(fq => fq.question === mq.question)) {
+        if (foundQs.length < targetCount && 
+            !foundQs.some(fq => fq.question === mq.question) && 
+            !concept.reinforcedQuestionIds.includes(mq.question_id)) {
           foundQs.push(mq);
         }
       }
@@ -234,24 +260,46 @@ export async function getReinforcementQuestions(
         const matching = levelQs.filter(q => q.topic.toLowerCase() === concept.topic.toLowerCase());
         
         for (const mq of matching) {
-          if (foundQs.length < targetCount && !foundQs.some(fq => fq.question === mq.question)) {
+          if (foundQs.length < targetCount && 
+              !foundQs.some(fq => fq.question === mq.question) && 
+              !concept.reinforcedQuestionIds.includes(mq.question_id)) {
             foundQs.push(mq);
           }
         }
       }
     }
 
-    // Tag and suffix the found questions for clear reinforcement identification
-    foundQs.forEach((q, idx) => {
-      reinforcementQuestions.push({
-        ...q,
-        question_id: `reinf_${concept.topic.replace(/\s+/g, '_')}_${idx}_${Date.now()}`,
-        subtopic: 'Reinforcement',
-        difficulty: 'medium'
+    if (foundQs.length > 0) {
+      console.log(`[Reinf Log] SELECTED: Selected ${foundQs.length} reinforcement questions on ${concept.topic} for student ${studentId} at current level ${currentLevel} (triggered at level ${triggerLvl}).`);
+      
+      foundQs.forEach((q, idx) => {
+        reinforcementQuestions.push({
+          ...q,
+          question_id: `reinf_${concept.topic.replace(/\s+/g, '_')}_${idx}_${Date.now()}`,
+          subtopic: 'Reinforcement',
+          difficulty: 'medium',
+          question: `[REINFORCEMENT] (Weak Concept: ${concept.topic} | Score: ${concept.masteryPct}% - ${concept.status} | Cycle: ${concept.reinforcementCyclesCompleted! + 1}/3 | Target Level: L${triggerLvl + 2}) ${q.question}`
+        });
       });
-    });
 
-    console.log(`[Reinf Log] SELECTED: Selected ${foundQs.length} reinforcement questions on ${concept.topic} for student ${studentId} at current level ${currentLevel} (triggered at level ${triggerLvl}).`);
+      concept.reinforcedQuestionIds.push(...foundQs.map(q => q.question_id));
+      concept.reinforcementCyclesCompleted++;
+      
+      await dbStore.addLog({
+        id: 'LOG_' + Math.random().toString(36).substr(2, 9),
+        title: 'Reinforcement Cycle Started',
+        message: `Student ${studentId} started cycle ${concept.reinforcementCyclesCompleted} for ${concept.topic} (Level ${currentLevel}).`,
+        level: 'info',
+        timestamp: new Date().toISOString(),
+        source: 'system'
+      });
+    }
+  }
+
+  if (reinforcementQuestions.length > 0) {
+    // Persist changes to profile
+    profile.updatedAt = new Date().toISOString();
+    await dbStore.upsertConceptMasteryProfile(profile);
   }
 
   return reinforcementQuestions;

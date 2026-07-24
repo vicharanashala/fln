@@ -22,7 +22,11 @@ export const connectDB = async () => {
     return;
   }
   try {
-    mongoClient = new MongoClient(uri);
+    mongoClient = new MongoClient(uri, {
+      connectTimeoutMS: 3000,
+      socketTimeoutMS: 3000,
+      serverSelectionTimeoutMS: 3000,
+    });
     await mongoClient.connect();
     console.log("✅ MongoDB Connected");
   } catch (err: unknown) {
@@ -323,11 +327,20 @@ export class DBStore {
       this.mongoDb = mongoClient.db();
       const db = this.mongoDb;
       this.data = {} as DatabaseSchema;
-      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
-        const docs = await db.collection(collName).find().toArray();
-        (this.data as any)[key] = docs.map(({ _id, ...rest }) => rest);
+      try {
+        for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
+          const docs = await db.collection(collName).find().toArray();
+          (this.data as any)[key] = docs.map(({ _id, ...rest }) => rest);
+        }
+        console.log(`MongoDB loaded: ${this.data.users?.length || 0} users, ${this.data.schools?.length || 0} schools, ${this.data.students?.length || 0} students`);
+      } catch (err: any) {
+        console.error("❌ MongoDB initialization failed, falling back to file DB:", err.message);
+        this.mongoDb = null;
+        // Import or update the exported reference to signal that MongoDB is unavailable
+        const dbModule = await import('./db');
+        dbModule.mongoClient = null;
+        await this.init(); // recurse to load file DB
       }
-      console.log(`MongoDB loaded: ${this.data.users?.length || 0} users, ${this.data.schools?.length || 0} schools, ${this.data.students?.length || 0} students`);
     } else {
       console.log('No MongoDB — falling back to file-based DB');
       try {
@@ -385,51 +398,39 @@ export class DBStore {
   }
 
   async getUsers() {
-    if (this.mongoDb) return await this.mongoDb.collection<User>('users').find({}).toArray();
     return this.data?.users || [];
   }
   async getSchools() {
-    if (this.mongoDb) return await this.mongoDb.collection<School>('schools').find({}).toArray();
     return this.data?.schools || [];
   }
   async getClasses() {
-    if (this.mongoDb) return await this.mongoDb.collection<ClassGroup>('classes').find({}).toArray();
     return this.data?.classes || [];
   }
   async getStudents() {
-    if (this.mongoDb) return await this.mongoDb.collection<Student>('students').find({}).toArray();
     return this.data?.students || [];
   }
   async getQuestions() {
-    if (this.mongoDb) return await this.mongoDb.collection<Question>('questions').find({}).toArray();
     return this.data?.questions || [];
   }
   async getWorksheets() {
-    if (this.mongoDb) return await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray();
     return this.data?.worksheets || [];
   }
   async getLevelWorksheets() {
-    if (this.mongoDb) return await this.mongoDb.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
     return this.data?.levelWorksheets || [];
   }
   async getAnswerSubmissions() {
-    if (this.mongoDb) return await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
     return this.data?.answerSubmissions || [];
   }
   async getEvaluationReports() {
-    if (this.mongoDb) return await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({}).toArray();
     return this.data?.evaluationReports || [];
   }
   async getTickets() {
-    if (this.mongoDb) return await this.mongoDb.collection<Ticket>('tickets').find({}).toArray();
     return this.data?.tickets || [];
   }
   async getLogbook() {
-    if (this.mongoDb) return await this.mongoDb.collection<LogEntry>('logbook').find({}).toArray();
     return this.data?.logbook || [];
   }
   async getAnnouncements() {
-    if (this.mongoDb) return await this.mongoDb.collection<Announcement>('announcements').find({}).toArray();
     return this.data?.announcements || [];
   }
 
@@ -591,7 +592,6 @@ export class DBStore {
   // --- Intervention & Best Practice Methods ---
 
   async getInterventions() {
-    if (this.mongoDb) return await this.mongoDb.collection<Intervention>('interventions').find({}).toArray();
     return this.data?.interventions || [];
   }
 
@@ -620,7 +620,6 @@ export class DBStore {
   }
 
   async getBestPractices() {
-    if (this.mongoDb) return await this.mongoDb.collection<BestPractice>('bestPractices').find({}).toArray();
     return this.data?.bestPractices || [];
   }
 

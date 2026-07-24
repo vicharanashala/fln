@@ -13,6 +13,8 @@ test('uses the requested dynamic reinforcement bands', () => {
 
 test('skips the next level and expires after the following three levels', async () => {
   const dbStore = {
+    addLog: async () => {},
+    upsertConceptMasteryProfile: async () => {},
     getConceptMasteryProfile: async () => ({
       id: 'profile', studentId: 'student', updatedAt: '', concepts: [{
         topic: 'Number Sense', totalAttempts: 10, correctCount: 2, masteryPct: 20,

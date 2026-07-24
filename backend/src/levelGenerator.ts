@@ -483,3 +483,37 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
 
   return questions;
 }
+
+export function generateMultiTopicQuestions(targetLevel: number, subLevel: number, count: number = 4): Question[] {
+  const selectedQuestions: Question[] = [];
+  const coveredTopics = new Set<string>();
+  
+  // We want questions from distinct topics, starting from targetLevel and going down
+  for (let lvl = targetLevel; lvl >= 1 && selectedQuestions.length < count; lvl--) {
+    const levelQs = generateQuestionsForLevel(lvl, subLevel);
+    if (levelQs.length > 0) {
+      const topic = levelQs[0].topic.toLowerCase();
+      if (!coveredTopics.has(topic)) {
+        coveredTopics.add(topic);
+        // Randomly pick one question from this level's generated questions
+        const randomQ = levelQs[Math.floor(Math.random() * levelQs.length)];
+        selectedQuestions.push(randomQ);
+      }
+    }
+  }
+
+  // If we couldn't find enough distinct topics, fill the rest from the generated levels
+  if (selectedQuestions.length < count) {
+    for (let lvl = targetLevel; lvl >= 1 && selectedQuestions.length < count; lvl--) {
+      const fillQs = generateQuestionsForLevel(lvl, subLevel);
+      for (const q of fillQs) {
+        if (selectedQuestions.length >= count) break;
+        if (!selectedQuestions.some(sq => sq.question === q.question)) {
+          selectedQuestions.push(q);
+        }
+      }
+    }
+  }
+
+  return selectedQuestions;
+}

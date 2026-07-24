@@ -30,6 +30,8 @@ export interface ConceptScore {
   reinforcementTriggeredAtLevel?: number;
   isReinforcementActive?: boolean;
   consecutiveReinforcementMasteryCount?: number;
+  reinforcedQuestionIds?: string[];
+  reinforcementCyclesCompleted?: number;
 }
 
 export interface ConceptMasteryProfile {
