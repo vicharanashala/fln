@@ -137,9 +137,9 @@ export async function updateConceptMastery(
         concept.recentAnswers = concept.recentAnswers.slice(-5);
       }
 
-      // Check Trigger Rule: ≥3/5 questions wrong in a concept (or accuracy <= 40% in last 5 attempts)
+      // Check Trigger Rule: >3 questions wrong in a concept (more than 3 wrong)
       const wrongCount = concept.recentAnswers.filter(a => !a.correct).length;
-      if (wrongCount >= 3) {
+      if (wrongCount > 3) {
         if (!concept.isReinforcementActive) {
           concept.isReinforcementActive = true;
           concept.reinforcementTriggeredAtLevel = currentStudentLevel;
