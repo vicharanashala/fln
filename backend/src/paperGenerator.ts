@@ -227,10 +227,13 @@ export async function generateLevelWorksheet({
     color: rgb(0.18, 0.43, 0.93), // Blue accent for level worksheets
   });
 
-  page.drawText(`LEVEL PERSONALIZED WORKSHEET`, {
+  const hasReinf = questions && questions.some(q => q.subtopic === 'Reinforcement' || q.question_id.includes('REINF'));
+  const title = hasReinf ? 'LEVEL PERSONALIZED & REINFORCEMENT WORKSHEET' : 'LEVEL PERSONALIZED WORKSHEET';
+
+  page.drawText(title, {
     x: 50,
     y: height - 55,
-    size: 16,
+    size: 14, // slightly smaller font for longer title
     font: boldFont,
     color: rgb(0.18, 0.43, 0.93),
   });

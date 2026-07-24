@@ -206,7 +206,8 @@ export async function updateConceptMastery(
 export async function getReinforcementQuestions(
   studentId: string,
   currentLevel: number,
-  dbStore: DBStore
+  dbStore: DBStore,
+  excludeTexts?: Set<string>
 ): Promise<Question[]> {
   const profile = await dbStore.getConceptMasteryProfile(studentId);
   if (!profile) {
@@ -245,8 +246,10 @@ export async function getReinforcementQuestions(
       const matching = levelQs.filter(q => q.topic.toLowerCase() === concept.topic.toLowerCase());
       
       for (const mq of matching) {
+        const cleanText = mq.question.trim().toLowerCase();
         if (foundQs.length < targetCount && 
             !foundQs.some(fq => fq.question === mq.question) && 
+            (!excludeTexts || !excludeTexts.has(cleanText)) &&
             !concept.reinforcedQuestionIds.includes(mq.question_id)) {
           foundQs.push(mq);
         }
@@ -260,8 +263,10 @@ export async function getReinforcementQuestions(
         const matching = levelQs.filter(q => q.topic.toLowerCase() === concept.topic.toLowerCase());
         
         for (const mq of matching) {
+          const cleanText = mq.question.trim().toLowerCase();
           if (foundQs.length < targetCount && 
               !foundQs.some(fq => fq.question === mq.question) && 
+              (!excludeTexts || !excludeTexts.has(cleanText)) &&
               !concept.reinforcedQuestionIds.includes(mq.question_id)) {
             foundQs.push(mq);
           }

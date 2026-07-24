@@ -1157,10 +1157,117 @@ async function startServer() {
     return out;
   }
 
+  // Helper to gather all unique question texts previously seen/attempted by a student
+  async function getUsedQuestionsForStudent(studentId: string): Promise<Set<string>> {
+    const usedTexts = new Set<string>();
+
+    try {
+      // 1. Get from all worksheets in db
+      const worksheets = await dbStore.getWorksheets();
+      for (const ws of worksheets) {
+        if (ws.questions) {
+          for (const q of ws.questions) {
+            if (q.question_id.startsWith(studentId + '_')) {
+              const cleanText = q.question.replace(/^\[For [^\]]+\]\s*/, '').trim().toLowerCase();
+              usedTexts.add(cleanText);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error(`Failed to load used questions from worksheets for ${studentId}:`, e);
+    }
+
+    try {
+      // 2. Get from all level worksheets in db
+      const levelWorksheets = await dbStore.getLevelWorksheets();
+      const studentLWs = levelWorksheets.filter(lw => lw.studentId === studentId);
+      for (const lw of studentLWs) {
+        if (lw.pdfUrl) {
+          const baseName = path.basename(lw.pdfUrl, '.pdf');
+          const jsonPath = path.join(ROOT_DIR, 'output', `${baseName}_question_paper.json`);
+          if (fs.existsSync(jsonPath)) {
+            try {
+              const paperData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+              if (Array.isArray(paperData)) {
+                paperData.forEach((q: any) => {
+                  if (q.question) {
+                    const cleanText = q.question.replace(/^\[For [^\]]+\]\s*/, '').trim().toLowerCase();
+                    usedTexts.add(cleanText);
+                  }
+                });
+              }
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (e) {
+      console.error(`Failed to load used questions from level worksheets for ${studentId}:`, e);
+    }
+
+    return usedTexts;
+  }
+
+  // Helper to generate multi-topic questions that have never been seen by the student
+  function generateFreshMultiTopicQuestions(
+    targetLevel: number,
+    subLevel: number,
+    count: number,
+    usedTexts: Set<string>
+  ): Question[] {
+    const selectedQuestions: Question[] = [];
+    const coveredTopics = new Set<string>();
+    
+    let attempts = 0;
+    while (selectedQuestions.length < count && attempts < 50) {
+      attempts++;
+      for (let lvl = targetLevel; lvl >= 1 && selectedQuestions.length < count; lvl--) {
+        const levelQs = generateQuestionsForLevel(lvl, subLevel);
+        if (levelQs.length > 0) {
+          const topic = levelQs[0].topic.toLowerCase();
+          if (!coveredTopics.has(topic)) {
+            const candidate = levelQs[Math.floor(Math.random() * levelQs.length)];
+            const cleanText = candidate.question.trim().toLowerCase();
+            
+            if (!usedTexts.has(cleanText) && !selectedQuestions.some(sq => sq.question === candidate.question)) {
+              coveredTopics.add(topic);
+              selectedQuestions.push(candidate);
+            }
+          }
+        }
+      }
+    }
+
+    attempts = 0;
+    while (selectedQuestions.length < count && attempts < 50) {
+      attempts++;
+      for (let lvl = targetLevel; lvl >= 1 && selectedQuestions.length < count; lvl--) {
+        const fillQs = generateQuestionsForLevel(lvl, subLevel);
+        for (const q of fillQs) {
+          if (selectedQuestions.length >= count) break;
+          const cleanText = q.question.trim().toLowerCase();
+          if (!usedTexts.has(cleanText) && !selectedQuestions.some(sq => sq.question === q.question)) {
+            selectedQuestions.push(q);
+          }
+        }
+      }
+    }
+
+    // Absolute fallback
+    if (selectedQuestions.length < count) {
+      const backup = generateMultiTopicQuestions(targetLevel, subLevel, count);
+      for (const q of backup) {
+        if (selectedQuestions.length >= count) break;
+        if (!selectedQuestions.some(sq => sq.question === q.question)) {
+          selectedQuestions.push(q);
+        }
+      }
+    }
+
+    return selectedQuestions;
+  }
+
   // Generate Personalized Level-Wise Worksheet PDF for a single student.
-  // Pipeline: build a 1-entry roster -> Levels_backend /api/generate-batch
-  // -> poll /api/batch-status -> fetch /api/download-batch (zip) -> extract
-  // worksheet.pdf + answer_key.json + coords.json -> persist here.
   app.post('/api/worksheets/generate-level-pdf', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -1179,60 +1286,56 @@ async function startServer() {
         return res.status(400).json({ error: 'Student has not completed their diagnostic test.' });
       }
 
+      const { generateLevelWorksheet } = await import('./paperGenerator');
+      const localOutputDir = path.join(ROOT_DIR, 'output');
+      const usedTexts = await getUsedQuestionsForStudent(student.id);
+      
+      let reinfQs: Question[] = [];
       try {
-        const generated = await generateLevelWorksheetsViaLevelsBackend([student]);
-        if (generated.length === 0) {
-          throw new Error('Levels_backend returned no files for this student.');
-        }
-        res.json({ success: true, pdfUrl: generated[0].pdfUrl });
-      } catch (levelsBackendErr: any) {
-        console.error('Levels_backend generation failed, falling back to local generator:', levelsBackendErr.message);
-        const { generateLevelWorksheet } = await import('./paperGenerator');
-        
-        let reinfQs: Question[] = [];
-        try {
-          reinfQs = await getReinforcementQuestions(student.id, student.currentLevel, dbStore);
-        } catch (reinfErr) {
-          console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
-        }
-        
-        const subLvl = student.currentSubLevel || 0;
-        const normalCount = Math.max(4, reinfQs.length * 4);
-        const qs = generateMultiTopicQuestions(student.currentLevel, subLvl, normalCount);
-        
-        let studentQs = qs.map(q => ({
-          ...q,
-          question_id: `${student.id}_${q.question_id}`,
-          question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
-        }));
-
-        if (reinfQs.length > 0) {
-          const mappedReinforcement = reinfQs.map(q => ({
-              ...q,
-              question_id: `${student.id}_REINF_${q.question_id}`,
-              question: `[For ${student.name}] ${q.question}`
-            }));
-          studentQs = mixWorksheetQuestions(studentQs, mappedReinforcement);
-        }
-
-        const result = await generateLevelWorksheet({
-          studentId: student.id,
-          studentName: student.name,
-          levelId: student.currentLevel,
-          subIdx: subLvl,
-          questions: studentQs
-        });
-        res.json({ success: true, pdfUrl: result.pdfUrl, fallback: true });
+        reinfQs = await getReinforcementQuestions(student.id, student.currentLevel, dbStore, usedTexts);
+      } catch (reinfErr) {
+        console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
       }
+      
+      const subLvl = student.currentSubLevel || 0;
+      const normalCount = Math.max(4, reinfQs.length * 4);
+      const qs = generateFreshMultiTopicQuestions(student.currentLevel, subLvl, normalCount, usedTexts);
+      
+      let studentQs = qs.map(q => ({
+        ...q,
+        question_id: `${student.id}_${q.question_id}`,
+        question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
+      }));
+
+      if (reinfQs.length > 0) {
+        const mappedReinforcement = reinfQs.map(q => ({
+            ...q,
+            question_id: `${student.id}_REINF_${q.question_id}`,
+            question: `[For ${student.name}] [REINFORCEMENT] ${q.question}`
+          }));
+        studentQs = mixWorksheetQuestions(studentQs, mappedReinforcement);
+      }
+
+      const result = await generateLevelWorksheet({
+        studentId: student.id,
+        studentName: student.name,
+        levelId: student.currentLevel,
+        subIdx: subLvl,
+        questions: studentQs
+      });
+
+      // Write corresponding JSONs alongside the PDF for single files so that answers are saved
+      const baseName = result.fileName.replace(/\.pdf$/, '');
+      fs.writeFileSync(path.join(localOutputDir, `${baseName}_question_paper.json`), JSON.stringify(studentQs, null, 2));
+
+      res.json({ success: true, pdfUrl: result.pdfUrl });
     } catch (err: any) {
       console.error('Level worksheet generation failed:', err);
       res.status(500).json({ success: false, error: err.message });
     }
   });
 
-  // Generate Personalized Level-Wise Worksheets for a whole roster of
-  // students in ONE batch call to Levels_backend (the "Generate Batch"
-  // button in the teacher dashboard's Level-Wise Paper Generator panel).
+  // Generate Personalized Level-Wise Worksheets for a whole roster of students in ONE batch call
   app.post('/api/worksheets/generate-level-batch', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -1255,85 +1358,87 @@ async function startServer() {
         return res.status(400).json({ error: 'No eligible (placed) students in this request.', skipped });
       }
 
-      let generated: Array<any> = [];
+      const generated: Array<any> = [];
       const fallbackBatchId = `fallback_${Date.now()}`;
-      try {
-        generated = await generateLevelWorksheetsViaLevelsBackend(targets, { includeBatchId: true });
-      } catch (levelsBackendErr: any) {
-        // LIGHTWEIGHT PDF FALLBACK: generate question data and draw PDF files in-memory without Puppeteer.
-        console.warn('[Level Batch Gen Log] Levels_backend unavailable, using optimized in-memory PDF fallback:', levelsBackendErr.message);
-        const { generateLevelWorksheet } = await import('./paperGenerator');
-        
-        for (const student of targets) {
+      
+      const { generateLevelWorksheet } = await import('./paperGenerator');
+      const localOutputDir = path.join(ROOT_DIR, 'output');
+      
+      for (const student of targets) {
+        try {
+          const subLvl = student.currentSubLevel || 0;
+          const usedTexts = await getUsedQuestionsForStudent(student.id);
+          
+          let reinfQs: Question[] = [];
           try {
-            const subLvl = student.currentSubLevel || 0;
-            let reinfQs: Question[] = [];
-            try {
-              reinfQs = await getReinforcementQuestions(student.id, student.currentLevel, dbStore);
-            } catch (reinfErr) {
-              console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
-            }
-            
-            const normalCount = Math.max(4, reinfQs.length * 4);
-            const qs = generateMultiTopicQuestions(student.currentLevel, subLvl, normalCount);
-            
-            let studentQs = qs.map(q => ({
-              ...q,
-              question_id: `${student.id}_${q.question_id}`,
-              question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
-            }));
-
-            if (reinfQs.length > 0) {
-              const mappedReinforcement = reinfQs.map(q => ({
-                  ...q,
-                  question_id: `${student.id}_REINF_${q.question_id}`,
-                  question: `[For ${student.name}] ${q.question}`
-                }));
-              studentQs = mixWorksheetQuestions(studentQs, mappedReinforcement);
-            }
-
-            const result = await generateLevelWorksheet({
-              studentId: student.id,
-              studentName: student.name,
-              levelId: student.currentLevel!,
-              subIdx: subLvl,
-              questions: studentQs
-            });
-            
-            generated.push({
-              studentId: student.id,
-              studentName: student.name,
-              batchId: fallbackBatchId,
-              sublevelId: `${student.currentLevel}.${subLvl}`,
-              setNum: 1,
-              pdfUrl: result.pdfUrl,
-              questions: studentQs
-            });
-            
-            // Add LevelWorksheet record to dbStore
-            const record: LevelWorksheet = {
-              id: 'LW_' + crypto.randomUUID(),
-              batchId: fallbackBatchId,
-              studentId: student.id,
-              studentName: student.name,
-              rollNumber: student.id,
-              levelId: student.currentLevel!,
-              sublevelId: `${student.currentLevel}.${subLvl}`,
-              setNum: 1,
-              pdfUrl: result.pdfUrl,
-              answerKey: Object.fromEntries(studentQs.map(q => [q.question_id, q.answer])),
-              coords: {},
-              generatedAt: new Date().toISOString()
-            };
-            await dbStore.addLevelWorksheet(record);
-            console.log(`[Level Batch Gen Log] Fallback generated PDF and ${studentQs.length} questions for ${student.name} (${student.id}).`);
-          } catch (err: any) {
-            console.error(`Fallback generation failed for student ${student.id}:`, err);
-            skipped.push({ studentId: student.id, reason: err.message });
+            reinfQs = await getReinforcementQuestions(student.id, student.currentLevel!, dbStore, usedTexts);
+          } catch (reinfErr) {
+            console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
           }
+          
+          const normalCount = Math.max(4, reinfQs.length * 4);
+          const qs = generateFreshMultiTopicQuestions(student.currentLevel!, subLvl, normalCount, usedTexts);
+          
+          let studentQs = qs.map(q => ({
+            ...q,
+            question_id: `${student.id}_${q.question_id}`,
+            question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
+          }));
+
+          if (reinfQs.length > 0) {
+            const mappedReinforcement = reinfQs.map(q => ({
+                ...q,
+                question_id: `${student.id}_REINF_${q.question_id}`,
+                question: `[For ${student.name}] [REINFORCEMENT] ${q.question}`
+              }));
+            studentQs = mixWorksheetQuestions(studentQs, mappedReinforcement);
+          }
+
+          const result = await generateLevelWorksheet({
+            studentId: student.id,
+            studentName: student.name,
+            levelId: student.currentLevel!,
+            subIdx: subLvl,
+            questions: studentQs
+          });
+          
+          // Write corresponding JSONs alongside the PDF for single/batch files
+          const baseName = result.fileName.replace(/\.pdf$/, '');
+          fs.writeFileSync(path.join(localOutputDir, `${baseName}_question_paper.json`), JSON.stringify(studentQs, null, 2));
+          
+          generated.push({
+            studentId: student.id,
+            studentName: student.name,
+            batchId: fallbackBatchId,
+            sublevelId: `${student.currentLevel}.${subLvl}`,
+            setNum: 1,
+            pdfUrl: result.pdfUrl,
+            questions: studentQs
+          });
+          
+          // Add LevelWorksheet record to dbStore
+          const record: LevelWorksheet = {
+            id: 'LW_' + crypto.randomUUID(),
+            batchId: fallbackBatchId,
+            studentId: student.id,
+            studentName: student.name,
+            rollNumber: student.id,
+            levelId: student.currentLevel!,
+            sublevelId: `${student.currentLevel}.${subLvl}`,
+            setNum: 1,
+            pdfUrl: result.pdfUrl,
+            answerKey: Object.fromEntries(studentQs.map(q => [q.question_id, q.answer])),
+            coords: {},
+            generatedAt: new Date().toISOString()
+          };
+          await dbStore.addLevelWorksheet(record);
+          console.log(`[Level Batch Gen Log] Fallback generated PDF and ${studentQs.length} questions for ${student.name} (${student.id}).`);
+        } catch (err: any) {
+          console.error(`Fallback generation failed for student ${student.id}:`, err);
+          skipped.push({ studentId: student.id, reason: err.message });
         }
-        console.log(`[Level Batch Gen Log] Optimized PDF fallback complete: ${generated.length} students processed, ${skipped.length} skipped.`);
       }
+      console.log(`[Level Batch Gen Log] Optimized PDF fallback complete: ${generated.length} students processed, ${skipped.length} skipped.`);
 
       const results = generated.map(g => ({
         studentId: g.studentId,
@@ -1357,10 +1462,38 @@ async function startServer() {
     }
   });
 
-  // Streams the raw batch ZIP straight from Levels_backend, for the
-  // "Download Batch ZIP" button. No transformation — pass-through.
+  // Streams the raw batch ZIP straight from Levels_backend or dynamic local ZIP
   app.get('/api/worksheets/download-batch/:batchId', async (req, res) => {
     try {
+      const batchId = req.params.batchId;
+      if (batchId.startsWith('fallback_')) {
+        // Build ZIP dynamically from local files using jszip
+        const JSZip = (await import('jszip')).default;
+        const dynamicZip = new JSZip();
+        
+        const levelWorksheets = await dbStore.getLevelWorksheets();
+        const batchWorksheets = levelWorksheets.filter(lw => lw.batchId === batchId);
+        
+        if (batchWorksheets.length === 0) {
+          return res.status(404).json({ error: 'Local batch worksheets not found.' });
+        }
+        
+        const outputDir = path.join(ROOT_DIR, 'output');
+        for (const lw of batchWorksheets) {
+          const fileName = path.basename(lw.pdfUrl);
+          const filePath = path.join(outputDir, fileName);
+          if (fs.existsSync(filePath)) {
+            const pdfBuffer = fs.readFileSync(filePath);
+            dynamicZip.file(fileName, pdfBuffer);
+          }
+        }
+        
+        const zipBuffer = await dynamicZip.generateAsync({ type: 'nodebuffer' });
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="batch_${batchId}.zip"`);
+        return res.send(zipBuffer);
+      }
+      
       const zipBuffer = await levelsBackendClient.downloadBatchZip(req.params.batchId);
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', `attachment; filename="batch_${req.params.batchId}.zip"`);
