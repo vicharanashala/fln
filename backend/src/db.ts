@@ -336,9 +336,7 @@ export class DBStore {
       } catch (err: any) {
         console.error("❌ MongoDB initialization failed, falling back to file DB:", err.message);
         this.mongoDb = null;
-        // Import or update the exported reference to signal that MongoDB is unavailable
-        const dbModule = await import('./db');
-        dbModule.mongoClient = null;
+        mongoClient = null;
         await this.init(); // recurse to load file DB
       }
     } else {
