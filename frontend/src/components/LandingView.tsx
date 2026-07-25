@@ -1,3 +1,4 @@
+import { apiFetch } from '../services/apiClient';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -54,15 +55,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
     const interval = 2000;
 
     const fetchStats = () => {
-      fetch('/api/stats')
-        .then((r) => {
-          if (!r.ok) throw new Error();
-          return r.json();
-        })
-        .then((d) => {
-          setStats(d);
-          setStatsLoading(false);
-        })
+      apiFetch('/api/stats')
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(d => { setStats(d); setStatsLoading(false); })
         .catch(() => {
           attempts++;
           if (attempts < maxAttempts) {

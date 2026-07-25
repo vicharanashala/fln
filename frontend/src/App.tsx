@@ -1,3 +1,4 @@
+import { apiFetch } from './services/apiClient';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -401,6 +402,35 @@ const RegionalDashboardComponent = (RoleDashboards as any).RegionalAnalyticsView
     setToast(msg);
     window.setTimeout(() => setToast(null), 4000);
   };
+
+  useEffect(() => {
+    const checkSession = async () => {
+      if (!token) return;
+
+      try {
+        const res = await apiFetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) {
+          setToken(null);
+          localStorage.removeItem('fln_token');
+          setCurrentView('home');
+          return;
+        }
+
+        const data = await res.json();
+        setCurrentUser(data.user);
+        setCurrentView('dashboard');
+      } catch {
+        setToken(null);
+        localStorage.removeItem('fln_token');
+        setCurrentView('home');
+      }
+    };
+
+    checkSession();
+  }, [token]);
 
   const handleLoginSuccess = (newToken: string, user: User) => {
     setToken(newToken);

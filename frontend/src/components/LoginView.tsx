@@ -1,3 +1,4 @@
+import { apiFetch } from '../services/apiClient';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -42,50 +43,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
   const loginEmail = customEmail || email;
   const loginPass = customPass || password;
 
-  try {
-    const matchedMockUser = mockUsersList.find(u => u.email === loginEmail);
-
-    if (matchedMockUser) {
-      // 1. Try hitting the backend server first to get a genuine token if it exists
-      try {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: loginEmail, password: loginPass }),
-        });
-
-        if (response.ok) {
-          const serverData = await response.json();
-          
-         let assignedRole = 'TEACHER'; // default fallback
-
-if (loginEmail.includes('superadmin')) {
-  assignedRole = 'SUPERADMIN';
-} else if (loginEmail.includes('admin')) {
-  assignedRole = 'ADMIN';
-} else if (loginEmail.includes('district')) {
-  assignedRole = 'DISTRICT_ADMIN';
-} else if (loginEmail.includes('block')) {
-  assignedRole = 'BLOCK_ADMIN';
-} else if (loginEmail.includes('principal')) {
-  assignedRole = 'PRINCIPAL';
-}
-
-          localStorage.setItem('fln_token', serverData.token);
-          localStorage.setItem('user', JSON.stringify({
-            ...serverData.user,
-            role: assignedRole,
-            stateCode: loginEmail.includes('.pb') ? 'PB' : loginEmail.includes('.hr') ? 'HR' : 'PB',
-            districtCode: loginEmail.includes('ldh') ? 'LDH' : loginEmail.includes('amb') ? 'AMB' : 'LDH'
-          }));
-          localStorage.setItem('currentView', 'dashboard')
-
-          if (typeof login === 'function') login(serverData.user);
-          else window.location.href = '/dashboard';
-          return;
-        }
-      } catch (err) {
-        console.log("Server fallback active for demo profile parsing.");
+    try {
+      const res = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPass })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        onLoginSuccess(data.token, data.user);
+      } else {
+        setError(data.error || 'Invalid email or password');
       }
 
       // 2. Safe Local Fallback: If the user is a demo card profile not yet registered in MongoDB
@@ -241,4 +209,3 @@ if (loginEmail.includes('superadmin')) {
       </div>
     </div>
   );
-};
