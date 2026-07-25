@@ -13,6 +13,7 @@ interface PanelViewsProps {
   currentUser: User;
   token: string;
   onSelectPanel?: (panel: string) => void;
+  selectedStudentId?: string | null;
 }
 
 const STUDENTS_FALLBACK: Student[] = [
@@ -188,7 +189,7 @@ function EmptyStudents({ students }: { students: Student[] }) {
   return <Table data={students} columns={cols} searchPlaceholder="Search students..." searchKey="name" />;
 }
 
-export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectPanel }) => {
+export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectPanel, selectedStudentId }) => {
   const [stateFilter, setStateFilter] = useState('all');
   const [distFilter, setDistFilter] = useState('all');
   const [blockFilter, setBlockFilter] = useState('all');
@@ -205,6 +206,10 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   const [apiStudents, setApiStudents] = useState<Student[]>([]);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
+
+  useEffect(() => {
+    if (selectedStudentId) setSel(selectedStudentId);
+  }, [selectedStudentId]);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
 
   useEffect(() => {

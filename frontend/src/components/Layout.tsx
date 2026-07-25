@@ -22,6 +22,7 @@ interface LayoutProps {
   activeView: string;
   onSelectView: (view: string) => void;
   onSelectPanel: (panel: string) => void;
+  onSelectStudent: (id: string) => void;
   notifications: Announcement[];
   onMarkNotificationRead: (id: string) => void;
   onClearNotifications: () => void;
@@ -36,6 +37,7 @@ export const Layout: React.FC<LayoutProps> = ({
   activeView,
   onSelectView,
   onSelectPanel,
+  onSelectStudent,
   notifications,
   onMarkNotificationRead,
   onClearNotifications,
@@ -347,7 +349,7 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
 
           {/* Global Student Search */}
-          <StudentSearch token={token} onSelectStudent={(id) => { onSelectPanel('student_profile'); }} />
+          <StudentSearch token={token} onSelectStudent={(id) => { onSelectStudent(id); onSelectPanel('student_profile'); }} />
 
           {/* Theme Toggle Button */}
           <button

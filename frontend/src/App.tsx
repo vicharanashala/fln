@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { Announcement, User, UserRole } from './types';
 import CoordinatorRegistration from './pages/CoordinatorRegistration';
@@ -35,6 +35,7 @@ export default function App() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   useKeyboardShortcuts(() => setShowShortcuts(p => !p));
 
@@ -92,13 +93,13 @@ export default function App() {
 
   const handleClearNotifications = () => setAnnouncements([]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setToken(null);
     setCurrentUser(null);
     localStorage.removeItem('fln_token');
     setCurrentView('home');
     navigate('/');
-  };
+  }, [navigate]);
 
   const renderRoleWorkspace = () => {
     if (!currentUser) return null;
@@ -139,6 +140,7 @@ export default function App() {
                 activeView={activePanel}
                 onSelectView={setActivePanel}
                 onSelectPanel={setActivePanel}
+                onSelectStudent={setSelectedStudentId}
                 notifications={announcements}
                 onMarkNotificationRead={handleMarkNotificationRead}
                 onClearNotifications={handleClearNotifications}
@@ -233,7 +235,7 @@ export default function App() {
 
                 {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(activePanel) && (
                   <ErrorBoundary fallbackTitle="Panel Error">
-                    <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectPanel={setActivePanel} />
+                    <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectPanel={setActivePanel} selectedStudentId={selectedStudentId} />
                   </ErrorBoundary>
                 )}
 

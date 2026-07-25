@@ -29,6 +29,9 @@ export const SessionTimeout: React.FC<SessionTimeoutProps> = ({
     return () => events.forEach(e => document.removeEventListener(e, handler));
   }, []);
 
+  const logoutRef = React.useRef(onLogout);
+  logoutRef.current = onLogout;
+
   useEffect(() => {
     const interval = setInterval(() => {
       const elapsed = (Date.now() - lastActivity) / 1000;
@@ -36,13 +39,13 @@ export const SessionTimeout: React.FC<SessionTimeoutProps> = ({
       setRemainingSeconds(remaining);
 
       if (remaining <= 0) {
-        onLogout();
-      } else if (remaining <= warningMinutes * 60 && !showWarning) {
+        logoutRef.current();
+      } else if (remaining <= warningMinutes * 60) {
         setShowWarning(true);
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [lastActivity, timeoutMinutes, warningMinutes, showWarning, onLogout]);
+  }, [lastActivity, timeoutMinutes, warningMinutes]);
 
   if (!showWarning) return null;
 

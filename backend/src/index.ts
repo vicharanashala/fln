@@ -93,22 +93,21 @@ async function startServer() {
 
   // Public stats (no auth required — used by landing page)
   app.get('/api/stats', async (_req, res) => {
-    const db = dbStore.getDb();
-    if (!db) return res.json({ totalStates: 0, totalDistricts: 0, totalSchools: 0, totalStudents: 0, totalAssessments: 0, avgFlnLevel: 0, totalUsers: 0, certifiedCount: 0, certifiedPercent: 0 });
-
-    const [totalSchools, totalStudents, totalUsers, totalAssessments, stateCodes, districtCodes, avgResult, certifiedResult] = await Promise.all([
-      db.collection('schools').countDocuments(),
-      db.collection('students').countDocuments(),
-      db.collection('users').countDocuments(),
-      db.collection('worksheets').countDocuments(),
-      db.collection('schools').distinct('stateCode'),
-      db.collection('schools').distinct('districtCode'),
-      db.collection('students').aggregate([{ $group: { _id: null, avg: { $avg: '$currentLevel' } } }]).toArray(),
-      db.collection('students').aggregate([{ $match: { currentLevel: { $gte: 5 } } }, { $count: 'count' }]).toArray(),
+    const [schools, students, users, worksheets] = await Promise.all([
+      dbStore.getSchools(),
+      dbStore.getStudents(),
+      dbStore.getUsers(),
+      dbStore.getWorksheets(),
     ]);
 
-    const certifiedCount = certifiedResult[0]?.count ?? 0;
-    const avgFlnLevel = totalStudents > 0 ? Math.round(avgResult[0]?.avg ?? 0) : 0;
+    const totalSchools = schools.length;
+    const totalStudents = students.length;
+    const totalUsers = users.length;
+    const totalAssessments = worksheets.length;
+    const stateCodes = [...new Set(schools.map((s: any) => s.stateCode).filter(Boolean))];
+    const districtCodes = [...new Set(schools.map((s: any) => s.districtCode).filter(Boolean))];
+    const avgFlnLevel = totalStudents > 0 ? Math.round(students.reduce((sum: number, s: any) => sum + (s.currentLevel || 0), 0) / totalStudents) : 0;
+    const certifiedCount = students.filter((s: any) => s.currentLevel >= 5).length;
 
     res.json({
       totalStates: stateCodes.length,
