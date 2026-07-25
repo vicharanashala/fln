@@ -4,7 +4,7 @@ import { apiFetch } from './services/apiClient';
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { Announcement, User, UserRole } from './types';
 import CoordinatorRegistration from './pages/CoordinatorRegistration';
@@ -22,7 +22,10 @@ import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
+import { SessionTimeout } from './components/SessionTimeout';
+import { KeyboardShortcuts, useKeyboardShortcuts } from './components/KeyboardShortcuts';
 
 export default function App() {
   const navigate = useNavigate();
@@ -32,6 +35,10 @@ export default function App() {
   const [activePanel, setActivePanel] = useState<string>('workspace');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
+  useKeyboardShortcuts(() => setShowShortcuts(p => !p));
 
   const triggerToast = (msg: string) => {
     setToast(msg);
@@ -87,13 +94,13 @@ export default function App() {
 
   const handleClearNotifications = () => setAnnouncements([]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setToken(null);
     setCurrentUser(null);
     localStorage.removeItem('fln_token');
     setCurrentView('home');
     navigate('/');
-  };
+  }, [navigate]);
 
   const renderRoleWorkspace = () => {
     if (!currentUser) return null;
@@ -129,9 +136,12 @@ export default function App() {
             {currentView === 'dashboard' && currentUser && token && (
               <Layout
                 currentUser={currentUser}
+                token={token}
                 onRoleSwitch={handleRoleSwitch}
                 activeView={activePanel}
                 onSelectView={setActivePanel}
+                onSelectPanel={setActivePanel}
+                onSelectStudent={setSelectedStudentId}
                 notifications={announcements}
                 onMarkNotificationRead={handleMarkNotificationRead}
                 onClearNotifications={handleClearNotifications}
@@ -225,7 +235,9 @@ export default function App() {
                 )}
 
                 {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(activePanel) && (
-                  <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
+                  <ErrorBoundary fallbackTitle="Panel Error">
+                    <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectPanel={setActivePanel} selectedStudentId={selectedStudentId} />
+                  </ErrorBoundary>
                 )}
 
                 {toast && (
@@ -238,6 +250,11 @@ export default function App() {
                 )}
               </Layout>
             )}
+
+            {currentView === 'dashboard' && currentUser && token && (
+              <SessionTimeout timeoutMinutes={30} warningMinutes={5} onLogout={handleLogout} />
+            )}
+            <KeyboardShortcuts visible={showShortcuts} onClose={() => setShowShortcuts(false)} />
           </div>
         }
       />

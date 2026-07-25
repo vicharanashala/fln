@@ -1,15 +1,20 @@
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
-import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { User, UserRole, Student, School, EvaluationReport } from '../types';
+import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, CheckCircle2, XCircle, SlidersHorizontal, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, GraduationCap, BookMarked, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
+import { ReportCardView } from './ReportCardView';
+import { NotFoundView } from './NotFoundView';
+import { SystemHealthPanel } from './SystemHealthPanel';
 
 interface PanelViewsProps {
   activePanel: string;
   currentUser: User;
   token: string;
+  onSelectPanel?: (panel: string) => void;
+  selectedStudentId?: string | null;
 }
 
 const STUDENTS_FALLBACK: Student[] = [
@@ -185,8 +190,7 @@ function EmptyStudents({ students }: { students: Student[] }) {
   return <Table data={students} columns={cols} searchPlaceholder="Search students..." searchKey="name" />;
 }
 
-export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token }) => {
-  const [search, setSearch] = useState('');
+export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectPanel, selectedStudentId }) => {
   const [stateFilter, setStateFilter] = useState('all');
   const [distFilter, setDistFilter] = useState('all');
   const [blockFilter, setBlockFilter] = useState('all');
@@ -203,6 +207,10 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   const [apiStudents, setApiStudents] = useState<Student[]>([]);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
+
+  useEffect(() => {
+    if (selectedStudentId) setSel(selectedStudentId);
+  }, [selectedStudentId]);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -437,6 +445,10 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                 <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 <span className="flex-1 truncate">{s.name}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              <button onClick={() => { setSel(s.id); onSelectPanel?.('report_card'); }} className="ml-2 flex items-center gap-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 px-3 py-2 text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors cursor-pointer">
+                <FileText className="w-3 h-3" />
+                Report Card
               </button>
               {showDropdown && (
                 <>
@@ -872,6 +884,21 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           </div>
         )}
       </div>
+    );
+  }
+
+  if (panel === 'report_card') {
+    const s = students.find(x => x.id === sel) ?? students[0];
+    if (!s) return <NotFoundView onNavigateHome={() => onSelectPanel?.('workspace')} />;
+    const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
+    const studentSchool = schools.find(sch => sch.id === s.schoolId);
+    return (
+      <ReportCardView
+        student={s}
+        reports={reports}
+        schoolName={studentSchool?.name || 'Government Primary School'}
+        onBack={() => onSelectPanel?.('student_profile')}
+      />
     );
   }
 
@@ -1493,6 +1520,10 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
+  if (panel === 'system_health') {
+    return <SystemHealthPanel token={token} />;
+  }
+
   if (panel === 'system_settings') {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1527,6 +1558,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  // Fallback for any unmatched panel — renders the roles workspace (dashboard) as the content
-  return null;
+  // Fallback for any unmatched panel
+  return <NotFoundView onNavigateHome={() => onSelectPanel?.('workspace')} />;
 };
