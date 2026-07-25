@@ -25,13 +25,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
 
   const mockUsersList = [
     { label: 'Superadmin', email: 'superadmin@fln.org', pass: 'Fln@2026' },
-    { label: 'AP State Admin', email: 'admin.ap@fln.org', pass: 'Fln@2026' },
-    { label: 'Guntur District', email: 'district.gnt@fln.org', pass: 'Fln@2026' },
-    { label: 'Guntur Block', email: 'block.gnt_01@fln.org', pass: 'Fln@2026' },
-    { label: 'School Principal', email: 'school.ap_gnt_gnt_01_01@fln.org', pass: 'Fln@2026' },
-    { label: 'Class 2 Teacher', email: 'teacher.ap_gnt_gnt_01_01.c2@fln.org', pass: 'Fln@2026' },
-    { label: 'Class 3 Teacher', email: 'teacher.ap_gnt_gnt_01_01.c3@fln.org', pass: 'Fln@2026' },
-    { label: 'Volunteer', email: 'vol.ap_gnt_gnt_01_03@fln.org', pass: 'Fln@2026' },
+    { label: 'Punjab State Admin', email: 'admin.pb@fln.org', pass: 'Fln@2026' },
+    { label: 'Ludhiana District', email: 'district.ldh@fln.org', pass: 'Fln@2026' },
+    { label: 'Ludhiana Block', email: 'block.ldh-01@fln.org', pass: 'Fln@2026' },
+    { label: 'School Principal', email: 'gps-mt-001@fln.org', pass: 'Fln@2026' },
+    { label: 'Teacher', email: 'gps-mt-001.t01@fln.org', pass: 'Fln@2026' },
+    { label: 'Volunteer', email: 'vol.rahul@fln.org', pass: 'Fln@2026' },
+    { label: 'School Admin (2)', email: 'gps-amb-003@fln.org', pass: 'Fln@2026' },
   ];
 
   const handleLogin = async (e?: React.FormEvent, customEmail?: string, customPass?: string) => {
