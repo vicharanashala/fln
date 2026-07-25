@@ -52,41 +52,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
       const data = await res.json();
       if (res.ok) {
         onLoginSuccess(data.token, data.user);
+        return;
       } else {
         setError(data.error || 'Invalid email or password');
       }
-
-      // 2. Safe Local Fallback: If the user is a demo card profile not yet registered in MongoDB
-      let assignedRole = 'TEACHER';
-      if (loginEmail.includes('superadmin')) assignedRole = 'SUPERADMIN';
-      else if (loginEmail.includes('admin')) assignedRole = 'ADMIN';
-
-      const mockUserData = {
-        email: loginEmail,
-        role: assignedRole,
-        name: matchedMockUser.label || 'Demo User',
-        stateCode: loginEmail.includes('.pb') ? 'PB' : loginEmail.includes('.hr') ? 'HR' : 'PB',
-        districtCode: loginEmail.includes('ldh') ? 'LDH' : loginEmail.includes('amb') ? 'AMB' : 'LDH'
-      };
-
-      // Set the standard tracking keys so components don't crash
-      localStorage.setItem('fln_token', `mock-token-${loginEmail}`);
-      localStorage.setItem('user', JSON.stringify(mockUserData));
-      localStorage.setItem('currentView', 'dashboard');
-
-      if (typeof login === 'function') {
-        login(mockUserData);
-      } else {
-        window.location.href = '/dashboard';
-      }
+    } catch (error) {
+      console.error("Authentication Error:", error);
+      setError("Failed connecting to the backend server.");
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Authentication Error:", error);
-    setError("Failed connecting to the backend server.");
-  } finally {
-    setLoading(false);
-  }
-};
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12 transition-colors duration-200">
       
@@ -209,3 +184,5 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
       </div>
     </div>
   );
+};
+};
