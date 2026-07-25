@@ -1,3 +1,4 @@
+import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Student, School, EvaluationReport } from '../types';
 import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, CheckCircle2, XCircle, SlidersHorizontal, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, GraduationCap, BookMarked, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
@@ -214,9 +215,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${token}` };
-    fetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
-    fetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
-    fetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
+    apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
+    apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
+    apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
   }, [token]);
 
   const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
