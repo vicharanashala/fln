@@ -121,7 +121,8 @@ async function startServer() {
 
     // Check if the user is preloaded
     const users = await dbStore.getUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const cleanEmail = email.trim().toLowerCase();
+    const user = users.find(u => u.email.toLowerCase() === cleanEmail);
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -144,6 +145,69 @@ async function startServer() {
       token,
       user: sanitizeUser(user)
     });
+  });
+
+  // Auth: Forgot Password
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const users = await dbStore.getUsers();
+    const cleanEmail = email.trim().toLowerCase();
+    const user = users.find(u => u.email.toLowerCase() === cleanEmail);
+
+    if (!user) {
+      // Don't leak whether user exists or not
+      return res.json({ success: true, message: 'If an account exists, a reset link will be sent.' });
+    }
+
+    const crypto = require('crypto');
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = Date.now() + 3600000; // 1 hour
+
+    await dbStore.updateUser(user.id, { resetToken, resetTokenExpiry });
+
+    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+    console.log(`\n======================================================`);
+    console.log(`🔑 PASSWORD RESET REQUESTED FOR: ${user.email}`);
+    console.log(`🔗 RESET LINK: ${resetLink}`);
+    console.log(`======================================================\n`);
+
+    return res.json({ success: true, message: 'If an account exists, a reset link will be sent.' });
+  });
+
+  // Auth: Reset Password
+  app.post('/api/auth/reset-password', async (req, res) => {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    // Verify Password complexity (§3.2 A-3)
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    if (password.length < 8 || !hasUppercase || !hasNumber || !hasSpecial) {
+      return res.status(400).json({ error: 'Password does not meet complexity requirements. Must be >= 8 chars and contain uppercase, digit, and special char.' });
+    }
+
+    const users = await dbStore.getUsers();
+    const user = users.find(u => u.resetToken === token && u.resetTokenExpiry && u.resetTokenExpiry > Date.now());
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired password reset token' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await dbStore.updateUser(user.id, { 
+      passwordHash, 
+      resetToken: undefined, 
+      resetTokenExpiry: undefined 
+    });
+
+    return res.json({ success: true, message: 'Password has been successfully reset' });
   });
 
   // Auth: Me
@@ -291,6 +355,8 @@ async function startServer() {
       return res.status(400).json({ error: 'User with this email already exists.' });
     }
 
+    const passwordHash = await bcrypt.hash(password, 10);
+
     const newUser: User = {
       id: 'u_' + Math.random().toString(36).substr(2, 9),
       name,
@@ -300,7 +366,8 @@ async function startServer() {
       districtCode: districtCode ? districtCode.toUpperCase() : undefined,
       blockCode: blockCode ? blockCode.toUpperCase() : undefined,
       schoolId: schoolId || undefined,
-      assignedSchools: assignedSchools || undefined
+      assignedSchools: assignedSchools || undefined,
+      passwordHash
     };
 
     await dbStore.addUser(newUser);

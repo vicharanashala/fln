@@ -54,6 +54,8 @@ export interface User {
   assignedSchools?: string[]; // for Volunteers
   delayedAttemptsCount?: number;
   isBanned?: boolean;
+  resetToken?: string;
+  resetTokenExpiry?: number;
 }
 
 export interface School {
@@ -292,6 +294,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   students: 'students',
   questions: 'questions',
   worksheets: 'worksheets',
+  levelWorksheets: 'levelWorksheets',
   answerSubmissions: 'answer_submissions',
   evaluationReports: 'evaluation_reports',
   tickets: 'tickets',

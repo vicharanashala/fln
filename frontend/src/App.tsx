@@ -10,6 +10,8 @@ import { Announcement, User, UserRole } from './types';
 import CoordinatorRegistration from './pages/CoordinatorRegistration';
 import { LandingView } from './components/LandingView';
 import { LoginView } from './components/LoginView';
+import { ForgotPasswordView } from './components/ForgotPasswordView';
+import { ResetPasswordView } from './components/ResetPasswordView';
 import { Layout } from './components/Layout';
 import {
   SuperadminDashboard,
@@ -96,19 +98,19 @@ export default function App() {
   };
 
   const renderRoleWorkspace = () => {
-    if (!currentUser) return null;
+    if (!currentUser || !token) return null;
 
     switch (currentUser.role) {
       case 'superadmin':
-        return <SuperadminDashboard user={currentUser} />;
+        return <SuperadminDashboard user={currentUser} token={token} />;
       case 'admin':
-        return <AdminDashboard user={currentUser} />;
+        return <AdminDashboard user={currentUser} token={token} />;
       case 'school':
-        return <SchoolDashboard user={currentUser} />;
+        return <SchoolDashboard user={currentUser} token={token} />;
       case 'teacher':
-        return <TeacherDashboard user={currentUser} />;
+        return <TeacherDashboard user={currentUser} token={token} />;
       case 'volunteer':
-        return <VolunteerDashboard user={currentUser} />;
+        return <VolunteerDashboard user={currentUser} token={token} />;
       default:
         return <div />;
     }
@@ -118,6 +120,8 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="/forgot-password" element={<ForgotPasswordView onBackToLogin={() => { navigate('/'); setCurrentView('login'); }} />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordView onBackToLogin={() => { navigate('/'); setCurrentView('login'); }} />} />
       <Route path="/register-coordinator" element={<CoordinatorRegistration />} />
       <Route
         path="*"
