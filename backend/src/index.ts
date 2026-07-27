@@ -8,7 +8,7 @@ import { dbStore, connectDB, UserRole, User, Student, School, Question, Workshee
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel, generateMultiTopicQuestions } from './levelGenerator';
-import { updateConceptMastery, getReinforcementQuestions, getWorksheetComposition, mixWorksheetQuestions, getReinforcementDebugInfo } from './reinforcementEngine';
+import { updateConceptMastery, getReinforcementQuestions, getReinforcementQuestionsWithDebug, getWorksheetComposition, mixWorksheetQuestions, getReinforcementDebugInfo } from './reinforcementEngine';
 import { WORKSHEET_TOTAL_QUESTIONS } from './conceptMastery';
 import { selectPlacedStudents } from './worksheetBatch';
 import * as levelsBackendClient from './levelsBackendClient';
@@ -1437,41 +1437,19 @@ async function startServer() {
           const subLvl = student.currentSubLevel || 0;
           const usedTexts = await getUsedQuestionsForStudent(student.id);
           
-          // ── Reinforcement Debug Logging ─────────────────────────
-          const debugInfo = await getReinforcementDebugInfo(student.id, student.currentLevel!, dbStore);
-          
-          console.log(`\n╔══════════════════════════════════════════════════════════════`);
-          console.log(`║ [RL DEBUG] Student: ${student.name} (${student.id})`);
-          console.log(`║ Current Level: ${student.currentLevel}.${subLvl}`);
-          console.log(`║ Weak Concepts: ${debugInfo.weakConcepts.length}`);
-          for (const wc of debugInfo.weakConcepts) {
-            console.log(`║   ┌─ Topic: ${wc.topic}`);
-            console.log(`║   │  Mastery: ${wc.masteryPct}% (${wc.status})`);
-            console.log(`║   │  Reinforcement Active: ${wc.isReinforcementActive ? 'YES' : 'NO'}`);
-            console.log(`║   │  Triggered At Level: ${wc.reinforcementTriggeredAtLevel ?? 'N/A'}`);
-            console.log(`║   │  Next Reinf. Level: ${wc.nextReinforcementLevel ?? 'N/A'} (must be trigger+2, never immediate next)`);
-            console.log(`║   │  Eligible Now: ${wc.reinforcementEligible ? 'YES' : 'NO'}`);
-            console.log(`║   │  Reason: ${wc.eligibilityReason}`);
-            console.log(`║   └─ Questions to Inject: ${wc.questionsToInject}`);
-          }
-          console.log(`║ Total Reinforcement Questions: ${debugInfo.totalReinforcementQuestions}`);
-          console.log(`║ Has Active Reinforcement: ${debugInfo.hasActiveReinforcement ? 'YES' : 'NO'}`);
-          console.log(`╚══════════════════════════════════════════════════════════════\n`);
-          // ── End Debug Logging ───────────────────────────────────
-          
-          // ── WORKSHEET COMPOSITION ─────────────────────────────────
-          // Dynamic: 0 weak → 5 normal, 1 weak → 4+1, 2 weak → 3+2, 3+ weak → 2+3
-          
           // Generate pool of normal questions for dedup
           const poolQs = generateFreshMultiTopicQuestions(student.currentLevel!, subLvl, WORKSHEET_TOTAL_QUESTIONS, usedTexts);
           const worksheetQuestionTexts = new Set<string>(
             poolQs.map(q => q.question.trim().toLowerCase())
           );
 
-          // Get reinforcement questions (0-3 based on weak concept count & frequency rules)
+          // Get reinforcement questions AND synchronized debug info in ONE ATOMIC CALL!
           let reinfQs: Question[] = [];
+          let debugInfo: any = null;
           try {
-            reinfQs = await getReinforcementQuestions(student.id, student.currentLevel!, dbStore, usedTexts, worksheetQuestionTexts);
+            const res = await getReinforcementQuestionsWithDebug(student.id, student.currentLevel!, dbStore, usedTexts, worksheetQuestionTexts);
+            reinfQs = res.questions;
+            debugInfo = res.debugInfo;
           } catch (reinfErr) {
             console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
           }

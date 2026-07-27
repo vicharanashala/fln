@@ -253,3 +253,28 @@ test('score ≥80% → no reinforcement questions returned', async () => {
   const q = await getReinforcementQuestions('student_high', 5, dbStore);
   assert.equal(q.length, 0, 'Score ≥80% should not return reinforcement questions');
 });
+
+test('concept with 84% mastery (e.g. Number Operations 84%) is de-activated, NOT eligible, and returns 0 reinforcement questions', async () => {
+  const dbStore = {
+    addLog: async () => {},
+    upsertConceptMasteryProfile: async () => {},
+    getConceptMasteryProfile: async () => ({
+      id: 'profile_num_op_84', studentId: 'student_num_op_84', updatedAt: '', concepts: [{
+        topic: 'Number Operations', totalAttempts: 10, correctCount: 8, masteryPct: 84,
+        status: 'Strong', lastAssessedAt: '', consecutiveMasteryCount: 1,
+        reinforcementTriggeredAtLevel: 3, isReinforcementActive: true
+      }]
+    })
+  } as any;
+
+  const { questions, debugInfo } = await (await import('./reinforcementEngine')).getReinforcementQuestionsWithDebug('student_num_op_84', 5, dbStore);
+  
+  assert.equal(questions.length, 0, 'No reinforcement question should be returned for 84% concept');
+  assert.equal(debugInfo.totalReinforcementQuestions, 0);
+  
+  const numOpConcept = debugInfo.weakConcepts.find(c => c.topic === 'Number Operations');
+  assert.ok(numOpConcept, 'Number Operations concept should be in debugInfo snapshot');
+  assert.equal(numOpConcept.isReinforcementActive, false, 'isReinforcementActive must be set to false for 84%');
+  assert.equal(numOpConcept.reinforcementEligible, false, 'reinforcementEligible must be set to false for 84%');
+  assert.equal(numOpConcept.questionsToInject, 0, 'questionsToInject must be 0 for 84%');
+});

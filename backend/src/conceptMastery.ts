@@ -78,8 +78,8 @@ export const MASTERY_CONSECUTIVE_THRESHOLD = 2;
 /** Below this mastery percentage → reinforce EVERY worksheet */
 export const REINF_EVERY_WORKSHEET_THRESHOLD = 40;
 
-/** Below this mastery percentage (but ≥ REINF_EVERY_WORKSHEET_THRESHOLD) → reinforce every ALTERNATE worksheet */
-export const REINF_ALTERNATE_WORKSHEET_THRESHOLD = 70;
+/** Below this mastery percentage (but ≥ REINF_EVERY_WORKSHEET_THRESHOLD) → reinforce every ALTERNATE worksheet. Score ≥ 80% is Mastered (Stop). */
+export const REINF_ALTERNATE_WORKSHEET_THRESHOLD = 80;
 
 // ── Worksheet composition ───────────────────────────────────────────
 
