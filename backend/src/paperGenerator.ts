@@ -273,8 +273,15 @@ export async function generateLevelWorksheet({
   // If questions are not passed, generate them
   const qs = questions || generateMultiTopicQuestions(levelId, subIdx, 5);
 
-  let currentY = height - 160;
-  qs.slice(0, 4).forEach((q, idx) => {
+  // Render all questions (4 normal + extra reinforcement questions if present)
+  const isCompact = qs.length > 4;
+  const lineSpacing = isCompact ? 12 : 14;
+  const fontSize = isCompact ? 8.5 : 9.5;
+  const boxHeight = isCompact ? 18 : 20;
+  const boxGap = isCompact ? 16 : 30;
+
+  let currentY = height - 150;
+  qs.forEach((q, idx) => {
     // Check if this is a reinforcement question
     const isReinforcement = q.subtopic === 'Reinforcement' || q.question_id.includes('REINF');
     
@@ -282,8 +289,8 @@ export async function generateLevelWorksheet({
     if (isReinforcement) {
       page.drawText(sanitizeForPdf(`[Reinforcement - ${q.topic}]`), {
         x: 50,
-        y: currentY + 10,
-        size: 7,
+        y: currentY + (isCompact ? 8 : 10),
+        size: isCompact ? 6.5 : 7,
         font: boldFont,
         color: rgb(0.4, 0.2, 0.8), // Purple for reinforcement
       });
@@ -311,25 +318,25 @@ export async function generateLevelWorksheet({
     lines.forEach((l, lIdx) => {
       page.drawText(sanitizeForPdf(l), {
         x: 50,
-        y: currentY - (lIdx * 14),
-        size: 9.5,
+        y: currentY - (lIdx * lineSpacing),
+        size: fontSize,
         font: boldFont,
         color: isReinforcement ? rgb(0.4, 0.2, 0.8) : rgb(0.15, 0.15, 0.15),
       });
     });
 
-    const boxY = currentY - (lines.length * 14) - 25;
+    const boxY = currentY - (lines.length * lineSpacing) - (isCompact ? 18 : 25);
     page.drawRectangle({
       x: 50,
       y: boxY,
       width: 150,
-      height: 20,
+      height: boxHeight,
       color: rgb(1, 1, 1),
       borderColor: isReinforcement ? rgb(0.4, 0.2, 0.8) : rgb(0.7, 0.7, 0.7),
       borderWidth: 1,
     });
 
-    currentY = boxY - 30;
+    currentY = boxY - boxGap;
   });
 
   page.drawText(sanitizeForPdf(`Student ID: ${studentId} - Page 1 of 1`), {

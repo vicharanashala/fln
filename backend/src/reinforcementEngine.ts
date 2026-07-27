@@ -320,21 +320,7 @@ export function getReinforcementQuestionCount(masteryPct: number): number {
 
 export function mixWorksheetQuestions(currentQuestions: Question[], reinforcementQuestions: Question[]): Question[] {
   if (reinforcementQuestions.length === 0) return currentQuestions;
-  const mixed: Question[] = [];
-  const reinforcementEvery = Math.max(1, Math.ceil(currentQuestions.length / (reinforcementQuestions.length + 1)));
-  let reinforcementIndex = 0;
-
-  currentQuestions.forEach((question, index) => {
-    mixed.push(question);
-    if ((index + 1) % reinforcementEvery === 0 && reinforcementIndex < reinforcementQuestions.length) {
-      mixed.push(reinforcementQuestions[reinforcementIndex++]);
-    }
-  });
-
-  while (reinforcementIndex < reinforcementQuestions.length) {
-    mixed.push(reinforcementQuestions[reinforcementIndex++]);
-  }
-  return mixed;
+  return [...currentQuestions, ...reinforcementQuestions];
 }
 
 /**

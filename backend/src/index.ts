@@ -1309,11 +1309,7 @@ async function startServer() {
         console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
       }
       
-      const subLvl = student.currentSubLevel || 0;
-      const WORKSHEET_SIZE = 4;
-      const reinfCount = Math.min(reinfQs.length, WORKSHEET_SIZE - 1);
-      const normalCount = WORKSHEET_SIZE - reinfCount;
-      
+      const normalCount = 4;
       const qs = generateFreshMultiTopicQuestions(student.currentLevel, subLvl, normalCount, usedTexts);
       
       let studentQs: Question[] = qs.map(q => ({
@@ -1322,16 +1318,14 @@ async function startServer() {
         question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
       }));
 
-      if (reinfCount > 0) {
-        const mappedReinforcement = reinfQs.slice(0, reinfCount).map(q => ({
+      if (reinfQs.length > 0) {
+        const mappedReinforcement = reinfQs.map(q => ({
             ...q,
             question_id: `${student.id}_REINF_${q.question_id}`,
             question: `[For ${student.name}] [Reinforcement - ${q.topic}] ${q.question}`
           }));
         studentQs = mixWorksheetQuestions(studentQs, mappedReinforcement);
       }
-      
-      studentQs = studentQs.slice(0, WORKSHEET_SIZE);
 
       const result = await generateLevelWorksheet({
         studentId: student.id,
@@ -1440,13 +1434,10 @@ async function startServer() {
             console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
           }
           
-          // ── FIXED WORKSHEET SIZE: Always exactly 4 questions ──────
-          // Reinforcement questions REPLACE normal questions, not add to them.
-          const WORKSHEET_SIZE = 4;
-          const reinfCount = Math.min(reinfQs.length, WORKSHEET_SIZE - 1); // Leave at least 1 normal Q
-          const normalCount = WORKSHEET_SIZE - reinfCount;
-          
-          console.log(`[RL WORKSHEET] ${student.name}: ${normalCount} normal + ${reinfCount} reinforcement = ${WORKSHEET_SIZE} total questions`);
+          // ── WORKSHEET COMPOSITION ─────────────────────────────────
+          // Always keep all 4 normal level questions unchanged and append reinforcement questions as EXTRA.
+          const normalCount = 4;
+          console.log(`[RL WORKSHEET] ${student.name}: 4 normal + ${reinfQs.length} reinforcement = ${4 + reinfQs.length} total questions`);
           
           const qs = generateFreshMultiTopicQuestions(student.currentLevel!, subLvl, normalCount, usedTexts);
           
@@ -1456,19 +1447,15 @@ async function startServer() {
             question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
           }));
 
-          // Map and append reinforcement questions (they replace normal Qs, not add)
-          if (reinfCount > 0) {
-            const mappedReinforcement = reinfQs.slice(0, reinfCount).map(q => ({
+          // Map and append reinforcement questions as EXTRA questions at the end
+          if (reinfQs.length > 0) {
+            const mappedReinforcement = reinfQs.map(q => ({
                 ...q,
                 question_id: `${student.id}_REINF_${q.question_id}`,
                 question: `[For ${student.name}] [Reinforcement - ${q.topic}] ${q.question}`
               }));
-            // Interleave reinforcement with normal questions
             studentQs = mixWorksheetQuestions(studentQs, mappedReinforcement);
           }
-          
-          // Safety: trim to exactly WORKSHEET_SIZE
-          studentQs = studentQs.slice(0, WORKSHEET_SIZE);
 
           // ── Log final concept distribution ──────────────────────
           const conceptDist: { [topic: string]: { normal: number; reinforcement: number } } = {};

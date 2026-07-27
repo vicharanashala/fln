@@ -82,24 +82,22 @@ async function runE2EVerification() {
   console.log(`\n  Reinforcement Questions Retrieved (${reinfQs.length}):`);
   reinfQs.forEach(q => console.log(`    - [${q.topic}] ${q.question}`));
 
-  const WORKSHEET_SIZE = 4;
-  const reinfCount = Math.min(reinfQs.length, 1); // 1 out of 4 (25%)
-  const normalCount = WORKSHEET_SIZE - reinfCount;
+  const normalCount = 4; // Always 4 normal level questions
 
-  // Generate 3 new Level 17 questions (75%)
-  const newL17Qs = generateQuestionsForLevel(nextLevel, 0).slice(0, normalCount).map(q => ({
+  // Generate 4 new Level 16 questions
+  const newL16Qs = generateQuestionsForLevel(nextLevel, 0).slice(0, normalCount).map(q => ({
     ...q,
     question_id: `${studentId}_${q.question_id}`,
     question: `[For ${studentName} - L${nextLevel}.0] ${q.question}`
   }));
 
-  const mappedReinf = reinfQs.slice(0, reinfCount).map(q => ({
+  const mappedReinf = reinfQs.map(q => ({
     ...q,
     question_id: `${studentId}_REINF_${q.question_id}`,
     question: `[For ${studentName}] [Reinforcement - ${q.topic}] ${q.question}`
   }));
 
-  const finalQs = mixWorksheetQuestions(newL17Qs, mappedReinf).slice(0, WORKSHEET_SIZE);
+  const finalQs = mixWorksheetQuestions(newL16Qs, mappedReinf);
 
   console.log(`\nStep 5: Final Worksheet Questions (${finalQs.length} total):`);
   finalQs.forEach((q, idx) => {
@@ -113,9 +111,9 @@ async function runE2EVerification() {
 
   console.log('\n====================================================');
   console.log('VERIFICATION RESULTS:');
-  console.log(`  Total Worksheet Questions: ${finalQs.length} (Expected: 4)`);
-  console.log(`  Normal Level ${nextLevel} Questions: ${normalInjected} (Expected: 3 = 75%)`);
-  console.log(`  Reinforcement Questions: ${reinfInjected} (Expected: 1 = 25%)`);
+  console.log(`  Total Worksheet Questions: ${finalQs.length} (Expected: 5 = 4 normal + 1 reinf)`);
+  console.log(`  Normal Level ${nextLevel} Questions: ${normalInjected} (Expected: 4)`);
+  console.log(`  Reinforcement Questions: ${reinfInjected} (Expected: 1 extra)`);
   
   // Check no duplication
   let duplicated = false;
@@ -127,7 +125,7 @@ async function runE2EVerification() {
     }
   });
 
-  if (finalQs.length === 4 && reinfInjected === 1 && normalInjected === 3 && !duplicated) {
+  if (finalQs.length === 5 && reinfInjected === 1 && normalInjected === 4 && !duplicated) {
     console.log('SUCCESS: All reinforcement requirements satisfied perfectly!');
   } else {
     console.error('FAILURE: Verification checks failed.');

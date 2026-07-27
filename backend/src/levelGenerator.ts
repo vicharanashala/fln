@@ -210,8 +210,9 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
         break;
 
       case 16:
-        const add16A = adjust(randomVal(15, 20), randomVal(10, 14), randomVal(5, 9));
-        const add16B = adjust(randomVal(8, 10), randomVal(4, 7), randomVal(2, 4));
+        topic = 'Number Operations';
+        const add16A = adjust(randomVal(12, 18), randomVal(8, 12), randomVal(4, 7)) + (qIdx * 2);
+        const add16B = adjust(randomVal(5, 8), randomVal(3, 5), randomVal(1, 3)) + qIdx;
         questionText = `Solve: ${add16A} + ${add16B} = ?`;
         answerText = String(add16A + add16B);
         break;

@@ -29,11 +29,11 @@ test('provides reinforcement questions immediately on the first worksheet after 
   assert.equal((await getReinforcementQuestions('student', 6, dbStore)).length, 1);
 });
 
-test('interleaves reinforcement with current-level questions', () => {
-  const current = [1, 2, 3].map(index => ({ question_id: `current-${index}`, topic: 'Current', question: '', answer: '', source_level: 1 } as any));
+test('appends reinforcement questions to current-level questions without replacing them', () => {
+  const current = [1, 2, 3, 4].map(index => ({ question_id: `current-${index}`, topic: 'Current', question: '', answer: '', source_level: 1 } as any));
   const reinforcement = [1].map(index => ({ question_id: `reinf-${index}`, topic: 'Weak', question: '', answer: '', source_level: 1 } as any));
   const mixed = mixWorksheetQuestions(current, reinforcement);
-  assert.deepEqual(mixed.map(question => question.question_id), ['current-1', 'current-2', 'reinf-1', 'current-3']);
+  assert.deepEqual(mixed.map(question => question.question_id), ['current-1', 'current-2', 'current-3', 'current-4', 'reinf-1']);
 });
 
 test('verifies adaptive reinforcement rules end-to-end', async () => {
@@ -58,23 +58,24 @@ test('verifies adaptive reinforcement rules end-to-end', async () => {
   const questionsAtL17 = await getReinforcementQuestions('student_reinf_verify', 17, dbStore);
   assert.equal(questionsAtL17.length, 1, 'Should add 1 reinforcement question at level 17');
 
-  // Normal level questions are mixed (3 normal L17 + 1 reinforcement = 4 total).
+  // Normal level questions remain unchanged and reinforcement question is added as EXTRA (4 normal L17 + 1 reinforcement = 5 total).
   const normalQuestions = [
     { question_id: 'q1', topic: 'Addition', question: 'Addition Q1', answer: '1', source_level: 17 } as any,
     { question_id: 'q2', topic: 'Addition', question: 'Addition Q2', answer: '2', source_level: 17 } as any,
     { question_id: 'q3', topic: 'Addition', question: 'Addition Q3', answer: '3', source_level: 17 } as any,
+    { question_id: 'q4', topic: 'Addition', question: 'Addition Q4', answer: '4', source_level: 17 } as any,
   ];
   
   const mixedWorksheet = mixWorksheetQuestions(normalQuestions, questionsAtL17);
-  assert.equal(mixedWorksheet.length, 4, 'Worksheet should contain 3 normal + 1 reinforcement question = 4 total (25% reinf)');
-  assert.ok(mixedWorksheet.some(q => q.topic === 'Addition'), 'Normal Level 17 questions must still be present');
-  assert.ok(mixedWorksheet.some(q => q.topic === 'Number Sense'), 'Reinforcement questions must be present');
+  assert.equal(mixedWorksheet.length, 5, 'Worksheet should contain 4 normal + 1 reinforcement question = 5 total');
+  assert.equal(mixedWorksheet.filter(q => q.topic === 'Addition').length, 4, 'All 4 normal Level 17 questions must be kept unchanged');
+  assert.ok(mixedWorksheet.some(q => q.topic === 'Number Sense'), 'Reinforcement questions must be present as extra');
 
   const distribution: Record<string, number> = {};
   mixedWorksheet.forEach(q => {
     distribution[q.topic] = (distribution[q.topic] || 0) + 1;
   });
   console.log('\n[RL TEST VERIFY] Verification Success:');
-  console.log(`  Normal Concept (Addition): ${distribution['Addition']} questions (75%)`);
-  console.log(`  Reinforcement Concept (Number Sense): ${distribution['Number Sense']} questions (25%)`);
+  console.log(`  Normal Concept (Addition): ${distribution['Addition']} questions`);
+  console.log(`  Reinforcement Concept (Number Sense): ${distribution['Number Sense']} questions`);
 });
