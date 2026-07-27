@@ -209,3 +209,23 @@ test('mixWorksheetQuestions filters out reinforcement questions that duplicate n
   assert.equal(mixed.length, 2, 'Duplicate reinforcement question should be filtered out');
   assert.deepEqual(mixed.map(q => q.question_id), ['current-1', 'current-2']);
 });
+
+test('getReinforcementDebugInfo is read-only and does not mutate profile in DB', async () => {
+  let profileSaved = false;
+  const dbStore = {
+    addLog: async () => {},
+    upsertConceptMasteryProfile: async () => { profileSaved = true; },
+    getConceptMasteryProfile: async () => ({
+      id: 'profile_ro', studentId: 'student_ro', updatedAt: '', concepts: [{
+        topic: 'Number Sense', totalAttempts: 10, correctCount: 2, masteryPct: 20,
+        status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0,
+        reinforcementTriggeredAtLevel: 4, isReinforcementActive: true,
+        reinforcementLevelsCompleted: 0, lastReinforcementSkipped: false, needsTeacherIntervention: false
+      }]
+    })
+  } as any;
+
+  const debug = await (await import('./reinforcementEngine')).getReinforcementDebugInfo('student_ro', 5, dbStore);
+  assert.equal(profileSaved, false, 'getReinforcementDebugInfo must not mutate DB profile');
+  assert.equal(debug.weakConcepts[0].questionsToInject, 1);
+});

@@ -272,7 +272,8 @@ export async function getReinforcementQuestionsWithDebug(
   currentLevel: number,
   dbStore: DBStore,
   excludeTexts?: Set<string>,
-  worksheetQuestionTexts?: Set<string>
+  worksheetQuestionTexts?: Set<string>,
+  readOnly: boolean = false
 ): Promise<{ questions: Question[]; debugInfo: ReinforcementDebugInfo }> {
   const profile = await dbStore.getConceptMasteryProfile(studentId);
   
@@ -545,7 +546,7 @@ export async function getReinforcementQuestionsWithDebug(
     });
   }
 
-  if (profileChanged) {
+  if (profileChanged && !readOnly) {
     profile.updatedAt = new Date().toISOString();
     await dbStore.upsertConceptMasteryProfile(profile);
   }
@@ -564,7 +565,7 @@ export async function getReinforcementQuestions(
   excludeTexts?: Set<string>,
   worksheetQuestionTexts?: Set<string>
 ): Promise<Question[]> {
-  const { questions } = await getReinforcementQuestionsWithDebug(studentId, currentLevel, dbStore, excludeTexts, worksheetQuestionTexts);
+  const { questions } = await getReinforcementQuestionsWithDebug(studentId, currentLevel, dbStore, excludeTexts, worksheetQuestionTexts, false);
   return questions;
 }
 
@@ -573,7 +574,7 @@ export async function getReinforcementDebugInfo(
   currentLevel: number,
   dbStore: DBStore
 ): Promise<ReinforcementDebugInfo> {
-  const { debugInfo } = await getReinforcementQuestionsWithDebug(studentId, currentLevel, dbStore);
+  const { debugInfo } = await getReinforcementQuestionsWithDebug(studentId, currentLevel, dbStore, undefined, undefined, true);
   return debugInfo;
 }
 

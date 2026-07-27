@@ -1336,10 +1336,13 @@ async function startServer() {
         poolQs.map(q => q.question.trim().toLowerCase())
       );
 
-      // Get reinforcement questions (0-3 based on weak concept count & frequency rules)
+      // Get reinforcement questions AND synchronized debug info in ONE ATOMIC CALL!
       let reinfQs: Question[] = [];
+      let rawDebugInfo: any = null;
       try {
-        reinfQs = await getReinforcementQuestions(student.id, student.currentLevel, dbStore, usedTexts, worksheetQuestionTexts);
+        const resObj = await getReinforcementQuestionsWithDebug(student.id, student.currentLevel, dbStore, usedTexts, worksheetQuestionTexts);
+        reinfQs = resObj.questions;
+        rawDebugInfo = resObj.debugInfo;
       } catch (reinfErr) {
         console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
       }
@@ -1386,7 +1389,6 @@ async function startServer() {
         }
       });
 
-      const rawDebugInfo = await getReinforcementDebugInfo(student.id, student.currentLevel, dbStore);
       const debugInfo = {
         ...rawDebugInfo,
         currentLevelConcepts: Object.entries(conceptDist)
