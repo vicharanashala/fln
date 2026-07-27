@@ -16,7 +16,7 @@ export interface ConceptScore {
   /** Rolling mastery percentage (0-100), weighted toward recent results */
   masteryPct: number;
   /** Derived status from masteryPct */
-  status: 'Strong' | 'Satisfactory' | 'Needs Practice';
+  status: 'Strong' | 'Satisfactory' | 'Needs Practice' | 'Remedial Intervention Required';
   /** ISO date of last assessment that included this topic */
   lastAssessedAt: string;
   /**

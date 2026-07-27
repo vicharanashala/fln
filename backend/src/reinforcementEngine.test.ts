@@ -193,6 +193,7 @@ test('stops reinforcement after 3 cycles and raises teacher alert if mastery < 8
   assert.equal(q4.length, 0, 'Reinforcement should stop after 3 cycles');
   assert.equal(profileState.concepts[0].isReinforcementActive, false, 'isReinforcementActive should be false');
   assert.equal(profileState.concepts[0].needsTeacherIntervention, true, 'needsTeacherIntervention should be true');
+  assert.equal(profileState.concepts[0].status, 'Remedial Intervention Required', 'status should be Remedial Intervention Required');
 });
 
 // ── Dedup Safety Test ───────────────────────────────────────────────

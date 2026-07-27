@@ -1412,7 +1412,8 @@ async function startServer() {
   app.get('/api/students/:id/reinforcement-debug', async (req, res) => {
     try {
       const studentId = req.params.id;
-      const student = await dbStore.getStudent(studentId);
+      const students = await dbStore.getStudents();
+      const student = students.find(s => s.id === studentId);
       const currentLevel = student?.currentLevel || 1;
       const debugInfo = await getReinforcementDebugInfo(studentId, currentLevel, dbStore);
       res.json({ success: true, debugInfo });

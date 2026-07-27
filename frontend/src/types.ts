@@ -217,7 +217,7 @@ export interface ConceptScore {
   totalAttempts: number;
   correctCount: number;
   masteryPct: number;
-  status: 'Strong' | 'Satisfactory' | 'Needs Practice';
+  status: 'Strong' | 'Satisfactory' | 'Needs Practice' | 'Remedial Intervention Required';
   lastAssessedAt: string;
   consecutiveMasteryCount: number;
 }

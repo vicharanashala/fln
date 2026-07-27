@@ -106,15 +106,27 @@ export async function updateConceptMastery(
       const accuracyLatest = (correctRegular / totalRegular) * 100;
       concept.masteryPct = Math.round(accuracyLatest);
 
-      if (concept.masteryPct >= STRONG_THRESHOLD) {
+      // Status update: differentiate Needs Practice from Remedial Intervention Required & Strong
+      if (concept.needsTeacherIntervention || (concept.reinforcementLevelsCompleted || 0) >= MAX_REINFORCEMENT_LEVELS) {
+        if (concept.masteryPct < REINFORCEMENT_MASTERY_THRESHOLD) {
+          concept.status = 'Remedial Intervention Required';
+          concept.needsTeacherIntervention = true;
+          concept.isReinforcementActive = false;
+        } else {
+          concept.status = 'Strong';
+          concept.needsTeacherIntervention = false;
+          concept.isReinforcementActive = false;
+        }
+      } else if (concept.masteryPct >= STRONG_THRESHOLD) {
         concept.status = 'Strong';
         concept.consecutiveMasteryCount = concept.status === 'Strong' ? concept.consecutiveMasteryCount + 1 : 1;
+        concept.isReinforcementActive = false;
+        concept.needsTeacherIntervention = false;
+      } else if (concept.masteryPct >= SATISFACTORY_THRESHOLD) {
+        concept.status = 'Satisfactory';
+        concept.consecutiveMasteryCount = 0;
       } else {
-        if (concept.masteryPct >= SATISFACTORY_THRESHOLD) {
-          concept.status = 'Satisfactory';
-        } else {
-          concept.status = 'Needs Practice';
-        }
+        concept.status = 'Needs Practice';
         concept.consecutiveMasteryCount = 0;
       }
 
@@ -123,8 +135,9 @@ export async function updateConceptMastery(
         concept.recentAnswers = concept.recentAnswers.slice(-5);
       }
 
+      // Trigger Rule: mastery < 80% activates reinforcement (unless 3 cycles completed)
       if (concept.masteryPct < REINFORCEMENT_MASTERY_THRESHOLD) {
-        if (!concept.isReinforcementActive && !concept.needsTeacherIntervention) {
+        if (!concept.isReinforcementActive && !concept.needsTeacherIntervention && (concept.reinforcementLevelsCompleted || 0) < MAX_REINFORCEMENT_LEVELS) {
           concept.isReinforcementActive = true;
           concept.reinforcementTriggeredAtLevel = currentStudentLevel;
           concept.reinforcementStartLevel = currentStudentLevel;
@@ -150,10 +163,12 @@ export async function updateConceptMastery(
         }
       }
 
+      // Stop Rule: mastery ≥ 80% stops reinforcement
       if (concept.masteryPct >= REINFORCEMENT_MASTERY_THRESHOLD) {
         if (concept.isReinforcementActive || concept.needsTeacherIntervention) {
           concept.isReinforcementActive = false;
           concept.needsTeacherIntervention = false;
+          concept.status = 'Strong';
           concept.recentAnswers = [];
           console.log(`[Reinf Log] MASTERY STOP: Student ${studentId} reached ${concept.masteryPct}% (>=${REINFORCEMENT_MASTERY_THRESHOLD}%) on ${topic}. Reinforcement stopped.`);
           await dbStore.addLog({
@@ -179,6 +194,7 @@ export async function updateConceptMastery(
       if (accuracyPct >= REINFORCEMENT_MASTERY_THRESHOLD) {
         concept.isReinforcementActive = false;
         concept.needsTeacherIntervention = false;
+        concept.status = 'Strong';
         concept.recentAnswers = [];
         console.log(`[Reinf Log] EARLY MASTERY STOP: Student ${studentId} achieved ${accuracyPct}% (>=${REINFORCEMENT_MASTERY_THRESHOLD}%) on reinforcement for ${topic}. Reinforcement stopped immediately.`);
         await dbStore.addLog({
@@ -297,12 +313,14 @@ export async function getReinforcementQuestionsWithDebug(
   const alternateSkippedConcepts: ConceptScore[] = [];
 
   for (const c of profile.concepts) {
+    // Score ≥ 80% → MASTERED!
     if (c.masteryPct >= REINFORCEMENT_MASTERY_THRESHOLD) {
       if (c.isReinforcementActive || c.needsTeacherIntervention) {
         c.isReinforcementActive = false;
         c.needsTeacherIntervention = false;
         profileChanged = true;
       }
+      c.status = 'Strong';
       debugInfo.weakConcepts.push({
         topic: c.topic,
         masteryPct: Math.round(c.masteryPct * 10) / 10,
@@ -312,7 +330,7 @@ export async function getReinforcementQuestionsWithDebug(
         nextReinforcementLevel: null,
         reinforcementEligible: false,
         frequencyBand: 'mastered (≥80%)',
-        eligibilityReason: `Mastered (Score ${c.masteryPct}% ≥ ${REINFORCEMENT_MASTERY_THRESHOLD}%)`,
+        eligibilityReason: `Mastered (Score ${c.masteryPct}% ≥ ${REINFORCEMENT_MASTERY_THRESHOLD}%) — Reinforcement Stopped`,
         questionsToInject: 0,
         reinforcementLevelsCompleted: c.reinforcementLevelsCompleted || 0,
         maxReinforcementLevels: MAX_REINFORCEMENT_LEVELS,
@@ -322,20 +340,21 @@ export async function getReinforcementQuestionsWithDebug(
     }
 
     if (!c.isReinforcementActive) {
-      if (c.needsTeacherIntervention) {
+      if (c.needsTeacherIntervention || (c.reinforcementLevelsCompleted || 0) >= MAX_REINFORCEMENT_LEVELS) {
+        c.status = 'Remedial Intervention Required';
         debugInfo.hasTeacherInterventionAlert = true;
         debugInfo.weakConcepts.push({
           topic: c.topic,
           masteryPct: Math.round(c.masteryPct * 10) / 10,
-          status: c.status,
+          status: 'Remedial Intervention Required',
           isReinforcementActive: false,
           reinforcementTriggeredAtLevel: c.reinforcementTriggeredAtLevel || null,
           nextReinforcementLevel: null,
           reinforcementEligible: false,
           frequencyBand: 'teacher-intervention',
-          eligibilityReason: `${MAX_REINFORCEMENT_LEVELS} cycles completed without ${REINFORCEMENT_MASTERY_THRESHOLD}% mastery — Teacher Alert Raised`,
+          eligibilityReason: `${MAX_REINFORCEMENT_LEVELS} reinforcement cycles completed without ${REINFORCEMENT_MASTERY_THRESHOLD}% mastery — Remedial Intervention Required`,
           questionsToInject: 0,
-          reinforcementLevelsCompleted: c.reinforcementLevelsCompleted || 0,
+          reinforcementLevelsCompleted: c.reinforcementLevelsCompleted || MAX_REINFORCEMENT_LEVELS,
           maxReinforcementLevels: MAX_REINFORCEMENT_LEVELS,
           needsTeacherIntervention: true,
         });
@@ -349,9 +368,10 @@ export async function getReinforcementQuestionsWithDebug(
     if (levelsCompleted >= MAX_REINFORCEMENT_LEVELS) {
       c.isReinforcementActive = false;
       c.needsTeacherIntervention = true;
+      c.status = 'Remedial Intervention Required';
       debugInfo.hasTeacherInterventionAlert = true;
       profileChanged = true;
-      console.log(`[Reinf Log] TEACHER ALERT: Student ${studentId} completed ${MAX_REINFORCEMENT_LEVELS} reinforcement cycles for ${c.topic} without reaching ${REINFORCEMENT_MASTERY_THRESHOLD}% mastery. Teacher Alert raised.`);
+      console.log(`[Reinf Log] TEACHER ALERT: Student ${studentId} completed ${MAX_REINFORCEMENT_LEVELS} reinforcement cycles for ${c.topic} without reaching ${REINFORCEMENT_MASTERY_THRESHOLD}% mastery. Remedial Intervention Required.`);
       await dbStore.addLog({
         id: 'LOG_' + Math.random().toString(36).substr(2, 9),
         timestamp: new Date().toISOString(),
@@ -367,13 +387,13 @@ export async function getReinforcementQuestionsWithDebug(
       debugInfo.weakConcepts.push({
         topic: c.topic,
         masteryPct: Math.round(c.masteryPct * 10) / 10,
-        status: c.status,
+        status: 'Remedial Intervention Required',
         isReinforcementActive: false,
         reinforcementTriggeredAtLevel: c.reinforcementTriggeredAtLevel || null,
         nextReinforcementLevel: null,
         reinforcementEligible: false,
         frequencyBand: 'teacher-intervention',
-        eligibilityReason: `${MAX_REINFORCEMENT_LEVELS} cycles completed without ${REINFORCEMENT_MASTERY_THRESHOLD}% mastery — Teacher Alert Raised`,
+        eligibilityReason: `${MAX_REINFORCEMENT_LEVELS} reinforcement cycles completed without ${REINFORCEMENT_MASTERY_THRESHOLD}% mastery — Remedial Intervention Required`,
         questionsToInject: 0,
         reinforcementLevelsCompleted: levelsCompleted,
         maxReinforcementLevels: MAX_REINFORCEMENT_LEVELS,
@@ -386,10 +406,11 @@ export async function getReinforcementQuestionsWithDebug(
       c.lastReinforcementSkipped = true;
       profileChanged = true;
       const freqBand = 'alternate-worksheet (40–79%) — SKIPPED';
+      const conceptStatus = c.masteryPct < SATISFACTORY_THRESHOLD ? 'Needs Practice' : 'Satisfactory';
       debugInfo.weakConcepts.push({
         topic: c.topic,
         masteryPct: Math.round(c.masteryPct * 10) / 10,
-        status: c.status,
+        status: conceptStatus,
         isReinforcementActive: true,
         reinforcementTriggeredAtLevel: c.reinforcementTriggeredAtLevel || null,
         nextReinforcementLevel: currentLevel,
@@ -410,10 +431,11 @@ export async function getReinforcementQuestionsWithDebug(
   const deferredConcepts = eligibleConcepts.slice(MAX_REINFORCEMENT_PER_WORKSHEET);
 
   for (const c of deferredConcepts) {
+    const conceptStatus = c.masteryPct < SATISFACTORY_THRESHOLD ? 'Needs Practice' : 'Satisfactory';
     debugInfo.weakConcepts.push({
       topic: c.topic,
       masteryPct: Math.round(c.masteryPct * 10) / 10,
-      status: c.status,
+      status: conceptStatus,
       isReinforcementActive: true,
       reinforcementTriggeredAtLevel: c.reinforcementTriggeredAtLevel || null,
       nextReinforcementLevel: currentLevel,
@@ -435,6 +457,7 @@ export async function getReinforcementQuestionsWithDebug(
     if (!targetConcept.reinforcedQuestionIds) targetConcept.reinforcedQuestionIds = [];
     const triggerLvl = targetConcept.reinforcementTriggeredAtLevel || currentLevel;
     const levelsCompleted = targetConcept.reinforcementLevelsCompleted || 0;
+    const conceptStatus = targetConcept.masteryPct < SATISFACTORY_THRESHOLD ? 'Needs Practice' : 'Satisfactory';
 
     const isUniqueCandidate = (mq: Question): boolean => {
       const cleanText = mq.question.trim().toLowerCase();
@@ -492,7 +515,7 @@ export async function getReinforcementQuestionsWithDebug(
       debugInfo.weakConcepts.push({
         topic: targetConcept.topic,
         masteryPct: Math.round(targetConcept.masteryPct * 10) / 10,
-        status: targetConcept.status,
+        status: conceptStatus,
         isReinforcementActive: true,
         reinforcementTriggeredAtLevel: triggerLvl,
         nextReinforcementLevel: currentLevel,
@@ -532,7 +555,7 @@ export async function getReinforcementQuestionsWithDebug(
     debugInfo.weakConcepts.push({
       topic: targetConcept.topic,
       masteryPct: Math.round(targetConcept.masteryPct * 10) / 10,
-      status: targetConcept.status,
+      status: conceptStatus,
       isReinforcementActive: true,
       reinforcementTriggeredAtLevel: triggerLvl,
       nextReinforcementLevel: currentLevel,

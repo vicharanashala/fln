@@ -2392,9 +2392,22 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                               <span className="text-[9px] font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider block">Concept Streaks & Adaptive Decision Rules:</span>
                               <div className="grid grid-cols-1 gap-1">
                                 {dbg.weakConcepts.map((wc: any, idx: number) => (
-                                  <div key={idx} className={`flex flex-col text-[10px] bg-white dark:bg-slate-900 border rounded p-2 gap-1.5 ${wc.needsTeacherIntervention ? 'border-amber-300 dark:border-amber-700 bg-amber-50/40 dark:bg-amber-950/20' : 'border-zinc-150 dark:border-slate-800'}`}>
+                                  <div key={idx} className={`flex flex-col text-[10px] bg-white dark:bg-slate-900 border rounded p-2 gap-1.5 ${wc.needsTeacherIntervention || wc.status === 'Remedial Intervention Required' ? 'border-amber-300 dark:border-amber-700 bg-amber-50/40 dark:bg-amber-950/20' : 'border-zinc-150 dark:border-slate-800'}`}>
                                     <div className="flex flex-wrap justify-between items-center gap-2">
-                                      <span className="font-medium text-zinc-700 dark:text-slate-200">{wc.topic}</span>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-medium text-zinc-700 dark:text-slate-200">{wc.topic}</span>
+                                        <span className={`text-[8.5px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                                          wc.status === 'Remedial Intervention Required'
+                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                            : wc.status === 'Strong'
+                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                            : wc.status === 'Satisfactory'
+                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                                            : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                                        }`}>
+                                          {wc.status}
+                                        </span>
+                                      </div>
                                       <div className="flex flex-wrap items-center gap-2.5 font-mono text-[9px]">
                                         <span>Score: <strong className="text-zinc-800 dark:text-slate-250">{wc.masteryPct}%</strong></span>
                                         <span>Cycle: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">L{wc.reinforcementLevelsCompleted ?? 0}/3</strong></span>
@@ -2407,10 +2420,10 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                                         )}
                                       </div>
                                     </div>
-                                    {wc.needsTeacherIntervention && (
+                                    {(wc.needsTeacherIntervention || wc.status === 'Remedial Intervention Required') && (
                                       <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-950/60 px-2 py-1 rounded text-[9.5px] font-bold">
                                         <span>⚠️</span>
-                                        <span>TEACHER ALERT: 3 reinforcement levels completed without 80% mastery. Remedial intervention recommended.</span>
+                                        <span>REMEDIAL INTERVENTION REQUIRED: 3 reinforcement levels completed without 80% mastery. Reinforcement stopped.</span>
                                       </div>
                                     )}
                                   </div>
