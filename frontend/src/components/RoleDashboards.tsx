@@ -2392,20 +2392,27 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                               <span className="text-[9px] font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider block">Concept Streaks & Adaptive Decision Rules:</span>
                               <div className="grid grid-cols-1 gap-1">
                                 {dbg.weakConcepts.map((wc: any, idx: number) => (
-                                  <div key={idx} className="flex flex-wrap justify-between items-center text-[10px] bg-white dark:bg-slate-900 border border-zinc-150 dark:border-slate-800 rounded p-1.5 gap-2">
-                                    <span className="font-medium text-zinc-700 dark:text-slate-200">{wc.topic}</span>
-                                    <div className="flex flex-wrap items-center gap-3 font-mono text-[9px]">
-                                      <span>Score: <strong className="text-zinc-800 dark:text-slate-250">{wc.masteryPct}%</strong></span>
-                                      <span>Active: <strong className={wc.isReinforcementActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-500'}>{wc.isReinforcementActive ? 'Yes' : 'No'}</strong></span>
-                                      <span>Trigger Lvl: <strong className="text-zinc-800 dark:text-slate-250">{wc.reinforcementTriggeredAtLevel ?? 'N/A'}</strong></span>
-                                      <span>Next Reinf. Lvl: <strong className={wc.nextReinforcementLevel ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-zinc-500'}>{wc.nextReinforcementLevel ?? 'N/A'}</strong></span>
-                                      <span className={`px-1.5 py-0.5 rounded font-bold uppercase ${wc.reinforcementEligible ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400' : 'bg-zinc-100 text-zinc-650 dark:bg-slate-800 dark:text-slate-400'}`} title={wc.eligibilityReason}>
-                                        Eligible: {wc.reinforcementEligible ? 'Yes' : 'No'}
-                                      </span>
-                                      {wc.reinforcementEligible && (
-                                        <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold">Inject: {wc.questionsToInject} Qs</span>
-                                      )}
+                                  <div key={idx} className={`flex flex-col text-[10px] bg-white dark:bg-slate-900 border rounded p-2 gap-1.5 ${wc.needsTeacherIntervention ? 'border-amber-300 dark:border-amber-700 bg-amber-50/40 dark:bg-amber-950/20' : 'border-zinc-150 dark:border-slate-800'}`}>
+                                    <div className="flex flex-wrap justify-between items-center gap-2">
+                                      <span className="font-medium text-zinc-700 dark:text-slate-200">{wc.topic}</span>
+                                      <div className="flex flex-wrap items-center gap-2.5 font-mono text-[9px]">
+                                        <span>Score: <strong className="text-zinc-800 dark:text-slate-250">{wc.masteryPct}%</strong></span>
+                                        <span>Cycle: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">L{wc.reinforcementLevelsCompleted ?? 0}/3</strong></span>
+                                        <span>Active: <strong className={wc.isReinforcementActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-500'}>{wc.isReinforcementActive ? 'Yes' : 'No'}</strong></span>
+                                        <span className={`px-1.5 py-0.5 rounded font-bold uppercase ${wc.reinforcementEligible ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400' : 'bg-zinc-100 text-zinc-650 dark:bg-slate-800 dark:text-slate-400'}`} title={wc.eligibilityReason}>
+                                          Eligible: {wc.reinforcementEligible ? 'Yes' : 'No'}
+                                        </span>
+                                        {wc.reinforcementEligible && (
+                                          <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold">Inject: 1 Extra Q</span>
+                                        )}
+                                      </div>
                                     </div>
+                                    {wc.needsTeacherIntervention && (
+                                      <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-950/60 px-2 py-1 rounded text-[9.5px] font-bold">
+                                        <span>⚠️</span>
+                                        <span>TEACHER ALERT: 3 reinforcement levels completed without 70% mastery. Remedial intervention recommended.</span>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>

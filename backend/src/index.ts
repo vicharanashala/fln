@@ -1370,6 +1370,20 @@ async function startServer() {
     }
   });
 
+  // Query Reinforcement Debug & Lifecycle state for a specific student
+  app.get('/api/students/:id/reinforcement-debug', async (req, res) => {
+    try {
+      const studentId = req.params.id;
+      const student = await dbStore.getStudent(studentId);
+      const currentLevel = student?.currentLevel || 1;
+      const debugInfo = await getReinforcementDebugInfo(studentId, currentLevel, dbStore);
+      res.json({ success: true, debugInfo });
+    } catch (err: any) {
+      console.error('Failed to retrieve reinforcement debug info:', err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // Generate Personalized Level-Wise Worksheets for a whole roster of students in ONE batch call
   app.post('/api/worksheets/generate-level-batch', async (req, res) => {
     const user = getAuthUser(req);

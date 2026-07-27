@@ -78,4 +78,45 @@ test('verifies adaptive reinforcement rules end-to-end', async () => {
   console.log('\n[RL TEST VERIFY] Verification Success:');
   console.log(`  Normal Concept (Addition): ${distribution['Addition']} questions`);
   console.log(`  Reinforcement Concept (Number Sense): ${distribution['Number Sense']} questions`);
+});
+
+test('stops reinforcement after 3 consecutive levels and raises teacher alert if mastery < 70%', async () => {
+  const profileState = {
+    id: 'profile_3lvl', studentId: 'student_3lvl', updatedAt: '', concepts: [{
+      topic: 'Number Sense', totalAttempts: 10, correctCount: 2, masteryPct: 40,
+      status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0,
+      reinforcementTriggeredAtLevel: 10, isReinforcementActive: true, reinforcementLevelsCompleted: 0
+    }]
+  };
+
+  const dbStore = {
+    addLog: async () => {},
+    upsertConceptMasteryProfile: async (updated: any) => {
+      profileState.concepts = updated.concepts;
+    },
+    getConceptMasteryProfile: async () => profileState
+  } as any;
+
+  // Level 1 of 3
+  const q1 = await getReinforcementQuestions('student_3lvl', 10, dbStore);
+  assert.equal(q1.length, 1);
+  assert.equal(profileState.concepts[0].reinforcementLevelsCompleted, 1);
+  assert.equal(profileState.concepts[0].isReinforcementActive, true);
+
+  // Level 2 of 3
+  const q2 = await getReinforcementQuestions('student_3lvl', 11, dbStore);
+  assert.equal(q2.length, 1);
+  assert.equal(profileState.concepts[0].reinforcementLevelsCompleted, 2);
+  assert.equal(profileState.concepts[0].isReinforcementActive, true);
+
+  // Level 3 of 3
+  const q3 = await getReinforcementQuestions('student_3lvl', 12, dbStore);
+  assert.equal(q3.length, 1);
+  assert.equal(profileState.concepts[0].reinforcementLevelsCompleted, 3);
+
+  // Level 4 (Exceeded max 3 levels): Reinforcement must stop and raise Teacher Alert
+  const q4 = await getReinforcementQuestions('student_3lvl', 13, dbStore);
+  assert.equal(q4.length, 0, 'Reinforcement should stop after 3 levels');
+  assert.equal(profileState.concepts[0].isReinforcementActive, false, 'isReinforcementActive should be set to false');
+  assert.equal(profileState.concepts[0].needsTeacherIntervention, true, 'needsTeacherIntervention should be set to true');
 });

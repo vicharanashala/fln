@@ -32,6 +32,9 @@ export interface ConceptScore {
   consecutiveReinforcementMasteryCount?: number;
   reinforcedQuestionIds?: string[];
   reinforcementCyclesCompleted?: number;
+  reinforcementLevelsCompleted?: number;
+  reinforcementStartLevel?: number;
+  needsTeacherIntervention?: boolean;
 }
 
 export interface ConceptMasteryProfile {
@@ -49,6 +52,12 @@ export const STRONG_THRESHOLD = 80;
 /** Percentage at or above which a concept is "Satisfactory" (below Strong) */
 export const SATISFACTORY_THRESHOLD = 50;
 
+/** Score threshold (>=70%) on a reinforcement question to stop reinforcement early */
+export const REINFORCEMENT_MASTERY_THRESHOLD = 70;
+
+/** Maximum consecutive levels of reinforcement allowed for a weak concept (max 3) */
+export const MAX_REINFORCEMENT_LEVELS = 3;
+
 /**
  * How many consecutive assessments a concept must remain "Strong"
  * before reinforcement questions are permanently dropped.
@@ -57,17 +66,17 @@ export const MASTERY_CONSECUTIVE_THRESHOLD = 2;
 
 // ── Reinforcement question counts per weakness tier ─────────────────
 
-/** Reinforcement questions for concepts with mastery ≤50%. (1 out of 4 = 25%) */
+/** Reinforcement questions for concepts with mastery ≤50%. (1 extra question) */
 export const REINF_COUNT_WEAK = 1;
 
-/** Reinforcement questions for concepts with mastery 51-75%. (1 out of 4 = 25%) */
+/** Reinforcement questions for concepts with mastery 51-75%. (1 extra question) */
 export const REINF_COUNT_MODERATE = 1;
 
-/** Fixed worksheet size — total questions per worksheet, never more. */
+/** Fixed worksheet size for normal questions. */
 export const WORKSHEET_QUESTION_COUNT = 4;
 
-/** Maximum reinforcement questions that can replace normal questions in one worksheet. */
-export const MAX_REINFORCEMENT_PER_WORKSHEET = 2;
+/** Maximum reinforcement questions added as EXTRA per worksheet (exactly 1). */
+export const MAX_REINFORCEMENT_PER_WORKSHEET = 1;
 
 /**
  * Weight given to the latest assessment when computing the rolling
