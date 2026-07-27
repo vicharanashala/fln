@@ -1,4 +1,4 @@
-import { DBStore, Question } from './db';
+import { DBStore, Question, UserRole } from './db';
 import {
   ConceptMasteryProfile,
   ConceptScore,
@@ -6,7 +6,6 @@ import {
   SATISFACTORY_THRESHOLD,
   REINFORCEMENT_MASTERY_THRESHOLD,
   MAX_REINFORCEMENT_LEVELS,
-  ROLLING_WEIGHT_LATEST,
   REINF_COUNT_WEAK,
   REINF_COUNT_MODERATE,
   MAX_REINFORCEMENT_PER_WORKSHEET,
@@ -17,8 +16,8 @@ import {
 import { generateQuestionsForLevel } from './levelGenerator';
 
 /**
- * Updates a student's cumulative concept mastery profile based on the results of an assessment.
- * Categorizes questions into regular and reinforcement to apply adaptive trigger and stop rules.
+ * Updates a student's cumulative concept mastery profile based on the latest assessment results.
+ * Score is calculated using the latest assessment score only (ignoring old historical data).
  */
 export async function updateConceptMastery(
   studentId: string,
@@ -26,7 +25,6 @@ export async function updateConceptMastery(
   answers: { [questionId: string]: string },
   dbStore: DBStore
 ): Promise<ConceptMasteryProfile> {
-  // 1. Load or initialize profile
   let profile = await dbStore.getConceptMasteryProfile(studentId);
   if (!profile) {
     profile = {
@@ -37,7 +35,6 @@ export async function updateConceptMastery(
     };
   }
 
-  // 2. Separate questions by topic, and categorize them into regular and reinforcement
   const topicStats: {
     [topic: string]: {
       regularAttempts: { level: number; correct: boolean }[];
@@ -56,7 +53,6 @@ export async function updateConceptMastery(
     const correct = (q.answer || '').trim().toLowerCase();
     const isCorrect = submitted === correct;
 
-    // Check if this is a reinforcement question
     const isReinf = q.question_id.includes('_REINF_') || q.question_id.toLowerCase().includes('reinf_') || q.subtopic === 'Reinforcement';
 
     if (isReinf) {
@@ -71,12 +67,10 @@ export async function updateConceptMastery(
 
   const nowStr = new Date().toISOString();
 
-  // Load student to get their current level
   const studentsList = await dbStore.getStudents();
   const student = studentsList.find(s => s.id === studentId);
   const currentStudentLevel = student ? student.currentLevel : 1;
 
-  // 3. Update the rolling mastery metrics and reinforcement status
   for (const [topic, stats] of Object.entries(topicStats)) {
     let concept = profile.concepts.find(c => c.topic.toLowerCase() === topic.toLowerCase());
     
@@ -96,16 +90,13 @@ export async function updateConceptMastery(
       profile.concepts.push(concept);
     }
 
-    // Initialize optional fields if they don't exist
     if (!concept.recentAnswers) concept.recentAnswers = [];
     if (concept.isReinforcementActive === undefined) concept.isReinforcementActive = false;
     if (concept.consecutiveReinforcementMasteryCount === undefined) concept.consecutiveReinforcementMasteryCount = 0;
     if (concept.reinforcedQuestionIds === undefined) concept.reinforcedQuestionIds = [];
     if (concept.reinforcementCyclesCompleted === undefined) concept.reinforcementCyclesCompleted = 0;
 
-    // Process Regular Attempts
     if (stats.regularAttempts.length > 0) {
-      // Update rolling legacy averages
       const correctRegular = stats.regularAttempts.filter(a => a.correct).length;
       const totalRegular = stats.regularAttempts.length;
 
@@ -113,17 +104,8 @@ export async function updateConceptMastery(
       concept.correctCount += correctRegular;
 
       const accuracyLatest = (correctRegular / totalRegular) * 100;
-      const oldMasteryPct = concept.masteryPct;
-      if (concept.totalAttempts === totalRegular) {
-        concept.masteryPct = Math.round(accuracyLatest);
-      } else {
-        concept.masteryPct = Math.round(
-          (accuracyLatest * ROLLING_WEIGHT_LATEST) + 
-          (oldMasteryPct * (1 - ROLLING_WEIGHT_LATEST))
-        );
-      }
+      concept.masteryPct = Math.round(accuracyLatest);
 
-      // Legacy status updating
       if (concept.masteryPct >= STRONG_THRESHOLD) {
         concept.status = 'Strong';
         concept.consecutiveMasteryCount = concept.status === 'Strong' ? concept.consecutiveMasteryCount + 1 : 1;
@@ -136,13 +118,11 @@ export async function updateConceptMastery(
         concept.consecutiveMasteryCount = 0;
       }
 
-      // Add to recentAnswers
       concept.recentAnswers.push(...stats.regularAttempts);
       if (concept.recentAnswers.length > 5) {
         concept.recentAnswers = concept.recentAnswers.slice(-5);
       }
 
-      // Trigger Rule: mastery < 80% activates reinforcement
       if (concept.masteryPct < REINFORCEMENT_MASTERY_THRESHOLD) {
         if (!concept.isReinforcementActive && !concept.needsTeacherIntervention) {
           concept.isReinforcementActive = true;
@@ -154,19 +134,22 @@ export async function updateConceptMastery(
           concept.reinforcedQuestionIds = [];
           concept.reinforcementCyclesCompleted = 0;
           concept.lastReinforcementSkipped = false;
-          console.log(`[Reinf Log] TRIGGERED: Student ${studentId} triggered reinforcement for ${topic}. Mastery: ${concept.masteryPct}% (<${REINFORCEMENT_MASTERY_THRESHOLD}%). Trigger level: ${currentStudentLevel}.`);
+          console.log(`[Reinf Log] TRIGGERED: Student ${studentId} triggered reinforcement for ${topic}. Latest Mastery: ${concept.masteryPct}% (<${REINFORCEMENT_MASTERY_THRESHOLD}%). Trigger level: ${currentStudentLevel}.`);
           await dbStore.addLog({
             id: 'LOG_' + Math.random().toString(36).substr(2, 9),
-            title: 'Reinforcement Triggered',
-            message: `Student ${studentId} triggered reinforcement for ${topic} at level ${currentStudentLevel}.`,
-            level: 'info',
             timestamp: nowStr,
-            source: 'system'
+            schoolId: 'system',
+            schoolName: 'System',
+            userId: studentId,
+            userEmail: 'system@fln.org',
+            userRole: UserRole.TEACHER,
+            activityType: 'verify',
+            status: 'Success',
+            details: `Student ${studentId} triggered reinforcement for ${topic} at level ${currentStudentLevel}.`
           });
         }
       }
 
-      // Stop Rule: mastery ≥ 80% stops reinforcement
       if (concept.masteryPct >= REINFORCEMENT_MASTERY_THRESHOLD) {
         if (concept.isReinforcementActive || concept.needsTeacherIntervention) {
           concept.isReinforcementActive = false;
@@ -175,22 +158,24 @@ export async function updateConceptMastery(
           console.log(`[Reinf Log] MASTERY STOP: Student ${studentId} reached ${concept.masteryPct}% (>=${REINFORCEMENT_MASTERY_THRESHOLD}%) on ${topic}. Reinforcement stopped.`);
           await dbStore.addLog({
             id: 'LOG_' + Math.random().toString(36).substr(2, 9),
-            title: 'Reinforcement Mastery Stop',
-            message: `Student ${studentId} reached ${concept.masteryPct}% mastery on ${topic}. Reinforcement stopped.`,
-            level: 'info',
             timestamp: nowStr,
-            source: 'system'
+            schoolId: 'system',
+            schoolName: 'System',
+            userId: studentId,
+            userEmail: 'system@fln.org',
+            userRole: UserRole.TEACHER,
+            activityType: 'verify',
+            status: 'Success',
+            details: `Student ${studentId} reached ${concept.masteryPct}% mastery on ${topic}. Reinforcement stopped.`
           });
         }
       }
     }
 
-    // Process Reinforcement Attempts
     if (stats.reinfTotal > 0) {
       const accuracyReinf = stats.reinfCorrect / stats.reinfTotal;
       const accuracyPct = Math.round(accuracyReinf * 100);
 
-      // Rule: Stop if reinforcement score ≥ 80%
       if (accuracyPct >= REINFORCEMENT_MASTERY_THRESHOLD) {
         concept.isReinforcementActive = false;
         concept.needsTeacherIntervention = false;
@@ -198,11 +183,15 @@ export async function updateConceptMastery(
         console.log(`[Reinf Log] EARLY MASTERY STOP: Student ${studentId} achieved ${accuracyPct}% (>=${REINFORCEMENT_MASTERY_THRESHOLD}%) on reinforcement for ${topic}. Reinforcement stopped immediately.`);
         await dbStore.addLog({
           id: 'LOG_' + Math.random().toString(36).substr(2, 9),
-          title: 'Reinforcement Early Mastery Stop',
-          message: `Student ${studentId} achieved ${accuracyPct}% score on ${topic}. Reinforcement completed early!`,
-          level: 'info',
           timestamp: nowStr,
-          source: 'system'
+          schoolId: 'system',
+          schoolName: 'System',
+          userId: studentId,
+          userEmail: 'system@fln.org',
+          userRole: UserRole.TEACHER,
+          activityType: 'verify',
+          status: 'Success',
+          details: `Student ${studentId} achieved ${accuracyPct}% score on ${topic}. Reinforcement completed early!`
         });
       } else {
         console.log(`[Reinf Log] REINFORCEMENT CONTINUES: Student ${studentId} scored ${accuracyPct}% (<${REINFORCEMENT_MASTERY_THRESHOLD}%) on reinforcement for ${topic}.`);
@@ -214,50 +203,30 @@ export async function updateConceptMastery(
 
   profile.updatedAt = nowStr;
   
-  // Persist updated profile
   await dbStore.upsertConceptMasteryProfile(profile);
   return profile;
 }
 
-/**
- * Determines whether a concept should be reinforced on this specific worksheet,
- * respecting score rules:
- * - Score < 40%  → reinforce EVERY worksheet
- * - Score 40–79% → reinforce every ALTERNATE worksheet
- * - Score ≥ 80%  → DO NOT REINFORCE (Mastered)
- */
 function shouldReinforceConcept(concept: ConceptScore): boolean {
   if (!concept.isReinforcementActive) return false;
 
   const mastery = concept.masteryPct;
 
-  // Score ≥ 80%: Mastered → Do not reinforce
   if (mastery >= REINFORCEMENT_MASTERY_THRESHOLD) return false;
 
-  // Score < 40%: Reinforce every worksheet
   if (mastery < REINF_EVERY_WORKSHEET_THRESHOLD) return true;
 
-  // Score 40–79%: Reinforce every alternate worksheet
   if (mastery < REINF_ALTERNATE_WORKSHEET_THRESHOLD) {
     if (concept.lastReinforcementSkipped === true) {
-      return true;  // Was skipped last time, so reinforce now
+      return true;
     } else {
-      return false; // Was reinforced last time (or first time), so skip now
+      return false;
     }
   }
 
   return false;
 }
 
-/**
- * Returns the worksheet composition: how many normal and reinforcement questions.
- *
- * Rules:
- * - 0 weak concepts → 5 normal, 0 reinforcement
- * - 1 weak concept  → 4 normal, 1 reinforcement
- * - 2 weak concepts → 3 normal, 2 reinforcement
- * - 3+ weak concepts → 2 normal, 3 reinforcement (top 3 weakest only)
- */
 export function getWorksheetComposition(eligibleWeakConceptCount: number): { normalCount: number; reinfCount: number } {
   const clamped = Math.min(eligibleWeakConceptCount, MAX_REINFORCEMENT_PER_WORKSHEET);
   const reinfCount = clamped;
@@ -265,9 +234,6 @@ export function getWorksheetComposition(eligibleWeakConceptCount: number): { nor
   return { normalCount, reinfCount };
 }
 
-/**
- * Structured debug snapshot of a student's reinforcement state.
- */
 export interface ReinforcementDebugInfo {
   studentId: string;
   currentLevel: number;
@@ -292,9 +258,15 @@ export interface ReinforcementDebugInfo {
   hasTeacherInterventionAlert: boolean;
 }
 
-/**
- * Returns reinforcement questions AND synchronized debug info for a student.
- */
+function getDeterministicIndex(str: string, max: number): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % max;
+}
+
 export async function getReinforcementQuestionsWithDebug(
   studentId: string,
   currentLevel: number,
@@ -323,9 +295,7 @@ export async function getReinforcementQuestionsWithDebug(
   const eligibleConcepts: ConceptScore[] = [];
   const alternateSkippedConcepts: ConceptScore[] = [];
 
-  // Evaluate concepts for eligibility & deactivation
   for (const c of profile.concepts) {
-    // 1. Score ≥ 80% → Mastered! Immediately deactivate reinforcement.
     if (c.masteryPct >= REINFORCEMENT_MASTERY_THRESHOLD) {
       if (c.isReinforcementActive || c.needsTeacherIntervention) {
         c.isReinforcementActive = false;
@@ -335,7 +305,7 @@ export async function getReinforcementQuestionsWithDebug(
       debugInfo.weakConcepts.push({
         topic: c.topic,
         masteryPct: Math.round(c.masteryPct * 10) / 10,
-        status: c.status,
+        status: 'Strong',
         isReinforcementActive: false,
         reinforcementTriggeredAtLevel: c.reinforcementTriggeredAtLevel || null,
         nextReinforcementLevel: null,
@@ -375,7 +345,6 @@ export async function getReinforcementQuestionsWithDebug(
     if (c.lastReinforcementSkipped === undefined) c.lastReinforcementSkipped = false;
     const levelsCompleted = c.reinforcementLevelsCompleted || 0;
 
-    // Rule: Maximum 3 reinforcement cycles
     if (levelsCompleted >= MAX_REINFORCEMENT_LEVELS) {
       c.isReinforcementActive = false;
       c.needsTeacherIntervention = true;
@@ -384,11 +353,15 @@ export async function getReinforcementQuestionsWithDebug(
       console.log(`[Reinf Log] TEACHER ALERT: Student ${studentId} completed ${MAX_REINFORCEMENT_LEVELS} reinforcement cycles for ${c.topic} without reaching ${REINFORCEMENT_MASTERY_THRESHOLD}% mastery. Teacher Alert raised.`);
       await dbStore.addLog({
         id: 'LOG_' + Math.random().toString(36).substr(2, 9),
-        title: 'Teacher Intervention Alert',
-        message: `Student ${studentId} requires remedial teacher intervention for ${c.topic} (Completed ${MAX_REINFORCEMENT_LEVELS} cycles without reaching ${REINFORCEMENT_MASTERY_THRESHOLD}% mastery).`,
-        level: 'warn',
         timestamp: new Date().toISOString(),
-        source: 'system'
+        schoolId: 'system',
+        schoolName: 'System',
+        userId: studentId,
+        userEmail: 'system@fln.org',
+        userRole: UserRole.TEACHER,
+        activityType: 'verify',
+        status: 'Failed',
+        details: `Student ${studentId} requires remedial teacher intervention for ${c.topic} (Completed ${MAX_REINFORCEMENT_LEVELS} cycles without reaching ${REINFORCEMENT_MASTERY_THRESHOLD}% mastery).`
       });
       debugInfo.weakConcepts.push({
         topic: c.topic,
@@ -430,10 +403,8 @@ export async function getReinforcementQuestionsWithDebug(
     }
   }
 
-  // Sort eligible concepts by lowest masteryPct (weakest first)
   eligibleConcepts.sort((a, b) => a.masteryPct - b.masteryPct);
   
-  // Take top 3 weakest concepts at most
   const targetConcepts = eligibleConcepts.slice(0, MAX_REINFORCEMENT_PER_WORKSHEET);
   const deferredConcepts = eligibleConcepts.slice(MAX_REINFORCEMENT_PER_WORKSHEET);
 
@@ -445,9 +416,9 @@ export async function getReinforcementQuestionsWithDebug(
       isReinforcementActive: true,
       reinforcementTriggeredAtLevel: c.reinforcementTriggeredAtLevel || null,
       nextReinforcementLevel: currentLevel,
-      reinforcementEligible: true,
+      reinforcementEligible: false,
       frequencyBand: c.masteryPct < REINF_EVERY_WORKSHEET_THRESHOLD ? 'every-worksheet (<40%)' : 'alternate-worksheet (40–79%)',
-      eligibilityReason: `Eligible, but deferred (only top ${MAX_REINFORCEMENT_PER_WORKSHEET} weakest concepts reinforced per worksheet)`,
+      eligibilityReason: `Deferred (only top ${MAX_REINFORCEMENT_PER_WORKSHEET} weakest concepts reinforced per worksheet)`,
       questionsToInject: 0,
       reinforcementLevelsCompleted: c.reinforcementLevelsCompleted || 0,
       maxReinforcementLevels: MAX_REINFORCEMENT_LEVELS,
@@ -458,9 +429,11 @@ export async function getReinforcementQuestionsWithDebug(
   const allFoundQs: Question[] = [];
   const selectedReinfTexts = new Set<string>();
 
-  for (const targetConcept of targetConcepts) {
+  for (let idx = 0; idx < targetConcepts.length; idx++) {
+    const targetConcept = targetConcepts[idx];
     if (!targetConcept.reinforcedQuestionIds) targetConcept.reinforcedQuestionIds = [];
     const triggerLvl = targetConcept.reinforcementTriggeredAtLevel || currentLevel;
+    const levelsCompleted = targetConcept.reinforcementLevelsCompleted || 0;
 
     const isUniqueCandidate = (mq: Question): boolean => {
       const cleanText = mq.question.trim().toLowerCase();
@@ -473,36 +446,42 @@ export async function getReinforcementQuestionsWithDebug(
     };
 
     let foundQ: Question | null = null;
+    const studentSeed = `${studentId}_${targetConcept.topic}_L${triggerLvl}_C${levelsCompleted}`;
 
-    // Search levels from triggerLvl down to 1 for a fresh matching question
     for (let lvl = triggerLvl; lvl >= 1 && !foundQ; lvl--) {
-      const levelQs = generateQuestionsForLevel(lvl, 0);
+      const levelQs = generateQuestionsForLevel(lvl, 0, `${studentSeed}_L${lvl}`);
       const matching = levelQs.filter(q => q.topic.toLowerCase() === targetConcept.topic.toLowerCase());
 
-      for (const mq of matching) {
-        if (isUniqueCandidate(mq)) {
-          foundQ = mq;
-          break;
-        }
-      }
-    }
-
-    // Fallback: search currentLevel downwards if no fresh question found from triggerLvl
-    if (!foundQ) {
-      for (let lvl = currentLevel; lvl >= 1 && !foundQ; lvl--) {
-        const levelQs = generateQuestionsForLevel(lvl, 0);
-        const matching = levelQs.filter(q => q.topic.toLowerCase() === targetConcept.topic.toLowerCase());
-
-        for (const mq of matching) {
-          if (isUniqueCandidate(mq)) {
-            foundQ = mq;
+      if (matching.length > 0) {
+        const startIdx = getDeterministicIndex(`${studentSeed}_L${lvl}`, matching.length);
+        for (let i = 0; i < matching.length; i++) {
+          const candidate = matching[(startIdx + i) % matching.length];
+          if (isUniqueCandidate(candidate)) {
+            foundQ = candidate;
             break;
           }
         }
       }
     }
 
-    const levelsCompleted = targetConcept.reinforcementLevelsCompleted || 0;
+    if (!foundQ) {
+      for (let lvl = currentLevel; lvl >= 1 && !foundQ; lvl--) {
+        const levelQs = generateQuestionsForLevel(lvl, 0, `${studentSeed}_FB_L${lvl}`);
+        const matching = levelQs.filter(q => q.topic.toLowerCase() === targetConcept.topic.toLowerCase());
+
+        if (matching.length > 0) {
+          const startIdx = getDeterministicIndex(`${studentSeed}_FB_L${lvl}`, matching.length);
+          for (let i = 0; i < matching.length; i++) {
+            const candidate = matching[(startIdx + i) % matching.length];
+            if (isUniqueCandidate(candidate)) {
+              foundQ = candidate;
+              break;
+            }
+          }
+        }
+      }
+    }
+
     const freqBand = targetConcept.masteryPct < REINF_EVERY_WORKSHEET_THRESHOLD 
       ? 'every-worksheet (<40%)' 
       : 'alternate-worksheet (40–79%)';
@@ -535,11 +514,13 @@ export async function getReinforcementQuestionsWithDebug(
     targetConcept.lastReinforcementSkipped = false;
     profileChanged = true;
 
+    const formattedQId = `reinf_${studentId}_${targetConcept.topic.replace(/\s+/g, '_')}_C${targetConcept.reinforcementLevelsCompleted}`;
+
     console.log(`[Reinf Log] SELECTED: Reinforcement question on ${targetConcept.topic} for student ${studentId} (Cycle ${targetConcept.reinforcementLevelsCompleted} of ${MAX_REINFORCEMENT_LEVELS}, Mastery: ${targetConcept.masteryPct}%, Frequency: ${freqBand}).`);
 
     const formattedQ: Question = {
       ...foundQ,
-      question_id: `reinf_${targetConcept.topic.replace(/\s+/g, '_')}_${Date.now()}_${allFoundQs.length}`,
+      question_id: formattedQId,
       subtopic: 'Reinforcement',
       difficulty: 'medium',
       question: foundQ.question
@@ -576,9 +557,6 @@ export async function getReinforcementQuestionsWithDebug(
   return { questions: allFoundQs, debugInfo };
 }
 
-/**
- * Returns reinforcement questions for active weak concepts. Wrapper around getReinforcementQuestionsWithDebug.
- */
 export async function getReinforcementQuestions(
   studentId: string,
   currentLevel: number,
@@ -590,9 +568,6 @@ export async function getReinforcementQuestions(
   return questions;
 }
 
-/**
- * Structured debug snapshot of a student's reinforcement state.
- */
 export async function getReinforcementDebugInfo(
   studentId: string,
   currentLevel: number,
@@ -602,7 +577,6 @@ export async function getReinforcementDebugInfo(
   return debugInfo;
 }
 
-/** @deprecated Use getWorksheetComposition() instead for the new dynamic composition rules */
 export function getReinforcementQuestionCount(masteryPct: number): number {
   if (masteryPct <= 75) return REINF_COUNT_WEAK;
   return 0;
@@ -611,7 +585,6 @@ export function getReinforcementQuestionCount(masteryPct: number): number {
 export function mixWorksheetQuestions(currentQuestions: Question[], reinforcementQuestions: Question[]): Question[] {
   if (reinforcementQuestions.length === 0) return currentQuestions;
 
-  // Safety dedup: filter out any reinforcement question whose text matches a normal question
   const normalTexts = new Set<string>(
     currentQuestions.map(q => q.question.trim().toLowerCase())
   );

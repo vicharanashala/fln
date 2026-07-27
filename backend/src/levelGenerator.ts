@@ -1,14 +1,37 @@
 import { Question } from './db';
 
+let currentPRNG: (() => number) | null = null;
+
+export function setQuestionPRNG(seedStr?: string) {
+  if (!seedStr) {
+    currentPRNG = null;
+    return;
+  }
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 16777619);
+  }
+  currentPRNG = function() {
+    h += h << 13; h ^= h >>> 7;
+    h += h << 3;  h ^= h >>> 17;
+    return ((h += h << 5) >>> 0) / 4294967296;
+  };
+}
+
 // Helper to generate a random integer
 function randomVal(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  const rand = currentPRNG ? currentPRNG() : Math.random();
+  return Math.floor(rand * (max - min + 1)) + min;
 }
 
 // Programmatic math builder for all 59 levels and 3 sub-levels
-export function generateQuestionsForLevel(level: number, subLevel: number): Question[] {
-  const questions: Question[] = [];
-  const levelStr = `L${level}.${subLevel}`;
+export function generateQuestionsForLevel(level: number, subLevel: number, seedStr?: string): Question[] {
+  if (seedStr) {
+    setQuestionPRNG(seedStr);
+  }
+  try {
+    const questions: Question[] = [];
+    const levelStr = `L${level}.${subLevel}`;
 
   // Helper to adjust range based on subLevel
   // subLevel 0 = Mastery (full range), 1 = Easier (mid range), 2 = Remedial (simplest/visual)
@@ -502,17 +525,26 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
       subtopic,
       difficulty: qIdx <= 2 ? 'easy' : qIdx === 3 ? 'medium' : 'hard',
       source_level: level,
-      svgAsset
-    });
+      });
   }
-
   return questions;
+} finally {
+  if (seedStr) setQuestionPRNG();
+}
 }
 
-export function generateMultiTopicQuestions(targetLevel: number, subLevel: number, count: number = 4): Question[] {
+export function generateMultiTopicQuestions(targetLevel: number, subLevel: number, count: number = 4, seedStr?: string): Question[] {
   const selectedQuestions: Question[] = [];
   const coveredTopics = new Set<string>();
   
+  const getIndex = (str: string, max: number): number => {
+    if (!seedStr) return Math.floor(Math.random() * max);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i) | 0;
+    return Math.abs(hash) % max;
+  };
+
+  let offset = 0;
   // We want questions from distinct topics, starting from targetLevel and going down
   for (let lvl = targetLevel; lvl >= 1 && selectedQuestions.length < count; lvl--) {
     const levelQs = generateQuestionsForLevel(lvl, subLevel);
@@ -520,9 +552,9 @@ export function generateMultiTopicQuestions(targetLevel: number, subLevel: numbe
       const topic = levelQs[0].topic.toLowerCase();
       if (!coveredTopics.has(topic)) {
         coveredTopics.add(topic);
-        // Randomly pick one question from this level's generated questions
-        const randomQ = levelQs[Math.floor(Math.random() * levelQs.length)];
-        selectedQuestions.push(randomQ);
+        const idx = getIndex(`${seedStr}_L${lvl}_${offset++}`, levelQs.length);
+        const selectedQ = levelQs[idx];
+        selectedQuestions.push(selectedQ);
       }
     }
   }

@@ -2402,15 +2402,15 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                                         <span className={`px-1.5 py-0.5 rounded font-bold uppercase ${wc.reinforcementEligible ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400' : 'bg-zinc-100 text-zinc-650 dark:bg-slate-800 dark:text-slate-400'}`} title={wc.eligibilityReason}>
                                           Eligible: {wc.reinforcementEligible ? 'Yes' : 'No'}
                                         </span>
-                                        {wc.reinforcementEligible && (
-                                          <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold">Inject: 1 Extra Q</span>
+                                        {wc.reinforcementEligible && wc.questionsToInject > 0 && (
+                                          <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold">Inject: {wc.questionsToInject} Extra Q</span>
                                         )}
                                       </div>
                                     </div>
                                     {wc.needsTeacherIntervention && (
                                       <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-950/60 px-2 py-1 rounded text-[9.5px] font-bold">
                                         <span>⚠️</span>
-                                        <span>TEACHER ALERT: 3 reinforcement levels completed without 70% mastery. Remedial intervention recommended.</span>
+                                        <span>TEACHER ALERT: 3 reinforcement levels completed without 80% mastery. Remedial intervention recommended.</span>
                                       </div>
                                     )}
                                   </div>

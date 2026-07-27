@@ -871,9 +871,10 @@ async function startServer() {
 
     for (const student of classStudents) {
       const subLvl = student.currentSubLevel || 0;
+      const studentStateSeed = `${student.id}_L${student.currentLevel}_S${subLvl}`;
 
-      // Generate a pool of normal questions (max 5) for dedup purposes
-      const poolQs = generateMultiTopicQuestions(student.currentLevel, subLvl, WORKSHEET_TOTAL_QUESTIONS);
+      // Generate a pool of normal questions (max 5) deterministically
+      const poolQs = generateMultiTopicQuestions(student.currentLevel, subLvl, WORKSHEET_TOTAL_QUESTIONS, studentStateSeed);
       
       // Build a set of normalized question texts so reinforcement avoids duplicates
       const worksheetQuestionTexts = new Set<string>(
@@ -1233,11 +1234,19 @@ async function startServer() {
     targetLevel: number,
     subLevel: number,
     count: number,
-    usedTexts: Set<string>
+    usedTexts: Set<string>,
+    studentStateSeed?: string
   ): Question[] {
     const selectedQuestions: Question[] = [];
     const coveredTopics = new Set<string>();
     
+    const getIndex = (str: string, max: number): number => {
+      if (!studentStateSeed) return Math.floor(Math.random() * max);
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i) | 0;
+      return Math.abs(hash) % max;
+    };
+
     let attempts = 0;
     while (selectedQuestions.length < count && attempts < 50) {
       attempts++;
@@ -1246,10 +1255,18 @@ async function startServer() {
         if (levelQs.length > 0) {
           const topic = levelQs[0].topic.toLowerCase();
           if (!coveredTopics.has(topic)) {
-            const candidate = levelQs[Math.floor(Math.random() * levelQs.length)];
-            const cleanText = candidate.question.trim().toLowerCase();
+            const startIdx = getIndex(`${studentStateSeed}_ATT${attempts}_L${lvl}`, levelQs.length);
+            let candidate: Question | null = null;
+            for (let i = 0; i < levelQs.length; i++) {
+              const q = levelQs[(startIdx + i) % levelQs.length];
+              const cleanText = q.question.trim().toLowerCase();
+              if (!usedTexts.has(cleanText) && !selectedQuestions.some(sq => sq.question === q.question)) {
+                candidate = q;
+                break;
+              }
+            }
             
-            if (!usedTexts.has(cleanText) && !selectedQuestions.some(sq => sq.question === candidate.question)) {
+            if (candidate) {
               coveredTopics.add(topic);
               selectedQuestions.push(candidate);
             }
@@ -1275,7 +1292,7 @@ async function startServer() {
 
     // Absolute fallback
     if (selectedQuestions.length < count) {
-      const backup = generateMultiTopicQuestions(targetLevel, subLevel, count);
+      const backup = generateMultiTopicQuestions(targetLevel, subLevel, count, studentStateSeed);
       for (const q of backup) {
         if (selectedQuestions.length >= count) break;
         if (!selectedQuestions.some(sq => sq.question === q.question)) {
@@ -1311,9 +1328,10 @@ async function startServer() {
       const usedTexts = await getUsedQuestionsForStudent(student.id);
       
       const subLvl = student.currentSubLevel || 0;
+      const studentStateSeed = `${student.id}_L${student.currentLevel}_S${subLvl}`;
 
-      // Generate pool of normal questions for dedup
-      const poolQs = generateFreshMultiTopicQuestions(student.currentLevel, subLvl, WORKSHEET_TOTAL_QUESTIONS, usedTexts);
+      // Generate pool of normal questions deterministically
+      const poolQs = generateFreshMultiTopicQuestions(student.currentLevel, subLvl, WORKSHEET_TOTAL_QUESTIONS, usedTexts, studentStateSeed);
       const worksheetQuestionTexts = new Set<string>(
         poolQs.map(q => q.question.trim().toLowerCase())
       );
@@ -1436,9 +1454,10 @@ async function startServer() {
         try {
           const subLvl = student.currentSubLevel || 0;
           const usedTexts = await getUsedQuestionsForStudent(student.id);
+          const studentStateSeed = `${student.id}_L${student.currentLevel}_S${subLvl}`;
           
-          // Generate pool of normal questions for dedup
-          const poolQs = generateFreshMultiTopicQuestions(student.currentLevel!, subLvl, WORKSHEET_TOTAL_QUESTIONS, usedTexts);
+          // Generate pool of normal questions deterministically
+          const poolQs = generateFreshMultiTopicQuestions(student.currentLevel!, subLvl, WORKSHEET_TOTAL_QUESTIONS, usedTexts, studentStateSeed);
           const worksheetQuestionTexts = new Set<string>(
             poolQs.map(q => q.question.trim().toLowerCase())
           );
