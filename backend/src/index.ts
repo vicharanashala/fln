@@ -8,7 +8,8 @@ import { dbStore, connectDB, UserRole, User, Student, School, Question, Workshee
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel, generateMultiTopicQuestions } from './levelGenerator';
-import { updateConceptMastery, getReinforcementQuestions, mixWorksheetQuestions, getReinforcementDebugInfo } from './reinforcementEngine';
+import { updateConceptMastery, getReinforcementQuestions, getWorksheetComposition, mixWorksheetQuestions, getReinforcementDebugInfo } from './reinforcementEngine';
+import { WORKSHEET_TOTAL_QUESTIONS } from './conceptMastery';
 import { selectPlacedStudents } from './worksheetBatch';
 import * as levelsBackendClient from './levelsBackendClient';
 import { randomUUID } from 'crypto';
@@ -870,21 +871,29 @@ async function startServer() {
 
     for (const student of classStudents) {
       const subLvl = student.currentSubLevel || 0;
+
+      // Generate a pool of normal questions (max 5) for dedup purposes
+      const poolQs = generateMultiTopicQuestions(student.currentLevel, subLvl, WORKSHEET_TOTAL_QUESTIONS);
+      
+      // Build a set of normalized question texts so reinforcement avoids duplicates
+      const worksheetQuestionTexts = new Set<string>(
+        poolQs.map(q => q.question.trim().toLowerCase())
+      );
+
+      // Get reinforcement questions (0-3 based on weak concept count & frequency rules)
       let reinfQs: Question[] = [];
       try {
-        reinfQs = await getReinforcementQuestions(student.id, student.currentLevel, dbStore);
+        reinfQs = await getReinforcementQuestions(student.id, student.currentLevel, dbStore, undefined, worksheetQuestionTexts);
       } catch (reinfErr) {
         console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
       }
 
-      // Calculate the number of normal questions needed to maintain 10-20% reinforcement ratio
-      // If R is the number of reinforcement questions, then R / (N + R) <= 0.20 => N >= 4 * R
-      const normalCount = Math.max(4, reinfQs.length * 4);
-      
-      const qs = generateMultiTopicQuestions(student.currentLevel, subLvl, normalCount);
-      console.log(`[Worksheet Gen Log] Student: ${student.name} (${student.id}) | Current Level: ${student.currentLevel}.${subLvl} | Generated ${qs.length} standard questions (Multi-topic).`);
-      
-      // Map question IDs to be student-specific to prevent duplicate collisions
+      // Dynamic composition: total always = 5, normal = 5 - reinforcement
+      const normalCount = WORKSHEET_TOTAL_QUESTIONS - reinfQs.length;
+      const qs = poolQs.slice(0, normalCount);
+      console.log(`[Worksheet Gen Log] Student: ${student.name} (${student.id}) | Level ${student.currentLevel}.${subLvl} | ${qs.length} normal + ${reinfQs.length} reinforcement = ${qs.length + reinfQs.length} total.`);
+
+      // Map question IDs to be student-specific
       qs.forEach(q => {
         compiledQuestions.push({
           ...q,
@@ -894,7 +903,6 @@ async function startServer() {
       });
 
       if (reinfQs.length > 0) {
-        console.log(`[Worksheet Gen Log] Student: ${student.name} (${student.id}) | Injecting ${reinfQs.length} reinforcement question(s).`);
         const mappedReinforcement = reinfQs.map(q => ({
             ...q,
             question_id: `${student.id}_REINF_${q.question_id}`,
@@ -1302,15 +1310,25 @@ async function startServer() {
       const localOutputDir = path.join(ROOT_DIR, 'output');
       const usedTexts = await getUsedQuestionsForStudent(student.id);
       
+      const subLvl = student.currentSubLevel || 0;
+
+      // Generate pool of normal questions for dedup
+      const poolQs = generateFreshMultiTopicQuestions(student.currentLevel, subLvl, WORKSHEET_TOTAL_QUESTIONS, usedTexts);
+      const worksheetQuestionTexts = new Set<string>(
+        poolQs.map(q => q.question.trim().toLowerCase())
+      );
+
+      // Get reinforcement questions (0-3 based on weak concept count & frequency rules)
       let reinfQs: Question[] = [];
       try {
-        reinfQs = await getReinforcementQuestions(student.id, student.currentLevel, dbStore, usedTexts);
+        reinfQs = await getReinforcementQuestions(student.id, student.currentLevel, dbStore, usedTexts, worksheetQuestionTexts);
       } catch (reinfErr) {
         console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
       }
-      
-      const normalCount = 4;
-      const qs = generateFreshMultiTopicQuestions(student.currentLevel, subLvl, normalCount, usedTexts);
+
+      // Dynamic composition: total always = 5, normal = 5 - reinforcement
+      const normalCount = WORKSHEET_TOTAL_QUESTIONS - reinfQs.length;
+      const qs = poolQs.slice(0, normalCount);
       
       let studentQs: Question[] = qs.map(q => ({
         ...q,
@@ -1441,19 +1459,27 @@ async function startServer() {
           console.log(`╚══════════════════════════════════════════════════════════════\n`);
           // ── End Debug Logging ───────────────────────────────────
           
+          // ── WORKSHEET COMPOSITION ─────────────────────────────────
+          // Dynamic: 0 weak → 5 normal, 1 weak → 4+1, 2 weak → 3+2, 3+ weak → 2+3
+          
+          // Generate pool of normal questions for dedup
+          const poolQs = generateFreshMultiTopicQuestions(student.currentLevel!, subLvl, WORKSHEET_TOTAL_QUESTIONS, usedTexts);
+          const worksheetQuestionTexts = new Set<string>(
+            poolQs.map(q => q.question.trim().toLowerCase())
+          );
+
+          // Get reinforcement questions (0-3 based on weak concept count & frequency rules)
           let reinfQs: Question[] = [];
           try {
-            reinfQs = await getReinforcementQuestions(student.id, student.currentLevel!, dbStore, usedTexts);
+            reinfQs = await getReinforcementQuestions(student.id, student.currentLevel!, dbStore, usedTexts, worksheetQuestionTexts);
           } catch (reinfErr) {
             console.error(`Failed to generate reinforcement questions for student ${student.id}:`, reinfErr);
           }
-          
-          // ── WORKSHEET COMPOSITION ─────────────────────────────────
-          // Always keep all 4 normal level questions unchanged and append reinforcement questions as EXTRA.
-          const normalCount = 4;
-          console.log(`[RL WORKSHEET] ${student.name}: 4 normal + ${reinfQs.length} reinforcement = ${4 + reinfQs.length} total questions`);
-          
-          const qs = generateFreshMultiTopicQuestions(student.currentLevel!, subLvl, normalCount, usedTexts);
+
+          // Dynamic composition: total always = 5, normal = 5 - reinforcement
+          const normalCount = WORKSHEET_TOTAL_QUESTIONS - reinfQs.length;
+          const qs = poolQs.slice(0, normalCount);
+          console.log(`[RL WORKSHEET] ${student.name}: ${qs.length} normal + ${reinfQs.length} reinforcement = ${qs.length + reinfQs.length} total questions`);
           
           let studentQs: Question[] = qs.map(q => ({
             ...q,
@@ -1461,7 +1487,7 @@ async function startServer() {
             question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
           }));
 
-          // Map and append reinforcement questions as EXTRA questions at the end
+          // Append reinforcement questions
           if (reinfQs.length > 0) {
             const mappedReinforcement = reinfQs.map(q => ({
                 ...q,

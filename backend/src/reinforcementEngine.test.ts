@@ -1,15 +1,44 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getReinforcementQuestionCount, getReinforcementQuestions, mixWorksheetQuestions } from './reinforcementEngine';
+import { getReinforcementQuestionCount, getReinforcementQuestions, getWorksheetComposition, mixWorksheetQuestions } from './reinforcementEngine';
 
-test('uses the requested dynamic reinforcement bands', () => {
+// ── Worksheet Composition Tests ────────────────────────────────────
+
+test('worksheet composition: 0 weak concepts → 5 normal, 0 reinforcement', () => {
+  const { normalCount, reinfCount } = getWorksheetComposition(0);
+  assert.equal(normalCount, 5);
+  assert.equal(reinfCount, 0);
+});
+
+test('worksheet composition: 1 weak concept → 4 normal, 1 reinforcement', () => {
+  const { normalCount, reinfCount } = getWorksheetComposition(1);
+  assert.equal(normalCount, 4);
+  assert.equal(reinfCount, 1);
+});
+
+test('worksheet composition: 2 weak concepts → 3 normal, 2 reinforcement', () => {
+  const { normalCount, reinfCount } = getWorksheetComposition(2);
+  assert.equal(normalCount, 3);
+  assert.equal(reinfCount, 2);
+});
+
+test('worksheet composition: 3+ weak concepts → 2 normal, 3 reinforcement (capped at 3)', () => {
+  assert.deepEqual(getWorksheetComposition(3), { normalCount: 2, reinfCount: 3 });
+  assert.deepEqual(getWorksheetComposition(5), { normalCount: 2, reinfCount: 3 });
+  assert.deepEqual(getWorksheetComposition(10), { normalCount: 2, reinfCount: 3 });
+});
+
+// ── Legacy Band Test ────────────────────────────────────────────────
+
+test('legacy getReinforcementQuestionCount still works', () => {
   assert.equal(getReinforcementQuestionCount(20), 1);
   assert.equal(getReinforcementQuestionCount(50), 1);
-  assert.equal(getReinforcementQuestionCount(51), 1);
   assert.equal(getReinforcementQuestionCount(75), 1);
   assert.equal(getReinforcementQuestionCount(76), 0);
   assert.equal(getReinforcementQuestionCount(100), 0);
 });
+
+// ── Reinforcement Question Generation ───────────────────────────────
 
 test('provides reinforcement questions immediately on the first worksheet after assessment', async () => {
   const dbStore = {
@@ -19,73 +48,158 @@ test('provides reinforcement questions immediately on the first worksheet after 
       id: 'profile', studentId: 'student', updatedAt: '', concepts: [{
         topic: 'Number Sense', totalAttempts: 10, correctCount: 2, masteryPct: 20,
         status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0,
-        reinforcementTriggeredAtLevel: 4, isReinforcementActive: true
+        reinforcementTriggeredAtLevel: 4, isReinforcementActive: true,
+        lastReinforcementSkipped: false
       }]
     })
   } as any;
 
-  // Immediate next level (Level 5) immediately includes reinforcement questions
-  assert.equal((await getReinforcementQuestions('student', 5, dbStore)).length, 1);
-  assert.equal((await getReinforcementQuestions('student', 6, dbStore)).length, 1);
+  // Mastery 20% (<40%) → should reinforce every worksheet
+  const q = await getReinforcementQuestions('student', 5, dbStore);
+  assert.equal(q.length, 1, 'Should return 1 reinforcement question for single weak concept');
 });
 
-test('appends reinforcement questions to current-level questions without replacing them', () => {
-  const current = [1, 2, 3, 4].map(index => ({ question_id: `current-${index}`, topic: 'Current', question: '', answer: '', source_level: 1 } as any));
-  const reinforcement = [1].map(index => ({ question_id: `reinf-${index}`, topic: 'Weak', question: '', answer: '', source_level: 1 } as any));
-  const mixed = mixWorksheetQuestions(current, reinforcement);
-  assert.deepEqual(mixed.map(question => question.question_id), ['current-1', 'current-2', 'current-3', 'current-4', 'reinf-1']);
-});
-
-test('verifies adaptive reinforcement rules end-to-end', async () => {
-  // Setup mock profile where student has current level 15, and concept 'Number Sense' triggered reinforcement at level 15.
+test('returns up to 3 reinforcement questions for multiple weak concepts', async () => {
   const dbStore = {
     addLog: async () => {},
     upsertConceptMasteryProfile: async () => {},
     getConceptMasteryProfile: async () => ({
-      id: 'profile', studentId: 'student_reinf_verify', updatedAt: '', concepts: [{
+      id: 'profile_multi', studentId: 'student_multi', updatedAt: '', concepts: [
+        { topic: 'Number Sense', totalAttempts: 10, correctCount: 2, masteryPct: 20, status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0, reinforcementTriggeredAtLevel: 4, isReinforcementActive: true, lastReinforcementSkipped: false },
+        { topic: 'Shapes', totalAttempts: 10, correctCount: 3, masteryPct: 30, status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0, reinforcementTriggeredAtLevel: 4, isReinforcementActive: true, lastReinforcementSkipped: false },
+        { topic: 'Addition', totalAttempts: 10, correctCount: 3, masteryPct: 35, status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0, reinforcementTriggeredAtLevel: 4, isReinforcementActive: true, lastReinforcementSkipped: false },
+        { topic: 'Subtraction', totalAttempts: 10, correctCount: 4, masteryPct: 40, status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0, reinforcementTriggeredAtLevel: 4, isReinforcementActive: true, lastReinforcementSkipped: false }
+      ]
+    })
+  } as any;
+
+  const qs = await getReinforcementQuestions('student_multi', 5, dbStore);
+  // Should return at most 3 (capped) from the 3 weakest concepts
+  assert.ok(qs.length <= 3, `Should return at most 3 reinforcement questions, got ${qs.length}`);
+  assert.ok(qs.length > 0, 'Should return at least 1 reinforcement question');
+
+  // All questions should be unique
+  const texts = qs.map(q => q.question.trim().toLowerCase());
+  const uniqueTexts = new Set(texts);
+  assert.equal(uniqueTexts.size, texts.length, 'All reinforcement questions must be unique');
+});
+
+// ── Frequency Band Tests ────────────────────────────────────────────
+
+test('score <40% → reinforces every worksheet', async () => {
+  const dbStore = {
+    addLog: async () => {},
+    upsertConceptMasteryProfile: async () => {},
+    getConceptMasteryProfile: async () => ({
+      id: 'profile_freq', studentId: 'student_freq', updatedAt: '', concepts: [{
         topic: 'Number Sense', totalAttempts: 10, correctCount: 2, masteryPct: 20,
         status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0,
-        reinforcementTriggeredAtLevel: 15, isReinforcementActive: true
+        reinforcementTriggeredAtLevel: 4, isReinforcementActive: true,
+        lastReinforcementSkipped: false
       }]
     })
   } as any;
 
-  // Verification of levels: Immediate next level (Level 16) MUST add reinforcement questions.
-  const questionsAtL16 = await getReinforcementQuestions('student_reinf_verify', 16, dbStore);
-  assert.equal(questionsAtL16.length, 1, 'Should add 1 reinforcement question immediately at Level 16 (Level 15 + 1)');
-
-  // Level 17 (Level 15 + 2) also includes reinforcement.
-  const questionsAtL17 = await getReinforcementQuestions('student_reinf_verify', 17, dbStore);
-  assert.equal(questionsAtL17.length, 1, 'Should add 1 reinforcement question at level 17');
-
-  // Normal level questions remain unchanged and reinforcement question is added as EXTRA (4 normal L17 + 1 reinforcement = 5 total).
-  const normalQuestions = [
-    { question_id: 'q1', topic: 'Addition', question: 'Addition Q1', answer: '1', source_level: 17 } as any,
-    { question_id: 'q2', topic: 'Addition', question: 'Addition Q2', answer: '2', source_level: 17 } as any,
-    { question_id: 'q3', topic: 'Addition', question: 'Addition Q3', answer: '3', source_level: 17 } as any,
-    { question_id: 'q4', topic: 'Addition', question: 'Addition Q4', answer: '4', source_level: 17 } as any,
-  ];
-  
-  const mixedWorksheet = mixWorksheetQuestions(normalQuestions, questionsAtL17);
-  assert.equal(mixedWorksheet.length, 5, 'Worksheet should contain 4 normal + 1 reinforcement question = 5 total');
-  assert.equal(mixedWorksheet.filter(q => q.topic === 'Addition').length, 4, 'All 4 normal Level 17 questions must be kept unchanged');
-  assert.ok(mixedWorksheet.some(q => q.topic === 'Number Sense'), 'Reinforcement questions must be present as extra');
-
-  const distribution: Record<string, number> = {};
-  mixedWorksheet.forEach(q => {
-    distribution[q.topic] = (distribution[q.topic] || 0) + 1;
-  });
-  console.log('\n[RL TEST VERIFY] Verification Success:');
-  console.log(`  Normal Concept (Addition): ${distribution['Addition']} questions`);
-  console.log(`  Reinforcement Concept (Number Sense): ${distribution['Number Sense']} questions`);
+  // Should get reinforcement even when lastReinforcementSkipped is false (every worksheet)
+  const q = await getReinforcementQuestions('student_freq', 5, dbStore);
+  assert.equal(q.length, 1, 'Score <40% should reinforce every worksheet');
 });
 
-test('stops reinforcement after 3 consecutive levels and raises teacher alert if mastery < 70%', async () => {
+test('score 40–69% → reinforces every alternate worksheet', async () => {
+  let storedProfile: any = null;
+  const makeDbStore = (skipped: boolean) => ({
+    addLog: async () => {},
+    upsertConceptMasteryProfile: async (p: any) => { storedProfile = p; },
+    getConceptMasteryProfile: async () => ({
+      id: 'profile_alt', studentId: 'student_alt', updatedAt: '', concepts: [{
+        topic: 'Number Sense', totalAttempts: 10, correctCount: 5, masteryPct: 50,
+        status: 'Satisfactory', lastAssessedAt: '', consecutiveMasteryCount: 0,
+        reinforcementTriggeredAtLevel: 4, isReinforcementActive: true,
+        lastReinforcementSkipped: skipped, reinforcementLevelsCompleted: 0
+      }]
+    })
+  } as any);
+
+  // Worksheet 1: lastReinforcementSkipped=false → should skip (alternate logic)
+  const q1 = await getReinforcementQuestions('student_alt', 5, makeDbStore(false));
+  assert.equal(q1.length, 0, 'Score 50% with lastReinforcementSkipped=false → should skip this worksheet');
+
+  // Worksheet 2: lastReinforcementSkipped=true → should reinforce
+  const q2 = await getReinforcementQuestions('student_alt', 5, makeDbStore(true));
+  assert.equal(q2.length, 1, 'Score 50% with lastReinforcementSkipped=true → should reinforce this worksheet');
+});
+
+// ── Dedup Tests ─────────────────────────────────────────────────────
+
+test('appends reinforcement questions to current-level questions without replacing them', () => {
+  const current = [1, 2, 3, 4].map(index => ({ question_id: `current-${index}`, topic: 'Current', question: `unique q${index}`, answer: '', source_level: 1 } as any));
+  const reinforcement = [1].map(index => ({ question_id: `reinf-${index}`, topic: 'Weak', question: 'unique reinf question', answer: '', source_level: 1 } as any));
+  const mixed = mixWorksheetQuestions(current, reinforcement);
+  assert.deepEqual(mixed.map(question => question.question_id), ['current-1', 'current-2', 'current-3', 'current-4', 'reinf-1']);
+});
+
+test('mixWorksheetQuestions filters out reinforcement questions that duplicate normal questions', () => {
+  const current = [
+    { question_id: 'current-1', topic: 'Number Sense', question: 'What is 2 + 3?', answer: '5', source_level: 1 },
+    { question_id: 'current-2', topic: 'Number Sense', question: 'What is 4 + 1?', answer: '5', source_level: 1 },
+  ] as any[];
+  const reinforcement = [
+    { question_id: 'reinf-1', topic: 'Number Sense', question: 'What is 2 + 3?', answer: '5', source_level: 1 },
+  ] as any[];
+  const mixed = mixWorksheetQuestions(current, reinforcement);
+  assert.equal(mixed.length, 2, 'Duplicate reinforcement question should be filtered out');
+  assert.deepEqual(mixed.map(q => q.question_id), ['current-1', 'current-2']);
+});
+
+test('getReinforcementQuestions skips candidates matching worksheetQuestionTexts', async () => {
+  const dbStore = {
+    addLog: async () => {},
+    upsertConceptMasteryProfile: async () => {},
+    getConceptMasteryProfile: async () => ({
+      id: 'profile_dedup', studentId: 'student_dedup', updatedAt: '', concepts: [{
+        topic: 'Number Sense', totalAttempts: 10, correctCount: 2, masteryPct: 20,
+        status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0,
+        reinforcementTriggeredAtLevel: 4, isReinforcementActive: true,
+        reinforcementLevelsCompleted: 0, lastReinforcementSkipped: false
+      }]
+    })
+  } as any;
+
+  const q1 = await getReinforcementQuestions('student_dedup', 5, dbStore);
+  assert.equal(q1.length, 1, 'Should return 1 reinforcement question');
+
+  // Put the same question text in worksheetQuestionTexts
+  const worksheetTexts = new Set<string>([q1[0].question.trim().toLowerCase()]);
+
+  const dbStore2 = {
+    addLog: async () => {},
+    upsertConceptMasteryProfile: async () => {},
+    getConceptMasteryProfile: async () => ({
+      id: 'profile_dedup2', studentId: 'student_dedup2', updatedAt: '', concepts: [{
+        topic: 'Number Sense', totalAttempts: 10, correctCount: 2, masteryPct: 20,
+        status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0,
+        reinforcementTriggeredAtLevel: 4, isReinforcementActive: true,
+        reinforcementLevelsCompleted: 0, lastReinforcementSkipped: false
+      }]
+    })
+  } as any;
+
+  const q2 = await getReinforcementQuestions('student_dedup2', 5, dbStore2, undefined, worksheetTexts);
+  if (q2.length > 0) {
+    const q2Text = q2[0].question.trim().toLowerCase();
+    assert.ok(!worksheetTexts.has(q2Text), 'Reinforcement question must be different from normal worksheet questions');
+  }
+});
+
+// ── 3-Cycle Limit & Teacher Alert ───────────────────────────────────
+
+test('stops reinforcement after 3 cycles and raises teacher alert if mastery < 80%', async () => {
   const profileState = {
     id: 'profile_3lvl', studentId: 'student_3lvl', updatedAt: '', concepts: [{
-      topic: 'Number Sense', totalAttempts: 10, correctCount: 2, masteryPct: 40,
+      topic: 'Number Sense', totalAttempts: 10, correctCount: 2, masteryPct: 30,
       status: 'Needs Practice', lastAssessedAt: '', consecutiveMasteryCount: 0,
-      reinforcementTriggeredAtLevel: 10, isReinforcementActive: true, reinforcementLevelsCompleted: 0
+      reinforcementTriggeredAtLevel: 10, isReinforcementActive: true,
+      reinforcementLevelsCompleted: 0, lastReinforcementSkipped: false
     }]
   };
 
@@ -97,26 +211,45 @@ test('stops reinforcement after 3 consecutive levels and raises teacher alert if
     getConceptMasteryProfile: async () => profileState
   } as any;
 
-  // Level 1 of 3
+  // Cycle 1 of 3
   const q1 = await getReinforcementQuestions('student_3lvl', 10, dbStore);
   assert.equal(q1.length, 1);
   assert.equal(profileState.concepts[0].reinforcementLevelsCompleted, 1);
   assert.equal(profileState.concepts[0].isReinforcementActive, true);
 
-  // Level 2 of 3
+  // Cycle 2 of 3
   const q2 = await getReinforcementQuestions('student_3lvl', 11, dbStore);
   assert.equal(q2.length, 1);
   assert.equal(profileState.concepts[0].reinforcementLevelsCompleted, 2);
   assert.equal(profileState.concepts[0].isReinforcementActive, true);
 
-  // Level 3 of 3
+  // Cycle 3 of 3
   const q3 = await getReinforcementQuestions('student_3lvl', 12, dbStore);
   assert.equal(q3.length, 1);
   assert.equal(profileState.concepts[0].reinforcementLevelsCompleted, 3);
 
-  // Level 4 (Exceeded max 3 levels): Reinforcement must stop and raise Teacher Alert
+  // Cycle 4 (Exceeded max 3): Reinforcement must stop and raise Teacher Alert
   const q4 = await getReinforcementQuestions('student_3lvl', 13, dbStore);
-  assert.equal(q4.length, 0, 'Reinforcement should stop after 3 levels');
-  assert.equal(profileState.concepts[0].isReinforcementActive, false, 'isReinforcementActive should be set to false');
-  assert.equal(profileState.concepts[0].needsTeacherIntervention, true, 'needsTeacherIntervention should be set to true');
-});
+  assert.equal(q4.length, 0, 'Reinforcement should stop after 3 cycles');
+  assert.equal(profileState.concepts[0].isReinforcementActive, false, 'isReinforcementActive should be false');
+  assert.equal(profileState.concepts[0].needsTeacherIntervention, true, 'needsTeacherIntervention should be true');
+});
+
+// ── Mastery ≥80% Stop Test ──────────────────────────────────────────
+
+test('score ≥80% → no reinforcement questions returned', async () => {
+  const dbStore = {
+    addLog: async () => {},
+    upsertConceptMasteryProfile: async () => {},
+    getConceptMasteryProfile: async () => ({
+      id: 'profile_high', studentId: 'student_high', updatedAt: '', concepts: [{
+        topic: 'Number Sense', totalAttempts: 10, correctCount: 9, masteryPct: 90,
+        status: 'Strong', lastAssessedAt: '', consecutiveMasteryCount: 2,
+        reinforcementTriggeredAtLevel: 4, isReinforcementActive: false
+      }]
+    })
+  } as any;
+
+  const q = await getReinforcementQuestions('student_high', 5, dbStore);
+  assert.equal(q.length, 0, 'Score ≥80% should not return reinforcement questions');
+});

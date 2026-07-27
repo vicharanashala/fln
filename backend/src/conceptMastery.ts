@@ -35,6 +35,12 @@ export interface ConceptScore {
   reinforcementLevelsCompleted?: number;
   reinforcementStartLevel?: number;
   needsTeacherIntervention?: boolean;
+  /**
+   * Tracks whether reinforcement was skipped on the last worksheet for
+   * this concept. Used to implement "alternate worksheet" frequency
+   * for the 40–69% mastery band.
+   */
+  lastReinforcementSkipped?: boolean;
 }
 
 export interface ConceptMasteryProfile {
@@ -52,10 +58,13 @@ export const STRONG_THRESHOLD = 80;
 /** Percentage at or above which a concept is "Satisfactory" (below Strong) */
 export const SATISFACTORY_THRESHOLD = 50;
 
-/** Score threshold (>=70%) on a reinforcement question to stop reinforcement early */
-export const REINFORCEMENT_MASTERY_THRESHOLD = 70;
+/**
+ * Mastery stop threshold for reinforcement.
+ * When a concept's mastery reaches ≥80%, reinforcement stops.
+ */
+export const REINFORCEMENT_MASTERY_THRESHOLD = 80;
 
-/** Maximum consecutive levels of reinforcement allowed for a weak concept (max 3) */
+/** Maximum consecutive reinforcement cycles allowed for a weak concept (max 3) */
 export const MAX_REINFORCEMENT_LEVELS = 3;
 
 /**
@@ -64,19 +73,32 @@ export const MAX_REINFORCEMENT_LEVELS = 3;
  */
 export const MASTERY_CONSECUTIVE_THRESHOLD = 2;
 
-// ── Reinforcement question counts per weakness tier ─────────────────
+// ── Reinforcement frequency bands ───────────────────────────────────
 
-/** Reinforcement questions for concepts with mastery ≤50%. (1 extra question) */
+/** Below this mastery percentage → reinforce EVERY worksheet */
+export const REINF_EVERY_WORKSHEET_THRESHOLD = 40;
+
+/** Below this mastery percentage (but ≥ REINF_EVERY_WORKSHEET_THRESHOLD) → reinforce every ALTERNATE worksheet */
+export const REINF_ALTERNATE_WORKSHEET_THRESHOLD = 70;
+
+// ── Worksheet composition ───────────────────────────────────────────
+
+/** Total questions per worksheet (normal + reinforcement always sums to 5) */
+export const WORKSHEET_TOTAL_QUESTIONS = 5;
+
+/** Maximum reinforcement questions per worksheet (top 3 weakest concepts) */
+export const MAX_REINFORCEMENT_PER_WORKSHEET = 3;
+
+// ── Legacy aliases (kept for backward compatibility) ────────────────
+
+/** @deprecated Use dynamic composition rules instead */
 export const REINF_COUNT_WEAK = 1;
 
-/** Reinforcement questions for concepts with mastery 51-75%. (1 extra question) */
+/** @deprecated Use dynamic composition rules instead */
 export const REINF_COUNT_MODERATE = 1;
 
-/** Fixed worksheet size for normal questions. */
-export const WORKSHEET_QUESTION_COUNT = 4;
-
-/** Maximum reinforcement questions added as EXTRA per worksheet (exactly 1). */
-export const MAX_REINFORCEMENT_PER_WORKSHEET = 1;
+/** @deprecated Use WORKSHEET_TOTAL_QUESTIONS instead */
+export const WORKSHEET_QUESTION_COUNT = 5;
 
 /**
  * Weight given to the latest assessment when computing the rolling
