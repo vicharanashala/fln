@@ -20,9 +20,14 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 }
 
 // Strip characters that WinAnsi (StandardFonts) cannot encode.
-// Replaces any non-printable-ASCII / non-Latin-1 character with '?'.
+// Cleanly removes emojis and non-printable/non-Latin-1 characters without leaving '???' artifacts.
 function sanitizeForPdf(text: string): string {
-  return text.replace(/[^\x20-\x7E\xA0-\xFF]/g, '?');
+  if (!text) return '';
+  return text
+    .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export interface PaperGenerationResult {

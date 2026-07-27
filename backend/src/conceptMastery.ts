@@ -67,7 +67,7 @@ export const REINF_COUNT_MODERATE = 1;
 export const WORKSHEET_QUESTION_COUNT = 4;
 
 /** Maximum reinforcement questions that can replace normal questions in one worksheet. */
-export const MAX_REINFORCEMENT_PER_WORKSHEET = 1;
+export const MAX_REINFORCEMENT_PER_WORKSHEET = 2;
 
 /**
  * Weight given to the latest assessment when computing the rolling

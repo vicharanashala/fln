@@ -201,7 +201,7 @@ export async function updateConceptMastery(
 
 /**
  * Returns reinforcement questions for concepts the student has active reinforcement for.
- * Reinforcement questions start after skipping one level (not immediately).
+ * Reinforcement questions start immediately after assessment evaluation (no 2-level waiting period).
  */
 export async function getReinforcementQuestions(
   studentId: string,
@@ -227,11 +227,6 @@ export async function getReinforcementQuestions(
 
   for (const concept of activeConcepts) {
     const triggerLvl = concept.reinforcementTriggeredAtLevel || currentLevel;
-    
-    if (currentLevel < triggerLvl + 2 || currentLevel > triggerLvl + 4) {
-      console.log(`[Reinf Log] OUTSIDE WINDOW: Reinforcement for ${studentId} on ${concept.topic} is inactive at level ${currentLevel}; eligible levels are ${triggerLvl + 2}-${triggerLvl + 4}.`);
-      continue;
-    }
 
     const targetCount = getReinforcementQuestionCount(concept.masteryPct);
     if (targetCount === 0) continue;
@@ -308,7 +303,7 @@ export async function getReinforcementQuestions(
   }
 
   // Cap total reinforcement questions to MAX_REINFORCEMENT_PER_WORKSHEET
-  // to ensure worksheet size stays fixed at exactly WORKSHEET_QUESTION_COUNT
+  // to ensure worksheet size stays fixed at exactly WORKSHEET_QUESTION_COUNT (4)
   const capped = reinforcementQuestions.slice(0, MAX_REINFORCEMENT_PER_WORKSHEET);
   if (capped.length < reinforcementQuestions.length) {
     console.log(`[Reinf Log] CAPPED: Reduced ${reinforcementQuestions.length} reinforcement questions to ${capped.length} (max ${MAX_REINFORCEMENT_PER_WORKSHEET} per worksheet).`);
@@ -318,7 +313,7 @@ export async function getReinforcementQuestions(
 }
 
 export function getReinforcementQuestionCount(masteryPct: number): number {
-  if (masteryPct <= 50) return REINF_COUNT_WEAK;    // Score ≤50% → 2 reinforcement questions
+  if (masteryPct <= 50) return REINF_COUNT_WEAK;    // Score ≤50% → 1 reinforcement question
   if (masteryPct <= 75) return REINF_COUNT_MODERATE; // Score 51–75% → 1 reinforcement question
   return 0;                                          // Score >75% → 0 reinforcement questions
 }
@@ -382,10 +377,9 @@ export async function getReinforcementDebugInfo(
   if (!profile) return debug;
 
   for (const concept of profile.concepts) {
-    const triggerLvl = concept.reinforcementTriggeredAtLevel || null;
+    const triggerLvl = concept.reinforcementTriggeredAtLevel || currentLevel;
     const isActive = concept.isReinforcementActive || false;
-    // Next reinforcement level is trigger + 2 (skip immediate next)
-    const nextReinfLvl = triggerLvl != null ? triggerLvl + 2 : null;
+    const nextReinfLvl = isActive ? currentLevel : null;
     const qCount = isActive ? getReinforcementQuestionCount(concept.masteryPct) : 0;
 
     let eligible = false;
@@ -393,18 +387,13 @@ export async function getReinforcementDebugInfo(
 
     if (!isActive) {
       reason = 'Reinforcement not active for this concept';
-    } else if (triggerLvl == null) {
-      reason = 'No trigger level recorded';
-    } else if (currentLevel < triggerLvl + 2) {
-      reason = `Current level ${currentLevel} < trigger+2 (${triggerLvl + 2}): skipping immediate next level`;
-    } else if (currentLevel > triggerLvl + 4) {
-      reason = `Current level ${currentLevel} > trigger+4 (${triggerLvl + 4}): reinforcement window expired`;
     } else {
       eligible = true;
-      reason = `Active at level ${currentLevel} (window ${triggerLvl + 2}-${triggerLvl + 4})`;
+      reason = `Active immediately after assessment at level ${currentLevel}`;
     }
 
     if (concept.masteryPct < STRONG_THRESHOLD || isActive) {
+      const questionsToInject = eligible ? qCount : 0;
       debug.weakConcepts.push({
         topic: concept.topic,
         masteryPct: Math.round(concept.masteryPct * 10) / 10,
@@ -414,7 +403,7 @@ export async function getReinforcementDebugInfo(
         nextReinforcementLevel: nextReinfLvl,
         reinforcementEligible: eligible,
         eligibilityReason: reason,
-        questionsToInject: eligible ? qCount : 0,
+        questionsToInject,
       });
 
       if (eligible && qCount > 0) {
@@ -422,6 +411,11 @@ export async function getReinforcementDebugInfo(
         debug.hasActiveReinforcement = true;
       }
     }
+  }
+
+  // Cap total debugging injected count to MAX_REINFORCEMENT_PER_WORKSHEET
+  if (debug.totalReinforcementQuestions > MAX_REINFORCEMENT_PER_WORKSHEET) {
+    debug.totalReinforcementQuestions = MAX_REINFORCEMENT_PER_WORKSHEET;
   }
 
   return debug;

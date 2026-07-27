@@ -11,7 +11,7 @@ test('uses the requested dynamic reinforcement bands', () => {
   assert.equal(getReinforcementQuestionCount(100), 0);
 });
 
-test('skips the next level and expires after the following three levels', async () => {
+test('provides reinforcement questions immediately on the first worksheet after assessment', async () => {
   const dbStore = {
     addLog: async () => {},
     upsertConceptMasteryProfile: async () => {},
@@ -24,9 +24,9 @@ test('skips the next level and expires after the following three levels', async 
     })
   } as any;
 
-  assert.equal((await getReinforcementQuestions('student', 5, dbStore)).length, 0);
+  // Immediate next level (Level 5) immediately includes reinforcement questions
+  assert.equal((await getReinforcementQuestions('student', 5, dbStore)).length, 1);
   assert.equal((await getReinforcementQuestions('student', 6, dbStore)).length, 1);
-  assert.equal((await getReinforcementQuestions('student', 8, dbStore)).length, 1);
 });
 
 test('interleaves reinforcement with current-level questions', () => {
@@ -50,15 +50,15 @@ test('verifies adaptive reinforcement rules end-to-end', async () => {
     })
   } as any;
 
-  // Rule 1 & 2: Verification of levels. Immediate next level is Level 16 (should NOT add reinforcement).
+  // Verification of levels: Immediate next level (Level 16) MUST add reinforcement questions.
   const questionsAtL16 = await getReinforcementQuestions('student_reinf_verify', 16, dbStore);
-  assert.equal(questionsAtL16.length, 0, 'Should not add reinforcement questions at immediate next level (15 + 1 = 16)');
+  assert.equal(questionsAtL16.length, 1, 'Should add 1 reinforcement question immediately at Level 16 (Level 15 + 1)');
 
-  // Level 17 is Level + 2 (should add 1 reinforcement question = 25% of worksheet).
+  // Level 17 (Level 15 + 2) also includes reinforcement.
   const questionsAtL17 = await getReinforcementQuestions('student_reinf_verify', 17, dbStore);
-  assert.equal(questionsAtL17.length, 1, 'Should add 1 reinforcement question at level 17 (Level 15 + 2)');
+  assert.equal(questionsAtL17.length, 1, 'Should add 1 reinforcement question at level 17');
 
-  // Rule 4: Normal level questions are still present when mixed (3 normal L17 + 1 reinforcement = 4 total).
+  // Normal level questions are mixed (3 normal L17 + 1 reinforcement = 4 total).
   const normalQuestions = [
     { question_id: 'q1', topic: 'Addition', question: 'Addition Q1', answer: '1', source_level: 17 } as any,
     { question_id: 'q2', topic: 'Addition', question: 'Addition Q2', answer: '2', source_level: 17 } as any,
@@ -70,7 +70,6 @@ test('verifies adaptive reinforcement rules end-to-end', async () => {
   assert.ok(mixedWorksheet.some(q => q.topic === 'Addition'), 'Normal Level 17 questions must still be present');
   assert.ok(mixedWorksheet.some(q => q.topic === 'Number Sense'), 'Reinforcement questions must be present');
 
-  // Rule 5: Log the final concept distribution for verification.
   const distribution: Record<string, number> = {};
   mixedWorksheet.forEach(q => {
     distribution[q.topic] = (distribution[q.topic] || 0) + 1;

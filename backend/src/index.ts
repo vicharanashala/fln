@@ -1345,7 +1345,29 @@ async function startServer() {
       const baseName = result.fileName.replace(/\.pdf$/, '');
       fs.writeFileSync(path.join(localOutputDir, `${baseName}_question_paper.json`), JSON.stringify(studentQs, null, 2));
 
-      const debugInfo = await getReinforcementDebugInfo(student.id, student.currentLevel, dbStore);
+      const conceptDist: { [topic: string]: { normal: number; reinforcement: number } } = {};
+      studentQs.forEach(q => {
+        const topic = q.topic || 'Unknown';
+        if (!conceptDist[topic]) conceptDist[topic] = { normal: 0, reinforcement: 0 };
+        if (q.question_id.includes('_REINF_') || q.subtopic === 'Reinforcement') {
+          conceptDist[topic].reinforcement++;
+        } else {
+          conceptDist[topic].normal++;
+        }
+      });
+
+      const rawDebugInfo = await getReinforcementDebugInfo(student.id, student.currentLevel, dbStore);
+      const debugInfo = {
+        ...rawDebugInfo,
+        currentLevelConcepts: Object.entries(conceptDist)
+          .filter(([, c]) => c.normal > 0)
+          .map(([topic, c]) => `${topic} (${c.normal})`),
+        reinforcementConcepts: Object.entries(conceptDist)
+          .filter(([, c]) => c.reinforcement > 0)
+          .map(([topic, c]) => `${topic} (${c.reinforcement})`),
+        totalNormalQuestions: studentQs.filter(q => !q.question_id.includes('_REINF_') && q.subtopic !== 'Reinforcement').length,
+        totalReinforcementQuestionsInjected: studentQs.filter(q => q.question_id.includes('_REINF_') || q.subtopic === 'Reinforcement').length,
+      };
 
       res.json({ success: true, pdfUrl: result.pdfUrl, questions: studentQs, debugInfo });
     } catch (err: any) {
