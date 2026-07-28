@@ -55,6 +55,9 @@ export interface Student {
   aadharMasked: string;
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
+  riskCategory?: 'High Priority' | 'Moderate Priority' | 'Stable Progress';
+  riskScore?: number;
+  recommendedIntervention?: string;
 }
 
 export interface Question {

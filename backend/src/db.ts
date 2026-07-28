@@ -89,6 +89,9 @@ export interface Student {
   aadharMasked: string; // Mandatory, unique identifier masked (§13.2 R-6)
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
+  riskCategory?: 'High Priority' | 'Moderate Priority' | 'Stable Progress';
+  riskScore?: number;
+  recommendedIntervention?: string;
 }
 
 export interface Question {

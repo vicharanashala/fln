@@ -415,6 +415,72 @@ async function startServer() {
     res.json(maskedStudents);
   });
 
+  // Learning Risk Detection Analysis Endpoint (Feature 3)
+  app.get('/api/students/risk-analysis', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    let students = await dbStore.getStudents();
+    
+    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+      students = students.filter(s => s.schoolId === user.schoolId);
+    } else if (user.role === UserRole.VOLUNTEER) {
+      students = students.filter(s => user.assignedSchools?.includes(s.schoolId));
+    }
+
+    const categorized = students.map(s => {
+      const levelGap = Math.max(0, (s.targetLevel || 10) - (s.currentLevel || 0));
+      let category = s.riskCategory || 'Stable Progress';
+      if (!s.riskCategory) {
+        if (levelGap >= 4) category = 'High Priority';
+        else if (levelGap >= 2) category = 'Moderate Priority';
+        else category = 'Stable Progress';
+      }
+
+      let recommendation = s.recommendedIntervention || '';
+      if (!recommendation) {
+        if (category === 'High Priority') recommendation = 'Assign 1-on-1 foundational remedial worksheet & daily practice.';
+        else if (category === 'Moderate Priority') recommendation = 'Provide targeted level-up practice sheets & peer study pairing.';
+        else recommendation = 'Maintain regular assessment schedule & advanced level challenges.';
+      }
+
+      return {
+        studentId: s.id,
+        name: s.name,
+        classGroup: s.classGroup,
+        section: s.section,
+        schoolId: s.schoolId,
+        currentLevel: s.currentLevel,
+        targetLevel: s.targetLevel,
+        levelGap,
+        category,
+        recommendation
+      };
+    });
+
+    const highPriority = categorized.filter(c => c.category === 'High Priority');
+    const moderatePriority = categorized.filter(c => c.category === 'Moderate Priority');
+    const stableProgress = categorized.filter(c => c.category === 'Stable Progress');
+
+    res.json({
+      summary: {
+        total: categorized.length,
+        highPriorityCount: highPriority.length,
+        moderatePriorityCount: moderatePriority.length,
+        stableProgressCount: stableProgress.length,
+        highPriorityPercentage: categorized.length ? Math.round((highPriority.length / categorized.length) * 100) : 0,
+        moderatePriorityPercentage: categorized.length ? Math.round((moderatePriority.length / categorized.length) * 100) : 0,
+        stableProgressPercentage: categorized.length ? Math.round((stableProgress.length / categorized.length) * 100) : 0,
+      },
+      categories: {
+        highPriority,
+        moderatePriority,
+        stableProgress
+      },
+      students: categorized
+    });
+  });
+
   // Add Student
   app.post('/api/students', async (req, res) => {
     const user = getAuthUser(req);
