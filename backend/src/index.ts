@@ -163,8 +163,8 @@ async function startServer() {
       return res.json({ success: true, message: 'If an account exists, a reset link will be sent.' });
     }
 
-    const crypto = require('crypto');
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    const { randomBytes } = await import('crypto');
+    const resetToken = randomBytes(32).toString('hex');
     const resetTokenExpiry = Date.now() + 3600000; // 1 hour
 
     await dbStore.updateUser(user.id, { resetToken, resetTokenExpiry });
