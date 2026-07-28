@@ -2328,8 +2328,12 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                   <div className="max-h-40 overflow-y-auto space-y-1">
                     {levelBatchResults.map((r, i) => (
                       <div key={`${r.studentId}-${r.sublevelId}-${r.setNum}-${i}`} className="flex items-center justify-between text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded px-2 py-1">
-                        <span className="text-zinc-700 dark:text-zinc-300 font-medium">{r.studentName} <span className="text-zinc-400 dark:text-zinc-500 font-mono">L{r.sublevelId} set{r.setNum}</span></span>
-                        <a href={r.pdfUrl} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-mono font-bold">View PDF</a>
+                        <div className="flex items-center gap-2">
+                          <a href={r.pdfUrl} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-mono font-bold">📄 Student PDF</a>
+                          {r.answerKeyPdfUrl && (
+                            <a href={r.answerKeyPdfUrl} target="_blank" rel="noreferrer" className="text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 font-mono font-bold">🔑 Answer Key</a>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

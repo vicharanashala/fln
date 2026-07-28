@@ -4,7 +4,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, TeacherAnswerKey, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel, generateMultiTopicQuestions } from './levelGenerator';
@@ -1029,7 +1029,29 @@ async function startServer() {
         cycle: ws.cycle,
         studentsWithQuestions
       });
-      res.json({ success: true, pdfUrl: result.pdfUrl });
+
+      // Save TeacherAnswerKey records for each student in the class worksheet
+      if (result.answerKeyPdfUrls) {
+        for (const swq of studentsWithQuestions) {
+          const akUrl = result.answerKeyPdfUrls[swq.studentId];
+          if (akUrl) {
+            const akRecord: TeacherAnswerKey = {
+              id: 'TAK_' + crypto.randomUUID(),
+              worksheetId: ws.id,
+              studentId: swq.studentId,
+              studentName: swq.name,
+              levelId: swq.currentLevel,
+              sublevelId: `${swq.currentLevel}.${swq.currentSubLevel}`,
+              pdfUrl: akUrl,
+              questions: swq.questions,
+              generatedAt: new Date().toISOString()
+            };
+            await dbStore.addTeacherAnswerKey(akRecord);
+          }
+        }
+      }
+
+      res.json({ success: true, pdfUrl: result.pdfUrl, answerKeyPdfUrls: result.answerKeyPdfUrls });
     } catch (err: any) {
       console.error('Worksheet PDF generation failed:', err);
       res.status(500).json({ success: false, error: err.message });
@@ -1147,13 +1169,45 @@ async function startServer() {
       };
       await dbStore.addLevelWorksheet(record);
 
+      let answerKeyPdfUrl: string | undefined;
+      if (file.questionPaper && Array.isArray(file.questionPaper)) {
+        try {
+          const { generateAnswerKeyPdf } = await import('./paperGenerator');
+          const subIdx = Number(file.sublevelId.split('.')[1]) || 0;
+          const akRes = await generateAnswerKeyPdf({
+            studentId: student.id,
+            studentName: student.name,
+            levelId: student.currentLevel,
+            subIdx,
+            worksheetId: record.id,
+            questions: file.questionPaper
+          });
+          answerKeyPdfUrl = akRes.pdfUrl;
+          const akRecord: TeacherAnswerKey = {
+            id: 'TAK_' + randomUUID(),
+            worksheetId: record.id,
+            studentId: student.id,
+            studentName: student.name,
+            levelId: student.currentLevel,
+            sublevelId: file.sublevelId,
+            pdfUrl: akRes.pdfUrl,
+            questions: file.questionPaper,
+            generatedAt: new Date().toISOString()
+          };
+          await dbStore.addTeacherAnswerKey(akRecord);
+        } catch (akErr) {
+          console.error(`Failed to generate answer key PDF for ${student.id}:`, akErr);
+        }
+      }
+
       out.push({
         studentId: student.id,
         studentName: student.name,
         batchId: batchResult.batchId,
         sublevelId: file.sublevelId,
         setNum: file.setNum,
-        pdfUrl
+        pdfUrl,
+        answerKeyPdfUrl
       });
     }
 
@@ -1401,7 +1455,23 @@ async function startServer() {
         totalReinforcementQuestionsInjected: studentQs.filter(q => q.question_id.includes('_REINF_') || q.subtopic === 'Reinforcement').length,
       };
 
-      res.json({ success: true, pdfUrl: result.pdfUrl, questions: studentQs, debugInfo });
+      res.json({ success: true, pdfUrl: result.pdfUrl, answerKeyPdfUrl: result.answerKeyPdfUrl, questions: studentQs, debugInfo });
+
+      // Save TeacherAnswerKey record to dbStore (non-blocking for the response)
+      if (result.answerKeyPdfUrl) {
+        const akRecord: TeacherAnswerKey = {
+          id: 'TAK_' + crypto.randomUUID(),
+          worksheetId: `L_${student.currentLevel}_S_${subLvl}_${student.id}`,
+          studentId: student.id,
+          studentName: student.name,
+          levelId: student.currentLevel,
+          sublevelId: `${student.currentLevel}.${subLvl}`,
+          pdfUrl: result.answerKeyPdfUrl,
+          questions: studentQs,
+          generatedAt: new Date().toISOString()
+        };
+        dbStore.addTeacherAnswerKey(akRecord).catch(e => console.error('Failed to save answer key record:', e));
+      }
     } catch (err: any) {
       console.error('Level worksheet generation failed:', err);
       res.status(500).json({ success: false, error: err.message });
@@ -1549,6 +1619,7 @@ async function startServer() {
             sublevelId: `${student.currentLevel}.${subLvl}`,
             setNum: 1,
             pdfUrl: result.pdfUrl,
+            answerKeyPdfUrl: result.answerKeyPdfUrl,
             questions: studentQs
           });
           
@@ -1563,11 +1634,29 @@ async function startServer() {
             sublevelId: `${student.currentLevel}.${subLvl}`,
             setNum: 1,
             pdfUrl: result.pdfUrl,
+            answerKeyPdfUrl: result.answerKeyPdfUrl,
             answerKey: Object.fromEntries(studentQs.map(q => [q.question_id, q.answer])),
             coords: {},
             generatedAt: new Date().toISOString()
           };
           await dbStore.addLevelWorksheet(record);
+
+          // Save TeacherAnswerKey record to dbStore
+          if (result.answerKeyPdfUrl) {
+            const akRecord: TeacherAnswerKey = {
+              id: 'TAK_' + crypto.randomUUID(),
+              worksheetId: record.id,
+              studentId: student.id,
+              studentName: student.name,
+              levelId: student.currentLevel!,
+              sublevelId: `${student.currentLevel}.${subLvl}`,
+              pdfUrl: result.answerKeyPdfUrl,
+              questions: studentQs,
+              generatedAt: new Date().toISOString()
+            };
+            await dbStore.addTeacherAnswerKey(akRecord);
+          }
+
           console.log(`[Level Batch Gen Log] Fallback generated PDF and ${studentQs.length} questions for ${student.name} (${student.id}).`);
         } catch (err: any) {
           console.error(`Fallback generation failed for student ${student.id}:`, err);
@@ -1581,7 +1670,8 @@ async function startServer() {
         studentName: g.studentName,
         sublevelId: g.sublevelId,
         setNum: g.setNum,
-        pdfUrl: g.pdfUrl
+        pdfUrl: g.pdfUrl,
+        answerKeyPdfUrl: g.answerKeyPdfUrl
       }));
 
       res.json({
@@ -1661,6 +1751,96 @@ async function startServer() {
       });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ─── Teacher Answer Keys API ─────────────────────────────────────────
+
+  // List all answer keys (filterable by studentId, worksheetId)
+  app.get('/api/teacher-answer-keys', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      let keys = await dbStore.getTeacherAnswerKeys();
+
+      // Filter by studentId if provided
+      const { studentId, worksheetId } = req.query;
+      if (studentId && typeof studentId === 'string') {
+        keys = keys.filter(k => k.studentId === studentId);
+      }
+      if (worksheetId && typeof worksheetId === 'string') {
+        keys = keys.filter(k => k.worksheetId === worksheetId);
+      }
+
+      // For teacher role, filter to only their school's students
+      if (user.role === UserRole.TEACHER && user.schoolId) {
+        const students = await dbStore.getStudents();
+        const schoolStudentIds = new Set(students.filter(s => s.schoolId === user.schoolId).map(s => s.id));
+        keys = keys.filter(k => schoolStudentIds.has(k.studentId));
+      }
+
+      // Return without full questions array in list view for performance
+      const summary = keys.map(k => ({
+        id: k.id,
+        worksheetId: k.worksheetId,
+        studentId: k.studentId,
+        studentName: k.studentName,
+        levelId: k.levelId,
+        sublevelId: k.sublevelId,
+        pdfUrl: k.pdfUrl,
+        totalQuestions: k.questions.length,
+        generatedAt: k.generatedAt
+      }));
+
+      res.json({ success: true, answerKeys: summary });
+    } catch (err: any) {
+      console.error('Failed to fetch teacher answer keys:', err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Get full details of a specific answer key (including questions and answers)
+  app.get('/api/teacher-answer-keys/:id', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      const keys = await dbStore.getTeacherAnswerKeys();
+      const key = keys.find(k => k.id === req.params.id);
+      if (!key) return res.status(404).json({ error: 'Answer key not found.' });
+
+      res.json({ success: true, answerKey: key });
+    } catch (err: any) {
+      console.error('Failed to fetch answer key detail:', err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Download / view a specific answer key PDF
+  app.get('/api/teacher-answer-keys/:id/download', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      const keys = await dbStore.getTeacherAnswerKeys();
+      const key = keys.find(k => k.id === req.params.id);
+      if (!key) return res.status(404).json({ error: 'Answer key not found.' });
+
+      const fileName = path.basename(key.pdfUrl);
+      const filePath = path.join(ROOT_DIR, 'output', fileName);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Answer key PDF file not found on disk.' });
+      }
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+      const stream = fs.createReadStream(filePath);
+      stream.pipe(res);
+    } catch (err: any) {
+      console.error('Answer key download failed:', err);
+      res.status(500).json({ error: err.message });
     }
   });
 

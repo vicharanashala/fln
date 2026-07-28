@@ -202,6 +202,7 @@ export interface LevelWorksheetResult {
   filePath: string;
   pdfUrl: string;
   questions: Question[];
+  answerKeyPdfUrl?: string;
 }
 
 export async function generateLevelWorksheet({
@@ -352,11 +353,230 @@ export async function generateLevelWorksheet({
   const filePath = path.join(OUTPUT_DIR, fileName);
   fs.writeFileSync(filePath, mergedBuffer);
 
+  // Auto-generate Teacher Answer Key PDF from the same finalized questions
+  let answerKeyPdfUrl: string | undefined;
+  try {
+    const akResult = await generateAnswerKeyPdf({
+      studentId,
+      studentName,
+      levelId,
+      subIdx,
+      worksheetId: `L_${levelId}_S_${subIdx}`,
+      questions: qs
+    });
+    answerKeyPdfUrl = akResult.pdfUrl;
+  } catch (err) {
+    console.error('Failed to generate answer key PDF:', err);
+  }
+
   return {
     fileName,
     filePath,
     pdfUrl: `/output/${fileName}`,
-    questions: qs
+    questions: qs,
+    answerKeyPdfUrl
+  };
+}
+
+/**
+ * Generate a Teacher Answer Key PDF for a given set of finalized questions.
+ * Uses the EXACT same questions array as the student worksheet to guarantee
+ * perfect correspondence. Visually distinct with a maroon accent band.
+ */
+export async function generateAnswerKeyPdf({
+  studentId,
+  studentName,
+  levelId,
+  subIdx,
+  worksheetId,
+  questions
+}: {
+  studentId: string;
+  studentName: string;
+  levelId: number;
+  subIdx: number;
+  worksheetId: string;
+  questions: Question[];
+}): Promise<{ fileName: string; filePath: string; pdfUrl: string }> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  // Colors
+  const maroon = rgb(0.6, 0.1, 0.15);
+  const maroonLight = rgb(0.95, 0.92, 0.93);
+  const darkText = rgb(0.12, 0.12, 0.12);
+  const grayText = rgb(0.4, 0.4, 0.4);
+  const answerGreen = rgb(0.1, 0.55, 0.25);
+  const conceptBlue = rgb(0.15, 0.35, 0.7);
+
+  const page = doc.addPage([595.28, 841.89]);
+  const { width, height } = page.getSize();
+
+  // Top header color band — maroon to distinguish from student worksheet
+  page.drawRectangle({
+    x: 0,
+    y: height - 18,
+    width: width,
+    height: 18,
+    color: maroon,
+  });
+
+  // Title
+  page.drawText('TEACHER ANSWER KEY', {
+    x: 50,
+    y: height - 55,
+    size: 16,
+    font: boldFont,
+    color: maroon,
+  });
+
+  // Confidential notice
+  page.drawText(sanitizeForPdf('CONFIDENTIAL - FOR TEACHER USE ONLY'), {
+    x: 50,
+    y: height - 72,
+    size: 8,
+    font: boldFont,
+    color: rgb(0.8, 0.2, 0.2),
+  });
+
+  // Student info card
+  page.drawRectangle({
+    x: 50,
+    y: height - 130,
+    width: width - 100,
+    height: 45,
+    color: maroonLight,
+    borderColor: rgb(0.85, 0.8, 0.82),
+    borderWidth: 1,
+  });
+
+  page.drawText(sanitizeForPdf(`STUDENT: ${studentName.toUpperCase()}`), {
+    x: 65,
+    y: height - 107,
+    size: 10,
+    font: boldFont,
+    color: darkText,
+  });
+
+  page.drawText(sanitizeForPdf(`LEVEL: ${levelId}.${subIdx}  |  WORKSHEET: ${worksheetId}  |  DATE: ${new Date().toLocaleDateString()}`), {
+    x: 65,
+    y: height - 122,
+    size: 8.5,
+    font: font,
+    color: grayText,
+  });
+
+  // Questions with answers
+  const isCompact = questions.length > 4;
+  const fontSize = isCompact ? 8.5 : 9.5;
+  const answerFontSize = isCompact ? 8 : 9;
+  const sectionGap = isCompact ? 8 : 14;
+
+  let currentY = height - 160;
+
+  questions.forEach((q, idx) => {
+    const isReinforcement = q.subtopic === 'Reinforcement' || q.question_id.includes('REINF');
+
+    // Reinforcement label
+    if (isReinforcement) {
+      page.drawText(sanitizeForPdf(`[Reinforcement - ${q.topic}]`), {
+        x: 50,
+        y: currentY + 8,
+        size: 6.5,
+        font: boldFont,
+        color: rgb(0.4, 0.2, 0.8),
+      });
+    }
+
+    // Question text (same cleaning as student worksheet)
+    let cleanQuestion = q.question
+      .replace(/^\[For [^\]]+\]\s*/g, '')
+      .replace(/^\[Reinforcement - [^\]]+\]\s*/g, '')
+      .replace(/^\[REINFORCEMENT\]\s*/g, '');
+    const questionText = `Q${idx + 1}. ${cleanQuestion}`;
+
+    // Word-wrap question
+    const words = questionText.split(' ');
+    let line = '';
+    const lines: string[] = [];
+    words.forEach(w => {
+      if (line.length + w.length > 75) {
+        lines.push(line);
+        line = '';
+      }
+      line += (line ? ' ' : '') + w;
+    });
+    if (line) lines.push(line);
+
+    lines.forEach((l, lIdx) => {
+      page.drawText(sanitizeForPdf(l), {
+        x: 50,
+        y: currentY - (lIdx * 12),
+        size: fontSize,
+        font: boldFont,
+        color: isReinforcement ? rgb(0.4, 0.2, 0.8) : darkText,
+      });
+    });
+
+    const afterQuestion = currentY - (lines.length * 12) - 4;
+
+    // Correct Answer
+    page.drawText(sanitizeForPdf(`Correct Answer: ${q.answer}`), {
+      x: 65,
+      y: afterQuestion,
+      size: answerFontSize,
+      font: boldFont,
+      color: answerGreen,
+    });
+
+    // Concept & Difficulty
+    page.drawText(sanitizeForPdf(`Concept: ${q.topic} > ${q.subtopic}  |  Difficulty: ${q.difficulty}  |  Level: ${q.source_level}`), {
+      x: 65,
+      y: afterQuestion - 13,
+      size: 7.5,
+      font: font,
+      color: conceptBlue,
+    });
+
+    // Divider line
+    const dividerY = afterQuestion - 24;
+    page.drawLine({
+      start: { x: 50, y: dividerY },
+      end: { x: width - 50, y: dividerY },
+      thickness: 0.5,
+      color: rgb(0.88, 0.88, 0.88),
+    });
+
+    currentY = dividerY - sectionGap;
+  });
+
+  // Footer
+  page.drawText(sanitizeForPdf(`Answer Key for Worksheet ${worksheetId} | Student ID: ${studentId} | Total: ${questions.length} questions`), {
+    x: 50,
+    y: 30,
+    size: 7,
+    font: font,
+    color: grayText,
+  });
+
+  page.drawText(sanitizeForPdf('CONFIDENTIAL'), {
+    x: width - 120,
+    y: 30,
+    size: 7,
+    font: boldFont,
+    color: maroon,
+  });
+
+  const pdfBuffer = Buffer.from(await doc.save());
+  const fileName = `answer_key_L${levelId}_S${subIdx}_${studentId}_${randomUUID()}.pdf`;
+  const filePath = path.join(OUTPUT_DIR, fileName);
+  fs.writeFileSync(filePath, pdfBuffer);
+
+  return {
+    fileName,
+    filePath,
+    pdfUrl: `/output/${fileName}`
   };
 }
 
@@ -498,9 +718,28 @@ export async function renderWorksheetPdf({
   const filePath = path.join(OUTPUT_DIR, fileName);
   fs.writeFileSync(filePath, mergedBuffer);
 
+  // Auto-generate individual Teacher Answer Key PDFs for each student in this class worksheet
+  const answerKeyPdfUrls: { [studentId: string]: string } = {};
+  for (const swq of studentsWithQuestions) {
+    try {
+      const akResult = await generateAnswerKeyPdf({
+        studentId: swq.studentId,
+        studentName: swq.name,
+        levelId: swq.currentLevel,
+        subIdx: swq.currentSubLevel,
+        worksheetId: `${worksheetId}_${swq.studentId}`,
+        questions: swq.questions
+      });
+      answerKeyPdfUrls[swq.studentId] = akResult.pdfUrl;
+    } catch (err) {
+      console.error(`Failed to generate answer key PDF for student ${swq.studentId}:`, err);
+    }
+  }
+
   return {
     fileName,
     filePath,
-    pdfUrl: `/output/${fileName}`
+    pdfUrl: `/output/${fileName}`,
+    answerKeyPdfUrls
   };
 }

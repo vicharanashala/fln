@@ -128,8 +128,21 @@ export interface LevelWorksheet {
   sublevelId: string;
   setNum: number;
   pdfUrl: string;
+  answerKeyPdfUrl?: string;
   answerKey: any;
   coords: any;
+  generatedAt: string;
+}
+
+export interface TeacherAnswerKey {
+  id: string;
+  worksheetId: string;     // Links to the LevelWorksheet id
+  studentId: string;
+  studentName: string;
+  levelId: number;
+  sublevelId: string;
+  pdfUrl: string;          // URL to the answer key PDF
+  questions: Question[];   // Full question array with answers, topics, etc.
   generatedAt: string;
 }
 
@@ -291,6 +304,7 @@ interface DatabaseSchema {
   interventions: Intervention[];
   bestPractices: BestPractice[];
   conceptMasteryProfiles: ConceptMasteryProfile[];
+  teacherAnswerKeys: TeacherAnswerKey[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -309,6 +323,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   interventions: 'interventions',
   bestPractices: 'best_practices',
   conceptMasteryProfiles: 'concept_mastery_profiles',
+  teacherAnswerKeys: 'teacher_answer_keys',
 };
 
 export class DBStore {
@@ -492,6 +507,37 @@ export class DBStore {
     if (this.data) this.data.levelWorksheets.push(ws);
     if (!this.mongoDb) await this.save();
     return ws;
+  }
+
+  // --- Teacher Answer Key Methods ---
+
+  async getTeacherAnswerKeys() {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<TeacherAnswerKey>('teacher_answer_keys').find({}).toArray();
+    }
+    return this.data?.teacherAnswerKeys || [];
+  }
+
+  async addTeacherAnswerKey(key: TeacherAnswerKey) {
+    if (this.mongoDb) await this.mongoDb.collection('teacher_answer_keys').insertOne(key);
+    if (this.data) this.data.teacherAnswerKeys.push(key);
+    if (!this.mongoDb) await this.save();
+    return key;
+  }
+
+  async getTeacherAnswerKeyByWorksheetId(worksheetId: string): Promise<TeacherAnswerKey | null> {
+    if (this.mongoDb) {
+      const doc = await this.mongoDb.collection<TeacherAnswerKey>('teacher_answer_keys').findOne({ worksheetId });
+      return doc || null;
+    }
+    return this.data?.teacherAnswerKeys?.find(x => x.worksheetId === worksheetId) || null;
+  }
+
+  async getTeacherAnswerKeyByStudentId(studentId: string): Promise<TeacherAnswerKey[]> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<TeacherAnswerKey>('teacher_answer_keys').find({ studentId }).toArray();
+    }
+    return (this.data?.teacherAnswerKeys || []).filter(x => x.studentId === studentId);
   }
 
   async addAnswerSubmission(sub: AnswerSubmission) {
@@ -2601,7 +2647,8 @@ export class DBStore {
       announcements,
       interventions,
       bestPractices,
-      conceptMasteryProfiles: []
+      conceptMasteryProfiles: [],
+      teacherAnswerKeys: []
     };
   }
 }
