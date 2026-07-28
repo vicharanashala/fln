@@ -21,6 +21,7 @@ import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
+import { CurriculumFeedback } from './components/CurriculumFeedback';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
 
 export default function App() {
@@ -187,6 +188,7 @@ export default function App() {
                 {activePanel === 'logbook' && <LogbookView token={token} user={currentUser} />}
                 {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role} />}
                 {activePanel === 'calendar' && <AssessmentCalendar />}
+                {activePanel === 'curriculum_feedback' && <CurriculumFeedback />}
 
                 {activePanel === 'settings' && (
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

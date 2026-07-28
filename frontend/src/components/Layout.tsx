@@ -198,6 +198,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Districts', view: 'districts', icon: MapPin });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Curriculum Feedback', view: 'curriculum_feedback', icon: BookOpen });
         break;
 
       case UserRole.SUPERADMIN:
@@ -208,6 +209,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Content', view: 'content', icon: BookOpen });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Curriculum Feedback', view: 'curriculum_feedback', icon: BookOpen });
         list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });
         list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
         break;
