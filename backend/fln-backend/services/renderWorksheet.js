@@ -21,10 +21,6 @@ const puppeteer = require('puppeteer');
 
 const APP_INDEX_PATH = path.resolve(__dirname, '..', '..', '..', 'frontend', 'public', 'worksheets', 'levels_main.html');
 const APP_URL = pathToFileURL(APP_INDEX_PATH).href;
-
-// We no longer require html2canvas or jsPDF to be loaded for rendering,
-// but we still check they exist so the app's own buildWorksheet (which
-// may reference them internally) doesn't break.
 const REQUIRED_GLOBALS_CHECK = `
   typeof window.buildWorksheet === 'function' &&
   typeof window.buildCleanAnswerKey === 'function' &&
@@ -67,11 +63,14 @@ async function closeBrowser() {
 /**
  * Opens a fresh page loaded with the untouched app/index.html and waits
  * until every global the rest of this module depends on is ready.
+ * One page is enough for many renders; callers decide how many pages
+ * (i.e. how much concurrency) they want by calling this multiple times.
  */
 async function createRenderPage() {
   const browser = await getBrowser();
   const page = await browser.newPage();
 
+  // Surface in-page console errors/warnings in the Node logs for debugging.
   page.on('pageerror', (err) => {
     console.error('[renderWorksheet] page error:', err.message);
   });

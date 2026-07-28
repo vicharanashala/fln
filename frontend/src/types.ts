@@ -211,7 +211,6 @@ export interface BestPractice {
   viewCount: number;
   createdAt: string;
 }
-
 export interface ConceptScore {
   topic: string;
   totalAttempts: number;

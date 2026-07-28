@@ -127,7 +127,6 @@ export interface LevelWorksheet {
   levelId: number;
   sublevelId: string;
   setNum: number;
-  pdfUrl: string;
   answerKeyPdfUrl?: string;
   answerKey: any;
   coords: any;
@@ -145,7 +144,6 @@ export interface TeacherAnswerKey {
   questions: Question[];   // Full question array with answers, topics, etc.
   generatedAt: string;
 }
-
 export interface Worksheet {
   id: string; // Exam ID
   classId: string;
@@ -446,6 +444,8 @@ export class DBStore {
   async getAnnouncements() {
     return this.data?.announcements || [];
   }
+
+  // --- Write / Update Helpers ---
 
   async addUser(user: User) {
     if (this.mongoDb) await this.mongoDb.collection('users').insertOne(user);
