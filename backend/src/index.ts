@@ -522,6 +522,20 @@ async function startServer() {
     res.json(maskedStudents);
   });
 
+  // Get or generate student's assigned 10-question FLN paper from MongoDB Atlas (Class 2: Levels 22 to 31)
+  app.get('/api/students/:id/diagnostic-paper', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      const studentId = req.params.id;
+      const questions = await dbStore.getStudentAssignedQuestions(studentId, 2);
+      res.json({ success: true, studentId, questions });
+    } catch (e: any) {
+      res.status(500).json({ error: 'Failed to fetch student diagnostic paper: ' + e.message });
+    }
+  });
+
   // Add Student
   app.post('/api/students', async (req, res) => {
     const user = getAuthUser(req);
@@ -951,7 +965,7 @@ async function startServer() {
 
       for (let sIdx = 0; sIdx < evalStudents.length; sIdx++) {
         const student = evalStudents[sIdx];
-        const diagQuestions = generateQuestionsForLevel((classNumber - 1) * 10 + 1, 0);
+        const diagQuestions = await dbStore.getStudentAssignedQuestions(student.id, classNumber);
         const extractedAnswers: Record<string, string> = {};
         let score = 0;
 

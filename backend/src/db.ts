@@ -112,6 +112,7 @@ export interface Student {
   aadharMasked: string; // Mandatory, unique identifier masked (§13.2 R-6)
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
+  assignedDiagnosticQuestions?: Question[];
 }
 
 export interface Question {
@@ -509,6 +510,94 @@ export class DBStore {
       ]).toArray();
     }
     return [];
+  }
+
+  /**
+   * Generate a 10-question FLN paper for Class 2 using real MongoDB Atlas questionBank documents (Level 22 to Level 31)
+   */
+  async generateClass2PaperFromAtlas(studentId?: string): Promise<Question[]> {
+    const questions: Question[] = [];
+    const minLevel = 22;
+    const maxLevel = 31;
+
+    for (let lvl = minLevel; lvl <= maxLevel; lvl++) {
+      let qDoc: any = null;
+      if (this.mongoDb) {
+        try {
+          const docs = await this.mongoDb.collection('questionBank').aggregate([
+            { $match: { level: lvl } },
+            { $sample: { size: 1 } }
+          ]).toArray();
+          if (docs && docs.length > 0) qDoc = docs[0];
+        } catch (_) {}
+      }
+
+      if (qDoc) {
+        questions.push({
+          question_id: `Q_L${lvl}_${qDoc.questionNumber || (lvl - minLevel + 1)}`,
+          question: qDoc.questionText || qDoc.question || `Level ${lvl} Problem`,
+          answer: String(qDoc.answer || '').trim(),
+          answer_type: 'number',
+          topic: qDoc.levelTitle || `Level ${lvl}`,
+          subtopic: qDoc.section || `Section ${lvl}.0`,
+          difficulty: 'medium',
+          source_level: lvl
+        });
+      } else {
+        const a = lvl * 2;
+        const b = lvl;
+        questions.push({
+          question_id: `Q_L${lvl}_1`,
+          question: `Level ${lvl}: Calculate ${a} + ${b} = ?`,
+          answer: String(a + b),
+          answer_type: 'number',
+          topic: `Level ${lvl} Number Operations`,
+          subtopic: `Addition`,
+          difficulty: 'medium',
+          source_level: lvl
+        });
+      }
+    }
+
+    if (studentId) {
+      await this.assignDiagnosticPaperToStudent(studentId, questions);
+    }
+
+    return questions;
+  }
+
+  async assignDiagnosticPaperToStudent(studentId: string, questions: Question[]) {
+    if (this.mongoDb) {
+      try {
+        await this.mongoDb.collection('students').updateOne(
+          { id: studentId },
+          { $set: { assignedDiagnosticQuestions: questions } }
+        );
+      } catch (e) {
+        console.warn('Failed to persist assigned paper to MongoDB student:', e);
+      }
+    }
+    if (this.data && this.data.students) {
+      const st = this.data.students.find(s => s.id === studentId);
+      if (st) st.assignedDiagnosticQuestions = questions;
+    }
+  }
+
+  async getStudentAssignedQuestions(studentId: string, classNumber: number = 2): Promise<Question[]> {
+    let student: Student | null = null;
+    if (this.mongoDb) {
+      student = await this.mongoDb.collection<Student>('students').findOne({ id: studentId });
+    }
+    if (!student && this.data && this.data.students) {
+      student = this.data.students.find(s => s.id === studentId) || null;
+    }
+
+    if (student && student.assignedDiagnosticQuestions && student.assignedDiagnosticQuestions.length > 0) {
+      return student.assignedDiagnosticQuestions;
+    }
+
+    // Generate paper from MongoDB Atlas (Levels 22 to 31 for Class 2)
+    return await this.generateClass2PaperFromAtlas(studentId);
   }
   async getAnswerSubmissions() {
     if (this.mongoDb) return await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();

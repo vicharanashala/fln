@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { randomUUID } from 'crypto';
-import { Question } from './db';
+import { Question, dbStore } from './db';
 import { renderBatch } from './worksheetRenderer';
 import { mergeAndStamp } from './pdfMerge';
 import { drawQrCode } from './qrCode';
@@ -35,8 +35,8 @@ export interface WorksheetPdfResult {
 }
 
 /**
- * Generate mock diagnostic question papers class-wise.
- * Stamps the student's name on their corresponding mock exam paper.
+ * Generate diagnostic question papers class-wise.
+ * Stamps the student's name on their corresponding exam paper.
  */
 export async function generateDiagnosticPaper({
   classNumber,
@@ -54,9 +54,12 @@ export async function generateDiagnosticPaper({
   const classLevel = `CLASS_${classNumber}`;
   const results = await renderBatch(classLevel, students.length, onProgress, undefined, students);
 
-  // Extract questions from results[0].masterJson
+  // Extract questions from MongoDB Atlas if Class 2, or from masterJson
   let questions: Question[] = [];
-  if (results && results[0] && results[0].masterJson && results[0].masterJson.sections) {
+  if (classNumber === 2 && students[0] && (students[0].studentId || (students[0] as any).id)) {
+    const sId = students[0].studentId || (students[0] as any).id;
+    questions = await dbStore.getStudentAssignedQuestions(sId, 2);
+  } else if (results && results[0] && results[0].masterJson && results[0].masterJson.sections) {
     const sections = results[0].masterJson.sections;
     sections.forEach((sec: any, secIdx: number) => {
       if (Array.isArray(sec.items)) {
