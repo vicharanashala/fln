@@ -714,7 +714,7 @@ async function main() {
                 teacherId: teacherIds[cIdx],
                 currentLevel: currentLevel,
                 currentSubLevel: randomSubLevel(),
-                targetLevel: Math.min(currentLevel + 1, 59),
+                targetLevel: Math.min(currentLevel + 1, 93),
                 aadharMasked: generateAadhaar(),
                 levelHistory: [
                   {

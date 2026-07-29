@@ -151,6 +151,20 @@ export interface LevelWorksheet {
   generatedAt: string;
 }
 
+export interface DiagnosticAnswerKey {
+  id: string;
+  jobId: string;
+  studentId: string;
+  studentName: string;
+  classNumber: number;
+  setNumber: number;
+  masterJson: any;
+  coords: any;
+  questionPaperJson: any;
+  questions: Question[];
+  createdAt: string;
+}
+
 export interface LevelHtmlTemplate {
   levelNumber: number;
   title: string;
@@ -330,6 +344,7 @@ interface DatabaseSchema {
   announcements: Announcement[];
   interventions: Intervention[];
   bestPractices: BestPractice[];
+  diagnosticAnswerKeys: DiagnosticAnswerKey[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -349,6 +364,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   announcements: 'announcements',
   interventions: 'interventions',
   bestPractices: 'best_practices',
+  diagnosticAnswerKeys: 'diagnostic_answer_keys',
 };
 
 export class DBStore {
@@ -776,6 +792,36 @@ export class DBStore {
       if (idx !== -1) this.data.bestPractices[idx] = bp;
     }
     return bp || undefined;
+  }
+
+  // --- Diagnostic Answer Key Methods ---
+
+  async addDiagnosticAnswerKey(key: DiagnosticAnswerKey) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('diagnostic_answer_keys').insertOne(key);
+    }
+    if (this.data) {
+      if (!this.data.diagnosticAnswerKeys) this.data.diagnosticAnswerKeys = [];
+      this.data.diagnosticAnswerKeys.push(key);
+    }
+    return key;
+  }
+
+  async getDiagnosticAnswerKeys(jobId: string): Promise<DiagnosticAnswerKey[]> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<DiagnosticAnswerKey>('diagnostic_answer_keys').find({ jobId }).toArray();
+    }
+    return (this.data?.diagnosticAnswerKeys || []).filter(k => k.jobId === jobId);
+  }
+
+  async getStudentDiagnosticAnswerKey(studentId: string, jobId?: string): Promise<DiagnosticAnswerKey | null> {
+    if (this.mongoDb) {
+      const query: any = { studentId };
+      if (jobId) query.jobId = jobId;
+      return await this.mongoDb.collection<DiagnosticAnswerKey>('diagnostic_answer_keys').findOne(query, { sort: { createdAt: -1 } });
+    }
+    const keys = (this.data?.diagnosticAnswerKeys || []).filter(k => k.studentId === studentId && (!jobId || k.jobId === jobId));
+    return keys[keys.length - 1] || null;
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -2706,7 +2752,8 @@ export class DBStore {
       logbook,
       announcements,
       interventions,
-      bestPractices
+      bestPractices,
+      diagnosticAnswerKeys: []
     };
   }
 }

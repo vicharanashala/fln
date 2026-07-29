@@ -4,6 +4,28 @@ All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
 routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
+## 2026-07-29
+
+- **93-Level Framework Integration Across Platform**
+  - Updated curriculum framework references from 59 levels to 93 research levels (`S1.1` through `S7.18`).
+  - Updated frontend constants, teacher/admin dashboards, panel views, landing page, and diagnostic workflow caps.
+  - Updated backend evaluators, seed generators, and Gemini prompts to support up to Level 93.
+- **Bulk Diagnostic Answer Key Security & Internal Storage**
+  - Isolated teacher-facing bulk diagnostic download package so it contains only printable student question papers (`worksheet.pdf`), stripping answer keys (`answer_key.json`), ICR coordinate maps (`coords.json`), and question paper JSON files from downloadable ZIP archives.
+  - Added internal answer key persistence in MongoDB (`DiagnosticAnswerKey` interface and `diagnostic_answer_keys` database collection).
+  - Updated backend bulk (`POST /api/diagnostic/bulk`) and single (`POST /api/diagnostic/single`) endpoints to automatically store student answer keys and coordinate maps for backend ICR evaluation mapping.
+  - Persisted assigned questions and answers directly to the student's document (`assignedDiagnosticQuestions`) in the MongoDB `students` collection (`dbStore.assignDiagnosticPaperToStudent`).
+  - Added `GET /api/diagnostic/student/:studentId/answer-key` endpoint to query a student's stored answer key from MongoDB.
+  - Streamlined teacher UI in `RoleDashboards.tsx` and `BulkDiagnosticWorkflow.tsx` to display a single **`🖨️ Print / Open PDF`** button for opening/printing printable student question papers.
+- **Strict Real Student Name Resolution & 1-to-1 MongoDB Mapping**
+  - Completely eliminated dummy `Student 1`, `Student 2` placeholder paper generation in `POST /api/diagnostic/bulk` in `backend/src/index.ts`.
+  - Dynamically matches real enrolled students from MongoDB (`dbStore.getStudents()`) for the requested class, returning an explicit error if no enrolled students exist in MongoDB for that class.
+  - Updated `BulkDiagnosticWorkflow.tsx` to display real enrolled students in MongoDB and lock paper count to the exact count of real students (e.g. `👥 Enrolled Students in Class 2: Aarav Kumar, Diya Patel, Vihaan Sharma... (5 Real Students)`).
+  - Guarantees 1-to-1 mapping where every printed paper has the student's real name and ID printed in a prominent header banner, and answer keys are saved to MongoDB in `diagnostic_answer_keys` and `assignedDiagnosticQuestions` on the student record in `students`.
+- **OCR Scanner Class Selector Fix & Class Resolution**
+  - Updated `IcrScanner.tsx` to guarantee standard classes (Class 1, Class 2, Class 3, Class 4) are always selectable in the dropdown regardless of backend state, and added quick-select Class pill buttons.
+  - Robustified backend `/api/icr/evaluate-pdf` route to support dynamic class matching and student fallbacks for seamless OCR scanning.
+
 ## 2026-07-23
 
 - **Concept-Decoupled Question Architecture (93-Node Framework Integration)**

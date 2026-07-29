@@ -72,9 +72,25 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
           if (Array.isArray(stdData)) loadedStudents = stdData;
         }
 
-        // Auto-derive class groups from students so dropdown is 100% guaranteed to be populated
+        // Guarantee standard classes (Class 1, Class 2, Class 3, Class 4) are always available
+        const standardClasses: ClassGroup[] = [
+          { id: 'c1', className: 'Class 1', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u5' },
+          { id: 'c2', className: 'Class 2', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u5' },
+          { id: 'c3', className: 'Class 3', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u5' },
+          { id: 'c4', className: 'Class 4', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u5' }
+        ];
+
+        const existingKeys = new Set(loadedClasses.map(c => `${c.className}-${c.section || ''}`.toLowerCase()));
+        standardClasses.forEach(sc => {
+          const key = `${sc.className}-${sc.section}`.toLowerCase();
+          if (!existingKeys.has(key)) {
+            existingKeys.add(key);
+            loadedClasses.push(sc);
+          }
+        });
+
+        // Auto-derive class groups from students as well
         if (loadedStudents.length > 0) {
-          const existingKeys = new Set(loadedClasses.map(c => `${c.className}-${c.section || ''}`.toLowerCase()));
           loadedStudents.forEach(s => {
             const groupName = s.classGroup || 'Class 1';
             const secName = s.section || 'A';
@@ -94,6 +110,12 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
 
         setClasses(loadedClasses);
         setStudents(loadedStudents);
+        // Default selected class to Class 2 if none selected yet
+        if (loadedClasses.length > 0 && !selectedClassId) {
+          const defaultCls = loadedClasses.find(c => c.className === 'Class 2') || loadedClasses[0];
+          setSelectedClassId(defaultCls.id);
+          setSelectedStudentId('ALL_STUDENTS');
+        }
       } catch (err) {
         console.error('Failed to load classes/students:', err);
       }
@@ -290,7 +312,33 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Class</label>
+              <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Class Level</label>
+              
+              {/* Quick Select Buttons */}
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {[1, 2, 3, 4].map(num => {
+                  const targetCls = classes.find(c => c.className === `Class ${num}`) || { id: `c${num}` };
+                  const isSelected = selectedClassId === targetCls.id || (selectedClassId && classes.find(c => c.id === selectedClassId)?.className === `Class ${num}`);
+                  return (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => {
+                        setSelectedClassId(targetCls.id);
+                        setSelectedStudentId('ALL_STUDENTS');
+                      }}
+                      className={`py-2.5 px-3 text-center border font-display font-bold text-xs rounded-xl transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                          : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                      }`}
+                    >
+                      Class {num}
+                    </button>
+                  );
+                })}
+              </div>
+
               <select
                 value={selectedClassId}
                 onChange={(e) => {

@@ -26,6 +26,14 @@ export interface PaperGenerationResult {
   questions: Question[];
   pdfFileName?: string;
   pdfFilePath?: string;
+  answerKeyData?: Array<{
+    setNum: number;
+    studentId: string;
+    studentName: string;
+    masterJson: any;
+    coords: any;
+    questionPaperJson: any;
+  }>;
 }
 
 export interface WorksheetPdfResult {
@@ -37,6 +45,7 @@ export interface WorksheetPdfResult {
 /**
  * Generate diagnostic question papers class-wise.
  * Stamps the student's name on their corresponding exam paper.
+ * Answer keys are NOT included in the downloadable ZIP; they are returned for backend internal DB storage.
  */
 export async function generateDiagnosticPaper({
   classNumber,
@@ -104,7 +113,7 @@ export async function generateDiagnosticPaper({
   const mergedFileName = `class${classNumber}_bulk_diagnostic.pdf`;
   zip.file(mergedFileName, mergedBuffer);
 
-  // Add a manifest.json
+  // Add a manifest.json (contains student list without answer key files)
   const manifestData = {
     classNumber,
     generatedAt: new Date().toISOString(),
@@ -113,12 +122,21 @@ export async function generateDiagnosticPaper({
       name: s.name,
       studentId: s.studentId || s.rollNo || `STUDENT_${idx + 1}`,
       setNum: idx + 1,
-      files: ['worksheet.pdf', 'answer_key.json', 'coords.json', 'question_paper.json']
+      files: ['worksheet.pdf']
     }))
   };
   zip.file('manifest.json', JSON.stringify(manifestData, null, 2));
 
-  // Loop through results and add student directories and flat PDFs
+  const answerKeyData: Array<{
+    setNum: number;
+    studentId: string;
+    studentName: string;
+    masterJson: any;
+    coords: any;
+    questionPaperJson: any;
+  }> = [];
+
+  // Loop through results and add student directories with ONLY student-facing worksheets
   results.forEach((r, idx) => {
     const student = students[idx];
     const sName = student.name;
@@ -127,20 +145,19 @@ export async function generateDiagnosticPaper({
     // Sanitize names for folder structure
     const folderName = `Set_${String(idx + 1).padStart(3, '0')}_RollNo-${sId.replace(/[^a-zA-Z0-9_\-]+/g, '')}_${sName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]+/g, '')}`;
 
-    // Add individual student files
+    // Add individual student question paper PDF only (No answer_key.json, coords.json, or question_paper.json in ZIP)
     const pdfBuf = Buffer.from(r.pdfBase64, 'base64');
     zip.file(`${folderName}/worksheet.pdf`, pdfBuf);
 
-    // Add individual student metadata and answer keys
-    if (r.masterJson) {
-      zip.file(`${folderName}/answer_key.json`, JSON.stringify(r.masterJson, null, 2));
-    }
-    if (r.coords) {
-      zip.file(`${folderName}/coords.json`, JSON.stringify(r.coords, null, 2));
-    }
-    if (r.questionPaperJson) {
-      zip.file(`${folderName}/question_paper.json`, JSON.stringify(r.questionPaperJson, null, 2));
-    }
+    // Collect answer keys internally for Mongo storage
+    answerKeyData.push({
+      setNum: idx + 1,
+      studentId: sId,
+      studentName: sName,
+      masterJson: r.masterJson,
+      coords: r.coords,
+      questionPaperJson: r.questionPaperJson
+    });
   });
 
   const pdfFileName = `class${classNumber}_diagnostic_${randomUUID()}.pdf`;
@@ -157,16 +174,6 @@ export async function generateDiagnosticPaper({
   const filePath = path.join(OUTPUT_DIR, fileName);
   fs.writeFileSync(filePath, zipBuffer);
 
-  // Write corresponding answer keys, coords, and question papers for each set to output/ for logs/verification
-  const baseName = fileName.replace(/\.zip$/, '');
-  const answerKeys = results.map(r => r.masterJson);
-  const coordsList = results.map(r => r.coords);
-  const questionPapers = results.map(r => r.questionPaperJson);
-
-  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_answer_key.json`), JSON.stringify(answerKeys, null, 2));
-  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_coords.json`), JSON.stringify(coordsList, null, 2));
-  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_question_paper.json`), JSON.stringify(questionPapers, null, 2));
-
   return {
     fileName,
     filePath,
@@ -177,7 +184,8 @@ export async function generateDiagnosticPaper({
       setNum: i + 1,
       studentName: s.name,
     })),
-    questions
+    questions,
+    answerKeyData
   };
 }
 

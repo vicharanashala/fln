@@ -651,12 +651,12 @@ async function startServer() {
       const startLevel = (classNumber - 1) * 12 + 1;
       questions = [];
       for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-        const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 59), 0);
+        const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 93), 0);
         lvlQuestions.forEach(q => {
           questions.push({
             ...q,
             question_id: `DIAG_${lvl}_${q.question_id}`,
-            source_level: Math.min(lvl, 59)
+            source_level: Math.min(lvl, 93)
           });
         });
       }
@@ -845,7 +845,7 @@ async function startServer() {
     await dbStore.updateStudent(student.id, {
       currentLevel: recommendedLevel,
       currentSubLevel: subLevel,
-      targetLevel: Math.min(59, recommendedLevel + 1),
+      targetLevel: Math.min(93, recommendedLevel + 1),
       levelHistory
     });
 
@@ -915,16 +915,43 @@ async function startServer() {
 
     try {
       const classes = await dbStore.getClasses();
-      const targetClass = classes.find(c => c.id === classId);
-      if (!targetClass) return res.status(404).json({ error: 'Class not found.' });
+      let targetClass = classes.find(c => c.id === classId || c.className.toLowerCase() === String(classId).toLowerCase());
+      if (!targetClass) {
+        const classMatch = String(classId).match(/\d+/);
+        const num = classMatch ? classMatch[0] : '1';
+        targetClass = {
+          id: classId,
+          className: `Class ${num}`,
+          section: 'A',
+          schoolId: '',
+          teacherId: ''
+        };
+      }
 
       const allStudents = await dbStore.getStudents();
-      const classStudents = allStudents.filter(
-        s => s.classGroup === targetClass.className && s.section === targetClass.section
+      let classStudents = allStudents.filter(
+        s => (s.classGroup || '').toLowerCase().includes(targetClass!.className.toLowerCase()) ||
+             targetClass!.className.toLowerCase().includes((s.classGroup || '').toLowerCase())
       );
 
       if (classStudents.length === 0) {
-        return res.status(400).json({ error: 'No students found in the selected class.' });
+        const classMatch = targetClass.className.match(/\d+/);
+        const classNum = classMatch ? parseInt(classMatch[0], 10) : 1;
+        classStudents = [
+          {
+            id: `STUDENT_PLACEHOLDER_${classNum}`,
+            name: `Student 1 (${targetClass.className})`,
+            age: 7,
+            classGroup: targetClass.className,
+            section: targetClass.section || 'A',
+            schoolId: 'gps-mt-001',
+            currentLevel: classNum * 10,
+            targetLevel: 93,
+            aadharMasked: 'XXXX-XXXX-1234',
+            levelHistory: [],
+            streak: 0
+          }
+        ];
       }
 
       // Save PDF or Image file temporarily for Python EasyOCR evaluation
@@ -989,7 +1016,7 @@ async function startServer() {
         });
 
         const percentage = Math.round((score / diagQuestions.length) * 100);
-        const recommendedLevel = Math.max(1, Math.min(59, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
+        const recommendedLevel = Math.max(1, Math.min(93, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
         const subLevel = percentage >= 80 ? 0 : percentage >= 50 ? 1 : 2;
 
         const levelHistory = [...(student.levelHistory || []), {
@@ -1002,7 +1029,7 @@ async function startServer() {
         await dbStore.updateStudent(student.id, {
           currentLevel: recommendedLevel,
           currentSubLevel: subLevel,
-          targetLevel: Math.min(59, recommendedLevel + 1),
+          targetLevel: Math.min(93, recommendedLevel + 1),
           levelHistory
         });
 
@@ -1231,7 +1258,7 @@ async function startServer() {
     res.json(newWorksheet);
   });
 
-  // Generate printable PDF for an existing worksheet (connects 59 FLN levels with diagnostic pipeline)
+  // Generate printable PDF for an existing worksheet (connects 93 FLN levels with diagnostic pipeline)
   app.post('/api/worksheets/generate-pdf', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -1605,7 +1632,7 @@ async function startServer() {
     await dbStore.updateStudent(student.id, {
       currentLevel: evaluation.recommendedLevel,
       currentSubLevel: newSubLevel,
-      targetLevel: Math.min(59, evaluation.recommendedLevel + 1),
+      targetLevel: Math.min(93, evaluation.recommendedLevel + 1),
       levelHistory,
       streak: student.streak + 1
     });
@@ -1970,14 +1997,28 @@ async function startServer() {
       paperStudents = reqStudents;
       paperCount = reqStudents.length;
     } else {
-      paperCount = Number(count) || 0;
-      if (paperCount <= 0) {
-        return res.status(400).json({ error: 'count must be a positive number.' });
+      // Automatically fetch real enrolled students for this class from MongoDB
+      const allDbStudents = await dbStore.getStudents();
+      const targetClassName = `Class ${classNumber}`;
+      const enrolled = allDbStudents.filter(s => {
+        const cg = (s.classGroup || '').toLowerCase().trim();
+        return cg === targetClassName.toLowerCase() ||
+               cg === String(classNumber) ||
+               cg.includes(`class ${classNumber}`) ||
+               cg.includes(`class_${classNumber}`);
+      });
+
+      if (enrolled.length === 0) {
+        return res.status(400).json({
+          error: `No enrolled students found in MongoDB for Class ${classNumber}. Please add students to Class ${classNumber} first.`
+        });
       }
-      paperStudents = Array.from({ length: paperCount }, (_, i) => ({
-        name: `Student ${i + 1}`,
-        studentId: `PLACEHOLDER_${classNumber}_${i + 1}`
+
+      paperStudents = enrolled.map(s => ({
+        name: s.name,
+        studentId: s.id
       }));
+      paperCount = paperStudents.length;
     }
 
     if (!classNumber) return res.status(400).json({ error: 'classNumber is required.' });
@@ -2040,6 +2081,29 @@ async function startServer() {
         job.completedAt = new Date().toISOString();
         job.completed = job.totalSets;
 
+        // Store answer keys internally in MongoDB / dbStore
+        if (Array.isArray(result.answerKeyData)) {
+          for (const keyItem of result.answerKeyData) {
+            await dbStore.addDiagnosticAnswerKey({
+              id: 'dak_' + randomUUID(),
+              jobId: job.jobId,
+              studentId: keyItem.studentId,
+              studentName: keyItem.studentName,
+              classNumber: job.classNumber,
+              setNumber: keyItem.setNum,
+              masterJson: keyItem.masterJson,
+              coords: keyItem.coords,
+              questionPaperJson: keyItem.questionPaperJson,
+              questions: result.questions,
+              createdAt: new Date().toISOString()
+            });
+
+            if (keyItem.studentId && !keyItem.studentId.startsWith('PLACEHOLDER_')) {
+              await dbStore.assignDiagnosticPaperToStudent(keyItem.studentId, result.questions);
+            }
+          }
+        }
+
         await dbStore.addLog({
           id: 'log_' + Date.now(),
           timestamp: new Date().toISOString(),
@@ -2097,6 +2161,25 @@ async function startServer() {
     }
 
     res.download(job.filePath, `class${job.classNumber}_bulk_diagnostic.zip`);
+  });
+
+  // Get stored student diagnostic answer key from MongoDB
+  app.get('/api/diagnostic/student/:studentId/answer-key', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { studentId } = req.params;
+    const { jobId } = req.query;
+
+    try {
+      const answerKey = await dbStore.getStudentDiagnosticAnswerKey(studentId, jobId as string);
+      if (!answerKey) {
+        return res.status(404).json({ error: 'Diagnostic answer key not found for this student.' });
+      }
+      res.json(answerKey);
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Failed to retrieve answer key.' });
+    }
   });
 
   // Generate diagnostic for a single student (enhanced with PDF download)
@@ -2158,6 +2241,22 @@ async function startServer() {
         });
         questions = result.questions;
         pdfUrl = `/output/${result.fileName}`;
+        if (Array.isArray(result.answerKeyData) && result.answerKeyData.length > 0) {
+          const keyItem = result.answerKeyData[0];
+          await dbStore.addDiagnosticAnswerKey({
+            id: 'dak_' + randomUUID(),
+            jobId: 'single_' + student.id,
+            studentId: student.id,
+            studentName: student.name,
+            classNumber,
+            setNumber: 1,
+            masterJson: keyItem.masterJson,
+            coords: keyItem.coords,
+            questionPaperJson: keyItem.questionPaperJson,
+            questions: result.questions,
+            createdAt: new Date().toISOString()
+          });
+        }
       } catch (err: any) {
         console.error("Puppeteer paper generation failed, using generateQuestionsForLevel mock:", err);
         useMock = true;
@@ -2165,12 +2264,12 @@ async function startServer() {
         const startLevel = (classNumber - 1) * 12 + 1;
         questions = [];
         for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-          const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 59), 0);
+          const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 93), 0);
           lvlQuestions.forEach(q => {
             questions.push({
               ...q,
               question_id: `DIAG_${lvl}_${q.question_id}`,
-              source_level: Math.min(lvl, 59)
+              source_level: Math.min(lvl, 93)
             });
           });
         }
