@@ -640,8 +640,27 @@ async function startServer() {
     const classMatch = student.classGroup.match(/\d+/);
     const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
 
-    // Connect to Python Evaluation Metrics Pipeline
     const dateStr = new Date().toISOString().split('T')[0];
+
+    // Idempotency: if this student's diagnostic was already submitted and
+    // evaluated today (e.g. a client retry after a timeout), return that
+    // existing report instead of re-running the pipeline and re-appending to
+    // level history. A genuinely new diagnostic on a later date still runs
+    // normally (legitimate re-assessment, not a duplicate retry).
+    const existingReports = await dbStore.getEvaluationReports();
+    const existingReport = existingReports.find(r =>
+      r.worksheetId === 'diagnostic' && r.studentId === student.id && r.timestamp.startsWith(dateStr)
+    );
+    if (existingReport) {
+      return res.json({
+        student,
+        evaluation: { score: existingReport.score, recommendedLevel: existingReport.recommendedLevel, narrative: existingReport.narrative },
+        report: existingReport,
+        alreadySubmitted: true
+      });
+    }
+
+    // Connect to Python Evaluation Metrics Pipeline
     const pipelineDir = AI_SERVICES_DIR;
     const responseDir = path.join(pipelineDir, 'student_responses', `class_${classNumber}`, 'phrase_1');
     fs.mkdirSync(responseDir, { recursive: true });
@@ -1272,6 +1291,31 @@ async function startServer() {
     const students = await dbStore.getStudents();
     const student = students.find(s => s.id === studentId);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+    // Idempotency: a student can only submit a given worksheet once. If this
+    // exact (worksheetId, studentId) pair was already submitted (e.g. the
+    // client retried after a timeout), return the existing result instead of
+    // re-running the AI evaluation, re-mutating the student's level/streak,
+    // and re-appending to level history / delay logs.
+    const existingSubmissions = await dbStore.getAnswerSubmissions();
+    const existingSubmission = existingSubmissions.find(s => s.worksheetId === worksheetId && s.studentId === studentId);
+    if (existingSubmission) {
+      const existingReports = await dbStore.getEvaluationReports();
+      const existingReport = existingReports
+        .filter(r => r.worksheetId === worksheetId && r.studentId === studentId)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+      return res.json({
+        submission: existingSubmission,
+        report: existingReport,
+        evaluation: existingReport ? {
+          score: existingReport.score,
+          recommendedLevel: existingReport.recommendedLevel,
+          narrative: existingReport.narrative,
+          conceptMastery: existingReport.conceptMastery
+        } : undefined,
+        alreadySubmitted: true
+      });
+    }
 
     // Handle Timings & Delayed Attempt Escalation (§6.5)
     const now = new Date();
