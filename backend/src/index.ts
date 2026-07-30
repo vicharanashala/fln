@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { dbStore, UserRole, User, Student, School, Question, Worksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement } from './db';
@@ -7,6 +8,8 @@ import { generateQuestionsForLevel } from './levelGenerator';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import { connectMongo, isMongoConnected } from './mongodb';
+import { GenerationLock } from './models/GenerationLock';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -22,6 +25,9 @@ const WORKSHEET_ASSETS_DIR =
 async function startServer() {
   // Initialize file-based DB
   await dbStore.init();
+
+  // Initialize MongoDB for generation lock persistence (non-blocking — falls back to db.json if unavailable)
+  connectMongo();
 
   const app = express();
   app.use(express.json());
@@ -821,59 +827,31 @@ async function startServer() {
     });
   });
 
-  // Generate Personalized Class Worksheets
-  app.post('/api/worksheets/generate', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-
-    const { classId, cycle } = req.body;
-    if (!classId || !cycle) {
-      return res.status(400).json({ error: 'Class ID and assessment cycle are required.' });
-    }
-
-    const classes = await dbStore.getClasses();
-    const classObj = classes.find(c => c.id === classId);
-    if (!classObj) return res.status(404).json({ error: 'Class not found.' });
-
-    // Check if school is low or high strength
-    const schools = await dbStore.getSchools();
-    const school = schools.find(s => s.id === classObj.schoolId);
-    if (!school) return res.status(404).json({ error: 'School not found.' });
+  // Shared generation logic used by both the MongoDB and db.json lock paths.
+  // Defined inside startServer() so it shares the same scope as the route handler.
+  async function generateAndPersist(
+    req: express.Request,
+    res: express.Response,
+    user: User,
+    classObj: { id: string; schoolId: string; className: string; section: string },
+    school: School,
+    ctx: { assessmentId: string; schoolId: string; lockCreated: boolean; now: Date }
+  ): Promise<void> {
+    const { assessmentId, schoolId, lockCreated, now } = ctx;
 
     // Check if Teacher is banned due to Delayed Attempts (§6.5)
     if (user.role === UserRole.TEACHER && user.isBanned) {
-      return res.status(403).json({ error: 'Generation Denied: Teacher account is suspended/banned due to 3 Delayed Attempts within the academic year.' });
+      if (lockCreated) { try { await GenerationLock.deleteOne({ assessmentId, schoolId }); } catch (_) {} }
+      res.status(403).json({ error: 'Generation Denied: Teacher account is suspended/banned due to 3 Delayed Attempts within the academic year.' });
+      return;
     }
 
     // Check if School is locked out entirely (§6.5)
     if (school.isAccessLocked) {
       if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
-        return res.status(403).json({ error: 'School Access Suspended: All teachers have defaulted. Management is reassigned to Block Admin / Volunteer.' });
-      }
-    }
-
-    // Check for Generation Lock (§13.2 R-11)
-    const existingWorksheets = await dbStore.getWorksheets();
-    const conflicting = existingWorksheets.find(w => w.classId === classId && w.cycle === cycle);
-
-    if (conflicting && conflicting.locks.locked) {
-      // Enforce pairwise lockouts
-      if (school.strength === 'high') {
-        // Teacher ↔ School pair
-        if (conflicting.locks.lockedByRole !== user.role) {
-          return res.status(423).json({
-            error: `Lock Active: Generation has already been triggered by ${conflicting.locks.lockedByRole} (${conflicting.locks.lockedByEmail}). Parallel generation is locked.`,
-            lockDetails: conflicting.locks
-          });
-        }
-      } else {
-        // Volunteer ↔ Block Admin pair
-        if (conflicting.locks.lockedByRole !== user.role) {
-          return res.status(423).json({
-            error: `Lock Active: Generation has already been triggered by ${conflicting.locks.lockedByRole} (${conflicting.locks.lockedByEmail}). Parallel generation is locked.`,
-            lockDetails: conflicting.locks
-          });
-        }
+        if (lockCreated) { try { await GenerationLock.deleteOne({ assessmentId, schoolId }); } catch (_) {} }
+        res.status(403).json({ error: 'School Access Suspended: All teachers have defaulted. Management is reassigned to Block Admin / Volunteer.' });
+        return;
       }
     }
 
@@ -882,7 +860,9 @@ async function startServer() {
     const classStudents = students.filter(s => s.classGroup === classObj.className && s.section === classObj.section && s.schoolId === classObj.schoolId);
 
     if (classStudents.length === 0) {
-      return res.status(400).json({ error: 'No students found in this class roster.' });
+      if (lockCreated) { try { await GenerationLock.deleteOne({ assessmentId, schoolId }); } catch (_) {} }
+      res.status(400).json({ error: 'No students found in this class roster.' });
+      return;
     }
 
     // Compile distinct personalized questions per student based on level and sub-level
@@ -902,12 +882,12 @@ async function startServer() {
     }
 
     // Setup strict Timing Windows (§1.4 Sequential timings)
-    const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
-    
+    const existingWorksheets = await dbStore.getWorksheets();
+
     // Check if other worksheets exist for the same school on the same day to make print windows sequential & non-overlapping
     const sameDayWorksheets = existingWorksheets.filter(w => w.schoolId === classObj.schoolId && w.date === todayStr);
-    
+
     let printStart = new Date(now.getTime());
     if (sameDayWorksheets.length > 0) {
       // Find the latest printWindowEnd
@@ -924,13 +904,13 @@ async function startServer() {
 
     const newWorksheet: Worksheet = {
       id: 'WS_' + Math.floor(1000 + Math.random() * 9000),
-      classId,
+      classId: classObj.id,
       className: classObj.className,
       section: classObj.section,
       schoolId: classObj.schoolId,
       generatedByRole: user.role,
       generatedByEmail: user.email,
-      cycle,
+      cycle: req.body.cycle,
       date: todayStr,
       questions: compiledQuestions,
       locks: {
@@ -955,6 +935,31 @@ async function startServer() {
 
     await dbStore.addWorksheet(newWorksheet);
 
+    // Sync lock to MongoDB so checkOnly sees it regardless of storage backend.
+    if (isMongoConnected()) {
+      try {
+        if (lockCreated) {
+          // Lock was created via MongoDB path — update with generatedPaperId
+          await GenerationLock.findOneAndUpdate(
+            { assessmentId, schoolId },
+            { $set: { generatedPaperId: newWorksheet.id, generatedAt: now } }
+          );
+        } else {
+          // Lock was created via db.json fallback — create a MongoDB mirror
+          await GenerationLock.create({
+            assessmentId,
+            schoolId,
+            locked: true,
+            lockedBy: { userId: user.id, role: user.role },
+            generatedAt: now,
+            generatedPaperId: newWorksheet.id,
+          });
+        }
+      } catch (err) {
+        console.error('[MongoDB] Failed to sync generation lock:', err);
+      }
+    }
+
     await dbStore.addLog({
       id: 'log_' + Date.now(),
       timestamp: now.toISOString(),
@@ -969,6 +974,134 @@ async function startServer() {
     });
 
     res.json(newWorksheet);
+  }
+
+  // Generate Personalized Class Worksheets
+  app.post('/api/worksheets/generate', async (req, res) => {
+    
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { classId, cycle, checkOnly } = req.body;
+    if (!classId || !cycle) {
+      return res.status(400).json({ error: 'Class ID and assessment cycle are required.' });
+    }
+
+    const classes = await dbStore.getClasses();
+    const classObj = classes.find(c => c.id === classId);
+    if (!classObj) return res.status(404).json({ error: 'Class not found.' });
+
+    // Check if school is low or high strength
+    const schools = await dbStore.getSchools();
+    const school = schools.find(s => s.id === classObj.schoolId);
+    if (!school) return res.status(404).json({ error: 'School not found.' });
+
+    // --- Generation Lock (MongoDB primary, db.json fallback) ---
+    const assessmentId = `${classId}_${cycle}`;
+    const schoolId = classObj.schoolId;
+    const now = new Date();
+
+    // ── checkOnly: read-only lock status check (no generation) ──
+    // Check BOTH MongoDB and db.json so locks from either source are respected.
+    if (checkOnly) {
+      // 1. Check MongoDB (if connected)
+      if (isMongoConnected()) {
+        try {
+          const existing = await GenerationLock.findOne({ assessmentId, schoolId, locked: true });
+          if (existing) {
+            return res.json({
+              locked: true,
+              lockedBy: existing.lockedBy,
+              generatedPaperId: existing.generatedPaperId,
+              generatedAt: existing.generatedAt,
+              message: 'Question paper generated and locked',
+            });
+          }
+        } catch (err) {
+          console.error('[MongoDB] checkOnly query failed, continuing to db.json check:', err);
+        }
+      }
+      // 2. Also check db.json (covers locks created via the fallback path)
+      const existingWorksheets = await dbStore.getWorksheets();
+      const conflicting = existingWorksheets.find(w => w.classId === classId && w.cycle === cycle);
+      if (conflicting && conflicting.locks.locked) {
+        return res.json({
+          locked: true,
+          lockedBy: { userId: conflicting.locks.lockedByEmail || '', role: conflicting.locks.lockedByRole || '' },
+          generatedPaperId: conflicting.id,
+          generatedAt: conflicting.locks.timestamp,
+          message: 'Question paper generated and locked',
+        });
+      }
+      return res.json({ locked: false, message: 'No active lock — generation is permitted.' });
+    }
+
+    // ── Actual generation (not checkOnly) ──
+    // 1. Try MongoDB atomic lock acquisition
+    
+    if (isMongoConnected()) {
+      try {
+        let lockCreated = false;
+        console.log("[DEBUG] Before GenerationLock.create()", {
+        assessmentId,
+        schoolId,
+        connected: isMongoConnected(),
+        });
+        try {
+          await GenerationLock.create({
+            assessmentId,
+            schoolId,
+            locked: true,
+            lockedBy: { userId: user.id, role: user.role },
+            generatedAt: now,
+          });
+          console.log("[DEBUG] GenerationLock.create() succeeded");
+          lockCreated = true;
+        } catch (createErr: any) {
+          if (createErr?.code === 11000) {
+            return res.status(423).json({
+              error: 'Question paper already generated and locked',
+              message: 'Question paper already generated and locked',
+            });
+          }
+          throw createErr;
+        }
+
+        try {
+          return await generateAndPersist(req, res, user, classObj, school, {
+            assessmentId,
+            schoolId,
+            lockCreated,
+            now,
+          });
+        } catch (genErr) {
+          if (lockCreated) {
+            try { await GenerationLock.deleteOne({ assessmentId, schoolId }); } catch (_) {}
+          }
+          throw genErr;
+        }
+      } catch (err) {
+        console.error('[MongoDB] Lock error, falling back to db.json:', err);
+      }
+    }
+
+    // 2. Fallback: db.json pairwise lock
+    const existingWs = await dbStore.getWorksheets();
+    const conflictingWs = existingWs.find(w => w.classId === classId && w.cycle === cycle);
+
+    if (conflictingWs && conflictingWs.locks.locked) {
+      return res.status(423).json({
+        error: 'Question paper already generated and locked',
+        message: 'Question paper already generated and locked',
+      });
+    }
+
+    return await generateAndPersist(req, res, user, classObj, school, {
+      assessmentId,
+      schoolId,
+      lockCreated: false,
+      now,
+    });
   });
 
   // Generate printable PDF for an existing worksheet (connects 59 FLN levels with diagnostic pipeline)
