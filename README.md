@@ -1,4 +1,4 @@
-# SmartFLN dev5
+# SmartFLN 
 
 This branch contains the database-backed SmartFLN paper generator and the full
 QR, fiducial alignment, ROI cropping, Microsoft TrOCR, and volunteer-review
