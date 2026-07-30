@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   School,
@@ -55,7 +55,24 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
   // Loading and Data states
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [chartLoading, setChartLoading] = useState<boolean>(false);
+  const isNextFetchChartOnly = useRef<boolean>(false);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
+
+  // States & Filter for Student Performance Analytics school chart
+  const [perfChartTab, setPerfChartTab] = useState<'states' | 'schools'>('states');
+  const [schoolSearchQuery, setSchoolSearchQuery] = useState<string>('');
+
+  const filteredSchoolsForChart = useMemo(() => {
+    const list = analyticsData?.schoolRankings || [];
+    if (!schoolSearchQuery) {
+      return [...list].sort((a, b) => b.performanceScore - a.performanceScore).slice(0, 10);
+    }
+    return list
+      .filter(s => s.name.toLowerCase().includes(schoolSearchQuery.toLowerCase()))
+      .sort((a, b) => b.performanceScore - a.performanceScore)
+      .slice(0, 10);
+  }, [analyticsData?.schoolRankings, schoolSearchQuery]);
   const [error, setError] = useState<string | null>(null);
   const [perfTooltip, setPerfTooltip] = useState<{ x: number; y: number; content: React.ReactNode; visible: boolean } | null>(null);
   const [isRankingsOpen, setIsRankingsOpen] = useState<boolean>(false);
@@ -63,7 +80,9 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
 
   // Fetch Super Admin Executive Analytics
   const fetchAnalytics = useCallback(async (isRefresh = false) => {
+    const isChartOnly = isNextFetchChartOnly.current;
     if (isRefresh) setRefreshing(true);
+    else if (isChartOnly) setChartLoading(true);
     else setLoading(true);
     setError(null);
 
@@ -92,11 +111,13 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setChartLoading(false);
     }
   }, [dateRange, stateCode, schoolType, board, grade, status, token]);
 
   useEffect(() => {
     fetchAnalytics();
+    isNextFetchChartOnly.current = false;
   }, [fetchAnalytics]);
 
   const handleResetFilters = () => {
@@ -563,50 +584,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             />
           </div>
 
-          {/* 1b. AI INTERVIEW ACTIVITY & PERFORMANCE TREND CHART */}
-          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-indigo-500" />
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    AI Interview Activity & Performance Trend
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Daily interview session volume with corresponding pass and fail rate trends
-                </p>
-              </div>
 
-              {/* Chart Legend */}
-              <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-indigo-500/20 border border-indigo-400/40 flex-shrink-0" />
-                  <span>Interview Volume</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0" />
-                  <span>Pass Rate</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 flex-shrink-0" />
-                  <span>Fail Rate</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full">
-              <InterviewTrendChart data={interviewAnalytics.totalInterviewsDaily || [
-                { day: 'Mon', count: 1240, passRate: 84 },
-                { day: 'Tue', count: 1480, passRate: 86 },
-                { day: 'Wed', count: 1620, passRate: 82 },
-                { day: 'Thu', count: 1590, passRate: 88 },
-                { day: 'Fri', count: 1840, passRate: 85 },
-                { day: 'Sat', count: 1120, passRate: 89 },
-                { day: 'Sun', count: 860, passRate: 91 }
-              ]} />
-            </div>
-          </div>
 
           {/* MAIN CHARTS SECTION: GROWTH TREND, BOARD DISTRIBUTION, & STATE DISTRIBUTION */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -629,10 +607,13 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                   {(['7d', '30d', '6m', '1y'] as const).map((range) => (
                     <button
                       key={range}
-                      onClick={() => setDateRange(range)}
+                      onClick={() => {
+                        isNextFetchChartOnly.current = true;
+                        setDateRange(range);
+                      }}
                       className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${dateRange === range
-                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                         }`}
                     >
                       {range.toUpperCase()}
@@ -643,7 +624,17 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
 
               {/* Custom SVG Line Chart */}
               <div className="relative h-64 w-full">
-                <LineTrendChart data={growthTrend} />
+                {/* Loading overlay with smooth transition */}
+                <div className={`absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center transition-opacity duration-300 z-10 ${chartLoading ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                  }`}>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm">
+                    <RefreshCw className="h-3.5 w-3.5 text-indigo-500 animate-spin" />
+                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-350 uppercase tracking-wider">Updating Chart...</span>
+                  </div>
+                </div>
+                <div className={`transition-opacity duration-300 h-full w-full ${chartLoading ? 'opacity-50' : 'opacity-100'}`}>
+                  <LineTrendChart data={growthTrend} />
+                </div>
               </div>
             </div>
 
@@ -705,10 +696,10 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             </div>
           </div>
 
-          {/* SECOND ROW: STUDENT PERFORMANCE & AI INTERVIEW ANALYTICS */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* SECOND ROW: STUDENT PERFORMANCE */}
+          <div className="w-full">
             {/* 4. STUDENT PERFORMANCE ANALYTICS */}
-            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3">
               <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
@@ -723,34 +714,75 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                 </div>
               </div>              {/* Grouped Bar Chart Comparing Current vs Previous Performance */}
               <div className="space-y-3 relative">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    State Benchmark Performance
-                  </h4>
-                  {/* Legend */}
-                  <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded bg-slate-400 dark:bg-slate-500 flex-shrink-0" />
-                      <span>Previous</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      {perfChartTab === 'states' ? 'Top 6 State Performance' : 'School Performance Benchmark'}
+                    </h4>
+
+                    {/* States/Schools Tab Selector */}
+                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-[10px] font-bold">
+                      <button
+                        onClick={() => setPerfChartTab('states')}
+                        className={`px-2 py-0.5 rounded-md transition-all ${perfChartTab === 'states'
+                            ? 'bg-white dark:bg-slate-700 text-indigo-650 dark:text-indigo-305 shadow-sm'
+                            : 'text-slate-500 dark:text-slate-450 hover:text-slate-700 dark:hover:text-slate-200'
+                          }`}
+                      >
+                        States
+                      </button>
+                      <button
+                        onClick={() => setPerfChartTab('schools')}
+                        className={`px-2 py-0.5 rounded-md transition-all ${perfChartTab === 'schools'
+                            ? 'bg-white dark:bg-slate-700 text-indigo-655 dark:text-indigo-305 shadow-sm'
+                            : 'text-slate-500 dark:text-slate-440 hover:text-slate-700 dark:hover:text-slate-200'
+                          }`}
+                      >
+                        Schools
+                      </button>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded bg-blue-500 flex-shrink-0" />
-                      <span>Current</span>
+                  </div>
+
+                  <div className="flex items-center gap-4 flex-wrap">
+                    {/* Search Input for Schools */}
+                    {perfChartTab === 'schools' && (
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search school name..."
+                          value={schoolSearchQuery}
+                          onChange={(e) => setSchoolSearchQuery(e.target.value)}
+                          className="text-[10px] bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg pl-6 pr-2 py-1 w-44 text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500 font-semibold"
+                        />
+                        <Search className="absolute left-2 top-2 h-2.5 w-2.5 text-slate-400" />
+                      </div>
+                    )}
+
+                    {/* Legend */}
+                    <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded bg-slate-400 dark:bg-slate-500 flex-shrink-0" />
+                        <span>Previous</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded bg-blue-500 flex-shrink-0" />
+                        <span>Current</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="relative w-full overflow-hidden bg-transparent">
-                  <svg viewBox="0 0 600 300" className="w-full h-auto">
+                  <svg viewBox="0 0 600 200" className="w-full h-[180px] sm:h-[220px] bg-transparent">
                     {/* Horizontal Grid lines */}
                     {[0, 25, 50, 75, 100].map((val) => {
-                      const y = 40 + 210 * (1 - val / 100);
+                      const y = 10 + 150 * (1 - val / 100);
                       return (
                         <g key={val} className="opacity-40 dark:opacity-20">
                           <line
-                            x1="50"
+                            x1="45"
                             y1={y}
-                            x2="580"
+                            x2="590"
                             y2={y}
                             stroke="currentColor"
                             className="text-slate-300 dark:text-slate-650"
@@ -758,7 +790,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                             strokeWidth={val === 0 ? "1.5" : "1"}
                           />
                           <text
-                            x="40"
+                            x="35"
                             y={y + 4}
                             textAnchor="end"
                             className="fill-slate-400 dark:fill-slate-500 text-[10px] font-mono font-bold"
@@ -771,105 +803,219 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
 
                     {/* Chart Bars */}
                     {(() => {
-                      const statesData = (perfAnalytics.performanceByState || []).slice(0, 6);
-                      const K = statesData.length;
-                      const plotWidth = 530;
-                      const groupWidth = plotWidth / (K || 1);
-                      const barWidth = 16;
-                      const barSpacing = 4;
+                      if (perfChartTab === 'states') {
+                        const statesData = (perfAnalytics.performanceByState || []).slice(0, 6);
+                        const K = statesData.length;
+                        const plotWidth = 545;
+                        const groupWidth = plotWidth / (K || 1);
+                        const barWidth = 16;
+                        const barSpacing = 4;
 
-                      return statesData.map((st: any, i: number) => {
-                        const stateName = STATE_NAMES[st.stateCode] || st.stateName || st.stateCode;
-                        const currScore = st.avgScore || 0;
-                        const prevScore = st.prevScore ?? currScore;
-                        const diff = currScore - prevScore;
-                        const isImprovement = diff >= 0;
+                        return statesData.map((st: any, i: number) => {
+                          const stateName = STATE_NAMES[st.stateCode] || st.stateName || st.stateCode;
+                          const currScore = st.avgScore || 0;
+                          const prevScore = st.prevScore ?? currScore;
+                          const diff = currScore - prevScore;
+                          const isImprovement = diff >= 0;
 
-                        const yPrev = 40 + 210 * (1 - prevScore / 100);
-                        const yCurr = 40 + 210 * (1 - currScore / 100);
+                          const yPrev = 10 + 150 * (1 - prevScore / 100);
+                          const yCurr = 10 + 150 * (1 - currScore / 100);
 
-                        const xMid = 50 + i * groupWidth + groupWidth / 2;
-                        const xPrev = xMid - barWidth - barSpacing / 2;
-                        const xCurr = xMid + barSpacing / 2;
+                          const xMid = 45 + i * groupWidth + groupWidth / 2;
+                          const xPrev = xMid - barWidth - barSpacing / 2;
+                          const xCurr = xMid + barSpacing / 2;
 
-                        const diffText = diff >= 0 ? `+${diff}%` : `${diff}%`;
-                        const diffColor = isImprovement ? '#10B981' : '#EF4444';
+                          const diffText = diff >= 0 ? `+${diff}%` : `${diff}%`;
+                          const diffColor = isImprovement ? '#10B981' : '#EF4444';
 
-                        return (
-                          <g
-                            key={st.stateCode}
-                            className="group/bar cursor-pointer"
-                            onMouseMove={(e) => {
-                              const parentRect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect();
-                              if (parentRect) {
-                                setPerfTooltip({
-                                  x: e.clientX - parentRect.left + 15,
-                                  y: e.clientY - parentRect.top - 15,
-                                  content: (
-                                    <div className="flex flex-col gap-0.5">
-                                      <span className="font-bold text-slate-100">{stateName}</span>
-                                      <span className="text-[10px] text-slate-400 font-mono">
-                                        Current: <span className="text-blue-400 font-bold">{currScore}%</span>
-                                      </span>
-                                      <span className="text-[10px] text-slate-400 font-mono">
-                                        Previous: <span className="text-slate-400 font-bold">{prevScore}%</span>
-                                      </span>
-                                      <span className={`text-[10px] font-bold ${isImprovement ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                        {isImprovement ? `Improvement: +${diff}%` : `Decline: ${diff}%`}
-                                      </span>
-                                    </div>
-                                  ),
-                                  visible: true
-                                });
-                              }
-                            }}
-                            onMouseLeave={() => setPerfTooltip(null)}
-                          >
-                            {/* Previous Bar (Gray) */}
-                            <rect
-                              x={xPrev}
-                              y={yPrev}
-                              width={barWidth}
-                              height={Math.max(2, 250 - yPrev)}
-                              rx="3"
-                              fill="#94A3B8"
-                              className="opacity-75 group-hover/bar:opacity-100 transition-opacity duration-200"
-                            />
-
-                            {/* Current Bar (Blue) */}
-                            <rect
-                              x={xCurr}
-                              y={yCurr}
-                              width={barWidth}
-                              height={Math.max(2, 250 - yCurr)}
-                              rx="3"
-                              fill="#3B82F6"
-                              className="group-hover/bar:brightness-110 transition-all duration-200"
-                            />
-
-                            {/* Percentage Change Text */}
-                            <text
-                              x={xCurr + barWidth / 2}
-                              y={yCurr - 6}
-                              textAnchor="middle"
-                              fill={diffColor}
-                              className="text-[9px] font-extrabold font-mono opacity-90 group-hover/bar:opacity-100"
+                          return (
+                            <g
+                              key={st.stateCode}
+                              className="group/bar cursor-pointer"
+                              onMouseMove={(e) => {
+                                const parentRect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect();
+                                if (parentRect) {
+                                  setPerfTooltip({
+                                    x: e.clientX - parentRect.left + 15,
+                                    y: e.clientY - parentRect.top - 15,
+                                    content: (
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="font-bold text-slate-100">{stateName}</span>
+                                        <span className="text-[10px] text-slate-400 font-mono">
+                                          Current: <span className="text-blue-400 font-bold">{currScore}%</span>
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-mono">
+                                          Previous: <span className="text-slate-400 font-bold">{prevScore}%</span>
+                                        </span>
+                                        <span className={`text-[10px] font-bold ${isImprovement ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                          {isImprovement ? `Improvement: +${diff}%` : `Decline: ${diff}%`}
+                                        </span>
+                                      </div>
+                                    ),
+                                    visible: true
+                                  });
+                                }
+                              }}
+                              onMouseLeave={() => setPerfTooltip(null)}
                             >
-                              {diffText}
-                            </text>
+                              {/* Previous Bar (Gray) */}
+                              <rect
+                                x={xPrev}
+                                y={yPrev}
+                                width={barWidth}
+                                height={Math.max(2, 160 - yPrev)}
+                                rx="3"
+                                fill="#94A3B8"
+                                className="opacity-75 group-hover/bar:opacity-100 transition-opacity duration-200"
+                              />
 
-                            {/* State Label on X-axis */}
-                            <text
-                              x={xMid}
-                              y="270"
-                              textAnchor="middle"
-                              className="fill-slate-500 dark:fill-slate-400 text-[10px] font-semibold"
-                            >
-                              {stateName}
+                              {/* Current Bar (Blue) */}
+                              <rect
+                                x={xCurr}
+                                y={yCurr}
+                                width={barWidth}
+                                height={Math.max(2, 160 - yCurr)}
+                                rx="3"
+                                fill="#3B82F6"
+                                className="group-hover/bar:brightness-110 transition-all duration-200"
+                              />
+
+                              {/* Percentage Change Text */}
+                              <text
+                                x={xCurr + barWidth / 2}
+                                y={yCurr - 6}
+                                textAnchor="middle"
+                                fill={diffColor}
+                                className="text-[9px] font-extrabold font-mono opacity-90 group-hover/bar:opacity-100"
+                              >
+                                {diffText}
+                              </text>
+
+                              {/* State Label on X-axis */}
+                              <text
+                                x={xMid}
+                                y="195"
+                                textAnchor="middle"
+                                className="fill-slate-500 dark:fill-slate-400 text-[10px] font-semibold"
+                              >
+                                {stateName}
+                              </text>
+                            </g>
+                          );
+                        });
+                      } else {
+                        const schoolsData = filteredSchoolsForChart;
+                        const K = schoolsData.length;
+                        const plotWidth = 545;
+                        const groupWidth = plotWidth / (K || 1);
+                        const barWidth = 16;
+                        const barSpacing = 4;
+
+                        if (K === 0) {
+                          return (
+                            <text x="300" y="150" textAnchor="middle" className="fill-slate-400 dark:fill-slate-500 text-xs font-semibold">
+                              No schools found matching search query
                             </text>
-                          </g>
-                        );
-                      });
+                          );
+                        }
+
+                        return schoolsData.map((school: any, idx: number) => {
+                          const name = school.name;
+                          const currScore = school.performanceScore || 0;
+                          const prevScore = school.completionRate || Math.round(currScore - 2.5);
+                          const diff = Math.round((currScore - prevScore) * 10) / 10;
+                          const isImprovement = diff >= 0;
+
+                          const yPrev = 10 + 150 * (1 - prevScore / 100);
+                          const yCurr = 10 + 150 * (1 - currScore / 100);
+
+                          const xMid = 45 + idx * groupWidth + groupWidth / 2;
+                          const xPrev = xMid - barWidth - barSpacing / 2;
+                          const xCurr = xMid + barSpacing / 2;
+
+                          const diffText = diff >= 0 ? `+${diff}%` : `${diff}%`;
+                          const diffColor = isImprovement ? '#10B981' : '#EF4444';
+
+                          return (
+                            <g
+                              key={school.id}
+                              className="group/bar cursor-pointer"
+                              onMouseMove={(e) => {
+                                const parentRect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect();
+                                if (parentRect) {
+                                  setPerfTooltip({
+                                    x: e.clientX - parentRect.left + 15,
+                                    y: e.clientY - parentRect.top - 15,
+                                    content: (
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="font-bold text-slate-100">{name}</span>
+                                        <span className="text-[10px] text-slate-400 font-mono">
+                                          State: <span className="text-slate-200">{STATE_NAMES[school.stateCode] || school.stateCode}</span>
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-mono">
+                                          Current: <span className="text-blue-400 font-bold">{currScore}%</span>
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-mono">
+                                          Previous: <span className="text-slate-350 font-bold">{prevScore}%</span>
+                                        </span>
+                                        <span className={`text-[10px] font-bold ${isImprovement ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                          {isImprovement ? `Improvement: +${diff}%` : `Decline: ${diff}%`}
+                                        </span>
+                                      </div>
+                                    ),
+                                    visible: true
+                                  });
+                                }
+                              }}
+                              onMouseLeave={() => setPerfTooltip(null)}
+                            >
+                              {/* Previous Bar (Gray) */}
+                              <rect
+                                x={xPrev}
+                                y={yPrev}
+                                width={barWidth}
+                                height={Math.max(2, 160 - yPrev)}
+                                rx="2"
+                                fill="#94A3B8"
+                                className="opacity-75 group-hover/bar:opacity-100 transition-opacity duration-200"
+                              />
+
+                              {/* Current Bar (Blue) */}
+                              <rect
+                                x={xCurr}
+                                y={yCurr}
+                                width={barWidth}
+                                height={Math.max(2, 160 - yCurr)}
+                                rx="2"
+                                fill="#3B82F6"
+                                className="group-hover/bar:brightness-110 transition-all duration-200"
+                              />
+
+                              {/* Percentage Change Text */}
+                              <text
+                                x={xCurr + barWidth / 2}
+                                y={yCurr - 6}
+                                textAnchor="middle"
+                                fill={diffColor}
+                                className="text-[8px] font-extrabold font-mono opacity-90 group-hover/bar:opacity-100"
+                              >
+                                {diffText}
+                              </text>
+
+                              {/* School Label on X-axis (Rotated) */}
+                              <text
+                                x={xMid}
+                                y="180"
+                                textAnchor="middle"
+                                className="fill-slate-500 dark:fill-slate-400 text-[8px] font-semibold"
+                                transform={`rotate(-15, ${xMid}, 180)`}
+                              >
+                                {name.length > 12 ? name.substring(0, 10) + '...' : name}
+                              </text>
+                            </g>
+                          );
+                        });
+                      }
                     })()}
                   </svg>
 
@@ -901,140 +1047,11 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               </div>
             </div>
 
-            {/* 5. INTERVIEW ANALYTICS */}
-            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
-              <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-magenta-500 text-fuchsia-500" />
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      AI Mock Interview Analytics
-                    </h3>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Completion velocity, pass/fail ratios, and rating distribution
-                  </p>
-                </div>
-                <span className="text-xs font-mono font-bold text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/60 px-2.5 py-1 rounded-lg border border-fuchsia-200 dark:border-fuchsia-800">
-                  {interviewAnalytics.completionRate}% Completion
-                </span>
-              </div>
-
-              {/* Grid Metrics */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Avg Duration</span>
-                  <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono">
-                    {interviewAnalytics.avgDurationMinutes} m
-                  </span>
-                </div>
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl text-center border border-emerald-100 dark:border-emerald-900/50">
-                  <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Pass Rate</span>
-                  <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-300 font-mono">
-                    {interviewAnalytics.passVsFail?.passPercent}%
-                  </span>
-                </div>
-                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-xl text-center border border-rose-100 dark:border-rose-900/50">
-                  <span className="block text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase">Fail Rate</span>
-                  <span className="text-base font-extrabold text-rose-600 dark:text-rose-300 font-mono">
-                    {interviewAnalytics.passVsFail?.failPercent}%
-                  </span>
-                </div>
-              </div>
-
-              {/* Rating Distribution */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  AI Feedback Rating Distribution
-                </h4>
-                {(interviewAnalytics.ratingDistribution || []).map((r: any) => (
-                  <div key={r.rating} className="flex items-center gap-3 text-xs">
-                    <span className="w-36 text-slate-600 dark:text-slate-400 font-medium line-clamp-1">{r.rating}</span>
-                    <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-fuchsia-500 to-indigo-500 rounded-full"
-                        style={{ width: `${r.percentage}%` }}
-                      />
-                    </div>
-                    <span className="w-12 text-right font-mono font-bold text-slate-800 dark:text-slate-200">{r.percentage}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
-          {/* THIRD ROW: USAGE ANALYTICS & AI ANALYTICS */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 6. USAGE ANALYTICS */}
-            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
-              <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-blue-500" />
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      Student Activity Overview
-                    </h3>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Track daily, weekly, and monthly active students across the FLN Portal.
-                  </p>
-                </div>
-              </div>
+          {/* THIRD ROW: AI ANALYTICS */}
+          <div className="w-full">
 
-              {/* DAU WAU MAU Banner */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-blue-50/60 dark:bg-blue-950/40 rounded-xl border border-blue-100 dark:border-blue-900/40">
-                  <span className="block text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">DAU (Daily)</span>
-                  <span className="text-base font-extrabold text-blue-700 dark:text-blue-200 font-mono">
-                    {usageAnalytics.dailyActiveUsers?.toLocaleString()}
-                  </span>
-                </div>
-                <div className="p-3 bg-indigo-50/60 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
-                  <span className="block text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">WAU (Weekly)</span>
-                  <span className="text-base font-extrabold text-indigo-700 dark:text-indigo-200 font-mono">
-                    {usageAnalytics.weeklyActiveUsers?.toLocaleString()}
-                  </span>
-                </div>
-                <div className="p-3 bg-purple-50/60 dark:bg-purple-950/40 rounded-xl border border-purple-100 dark:border-purple-900/40">
-                  <span className="block text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">MAU (Monthly)</span>
-                  <span className="text-base font-extrabold text-purple-700 dark:text-purple-200 font-mono">
-                    {usageAnalytics.monthlyActiveUsers?.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-
-              {/* Device Usage Cards */}
-              <div className="pt-2">
-                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                  Device Hardware Access
-                </h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center gap-3">
-                    <Monitor className="h-5 w-5 text-indigo-500" />
-                    <div>
-                      <span className="block text-[10px] text-slate-400 uppercase font-bold">Desktop</span>
-                      <span className="text-sm font-bold font-mono text-slate-900 dark:text-white">{usageAnalytics.deviceUsage?.desktop}%</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center gap-3">
-                    <Smartphone className="h-5 w-5 text-emerald-500" />
-                    <div>
-                      <span className="block text-[10px] text-slate-400 uppercase font-bold">Mobile</span>
-                      <span className="text-sm font-bold font-mono text-slate-900 dark:text-white">{usageAnalytics.deviceUsage?.mobile}%</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center gap-3">
-                    <Tablet className="h-5 w-5 text-amber-500" />
-                    <div>
-                      <span className="block text-[10px] text-slate-400 uppercase font-bold">Tablet</span>
-                      <span className="text-sm font-bold font-mono text-slate-900 dark:text-white">{usageAnalytics.deviceUsage?.tablet}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* 7. AI ANALYTICS */}
             <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
@@ -1195,8 +1212,8 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                     <button
                       onClick={() => setRankingSortMetric('performance')}
                       className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'performance'
-                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                         }`}
                     >
                       Score %
@@ -1204,8 +1221,8 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                     <button
                       onClick={() => setRankingSortMetric('completion')}
                       className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'completion'
-                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                         }`}
                     >
                       Completion Rate
@@ -1213,8 +1230,8 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                     <button
                       onClick={() => setRankingSortMetric('satisfaction')}
                       className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'satisfaction'
-                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                         }`}
                     >
                       Satisfaction
@@ -1222,8 +1239,8 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                     <button
                       onClick={() => setRankingSortMetric('interview')}
                       className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'interview'
-                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                         }`}
                     >
                       Interview Success
@@ -1252,12 +1269,12 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                           <td className="py-3 px-3">
                             <span
                               className={`inline-flex items-center justify-center h-6 w-6 rounded-full font-mono text-xs font-bold ${idx === 0
-                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300'
-                                  : idx === 1
-                                    ? 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
-                                    : idx === 2
-                                      ? 'bg-amber-900/20 text-amber-700 dark:text-amber-400'
-                                      : 'text-slate-500'
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300'
+                                : idx === 1
+                                  ? 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
+                                  : idx === 2
+                                    ? 'bg-amber-900/20 text-amber-700 dark:text-amber-400'
+                                    : 'text-slate-500'
                                 }`}
                             >
                               #{idx + 1}
@@ -1327,10 +1344,10 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, subtext, icon: Icon, ba
           {badge && (
             <span
               className={`font-mono font-bold px-1.5 py-0.5 rounded text-[9px] ${badgeType === 'up'
-                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300'
-                  : badgeType === 'special'
-                    ? 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/80 dark:text-fuchsia-300'
-                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300'
+                : badgeType === 'special'
+                  ? 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/80 dark:text-fuchsia-300'
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                 }`}
             >
               {badge}

@@ -1823,31 +1823,32 @@ async function startServer() {
         ]
       };
 
-      // 10. Top 10 School Rankings (Section 8)
-      const rankingsPool = [
-        { name: 'GSSS Model Town Ludhiana', stateCode: 'PB', schoolType: 'Government' },
-        { name: 'Kendriya Vidyalaya Sector 8', stateCode: 'DL', schoolType: 'Model' },
-        { name: 'Government High School Ambala', stateCode: 'HR', schoolType: 'Government' },
-        { name: 'St. Xavier Primary Academy', stateCode: 'PB', schoolType: 'Private Aided' },
-        { name: 'Jawahar Navodaya Vidyalaya', stateCode: 'RJ', schoolType: 'Model' },
-        { name: 'Government Sr Sec School Jaipur', stateCode: 'RJ', schoolType: 'Government' },
-        { name: 'Delhi Public School Dwarka', stateCode: 'DL', schoolType: 'Private' },
-        { name: 'Government High School Shimla', stateCode: 'PB', schoolType: 'Government' },
-        { name: 'PM SHRI School Karnal', stateCode: 'HR', schoolType: 'Model' },
-        { name: 'Sarvodaya Kanya Vidyalaya', stateCode: 'DL', schoolType: 'Government' }
-      ];
+      // 10. Top School Rankings (Section 8)
+      const schoolRankings = filteredSchools.map((sch, i) => {
+        const hash = sch.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const performanceScore = Math.round((70 + (hash % 26) + (i % 5)) * 10) / 10;
+        const completionRate = Math.round((75 + (hash % 21) + (i % 4)) * 10) / 10;
+        const studentSatisfaction = Math.round((3.8 + ((hash % 11) / 10)) * 10) / 10;
+        const interviewSuccessRate = Math.round((68 + (hash % 28) + (i % 3)) * 10) / 10;
 
-      const schoolRankings = rankingsPool.map((sch, i) => ({
-        rank: i + 1,
-        id: `SCH-${1000 + i + 1}`,
-        name: sch.name,
-        stateCode: sch.stateCode,
-        schoolType: sch.schoolType,
-        performanceScore: Math.round((96.5 - i * 1.4) * 10) / 10,
-        completionRate: Math.round((98.2 - i * 0.9) * 10) / 10,
-        studentSatisfaction: Math.round((4.9 - i * 0.08) * 10) / 10,
-        interviewSuccessRate: Math.round((94.8 - i * 1.1) * 10) / 10
-      }));
+        return {
+          rank: 0,
+          id: sch.id,
+          name: sch.name,
+          stateCode: sch.stateCode,
+          schoolType: (sch as any).schoolType || 'Government',
+          performanceScore: Math.min(100, performanceScore),
+          completionRate: Math.min(100, completionRate),
+          studentSatisfaction: Math.min(5.0, studentSatisfaction),
+          interviewSuccessRate: Math.min(100, interviewSuccessRate)
+        };
+      });
+
+      // Sort by performanceScore descending and assign ranks
+      schoolRankings.sort((a, b) => b.performanceScore - a.performanceScore);
+      schoolRankings.forEach((sch, idx) => {
+        sch.rank = idx + 1;
+      });
 
       // 11. Engagement Analytics (Section 9)
       const engagementAnalytics = {
