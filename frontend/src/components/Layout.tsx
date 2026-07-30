@@ -23,6 +23,8 @@ interface LayoutProps {
   onMarkNotificationRead: (id: string) => void;
   onClearNotifications: () => void;
   onLogout: () => void;
+  isDark: boolean;
+  onThemeToggle: () => void;
   children: React.ReactNode;
 }
 
@@ -35,6 +37,8 @@ export const Layout: React.FC<LayoutProps> = ({
   onMarkNotificationRead,
   onClearNotifications,
   onLogout,
+  isDark,
+  onThemeToggle,
   children
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -48,26 +52,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isDark, setIsDark] = useState(() => {
-    try {
-      const saved = localStorage.getItem('fln_theme');
-      if (saved) return saved === 'dark';
-      return document.documentElement.classList.contains('dark') || 
-             window.matchMedia('(prefers-color-scheme: dark)').matches;
-    } catch {
-      return false;
-    }
-  });
 
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('fln_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('fln_theme', 'light');
-    }
-  }, [isDark]);
 
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const [fontSize, setFontSize] = useState(() => {
@@ -345,7 +330,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
           {/* Theme Toggle */}
           <button
-            onClick={() => setIsDark(!isDark)}
+            onClick={onThemeToggle}
             className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 hover:text-slate-800 transition-all duration-200 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
