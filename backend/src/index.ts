@@ -12,6 +12,7 @@ import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -35,6 +36,15 @@ function sanitizeUser(user: User): Omit<User, 'passwordHash'> {
   const { passwordHash, ...safe } = user;
   return safe;
 }
+
+// Throttle auth endpoints to slow down brute-force / credential-stuffing attempts.
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again later.' },
+});
 
 async function startServer() {
   // Connect to MongoDB
@@ -105,7 +115,7 @@ async function startServer() {
   });
 
   // Auth: Login
-  app.post('/api/auth/login', async (req, res) => {
+  app.post('/api/auth/login', authRateLimiter, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
