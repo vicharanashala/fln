@@ -435,6 +435,19 @@ async function startServer() {
     if (user.role === UserRole.VOLUNTEER) {
       return res.json(maskedStudents.filter(s => user.assignedSchools?.includes(s.schoolId)));
     }
+    if (user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
+      // Geo-scope by the admin's own state/district/block, joined via each student's school.
+      const schools = await dbStore.getSchools();
+      const schoolById = new Map(schools.map(sc => [sc.id, sc]));
+      const geoFiltered = maskedStudents.filter(s => {
+        const school = schoolById.get(s.schoolId);
+        if (!school) return false;
+        if (user.role === UserRole.ADMIN) return school.stateCode === user.stateCode;
+        if (user.role === UserRole.DISTRICT_ADMIN) return school.districtCode === user.districtCode;
+        return school.blockCode === user.blockCode; // BLOCK_ADMIN
+      });
+      return res.json(geoFiltered);
+    }
 
     res.json(maskedStudents);
   });
