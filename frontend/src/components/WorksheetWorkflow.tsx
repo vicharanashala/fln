@@ -1,4 +1,4 @@
-import { apiFetch } from '../services/apiClient';
+import { apiFetch, withBase } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { ClassGroup, Worksheet, Student, AnswerSubmission, EvaluationReport } from '../types';
 import { SvgLibraryResolver } from './SvgLibraryResolver';
@@ -293,10 +293,18 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                           <h5 className="font-display font-bold text-zinc-900 dark:text-white uppercase text-sm tracking-tight">{student.name}</h5>
                           <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">Student ID: {student.id} · Target Level: Level {student.targetLevel}</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex items-center gap-2">
                           <span className="text-xs font-mono font-bold uppercase bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300">
                             Current Level {student.currentLevel}
                           </span>
+                          <a
+                            href={withBase(`/api/teacher-answer-keys?studentId=${student.id}`)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-mono font-bold px-2.5 py-1 rounded bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900 transition-colors cursor-pointer"
+                          >
+                            🔑 Teacher Answer Key
+                          </a>
                         </div>
                       </div>
 

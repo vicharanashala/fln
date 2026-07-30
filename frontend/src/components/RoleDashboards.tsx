@@ -1599,7 +1599,7 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   }, [token]);
 
   if (activeClass) {
-    const classStudents = students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section);
+    const classStudents = students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section && s.schoolId === activeClass.schoolId);
     return (
       <WorksheetWorkflow
         classGroup={activeClass}
@@ -1700,6 +1700,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [levelBatchSkipped, setLevelBatchSkipped] = useState<Array<{ studentId: string; reason: string }>>([]);
   const [levelBatchError, setLevelBatchError] = useState('');
   const [levelBatchDownloading, setLevelBatchDownloading] = useState(false);
+  const [levelBatchReinforcementDebug, setLevelBatchReinforcementDebug] = useState<Array<any>>([]);
 
   // New Student state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1752,6 +1753,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     setLevelBatchError('');
     setLevelBatchResults([]);
     setLevelBatchSkipped([]);
+    setLevelBatchReinforcementDebug([]);
     setLevelBatchId(null);
     try {
       const res = await apiFetch('/api/worksheets/generate-level-batch', {
@@ -1767,6 +1769,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         setLevelBatchId(data.batchId);
         setLevelBatchResults(data.results || []);
         setLevelBatchSkipped(data.skipped || []);
+        setLevelBatchReinforcementDebug(data.reinforcementDebug || []);
       } else {
         setLevelBatchError(data.error || 'Batch generation failed.');
       }
@@ -1955,13 +1958,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   }
 
   // Filter students under selected active class
-  const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : [];
+  const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section && s.schoolId === activeClass.schoolId) : [];
 
   if (showWorksheetPortal) {
     const effectiveClass = activeClass || (classes.length > 0 ? classes[0] : null);
     if (effectiveClass) {
       const effectiveStudents = students.filter(
-        s => s.classGroup === effectiveClass.className && s.section === effectiveClass.section
+        s => s.classGroup === effectiveClass.className && s.section === effectiveClass.section && s.schoolId === effectiveClass.schoolId
       );
       return (
         <WorksheetWorkflow
@@ -2325,8 +2328,12 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                   <div className="max-h-40 overflow-y-auto space-y-1">
                     {levelBatchResults.map((r, i) => (
                       <div key={`${r.studentId}-${r.sublevelId}-${r.setNum}-${i}`} className="flex items-center justify-between text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded px-2 py-1">
-                        <span className="text-zinc-700 dark:text-zinc-300 font-medium">{r.studentName} <span className="text-zinc-400 dark:text-zinc-500 font-mono">L{r.sublevelId} set{r.setNum}</span></span>
-                        <a href={r.pdfUrl} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-mono font-bold">View PDF</a>
+                        <div className="flex items-center gap-2">
+                          <a href={r.pdfUrl} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-mono font-bold">📄 Student PDF</a>
+                          {r.answerKeyPdfUrl && (
+                            <a href={r.answerKeyPdfUrl} target="_blank" rel="noreferrer" className="text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 font-mono font-bold">🔑 Answer Key</a>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2334,6 +2341,105 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                 {levelBatchSkipped.length > 0 && (
                   <div className="p-2 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded text-xs text-amber-700 dark:text-amber-300">
                     Skipped: {levelBatchSkipped.map(s => s.reason).join('; ')}
+                  </div>
+                )}
+
+                {/* 🛡️ Reinforcement Verification Panel */}
+                {levelBatchReinforcementDebug && levelBatchReinforcementDebug.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-slate-800 space-y-3">
+                    <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+                      <span className="text-base">🛡️</span>
+                      <h4 className="text-xs font-display font-bold uppercase tracking-wider">Reinforcement Verification Panel</h4>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      Live reinforcement analysis and logic checks for the generated batch.
+                    </p>
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                      {levelBatchReinforcementDebug.map((dbg) => (
+                        <div key={dbg.studentId} className="p-3 bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 rounded-lg space-y-2 text-left">
+                          <div className="flex justify-between items-center border-b border-zinc-200 dark:border-slate-700 pb-1.5">
+                            <span className="text-xs font-bold text-zinc-800 dark:text-slate-200">{dbg.studentName}</span>
+                            <span className="text-[10px] font-mono bg-zinc-200 dark:bg-slate-700 text-zinc-700 dark:text-slate-300 px-2 py-0.5 rounded">
+                              Current Level: L{dbg.currentLevel}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[10px] text-zinc-650 dark:text-slate-350">
+                            <div>
+                              <span className="font-semibold block text-zinc-550 dark:text-slate-400">Current Worksheet Concepts:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {dbg.currentLevelConcepts && dbg.currentLevelConcepts.length > 0 ? (
+                                  dbg.currentLevelConcepts.map((c: string, idx: number) => (
+                                    <span key={idx} className="bg-zinc-100 dark:bg-slate-900 border border-zinc-250 dark:border-slate-650 px-1.5 py-0.5 rounded font-mono text-[9px]">{c}</span>
+                                  ))
+                                ) : (
+                                  <span className="italic text-zinc-400">None</span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="font-semibold block text-zinc-550 dark:text-slate-400">Reinforcement Concepts Added:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {dbg.reinforcementConcepts && dbg.reinforcementConcepts.length > 0 ? (
+                                  dbg.reinforcementConcepts.map((c: string, idx: number) => (
+                                    <span key={idx} className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 px-1.5 py-0.5 rounded font-mono text-[9px] font-bold">{c}</span>
+                                  ))
+                                ) : (
+                                  <span className="italic text-zinc-400">None</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {dbg.weakConcepts && dbg.weakConcepts.length > 0 ? (
+                            <div className="border-t border-zinc-200 dark:border-slate-700 pt-2 space-y-1.5">
+                              <span className="text-[9px] font-semibold text-zinc-500 dark:text-slate-400 uppercase tracking-wider block">Concept Streaks & Adaptive Decision Rules:</span>
+                              <div className="grid grid-cols-1 gap-1">
+                                {dbg.weakConcepts.map((wc: any, idx: number) => (
+                                  <div key={idx} className={`flex flex-col text-[10px] bg-white dark:bg-slate-900 border rounded p-2 gap-1.5 ${wc.needsTeacherIntervention || wc.status === 'Remedial Intervention Required' ? 'border-amber-300 dark:border-amber-700 bg-amber-50/40 dark:bg-amber-950/20' : 'border-zinc-150 dark:border-slate-800'}`}>
+                                    <div className="flex flex-wrap justify-between items-center gap-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-medium text-zinc-700 dark:text-slate-200">{wc.topic}</span>
+                                        <span className={`text-[8.5px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                                          wc.status === 'Remedial Intervention Required'
+                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                            : wc.status === 'Strong'
+                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                            : wc.status === 'Satisfactory'
+                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                                            : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                                        }`}>
+                                          {wc.status}
+                                        </span>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-2.5 font-mono text-[9px]">
+                                        <span>Score: <strong className="text-zinc-800 dark:text-slate-250">{wc.masteryPct}%</strong></span>
+                                        <span>Cycle: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">L{wc.reinforcementLevelsCompleted ?? 0}/3</strong></span>
+                                        <span>Active: <strong className={wc.isReinforcementActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-500'}>{wc.isReinforcementActive ? 'Yes' : 'No'}</strong></span>
+                                        <span className={`px-1.5 py-0.5 rounded font-bold uppercase ${wc.reinforcementEligible ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400' : 'bg-zinc-100 text-zinc-650 dark:bg-slate-800 dark:text-slate-400'}`} title={wc.eligibilityReason}>
+                                          Eligible: {wc.reinforcementEligible ? 'Yes' : 'No'}
+                                        </span>
+                                        {wc.reinforcementEligible && wc.questionsToInject > 0 && (
+                                          <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold">Inject: {wc.questionsToInject} Extra Q</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    {(wc.needsTeacherIntervention || wc.status === 'Remedial Intervention Required') && (
+                                      <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-950/60 px-2 py-1 rounded text-[9.5px] font-bold">
+                                        <span>⚠️</span>
+                                        <span>REMEDIAL INTERVENTION REQUIRED: 3 reinforcement levels completed without 80% mastery. Reinforcement stopped.</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-green-600 font-mono italic">No weak concepts detected. All concepts fully mastered!</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -2671,13 +2777,13 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
     );
   }
 
-  const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : [];
+  const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section && s.schoolId === activeClass.schoolId) : [];
 
   if (showWorksheetPortal) {
     const effectiveClass = activeClass || (classes.length > 0 ? classes[0] : null);
     if (effectiveClass) {
       const effectiveStudents = students.filter(
-        s => s.classGroup === effectiveClass.className && s.section === effectiveClass.section
+        s => s.classGroup === effectiveClass.className && s.section === effectiveClass.section && s.schoolId === effectiveClass.schoolId
       );
       return (
         <WorksheetWorkflow

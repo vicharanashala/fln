@@ -19,6 +19,7 @@ router.post('/generate-batch', async (req, res) => {
   if (!Array.isArray(roster) || roster.length === 0) {
     return res.status(400).json({ error: 'Body must be a non-empty array of student entries.' });
   }
+  console.log('[Levels_backend] Received roster:', JSON.stringify(roster, null, 2));
 
   for (const [i, entry] of roster.entries()) {
     if (!entry || typeof entry !== 'object') {

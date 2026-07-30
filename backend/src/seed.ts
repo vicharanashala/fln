@@ -538,9 +538,9 @@ function pad2(n: number): string {
 // ============================================================
 
 async function main() {
-  const uri = process.env.MONGODB_URI;
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
   if (!uri) {
-    console.error('MONGODB_URI environment variable is not set');
+    console.error('MONGODB_URI or MONGO_URI environment variable is not set');
     process.exit(1);
   }
 

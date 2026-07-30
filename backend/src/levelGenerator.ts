@@ -1,14 +1,37 @@
 import { Question } from './db';
 
+let currentPRNG: (() => number) | null = null;
+
+export function setQuestionPRNG(seedStr?: string) {
+  if (!seedStr) {
+    currentPRNG = null;
+    return;
+  }
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 16777619);
+  }
+  currentPRNG = function() {
+    h += h << 13; h ^= h >>> 7;
+    h += h << 3;  h ^= h >>> 17;
+    return ((h += h << 5) >>> 0) / 4294967296;
+  };
+}
+
 // Helper to generate a random integer
 function randomVal(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  const rand = currentPRNG ? currentPRNG() : Math.random();
+  return Math.floor(rand * (max - min + 1)) + min;
 }
 
 // Programmatic math builder for all 59 levels and 3 sub-levels
-export function generateQuestionsForLevel(level: number, subLevel: number): Question[] {
-  const questions: Question[] = [];
-  const levelStr = `L${level}.${subLevel}`;
+export function generateQuestionsForLevel(level: number, subLevel: number, seedStr?: string): Question[] {
+  if (seedStr) {
+    setQuestionPRNG(seedStr);
+  }
+  try {
+    const questions: Question[] = [];
+    const levelStr = `L${level}.${subLevel}`;
 
   // Helper to adjust range based on subLevel
   // subLevel 0 = Mastery (full range), 1 = Easier (mid range), 2 = Remedial (simplest/visual)
@@ -34,8 +57,10 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
     let svgAsset: string | undefined = undefined;
 
     // Determine strand/topic based on level
-    if ([3, 9, 52, 58].includes(level)) {
+    if ([3, 52, 58].includes(level)) {
       topic = 'Shapes';
+    } else if ([9].includes(level)) {
+      topic = 'Patterns';
     } else if ([7, 8, 16, 17, 26, 27, 33, 39, 40, 41, 42, 50, 51, 53].includes(level)) {
       topic = 'Number Operations';
     } else if ([31, 44].includes(level)) {
@@ -56,21 +81,23 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
       case 1:
         topic = 'Number Sense';
         if (qIdx === 1) {
-          const numA = adjust(8, 5, 3);
-          const numB = adjust(5, 3, 1);
+          const numA = adjust(randomVal(7, 9), randomVal(4, 6), randomVal(2, 3));
+          const numB = adjust(randomVal(3, 5), randomVal(2, 3), 1);
           questionText = `Group A has ${numA} balls. Group B has ${numB} balls. Which group has MORE balls? (Write A or B)`;
-          answerText = 'A';
+          answerText = numA > numB ? 'A' : 'B';
           type = 'choice';
           choices = ['A', 'B'];
         } else if (qIdx === 2) {
-          const numA = adjust(4, 3, 2);
-          const numB = adjust(7, 5, 4);
+          const numA = adjust(randomVal(3, 4), randomVal(2, 3), 1);
+          const numB = adjust(randomVal(6, 8), randomVal(4, 5), randomVal(2, 3));
           questionText = `Group A has ${numA} stars. Group B has ${numB} stars. Which group has LESS stars? (Write A or B)`;
-          answerText = 'A';
+          answerText = numA < numB ? 'A' : 'B';
           type = 'choice';
           choices = ['A', 'B'];
         } else {
-          questionText = `Is 5 greater than 3? (Write Yes or No)`;
+          const valA = randomVal(4, 8);
+          const valB = randomVal(1, valA - 1);
+          questionText = `Is ${valA} greater than ${valB}? (Write Yes or No)`;
           answerText = 'yes';
           type = 'choice';
           choices = ['yes', 'no'];
@@ -80,14 +107,24 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
 
       case 2:
         topic = 'Number Sense';
-        questionText = `Find the ODD one out in this list: [Circle, Triangle, Apple, Square]. (Write the odd item name)`;
-        answerText = 'apple';
+        const oddSets = [
+          { items: '[Circle, Triangle, Apple, Square]', answer: 'apple' },
+          { items: '[Cat, Dog, Banana, Cow]', answer: 'banana' },
+          { items: '[Red, Blue, Chair, Green]', answer: 'chair' },
+          { items: '[1, 2, Star, 4]', answer: 'star' }
+        ];
+        const chosenOdd = oddSets[(qIdx - 1) % oddSets.length];
+        questionText = `Find the ODD one out in this list: ${chosenOdd.items}. (Write the odd item name)`;
+        answerText = chosenOdd.answer;
         type = 'text';
         break;
 
       case 3:
-        questionText = `Match the shapes: If shape A is a square, which identical shape matches A? (Write square)`;
-        answerText = 'square';
+        topic = 'Shapes';
+        const shapesList = ['square', 'circle', 'triangle', 'rectangle'];
+        const targetShape = shapesList[(qIdx + randomVal(0, 3)) % shapesList.length];
+        questionText = `Match the shapes: If shape A is a ${targetShape}, which identical shape matches A? (Write ${targetShape})`;
+        answerText = targetShape;
         type = 'text';
         break;
 
@@ -95,20 +132,20 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
       case 4:
         topic = 'Number Sense';
         const stars = adjust(randomVal(7, 10), randomVal(4, 6), randomVal(1, 3));
-        questionText = `Count the stars: ${Array(stars).fill('★').join(' ')}. How many are there?`;
+        questionText = `Count the stars: ${Array(stars).fill('*').join(' ')}. How many are there?`;
         answerText = String(stars);
         break;
 
       case 5:
         topic = 'Number Sense';
-        const fingers = adjust(5, 3, 2);
-        questionText = `Count the fingers shown in gesture: [🖐️ showing ${fingers} fingers]. How many?`;
+        const fingers = adjust(randomVal(4, 5), randomVal(2, 3), 1);
+        questionText = `Count the fingers shown in gesture: [Hand showing ${fingers} fingers]. How many?`;
         answerText = String(fingers);
         break;
 
       case 6:
         topic = 'Number Sense';
-        const num = adjust(8, 5, 3);
+        const num = adjust(randomVal(7, 9), randomVal(4, 6), randomVal(2, 3));
         if (qIdx === 1) {
           questionText = `What number comes AFTER ${num}?`;
           answerText = String(num + 1);
@@ -123,30 +160,40 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
 
       // --- Preschool 3 (Levels 7-10) ---
       case 7:
+        topic = 'Number Operations';
         const addA = adjust(randomVal(4, 6), randomVal(2, 4), randomVal(1, 2));
         const addB = adjust(randomVal(3, 4), randomVal(1, 2), 1);
-        questionText = `Add using objects: ${Array(addA).fill('🍎').join('')} + ${Array(addB).fill('🍎').join('')} = How many apples in total?`;
+        questionText = `Add using objects: ${addA} apples + ${addB} apples = How many apples in total?`;
         answerText = String(addA + addB);
         break;
 
       case 8:
+        topic = 'Number Operations';
         const subA = adjust(randomVal(8, 10), randomVal(5, 7), randomVal(3, 4));
         const subB = adjust(randomVal(3, 4), randomVal(2, 3), 1);
-        questionText = `Subtract using objects: ${Array(subA).fill('🎈').join('')} minus ${subB} balloons. How many left?`;
+        questionText = `Subtract using objects: ${subA} balloons minus ${subB} balloons. How many left?`;
         answerText = String(subA - subB);
         break;
 
       case 9:
-        questionText = `Complete the pattern: Circle, Triangle, Circle, Triangle, ___. (Write Circle or Triangle)`;
-        answerText = 'circle';
+        topic = 'Patterns';
+        const patterns = [
+          { seq: 'Circle, Triangle, Circle, Triangle, ___', ans: 'circle', opts: ['circle', 'triangle'] },
+          { seq: 'Square, Star, Square, Star, ___', ans: 'square', opts: ['square', 'star'] },
+          { seq: 'Red, Blue, Red, Blue, ___', ans: 'red', opts: ['red', 'blue'] },
+          { seq: '1, 2, 1, 2, ___', ans: '1', opts: ['1', '2'] }
+        ];
+        const pat = patterns[(qIdx - 1) % patterns.length];
+        questionText = `Complete the pattern: ${pat.seq}. (Write ${pat.opts.join(' or ')})`;
+        answerText = pat.ans;
         type = 'choice';
-        choices = ['circle', 'triangle'];
+        choices = pat.opts;
         break;
 
       case 10:
         topic = 'Number Sense';
-        const cmpA = adjust(9, 6, 3);
-        const cmpB = adjust(5, 4, 2);
+        const cmpA = adjust(randomVal(7, 9), randomVal(5, 6), randomVal(3, 4));
+        const cmpB = adjust(randomVal(3, 5), randomVal(2, 4), randomVal(1, 2));
         questionText = `Which numeral is bigger: ${cmpA} or ${cmpB}?`;
         answerText = String(Math.max(cmpA, cmpB));
         break;
@@ -186,8 +233,9 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
         break;
 
       case 16:
-        const add16A = adjust(randomVal(15, 20), randomVal(10, 14), randomVal(5, 9));
-        const add16B = adjust(randomVal(8, 10), randomVal(4, 7), randomVal(2, 4));
+        topic = 'Number Operations';
+        const add16A = adjust(randomVal(12, 18), randomVal(8, 12), randomVal(4, 7)) + (qIdx * 2);
+        const add16B = adjust(randomVal(5, 8), randomVal(3, 5), randomVal(1, 3)) + qIdx;
         questionText = `Solve: ${add16A} + ${add16B} = ?`;
         answerText = String(add16A + add16B);
         break;
@@ -477,9 +525,52 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
       subtopic,
       difficulty: qIdx <= 2 ? 'easy' : qIdx === 3 ? 'medium' : 'hard',
       source_level: level,
-      svgAsset
-    });
+      });
+  }
+  return questions;
+} finally {
+  if (seedStr) setQuestionPRNG();
+}
+}
+
+export function generateMultiTopicQuestions(targetLevel: number, subLevel: number, count: number = 4, seedStr?: string): Question[] {
+  const selectedQuestions: Question[] = [];
+  const coveredTopics = new Set<string>();
+  
+  const getIndex = (str: string, max: number): number => {
+    if (!seedStr) return Math.floor(Math.random() * max);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i) | 0;
+    return Math.abs(hash) % max;
+  };
+
+  let offset = 0;
+  // We want questions from distinct topics, starting from targetLevel and going down
+  for (let lvl = targetLevel; lvl >= 1 && selectedQuestions.length < count; lvl--) {
+    const levelQs = generateQuestionsForLevel(lvl, subLevel);
+    if (levelQs.length > 0) {
+      const topic = levelQs[0].topic.toLowerCase();
+      if (!coveredTopics.has(topic)) {
+        coveredTopics.add(topic);
+        const idx = getIndex(`${seedStr}_L${lvl}_${offset++}`, levelQs.length);
+        const selectedQ = levelQs[idx];
+        selectedQuestions.push(selectedQ);
+      }
+    }
   }
 
-  return questions;
+  // If we couldn't find enough distinct topics, fill the rest from the generated levels
+  if (selectedQuestions.length < count) {
+    for (let lvl = targetLevel; lvl >= 1 && selectedQuestions.length < count; lvl--) {
+      const fillQs = generateQuestionsForLevel(lvl, subLevel);
+      for (const q of fillQs) {
+        if (selectedQuestions.length >= count) break;
+        if (!selectedQuestions.some(sq => sq.question === q.question)) {
+          selectedQuestions.push(q);
+        }
+      }
+    }
+  }
+
+  return selectedQuestions;
 }

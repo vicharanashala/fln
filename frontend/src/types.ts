@@ -211,3 +211,31 @@ export interface BestPractice {
   viewCount: number;
   createdAt: string;
 }
+export interface ConceptScore {
+  topic: string;
+  totalAttempts: number;
+  correctCount: number;
+  masteryPct: number;
+  status: 'Strong' | 'Satisfactory' | 'Needs Practice' | 'Remedial Intervention Required';
+  lastAssessedAt: string;
+  consecutiveMasteryCount: number;
+}
+
+export interface ConceptMasteryProfile {
+  id: string;
+  studentId: string;
+  concepts: ConceptScore[];
+  updatedAt: string;
+}
+
+export interface TeacherAnswerKey {
+  id: string;
+  worksheetId: string;
+  studentId: string;
+  studentName: string;
+  levelId: number;
+  sublevelId: string;
+  pdfUrl: string;
+  totalQuestions: number;
+  generatedAt: string;
+}

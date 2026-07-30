@@ -1,7 +1,7 @@
-import { apiFetch } from '../services/apiClient';
+import { apiFetch, withBase } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
-import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown, Key, Download, Eye, X } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
@@ -201,6 +201,13 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [userRoleFilter, setUserRoleFilter] = useState('superadmin');
   const [userSearch, setUserSearch] = useState('');
 
+  const [wsTab, setWsTab] = useState<'cycles' | 'answer_keys'>('answer_keys');
+  const [teacherAnswerKeys, setTeacherAnswerKeys] = useState<any[]>([]);
+  const [akSearch, setAkSearch] = useState('');
+  const [akLoading, setAkLoading] = useState(false);
+  const [selectedAkDetail, setSelectedAkDetail] = useState<any | null>(null);
+  const [akDetailLoading, setAkDetailLoading] = useState(false);
+
   const [apiStudents, setApiStudents] = useState<Student[]>([]);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
@@ -210,6 +217,28 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
     apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
     apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
+  }, [token]);
+
+  const fetchTeacherAnswerKeys = async () => {
+    if (!token) return;
+    setAkLoading(true);
+    try {
+      const res = await apiFetch('/api/teacher-answer-keys', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.answerKeys) {
+        setTeacherAnswerKeys(data.answerKeys);
+      }
+    } catch (err) {
+      console.error('Error fetching teacher answer keys:', err);
+    } finally {
+      setAkLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTeacherAnswerKeys();
   }, [token]);
 
   const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
@@ -394,7 +423,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     const studentSchool = schools.find(sch => sch.id === s.schoolId);
     const att = ATTENDANCE_MOCK.find(a => a.student === s.name);
     const daysSinceEnroll = Math.floor((Date.now() - new Date(profile.enrollmentDate || s.id).getTime()) / 86400000);
-    const classStudents = students.filter(st => st.classGroup === s.classGroup);
+    const classStudents = students.filter(st => st.classGroup === s.classGroup && st.schoolId === s.schoolId);
     const classAvg = Math.round(classStudents.reduce((a, st) => a + st.currentLevel, 0) / Math.max(1, classStudents.length));
     const avgScore = reports.length > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reports.length) : 0;
     const allSkills = new Map<string, { mastery: string; date: string }[]>();
@@ -940,22 +969,232 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'worksheets') {
+    const handleViewAkDetail = async (keyId: string) => {
+      setAkDetailLoading(true);
+      try {
+        const res = await apiFetch(`/api/teacher-answer-keys/${keyId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok && data.answerKey) {
+          setSelectedAkDetail(data.answerKey);
+        }
+      } catch (err) {
+        console.error('Error fetching detail:', err);
+      } finally {
+        setAkDetailLoading(false);
+      }
+    };
+
+    const filteredKeys = teacherAnswerKeys.filter(k => {
+      if (!akSearch) return true;
+      const query = akSearch.toLowerCase();
+      return (
+        k.studentName?.toLowerCase().includes(query) ||
+        k.worksheetId?.toLowerCase().includes(query) ||
+        k.studentId?.toLowerCase().includes(query)
+      );
+    });
+
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard title="Total Worksheets" value={WORKSHEETS_MOCK.length} subtext="Across all cycles" icon={ClipboardList} />
-          <MetricCard title="Evaluated" value={WORKSHEETS_MOCK.filter(w => w.status === 'Evaluated').length} subtext="Graded and scored" icon={CheckCircle2} />
-          <MetricCard title="Pending" value={WORKSHEETS_MOCK.filter(w => w.status === 'Pending').length} subtext="Awaiting evaluation" icon={FileText} />
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-slate-200 dark:border-slate-700 space-x-4">
+          <button
+            onClick={() => setWsTab('answer_keys')}
+            className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+              wsTab === 'answer_keys'
+                ? 'border-rose-600 text-rose-600 dark:border-rose-400 dark:text-rose-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+          >
+            <Key className="w-4 h-4" />
+            <span>Teacher Answer Keys</span>
+            <span className="px-2 py-0.5 text-xs font-mono rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
+              {teacherAnswerKeys.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setWsTab('cycles')}
+            className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+              wsTab === 'cycles'
+                ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+          >
+            <ClipboardList className="w-4 h-4" />
+            <span>Worksheet Cycles</span>
+          </button>
         </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-          <PageHeader title="Worksheet Cycles" desc="Baseline, Mid-year, and End-of-year assessments" />
-          <div className="space-y-3 mt-4">{WORKSHEETS_MOCK.map(w => (
-            <div key={w.id} className="flex justify-between items-center p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
-              <div><div className="font-semibold text-sm">{w.cycle} — {w.class}</div><div className="text-xs text-slate-400 dark:text-slate-500">{w.date} · {w.questions} questions</div></div>
-              <div className="text-right"><span className={`text-xs font-mono font-bold px-2 py-1 rounded ${w.status === 'Evaluated' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{w.status}</span><div className="text-xs text-slate-400 dark:text-slate-500 mt-1">Avg: {w.avgScore}</div></div>
+
+        {wsTab === 'answer_keys' ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <MetricCard title="Total Teacher Answer Keys" value={teacherAnswerKeys.length} subtext="Linked to student worksheets" icon={Key} />
+              <MetricCard title="Unique Students" value={new Set(teacherAnswerKeys.map(k => k.studentId)).size} subtext="Assigned answer keys" icon={Users} />
+              <MetricCard title="Latest Answer Key" value={teacherAnswerKeys.length > 0 ? new Date(teacherAnswerKeys[0].generatedAt).toLocaleDateString() : 'N/A'} subtext="Auto-generated matching paper" icon={Calendar} />
             </div>
-          ))}</div>
-        </div>
+
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
+              <div className="flex justify-between items-center flex-wrap gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <PageHeader
+                  title="Automatic Teacher Answer Keys"
+                  desc="Download or inspect Teacher Answer Keys with exact question matches, correct answers, and concept tags"
+                  icon={<Key className="h-5 w-5 text-rose-600 dark:text-rose-400" />}
+                />
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search student or worksheet..."
+                      value={akSearch}
+                      onChange={e => setAkSearch(e.target.value)}
+                      className="pl-9 pr-4 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-rose-500"
+                    />
+                  </div>
+                  <button
+                    onClick={fetchTeacherAnswerKeys}
+                    className="p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-600 dark:text-slate-300 cursor-pointer"
+                    title="Refresh Answer Keys"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${akLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              {filteredKeys.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 dark:text-slate-500 font-mono text-xs">
+                  {akLoading ? 'Loading answer keys...' : 'No Teacher Answer Keys found. Generate a personalized level or class worksheet to auto-create answer keys.'}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-mono uppercase text-[10px]">
+                        <th className="p-3">Student Name</th>
+                        <th className="p-3">Level / Sublevel</th>
+                        <th className="p-3">Worksheet ID</th>
+                        <th className="p-3">Questions</th>
+                        <th className="p-3">Generated Date</th>
+                        <th className="p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {filteredKeys.map(k => (
+                        <tr key={k.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="p-3 font-semibold text-slate-900 dark:text-white">{k.studentName}</td>
+                          <td className="p-3 font-mono">L{k.sublevelId || k.levelId}</td>
+                          <td className="p-3 font-mono text-slate-500 dark:text-slate-400">{k.worksheetId}</td>
+                          <td className="p-3 font-mono">{k.totalQuestions} questions</td>
+                          <td className="p-3 text-slate-500 dark:text-slate-400">{new Date(k.generatedAt).toLocaleString()}</td>
+                          <td className="p-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleViewAkDetail(k.id)}
+                                className="px-2.5 py-1 text-xs font-mono font-semibold rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-1 cursor-pointer"
+                              >
+                                <Eye className="w-3 h-3" /> View Key
+                              </button>
+                              <a
+                                href={withBase(`/api/teacher-answer-keys/${k.id}/download`)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-2.5 py-1 text-xs font-mono font-semibold rounded bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1 cursor-pointer"
+                              >
+                                <Download className="w-3 h-3" /> PDF
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <MetricCard title="Total Worksheets" value={WORKSHEETS_MOCK.length} subtext="Across all cycles" icon={ClipboardList} />
+              <MetricCard title="Evaluated" value={WORKSHEETS_MOCK.filter(w => w.status === 'Evaluated').length} subtext="Graded and scored" icon={CheckCircle2} />
+              <MetricCard title="Pending" value={WORKSHEETS_MOCK.filter(w => w.status === 'Pending').length} subtext="Awaiting evaluation" icon={FileText} />
+            </div>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+              <PageHeader title="Worksheet Cycles" desc="Baseline, Mid-year, and End-of-year assessments" />
+              <div className="space-y-3 mt-4">{WORKSHEETS_MOCK.map(w => (
+                <div key={w.id} className="flex justify-between items-center p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+                  <div><div className="font-semibold text-sm">{w.cycle} — {w.class}</div><div className="text-xs text-slate-400 dark:text-slate-500">{w.date} · {w.questions} questions</div></div>
+                  <div className="text-right"><span className={`text-xs font-mono font-bold px-2 py-1 rounded ${w.status === 'Evaluated' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{w.status}</span><div className="text-xs text-slate-400 dark:text-slate-500 mt-1">Avg: {w.avgScore}</div></div>
+                </div>
+              ))}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Selected Answer Key Detail Modal */}
+        {selectedAkDetail && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-rose-50 dark:bg-rose-950/40 rounded-t-2xl">
+                <div className="flex items-center gap-2">
+                  <Key className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                      Teacher Answer Key: {selectedAkDetail.studentName}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Level {selectedAkDetail.sublevelId || selectedAkDetail.levelId} · Worksheet ID: {selectedAkDetail.worksheetId}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedAkDetail(null)}
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto space-y-4">
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-lg text-xs text-amber-800 dark:text-amber-300 font-mono flex justify-between items-center">
+                  <span>🔒 CONFIDENTIAL - FOR TEACHER USE ONLY</span>
+                  <a
+                    href={withBase(`/api/teacher-answer-keys/${selectedAkDetail.id}/download`)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1 bg-rose-600 text-white rounded font-bold hover:bg-rose-700 cursor-pointer"
+                  >
+                    📥 Download PDF
+                  </a>
+                </div>
+
+                <div className="space-y-4">
+                  {selectedAkDetail.questions?.map((q: any, idx: number) => (
+                    <div key={q.question_id || idx} className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl space-y-2 bg-slate-50/50 dark:bg-slate-800/30">
+                      <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                        <span>Q{idx + 1} · {q.topic} &gt; {q.subtopic}</span>
+                        <span className="uppercase bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-300 font-bold">{q.difficulty}</span>
+                      </div>
+                      <p className="font-semibold text-sm text-slate-900 dark:text-white">
+                        {q.question.replace(/^\[For [^\]]+\]\s*/g, '').replace(/^\[Reinforcement - [^\]]+\]\s*/g, '')}
+                      </p>
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          Correct Answer: <strong className="text-sm text-emerald-700 dark:text-emerald-300">{q.answer}</strong>
+                        </span>
+                        <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">
+                          Source Level {q.source_level}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
