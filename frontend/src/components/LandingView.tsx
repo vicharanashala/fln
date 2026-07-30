@@ -5,7 +5,7 @@ import { apiFetch } from '../services/apiClient';
  */
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin } from 'lucide-react';
+import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin, Sun, Moon } from 'lucide-react';
 
 interface LandingViewProps {
   onNavigateToLogin: () => void;
@@ -25,6 +25,24 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
   const [fontSize, setFontSize] = useState(100);
   const [stats, setStats] = useState<Stats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem('fln_dark_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (darkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('fln_dark_mode', String(darkMode));
+  }, [darkMode]);
 
   const adjustFontSize = (delta: number) => {
     setFontSize((prev) => {
@@ -81,6 +99,10 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold">
+            <button onClick={() => setDarkMode(!darkMode)} className="flex items-center justify-center hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Toggle Theme">
+              {darkMode ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+            </button>
+            <span className="text-gray-700 dark:text-gray-400">|</span>
             <button onClick={() => adjustFontSize(-10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Decrease font size">A-</button>
             <button onClick={resetFontSize} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Reset font size">A</button>
             <button onClick={() => adjustFontSize(10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Increase font size">A+</button>

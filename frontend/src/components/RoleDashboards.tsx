@@ -241,7 +241,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
     <div className="space-y-6" id="geographical-analytics">
       {/* Scope Controls for Superadmin */}
       {user.role === UserRole.SUPERADMIN && (
-        <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-end text-xs font-sans">
+        <div className="bg-zinc-50 dark:bg-slate-800/50 border border-zinc-200 dark:border-slate-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-end text-xs font-sans">
           <div className="flex-grow">
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter State</label>
             <input 
@@ -253,7 +253,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
                 setBlockCode('');
               }}
               placeholder="e.g. PB"
-              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
+              className="w-full border border-zinc-200 dark:border-slate-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
           <div className="flex-grow">
@@ -266,7 +266,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
                 setBlockCode('');
               }}
               placeholder="e.g. LDH"
-              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
+              className="w-full border border-zinc-200 dark:border-slate-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
           <div className="flex-grow">
@@ -276,12 +276,12 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
               value={blockCode} 
               onChange={e => setBlockCode(e.target.value.toUpperCase())}
               placeholder="e.g. LDH-01"
-              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
+              className="w-full border border-zinc-200 dark:border-slate-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
           <button 
             onClick={fetchAnalytics}
-            className="bg-zinc-900 text-white hover:bg-zinc-800 font-medium font-mono text-xs py-3 px-5 rounded-lg cursor-pointer shadow-sm transition-colors"
+            className="bg-indigo-600 dark:bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 font-medium font-mono text-xs py-3 px-5 rounded-lg cursor-pointer shadow-sm transition-colors"
           >
             Refilter Metrics
           </button>
@@ -292,7 +292,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* National Benchmark (Visible to All) */}
-        <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm space-y-6">
+        <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-6">
           <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
             <div>
               <h4 className="font-display font-bold text-zinc-900 dark:text-white text-base flex items-center gap-2">
@@ -300,18 +300,18 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
               </h4>
               <p className="text-zinc-400 dark:text-zinc-500 text-[11px] mt-0.5">Immutable global standards compiled as universal framework baseline.</p>
             </div>
-            <span className="px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border border-zinc-200 dark:border-zinc-700 shadow-sm">
+            <span className="px-2.5 py-1 bg-zinc-100 dark:bg-slate-800/80 text-zinc-800 dark:text-zinc-100 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border border-zinc-200 dark:border-slate-700 shadow-sm">
               Benchmark
             </span>
           </div>
 
           {/* Cards */}
           <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
+            <div className="p-4 bg-zinc-50 dark:bg-slate-800/80 border border-zinc-200 dark:border-slate-700/50 rounded-lg shadow-sm">
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono font-bold uppercase block">Average FLN Level</span>
               <span className="block text-2xl font-display font-extrabold text-zinc-900 dark:text-white mt-1">Level {data?.national?.avgLevel}</span>
             </div>
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm">
+            <div className="p-4 bg-zinc-50 dark:bg-slate-800/80 border border-zinc-200 dark:border-slate-700/50 rounded-lg shadow-sm">
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono font-bold uppercase block">Certification Rate</span>
               <span className="block text-2xl font-display font-extrabold text-zinc-900 dark:text-white mt-1">{data?.national?.certificationRate}%</span>
             </div>
@@ -326,7 +326,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
                   <span className="text-zinc-600 dark:text-zinc-300">{topic}</span>
                   <span className="font-semibold text-zinc-900 dark:text-white">{val}%</span>
                 </div>
-                <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-2">
+                <div className="w-full bg-zinc-100 dark:bg-slate-800/80 rounded-full h-2">
                   <div className="bg-zinc-500 h-2 rounded-full transition-all" style={{ width: `${val}%` }} />
                 </div>
               </div>
@@ -335,13 +335,13 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
         </div>
 
         {/* Local Assigned Scope */}
-        <div className="bg-zinc-900 text-white rounded-xl p-6 shadow-md space-y-6 border-none">
-          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="bg-white dark:bg-slate-900 text-zinc-900 dark:text-white rounded-xl p-6 shadow-md space-y-6 border border-zinc-200 dark:border-slate-700">
+          <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-3">
             <div>
-              <h4 className="font-display font-bold text-zinc-100 text-base">📍 Scope: {activeLabel}</h4>
-              <p className="text-zinc-400 text-[11px] mt-0.5">Real-time local metrics calculated dynamically from active rosters.</p>
+              <h4 className="font-display font-bold text-zinc-900 dark:text-zinc-100 text-base">📍 Scope: {activeLabel}</h4>
+              <p className="text-zinc-500 dark:text-zinc-400 text-[11px] mt-0.5">Real-time local metrics calculated dynamically from active rosters.</p>
             </div>
-            <span className="px-2.5 py-1 bg-green-950/40 text-green-400 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border border-green-800/30">
+            <span className="px-2.5 py-1 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border border-green-200 dark:border-green-800/30">
               Live Scoped
             </span>
           </div>
@@ -350,26 +350,26 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
             <>
               {/* Cards */}
               <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="p-4 bg-zinc-800/80 border border-zinc-700/50 rounded-lg shadow-sm">
-                  <span className="text-[10px] text-zinc-400 font-mono font-bold uppercase block">Average FLN Level</span>
-                  <span className="block text-2xl font-display font-extrabold text-white mt-1">Level {activeMetrics.avgLevel}</span>
+                <div className="p-4 bg-zinc-50 dark:bg-slate-800/80 border border-zinc-200 dark:border-slate-700/50 rounded-lg shadow-sm">
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono font-bold uppercase block">Average FLN Level</span>
+                  <span className="block text-2xl font-display font-extrabold text-zinc-900 dark:text-white mt-1">Level {activeMetrics.avgLevel}</span>
                 </div>
-                <div className="p-4 bg-zinc-800/80 border border-zinc-700/50 rounded-lg shadow-sm">
-                  <span className="text-[10px] text-zinc-400 font-mono font-bold uppercase block">Certification Rate</span>
-                  <span className="block text-2xl font-display font-extrabold text-green-400 mt-1">{activeMetrics.certificationRate}%</span>
+                <div className="p-4 bg-zinc-50 dark:bg-slate-800/80 border border-zinc-200 dark:border-slate-700/50 rounded-lg shadow-sm">
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono font-bold uppercase block">Certification Rate</span>
+                  <span className="block text-2xl font-display font-extrabold text-green-600 dark:text-green-400 mt-1">{activeMetrics.certificationRate}%</span>
                 </div>
               </div>
 
               {/* Topic Mastery progress */}
               <div className="space-y-4 pt-2">
-                <h5 className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest block">Topic Mastery Scores</h5>
+                <h5 className="text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest block">Topic Mastery Scores</h5>
                 {activeMetrics.topicMastery && Object.entries(activeMetrics.topicMastery).map(([topic, val]: any) => (
                   <div key={topic} className="space-y-1.5">
                     <div className="flex justify-between text-xs font-medium">
-                      <span className="text-zinc-300">{topic}</span>
-                      <span className="font-semibold text-white">{val}%</span>
+                      <span className="text-zinc-700 dark:text-zinc-300">{topic}</span>
+                      <span className="font-semibold text-zinc-900 dark:text-white">{val}%</span>
                     </div>
-                    <div className="w-full bg-zinc-800 rounded-full h-2">
+                    <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
                       <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${val}%` }} />
                     </div>
                   </div>
@@ -377,7 +377,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
               </div>
             </>
           ) : (
-            <div className="flex justify-center items-center py-20 text-zinc-400 text-xs">
+            <div className="flex justify-center items-center py-20 text-zinc-500 dark:text-zinc-400 text-xs">
               No live evaluation records registered for active scopes.
             </div>
           )}
@@ -854,9 +854,9 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       {activeTab === 'coordinators' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Admin registration form */}
-          <div className="lg:col-span-1 bg-white border border-zinc-200 rounded-xl p-5 shadow-sm h-fit space-y-4">
-            <h3 className="text-lg font-display font-medium text-zinc-900 flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-zinc-500" />
+          <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm h-fit space-y-4">
+            <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
               <span>Register New Coordinator</span>
             </h3>
 
@@ -872,7 +872,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   onChange={e => setCoordName(e.target.value)}
                   placeholder="e.g. Dr. Satnam Singh"
                   required
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
+                  className="w-full text-sm border border-zinc-200 dark:border-slate-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-slate-800/50 outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
                 />
               </div>
 
@@ -884,7 +884,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   onChange={e => setCoordEmail(e.target.value)}
                   placeholder="e.g. s.singh@pb.fln.org"
                   required
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
+                  className="w-full text-sm border border-zinc-200 dark:border-slate-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-slate-800/50 outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
                 />
               </div>
 
@@ -896,28 +896,28 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   onChange={e => setCoordPass(e.target.value)}
                   placeholder="Create complex password..."
                   required
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
+                  className="w-full text-sm border border-zinc-200 dark:border-slate-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-slate-800/50 outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
                 />
                 
                 {/* Real-time complexity checklist (§3.2 A-3) */}
-                <div className="mt-2.5 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-1.5">
+                <div className="mt-2.5 p-3 bg-zinc-50 dark:bg-slate-800/50 rounded-lg border border-zinc-200 dark:border-slate-700 space-y-1.5">
                   <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-bold block">Password SLA Checks</span>
                   <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
                     <span className="flex items-center gap-1">
-                      {isPassLengthValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300" />}
-                      <span className={isPassLengthValid ? 'text-green-700' : 'text-zinc-550'}>&gt;= 8 Characters</span>
+                      {isPassLengthValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600" />}
+                      <span className={isPassLengthValid ? 'text-green-700 dark:text-green-400' : 'text-zinc-500 dark:text-zinc-400'}>&gt;= 8 Characters</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      {isPassUppercaseValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300" />}
-                      <span className={isPassUppercaseValid ? 'text-green-700' : 'text-zinc-550'}>1 Uppercase</span>
+                      {isPassUppercaseValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600" />}
+                      <span className={isPassUppercaseValid ? 'text-green-700 dark:text-green-400' : 'text-zinc-500 dark:text-zinc-400'}>1 Uppercase</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      {isPassNumberValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300" />}
-                      <span className={isPassNumberValid ? 'text-green-700' : 'text-zinc-550'}>1 Numeric Digit</span>
+                      {isPassNumberValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600" />}
+                      <span className={isPassNumberValid ? 'text-green-700 dark:text-green-400' : 'text-zinc-500 dark:text-zinc-400'}>1 Numeric Digit</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      {isPassSpecialValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300" />}
-                      <span className={isPassSpecialValid ? 'text-green-700' : 'text-zinc-550'}>1 Symbol (!@#...)</span>
+                      {isPassSpecialValid ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400" /> : <XCircle className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600" />}
+                      <span className={isPassSpecialValid ? 'text-green-700 dark:text-green-400' : 'text-zinc-500 dark:text-zinc-400'}>1 Symbol (!@#...)</span>
                     </span>
                   </div>
                 </div>
@@ -937,7 +937,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                       setCoordBlock('');
                     }
                   }}
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-850 dark:text-zinc-100"
+                  className="w-full text-sm border border-zinc-200 dark:border-slate-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-slate-800/50 outline-none focus:bg-white dark:focus:bg-slate-800 font-medium text-zinc-850 dark:text-zinc-100"
                 >
                   <option value={UserRole.ADMIN}>State Admin / Coordinator</option>
                   <option value={UserRole.DISTRICT_ADMIN}>District Admin / Officer</option>
@@ -959,7 +959,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                        onChange={e => setCoordState(e.target.value.toUpperCase())}
                        placeholder="e.g. PB"
                        required
-                       className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                       className="w-full text-xs border border-zinc-200 dark:border-slate-700 rounded-lg p-2 bg-zinc-50 dark:bg-slate-800/50 outline-none font-medium text-zinc-800 dark:text-zinc-200"
                      />
                    </div>
                    
@@ -972,7 +972,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                          onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
                          placeholder="e.g. LDH"
                          required
-                         className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                         className="w-full text-xs border border-zinc-200 dark:border-slate-700 rounded-lg p-2 bg-zinc-50 dark:bg-slate-800/50 outline-none font-medium text-zinc-800 dark:text-zinc-200"
                        />
                      </div>
                    )}
@@ -986,7 +986,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                          onChange={e => setCoordBlock(e.target.value.toUpperCase())}
                          placeholder="e.g. LDH-01"
                          required
-                         className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                         className="w-full text-xs border border-zinc-200 dark:border-slate-700 rounded-lg p-2 bg-zinc-50 dark:bg-slate-800/50 outline-none font-medium text-zinc-800 dark:text-zinc-200"
                       />
                     </div>
                   )}
@@ -1003,7 +1003,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                      onChange={e => setCoordSchoolId(e.target.value)}
                      placeholder="e.g. gps-vl-002"
                      required
-                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                     className="w-full text-sm border border-zinc-200 dark:border-slate-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-slate-800/50 outline-none focus:bg-white dark:focus:bg-slate-800 font-medium text-zinc-800 dark:text-zinc-100"
                    />
                  </div>
                )}
@@ -1018,7 +1018,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                      onChange={e => setCoordAssignedSchoolsStr(e.target.value)}
                      placeholder="e.g. gps-vl-002, gps-jai-004"
                      required
-                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                     className="w-full text-sm border border-zinc-200 dark:border-slate-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-slate-800/50 outline-none focus:bg-white dark:focus:bg-slate-800 font-medium text-zinc-800 dark:text-zinc-100"
                    />
                  </div>
                )}
@@ -1026,7 +1026,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 font-medium text-sm py-2.5 px-4 rounded-lg cursor-pointer shadow-sm transition-colors mt-2 text-center block font-mono"
+                className="w-full bg-indigo-600 dark:bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 disabled:opacity-50 font-medium text-sm py-2.5 px-4 rounded-lg cursor-pointer shadow-sm transition-colors mt-2 text-center block font-mono"
               >
                 {loading ? 'Registering...' : 'Provision Account'}
               </button>
