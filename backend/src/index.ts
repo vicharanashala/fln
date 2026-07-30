@@ -355,6 +355,22 @@ async function startServer() {
       return res.status(400).json({ error: 'User with this email already exists.' });
     }
 
+    if (blockCode && !/^[A-Za-z]{3}-\d{2}$/.test(blockCode)) {
+      return res.status(400).json({ error: 'Block code must be in the format XXX-00 (e.g. LDH-01)' });
+    }
+
+    if (schoolId && !/^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)+$/.test(schoolId)) {
+      return res.status(400).json({ error: 'School ID must be hyphen-separated alphanumeric (e.g. gps-vl-002)' });
+    }
+
+    if (assignedSchools && Array.isArray(assignedSchools)) {
+      for (const sid of assignedSchools) {
+        if (!/^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)+$/.test(sid)) {
+          return res.status(400).json({ error: `Invalid assigned school ID: ${sid}` });
+        }
+      }
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
 
     const newUser: User = {
