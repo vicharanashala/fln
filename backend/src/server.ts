@@ -11,3 +11,5 @@ async function start(): Promise<void> {
 }
 
 start();
+
+// Trigger tsx restart to load new .env file

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { User, UserRole, Announcement } from '../types';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
@@ -48,6 +48,27 @@ export const Layout: React.FC<LayoutProps> = ({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fln_theme');
+      if (saved) return saved === 'dark';
+      return document.documentElement.classList.contains('dark') || 
+             window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('fln_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('fln_theme', 'light');
+    }
+  }, [isDark]);
+
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const [fontSize, setFontSize] = useState(() => {
     try {
@@ -237,7 +258,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const breadcrumbs = getBreadcrumb();
 
   return (
-    <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 antialiased">
+    <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
 
       {/* Accessibility / Top strip */}
       <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-gray-800 shrink-0">
@@ -322,7 +343,14 @@ export const Layout: React.FC<LayoutProps> = ({
             <span className="text-emerald-700 text-[10px] uppercase tracking-wider">MongoDB Connected</span>
           </div>
 
-
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 hover:text-slate-800 transition-all duration-200 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {isDark ? <Sun className="h-4.5 w-4.5 text-amber-500" /> : <Moon className="h-4.5 w-4.5" />}
+          </button>
 
           {/* Notifications bell */}
           <div className="relative">
@@ -596,7 +624,7 @@ export const Layout: React.FC<LayoutProps> = ({
         )}
 
         {/* Central main display viewport */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50">
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50 dark:bg-slate-950">
 
           {/* Breadcrumbs */}
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider mb-2 select-none dark:text-slate-500">

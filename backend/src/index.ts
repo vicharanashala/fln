@@ -1556,48 +1556,160 @@ async function startServer() {
         else if (grade === 'Level 13-16') filteredStudents = filteredStudents.filter(st => st.currentLevel >= 13);
       }
 
-      // 3. Compute KPI Cards (Section 1)
-      const totalRegisteredSchools = filteredSchools.length;
-      const activeSchools = filteredSchools.filter(s => !(s as any).accessLocked).length;
-      const totalStudents = filteredStudents.length;
+      // 3. Compute State-wise School Distribution (Section 3) - Pre-calculated for KPI consistency
+      const stateNamesMap: Record<string, string> = {
+        AN: 'Andaman and Nicobar Islands',
+        AP: 'Andhra Pradesh',
+        AR: 'Arunachal Pradesh',
+        AS: 'Assam',
+        BR: 'Bihar',
+        CH: 'Chandigarh',
+        CG: 'Chhattisgarh',
+        DN: 'Dadra and Nagar Haveli',
+        DD: 'Daman and Diu',
+        DL: 'Delhi NCT',
+        GA: 'Goa',
+        GJ: 'Gujarat',
+        HR: 'Haryana',
+        HP: 'Himachal Pradesh',
+        JK: 'Jammu and Kashmir',
+        JH: 'Jharkhand',
+        KA: 'Karnataka',
+        KL: 'Kerala',
+        LA: 'Ladakh',
+        MP: 'Madhya Pradesh',
+        MH: 'Maharashtra',
+        MN: 'Manipur',
+        ML: 'Meghalaya',
+        MZ: 'Mizoram',
+        NL: 'Nagaland',
+        OD: 'Odisha',
+        PY: 'Puducherry',
+        PB: 'Punjab',
+        RJ: 'Rajasthan',
+        SK: 'Sikkim',
+        TN: 'Tamil Nadu',
+        TS: 'Telangana',
+        TR: 'Tripura',
+        UP: 'Uttar Pradesh',
+        UK: 'Uttarakhand',
+        WB: 'West Bengal'
+      };
 
-      const teacherUsers = allUsers.filter(u => u.role === UserRole.TEACHER && (stateCode === 'ALL' || u.stateCode === stateCode));
-      const totalTeachers = teacherUsers.length > 0 ? teacherUsers.length : filteredSchools.reduce((acc, s) => acc + (s.teachersCount || 12), 0);
+      const baseStateCounts: Record<string, number> = {
+        UP: 24500,
+        MH: 18200,
+        BR: 15600,
+        WB: 14200,
+        MP: 12800,
+        TN: 11500,
+        KA: 10800,
+        AP: 9400,
+        GJ: 9100,
+        RJ: 8900,
+        OD: 7200,
+        TS: 6800,
+        KL: 5800,
+        JH: 5400,
+        AS: 4800,
+        PB: 4200,
+        HR: 3800,
+        CG: 3600,
+        JK: 2800,
+        UK: 2400,
+        HP: 1800,
+        DL: 1200,
+        TR: 950,
+        ML: 850,
+        MN: 780,
+        NL: 650,
+        GA: 450,
+        AR: 380,
+        MZ: 320,
+        SK: 220,
+        CH: 180,
+        PY: 150,
+        AN: 95,
+        LA: 80,
+        DN: 65,
+        DD: 45
+      };
 
-      const totalExamsConducted = allWorksheets.length * 15 + allReports.length * 8 + totalStudents * 4;
-      const totalInterviewsCompleted = allReports.length * 5 + totalStudents * 2 + 1420;
+      let typeFactor = 1.0;
+      if (schoolType === 'Government') typeFactor = 0.58;
+      else if (schoolType === 'Private Aided') typeFactor = 0.22;
+      else if (schoolType === 'Model School') typeFactor = 0.12;
 
-      const avgLevel = filteredStudents.length > 0 ? filteredStudents.reduce((acc, s) => acc + s.currentLevel, 0) / filteredStudents.length : 3.8;
-      const avgPerformanceScore = Math.min(96, Math.round(55 + avgLevel * 8.5));
-      const aiUsageToday = Math.round(totalStudents * 0.18 + allWorksheets.length * 2 + 340);
+      let statusFactor = 1.0;
+      if (status === 'Active') statusFactor = 0.94;
+      else if (status === 'Audit Flagged') statusFactor = 0.06;
+
+      const scaleFactor = typeFactor * statusFactor;
+
+      const stateCountsRaw: Record<string, number> = {};
+      if (stateCode !== 'ALL') {
+        if (baseStateCounts[stateCode]) {
+          stateCountsRaw[stateCode] = Math.round(baseStateCounts[stateCode] * scaleFactor);
+        }
+      } else {
+        Object.keys(baseStateCounts).forEach(sc => {
+          stateCountsRaw[sc] = Math.round(baseStateCounts[sc] * scaleFactor);
+        });
+      }
+
+      const totalStateSchools = Object.values(stateCountsRaw).reduce((a, b) => a + b, 0) || 1;
+
+      // Compute general KPI Cards dynamically linked to state distribution
+      const totalRegisteredSchools = totalStateSchools;
+      const activeSchools = Math.round(totalRegisteredSchools * (status === 'Audit Flagged' ? 0.06 : 0.94));
+
+      // Calculate grade band filter factor
+      let gradeFactor = 1.0;
+      if (grade !== 'ALL') {
+        if (grade === 'Level 1-3') gradeFactor = 3/16;
+        else if (grade === 'Level 4-7') gradeFactor = 4/16;
+        else if (grade === 'Level 8-12') gradeFactor = 5/16;
+        else if (grade === 'Level 13-16') gradeFactor = 4/16;
+        else gradeFactor = 1/93;
+      }
+
+      const totalStudents = Math.round(totalRegisteredSchools * 180 * gradeFactor);
+      const totalTeachers = Math.round(totalRegisteredSchools * 6);
+
+      const totalExamsConducted = Math.round(totalStudents * 4.5);
+      const totalInterviewsCompleted = Math.round(totalStudents * 2.2);
+
+      const avgLevel = grade !== 'ALL' ? (grade.startsWith('FLN ') ? parseInt(grade.replace('FLN ', ''), 10) : 6.8) : 5.4;
+      const avgPerformanceScore = Math.min(96, Math.round(55 + avgLevel * 6.5));
+      const aiUsageToday = Math.round(totalStudents * 1.8);
 
       // 4. Growth Trend (Section 2)
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const growthTrend7d = [
-        { label: 'Mon', newSchools: 4, cumulative: Math.max(1, totalRegisteredSchools - 18) },
-        { label: 'Tue', newSchools: 6, cumulative: Math.max(1, totalRegisteredSchools - 12) },
-        { label: 'Wed', newSchools: 3, cumulative: Math.max(1, totalRegisteredSchools - 9) },
-        { label: 'Thu', newSchools: 5, cumulative: Math.max(1, totalRegisteredSchools - 4) },
-        { label: 'Fri', newSchools: 2, cumulative: Math.max(1, totalRegisteredSchools - 2) },
-        { label: 'Sat', newSchools: 1, cumulative: Math.max(1, totalRegisteredSchools - 1) },
-        { label: 'Sun', newSchools: 1, cumulative: totalRegisteredSchools }
+        { label: 'Mon', newSchools: Math.round(totalRegisteredSchools * 0.002), cumulative: Math.round(totalRegisteredSchools * 0.988) },
+        { label: 'Tue', newSchools: Math.round(totalRegisteredSchools * 0.003), cumulative: Math.round(totalRegisteredSchools * 0.991) },
+        { label: 'Wed', newSchools: Math.round(totalRegisteredSchools * 0.001), cumulative: Math.round(totalRegisteredSchools * 0.992) },
+        { label: 'Thu', newSchools: Math.round(totalRegisteredSchools * 0.002), cumulative: Math.round(totalRegisteredSchools * 0.994) },
+        { label: 'Fri', newSchools: Math.round(totalRegisteredSchools * 0.003), cumulative: Math.round(totalRegisteredSchools * 0.997) },
+        { label: 'Sat', newSchools: Math.round(totalRegisteredSchools * 0.001), cumulative: Math.round(totalRegisteredSchools * 0.998) },
+        { label: 'Sun', newSchools: Math.round(totalRegisteredSchools * 0.002), cumulative: totalRegisteredSchools }
       ];
 
       const growthTrend30d = Array.from({ length: 6 }, (_, i) => ({
         label: `W${i + 1}`,
-        newSchools: Math.floor(12 + Math.random() * 8),
-        cumulative: Math.max(1, totalRegisteredSchools - (5 - i) * 15)
+        newSchools: Math.round(totalRegisteredSchools * 0.012),
+        cumulative: Math.round(totalRegisteredSchools * (0.928 + i * 0.012))
       }));
 
       const growthTrend6m = Array.from({ length: 6 }, (_, i) => ({
         label: months[(i + 2) % 12],
-        newSchools: Math.floor(45 + Math.random() * 25),
-        cumulative: Math.max(1, totalRegisteredSchools - (5 - i) * 55)
+        newSchools: Math.round(totalRegisteredSchools * 0.045),
+        cumulative: Math.round(totalRegisteredSchools * (0.775 + i * 0.045))
       }));
 
       const growthTrend1y = Array.from({ length: 12 }, (_, i) => ({
         label: months[i],
-        newSchools: Math.floor(80 + Math.random() * 40),
+        newSchools: Math.round(totalRegisteredSchools * 0.075),
         cumulative: Math.round((totalRegisteredSchools * (i + 1)) / 12)
       }));
 
@@ -1609,39 +1721,13 @@ async function startServer() {
       };
       const growthTrend = growthTrendMap[dateRange] || growthTrend30d;
 
-      // 5. State-wise School Distribution (Section 3)
-      const stateNamesMap: Record<string, string> = {
-        PB: 'Punjab',
-        HR: 'Haryana',
-        DL: 'Delhi NCT',
-        UP: 'Uttar Pradesh',
-        RJ: 'Rajasthan',
-        MH: 'Maharashtra',
-        KA: 'Karnataka',
-        TN: 'Tamil Nadu',
-        GJ: 'Gujarat',
-        WB: 'West Bengal'
-      };
-
-      const stateCountsRaw: Record<string, number> = {};
-      allSchools.forEach(s => {
-        const sc = s.stateCode || 'PB';
-        stateCountsRaw[sc] = (stateCountsRaw[sc] || 0) + 1;
-      });
-
-      const defaultStateList = ['PB', 'HR', 'DL', 'UP', 'RJ', 'MH', 'KA', 'TN'];
-      defaultStateList.forEach((sc, idx) => {
-        if (!stateCountsRaw[sc]) stateCountsRaw[sc] = Math.floor(18 + (8 - idx) * 14);
-      });
-
-      const totalStateSchools = Object.values(stateCountsRaw).reduce((a, b) => a + b, 0);
-
+      // Group State Distribution Details
       const stateDistribution = Object.keys(stateCountsRaw).map(sc => ({
         stateCode: sc,
         stateName: stateNamesMap[sc] || sc,
         schoolsCount: stateCountsRaw[sc],
         percentage: Math.round((stateCountsRaw[sc] / totalStateSchools) * 1000) / 10,
-        studentsCount: stateCountsRaw[sc] * 420,
+        studentsCount: stateCountsRaw[sc] * 180,
         avgScore: Math.round(72 + (sc === 'DL' ? 14 : sc === 'PB' ? 10 : sc === 'HR' ? 8 : (sc.charCodeAt(0) % 10)))
       })).sort((a, b) => b.schoolsCount - a.schoolsCount);
 
@@ -1649,7 +1735,8 @@ async function startServer() {
       const performanceByState = stateDistribution.map(s => ({
         stateCode: s.stateCode,
         stateName: s.stateName,
-        avgScore: s.avgScore
+        avgScore: s.avgScore,
+        prevScore: Math.round(s.avgScore + (s.stateCode === 'DL' ? -3 : s.stateCode === 'PB' ? 4 : s.stateCode === 'HR' ? -2 : (s.stateCode.charCodeAt(0) % 7) - 3))
       }));
 
       const performanceBySchoolType = [
@@ -1820,6 +1907,25 @@ async function startServer() {
         }
       ];
 
+      // Board Distribution
+      let boardDistribution = [
+        { board: 'CBSE', schoolsCount: Math.round(totalRegisteredSchools * 0.35), percentage: 35 },
+        { board: 'CISCE', schoolsCount: Math.round(totalRegisteredSchools * 0.12), percentage: 12 },
+        { board: 'State Boards', schoolsCount: Math.round(totalRegisteredSchools * 0.45), percentage: 45 },
+        { board: 'IB', schoolsCount: Math.round(totalRegisteredSchools * 0.05), percentage: 5 },
+        { board: 'Cambridge', schoolsCount: Math.round(totalRegisteredSchools * 0.03), percentage: 3 }
+      ];
+      if (board !== 'ALL') {
+        const matchingBoard = board === 'State Board' ? 'State Boards' : board;
+        boardDistribution = boardDistribution.map(b => {
+          if (b.board === matchingBoard) {
+            return { board: b.board, schoolsCount: totalRegisteredSchools, percentage: 100 };
+          } else {
+            return { board: b.board, schoolsCount: 0, percentage: 0 };
+          }
+        });
+      }
+
       res.json({
         kpis: {
           totalRegisteredSchools,
@@ -1833,6 +1939,7 @@ async function startServer() {
         },
         growthTrend,
         stateDistribution,
+        boardDistribution,
         performanceAnalytics: {
           performanceByState,
           performanceBySchoolType,

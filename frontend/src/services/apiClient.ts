@@ -16,6 +16,11 @@ export function withBase(path: string): string {
 }
 
 // fetch() against a base-relative app path. Drop-in replacement for fetch("/api/...").
-export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  return fetch(withBase(path), init);
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(withBase(path), init);
+  if (res.status === 401 && !path.includes('/api/auth/login')) {
+    localStorage.removeItem('fln_token');
+    window.dispatchEvent(new Event('fln_unauthorized'));
+  }
+  return res;
 }

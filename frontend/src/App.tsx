@@ -67,6 +67,20 @@ export default function App() {
     checkSession();
   }, [token]);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setToken(null);
+      setCurrentUser(null);
+      localStorage.removeItem('fln_token');
+      setCurrentView('home');
+      navigate('/');
+    };
+
+    window.addEventListener('fln_unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('fln_unauthorized', handleUnauthorized);
+  }, [navigate]);
+
+
   const handleLoginSuccess = (newToken: string, user: User) => {
     setToken(newToken);
     localStorage.setItem('fln_token', newToken);
@@ -100,15 +114,15 @@ export default function App() {
 
     switch (currentUser.role) {
       case 'superadmin':
-        return <SuperadminDashboard user={currentUser} />;
+        return <SuperadminDashboard user={currentUser} token={token || ''} />;
       case 'admin':
-        return <AdminDashboard user={currentUser} />;
+        return <AdminDashboard user={currentUser} token={token || ''} />;
       case 'school':
-        return <SchoolDashboard user={currentUser} />;
+        return <SchoolDashboard user={currentUser} token={token || ''} />;
       case 'teacher':
-        return <TeacherDashboard user={currentUser} />;
+        return <TeacherDashboard user={currentUser} token={token || ''} />;
       case 'volunteer':
-        return <VolunteerDashboard user={currentUser} />;
+        return <VolunteerDashboard user={currentUser} token={token || ''} />;
       default:
         return <div />;
     }

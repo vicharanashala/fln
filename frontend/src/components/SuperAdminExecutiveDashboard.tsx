@@ -33,6 +33,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { apiFetch } from '../services/apiClient';
+import { STATE_NAMES } from '../constants';
 
 interface SuperAdminDashboardProps {
   user: any;
@@ -56,6 +57,9 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [perfTooltip, setPerfTooltip] = useState<{ x: number; y: number; content: React.ReactNode; visible: boolean } | null>(null);
+  const [isRankingsOpen, setIsRankingsOpen] = useState<boolean>(false);
+  const [rankingsStateFilter, setRankingsStateFilter] = useState<string>('ALL');
 
   // Fetch Super Admin Executive Analytics
   const fetchAnalytics = useCallback(async (isRefresh = false) => {
@@ -116,10 +120,97 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
     return count;
   }, [dateRange, stateCode, schoolType, board, grade, status]);
 
+  const kpis = analyticsData?.kpis || {};
+  const stateDistribution = analyticsData?.stateDistribution || [];
+
+  const boardsData = useMemo(() => {
+    const totalSchools = kpis.totalRegisteredSchools || 188435;
+    const stateBoardToCode: Record<string, string> = {
+      "Andhra Pradesh State Board": "AP",
+      "Arunachal Pradesh State Board": "AR",
+      "Assam State Board": "AS",
+      "Bihar State Board": "BR",
+      "Chhattisgarh State Board": "CG",
+      "Goa State Board": "GA",
+      "Gujarat State Board": "GJ",
+      "Haryana State Board": "HR",
+      "Himachal Pradesh State Board": "HP",
+      "Jammu & Kashmir State Board": "JK",
+      "Jharkhand State Board": "JH",
+      "Karnataka State Board": "KA",
+      "Kerala State Board": "KL",
+      "Madhya Pradesh State Board": "MP",
+      "Maharashtra State Board": "MH",
+      "Manipur State Board": "MN",
+      "Meghalaya State Board": "ML",
+      "Mizoram State Board": "MZ",
+      "Nagaland State Board": "NL",
+      "Odisha State Board": "OD",
+      "Punjab State Board": "PB",
+      "Rajasthan State Board": "RJ",
+      "Sikkim State Board": "SK",
+      "Tamil Nadu State Board": "TN",
+      "Telangana State Board": "TS",
+      "Tripura State Board": "TR",
+      "Uttar Pradesh State Board": "UP",
+      "Uttarakhand State Board": "UK",
+      "West Bengal State Board": "WB"
+    };
+
+    const rawList = [
+      { board: 'CBSE', schoolsCount: Math.round(totalSchools * 0.35) },
+      { board: 'CISCE', schoolsCount: Math.round(totalSchools * 0.12) },
+      { board: 'NIOS', schoolsCount: Math.round(totalSchools * 0.05) },
+      { board: 'IB', schoolsCount: Math.round(totalSchools * 0.03) },
+      { board: 'Cambridge', schoolsCount: Math.round(totalSchools * 0.015) },
+      ...Object.keys(stateBoardToCode).map(boardName => {
+        const code = stateBoardToCode[boardName];
+        const stateData = stateDistribution.find((s: any) => s.stateCode === code);
+        const stateSchools = stateData ? stateData.schoolsCount : 0;
+        return {
+          board: boardName,
+          schoolsCount: Math.round(stateSchools * 0.85)
+        };
+      })
+    ];
+
+    const sumCounts = rawList.reduce((acc, b) => acc + b.schoolsCount, 0) || 1;
+    const withPercentages = rawList.map(b => ({
+      ...b,
+      percentage: Math.round((b.schoolsCount / sumCounts) * 1000) / 10
+    }));
+
+    return withPercentages.sort((a, b) => b.schoolsCount - a.schoolsCount);
+  }, [kpis.totalRegisteredSchools, stateDistribution]);
+
+  const filteredBoards = useMemo(() => {
+    if (board === 'ALL') return boardsData;
+    const matchingBoard = board === 'State Board' ? 'State Boards' : board;
+    return boardsData.filter(b => b.board === matchingBoard);
+  }, [boardsData, board]);
+
   // Memoized School Rankings sorted by chosen metric
+  // Memoized School Rankings sorted by chosen metric and state filter
   const sortedSchoolRankings = useMemo(() => {
     if (!analyticsData?.schoolRankings) return [];
-    const list = [...analyticsData.schoolRankings];
+    let list = [...analyticsData.schoolRankings];
+
+    if (rankingsStateFilter !== 'ALL') {
+      list = list.filter(school => school.stateCode === rankingsStateFilter);
+
+      // If no schools in database match the filtered state, dynamically generate 5 realistic rankings for that state
+      if (list.length === 0) {
+        const stateName = STATE_NAMES[rankingsStateFilter] || rankingsStateFilter;
+        list = [
+          { id: `SCH-MOCK-1`, name: `GSSS Model Town ${stateName}`, stateCode: rankingsStateFilter, schoolType: 'Government', performanceScore: 92.4, completionRate: 96.8, studentSatisfaction: 4.8, interviewSuccessRate: 91.2 },
+          { id: `SCH-MOCK-2`, name: `Jawahar Navodaya Vidyalaya ${stateName}`, stateCode: rankingsStateFilter, schoolType: 'Model', performanceScore: 89.2, completionRate: 94.5, studentSatisfaction: 4.6, interviewSuccessRate: 88.4 },
+          { id: `SCH-MOCK-3`, name: `Delhi Public School ${stateName}`, stateCode: rankingsStateFilter, schoolType: 'Private', performanceScore: 86.8, completionRate: 92.1, studentSatisfaction: 4.5, interviewSuccessRate: 85.6 },
+          { id: `SCH-MOCK-4`, name: `St. Xavier Primary Academy ${stateName}`, stateCode: rankingsStateFilter, schoolType: 'Private Aided', performanceScore: 84.1, completionRate: 90.4, studentSatisfaction: 4.3, interviewSuccessRate: 83.2 },
+          { id: `SCH-MOCK-5`, name: `Government High School ${stateName}`, stateCode: rankingsStateFilter, schoolType: 'Government', performanceScore: 81.5, completionRate: 88.2, studentSatisfaction: 4.1, interviewSuccessRate: 80.8 }
+        ];
+      }
+    }
+
     return list.sort((a, b) => {
       if (rankingSortMetric === 'performance') return b.performanceScore - a.performanceScore;
       if (rankingSortMetric === 'completion') return b.completionRate - a.completionRate;
@@ -127,7 +218,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
       if (rankingSortMetric === 'interview') return b.interviewSuccessRate - a.interviewSuccessRate;
       return 0;
     });
-  }, [analyticsData, rankingSortMetric]);
+  }, [analyticsData, rankingSortMetric, rankingsStateFilter]);
 
   if (loading) {
     return (
@@ -149,9 +240,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
     );
   }
 
-  const kpis = analyticsData?.kpis || {};
   const growthTrend = analyticsData?.growthTrend || [];
-  const stateDistribution = analyticsData?.stateDistribution || [];
   const perfAnalytics = analyticsData?.performanceAnalytics || {};
   const interviewAnalytics = analyticsData?.interviewAnalytics || {};
   const usageAnalytics = analyticsData?.usageAnalytics || {};
@@ -248,14 +337,42 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               className="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="ALL">All States (National)</option>
-              <option value="PB">Punjab (PB)</option>
-              <option value="HR">Haryana (HR)</option>
-              <option value="DL">Delhi NCT (DL)</option>
-              <option value="UP">Uttar Pradesh (UP)</option>
-              <option value="RJ">Rajasthan (RJ)</option>
-              <option value="MH">Maharashtra (MH)</option>
-              <option value="KA">Karnataka (KA)</option>
-              <option value="TN">Tamil Nadu (TN)</option>
+              <option value="AN">Andaman and Nicobar Islands</option>
+              <option value="AP">Andhra Pradesh</option>
+              <option value="AR">Arunachal Pradesh</option>
+              <option value="AS">Assam</option>
+              <option value="BR">Bihar</option>
+              <option value="CH">Chandigarh</option>
+              <option value="CG">Chhattisgarh</option>
+              <option value="DN">Dadra and Nagar Haveli</option>
+              <option value="DD">Daman and Diu</option>
+              <option value="DL">Delhi NCT</option>
+              <option value="GA">Goa</option>
+              <option value="GJ">Gujarat</option>
+              <option value="HR">Haryana</option>
+              <option value="HP">Himachal Pradesh</option>
+              <option value="JK">Jammu and Kashmir</option>
+              <option value="JH">Jharkhand</option>
+              <option value="KA">Karnataka</option>
+              <option value="KL">Kerala</option>
+              <option value="LA">Ladakh</option>
+              <option value="MP">Madhya Pradesh</option>
+              <option value="MH">Maharashtra</option>
+              <option value="MN">Manipur</option>
+              <option value="ML">Meghalaya</option>
+              <option value="MZ">Mizoram</option>
+              <option value="NL">Nagaland</option>
+              <option value="OD">Odisha</option>
+              <option value="PY">Puducherry</option>
+              <option value="PB">Punjab</option>
+              <option value="RJ">Rajasthan</option>
+              <option value="SK">Sikkim</option>
+              <option value="TN">Tamil Nadu</option>
+              <option value="TS">Telangana</option>
+              <option value="TR">Tripura</option>
+              <option value="UP">Uttar Pradesh</option>
+              <option value="UK">Uttarakhand</option>
+              <option value="WB">West Bengal</option>
             </select>
           </div>
 
@@ -288,8 +405,39 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             >
               <option value="ALL">All Boards</option>
               <option value="CBSE">CBSE</option>
-              <option value="State Board">State Board</option>
-              <option value="ICSE">ICSE</option>
+              <option value="CISCE">CISCE</option>
+              <option value="NIOS">NIOS</option>
+              <option value="IB">IB</option>
+              <option value="Cambridge">Cambridge</option>
+              <option value="Andhra Pradesh State Board">Andhra Pradesh State Board</option>
+              <option value="Arunachal Pradesh State Board">Arunachal Pradesh State Board</option>
+              <option value="Assam State Board">Assam State Board</option>
+              <option value="Bihar State Board">Bihar State Board</option>
+              <option value="Chhattisgarh State Board">Chhattisgarh State Board</option>
+              <option value="Goa State Board">Goa State Board</option>
+              <option value="Gujarat State Board">Gujarat State Board</option>
+              <option value="Haryana State Board">Haryana State Board</option>
+              <option value="Himachal Pradesh State Board">Himachal Pradesh State Board</option>
+              <option value="Jammu & Kashmir State Board">Jammu & Kashmir State Board</option>
+              <option value="Jharkhand State Board">Jharkhand State Board</option>
+              <option value="Karnataka State Board">Karnataka State Board</option>
+              <option value="Kerala State Board">Kerala State Board</option>
+              <option value="Madhya Pradesh State Board">Madhya Pradesh State Board</option>
+              <option value="Maharashtra State Board">Maharashtra State Board</option>
+              <option value="Manipur State Board">Manipur State Board</option>
+              <option value="Meghalaya State Board">Meghalaya State Board</option>
+              <option value="Mizoram State Board">Mizoram State Board</option>
+              <option value="Nagaland State Board">Nagaland State Board</option>
+              <option value="Odisha State Board">Odisha State Board</option>
+              <option value="Punjab State Board">Punjab State Board</option>
+              <option value="Rajasthan State Board">Rajasthan State Board</option>
+              <option value="Sikkim State Board">Sikkim State Board</option>
+              <option value="Tamil Nadu State Board">Tamil Nadu State Board</option>
+              <option value="Telangana State Board">Telangana State Board</option>
+              <option value="Tripura State Board">Tripura State Board</option>
+              <option value="Uttar Pradesh State Board">Uttar Pradesh State Board</option>
+              <option value="Uttarakhand State Board">Uttarakhand State Board</option>
+              <option value="West Bengal State Board">West Bengal State Board</option>
             </select>
           </div>
 
@@ -303,11 +451,15 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               onChange={(e) => setGrade(e.target.value)}
               className="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="ALL">All Levels (FLN 1-16)</option>
-              <option value="Level 1-3">Primary (L1 - L3)</option>
-              <option value="Level 4-7">Elementary (L4 - L7)</option>
-              <option value="Level 8-12">Middle (L8 - L12)</option>
-              <option value="Level 13-16">Advanced (L13 - L16)</option>
+              <option value="ALL">All Levels (FLN 1–93)</option>
+              {Array.from({ length: 93 }, (_, i) => {
+                const level = i + 1;
+                return (
+                  <option key={level} value={`FLN ${level}`}>
+                    FLN {level}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -359,26 +511,18 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
 
       {!isDataEmpty && (
         <>
-          {/* 1. NATIONAL OVERVIEW CARDS (8 KPI CARDS GRID) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {/* 1. NATIONAL OVERVIEW CARDS (6 KPI CARDS GRID) */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <KPICard
-              title="Registered Schools"
+              title="Registered & Active Schools"
               value={kpis.totalRegisteredSchools?.toLocaleString()}
-              subtext="100% Verified"
+              subtext={`${kpis.totalRegisteredSchools ? Math.round((kpis.activeSchools / kpis.totalRegisteredSchools) * 100) : 100}% Operational`}
               icon={School}
               badge="+4.2%"
               badgeType="up"
             />
             <KPICard
-              title="Active Schools"
-              value={kpis.activeSchools?.toLocaleString()}
-              subtext={`${kpis.totalRegisteredSchools ? Math.round((kpis.activeSchools / kpis.totalRegisteredSchools) * 100) : 100}% Operational`}
-              icon={CheckCircle2}
-              badge="Stable"
-              badgeType="neutral"
-            />
-            <KPICard
-              title="Total Students"
+              title="Total Students Enrolled"
               value={kpis.totalStudents?.toLocaleString()}
               subtext="Enrolled across FLN"
               icon={Users}
@@ -394,7 +538,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               badgeType="up"
             />
             <KPICard
-              title="Exams Conducted"
+              title="Total Assessments Conducted"
               value={kpis.totalExamsConducted?.toLocaleString()}
               subtext="Assessments sync"
               icon={FileCheck}
@@ -402,7 +546,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               badgeType="up"
             />
             <KPICard
-              title="Interviews Done"
+              title="Total AI Interviews Completed"
               value={kpis.totalInterviewsCompleted?.toLocaleString()}
               subtext="AI Mock Evaluations"
               icon={Zap}
@@ -410,27 +554,64 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               badgeType="up"
             />
             <KPICard
-              title="Avg Score"
-              value={`${kpis.avgPerformanceScore}%`}
+              title="Average Performance Score"
+              value={kpis.avgPerformanceScore !== undefined ? `${kpis.avgPerformanceScore}%` : '—'}
               subtext="National Index"
               icon={Award}
               badge="+3.5%"
               badgeType="up"
             />
-            <KPICard
-              title="AI Usage Today"
-              value={kpis.aiUsageToday?.toLocaleString()}
-              subtext="Evaluations run"
-              icon={Sparkles}
-              badge="High"
-              badgeType="special"
-            />
           </div>
 
-          {/* MAIN CHARTS SECTION: GROWTH TREND & STATE DISTRIBUTION */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* 1b. AI INTERVIEW ACTIVITY & PERFORMANCE TREND CHART */}
+          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-indigo-500" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    AI Interview Activity & Performance Trend
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Daily interview session volume with corresponding pass and fail rate trends
+                </p>
+              </div>
+
+              {/* Chart Legend */}
+              <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded bg-indigo-500/20 border border-indigo-400/40 flex-shrink-0" />
+                  <span>Interview Volume</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0" />
+                  <span>Pass Rate</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 flex-shrink-0" />
+                  <span>Fail Rate</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full">
+              <InterviewTrendChart data={interviewAnalytics.totalInterviewsDaily || [
+                { day: 'Mon', count: 1240, passRate: 84 },
+                { day: 'Tue', count: 1480, passRate: 86 },
+                { day: 'Wed', count: 1620, passRate: 82 },
+                { day: 'Thu', count: 1590, passRate: 88 },
+                { day: 'Fri', count: 1840, passRate: 85 },
+                { day: 'Sat', count: 1120, passRate: 89 },
+                { day: 'Sun', count: 860, passRate: 91 }
+              ]} />
+            </div>
+          </div>
+
+          {/* MAIN CHARTS SECTION: GROWTH TREND, BOARD DISTRIBUTION, & STATE DISTRIBUTION */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 2. SCHOOL GROWTH TREND (LINE CHART) */}
-            <div className="lg:col-span-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -449,11 +630,10 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                     <button
                       key={range}
                       onClick={() => setDateRange(range)}
-                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                        dateRange === range
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${dateRange === range
                           ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                      }`}
+                        }`}
                     >
                       {range.toUpperCase()}
                     </button>
@@ -467,8 +647,41 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               </div>
             </div>
 
-            {/* 3. STATE-WISE SCHOOL DISTRIBUTION */}
+            {/* 2b. RECENT TRENDS (EXECUTIVE AI INSIGHTS) */}
             <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-fuchsia-500" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Recent Insights & Trends
+                  </h3>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 max-h-[256px] overflow-y-auto pr-1.5 custom-scrollbar">
+                {(recentTrends || []).map((tr: any) => (
+                  <div key={tr.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/80 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="flex items-center gap-1.5 text-slate-900 dark:text-white">
+                        {tr.type === 'up' && <ArrowUpRight className="h-4 w-4 text-emerald-500" />}
+                        {tr.type === 'down' && <ArrowDownRight className="h-4 w-4 text-indigo-500" />}
+                        {tr.type === 'star' && <Star className="h-4 w-4 text-amber-500 fill-amber-500" />}
+                        {tr.title}
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 rounded">
+                        {tr.tag}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      {tr.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. STATE-WISE SCHOOL DISTRIBUTION */}
+            <div className="lg:col-span-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
               <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -486,28 +699,8 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                 </p>
               </div>
 
-              <div className="space-y-3.5 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
-                {stateDistribution.map((item: any) => (
-                  <div key={item.stateCode} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <span className="font-mono text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                          {item.stateCode}
-                        </span>
-                        {item.stateName}
-                      </span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white">
-                        {item.schoolsCount} <span className="text-[10px] text-slate-400 font-normal">({item.percentage}%)</span>
-                      </span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, Math.max(5, item.percentage * 2.5))}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center justify-center">
+                <StateDistributionPieChart data={stateDistribution} />
               </div>
             </div>
           </div>
@@ -528,28 +721,167 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                     Average assessment scores by state jurisdiction & school category
                   </p>
                 </div>
-              </div>
-
-              {/* State Performance Horizontal Bars */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  State Benchmark Summary
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {(perfAnalytics.performanceByState || []).slice(0, 6).map((st: any) => (
-                    <div key={st.stateCode} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800/80 space-y-1">
-                      <div className="flex items-center justify-between text-xs font-semibold">
-                        <span>{st.stateName}</span>
-                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{st.avgScore}%</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${st.avgScore >= 80 ? 'bg-emerald-500' : st.avgScore >= 75 ? 'bg-indigo-500' : 'bg-amber-500'}`}
-                          style={{ width: `${st.avgScore}%` }}
-                        />
-                      </div>
+              </div>              {/* Grouped Bar Chart Comparing Current vs Previous Performance */}
+              <div className="space-y-3 relative">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    State Benchmark Performance
+                  </h4>
+                  {/* Legend */}
+                  <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded bg-slate-400 dark:bg-slate-500 flex-shrink-0" />
+                      <span>Previous</span>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded bg-blue-500 flex-shrink-0" />
+                      <span>Current</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative w-full overflow-hidden bg-transparent">
+                  <svg viewBox="0 0 600 300" className="w-full h-auto">
+                    {/* Horizontal Grid lines */}
+                    {[0, 25, 50, 75, 100].map((val) => {
+                      const y = 40 + 210 * (1 - val / 100);
+                      return (
+                        <g key={val} className="opacity-40 dark:opacity-20">
+                          <line
+                            x1="50"
+                            y1={y}
+                            x2="580"
+                            y2={y}
+                            stroke="currentColor"
+                            className="text-slate-300 dark:text-slate-650"
+                            strokeDasharray={val === 0 ? undefined : "4 4"}
+                            strokeWidth={val === 0 ? "1.5" : "1"}
+                          />
+                          <text
+                            x="40"
+                            y={y + 4}
+                            textAnchor="end"
+                            className="fill-slate-400 dark:fill-slate-500 text-[10px] font-mono font-bold"
+                          >
+                            {val}%
+                          </text>
+                        </g>
+                      );
+                    })}
+
+                    {/* Chart Bars */}
+                    {(() => {
+                      const statesData = (perfAnalytics.performanceByState || []).slice(0, 6);
+                      const K = statesData.length;
+                      const plotWidth = 530;
+                      const groupWidth = plotWidth / (K || 1);
+                      const barWidth = 16;
+                      const barSpacing = 4;
+
+                      return statesData.map((st: any, i: number) => {
+                        const stateName = STATE_NAMES[st.stateCode] || st.stateName || st.stateCode;
+                        const currScore = st.avgScore || 0;
+                        const prevScore = st.prevScore ?? currScore;
+                        const diff = currScore - prevScore;
+                        const isImprovement = diff >= 0;
+
+                        const yPrev = 40 + 210 * (1 - prevScore / 100);
+                        const yCurr = 40 + 210 * (1 - currScore / 100);
+
+                        const xMid = 50 + i * groupWidth + groupWidth / 2;
+                        const xPrev = xMid - barWidth - barSpacing / 2;
+                        const xCurr = xMid + barSpacing / 2;
+
+                        const diffText = diff >= 0 ? `+${diff}%` : `${diff}%`;
+                        const diffColor = isImprovement ? '#10B981' : '#EF4444';
+
+                        return (
+                          <g
+                            key={st.stateCode}
+                            className="group/bar cursor-pointer"
+                            onMouseMove={(e) => {
+                              const parentRect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect();
+                              if (parentRect) {
+                                setPerfTooltip({
+                                  x: e.clientX - parentRect.left + 15,
+                                  y: e.clientY - parentRect.top - 15,
+                                  content: (
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="font-bold text-slate-100">{stateName}</span>
+                                      <span className="text-[10px] text-slate-400 font-mono">
+                                        Current: <span className="text-blue-400 font-bold">{currScore}%</span>
+                                      </span>
+                                      <span className="text-[10px] text-slate-400 font-mono">
+                                        Previous: <span className="text-slate-400 font-bold">{prevScore}%</span>
+                                      </span>
+                                      <span className={`text-[10px] font-bold ${isImprovement ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        {isImprovement ? `Improvement: +${diff}%` : `Decline: ${diff}%`}
+                                      </span>
+                                    </div>
+                                  ),
+                                  visible: true
+                                });
+                              }
+                            }}
+                            onMouseLeave={() => setPerfTooltip(null)}
+                          >
+                            {/* Previous Bar (Gray) */}
+                            <rect
+                              x={xPrev}
+                              y={yPrev}
+                              width={barWidth}
+                              height={Math.max(2, 250 - yPrev)}
+                              rx="3"
+                              fill="#94A3B8"
+                              className="opacity-75 group-hover/bar:opacity-100 transition-opacity duration-200"
+                            />
+
+                            {/* Current Bar (Blue) */}
+                            <rect
+                              x={xCurr}
+                              y={yCurr}
+                              width={barWidth}
+                              height={Math.max(2, 250 - yCurr)}
+                              rx="3"
+                              fill="#3B82F6"
+                              className="group-hover/bar:brightness-110 transition-all duration-200"
+                            />
+
+                            {/* Percentage Change Text */}
+                            <text
+                              x={xCurr + barWidth / 2}
+                              y={yCurr - 6}
+                              textAnchor="middle"
+                              fill={diffColor}
+                              className="text-[9px] font-extrabold font-mono opacity-90 group-hover/bar:opacity-100"
+                            >
+                              {diffText}
+                            </text>
+
+                            {/* State Label on X-axis */}
+                            <text
+                              x={xMid}
+                              y="270"
+                              textAnchor="middle"
+                              className="fill-slate-500 dark:fill-slate-400 text-[10px] font-semibold"
+                            >
+                              {stateName}
+                            </text>
+                          </g>
+                        );
+                      });
+                    })()}
+                  </svg>
+
+                  {/* Tooltip Overlay */}
+                  {perfTooltip && perfTooltip.visible && (
+                    <div
+                      className="absolute z-50 bg-slate-900/95 dark:bg-slate-950/95 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-slate-700/80 dark:border-slate-800/80 shadow-md pointer-events-none transition-all duration-75 flex flex-col"
+                      style={{ left: `${perfTooltip.x}px`, top: `${perfTooltip.y}px` }}
+                    >
+                      {perfTooltip.content}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -640,11 +972,11 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-blue-500" />
                     <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      Usage Analytics & Active Cohorts
+                      Student Activity Overview
                     </h3>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    DAU, WAU, MAU active users & device telemetry
+                    Track daily, weekly, and monthly active students across the FLN Portal.
                   </p>
                 </div>
               </div>
@@ -711,27 +1043,27 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                   <div className="flex items-center gap-2">
                     <Cpu className="h-4 w-4 text-fuchsia-500" />
                     <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      AI Diagnostic Engine Performance
+                      Student Performance Insights
                     </h3>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Model inference latency, accuracy, and weak skill detections
+                    Model inference latency, performance score, and weak skill detections
                   </p>
                 </div>
                 <span className="px-2.5 py-1 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                  {aiAnalytics.aiAccuracyScore}% Accuracy
+                  {aiAnalytics.aiAccuracyScore}% Performance Score
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-fuchsia-50/50 dark:bg-fuchsia-950/30 rounded-xl border border-fuchsia-100 dark:border-fuchsia-900/50">
-                  <span className="block text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-400 uppercase">Avg Response Time</span>
+                  <span className="block text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-400 uppercase">Average Assessment Time</span>
                   <span className="text-base font-extrabold text-fuchsia-700 dark:text-fuchsia-200 font-mono">
                     {aiAnalytics.avgResponseTime}
                   </span>
                 </div>
                 <div className="p-3 bg-purple-50/50 dark:bg-purple-950/30 rounded-xl border border-purple-100 dark:border-purple-900/50">
-                  <span className="block text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">Feedback Gen Latency</span>
+                  <span className="block text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">Average Feedback Time</span>
                   <span className="text-base font-extrabold text-purple-700 dark:text-purple-200 font-mono">
                     {aiAnalytics.avgFeedbackGenTime}
                   </span>
@@ -741,7 +1073,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               {/* Weak Skills Detected */}
               <div>
                 <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                  Top Detected Weak Skills Across Students
+                  Common Learning Gaps
                 </h4>
                 <div className="grid grid-cols-2 gap-2">
                   {(aiAnalytics.mostCommonWeakSkills || []).map((sk: any) => (
@@ -759,123 +1091,31 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
           </div>
 
           {/* FOURTH ROW: TOP 10 SCHOOL RANKINGS LEADERBOARD */}
-          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4" id="section-school-rankings">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4" id="section-school-rankings">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500">
+                <Award className="h-6 w-6" />
+              </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <Award className="h-4 w-4 text-amber-500" />
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    National Top 10 School Rankings
-                  </h3>
-                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  National School Leaderboard & Rankings
+                </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Institutional leaderboard ranked by performance, satisfaction, and interview success
+                  View the top 10 schools ranked by performance score, student completion rate, satisfaction, and AI interview success rate.
                 </p>
               </div>
-
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
-                <button
-                  onClick={() => setRankingSortMetric('performance')}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                    rankingSortMetric === 'performance'
-                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Score %
-                </button>
-                <button
-                  onClick={() => setRankingSortMetric('completion')}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                    rankingSortMetric === 'completion'
-                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Completion Rate
-                </button>
-                <button
-                  onClick={() => setRankingSortMetric('satisfaction')}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                    rankingSortMetric === 'satisfaction'
-                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Satisfaction
-                </button>
-                <button
-                  onClick={() => setRankingSortMetric('interview')}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                    rankingSortMetric === 'interview'
-                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Interview Success
-                </button>
-              </div>
             </div>
-
-            {/* Rankings Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-mono text-[10px] uppercase tracking-wider">
-                    <th className="py-2.5 px-3">Rank</th>
-                    <th className="py-2.5 px-3">School Name</th>
-                    <th className="py-2.5 px-3">State</th>
-                    <th className="py-2.5 px-3">Type</th>
-                    <th className="py-2.5 px-3 text-right">Performance Score</th>
-                    <th className="py-2.5 px-3 text-right">Completion</th>
-                    <th className="py-2.5 px-3 text-right">Satisfaction</th>
-                    <th className="py-2.5 px-3 text-right">Interview Success</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                  {sortedSchoolRankings.map((school: any, idx: number) => (
-                    <tr key={school.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 px-3">
-                        <span
-                          className={`inline-flex items-center justify-center h-6 w-6 rounded-full font-mono text-xs font-bold ${
-                            idx === 0
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300'
-                              : idx === 1
-                              ? 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
-                              : idx === 2
-                              ? 'bg-amber-900/20 text-amber-700 dark:text-amber-400'
-                              : 'text-slate-500'
-                          }`}
-                        >
-                          #{idx + 1}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white">
-                        {school.name}
-                      </td>
-                      <td className="py-3 px-3 font-mono text-slate-500">{school.stateCode}</td>
-                      <td className="py-3 px-3 text-slate-600 dark:text-slate-400">{school.schoolType}</td>
-                      <td className="py-3 px-3 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                        {school.performanceScore}%
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-700 dark:text-slate-300">
-                        {school.completionRate}%
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono text-amber-600 font-bold">
-                        ★ {school.studentSatisfaction}
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                        {school.interviewSuccessRate}%
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <button
+              onClick={() => setIsRankingsOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all whitespace-nowrap"
+            >
+              <Award className="h-4 w-4" />
+              <span>View Rankings</span>
+            </button>
           </div>
 
-          {/* FIFTH ROW: ENGAGEMENT ANALYTICS, SYSTEM HEALTH, AND RECENT TRENDS */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* FIFTH ROW: ENGAGEMENT ANALYTICS */}
+          <div className="w-full">
             {/* 9. ENGAGEMENT ANALYTICS */}
             <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
               <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
@@ -909,74 +1149,147 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                 </div>
               </div>
             </div>
-
-            {/* 10. SYSTEM HEALTH */}
-            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
-              <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Server className="h-4 w-4 text-emerald-500" />
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    System Health Telemetry
-                  </h3>
-                </div>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 rounded-full border border-emerald-300 dark:border-emerald-800">
-                  ALL SYSTEMS OPERATIONAL
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5 text-xs">
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">API Uptime</span>
-                  <span className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">{systemHealth.apiUptime}</span>
-                </div>
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Avg API Latency</span>
-                  <span className="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400">{systemHealth.avgApiLatency}</span>
-                </div>
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Active Servers</span>
-                  <span className="text-xs font-mono font-semibold text-slate-800 dark:text-slate-200">{systemHealth.activeServers}</span>
-                </div>
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">Error Rate</span>
-                  <span className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">{systemHealth.errorRate}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 11. RECENT TRENDS (EXECUTIVE AI INSIGHTS) */}
-            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
-              <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-fuchsia-500" />
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Recent Insights & Trends
-                  </h3>
-                </div>
-              </div>
-
-              <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
-                {(recentTrends || []).map((tr: any) => (
-                  <div key={tr.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/80 space-y-1">
-                    <div className="flex items-center justify-between text-xs font-bold">
-                      <span className="flex items-center gap-1.5 text-slate-900 dark:text-white">
-                        {tr.type === 'up' && <ArrowUpRight className="h-4 w-4 text-emerald-500" />}
-                        {tr.type === 'down' && <ArrowDownRight className="h-4 w-4 text-indigo-500" />}
-                        {tr.type === 'star' && <Star className="h-4 w-4 text-amber-500 fill-amber-500" />}
-                        {tr.title}
-                      </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 rounded">
-                        {tr.tag}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
-                      {tr.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
+
+          {/* Modal popup for rankings */}
+          {isRankingsOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+                {/* Modal Header */}
+                <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-amber-500" />
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                      Top 10 School Rankings
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setIsRankingsOpen(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <svg className="h-4 w-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Modal Controls / Filters */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      State Filter:
+                    </label>
+                    <select
+                      value={rankingsStateFilter}
+                      onChange={(e) => setRankingsStateFilter(e.target.value)}
+                      className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="ALL">All India</option>
+                      {Object.keys(STATE_NAMES).sort().map(code => (
+                        <option key={code} value={code}>{STATE_NAMES[code]}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
+                    <button
+                      onClick={() => setRankingSortMetric('performance')}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'performance'
+                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                    >
+                      Score %
+                    </button>
+                    <button
+                      onClick={() => setRankingSortMetric('completion')}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'completion'
+                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                    >
+                      Completion Rate
+                    </button>
+                    <button
+                      onClick={() => setRankingSortMetric('satisfaction')}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'satisfaction'
+                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                    >
+                      Satisfaction
+                    </button>
+                    <button
+                      onClick={() => setRankingSortMetric('interview')}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'interview'
+                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                    >
+                      Interview Success
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modal Body: Rankings Table */}
+                <div className="p-5 overflow-y-auto flex-grow custom-scrollbar">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-mono text-[10px] uppercase tracking-wider">
+                        <th className="py-2.5 px-3">Rank</th>
+                        <th className="py-2.5 px-3">School Name</th>
+                        <th className="py-2.5 px-3">State</th>
+                        <th className="py-2.5 px-3">Type</th>
+                        <th className="py-2.5 px-3 text-right">Performance Score</th>
+                        <th className="py-2.5 px-3 text-right">Completion</th>
+                        <th className="py-2.5 px-3 text-right">Satisfaction</th>
+                        <th className="py-2.5 px-3 text-right">Interview Success</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                      {sortedSchoolRankings.map((school: any, idx: number) => (
+                        <tr key={school.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3 px-3">
+                            <span
+                              className={`inline-flex items-center justify-center h-6 w-6 rounded-full font-mono text-xs font-bold ${idx === 0
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300'
+                                  : idx === 1
+                                    ? 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
+                                    : idx === 2
+                                      ? 'bg-amber-900/20 text-amber-700 dark:text-amber-400'
+                                      : 'text-slate-500'
+                                }`}
+                            >
+                              #{idx + 1}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white">
+                            {school.name}
+                          </td>
+                          <td className="py-3 px-3 text-slate-600 dark:text-slate-400">
+                            {STATE_NAMES[school.stateCode] || school.stateCode}
+                          </td>
+                          <td className="py-3 px-3 text-slate-600 dark:text-slate-400">{school.schoolType}</td>
+                          <td className="py-3 px-3 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                            {school.performanceScore}%
+                          </td>
+                          <td className="py-3 px-3 text-right font-mono text-slate-700 dark:text-slate-300">
+                            {school.completionRate}%
+                          </td>
+                          <td className="py-3 px-3 text-right font-mono text-amber-600 font-bold">
+                            ★ {school.studentSatisfaction}
+                          </td>
+                          <td className="py-3 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                            {school.interviewSuccessRate}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -997,7 +1310,7 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, subtext, icon: Icon, ba
   return (
     <div className="p-3.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col justify-between space-y-2 hover:border-indigo-400/50 transition-all">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider line-clamp-1">
+        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
           {title}
         </span>
         <div className="p-1.5 bg-indigo-50 dark:bg-indigo-950/50 rounded-lg text-indigo-600 dark:text-indigo-400">
@@ -1013,13 +1326,12 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, subtext, icon: Icon, ba
           <span className="text-slate-500 dark:text-slate-400 line-clamp-1">{subtext}</span>
           {badge && (
             <span
-              className={`font-mono font-bold px-1.5 py-0.5 rounded text-[9px] ${
-                badgeType === 'up'
+              className={`font-mono font-bold px-1.5 py-0.5 rounded text-[9px] ${badgeType === 'up'
                   ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300'
                   : badgeType === 'special'
-                  ? 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/80 dark:text-fuchsia-300'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-              }`}
+                    ? 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/80 dark:text-fuchsia-300'
+                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                }`}
             >
               {badge}
             </span>
@@ -1040,23 +1352,26 @@ const LineTrendChart: React.FC<LineTrendChartProps> = ({ data }) => {
 
   const height = 220;
   const width = 700;
-  const padding = 35;
+  const paddingLeft = 45;   // Space for Y-axis labels
+  const paddingRight = 10;  // Minimal space on the right to remove empty gap
+  const paddingTop = 20;    // Top padding
+  const paddingBottom = 30; // Bottom padding for X-axis labels
 
   const maxVal = Math.max(...data.map(d => d.cumulative), 10);
   const minVal = Math.min(...data.map(d => d.cumulative), 0);
   const range = maxVal - minVal || 1;
 
   const points = data.map((d, i) => {
-    const x = padding + (i * (width - padding * 2)) / (data.length - 1 || 1);
-    const y = height - padding - ((d.cumulative - minVal) / range) * (height - padding * 2);
+    const x = paddingLeft + (i * (width - paddingLeft - paddingRight)) / (data.length - 1 || 1);
+    const y = height - paddingBottom - ((d.cumulative - minVal) / range) * (height - paddingTop - paddingBottom);
     return { x, y, label: d.label, val: d.cumulative };
   });
 
   const pathD = points.reduce((acc, p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`), '');
-  const areaD = `${pathD} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
+  const areaD = `${pathD} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full bg-transparent">
       <defs>
         <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#6366F1" stopOpacity="0.4" />
@@ -1065,9 +1380,9 @@ const LineTrendChart: React.FC<LineTrendChartProps> = ({ data }) => {
       </defs>
 
       {/* Grid Lines */}
-      <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="4 4" />
-      <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="4 4" />
-      <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="currentColor" className="text-slate-200 dark:text-slate-700" />
+      <line x1={paddingLeft} y1={paddingTop} x2={width - paddingRight} y2={paddingTop} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="4 4" />
+      <line x1={paddingLeft} y1={(height - paddingBottom + paddingTop) / 2} x2={width - paddingRight} y2={(height - paddingBottom + paddingTop) / 2} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="4 4" />
+      <line x1={paddingLeft} y1={height - paddingBottom} x2={width - paddingRight} y2={height - paddingBottom} stroke="currentColor" className="text-slate-200 dark:text-slate-700" />
 
       {/* Area */}
       <path d={areaD} fill="url(#growthGradient)" />
@@ -1076,17 +1391,362 @@ const LineTrendChart: React.FC<LineTrendChartProps> = ({ data }) => {
       <path d={pathD} fill="none" stroke="#6366F1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
       {/* Data Points */}
-      {points.map((p, i) => (
-        <g key={i} className="group cursor-pointer">
-          <circle cx={p.x} cy={p.y} r="5" className="fill-indigo-600 stroke-white dark:stroke-slate-900" strokeWidth="2" />
-          <text x={p.x} y={p.y - 12} textAnchor="middle" className="hidden group-hover:block fill-slate-900 dark:fill-white text-[10px] font-bold font-mono">
-            {p.val}
-          </text>
-          <text x={p.x} y={height - 12} textAnchor="middle" className="fill-slate-400 text-[10px] font-semibold">
-            {p.label}
-          </text>
-        </g>
-      ))}
+      {points.map((p, i) => {
+        const isLast = i === points.length - 1;
+        const textAnchor = isLast ? 'end' : i === 0 ? 'start' : 'middle';
+
+        return (
+          <g key={i} className="group cursor-pointer">
+            <circle cx={p.x} cy={p.y} r="5" className="fill-indigo-600 stroke-white dark:stroke-slate-900 hover:scale-125 transition-transform duration-150" strokeWidth="2" />
+            <text x={p.x} y={p.y - 12} textAnchor="middle" className="hidden group-hover:block fill-slate-900 dark:fill-white text-[10px] font-bold font-mono">
+              {p.val.toLocaleString()}
+            </text>
+            <text x={p.x} y={height - 12} textAnchor={textAnchor} className="fill-slate-400 text-[10px] font-semibold">
+              {p.label}
+            </text>
+          </g>
+        );
+      })}
     </svg>
+  );
+};
+
+// --- CUSTOM SVG INTERVIEW TREND CHART ---
+interface InterviewTrendChartProps {
+  data: any[];
+}
+
+const InterviewTrendChart: React.FC<InterviewTrendChartProps> = ({ data }) => {
+  const [tooltip, setTooltip] = React.useState<{ x: number; y: number; visible: boolean; content: React.ReactNode } | null>(null);
+
+  if (!data || data.length === 0) return <div className="h-full flex items-center justify-center text-xs text-slate-400">No chart data</div>;
+
+  const height = 180;
+  const width = 600;
+  const paddingLeft = 50;
+  const paddingRight = 50;
+  const paddingTop = 25;
+  const paddingBottom = 25;
+
+  const plotWidth = width - paddingLeft - paddingRight;
+  const plotHeight = height - paddingTop - paddingBottom;
+
+  const maxCount = 2000;
+  const stepX = plotWidth / (data.length - 1 || 1);
+
+  const points = data.map((d, i) => {
+    const x = paddingLeft + i * stepX;
+    const yCount = paddingTop + plotHeight * (1 - d.count / maxCount);
+    const yPass = paddingTop + plotHeight * (1 - d.passRate / 100);
+    const yFail = paddingTop + plotHeight * (1 - (100 - d.passRate) / 100);
+    return { x, yCount, yPass, yFail, item: d };
+  });
+
+  const passPathD = points.reduce((acc, p, i) => (i === 0 ? `M ${p.x} ${p.yPass}` : `${acc} L ${p.x} ${p.yPass}`), '');
+  const failPathD = points.reduce((acc, p, i) => (i === 0 ? `M ${p.x} ${p.yFail}` : `${acc} L ${p.x} ${p.yFail}`), '');
+
+  return (
+    <div className="relative w-full overflow-hidden bg-transparent">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto bg-transparent">
+        {/* Horizontal grid lines */}
+        {[0, 25, 50, 75, 100].map((percent) => {
+          const y = paddingTop + plotHeight * (1 - percent / 100);
+          const countLabel = Math.round((percent / 100) * maxCount);
+
+          return (
+            <g key={percent} className="opacity-40 dark:opacity-20">
+              <line
+                x1={paddingLeft}
+                y1={y}
+                x2={width - paddingRight}
+                y2={y}
+                stroke="currentColor"
+                className="text-slate-300 dark:text-slate-650"
+                strokeDasharray="4 4"
+                strokeWidth="1"
+              />
+              {/* Left Y-axis (Count) */}
+              <text
+                x={paddingLeft - 8}
+                y={y + 3}
+                textAnchor="end"
+                className="fill-slate-400 dark:fill-slate-500 text-[9px] font-mono font-bold"
+              >
+                {countLabel.toLocaleString()}
+              </text>
+              {/* Right Y-axis (Percentage) */}
+              <text
+                x={width - paddingRight + 8}
+                y={y + 3}
+                textAnchor="start"
+                className="fill-slate-400 dark:fill-slate-500 text-[9px] font-mono font-bold"
+              >
+                {percent}%
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Daily Interview Volume Bars */}
+        {points.map((p, i) => {
+          const barWidth = 20;
+          const barHeight = Math.max(2, height - paddingBottom - p.yCount);
+
+          return (
+            <g key={i}>
+              <rect
+                x={p.x - barWidth / 2}
+                y={p.yCount}
+                width={barWidth}
+                height={barHeight}
+                rx="3"
+                className="fill-indigo-500/15 dark:fill-indigo-500/10 stroke-indigo-400/40 dark:stroke-indigo-500/30 transition-all duration-250"
+                strokeWidth="1.5"
+              />
+            </g>
+          );
+        })}
+
+        {/* Pass Rate Line (Green) */}
+        <path d={passPathD} fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Fail Rate Line (Red) */}
+        <path d={failPathD} fill="none" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Interactive nodes & tooltips */}
+        {points.map((p, i) => {
+          const isLast = i === points.length - 1;
+          const textAnchor = isLast ? 'end' : i === 0 ? 'start' : 'middle';
+
+          return (
+            <g
+              key={i}
+              className="group/node cursor-pointer"
+              onMouseMove={(e) => {
+                const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
+                if (parentRect) {
+                  setTooltip({
+                    x: e.clientX - parentRect.left + 15,
+                    y: e.clientY - parentRect.top - 15,
+                    visible: true,
+                    content: (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-bold text-slate-100">{p.item.day} Interviews</span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          Volume: <span className="text-indigo-400 font-bold">{p.item.count}</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          Pass Rate: <span className="text-emerald-400 font-bold">{p.item.passRate}%</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          Fail Rate: <span className="text-rose-400 font-bold">{100 - p.item.passRate}%</span>
+                        </span>
+                      </div>
+                    )
+                  });
+                }
+              }}
+              onMouseLeave={() => setTooltip(null)}
+            >
+              {/* Invisible touch target column */}
+              <rect
+                x={p.x - stepX / 2}
+                y={paddingTop}
+                width={stepX}
+                height={plotHeight}
+                fill="transparent"
+                className="hover:fill-slate-500/5 transition-colors duration-150"
+              />
+
+              {/* Pass rate dot */}
+              <circle cx={p.x} cy={p.yPass} r="4" className="fill-emerald-500 stroke-white dark:stroke-slate-900 group-hover/node:scale-125 transition-transform" strokeWidth="1.5" />
+
+              {/* Fail rate dot */}
+              <circle cx={p.x} cy={p.yFail} r="4" className="fill-rose-500 stroke-white dark:stroke-slate-900 group-hover/node:scale-125 transition-transform" strokeWidth="1.5" />
+
+              {/* X-axis day label */}
+              <text x={p.x} y={height - 8} textAnchor={textAnchor} className="fill-slate-400 text-[10px] font-semibold">
+                {p.item.day}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+
+      {/* Tooltip Overlay */}
+      {tooltip && tooltip.visible && (
+        <div
+          className="absolute z-50 bg-slate-900/95 dark:bg-slate-950/95 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-slate-700/80 dark:border-slate-800/80 shadow-md pointer-events-none transition-all duration-75 flex flex-col"
+          style={{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }}
+        >
+          {tooltip.content}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- CUSTOM SVG PIE CHART ---
+const PIE_COLORS = [
+  '#3B82F6', // Blue (Vibrant)
+  '#8B5CF6', // Purple (Vibrant)
+  '#06B6D4', // Cyan (Vibrant)
+  '#10B981', // Emerald (Vibrant)
+  '#14B8A6', // Teal (Vibrant)
+  '#F59E0B', // Amber (Vibrant)
+  '#EC4899', // Pink (Vibrant)
+  '#6366F1', // Indigo (Vibrant)
+  '#F97316', // Orange (Vibrant)
+  '#F43F5E', // Rose (Vibrant)
+];
+
+interface PieChartProps {
+  data: any[];
+}
+
+const StateDistributionPieChart: React.FC<PieChartProps> = ({ data }) => {
+  const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
+  const [tooltip, setTooltip] = React.useState<{ x: number; y: number; content: React.ReactNode; visible: boolean } | null>(null);
+
+  if (!data || data.length === 0) {
+    return <div className="h-full flex items-center justify-center text-xs text-slate-400">No data</div>;
+  }
+
+  const totalSchools = data.reduce((sum, item) => sum + item.schoolsCount, 0);
+
+  const cx = 250;
+  const cy = 250;
+  const radius = 200;
+
+  let cumulativePercent = 0;
+
+  const slices = data.map((item, index) => {
+    const ratio = totalSchools > 0 ? item.schoolsCount / totalSchools : 0;
+    const percent = ratio * 100;
+
+    const thetaStart = (cumulativePercent / 100) * 2 * Math.PI - Math.PI / 2;
+    cumulativePercent += percent;
+    const thetaEnd = (cumulativePercent / 100) * 2 * Math.PI - Math.PI / 2;
+    const thetaMid = (thetaStart + thetaEnd) / 2;
+
+    const xs = cx + radius * Math.cos(thetaStart);
+    const ys = cy + radius * Math.sin(thetaStart);
+    const xe = cx + radius * Math.cos(thetaEnd);
+    const ye = cy + radius * Math.sin(thetaEnd);
+
+    const largeArcFlag = percent > 50 ? 1 : 0;
+
+    let slicePath = '';
+    if (percent >= 99.9) {
+      slicePath = `M ${cx} ${cy - radius} A ${radius} ${radius} 0 1 1 ${cx - 0.01} ${cy - radius} Z`;
+    } else {
+      slicePath = `M ${cx} ${cy} L ${xs} ${ys} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${xe} ${ye} Z`;
+    }
+
+    const stateName = STATE_NAMES[item.stateCode] || item.stateName || item.stateCode;
+    const color = PIE_COLORS[index % PIE_COLORS.length];
+
+    return {
+      item,
+      stateName,
+      color,
+      ratio,
+      percent,
+      thetaMid,
+      slicePath,
+    };
+  });
+
+  const handleMouseMove = (e: React.MouseEvent, slice: any) => {
+    const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
+    if (parentRect) {
+      setTooltip({
+        x: e.clientX - parentRect.left + 15,
+        y: e.clientY - parentRect.top - 15,
+        content: (
+          <div className="flex flex-col gap-0.5">
+            <span className="font-bold text-slate-100">{slice.stateName}</span>
+            <span className="text-[10px] text-slate-400 font-mono">
+              {slice.item.schoolsCount} Schools ({Math.round(slice.ratio * 1000) / 10}%)
+            </span>
+          </div>
+        ),
+        visible: true,
+      });
+    }
+  };
+
+  return (
+    <div className="relative flex flex-col xl:flex-row items-center justify-center gap-6 w-full py-2 bg-transparent">
+      {/* SVG Container: resized to 260x260px */}
+      <div className="relative w-[260px] h-[260px] flex-shrink-0 bg-transparent">
+        <svg viewBox="0 0 500 500" className="w-full h-full bg-transparent">
+          {slices.map((slice, index) => {
+            const dx = 6 * Math.cos(slice.thetaMid);
+            const dy = 6 * Math.sin(slice.thetaMid);
+
+            return (
+              <path
+                key={slice.item.stateCode}
+                d={slice.slicePath}
+                fill={slice.color}
+                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseLeave={() => {
+                  setHoveredIndex(null);
+                  setTooltip(null);
+                }}
+                onMouseMove={(e) => handleMouseMove(e, slice)}
+                className="transition-all duration-300 cursor-pointer stroke-white dark:stroke-slate-900 bg-transparent"
+                strokeWidth="1.5"
+                style={{
+                  transform: hoveredIndex === index ? `translate(${dx}px, ${dy}px)` : 'translate(0px, 0px)',
+                  transition: 'transform 0.2s ease-out',
+                  opacity: hoveredIndex === null || hoveredIndex === index ? 1 : 0.7,
+                }}
+              />
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* Legend Container: Compact scrollable list on the right */}
+      <div className="w-full xl:w-72 max-h-[260px] overflow-y-auto custom-scrollbar pr-1 space-y-1.5 flex-grow bg-transparent">
+        {slices.map((slice, index) => (
+          <div
+            key={slice.item.stateCode}
+            className={`flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl transition-all cursor-pointer ${hoveredIndex === index ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+              }`}
+            onMouseEnter={() => setHoveredIndex(index)}
+            onMouseLeave={() => setHoveredIndex(null)}
+          >
+            <div className="flex items-center gap-2.5 min-w-0 flex-grow">
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: slice.color }}
+              />
+              <span className="font-semibold text-slate-700 dark:text-slate-300 leading-tight text-[11px] truncate">
+                {slice.stateName}
+              </span>
+            </div>
+            <div className="flex items-center font-mono text-[10px] space-x-2 text-slate-500 dark:text-slate-400 flex-shrink-0">
+              <span className="text-slate-300 dark:text-slate-600">|</span>
+              <span className="font-bold text-slate-850 dark:text-slate-205">{slice.item.schoolsCount} Schools</span>
+              <span className="text-slate-300 dark:text-slate-600">|</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">{Math.round(slice.ratio * 1000) / 10}%</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tooltip Overlay */}
+      {tooltip && tooltip.visible && (
+        <div
+          className="absolute z-50 bg-slate-900/95 dark:bg-slate-950/95 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-slate-700/80 dark:border-slate-800/80 shadow-md pointer-events-none transition-all duration-75 flex flex-col"
+          style={{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }}
+        >
+          {tooltip.content}
+        </div>
+      )}
+    </div>
   );
 };
