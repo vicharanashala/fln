@@ -1,6 +1,11 @@
 import 'dotenv/config';
 import { MongoClient } from 'mongodb';
+import bcrypt from 'bcrypt';
 import { UserRole } from './db';
+
+// All seeded demo accounts share this password; store only its bcrypt hash
+// (never plaintext) so `passwordHash` matches what login (index.ts) verifies.
+const SEED_PASSWORD_HASH = bcrypt.hashSync('Fln@2026', 10);
 
 // ============================================================
 // NAME POOLS — 250+ realistic Indian names
@@ -567,11 +572,11 @@ async function main() {
   // 1. SUPERADMINS (5)
   // ════════════════════════════════════════════
   const superadmins = [
-    { id: 'u_sup_01', email: 'superadmin@fln.org', name: 'Jinal Gupta', role: UserRole.SUPERADMIN, password: 'Fln@2026' },
-    { id: 'u_sup_02', email: 'superadmin2@fln.org', name: 'Ravi Mehta', role: UserRole.SUPERADMIN, password: 'Fln@2026' },
-    { id: 'u_sup_03', email: 'superadmin3@fln.org', name: 'Priya Deshmukh', role: UserRole.SUPERADMIN, password: 'Fln@2026' },
-    { id: 'u_sup_04', email: 'superadmin4@fln.org', name: 'Amit Singh', role: UserRole.SUPERADMIN, password: 'Fln@2026' },
-    { id: 'u_sup_05', email: 'superadmin5@fln.org', name: 'Kavita Reddy', role: UserRole.SUPERADMIN, password: 'Fln@2026' },
+    { id: 'u_sup_01', email: 'superadmin@fln.org', name: 'Jinal Gupta', role: UserRole.SUPERADMIN, passwordHash: SEED_PASSWORD_HASH },
+    { id: 'u_sup_02', email: 'superadmin2@fln.org', name: 'Ravi Mehta', role: UserRole.SUPERADMIN, passwordHash: SEED_PASSWORD_HASH },
+    { id: 'u_sup_03', email: 'superadmin3@fln.org', name: 'Priya Deshmukh', role: UserRole.SUPERADMIN, passwordHash: SEED_PASSWORD_HASH },
+    { id: 'u_sup_04', email: 'superadmin4@fln.org', name: 'Amit Singh', role: UserRole.SUPERADMIN, passwordHash: SEED_PASSWORD_HASH },
+    { id: 'u_sup_05', email: 'superadmin5@fln.org', name: 'Kavita Reddy', role: UserRole.SUPERADMIN, passwordHash: SEED_PASSWORD_HASH },
   ];
   allUsers.push(...superadmins);
 
@@ -591,7 +596,7 @@ async function main() {
       name: `${state.name} State Coordinator`,
       role: UserRole.ADMIN,
       stateCode: state.code,
-      password: 'Fln@2026',
+      passwordHash: SEED_PASSWORD_HASH,
     });
 
     for (let dIdx = 0; dIdx < state.districts.length; dIdx++) {
@@ -606,7 +611,7 @@ async function main() {
         role: UserRole.DISTRICT_ADMIN,
         stateCode: state.code,
         districtCode: district.code,
-        password: 'Fln@2026',
+        passwordHash: SEED_PASSWORD_HASH,
       });
 
       for (let bIdx = 0; bIdx < 2; bIdx++) {
@@ -623,7 +628,7 @@ async function main() {
           stateCode: state.code,
           districtCode: district.code,
           blockCode: blockCode,
-          password: 'Fln@2026',
+          passwordHash: SEED_PASSWORD_HASH,
         });
 
         for (let sIdx = 0; sIdx < 10; sIdx++) {
@@ -652,7 +657,7 @@ async function main() {
             name: `${district.name} ${areaName} Principal`,
             role: UserRole.SCHOOL,
             schoolId: schoolId,
-            password: 'Fln@2026',
+            passwordHash: SEED_PASSWORD_HASH,
           });
 
           // ── 3 Teachers (one per class) ──
@@ -668,7 +673,7 @@ async function main() {
               name: `${nextName()} (Teacher)`,
               role: UserRole.TEACHER,
               schoolId: schoolId,
-              password: 'Fln@2026',
+              passwordHash: SEED_PASSWORD_HASH,
             });
           }
 
@@ -680,7 +685,7 @@ async function main() {
               name: `${nextName()} (Volunteer)`,
               role: UserRole.VOLUNTEER,
               assignedSchools: [schoolId],
-              password: 'Fln@2026',
+              passwordHash: SEED_PASSWORD_HASH,
             });
           }
 
