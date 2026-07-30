@@ -80,6 +80,28 @@ async function startServer() {
     return dbStore.getUserSync(payload.email);
   }
 
+  // Authorization check for by-ID student endpoints (PATCH/diagnostic/diagnostic-submit).
+  // Mirrors the scoping already applied to GET /api/students' list filtering, so a
+  // teacher/volunteer/school user can't act on a student outside their own school(s)
+  // by guessing/enumerating IDs (IDOR). Superadmin/state/district/block admins keep
+  // their existing broad access — restricting THAT scope is a separate, tracked fix.
+  function canAccessStudent(user: User, student: Student): boolean {
+    switch (user.role) {
+      case UserRole.SUPERADMIN:
+      case UserRole.ADMIN:
+      case UserRole.DISTRICT_ADMIN:
+      case UserRole.BLOCK_ADMIN:
+        return true;
+      case UserRole.SCHOOL:
+      case UserRole.TEACHER:
+        return student.schoolId === user.schoolId;
+      case UserRole.VOLUNTEER:
+        return user.assignedSchools?.includes(student.schoolId) ?? false;
+      default:
+        return false;
+    }
+  }
+
   // --- API Endpoints ---
 
   // Public stats (no auth required — used by landing page)
@@ -483,6 +505,7 @@ async function startServer() {
     const students = await dbStore.getStudents();
     const student = students.find(s => s.id === req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
 
     await dbStore.updateStudent(student.id, {
       currentLevel: Number(currentLevel),
@@ -502,6 +525,7 @@ async function startServer() {
     const students = await dbStore.getStudents();
     const student = students.find(s => s.id === req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
 
     // Parse class number from classGroup (e.g. "Class 2" -> 2)
     const classMatch = student.classGroup.match(/\d+/);
@@ -597,6 +621,7 @@ async function startServer() {
     const students = await dbStore.getStudents();
     const student = students.find(s => s.id === req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
 
     // Parse class number from classGroup (e.g. "Class 2" -> 2)
     const classMatch = student.classGroup.match(/\d+/);
