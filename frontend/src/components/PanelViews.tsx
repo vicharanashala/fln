@@ -357,10 +357,15 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   });
 
   const panel = activePanel;
+  const canIssueCertificates = [UserRole.TEACHER, UserRole.VOLUNTEER].includes(currentUser.role);
 
   useEffect(() => {
-    if (panel === 'certificates') setProfileTab('certificate');
-  }, [panel]);
+    if (!canIssueCertificates && profileTab === 'certificate') {
+      setProfileTab('overview');
+    } else if (canIssueCertificates && panel === 'certificates') {
+      setProfileTab('certificate');
+    }
+  }, [canIssueCertificates, panel, profileTab]);
 
   const handleDownloadPDF = (student: Student, r: EvaluationReport, examResponses: any[]) => {
     const printWindow = window.open('', '_blank');
@@ -762,7 +767,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       { key: 'academic' as const, label: 'Academic Record', icon: BookOpen },
       { key: 'personal' as const, label: 'Personal Details', icon: Users },
       { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
-      { key: 'certificate' as const, label: 'Certificate', icon: Award },
+      ...(canIssueCertificates ? [{ key: 'certificate' as const, label: 'Certificate', icon: Award }] : []),
     ];
 
     return (
@@ -1285,7 +1290,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         )}
 
         {/* ===== CERTIFICATE TAB (teacher only) ===== */}
-        {profileTab === 'certificate' && (
+        {canIssueCertificates && profileTab === 'certificate' && (
           <div className="max-w-4xl">
             <div ref={certificatePreviewRef} data-certificate-preview className={`aspect-[297/210] overflow-hidden rounded-2xl border-4 shadow-lg ${isClassOne ? 'border-orange-400 bg-white' : isClassTwo ? 'border-[#0D99FF] bg-[#CFE9FB] p-2' : 'border-amber-300 bg-[#fffdf8]'}`}>
               <div className={isClassTwo ? '' : `h-3 ${isClassOne ? 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-300' : 'bg-gradient-to-r from-rose-500 via-orange-400 to-amber-300'}`} />
@@ -1425,7 +1430,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'performance') {
-    const canIssueRankCertificates = [UserRole.TEACHER, UserRole.VOLUNTEER, UserRole.SCHOOL].includes(currentUser.role);
+    const canIssueRankCertificates = canIssueCertificates;
     const topStudents = [...students]
       .sort((a, b) => b.currentLevel - a.currentLevel || b.streak - a.streak || a.name.localeCompare(b.name))
       .slice(0, 5)
@@ -1450,7 +1455,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             ))}</div>
           </div>
         </div>
-        {rankCertificate && (
+        {canIssueRankCertificates && rankCertificate && (
           <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/75 p-4 sm:p-8">
             <div className="w-full max-w-6xl">
               <div className="mb-3 flex items-center justify-between gap-3 text-white">
