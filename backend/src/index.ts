@@ -517,13 +517,23 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const students = await dbStore.getStudents();
-    
-    // Mask Aadhar for non-Superadmins (§13.2 R-6)
+
+    // Roles with a direct, day-to-day relationship to the child (and superadmin)
+    // see full contact/address PII; aggregate-scope admins and volunteers get it
+    // redacted — they don't need a guardian's phone number to view rollups.
+    const canSeeGuardianPII = (role: UserRole) =>
+      role === UserRole.SUPERADMIN || role === UserRole.SCHOOL || role === UserRole.TEACHER;
+
+    // Mask Aadhar for non-Superadmins (§13.2 R-6); redact guardian contact/address similarly.
     const maskedStudents = students.map(s => {
-      if (user.role !== UserRole.SUPERADMIN) {
-        return { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) };
+      const masked = user.role !== UserRole.SUPERADMIN
+        ? { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) }
+        : { ...s };
+      if (!canSeeGuardianPII(user.role)) {
+        delete masked.guardianContact;
+        delete masked.address;
       }
-      return s;
+      return masked;
     });
 
     if (user.role === UserRole.SUPERADMIN) {
@@ -557,7 +567,11 @@ async function startServer() {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { name, age, classGroup, section, schoolId, aadharNumber } = req.body;
+    const {
+      name, age, classGroup, section, schoolId, aadharNumber,
+      gender, dob, guardianName, guardianRelation, guardianContact, address,
+      bloodGroup, disabilityStatus, midDayMealBeneficiary, busRoute, siblingsInSchool,
+    } = req.body;
     if (!name || !age || !classGroup || !section || !schoolId || !aadharNumber) {
       return res.status(400).json({ error: 'Missing required student details.' });
     }
@@ -588,7 +602,18 @@ async function startServer() {
       targetLevel: 2,
       aadharMasked: rawAadhar, // Store raw unmasked Aadhar in DB so Superadmin sees it, others get masked dynamically
       levelHistory: [],
-      streak: 0
+      streak: 0,
+      gender: gender || undefined,
+      dob: dob || undefined,
+      guardianName: guardianName || undefined,
+      guardianRelation: guardianRelation || undefined,
+      guardianContact: guardianContact || undefined,
+      address: address || undefined,
+      bloodGroup: bloodGroup || undefined,
+      disabilityStatus: disabilityStatus || undefined,
+      midDayMealBeneficiary: midDayMealBeneficiary === undefined ? undefined : Boolean(midDayMealBeneficiary),
+      busRoute: busRoute || undefined,
+      siblingsInSchool: siblingsInSchool || undefined,
     };
 
     await dbStore.addStudent(newStudent);
@@ -626,6 +651,42 @@ async function startServer() {
       targetLevel: Number(targetLevel),
       levelHistory: levelHistory || student.levelHistory
     });
+
+    res.json({ success: true });
+  });
+
+  // Update Student Profile (guardian/medical/logistics fields) — only the
+  // student's own school/teacher, or higher admins, may edit; kept separate
+  // from the level-update PATCH above so neither contract has to change.
+  app.patch('/api/students/:id/profile', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const students = await dbStore.getStudents();
+    const student = students.find(s => s.id === req.params.id);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
+
+    const {
+      gender, dob, guardianName, guardianRelation, guardianContact, address,
+      bloodGroup, disabilityStatus, midDayMealBeneficiary, busRoute, siblingsInSchool, teacherNotes,
+    } = req.body;
+
+    const updates: Partial<Student> = {};
+    if (gender !== undefined) updates.gender = gender;
+    if (dob !== undefined) updates.dob = dob;
+    if (guardianName !== undefined) updates.guardianName = guardianName;
+    if (guardianRelation !== undefined) updates.guardianRelation = guardianRelation;
+    if (guardianContact !== undefined) updates.guardianContact = guardianContact;
+    if (address !== undefined) updates.address = address;
+    if (bloodGroup !== undefined) updates.bloodGroup = bloodGroup;
+    if (disabilityStatus !== undefined) updates.disabilityStatus = disabilityStatus;
+    if (midDayMealBeneficiary !== undefined) updates.midDayMealBeneficiary = Boolean(midDayMealBeneficiary);
+    if (busRoute !== undefined) updates.busRoute = busRoute;
+    if (siblingsInSchool !== undefined) updates.siblingsInSchool = siblingsInSchool;
+    if (teacherNotes !== undefined) updates.teacherNotes = teacherNotes;
+
+    await dbStore.updateStudent(student.id, updates);
 
     res.json({ success: true });
   });
