@@ -567,7 +567,11 @@ async function startServer() {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { name, age, classGroup, section, schoolId, aadharNumber } = req.body;
+    const {
+      name, age, classGroup, section, schoolId, aadharNumber,
+      gender, dob, guardianName, guardianRelation, guardianContact, address,
+      bloodGroup, disabilityStatus, midDayMealBeneficiary, busRoute, siblingsInSchool,
+    } = req.body;
     if (!name || !age || !classGroup || !section || !schoolId || !aadharNumber) {
       return res.status(400).json({ error: 'Missing required student details.' });
     }
@@ -598,7 +602,18 @@ async function startServer() {
       targetLevel: 2,
       aadharMasked: rawAadhar, // Store raw unmasked Aadhar in DB so Superadmin sees it, others get masked dynamically
       levelHistory: [],
-      streak: 0
+      streak: 0,
+      gender: gender || undefined,
+      dob: dob || undefined,
+      guardianName: guardianName || undefined,
+      guardianRelation: guardianRelation || undefined,
+      guardianContact: guardianContact || undefined,
+      address: address || undefined,
+      bloodGroup: bloodGroup || undefined,
+      disabilityStatus: disabilityStatus || undefined,
+      midDayMealBeneficiary: midDayMealBeneficiary === undefined ? undefined : Boolean(midDayMealBeneficiary),
+      busRoute: busRoute || undefined,
+      siblingsInSchool: siblingsInSchool || undefined,
     };
 
     await dbStore.addStudent(newStudent);
