@@ -655,6 +655,42 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  // Update Student Profile (guardian/medical/logistics fields) — only the
+  // student's own school/teacher, or higher admins, may edit; kept separate
+  // from the level-update PATCH above so neither contract has to change.
+  app.patch('/api/students/:id/profile', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const students = await dbStore.getStudents();
+    const student = students.find(s => s.id === req.params.id);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
+
+    const {
+      gender, dob, guardianName, guardianRelation, guardianContact, address,
+      bloodGroup, disabilityStatus, midDayMealBeneficiary, busRoute, siblingsInSchool, teacherNotes,
+    } = req.body;
+
+    const updates: Partial<Student> = {};
+    if (gender !== undefined) updates.gender = gender;
+    if (dob !== undefined) updates.dob = dob;
+    if (guardianName !== undefined) updates.guardianName = guardianName;
+    if (guardianRelation !== undefined) updates.guardianRelation = guardianRelation;
+    if (guardianContact !== undefined) updates.guardianContact = guardianContact;
+    if (address !== undefined) updates.address = address;
+    if (bloodGroup !== undefined) updates.bloodGroup = bloodGroup;
+    if (disabilityStatus !== undefined) updates.disabilityStatus = disabilityStatus;
+    if (midDayMealBeneficiary !== undefined) updates.midDayMealBeneficiary = Boolean(midDayMealBeneficiary);
+    if (busRoute !== undefined) updates.busRoute = busRoute;
+    if (siblingsInSchool !== undefined) updates.siblingsInSchool = siblingsInSchool;
+    if (teacherNotes !== undefined) updates.teacherNotes = teacherNotes;
+
+    await dbStore.updateStudent(student.id, updates);
+
+    res.json({ success: true });
+  });
+
   // Run Onboarding AI Diagnostic Test
   app.post('/api/students/:id/diagnostic', async (req, res) => {
     const user = getAuthUser(req);
