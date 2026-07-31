@@ -47,6 +47,7 @@ export interface User {
   name: string;
   role: UserRole;
   passwordHash?: string; // bcrypt hash; verified at login. Never sent to clients.
+  phoneNumber?: string;
   stateCode?: string;
   districtCode?: string;
   blockCode?: string;
