@@ -517,13 +517,23 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const students = await dbStore.getStudents();
-    
-    // Mask Aadhar for non-Superadmins (§13.2 R-6)
+
+    // Roles with a direct, day-to-day relationship to the child (and superadmin)
+    // see full contact/address PII; aggregate-scope admins and volunteers get it
+    // redacted — they don't need a guardian's phone number to view rollups.
+    const canSeeGuardianPII = (role: UserRole) =>
+      role === UserRole.SUPERADMIN || role === UserRole.SCHOOL || role === UserRole.TEACHER;
+
+    // Mask Aadhar for non-Superadmins (§13.2 R-6); redact guardian contact/address similarly.
     const maskedStudents = students.map(s => {
-      if (user.role !== UserRole.SUPERADMIN) {
-        return { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) };
+      const masked = user.role !== UserRole.SUPERADMIN
+        ? { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) }
+        : { ...s };
+      if (!canSeeGuardianPII(user.role)) {
+        delete masked.guardianContact;
+        delete masked.address;
       }
-      return s;
+      return masked;
     });
 
     if (user.role === UserRole.SUPERADMIN) {
