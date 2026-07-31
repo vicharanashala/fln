@@ -8,6 +8,7 @@ import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorks
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
+import { STATES_UTS } from './geoData';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
@@ -344,6 +345,105 @@ async function startServer() {
     });
 
     res.json(newUser);
+  });
+
+  // Coordinator registration: state -> district -> block -> school cascade, then
+  // creating a teacher account scoped to the chosen school.
+  const COORDINATOR_ROLES = [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN];
+
+  app.get('/api/states', (_req, res) => {
+    res.json(STATES_UTS.map(s => ({ id: s.code, name: s.name })));
+  });
+
+  app.get('/api/districts/by-state/:stateId', (req, res) => {
+    const state = STATES_UTS.find(s => s.code.toLowerCase() === req.params.stateId.toLowerCase());
+    if (!state) return res.status(404).json({ error: 'Unknown state.' });
+    res.json(state.districts.map(d => ({ id: d.code, name: d.name })));
+  });
+
+  app.get('/api/blocks/by-district/:districtId', async (req, res) => {
+    const districtCode = req.params.districtId.toUpperCase();
+    const district = STATES_UTS.flatMap(s => s.districts).find(d => d.code === districtCode);
+    if (!district) return res.status(404).json({ error: 'Unknown district.' });
+
+    const schools = await dbStore.getSchools();
+    const blockCodes = Array.from(new Set(
+      schools.filter(s => s.districtCode === districtCode).map(s => s.blockCode)
+    )).sort();
+
+    res.json(blockCodes.map(code => {
+      const blockNum = parseInt(code.split('_').pop() || '0', 10);
+      return { id: code, name: `${district.name} Block ${blockNum}`, districtId: districtCode };
+    }));
+  });
+
+  app.get('/api/schools/by-block/:blockId', async (req, res) => {
+    const blockCode = req.params.blockId.toUpperCase();
+    const schools = await dbStore.getSchools();
+    res.json(schools.filter(s => s.blockCode === blockCode));
+  });
+
+  app.post('/api/teachers', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || !COORDINATOR_ROLES.includes(user.role)) {
+      return res.status(403).json({ error: 'Forbidden. Coordinator role required.' });
+    }
+
+    const { firstName, lastName, email, phoneNumber, password, school } = req.body;
+    if (!firstName || !lastName || !email || !password || !school) {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    if (password.length < 8 || !hasUppercase || !hasNumber || !hasSpecial) {
+      return res.status(400).json({ error: 'Password does not meet complexity requirements. Must be >= 8 chars and contain uppercase, digit, and special char.' });
+    }
+
+    const schools = await dbStore.getSchools();
+    const targetSchool = schools.find(s => s.id.toLowerCase() === String(school).toLowerCase());
+    if (!targetSchool) return res.status(400).json({ error: 'Unknown school.' });
+
+    const users = await dbStore.getUsers();
+    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+      return res.status(400).json({ error: 'User with this email already exists.' });
+    }
+
+    const teacherId = 'u_' + Math.random().toString(36).substr(2, 9);
+    const newTeacher: User = {
+      id: teacherId,
+      name: `${firstName} ${lastName}`,
+      email: email.toLowerCase(),
+      role: UserRole.TEACHER,
+      passwordHash: await bcrypt.hash(password, 10),
+      phoneNumber: phoneNumber || undefined,
+      stateCode: targetSchool.stateCode,
+      districtCode: targetSchool.districtCode,
+      blockCode: targetSchool.blockCode,
+      schoolId: targetSchool.id,
+    };
+
+    await dbStore.addUser(newTeacher);
+
+    await dbStore.addLog({
+      id: 'log_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      schoolId: targetSchool.id,
+      schoolName: targetSchool.name,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'verify',
+      status: 'Success',
+      details: `Coordinator registered teacher: ${newTeacher.name} at ${targetSchool.name}`,
+    });
+
+    res.json({
+      success: true,
+      message: 'Teacher registered successfully.',
+      data: { teacherId, firstName, lastName, email: newTeacher.email },
+    });
   });
 
   // Schools
