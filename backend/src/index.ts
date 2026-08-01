@@ -383,6 +383,42 @@ async function startServer() {
     res.json(schools.filter(s => s.blockCode === blockCode));
   });
 
+  app.get('/api/teachers', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (![UserRole.SCHOOL, UserRole.BLOCK_ADMIN, UserRole.SUPERADMIN].includes(user.role)) {
+      return res.status(403).json({ error: 'Forbidden.' });
+    }
+
+    const [users, schools, classes, students] = await Promise.all([
+      dbStore.getUsers(),
+      dbStore.getSchools(),
+      dbStore.getClasses(),
+      dbStore.getStudents(),
+    ]);
+    const schoolById = new Map(schools.map(s => [s.id, s]));
+
+    let teachers = users.filter(u => u.role === UserRole.TEACHER);
+    if (user.role === UserRole.SCHOOL) {
+      teachers = teachers.filter(t => t.schoolId === user.schoolId);
+    } else if (user.role === UserRole.BLOCK_ADMIN) {
+      teachers = teachers.filter(t => schoolById.get(t.schoolId || '')?.blockCode === user.blockCode);
+    }
+
+    const enriched = teachers.map(t => {
+      const teacherClasses = classes.filter(c => c.teacherId === t.id);
+      const studentsCount = students.filter(s => s.teacherId === t.id).length;
+      return {
+        ...sanitizeUser(t),
+        classes: teacherClasses.map(c => `${c.className} ${c.section}`),
+        studentsCount,
+        status: t.isBanned ? 'Inactive' : 'Active',
+      };
+    });
+
+    res.json(enriched);
+  });
+
   app.post('/api/teachers', async (req, res) => {
     const user = getAuthUser(req);
     if (!user || !COORDINATOR_ROLES.includes(user.role)) {
