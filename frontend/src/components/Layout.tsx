@@ -5,6 +5,7 @@ import {
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
   School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound,   Clock
 } from 'lucide-react';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface NavigationItem {
   name: string;
@@ -332,6 +333,10 @@ export const Layout: React.FC<LayoutProps> = ({
 
         {/* Topbar Right Section */}
         <div className="flex items-center gap-4">
+          {/* Language Switcher — dashboard nav labels remain English for now;
+              see i18n/translations.ts for the keys already wired to Landing/Login. */}
+          <LanguageSwitcher />
+
           {/* Database Storage Status (MongoDB Only) */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-xs font-mono font-bold shrink-0">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />

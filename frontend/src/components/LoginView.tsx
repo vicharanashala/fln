@@ -7,6 +7,8 @@ import { apiFetch } from '../services/apiClient';
 import React, { useState } from 'react';
 import { Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
 import { User, UserRole } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface LoginViewProps {
   onLoginSuccess: (token: string, user: User) => void;
@@ -14,6 +16,7 @@ interface LoginViewProps {
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHome }) => {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -68,6 +71,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
       {/* Container with neutral double border design */}
       <div className="w-full max-w-lg rounded-xl border-t-8 border-t-indigo-700 dark:border-t-indigo-600 border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 shadow-md dark:shadow-slate-950/50 transition-all">
 
+        <div className="flex justify-end mb-2">
+          <LanguageSwitcher />
+        </div>
+
         {/* Branding header */}
         <div className="flex flex-col items-center text-center">
           {/* Authentic Ashoka Pillar Emblem Visual Representation */}
@@ -77,13 +84,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
             </svg>
           </div>
           <h2 className="mt-4 text-xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-2xl uppercase">
-            FLN Portal Login
+            {t('login.title')}
           </h2>
           <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            Foundational Literacy and Numeracy (FLN) assessment scheme
+            {t('login.subtitle')}
           </p>
           <span className="mt-2 inline-block rounded bg-amber-100 dark:bg-amber-950/40 px-3 py-1 text-[10px] font-extrabold text-amber-800 dark:text-amber-400 uppercase tracking-widest border border-amber-200 dark:border-amber-800">
-            AUTHORIZED DEPARTMENTAL SIGN-IN
+            {t('login.badge')}
           </span>
         </div>
 
@@ -93,13 +100,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
           {/* User Email or Username input */}
           <div className="space-y-1.5">
             <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-              Official Email Address / SSO Username
+              {t('login.emailLabel')}
             </label>
             <input
               type="email"
               required
               className="w-full rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 text-sm text-slate-950 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-indigo-700 dark:focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-700 dark:focus:ring-indigo-500 font-medium"
-              placeholder="enter mail or username"
+              placeholder={t('login.emailPlaceholder')}
               value={email}
               onChange={e => setEmail(e.target.value)}
             />
@@ -108,7 +115,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
           {/* User Password input */}
           <div className="space-y-1.5">
             <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-              Official Access Password
+              {t('login.passwordLabel')}
             </label>
             <div className="relative">
               <input
@@ -143,7 +150,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
             disabled={loading}
             className="flex w-full items-center justify-center rounded-lg bg-indigo-700 dark:bg-indigo-800 py-3.5 text-xs font-extrabold text-white shadow-md dark:shadow-slate-950/50 transition-all duration-150 hover:bg-indigo-600 dark:hover:bg-indigo-700 border border-indigo-300 dark:border-indigo-700 active:scale-[0.98] disabled:opacity-50 uppercase tracking-widest cursor-pointer font-mono"
           >
-            {loading ? 'Verifying Digital Certificate Signature...' : 'Secure Sign In'}
+            {loading ? t('login.submitting') : t('login.submit')}
           </button>
         </form>
 
@@ -174,7 +181,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
           className="mt-6 flex w-full items-center justify-center gap-1.5 text-xs font-extrabold text-indigo-700 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:underline uppercase tracking-wider"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Public Information Portal
+          {t('login.back')}
         </button>
 
         {/* Legal Disclaimer Tag */}

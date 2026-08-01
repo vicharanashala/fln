@@ -6,6 +6,8 @@ import { apiFetch } from '../services/apiClient';
 
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface LandingViewProps {
   onNavigateToLogin: () => void;
@@ -22,6 +24,7 @@ interface Stats {
 }
 
 export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) => {
+  const { t } = useLanguage();
   const [fontSize, setFontSize] = useState(100);
   const [stats, setStats] = useState<Stats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -62,11 +65,11 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
   }, []);
 
   const statCards = [
-    { label: 'States & Districts', value: stats ? `${stats.totalStates} States / ${stats.totalDistricts} Districts` : null, desc: 'Across India', icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
-    { label: 'Registered Schools', value: stats?.totalSchools?.toLocaleString() ?? null, desc: 'Active institutions', icon: BookOpen, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
-    { label: 'Students Tracked', value: stats?.totalStudents?.toLocaleString() ?? null, desc: 'Enrolled learners', icon: Users, color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' },
-    { label: 'Assessments Conducted', value: stats?.totalAssessments?.toLocaleString() ?? null, desc: 'Worksheets generated', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40' },
-    { label: 'National Avg FLN Level', value: stats ? `L${stats.avgFlnLevel}` : null, desc: 'Average student level', icon: Award, color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' },
+    { label: t('landing.stat.statesDistricts'), value: stats ? `${stats.totalStates} States / ${stats.totalDistricts} Districts` : null, desc: t('landing.stat.statesDistrictsDesc'), icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
+    { label: t('landing.stat.registeredSchools'), value: stats?.totalSchools?.toLocaleString() ?? null, desc: t('landing.stat.registeredSchoolsDesc'), icon: BookOpen, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
+    { label: t('landing.stat.studentsTracked'), value: stats?.totalStudents?.toLocaleString() ?? null, desc: t('landing.stat.studentsTrackedDesc'), icon: Users, color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' },
+    { label: t('landing.stat.assessmentsConducted'), value: stats?.totalAssessments?.toLocaleString() ?? null, desc: t('landing.stat.assessmentsConductedDesc'), icon: BarChart3, color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40' },
+    { label: t('landing.stat.nationalFlnScore'), value: stats ? `L${stats.avgFlnLevel}` : null, desc: t('landing.stat.nationalFlnScoreDesc'), icon: Award, color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' },
   ];
 
   return (
@@ -75,9 +78,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
       {/* 1. Accessibility / Top strip (neutral branding) */}
       <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <span className="font-bold">FLN Portal</span>
+          <span className="font-bold">{t('portal.name')}</span>
           <span className="text-gray-500">|</span>
-          <span className="text-gray-300 hidden sm:inline">Foundational Literacy & Numeracy</span>
+          <span className="text-gray-300 hidden sm:inline">{t('portal.tagline')}</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold">
@@ -86,16 +89,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
             <button onClick={() => adjustFontSize(10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Increase font size">A+</button>
           </div>
           <span className="text-gray-700 dark:text-gray-400">|</span>
-          <select
-            defaultValue="en"
-            onChange={(e) => {
-              if (e.target.value === 'hi') alert("हिन्दी भाषा में बदलें");
-            }}
-            className="bg-gray-800 text-gray-300 text-[10px] md:text-xs font-bold border border-gray-700 rounded px-2 py-1 outline-none hover:border-gray-500 cursor-pointer"
-          >
-            <option value="en">English</option>
-            <option value="hi">हिन्दी</option>
-          </select>
+          <LanguageSwitcher variant="dark" />
         </div>
       </div>
 
@@ -112,14 +106,14 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
             <div className="border-l-2 border-slate-200 dark:border-slate-700 pl-3">
               <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
                 <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white uppercase">
-                  FLN Portal
+                  {t('portal.name')}
                 </span>
                 <span className="rounded-full bg-amber-100 dark:bg-amber-950/40 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
                   Official Portal
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">
-                Foundational Literacy & Numeracy initiative
+                {t('portal.tagline')} initiative
               </p>
             </div>
           </div>
@@ -128,7 +122,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
               onClick={onNavigateToLogin}
               className="rounded-lg bg-indigo-700 dark:bg-indigo-800 px-6 py-2.5 text-xs font-extrabold text-white shadow-md dark:shadow-slate-950/50 transition-all duration-150 hover:bg-indigo-600 dark:hover:bg-indigo-700 border border-indigo-300 dark:border-indigo-700 active:scale-[0.98] uppercase tracking-wider"
             >
-              Sign In to Dashboard
+              {t('landing.signIn')}
             </button>
           </div>
         </div>
@@ -143,14 +137,14 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
           
           <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 dark:bg-amber-950/40 px-4 py-1.5 text-xs font-bold text-slate-900 dark:text-white mb-6 border border-amber-200 dark:border-amber-800">
             <span className="h-2 w-2 rounded-full bg-amber-600 dark:bg-amber-500" />
-            <span>Foundational Literacy and Numeracy (FLN) National Assessment Scheme</span>
+            <span>{t('landing.heroBadge')}</span>
           </div>
 
           <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl max-w-4xl mx-auto leading-tight">
-            Foundational Literacy and Numeracy (FLN) Assessment & Grader
+            {t('landing.heroTitle')}
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-base text-slate-600 dark:text-slate-300 leading-relaxed">
-            A state-of-the-art adaptive evaluation, diagnostics, and customized diagnostic worksheet pipeline. Empowering district admin teams, school principals, teachers, and field-level volunteers to elevate primary student learning outcomes under NEP guidelines.
+            {t('landing.heroSubtitle')}
           </p>
 
         </div>
@@ -192,18 +186,18 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             <div>
               <h3 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                Our Vision
+                {t('landing.vision.title')}
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-slate-300">
-                To enable all children of Class 3/4 to read with comprehension and write, perform basic mathematical operations, and acquire foundational math skills by providing them with customized assessments and remedial worksheets.
+                {t('landing.vision.body')}
               </p>
             </div>
             <div>
               <h3 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                Curriculum Integration
+                {t('landing.curriculum.title')}
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-slate-300">
-                Our unified model defines 59 cumulative proficiency levels mapped precisely to Class 1, 2, 3, and 4 standards across foundational numeracy strands. Utilizing a specialized evaluation system, we generate diagnostic assessments on demand to pinpoint students' exact gaps.
+                {t('landing.curriculum.body')}
               </p>
             </div>
           </div>
