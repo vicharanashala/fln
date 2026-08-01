@@ -1673,6 +1673,42 @@ async function startServer() {
     res.json({ submission, report, evaluation });
   });
 
+  // Bulk evaluation reports, scoped identically to GET /api/students (§14).
+  app.get('/api/evaluation/reports', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const [reports, students, schools] = await Promise.all([
+      dbStore.getEvaluationReports(),
+      dbStore.getStudents(),
+      dbStore.getSchools(),
+    ]);
+
+    if (user.role === UserRole.SUPERADMIN) {
+      return res.json(reports);
+    }
+
+    let scopedStudentIds: Set<string>;
+    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+      scopedStudentIds = new Set(students.filter(s => s.schoolId === user.schoolId).map(s => s.id));
+    } else if (user.role === UserRole.VOLUNTEER) {
+      scopedStudentIds = new Set(students.filter(s => user.assignedSchools?.includes(s.schoolId)).map(s => s.id));
+    } else if (user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
+      const schoolById = new Map(schools.map(sc => [sc.id, sc]));
+      scopedStudentIds = new Set(students.filter(s => {
+        const school = schoolById.get(s.schoolId);
+        if (!school) return false;
+        if (user.role === UserRole.ADMIN) return school.stateCode === user.stateCode;
+        if (user.role === UserRole.DISTRICT_ADMIN) return school.districtCode === user.districtCode;
+        return school.blockCode === user.blockCode; // BLOCK_ADMIN
+      }).map(s => s.id));
+    } else {
+      scopedStudentIds = new Set(students.map(s => s.id));
+    }
+
+    res.json(reports.filter(r => scopedStudentIds.has(r.studentId)));
+  });
+
   // Evaluation History
   app.get('/api/evaluation/:studentId/history', async (req, res) => {
     const reps = await dbStore.getEvaluationReports();
