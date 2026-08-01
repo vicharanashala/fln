@@ -572,30 +572,47 @@ async function startServer() {
       return masked;
     });
 
+    let scoped: typeof maskedStudents;
     if (user.role === UserRole.SUPERADMIN) {
-      return res.json(students);
-    }
-    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
-      return res.json(maskedStudents.filter(s => s.schoolId === user.schoolId));
-    }
-    if (user.role === UserRole.VOLUNTEER) {
-      return res.json(maskedStudents.filter(s => user.assignedSchools?.includes(s.schoolId)));
-    }
-    if (user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
+      scoped = students;
+    } else if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+      scoped = maskedStudents.filter(s => s.schoolId === user.schoolId);
+    } else if (user.role === UserRole.VOLUNTEER) {
+      scoped = maskedStudents.filter(s => user.assignedSchools?.includes(s.schoolId));
+    } else if (user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
       // Geo-scope by the admin's own state/district/block, joined via each student's school.
       const schools = await dbStore.getSchools();
       const schoolById = new Map(schools.map(sc => [sc.id, sc]));
-      const geoFiltered = maskedStudents.filter(s => {
+      scoped = maskedStudents.filter(s => {
         const school = schoolById.get(s.schoolId);
         if (!school) return false;
         if (user.role === UserRole.ADMIN) return school.stateCode === user.stateCode;
         if (user.role === UserRole.DISTRICT_ADMIN) return school.districtCode === user.districtCode;
         return school.blockCode === user.blockCode; // BLOCK_ADMIN
       });
-      return res.json(geoFiltered);
+    } else {
+      scoped = maskedStudents;
     }
 
-    res.json(maskedStudents);
+    // Pagination is opt-in via ?page & ?limit — omitting them returns the full
+    // scoped array exactly as before, so existing callers (aggregate/rollup
+    // panels that need the whole scope) are unaffected. Callers that just need
+    // a page to display (the Student List table) can request one directly
+    // instead of always paying for the full national fetch.
+    const pageParam = req.query.page as string | undefined;
+    const limitParam = req.query.limit as string | undefined;
+    if (pageParam || limitParam) {
+      const page = Math.max(1, parseInt(pageParam || '1', 10) || 1);
+      const limit = Math.max(1, Math.min(500, parseInt(limitParam || '50', 10) || 50));
+      const total = scoped.length;
+      const start = (page - 1) * limit;
+      res.set('X-Total-Count', String(total));
+      res.set('X-Page', String(page));
+      res.set('X-Pages', String(Math.max(1, Math.ceil(total / limit))));
+      return res.json(scoped.slice(start, start + limit));
+    }
+
+    res.json(scoped);
   });
 
   // Add Student
