@@ -12,6 +12,11 @@ interface PanelViewsProps {
   token: string;
 }
 
+// Panels that render without ever reading the `students` variable — skipping
+// the fetch on these avoids an up-to-86,400-record national payload on
+// screens that don't display any student data.
+const STUDENTS_NOT_NEEDED_PANELS = new Set(['users', 'worksheet_templates', 'content', 'system_settings']);
+
 const STUDENTS_FALLBACK: Student[] = [
   { id: 's1', name: 'Amanpreet Singh', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 12, currentSubLevel: 0, targetLevel: 13, aadharMasked: 'XXXX-XXXX-1234', levelHistory: [{ level: 12, subLevel: 0, date: '2026-03-15', reason: 'Diagnostic' }], streak: 3 },
   { id: 's2', name: 'Jasmine Kaur', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 8, currentSubLevel: 1, targetLevel: 12, aadharMasked: 'XXXX-XXXX-5678', levelHistory: [{ level: 8, subLevel: 1, date: '2026-02-20', reason: 'Mid-year' }], streak: 1 },
@@ -210,10 +215,20 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${token}` };
-    apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
     apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
     apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
   }, [token]);
+
+  // GET /api/students returns the caller's whole role-scoped list — up to
+  // 86,400 records nationally for Superadmin — so skip it entirely on the
+  // handful of Superadmin-only panels that never read `students` at all
+  // (verified by grepping for the identifier in each branch below).
+  useEffect(() => {
+    if (apiStudents.length > 0) return;
+    if (STUDENTS_NOT_NEEDED_PANELS.has(activePanel)) return;
+    const headers = { 'Authorization': `Bearer ${token}` };
+    apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
+  }, [token, activePanel, apiStudents.length]);
 
   const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
