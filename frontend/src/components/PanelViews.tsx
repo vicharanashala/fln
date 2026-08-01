@@ -65,19 +65,6 @@ const USERS_FALLBACK = [
   { name: 'Rahul Kumar', email: 'vol.rahul@fln.org', role: 'Volunteer', scope: 'Moga Villages', status: 'Active' },
 ];
 
-const QUESTION_BANK = [
-  { id: 'QB-001', topic: 'Number Sense', level: 4, question: 'Count the number of apples: 🍎🍎🍎🍎', type: 'MCQ', difficulty: 'Easy' },
-  { id: 'QB-002', topic: 'Number Sense', level: 8, question: 'What comes after 15?', type: 'Text', difficulty: 'Easy' },
-  { id: 'QB-003', topic: 'Addition', level: 12, question: 'What is 7 + 5?', type: 'Number', difficulty: 'Easy' },
-  { id: 'QB-004', topic: 'Subtraction', level: 16, question: 'What is 23 - 8?', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-005', topic: 'Multiplication', level: 41, question: 'What is 6 × 7?', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-006', topic: 'Division', level: 42, question: 'Divide 24 by 6', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-007', topic: 'Fractions', level: 45, question: 'Which is larger: 1/2 or 1/4?', type: 'MCQ', difficulty: 'Hard' },
-  { id: 'QB-008', topic: 'Place Value', level: 36, question: 'What is the value of 7 in 372?', type: 'Text', difficulty: 'Medium' },
-  { id: 'QB-009', topic: 'Measurement', level: 43, question: 'How many cm in 1 meter?', type: 'Number', difficulty: 'Easy' },
-  { id: 'QB-010', topic: 'Money', level: 46, question: 'You have ₹50. You buy a toy for ₹35. How much change?', type: 'Number', difficulty: 'Hard' },
-];
-
 const WS_TEMPLATES = [
   { id: 'WST-001', name: 'Baseline Assessment L1-L5', grade: 'Preschool 1-2', questions: 8, duration: '30 min', status: 'Published' },
   { id: 'WST-002', name: 'Number Sense L6-L11', grade: 'Class 1', questions: 10, duration: '45 min', status: 'Published' },
