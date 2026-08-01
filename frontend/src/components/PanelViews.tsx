@@ -114,36 +114,6 @@ const ATTENDANCE_MOCK = [
   { student: 'Simran Kaur', class: 'Class 1-A', present: 41, total: 45, percentage: 91 },
 ];
 
-const DISTRICTS = [
-  { code: 'LDH', name: 'Ludhiana', state: 'PB', schools: 3, students: 120, certifiedRate: 68 },
-  { code: 'MOG', name: 'Moga', state: 'PB', schools: 1, students: 28, certifiedRate: 45 },
-  { code: 'BTH', name: 'Bathinda', state: 'PB', schools: 1, students: 35, certifiedRate: 72 },
-  { code: 'ASR', name: 'Amritsar', state: 'PB', schools: 1, students: 30, certifiedRate: 60 },
-  { code: 'AMB', name: 'Ambala', state: 'HR', schools: 2, students: 65, certifiedRate: 55 },
-  { code: 'PKL', name: 'Panchkula', state: 'HR', schools: 1, students: 30, certifiedRate: 80 },
-  { code: 'JAI', name: 'Jaipur', state: 'RJ', schools: 2, students: 55, certifiedRate: 50 },
-  { code: 'UDA', name: 'Udaipur', state: 'RJ', schools: 1, students: 25, certifiedRate: 40 },
-  { code: 'LKO', name: 'Lucknow', state: 'UP', schools: 2, students: 48, certifiedRate: 62 },
-  { code: 'KNP', name: 'Kanpur', state: 'UP', schools: 1, students: 32, certifiedRate: 56 },
-];
-
-const BLOCKS = [
-  { code: 'LDH-01', district: 'LDH', schools: 2, students: 70, certifiedRate: 71 },
-  { code: 'LDH-02', district: 'LDH', schools: 1, students: 22, certifiedRate: 45 },
-  { code: 'MOG-01', district: 'MOG', schools: 1, students: 28, certifiedRate: 45 },
-  { code: 'BTH-01', district: 'BTH', schools: 1, students: 35, certifiedRate: 72 },
-  { code: 'ASR-01', district: 'ASR', schools: 1, students: 30, certifiedRate: 60 },
-  { code: 'AMB-01', district: 'AMB', schools: 1, students: 35, certifiedRate: 60 },
-  { code: 'AMB-02', district: 'AMB', schools: 1, students: 30, certifiedRate: 50 },
-  { code: 'PKL-01', district: 'PKL', schools: 1, students: 30, certifiedRate: 80 },
-  { code: 'JAI-01', district: 'JAI', schools: 1, students: 30, certifiedRate: 55 },
-  { code: 'JAI-02', district: 'JAI', schools: 1, students: 25, certifiedRate: 45 },
-  { code: 'UDA-01', district: 'UDA', schools: 1, students: 25, certifiedRate: 40 },
-  { code: 'LKO-01', district: 'LKO', schools: 1, students: 28, certifiedRate: 65 },
-  { code: 'LKO-02', district: 'LKO', schools: 1, students: 20, certifiedRate: 58 },
-  { code: 'KNP-01', district: 'KNP', schools: 1, students: 32, certifiedRate: 56 },
-];
-
 const CONTENT_ITEMS = [
   { id: 'c1', title: 'Number Line 1-10', type: 'Visual Aid', level: 'L1-L4', language: 'English, Punjabi', status: 'Approved' },
   { id: 'c2', title: 'Addition with Objects', type: 'Lesson Plan', level: 'L7-L12', language: 'English, Hindi', status: 'Approved' },
@@ -218,6 +188,44 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
   const usersList = apiUsers.length > 0 ? apiUsers : USERS_FALLBACK;
+
+  // Real per-district / per-block rollups, derived from the already-fetched
+  // schools + students (no dedicated aggregation endpoint exists).
+  const getDistrictStats = (stateCode: string) => {
+    const stateSchools = schools.filter(s => s.stateCode === stateCode);
+    const codes: string[] = Array.from(new Set(stateSchools.map(s => s.districtCode)));
+    return codes.map(code => {
+      const distSchools = stateSchools.filter(s => s.districtCode === code);
+      const distStudents = students.filter(st => distSchools.some(s => s.id === st.schoolId));
+      const certified = distStudents.filter(st => st.currentLevel >= 5).length;
+      return {
+        code,
+        name: DISTRICT_NAMES[code] || code,
+        state: stateCode,
+        schools: distSchools.length,
+        students: distStudents.length,
+        certifiedRate: distStudents.length > 0 ? Math.round((certified / distStudents.length) * 100) : 0,
+      };
+    });
+  };
+
+  const getBlockStats = (districtCode: string) => {
+    const distSchools = schools.filter(s => s.districtCode === districtCode);
+    const codes: string[] = Array.from(new Set(distSchools.map(s => s.blockCode)));
+    return codes.map(code => {
+      const blockSchools = distSchools.filter(s => s.blockCode === code);
+      const blockStudents = students.filter(st => blockSchools.some(s => s.id === st.schoolId));
+      const certified = blockStudents.filter(st => st.currentLevel >= 5).length;
+      return {
+        code,
+        name: BLOCK_NAMES[code] || code,
+        district: districtCode,
+        schools: blockSchools.length,
+        students: blockStudents.length,
+        certifiedRate: blockStudents.length > 0 ? Math.round((certified / blockStudents.length) * 100) : 0,
+      };
+    });
+  };
 
   useEffect(() => {
     if (students.length > 0 && !sel) {
@@ -1094,7 +1102,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     if (isStateAdmin) {
       const userState = currentUser.stateCode || 'PB';
       const stateSchools = schools.filter(s => s.stateCode === userState);
-      const stateDistricts = [...new Set(stateSchools.map(s => s.districtCode))];
+      const stateDistricts = Array.from(new Set(stateSchools.map(s => s.districtCode))) as string[];
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1112,7 +1120,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                 <div key={dc}>
                   <button onClick={() => setExpandedDistRpt(isExpanded ? null : dc)} className={`w-full flex items-center gap-3 p-3 border rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${isExpanded ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950' : 'border-slate-100 dark:border-slate-700'}`}>
                     <span className="font-bold text-sm w-16">{dc}</span>
-                    <span className="text-sm flex-1">{DISTRICTS.find(d => d.code === dc)?.name || dc}</span>
+                    <span className="text-sm flex-1">{DISTRICT_NAMES[dc] || dc}</span>
                     <span className="text-xs text-slate-500 dark:text-slate-400">{distSchools.length} schools</span>
                     <ChevronDown className={`w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </button>
@@ -1370,7 +1378,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'districts') {
     const userState = currentUser.stateCode || 'PB';
-    const stateDistricts = DISTRICTS.filter(d => d.state === userState);
+    const stateDistricts = getDistrictStats(userState);
     const distSchools = expandedDist ? schools.filter(s => s.districtCode === expandedDist) : [];
     return (
       <div className="space-y-6">
@@ -1378,7 +1386,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           <MetricCard title="State Districts" value={stateDistricts.length} subtext={`${userState} jurisdiction`} icon={MapPin} />
           <MetricCard title="Total Schools" value={stateDistricts.reduce((a, d) => a + d.schools, 0)} subtext="Registered facilities" icon={SchoolIcon} />
           <MetricCard title="Total Students" value={stateDistricts.reduce((a, d) => a + d.students, 0)} subtext="Across all districts" icon={Users} />
-          <MetricCard title="Avg Certification" value={`${Math.round(stateDistricts.reduce((a, d) => a + d.certifiedRate, 0) / stateDistricts.length)}%`} subtext="State weighted average" icon={Award} />
+          <MetricCard title="Avg Certification" value={stateDistricts.length > 0 ? `${Math.round(stateDistricts.reduce((a, d) => a + d.certifiedRate, 0) / stateDistricts.length)}%` : '—'} subtext="State weighted average" icon={Award} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1452,12 +1460,14 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'blocks') {
+    const userDistrict = currentUser.districtCode || '';
+    const districtBlocks = getBlockStats(userDistrict);
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Block Administration" desc="All blocks under your district jurisdiction" icon={<MapPin className="h-5 w-5" />} />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{BLOCKS.map(b => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{districtBlocks.map(b => (
           <div key={b.code} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between"><span className="font-bold text-sm">{b.code}</span><span className="text-xs text-slate-400 dark:text-slate-500">Dist: {b.district}</span></div>
+            <div className="flex justify-between"><span className="font-bold text-sm">{b.name}</span><span className="text-xs text-slate-400 dark:text-slate-500">Dist: {DISTRICT_NAMES[b.district] || b.district}</span></div>
             <div className="flex gap-4 text-xs"><span>🏫 {b.schools} schools</span><span>👨‍🎓 {b.students} students</span></div>
             <div><div className="flex justify-between text-[10px] mb-0.5"><span>Certification</span><span>{b.certifiedRate}%</span></div><div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${b.certifiedRate}%` }} /></div></div>
           </div>
@@ -1569,7 +1579,10 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'analytics') {
     const isAdmin = [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(currentUser.role);
-    const data = isAdmin ? DISTRICTS : schools;
+    let data: any[] = schools;
+    if (currentUser.role === UserRole.ADMIN) data = getDistrictStats(currentUser.stateCode || '');
+    else if (currentUser.role === UserRole.DISTRICT_ADMIN) data = getBlockStats(currentUser.districtCode || '');
+    else if (currentUser.role === UserRole.BLOCK_ADMIN) data = schools.filter(s => s.blockCode === currentUser.blockCode);
     const title = isAdmin ? 'Geographical Analytics' : 'Performance Analytics';
     const desc = isAdmin ? 'Cross-regional performance metrics and benchmarking' : 'School-level performance data and trends';
     return (
