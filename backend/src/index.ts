@@ -3,12 +3,14 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS } from './geoData';
+import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN } from './auth';
+import { registerAnnouncementRoutes } from './routes/announcements';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
@@ -24,19 +26,6 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 // a sibling of backend/). Both overridable by env for non-standard deployments.
 const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 const AI_SERVICES_DIR = process.env.AI_SERVICES_DIR || path.resolve(ROOT_DIR, '..', 'ai-services');
-
-// --- Auth config (signed JWTs) ---
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-if (JWT_SECRET === 'dev-insecure-secret-change-me' && process.env.NODE_ENV === 'production') {
-  console.warn('[auth] WARNING: JWT_SECRET is unset in production — set it to a strong random value.');
-}
-
-// Strip fields that must never be sent to clients (e.g. the bcrypt password hash).
-function sanitizeUser(user: User): Omit<User, 'passwordHash'> {
-  const { passwordHash, ...safe } = user;
-  return safe;
-}
 
 // Throttle auth endpoints to slow down brute-force / credential-stuffing attempts.
 const authRateLimiter = rateLimit({
@@ -60,48 +49,6 @@ async function startServer() {
   // Serve Puppeteer output PDF sheets statically
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
   app.use('/worksheets', express.static(path.join(ROOT_DIR, 'public', 'worksheets')));
-  // --- Auth Middleware & Helper ---
-  // Verifies the signed JWT issued by /api/auth/login and resolves the current user
-  // from the database. There is deliberately NO role synthesis from the email/prefix:
-  // only real, seeded users with a valid signed token authenticate.
-  function getAuthUser(req: express.Request): User | null {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return null;
-    const token = authHeader.replace('Bearer ', '').trim();
-    if (!token) return null;
-
-    let payload: { email?: string };
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { email?: string };
-    } catch {
-      return null; // invalid signature or expired token
-    }
-    if (!payload?.email) return null;
-
-    return dbStore.getUserSync(payload.email);
-  }
-
-  // Authorization check for by-ID student endpoints (PATCH/diagnostic/diagnostic-submit).
-  // Mirrors the scoping already applied to GET /api/students' list filtering, so a
-  // teacher/volunteer/school user can't act on a student outside their own school(s)
-  // by guessing/enumerating IDs (IDOR). Superadmin/state/district/block admins keep
-  // their existing broad access — restricting THAT scope is a separate, tracked fix.
-  function canAccessStudent(user: User, student: Student): boolean {
-    switch (user.role) {
-      case UserRole.SUPERADMIN:
-      case UserRole.ADMIN:
-      case UserRole.DISTRICT_ADMIN:
-      case UserRole.BLOCK_ADMIN:
-        return true;
-      case UserRole.SCHOOL:
-      case UserRole.TEACHER:
-        return student.schoolId === user.schoolId;
-      case UserRole.VOLUNTEER:
-        return user.assignedSchools?.includes(student.schoolId) ?? false;
-      default:
-        return false;
-    }
-  }
 
   // --- API Endpoints ---
 
@@ -180,44 +127,7 @@ async function startServer() {
     return res.json({ user: sanitizeUser(user) });
   });
 
-  // Announcements
-  app.get('/api/announcements', async (req, res) => {
-    const anns = await dbStore.getAnnouncements();
-    res.json(anns);
-  });
-
-  app.post('/api/announcements/create', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user || user.role !== UserRole.SUPERADMIN) {
-      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
-    }
-    const { title, message, isUrgent } = req.body;
-    const newAnn: Announcement = {
-      id: 'ann_' + Date.now(),
-      title,
-      message,
-      isUrgent: !!isUrgent,
-      authorEmail: user.email,
-      createdAt: new Date().toISOString()
-    };
-    await dbStore.addAnnouncement(newAnn);
-
-    // Logging
-    await dbStore.addLog({
-      id: 'log_' + Date.now(),
-      timestamp: new Date().toISOString(),
-      schoolId: '',
-      schoolName: 'National Framework',
-      userId: user.id,
-      userEmail: user.email,
-      userRole: user.role,
-      activityType: 'ticket',
-      status: 'Success',
-      details: `Created announcement: ${title}`
-    });
-
-    res.json(newAnn);
-  });
+  registerAnnouncementRoutes(app);
 
   // Tickets (In-App Feedback)
   app.get('/api/tickets', async (req, res) => {
