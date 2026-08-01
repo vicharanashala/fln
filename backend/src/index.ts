@@ -717,6 +717,51 @@ async function startServer() {
     });
   });
 
+  // Lightweight, non-PDF practice question set for gamified in-class practice.
+  // Unlike /diagnostic, this never touches Puppeteer/PDF generation and never
+  // mutates the official assessment-cycle streak/level fields — it's a fast,
+  // teacher-facilitated activity a student can run between the three fixed
+  // assessment cycles (SRS §1.2), using the same level generator as worksheets
+  // so the difficulty always matches the student's real current placement.
+  app.get('/api/students/:id/practice', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const students = await dbStore.getStudents();
+    const student = students.find(s => s.id === req.params.id);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
+
+    // Optional ?topic= lets the UI target a specific weak area surfaced in the
+    // "Recommended Focus Areas" panel instead of a generic mixed set.
+    const topicFilter = typeof req.query.topic === 'string' ? req.query.topic : undefined;
+
+    const level = student.currentLevel;
+    const subLevel = student.currentSubLevel ?? 0;
+
+    let questions = generateQuestionsForLevel(level, subLevel);
+    if (topicFilter) {
+      const filtered = questions.filter(q => q.topic === topicFilter);
+      if (filtered.length > 0) questions = filtered;
+    }
+
+    // Re-tag ids per request so replaying the same level never collides with
+    // a prior session's question_id in client-side tracking.
+    questions = questions.map((q, idx) => ({
+      ...q,
+      question_id: `PRACTICE_${student.id}_${level}_${subLevel}_${idx}_${Date.now()}`
+    }));
+
+    res.json({
+      studentId: student.id,
+      studentName: student.name,
+      level,
+      subLevel,
+      streak: student.streak,
+      questions
+    });
+  });
+
   // Generate multi-student PDF worksheet paper (Puppeteer pipeline)
   app.post('/api/paper/generate', async (req, res) => {
     const user = getAuthUser(req);
