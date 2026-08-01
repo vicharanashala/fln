@@ -1,0 +1,12 @@
+[
+  { "question_id": "QB-001", "question": "Count the number of apples: 🍎🍎🍎🍎", "answer": "4", "answer_type": "choice", "choices": ["2", "3", "4", "5"], "topic": "Number Sense", "subtopic": "Counting", "difficulty": "easy", "source_level": 4 },
+  { "question_id": "QB-002", "question": "What comes after 15?", "answer": "16", "answer_type": "text", "topic": "Number Sense", "subtopic": "Number Sequence", "difficulty": "easy", "source_level": 8 },
+  { "question_id": "QB-003", "question": "What is 7 + 5?", "answer": "12", "answer_type": "number", "topic": "Addition", "subtopic": "Single-Digit Addition", "difficulty": "easy", "source_level": 12 },
+  { "question_id": "QB-004", "question": "What is 23 - 8?", "answer": "15", "answer_type": "number", "topic": "Subtraction", "subtopic": "Two-Digit Subtraction", "difficulty": "medium", "source_level": 16 },
+  { "question_id": "QB-005", "question": "What is 6 × 7?", "answer": "42", "answer_type": "number", "topic": "Multiplication", "subtopic": "Multiplication Tables", "difficulty": "medium", "source_level": 41 },
+  { "question_id": "QB-006", "question": "Divide 24 by 6", "answer": "4", "answer_type": "number", "topic": "Division", "subtopic": "Basic Division", "difficulty": "medium", "source_level": 42 },
+  { "question_id": "QB-007", "question": "Which is larger: 1/2 or 1/4?", "answer": "1/2", "answer_type": "choice", "choices": ["1/2", "1/4"], "topic": "Fractions", "subtopic": "Comparing Fractions", "difficulty": "hard", "source_level": 45 },
+  { "question_id": "QB-008", "question": "What is the value of 7 in 372?", "answer": "70", "answer_type": "text", "topic": "Place Value", "subtopic": "Place Value Identification", "difficulty": "medium", "source_level": 36 },
+  { "question_id": "QB-009", "question": "How many cm in 1 meter?", "answer": "100", "answer_type": "number", "topic": "Measurement", "subtopic": "Unit Conversion", "difficulty": "easy", "source_level": 43 },
+  { "question_id": "QB-010", "question": "You have ₹50. You buy a toy for ₹35. How much change?", "answer": "15", "answer_type": "number", "topic": "Money", "subtopic": "Making Change", "difficulty": "hard", "source_level": 46 }
+]
