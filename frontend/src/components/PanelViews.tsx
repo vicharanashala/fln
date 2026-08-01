@@ -207,17 +207,20 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [apiStudents, setApiStudents] = useState<Student[]>([]);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
+  const [apiReports, setApiReports] = useState<EvaluationReport[]>([]);
 
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${token}` };
     apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
     apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
     apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
+    apiFetch('/api/evaluation/reports', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiReports(d); }).catch(() => {});
   }, [token]);
 
   const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
   const usersList = apiUsers.length > 0 ? apiUsers : USERS_FALLBACK;
+  const reportsList: EvaluationReport[] = apiReports.length > 0 ? apiReports : REPORTS_MOCK;
 
   useEffect(() => {
     if (students.length > 0 && !sel) {
@@ -382,7 +385,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       x.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
+    const reports = reportsList.filter(r => r.studentId === s.id);
     const studentSchool = schools.find(sch => sch.id === s.schoolId);
     const att = ATTENDANCE_MOCK.find(a => a.student === s.name);
     const enrollmentDate = s.levelHistory[0]?.date;
@@ -1098,8 +1101,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <MetricCard title="Total Reports" value={REPORTS_MOCK.length} subtext="All evaluations" icon={FileText} />
-            <MetricCard title="Avg Score" value={`${Math.round(REPORTS_MOCK.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / REPORTS_MOCK.length)}%`} subtext="Across reports" icon={BarChart3} />
+            <MetricCard title="Total Reports" value={reportsList.length} subtext="All evaluations" icon={FileText} />
+            <MetricCard title="Avg Score" value={reportsList.length > 0 ? `${Math.round(reportsList.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reportsList.length)}%` : '—'} subtext="Across reports" icon={BarChart3} />
             <MetricCard title="Schools" value={stateSchools.length} subtext={`In ${userState}`} icon={SchoolIcon} />
             <MetricCard title="Districts" value={stateDistricts.length} subtext="Active jurisdictions" icon={MapPin} />
           </div>
@@ -1120,7 +1123,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                     <div className="ml-6 mt-2 space-y-4 pl-4 border-l-2 border-indigo-200 dark:border-indigo-800">
                       {distSchools.map(sch => {
                         const schStudents = students.filter(st => st.schoolId === sch.id);
-                        const schReports = REPORTS_MOCK.filter(r => schStudents.some(st => st.id === r.studentId));
+                        const schReports = reportsList.filter(r => schStudents.some(st => st.id === r.studentId));
                         const avgScore = schReports.length > 0 ? Math.round(schReports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / schReports.length) : 0;
                         return (
                           <div key={sch.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
@@ -1160,13 +1163,13 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard title="Total Reports" value={REPORTS_MOCK.length} subtext="All evaluations" icon={FileText} />
-          <MetricCard title="Avg Score" value={`${Math.round(REPORTS_MOCK.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / REPORTS_MOCK.length)}%`} subtext="Across reports" icon={BarChart3} />
-          <MetricCard title="Strong Concepts" value={REPORTS_MOCK.reduce((a, r) => a + Object.values(r.conceptMastery).filter(v => v === 'Strong').length, 0)} subtext="Mastered topics" icon={Award} />
+          <MetricCard title="Total Reports" value={reportsList.length} subtext="All evaluations" icon={FileText} />
+          <MetricCard title="Avg Score" value={reportsList.length > 0 ? `${Math.round(reportsList.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reportsList.length)}%` : '—'} subtext="Across reports" icon={BarChart3} />
+          <MetricCard title="Strong Concepts" value={reportsList.reduce((a, r) => a + Object.values(r.conceptMastery).filter(v => v === 'Strong').length, 0)} subtext="Mastered topics" icon={Award} />
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="Evaluation Reports" desc="Detailed assessment narratives and concept mastery breakdowns" />
-          {REPORTS_MOCK.map(r => {
+          {reportsList.map(r => {
             const student = students.find(s => s.id === r.studentId);
             const isExpanded = expandedReportId === r.id;
             
@@ -1290,7 +1293,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'attendance') {
     const examAttendance = students.map(s => {
-      const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
+      const reports = reportsList.filter(r => r.studentId === s.id);
       const examsGiven = reports.length;
       const lastExam = examsGiven > 0 ? new Date(Math.max(...reports.map(r => new Date(r.timestamp).getTime()))).toLocaleDateString() : 'N/A';
       const avgScore = examsGiven > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / examsGiven) : 0;
