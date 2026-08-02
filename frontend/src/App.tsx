@@ -1,4 +1,4 @@
-import { apiFetch } from './services/apiClient';
+import { apiFetch, UNAUTHORIZED_EVENT } from './services/apiClient';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -39,13 +39,14 @@ export default function App() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const checkSession = async () => {
       if (!token) return;
 
       try {
-        const res = await apiFetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch('/api/auth/me');
+        if (cancelled) return;
 
         if (!res.ok) {
           setToken(null);
@@ -55,9 +56,11 @@ export default function App() {
         }
 
         const data = await res.json();
+        if (cancelled) return;
         setCurrentUser(data.user);
         setCurrentView('dashboard');
       } catch {
+        if (cancelled) return;
         setToken(null);
         localStorage.removeItem('fln_token');
         setCurrentView('home');
@@ -65,7 +68,19 @@ export default function App() {
     };
 
     checkSession();
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
+
+  // Centralized session-expiry handling: apiFetch dispatches this event on any
+  // 401 response (from any component), so a mid-session expired/invalid token
+  // logs the user out once here instead of every call site handling it itself.
+  useEffect(() => {
+    const onUnauthorized = () => handleLogout();
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+  }, []);
 
   const handleLoginSuccess = (newToken: string, user: User) => {
     setToken(newToken);
@@ -96,19 +111,19 @@ export default function App() {
   };
 
   const renderRoleWorkspace = () => {
-    if (!currentUser) return null;
+    if (!currentUser || !token) return null;
 
     switch (currentUser.role) {
       case 'superadmin':
-        return <SuperadminDashboard user={currentUser} />;
+        return <SuperadminDashboard user={currentUser} token={token} />;
       case 'admin':
-        return <AdminDashboard user={currentUser} />;
+        return <AdminDashboard user={currentUser} token={token} />;
       case 'school':
-        return <SchoolDashboard user={currentUser} />;
+        return <SchoolDashboard user={currentUser} token={token} />;
       case 'teacher':
-        return <TeacherDashboard user={currentUser} />;
+        return <TeacherDashboard user={currentUser} token={token} />;
       case 'volunteer':
-        return <VolunteerDashboard user={currentUser} />;
+        return <VolunteerDashboard user={currentUser} token={token} />;
       default:
         return <div />;
     }

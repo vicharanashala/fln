@@ -3,15 +3,19 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Announcement, Intervention, BestPractice } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
+import { STATES_UTS } from './geoData';
+import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN } from './auth';
+import { registerAnnouncementRoutes } from './routes/announcements';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,18 +27,14 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 const AI_SERVICES_DIR = process.env.AI_SERVICES_DIR || path.resolve(ROOT_DIR, '..', 'ai-services');
 
-// --- Auth config (signed JWTs) ---
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-if (JWT_SECRET === 'dev-insecure-secret-change-me' && process.env.NODE_ENV === 'production') {
-  console.warn('[auth] WARNING: JWT_SECRET is unset in production — set it to a strong random value.');
-}
-
-// Strip fields that must never be sent to clients (e.g. the bcrypt password hash).
-function sanitizeUser(user: User): Omit<User, 'passwordHash'> {
-  const { passwordHash, ...safe } = user;
-  return safe;
-}
+// Throttle auth endpoints to slow down brute-force / credential-stuffing attempts.
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again later.' },
+});
 
 async function startServer() {
   // Connect to MongoDB
@@ -49,26 +49,6 @@ async function startServer() {
   // Serve Puppeteer output PDF sheets statically
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
   app.use('/worksheets', express.static(path.join(ROOT_DIR, 'public', 'worksheets')));
-  // --- Auth Middleware & Helper ---
-  // Verifies the signed JWT issued by /api/auth/login and resolves the current user
-  // from the database. There is deliberately NO role synthesis from the email/prefix:
-  // only real, seeded users with a valid signed token authenticate.
-  function getAuthUser(req: express.Request): User | null {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return null;
-    const token = authHeader.replace('Bearer ', '').trim();
-    if (!token) return null;
-
-    let payload: { email?: string };
-    try {
-      payload = jwt.verify(token, JWT_SECRET) as { email?: string };
-    } catch {
-      return null; // invalid signature or expired token
-    }
-    if (!payload?.email) return null;
-
-    return dbStore.getUserSync(payload.email);
-  }
 
   // --- API Endpoints ---
 
@@ -105,18 +85,10 @@ async function startServer() {
   });
 
   // Auth: Login
-  app.post('/api/auth/login', async (req, res) => {
+  app.post('/api/auth/login', authRateLimiter, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
-    }
-
-    // Verify Password Rules (§3.2 A-3)
-    const hasUppercase = /[A-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    if (password.length < 8 || !hasUppercase || !hasNumber || !hasSpecial) {
-      return res.status(400).json({ error: 'Password does not meet complexity requirements.' });
     }
 
     // Check if the user is preloaded
@@ -155,44 +127,7 @@ async function startServer() {
     return res.json({ user: sanitizeUser(user) });
   });
 
-  // Announcements
-  app.get('/api/announcements', async (req, res) => {
-    const anns = await dbStore.getAnnouncements();
-    res.json(anns);
-  });
-
-  app.post('/api/announcements/create', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user || user.role !== UserRole.SUPERADMIN) {
-      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
-    }
-    const { title, message, isUrgent } = req.body;
-    const newAnn: Announcement = {
-      id: 'ann_' + Date.now(),
-      title,
-      message,
-      isUrgent: !!isUrgent,
-      authorEmail: user.email,
-      createdAt: new Date().toISOString()
-    };
-    await dbStore.addAnnouncement(newAnn);
-
-    // Logging
-    await dbStore.addLog({
-      id: 'log_' + Date.now(),
-      timestamp: new Date().toISOString(),
-      schoolId: '',
-      schoolName: 'National Framework',
-      userId: user.id,
-      userEmail: user.email,
-      userRole: user.role,
-      activityType: 'ticket',
-      status: 'Success',
-      details: `Created announcement: ${title}`
-    });
-
-    res.json(newAnn);
-  });
+  registerAnnouncementRoutes(app);
 
   // Tickets (In-App Feedback)
   app.get('/api/tickets', async (req, res) => {
@@ -322,6 +257,141 @@ async function startServer() {
     res.json(newUser);
   });
 
+  // Coordinator registration: state -> district -> block -> school cascade, then
+  // creating a teacher account scoped to the chosen school.
+  const COORDINATOR_ROLES = [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN];
+
+  app.get('/api/states', (_req, res) => {
+    res.json(STATES_UTS.map(s => ({ id: s.code, name: s.name })));
+  });
+
+  app.get('/api/districts/by-state/:stateId', (req, res) => {
+    const state = STATES_UTS.find(s => s.code.toLowerCase() === req.params.stateId.toLowerCase());
+    if (!state) return res.status(404).json({ error: 'Unknown state.' });
+    res.json(state.districts.map(d => ({ id: d.code, name: d.name })));
+  });
+
+  app.get('/api/blocks/by-district/:districtId', async (req, res) => {
+    const districtCode = req.params.districtId.toUpperCase();
+    const district = STATES_UTS.flatMap(s => s.districts).find(d => d.code === districtCode);
+    if (!district) return res.status(404).json({ error: 'Unknown district.' });
+
+    const schools = await dbStore.getSchools();
+    const blockCodes = Array.from(new Set(
+      schools.filter(s => s.districtCode === districtCode).map(s => s.blockCode)
+    )).sort();
+
+    res.json(blockCodes.map(code => {
+      const blockNum = parseInt(code.split('_').pop() || '0', 10);
+      return { id: code, name: `${district.name} Block ${blockNum}`, districtId: districtCode };
+    }));
+  });
+
+  app.get('/api/schools/by-block/:blockId', async (req, res) => {
+    const blockCode = req.params.blockId.toUpperCase();
+    const schools = await dbStore.getSchools();
+    res.json(schools.filter(s => s.blockCode === blockCode));
+  });
+
+  app.get('/api/teachers', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (![UserRole.SCHOOL, UserRole.BLOCK_ADMIN, UserRole.SUPERADMIN].includes(user.role)) {
+      return res.status(403).json({ error: 'Forbidden.' });
+    }
+
+    const [users, schools, classes, students] = await Promise.all([
+      dbStore.getUsers(),
+      dbStore.getSchools(),
+      dbStore.getClasses(),
+      dbStore.getStudents(),
+    ]);
+    const schoolById = new Map(schools.map(s => [s.id, s]));
+
+    let teachers = users.filter(u => u.role === UserRole.TEACHER);
+    if (user.role === UserRole.SCHOOL) {
+      teachers = teachers.filter(t => t.schoolId === user.schoolId);
+    } else if (user.role === UserRole.BLOCK_ADMIN) {
+      teachers = teachers.filter(t => schoolById.get(t.schoolId || '')?.blockCode === user.blockCode);
+    }
+
+    const enriched = teachers.map(t => {
+      const teacherClasses = classes.filter(c => c.teacherId === t.id);
+      const studentsCount = students.filter(s => s.teacherId === t.id).length;
+      return {
+        ...sanitizeUser(t),
+        classes: teacherClasses.map(c => `${c.className} ${c.section}`),
+        studentsCount,
+        status: t.isBanned ? 'Inactive' : 'Active',
+      };
+    });
+
+    res.json(enriched);
+  });
+
+  app.post('/api/teachers', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user || !COORDINATOR_ROLES.includes(user.role)) {
+      return res.status(403).json({ error: 'Forbidden. Coordinator role required.' });
+    }
+
+    const { firstName, lastName, email, phoneNumber, password, school } = req.body;
+    if (!firstName || !lastName || !email || !password || !school) {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    if (password.length < 8 || !hasUppercase || !hasNumber || !hasSpecial) {
+      return res.status(400).json({ error: 'Password does not meet complexity requirements. Must be >= 8 chars and contain uppercase, digit, and special char.' });
+    }
+
+    const schools = await dbStore.getSchools();
+    const targetSchool = schools.find(s => s.id.toLowerCase() === String(school).toLowerCase());
+    if (!targetSchool) return res.status(400).json({ error: 'Unknown school.' });
+
+    const users = await dbStore.getUsers();
+    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+      return res.status(400).json({ error: 'User with this email already exists.' });
+    }
+
+    const teacherId = 'u_' + Math.random().toString(36).substr(2, 9);
+    const newTeacher: User = {
+      id: teacherId,
+      name: `${firstName} ${lastName}`,
+      email: email.toLowerCase(),
+      role: UserRole.TEACHER,
+      passwordHash: await bcrypt.hash(password, 10),
+      phoneNumber: phoneNumber || undefined,
+      stateCode: targetSchool.stateCode,
+      districtCode: targetSchool.districtCode,
+      blockCode: targetSchool.blockCode,
+      schoolId: targetSchool.id,
+    };
+
+    await dbStore.addUser(newTeacher);
+
+    await dbStore.addLog({
+      id: 'log_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      schoolId: targetSchool.id,
+      schoolName: targetSchool.name,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      activityType: 'verify',
+      status: 'Success',
+      details: `Coordinator registered teacher: ${newTeacher.name} at ${targetSchool.name}`,
+    });
+
+    res.json({
+      success: true,
+      message: 'Teacher registered successfully.',
+      data: { teacherId, firstName, lastName, email: newTeacher.email },
+    });
+  });
+
   // Schools
   app.get('/api/schools', async (req, res) => {
     const schools = await dbStore.getSchools();
@@ -393,26 +463,66 @@ async function startServer() {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const students = await dbStore.getStudents();
-    
-    // Mask Aadhar for non-Superadmins (§13.2 R-6)
+
+    // Roles with a direct, day-to-day relationship to the child (and superadmin)
+    // see full contact/address PII; aggregate-scope admins and volunteers get it
+    // redacted — they don't need a guardian's phone number to view rollups.
+    const canSeeGuardianPII = (role: UserRole) =>
+      role === UserRole.SUPERADMIN || role === UserRole.SCHOOL || role === UserRole.TEACHER;
+
+    // Mask Aadhar for non-Superadmins (§13.2 R-6); redact guardian contact/address similarly.
     const maskedStudents = students.map(s => {
-      if (user.role !== UserRole.SUPERADMIN) {
-        return { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) };
+      const masked = user.role !== UserRole.SUPERADMIN
+        ? { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) }
+        : { ...s };
+      if (!canSeeGuardianPII(user.role)) {
+        delete masked.guardianContact;
+        delete masked.address;
       }
-      return s;
+      return masked;
     });
 
+    let scoped: typeof maskedStudents;
     if (user.role === UserRole.SUPERADMIN) {
-      return res.json(students);
-    }
-    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
-      return res.json(maskedStudents.filter(s => s.schoolId === user.schoolId));
-    }
-    if (user.role === UserRole.VOLUNTEER) {
-      return res.json(maskedStudents.filter(s => user.assignedSchools?.includes(s.schoolId)));
+      scoped = students;
+    } else if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+      scoped = maskedStudents.filter(s => s.schoolId === user.schoolId);
+    } else if (user.role === UserRole.VOLUNTEER) {
+      scoped = maskedStudents.filter(s => user.assignedSchools?.includes(s.schoolId));
+    } else if (user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
+      // Geo-scope by the admin's own state/district/block, joined via each student's school.
+      const schools = await dbStore.getSchools();
+      const schoolById = new Map(schools.map(sc => [sc.id, sc]));
+      scoped = maskedStudents.filter(s => {
+        const school = schoolById.get(s.schoolId);
+        if (!school) return false;
+        if (user.role === UserRole.ADMIN) return school.stateCode === user.stateCode;
+        if (user.role === UserRole.DISTRICT_ADMIN) return school.districtCode === user.districtCode;
+        return school.blockCode === user.blockCode; // BLOCK_ADMIN
+      });
+    } else {
+      scoped = maskedStudents;
     }
 
-    res.json(maskedStudents);
+    // Pagination is opt-in via ?page & ?limit — omitting them returns the full
+    // scoped array exactly as before, so existing callers (aggregate/rollup
+    // panels that need the whole scope) are unaffected. Callers that just need
+    // a page to display (the Student List table) can request one directly
+    // instead of always paying for the full national fetch.
+    const pageParam = req.query.page as string | undefined;
+    const limitParam = req.query.limit as string | undefined;
+    if (pageParam || limitParam) {
+      const page = Math.max(1, parseInt(pageParam || '1', 10) || 1);
+      const limit = Math.max(1, Math.min(500, parseInt(limitParam || '50', 10) || 50));
+      const total = scoped.length;
+      const start = (page - 1) * limit;
+      res.set('X-Total-Count', String(total));
+      res.set('X-Page', String(page));
+      res.set('X-Pages', String(Math.max(1, Math.ceil(total / limit))));
+      return res.json(scoped.slice(start, start + limit));
+    }
+
+    res.json(scoped);
   });
 
   // Add Student
@@ -420,7 +530,11 @@ async function startServer() {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { name, age, classGroup, section, schoolId, aadharNumber } = req.body;
+    const {
+      name, age, classGroup, section, schoolId, aadharNumber,
+      gender, dob, guardianName, guardianRelation, guardianContact, address,
+      bloodGroup, disabilityStatus, midDayMealBeneficiary, busRoute, siblingsInSchool,
+    } = req.body;
     if (!name || !age || !classGroup || !section || !schoolId || !aadharNumber) {
       return res.status(400).json({ error: 'Missing required student details.' });
     }
@@ -451,7 +565,18 @@ async function startServer() {
       targetLevel: 2,
       aadharMasked: rawAadhar, // Store raw unmasked Aadhar in DB so Superadmin sees it, others get masked dynamically
       levelHistory: [],
-      streak: 0
+      streak: 0,
+      gender: gender || undefined,
+      dob: dob || undefined,
+      guardianName: guardianName || undefined,
+      guardianRelation: guardianRelation || undefined,
+      guardianContact: guardianContact || undefined,
+      address: address || undefined,
+      bloodGroup: bloodGroup || undefined,
+      disabilityStatus: disabilityStatus || undefined,
+      midDayMealBeneficiary: midDayMealBeneficiary === undefined ? undefined : Boolean(midDayMealBeneficiary),
+      busRoute: busRoute || undefined,
+      siblingsInSchool: siblingsInSchool || undefined,
     };
 
     await dbStore.addStudent(newStudent);
@@ -481,6 +606,7 @@ async function startServer() {
     const students = await dbStore.getStudents();
     const student = students.find(s => s.id === req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
 
     await dbStore.updateStudent(student.id, {
       currentLevel: Number(currentLevel),
@@ -488,6 +614,42 @@ async function startServer() {
       targetLevel: Number(targetLevel),
       levelHistory: levelHistory || student.levelHistory
     });
+
+    res.json({ success: true });
+  });
+
+  // Update Student Profile (guardian/medical/logistics fields) — only the
+  // student's own school/teacher, or higher admins, may edit; kept separate
+  // from the level-update PATCH above so neither contract has to change.
+  app.patch('/api/students/:id/profile', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const students = await dbStore.getStudents();
+    const student = students.find(s => s.id === req.params.id);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
+
+    const {
+      gender, dob, guardianName, guardianRelation, guardianContact, address,
+      bloodGroup, disabilityStatus, midDayMealBeneficiary, busRoute, siblingsInSchool, teacherNotes,
+    } = req.body;
+
+    const updates: Partial<Student> = {};
+    if (gender !== undefined) updates.gender = gender;
+    if (dob !== undefined) updates.dob = dob;
+    if (guardianName !== undefined) updates.guardianName = guardianName;
+    if (guardianRelation !== undefined) updates.guardianRelation = guardianRelation;
+    if (guardianContact !== undefined) updates.guardianContact = guardianContact;
+    if (address !== undefined) updates.address = address;
+    if (bloodGroup !== undefined) updates.bloodGroup = bloodGroup;
+    if (disabilityStatus !== undefined) updates.disabilityStatus = disabilityStatus;
+    if (midDayMealBeneficiary !== undefined) updates.midDayMealBeneficiary = Boolean(midDayMealBeneficiary);
+    if (busRoute !== undefined) updates.busRoute = busRoute;
+    if (siblingsInSchool !== undefined) updates.siblingsInSchool = siblingsInSchool;
+    if (teacherNotes !== undefined) updates.teacherNotes = teacherNotes;
+
+    await dbStore.updateStudent(student.id, updates);
 
     res.json({ success: true });
   });
@@ -500,6 +662,7 @@ async function startServer() {
     const students = await dbStore.getStudents();
     const student = students.find(s => s.id === req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
 
     // Parse class number from classGroup (e.g. "Class 2" -> 2)
     const classMatch = student.classGroup.match(/\d+/);
@@ -595,13 +758,33 @@ async function startServer() {
     const students = await dbStore.getStudents();
     const student = students.find(s => s.id === req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
 
     // Parse class number from classGroup (e.g. "Class 2" -> 2)
     const classMatch = student.classGroup.match(/\d+/);
     const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
 
-    // Connect to Python Evaluation Metrics Pipeline
     const dateStr = new Date().toISOString().split('T')[0];
+
+    // Idempotency: if this student's diagnostic was already submitted and
+    // evaluated today (e.g. a client retry after a timeout), return that
+    // existing report instead of re-running the pipeline and re-appending to
+    // level history. A genuinely new diagnostic on a later date still runs
+    // normally (legitimate re-assessment, not a duplicate retry).
+    const existingReports = await dbStore.getEvaluationReports();
+    const existingReport = existingReports.find(r =>
+      r.worksheetId === 'diagnostic' && r.studentId === student.id && r.timestamp.startsWith(dateStr)
+    );
+    if (existingReport) {
+      return res.json({
+        student,
+        evaluation: { score: existingReport.score, recommendedLevel: existingReport.recommendedLevel, narrative: existingReport.narrative },
+        report: existingReport,
+        alreadySubmitted: true
+      });
+    }
+
+    // Connect to Python Evaluation Metrics Pipeline
     const pipelineDir = AI_SERVICES_DIR;
     const responseDir = path.join(pipelineDir, 'student_responses', `class_${classNumber}`, 'phrase_1');
     fs.mkdirSync(responseDir, { recursive: true });
@@ -1233,6 +1416,31 @@ async function startServer() {
     const student = students.find(s => s.id === studentId);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
 
+    // Idempotency: a student can only submit a given worksheet once. If this
+    // exact (worksheetId, studentId) pair was already submitted (e.g. the
+    // client retried after a timeout), return the existing result instead of
+    // re-running the AI evaluation, re-mutating the student's level/streak,
+    // and re-appending to level history / delay logs.
+    const existingSubmissions = await dbStore.getAnswerSubmissions();
+    const existingSubmission = existingSubmissions.find(s => s.worksheetId === worksheetId && s.studentId === studentId);
+    if (existingSubmission) {
+      const existingReports = await dbStore.getEvaluationReports();
+      const existingReport = existingReports
+        .filter(r => r.worksheetId === worksheetId && r.studentId === studentId)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+      return res.json({
+        submission: existingSubmission,
+        report: existingReport,
+        evaluation: existingReport ? {
+          score: existingReport.score,
+          recommendedLevel: existingReport.recommendedLevel,
+          narrative: existingReport.narrative,
+          conceptMastery: existingReport.conceptMastery
+        } : undefined,
+        alreadySubmitted: true
+      });
+    }
+
     // Handle Timings & Delayed Attempt Escalation (§6.5)
     const now = new Date();
     const submissionDeadline = new Date(ws.timing.submissionWindowEnd);
@@ -1390,6 +1598,42 @@ async function startServer() {
     }
 
     res.json({ submission, report, evaluation });
+  });
+
+  // Bulk evaluation reports, scoped identically to GET /api/students (§14).
+  app.get('/api/evaluation/reports', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const [reports, students, schools] = await Promise.all([
+      dbStore.getEvaluationReports(),
+      dbStore.getStudents(),
+      dbStore.getSchools(),
+    ]);
+
+    if (user.role === UserRole.SUPERADMIN) {
+      return res.json(reports);
+    }
+
+    let scopedStudentIds: Set<string>;
+    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+      scopedStudentIds = new Set(students.filter(s => s.schoolId === user.schoolId).map(s => s.id));
+    } else if (user.role === UserRole.VOLUNTEER) {
+      scopedStudentIds = new Set(students.filter(s => user.assignedSchools?.includes(s.schoolId)).map(s => s.id));
+    } else if (user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
+      const schoolById = new Map(schools.map(sc => [sc.id, sc]));
+      scopedStudentIds = new Set(students.filter(s => {
+        const school = schoolById.get(s.schoolId);
+        if (!school) return false;
+        if (user.role === UserRole.ADMIN) return school.stateCode === user.stateCode;
+        if (user.role === UserRole.DISTRICT_ADMIN) return school.districtCode === user.districtCode;
+        return school.blockCode === user.blockCode; // BLOCK_ADMIN
+      }).map(s => s.id));
+    } else {
+      scopedStudentIds = new Set(students.map(s => s.id));
+    }
+
+    res.json(reports.filter(r => scopedStudentIds.has(r.studentId)));
   });
 
   // Evaluation History
