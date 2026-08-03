@@ -1,10 +1,11 @@
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
-import { Users, ShieldAlert, BookOpen, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { Users, ShieldAlert, BookOpen, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown, Flame } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
+import { PracticeMode } from './PracticeMode';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -171,6 +172,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [apiUsers, setApiUsers] = useState<any[]>([]);
   const [apiReports, setApiReports] = useState<EvaluationReport[]>([]);
   const [apiTeachers, setApiTeachers] = useState<any[]>([]);
+  const [practiceSession, setPracticeSession] = useState<{ studentId: string; studentName: string; topic?: string } | null>(null);
 
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${token}` };
@@ -695,10 +697,26 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
               {/* Recommended Focus */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border border-blue-200 dark:border-blue-800 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Recommended Focus Areas</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Recommended Focus Areas</h3>
+                  <button
+                    onClick={() => setPracticeSession({ studentId: s.id, studentName: s.name })}
+                    className="flex items-center gap-1.5 rounded-lg bg-indigo-700 dark:bg-indigo-600 px-3 py-1.5 text-[10px] font-extrabold text-white uppercase tracking-wider hover:bg-indigo-600 dark:hover:bg-indigo-500 transition"
+                  >
+                    <Flame className="w-3.5 h-3.5" /> Start Practice
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {weakAreas.length > 0 ? weakAreas.map(topic => (
-                    <div key={topic} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />Additional practice recommended for <strong>{topic}</strong></div>
+                    <div key={topic} className="flex items-center justify-between gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800">
+                      <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />Additional practice recommended for <strong>{topic}</strong></div>
+                      <button
+                        onClick={() => setPracticeSession({ studentId: s.id, studentName: s.name, topic })}
+                        className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider hover:underline shrink-0"
+                      >
+                        Practice this →
+                      </button>
+                    </div>
                   )) : reports.length > 0 ? <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />All skills at expected level — no focus areas needed</div> : <div className="text-sm text-slate-500 dark:text-slate-400">Complete a diagnostic assessment to generate recommendations.</div>}
                   {s.currentLevel < 59 && <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Next milestone: <strong>Level {Math.min(59, s.currentLevel + 1)}</strong></div>}
                 </div>
@@ -990,6 +1008,16 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
               ) : <div className="text-center py-8"><p className="text-xs text-slate-400 dark:text-slate-500">{activityFilter === 'all' ? 'No activity recorded yet.' : `No ${activityFilter === 'assessment' ? 'assessment' : 'level change'} activity found.`}</p></div>}
             </div>
           </div>
+        )}
+
+        {practiceSession && practiceSession.studentId === s.id && (
+          <PracticeMode
+            studentId={practiceSession.studentId}
+            studentName={practiceSession.studentName}
+            topic={practiceSession.topic}
+            token={token}
+            onClose={() => setPracticeSession(null)}
+          />
         )}
       </div>
     );
