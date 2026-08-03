@@ -5,6 +5,8 @@ import { Users, ShieldAlert, BookOpen, Calendar, ArrowRight, CheckCircle2, XCirc
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
+import { CurriculumFeedback } from './CurriculumFeedback';
+import { PerformanceTrendIndicator } from './PerformanceTrendIndicator';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -1103,8 +1105,20 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             ))}</div>
           </div>
         </div>
+        {/* Performance Trend Indicators — embedded compact view */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+          <PerformanceTrendIndicator students={students} compact />
+        </div>
       </div>
     );
+  }
+
+  if (panel === 'trends') {
+    return <PerformanceTrendIndicator students={students} />;
+  }
+
+  if (panel === 'curriculum_feedback') {
+    return <CurriculumFeedback reports={REPORTS_MOCK} students={students} />;
   }
 
   if (panel === 'reports') {
