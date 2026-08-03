@@ -193,14 +193,19 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const q = `stateCode=${stateCode}&districtCode=${districtCode}&blockCode=${blockCode}`;
-      const res = await fetch(`/api/analytics?${q}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const d = await res.json();
-      setData(d);
+      const res = await fetch(`/api/analytics?stateCode=${stateCode}&districtCode=${districtCode}&blockCode=${blockCode}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setMetrics(data);
+        } else {
+          setMetrics(null);
+        }
     } catch (e) {
       console.error(e);
+      setMetrics(null);
     } finally {
       setLoading(false);
     }
