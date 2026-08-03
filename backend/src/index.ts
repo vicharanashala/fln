@@ -394,6 +394,8 @@ async function startServer() {
 
   // Schools
   app.get('/api/schools', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
     const schools = await dbStore.getSchools();
     res.json(schools);
   });
