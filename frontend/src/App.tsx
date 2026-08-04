@@ -59,13 +59,14 @@ export default function App() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const checkSession = async () => {
       if (!token) return;
 
       try {
-        const res = await apiFetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch('/api/auth/me');
+        if (cancelled) return;
 
         if (!res.ok) {
           setToken(null);
@@ -75,9 +76,11 @@ export default function App() {
         }
 
         const data = await res.json();
+        if (cancelled) return;
         setCurrentUser(data.user);
         setCurrentView('dashboard');
       } catch {
+        if (cancelled) return;
         setToken(null);
         localStorage.removeItem('fln_token');
         setCurrentView('home');
@@ -85,6 +88,9 @@ export default function App() {
     };
 
     checkSession();
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
 
   useEffect(() => {
@@ -99,7 +105,6 @@ export default function App() {
     window.addEventListener('fln_unauthorized', handleUnauthorized);
     return () => window.removeEventListener('fln_unauthorized', handleUnauthorized);
   }, [navigate]);
-
 
   const handleLoginSuccess = (newToken: string, user: User) => {
     setToken(newToken);
@@ -130,7 +135,7 @@ export default function App() {
   };
 
   const renderRoleWorkspace = () => {
-    if (!currentUser) return null;
+    if (!currentUser || !token) return null;
 
     switch (currentUser.role) {
       case 'superadmin':

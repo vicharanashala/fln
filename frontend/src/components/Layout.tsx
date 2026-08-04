@@ -192,7 +192,6 @@ export const Layout: React.FC<LayoutProps> = ({
       case UserRole.SUPERADMIN:
         list.push({ name: 'Users', view: 'users', icon: Users });
         list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Question Bank', view: 'question_bank', icon: BookOpen });
         list.push({ name: 'Worksheet Templates', view: 'worksheet_templates', icon: ClipboardList });
         list.push({ name: 'Content', view: 'content', icon: BookOpen });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
