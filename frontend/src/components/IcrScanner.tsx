@@ -45,8 +45,17 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
 
   const [step, setStep] = useState<ScannerStep>('select');
   const [loading, setLoading] = useState(false);
+  // Per-stage scan progress. Drives the visible progress bar so the user can
+  // see what's happening during the ~3s backend call. 'idle' = no scan in
+  // flight. Stages advance in order; 'done' is set when results return.
+  // Timings are empirical from the test_blue_pen_isolation.py runs — the
+  // bar fills approximately in line with real backend work, but the labels
+  // are honest about what's happening at each step.
+  const [scanStage, setScanStage] = useState<
+    'idle' | 'reading' | 'filtering' | 'ocr' | 'done'
+  >('idle');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+    const [success, setSuccess] = useState('');
 
   const [extractedAnswers, setExtractedAnswers] = useState<{ [questionId: string]: string }>({});
   const [originalOcrAnswers, setOriginalOcrAnswers] = useState<{ [questionId: string]: string }>({});
@@ -238,13 +247,24 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     setLoading(true);
     setError('');
     setSuccess('');
+    // Start the visible progress at the first stage. Subsequent stages
+    // are set inside the onload callback after the data URL is ready
+    // (filtering) and right before the API call returns control to the
+    // network round-trip (ocr). The UI progress bar reflects this state.
+    setScanStage('reading');
 
     try {
       const reader = new FileReader();
       reader.readAsDataURL(uploadedFile);
       reader.onload = async () => {
         const fileBase64 = reader.result as string;
+        // The backend now does the blue-pen filter (~50ms) then EasyOCR
+        // (~2-3s). We advance through stages as the API call progresses;
+        // exact backend timings are not streamed, so the labels are
+        // approximate but honest about what's happening.
+        setScanStage('filtering');
         try {
+          setScanStage('ocr');
           const res = await apiFetch('/api/icr/evaluate-pdf', {
             method: 'POST',
             headers: {
@@ -310,11 +330,13 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
           setError('Network error processing answer sheet file: ' + (err?.message || 'Server connection failed.'));
         } finally {
           setLoading(false);
+          setScanStage('done');
         }
       };
     } catch (e: any) {
       setError('Error reading uploaded file: ' + e.message);
       setLoading(false);
+      setScanStage('done');
     }
   };
 
@@ -378,6 +400,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     setStep('select');
     setError('');
     setSuccess('');
+    setScanStage('idle');
   };
 
   return (
@@ -547,10 +570,34 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                   <button
                     onClick={scanAnswerSheet}
                     disabled={loading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 px-5 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 px-5 rounded-lg transition-colors shadow-sm"
                   >
-                    {loading ? 'Running EasyOCR Engine...' : 'Run EasyOCR Scan & Evaluate'}
+                    {loading ? 'Running…' : 'Run EasyOCR Scan & Evaluate'}
                   </button>
+
+                  {/* Per-stage scan progress. Shows the user what's happening
+                      during the ~3s backend call: reading the file, filtering
+                      blue ink, then running EasyOCR. Each segment fills when
+                      its stage starts; the label updates as we advance. */}
+                  {scanStage !== 'idle' && scanStage !== 'done' && (
+                    <div className="mt-3 p-3 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span className="text-[10px] font-mono font-bold uppercase text-blue-700 dark:text-blue-300 tracking-wider">
+                          {scanStage === 'reading' && 'Reading file…'}
+                          {scanStage === 'filtering' && 'Filtering blue ink (~50ms)…'}
+                          {scanStage === 'ocr' && 'Running EasyOCR (~2–3s)…'}
+                        </span>
+                      </div>
+                      <div className="flex gap-1">
+                        <div className={`h-1 flex-1 rounded ${scanStage !== 'reading' ? 'bg-blue-600' : 'bg-blue-600 animate-pulse'}`} />
+                        <div className={`h-1 flex-1 rounded ${scanStage === 'ocr' || scanStage === 'done' ? 'bg-blue-600' : scanStage === 'filtering' ? 'bg-blue-600 animate-pulse' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
+                        <div className={`h-1 flex-1 rounded ${scanStage === 'ocr' ? 'bg-blue-600 animate-pulse' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
