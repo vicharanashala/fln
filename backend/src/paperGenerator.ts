@@ -134,6 +134,8 @@ export async function generateDiagnosticPaper({
     masterJson: any;
     coords: any;
     questionPaperJson: any;
+    questions?: Question[];
+    answerKey?: any;
   }> = [];
 
   // Loop through results and add student directories with ONLY student-facing worksheets
@@ -149,6 +151,64 @@ export async function generateDiagnosticPaper({
     const pdfBuf = Buffer.from(r.pdfBase64, 'base64');
     zip.file(`${folderName}/worksheet.pdf`, pdfBuf);
 
+    // Extract exact questions for this student set from masterJson
+    const studentQuestions: Question[] = [];
+    const flatAnswerKey: Array<{ qid: string; question_id: string; answer: string; type: string; pos?: number }> = [];
+    if (r.masterJson && Array.isArray(r.masterJson.sections)) {
+      r.masterJson.sections.forEach((sec: any, secIdx: number) => {
+        if (Array.isArray(sec.items)) {
+          sec.items.forEach((item: any, itemIdx: number) => {
+            // Resolve the answer from multiple possible locations:
+            //   1. icr.expected       — scalar/symbol/array/object answers (most sections)
+            //   2. data.answer        — alternate scalar
+            //   3. data.blanks[].value — fill-in-the-blank sections (answers live per-blank,
+            //                             not on the item). Emit one answer entry per blank.
+            let ans: string = '';
+            const icrExp = item.icr?.expected;
+            const dataAns = item.data?.answer;
+            const blanks: Array<{position: number; value: any}> = item.data?.blanks || [];
+            if (icrExp !== undefined && icrExp !== null) {
+              ans = String(icrExp).trim();
+            } else if (dataAns !== undefined && dataAns !== null) {
+              ans = String(dataAns).trim();
+            }
+            const qid = `Q_L${classNumber * 10}_${secIdx + 1}_${itemIdx + 1}`;
+            const questionNum = item.question || itemIdx + 1;
+
+            if (blanks.length > 0) {
+              blanks.forEach((b, bi) => {
+                const v = String(b.value ?? '').trim();
+                const fid = `${qid}_b${bi + 1}`;
+                studentQuestions.push({
+                  question_id: fid,
+                  question: `${questionNum} (position ${b.position})`,
+                  answer: v,
+                  answer_type: 'number',
+                  topic: sec.section || `Section ${secIdx + 1}`,
+                  subtopic: sec.section || 'operations',
+                  difficulty: 'medium',
+                  source_level: classNumber * 10
+                });
+                flatAnswerKey.push({ qid: fid, question_id: fid, answer: v, type: 'fill_blank', pos: b.position });
+              });
+            } else {
+              studentQuestions.push({
+                question_id: qid,
+                question: questionNum,
+                answer: ans,
+                answer_type: 'number',
+                topic: sec.section || `Section ${secIdx + 1}`,
+                subtopic: sec.section || 'operations',
+                difficulty: 'medium',
+                source_level: classNumber * 10
+              });
+              flatAnswerKey.push({ qid, question_id: qid, answer: ans, type: 'graded' });
+            }
+          });
+        }
+      });
+    }
+
     // Collect answer keys internally for Mongo storage
     answerKeyData.push({
       setNum: idx + 1,
@@ -156,7 +216,9 @@ export async function generateDiagnosticPaper({
       studentName: sName,
       masterJson: r.masterJson,
       coords: r.coords,
-      questionPaperJson: r.questionPaperJson
+      questionPaperJson: r.questionPaperJson,
+      questions: studentQuestions.length > 0 ? studentQuestions : questions,
+      answerKey: flatAnswerKey
     });
   });
 

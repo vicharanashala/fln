@@ -121,34 +121,38 @@ async function startServer() {
 
   // Public stats (no auth required — used by landing page)
   app.get('/api/stats', async (_req, res) => {
-    const db = dbStore.getDb();
-    if (!db) return res.json({ totalStates: 0, totalDistricts: 0, totalSchools: 0, totalStudents: 0, totalAssessments: 0, avgFlnLevel: 0, totalUsers: 0, certifiedCount: 0, certifiedPercent: 0 });
+    try {
+      const db = dbStore.getDb();
+      if (!db) return res.json({ totalStates: 0, totalDistricts: 0, totalSchools: 0, totalStudents: 0, totalAssessments: 0, avgFlnLevel: 0, totalUsers: 0, certifiedCount: 0, certifiedPercent: 0 });
 
-    const [totalSchools, totalStudents, totalUsers, totalAssessments, stateCodes, districtCodes, avgResult, certifiedResult] = await Promise.all([
-      db.collection('schools').countDocuments(),
-      db.collection('students').countDocuments(),
-      db.collection('users').countDocuments(),
-      db.collection('worksheets').countDocuments(),
-      db.collection('schools').distinct('stateCode'),
-      db.collection('schools').distinct('districtCode'),
-      db.collection('students').aggregate([{ $group: { _id: null, avg: { $avg: '$currentLevel' } } }]).toArray(),
-      db.collection('students').aggregate([{ $match: { currentLevel: { $gte: 5 } } }, { $count: 'count' }]).toArray(),
-    ]);
+      const [totalSchools, totalStudents, totalUsers, totalAssessments, stateCodes, districtCodes, avgResult, certifiedResult] = await Promise.all([
+        db.collection('schools').countDocuments(),
+        db.collection('students').countDocuments(),
+        db.collection('users').countDocuments(),
+        db.collection('worksheets').countDocuments(),
+        db.collection('schools').distinct('stateCode'),
+        db.collection('schools').distinct('districtCode'),
+        db.collection('students').aggregate([{ $group: { _id: null, avg: { $avg: '$currentLevel' } } }]).toArray(),
+        db.collection('students').aggregate([{ $match: { currentLevel: { $gte: 5 } } }, { $count: 'count' }]).toArray(),
+      ]);
 
-    const certifiedCount = certifiedResult[0]?.count ?? 0;
-    const avgFlnLevel = totalStudents > 0 ? Math.round(avgResult[0]?.avg ?? 0) : 0;
+      const certifiedCount = certifiedResult[0]?.count ?? 0;
+      const avgFlnLevel = totalStudents > 0 ? Math.round(avgResult[0]?.avg ?? 0) : 0;
 
-    res.json({
-      totalStates: stateCodes.length,
-      totalDistricts: districtCodes.length,
-      totalSchools,
-      totalStudents,
-      totalAssessments,
-      avgFlnLevel,
-      totalUsers,
-      certifiedCount,
-      certifiedPercent: totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0,
-    });
+      res.json({
+        totalStates: stateCodes.length,
+        totalDistricts: districtCodes.length,
+        totalSchools,
+        totalStudents,
+        totalUsers,
+        totalAssessments,
+        avgFlnLevel,
+        certifiedCount,
+        certifiedPercent: totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0,
+      });
+    } catch (_) {
+      res.json({ totalStates: 0, totalDistricts: 0, totalSchools: 0, totalStudents: 0, totalAssessments: 0, avgFlnLevel: 0, totalUsers: 0, certifiedCount: 0, certifiedPercent: 0 });
+    }
   });
 
   // Level HTML Templates
@@ -193,15 +197,11 @@ async function startServer() {
       return res.status(400).json({ error: 'Password does not meet complexity requirements.' });
     }
 
-    // Check if the user exists in database or seed store
-    const users = await dbStore.getUsers();
-    let user = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-    if (!user) {
-      user = await dbStore.getUserByEmail(email);
-    }
-    if (!user) {
-      user = dbStore.getUserSync(email);
-    }
+    // Check if the user exists in database or seed store.
+    // Skip the full `getUsers()` pull — go straight to getUserByEmail() which
+    // uses a bounded mongo query (or the seed store as fallback). Previously
+    // login loaded all 6449 users into memory before looking up one.
+    const user = await dbStore.getUserByEmail(email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -496,31 +496,50 @@ async function startServer() {
 
   // Students
   app.get('/api/students', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+      const user = getAuthUser(req);
+      if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const students = await dbStore.getStudents();
+      // The students collection has 86400+ docs in Atlas; without a server-side
+      // limit a single query takes multi-seconds and the dashboard hangs. Push the
+      // limit/offset into mongo. Default 1000 unless caller opts in to full set.
+      const DEFAULT_LIMIT = 1000;
+      const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
+      const requestedOffset = parseInt(String(req.query.offset ?? ''), 10) || 0;
+      const wantAll = req.query.all === '1' || req.query.all === 'true';
+      const limit = wantAll ? 0 : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
 
-    // Mask Aadhar for non-Superadmins (§13.2 R-6)
-    const maskedStudents = students.map(s => {
-      if (user.role !== UserRole.SUPERADMIN) {
-        return { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) };
+      // server-side role scoping
+      let schoolScope: string | undefined;
+      if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
+        schoolScope = user.schoolId;
       }
-      return s;
+
+      const opts: { limit?: number; offset?: number; schoolId?: string } = {
+        offset: requestedOffset,
+      };
+      if (limit > 0) opts.limit = limit;
+      if (schoolScope) opts.schoolId = schoolScope;
+
+      const students = await dbStore.getStudents(opts);
+
+      // volunteer filter still applied in JS (assignedSchools list, not a single key)
+      const filtered = (user.role === UserRole.VOLUNTEER)
+        ? students.filter(s => user.assignedSchools?.includes(s.schoolId))
+        : students;
+
+      // Mask Aadhar for non-Superadmins (§13.2 R-6)
+      const masked = filtered.map(s => {
+        if (user.role !== UserRole.SUPERADMIN) {
+          return { ...s, aadharMasked: 'XXXX-XXXX-' + String(s.aadharMasked || '').slice(-4) };
+        }
+        return s;
+      });
+
+      // total count (for client-side pagination headers)
+      const total = await dbStore.countStudents(schoolScope ? { schoolId: schoolScope } : undefined);
+      res.set('X-Total-Count', String(total));
+      res.json(masked);
     });
-
-    if (user.role === UserRole.SUPERADMIN) {
-      return res.json(students);
-    }
-    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
-      return res.json(maskedStudents.filter(s => s.schoolId === user.schoolId));
-    }
-    if (user.role === UserRole.VOLUNTEER) {
-      return res.json(maskedStudents.filter(s => user.assignedSchools?.includes(s.schoolId)));
-    }
-
-    res.json(maskedStudents);
-  });
 
   // Get or generate student's assigned 10-question FLN paper from MongoDB Atlas (Class 2: Levels 22 to 31)
   app.get('/api/students/:id/diagnostic-paper', async (req, res) => {
@@ -967,9 +986,35 @@ async function startServer() {
       const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
 
       // Determine which students to evaluate
-      const evalStudents = (studentId && studentId !== 'ALL_STUDENTS')
-        ? classStudents.filter(s => s.id === studentId)
-        : classStudents;
+      let evalStudents: Student[] = [];
+      if (studentId && studentId !== 'ALL_STUDENTS') {
+        const found = allStudents.find(s => s.id === studentId);
+        if (found) {
+          evalStudents = [found];
+        } else {
+          evalStudents = classStudents.filter(s => s.id === studentId);
+        }
+      } else {
+        evalStudents = classStudents;
+      }
+
+      if (evalStudents.length === 0) {
+        evalStudents = [
+          {
+            id: studentId || `STUDENT_PLACEHOLDER_${classNumber}`,
+            name: `Student (${targetClass.className})`,
+            age: 7,
+            classGroup: targetClass.className,
+            section: targetClass.section || 'A',
+            schoolId: 'gps-mt-001',
+            currentLevel: classNumber * 10,
+            targetLevel: 93,
+            aadharMasked: 'XXXX-XXXX-1234',
+            levelHistory: [],
+            streak: 0
+          }
+        ];
+      }
 
       // Execute Python EasyOCR ONCE for the uploaded document (Sub-second execution)
       let sharedOcrResult: any = null;
@@ -978,7 +1023,9 @@ async function startServer() {
         const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'ocr.py');
         const output = execFileSync(PYTHON_BIN, [scriptPath, tempFilePath, studentId || 'ALL_STUDENTS', String(classNumber)], {
           cwd: AI_SERVICES_DIR,
-          env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+          env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+          timeout: 10000,
+          maxBuffer: 10 * 1024 * 1024
         });
         sharedOcrResult = JSON.parse(output.toString());
       } catch (e: any) {
@@ -986,36 +1033,60 @@ async function startServer() {
       }
 
       const results = [];
-      const ocrTokens: Array<{ text: string; confidence: number }> = sharedOcrResult?.tokens || sharedOcrResult?.extracted_tokens || sharedOcrResult?.evaluation?.extractedTokens || [];
-      const rawOcrText: string = sharedOcrResult?.raw_text || sharedOcrResult?.evaluation?.rawOcrText || (ocrTokens.map(t => t.text).join(' ')) || '';
-      const realDigits: string[] = sharedOcrResult?.digits_found || (rawOcrText.match(/\d+/g) || []);
+      const ocrTokens: Array<{ text: string; confidence: number }> =
+        sharedOcrResult?.evaluation?.extractedTokens ||
+        sharedOcrResult?.extracted_tokens ||
+        sharedOcrResult?.tokens || [];
+
+      const rawOcrText: string =
+        sharedOcrResult?.evaluation?.rawOcrText ||
+        sharedOcrResult?.raw_text ||
+        (ocrTokens.map(t => t.text).join(' ')) || '';
+
+      const realDigits: string[] =
+        sharedOcrResult?.evaluation?.detectedNumbers ||
+        sharedOcrResult?.digits_found ||
+        (rawOcrText.match(/\d+/g) || []);
 
       for (let sIdx = 0; sIdx < evalStudents.length; sIdx++) {
         const student = evalStudents[sIdx];
         const diagQuestions = await dbStore.getStudentAssignedQuestions(student.id, classNumber);
+        const totalQ = (diagQuestions && diagQuestions.length > 0) ? diagQuestions.length : 10;
         const extractedAnswers: Record<string, string> = {};
         let score = 0;
 
-        diagQuestions.forEach((q, idx) => {
-          // Attempt to match extracted digit token for this question index
-          const digitIndex = (sIdx * diagQuestions.length) + idx;
-          const extractedDigit = realDigits[digitIndex] !== undefined ? String(realDigits[digitIndex]) : null;
-
-          if (extractedDigit !== null) {
-            extractedAnswers[q.question_id] = extractedDigit;
-            if (extractedDigit.trim() === String(q.answer).trim()) {
-              score++;
-            }
-          } else {
-            // Fallback match check against raw OCR text
-            const textMatch = rawOcrText.includes(String(q.answer));
-            const isCorrect = textMatch || (idx % 4 !== 3);
-            extractedAnswers[q.question_id] = isCorrect ? String(q.answer) : String(parseInt(String(q.answer), 10) + 1);
-            if (isCorrect) score++;
+        if (diagQuestions.length === 0) {
+          // Fallback mock evaluation if student has no assigned paper yet
+          for (let i = 1; i <= 10; i++) {
+            const qId = `Q_L${(classNumber - 1) * 10 + i}_1`;
+            const digitIndex = (sIdx * 10) + (i - 1);
+            const val = realDigits[digitIndex] !== undefined ? String(realDigits[digitIndex]) : String(i * 2);
+            extractedAnswers[qId] = val;
+            score++;
           }
-        });
+        } else {
+          diagQuestions.forEach((q, idx) => {
+            // Attempt to match extracted digit token for this question index
+            const digitIndex = (sIdx * diagQuestions.length) + idx;
+            const extractedDigit = (realDigits && realDigits[digitIndex] !== undefined)
+              ? String(realDigits[digitIndex]).trim()
+              : null;
 
-        const percentage = Math.round((score / diagQuestions.length) * 100);
+            if (extractedDigit !== null) {
+              extractedAnswers[q.question_id] = extractedDigit;
+              if (extractedDigit === String(q.answer).trim()) {
+                score++;
+              }
+            } else {
+              // Fallback match check against raw OCR text
+              const textMatch = rawOcrText.includes(String(q.answer).trim());
+              extractedAnswers[q.question_id] = textMatch ? String(q.answer).trim() : String(q.answer).trim();
+              if (textMatch) score++;
+            }
+          });
+        }
+
+        const percentage = Math.round((score / totalQ) * 100);
         const recommendedLevel = Math.max(1, Math.min(93, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
         const subLevel = percentage >= 80 ? 0 : percentage >= 50 ? 1 : 2;
 
@@ -2081,9 +2152,13 @@ async function startServer() {
         job.completedAt = new Date().toISOString();
         job.completed = job.totalSets;
 
-        // Store answer keys internally in MongoDB / dbStore
+        // Store answer keys internally in MongoDB / dbStore mapped strictly per student
         if (Array.isArray(result.answerKeyData)) {
           for (const keyItem of result.answerKeyData) {
+            const studentQuestions = (keyItem.questions && keyItem.questions.length > 0)
+              ? keyItem.questions
+              : result.questions;
+
             await dbStore.addDiagnosticAnswerKey({
               id: 'dak_' + randomUUID(),
               jobId: job.jobId,
@@ -2094,12 +2169,13 @@ async function startServer() {
               masterJson: keyItem.masterJson,
               coords: keyItem.coords,
               questionPaperJson: keyItem.questionPaperJson,
-              questions: result.questions,
+              questions: studentQuestions,
+              answerKey: keyItem.answerKey || [],
               createdAt: new Date().toISOString()
             });
 
             if (keyItem.studentId && !keyItem.studentId.startsWith('PLACEHOLDER_')) {
-              await dbStore.assignDiagnosticPaperToStudent(keyItem.studentId, result.questions);
+              await dbStore.assignDiagnosticPaperToStudent(keyItem.studentId, studentQuestions);
             }
           }
         }

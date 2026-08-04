@@ -15,14 +15,10 @@ export const SEED_DEMO_PASSWORD_HASH = bcrypt.hashSync(SEED_DEMO_PASSWORD, 10);
 export let mongoClient: MongoClient | null = null;
 
 export const connectDB = async () => {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   let uri = process.env.MONGODB_URI;
   if (!uri) {
     console.log("MONGODB_URI not set — using local DB");
     return;
-  }
-  if (uri.includes('ssl=true')) {
-    uri = uri.replace('ssl=true', 'tls=true&tlsAllowInvalidCertificates=true');
   }
   let connected = false;
   let attempt = 1;
@@ -32,10 +28,10 @@ export const connectDB = async () => {
       mongoClient = new MongoClient(uri, {
         serverSelectionTimeoutMS: 5000,
         connectTimeoutMS: 8000,
-        tls: true,
-        tlsAllowInvalidCertificates: true
       });
       await mongoClient.connect();
+      // Test ping to verify active MongoDB connection
+      await mongoClient.db().command({ ping: 1 });
       console.log("MongoDB Connected");
       connected = true;
     } catch (err: any) {
@@ -162,6 +158,7 @@ export interface DiagnosticAnswerKey {
   coords: any;
   questionPaperJson: any;
   questions: Question[];
+  answerKey?: any;
   createdAt: string;
 }
 
@@ -375,7 +372,8 @@ export class DBStore {
   getDb(): Db | null {
     if (this.mongoDb) return this.mongoDb;
     if (mongoClient) {
-      this.mongoDb = mongoClient.db('test');
+      const dbName = process.env.MONGODB_DB_NAME;
+      this.mongoDb = dbName ? mongoClient.db(dbName) : mongoClient.db();
       return this.mongoDb;
     }
     return null;
@@ -383,25 +381,44 @@ export class DBStore {
 
   async init() {
     if (mongoClient) {
-      console.log('Connecting to MongoDB Atlas database "test"...');
-      this.mongoDb = mongoClient.db('test');
-      this.data = {} as DatabaseSchema;
-      const db = this.mongoDb;
-      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
-        (this.data as any)[key] = [];
-      }
-      // Load users into memory for sync auth lookups (getUserSync)
-      this.data.users = await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
-      const userCount = this.data.users.length;
-      const schoolCount = await db.collection('schools').countDocuments();
-      const studentCount = await db.collection('students').countDocuments();
+      try {
+        const dbName = process.env.MONGODB_DB_NAME;
+        this.mongoDb = dbName ? mongoClient.db(dbName) : mongoClient.db();
+        this.data = {} as DatabaseSchema;
+        const db = this.mongoDb;
 
-      // If MongoDB Atlas users collection is empty, merge local seed users into memory without modifying MongoDB
-      if (userCount === 0) {
-        const seed = this.getSeedData();
-        this.data.users = seed.users;
+        // Ensure diagnostic_answer_keys collection is explicitly created in MongoDB
+        try {
+          const collections = await db.listCollections({ name: 'diagnostic_answer_keys' }).toArray();
+          if (collections.length === 0) {
+            await db.createCollection('diagnostic_answer_keys');
+            console.log('Explicitly created MongoDB collection "diagnostic_answer_keys"');
+          }
+        } catch (e: any) {
+          console.warn('Collection check info:', e.message);
+        }
+
+        for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
+          (this.data as any)[key] = [];
+        }
+        // Load users into memory for sync auth lookups (getUserSync)
+        this.data.users = await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
+        const userCount = this.data.users.length;
+        const schoolCount = await db.collection('schools').countDocuments();
+        const studentCount = await db.collection('students').countDocuments();
+
+        // If MongoDB Atlas users collection is empty, merge local seed users into memory without modifying MongoDB
+        if (userCount === 0) {
+          const seed = this.getSeedData();
+          this.data.users = seed.users;
+        }
+        console.log(`MongoDB ready: ${userCount} users in Atlas (${this.data.users.length} active), ${schoolCount} schools, ${studentCount} students`);
+        return;
+      } catch (err: any) {
+        console.warn(`MongoDB initialization failed (${err.message}) — falling back to local file DB.`);
+        this.mongoDb = null;
+        mongoClient = null;
       }
-      console.log(`MongoDB ready: ${userCount} users in Atlas (${this.data.users.length} active), ${schoolCount} schools, ${studentCount} students`);
     } else {
       console.log('No MongoDB — falling back to file-based DB');
       try {
@@ -462,6 +479,9 @@ export class DBStore {
     const cleanEmail = (email || '').trim().toLowerCase();
     if (this.mongoDb) {
       try {
+        // Anchored regex with the email field. The `email` field has a regular
+        // index from init(); a fully-anchored regex on an indexed field still
+        // scans the index, but the index is keyed on the value so it's bounded.
         const u = await this.mongoDb.collection<User>('users').findOne({
           email: { $regex: new RegExp(`^${cleanEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') }
         });
@@ -490,10 +510,37 @@ export class DBStore {
     if (this.mongoDb) return await this.mongoDb.collection<ClassGroup>('classes').find({}).toArray();
     return this.data?.classes || [];
   }
-  async getStudents() {
-    if (this.mongoDb) return await this.mongoDb.collection<Student>('students').find({}).toArray();
-    return this.data?.students || [];
-  }
+  async getStudents(opts?: { limit?: number; offset?: number; schoolId?: string; teacherId?: string }) {
+      if (this.mongoDb) {
+        const filter: any = {};
+        if (opts?.schoolId) filter.schoolId = opts.schoolId;
+        if (opts?.teacherId) filter.teacherId = opts.teacherId;
+        const skip = opts?.offset || 0;
+        const limit = opts?.limit || 0;
+        const cursor = this.mongoDb.collection<Student>('students').find(filter);
+        if (skip) cursor.skip(skip);
+        if (limit) cursor.limit(limit);
+        return await cursor.toArray();
+      }
+      let result = this.data?.students || [];
+      if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
+      if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
+      if (opts?.offset) result = result.slice(opts.offset);
+      if (opts?.limit) result = result.slice(0, opts.limit);
+      return result;
+    }
+    async countStudents(opts?: { schoolId?: string; teacherId?: string }) {
+      if (this.mongoDb) {
+        const filter: any = {};
+        if (opts?.schoolId) filter.schoolId = opts.schoolId;
+        if (opts?.teacherId) filter.teacherId = opts.teacherId;
+        return await this.mongoDb.collection('students').countDocuments(filter);
+      }
+      let result = this.data?.students || [];
+      if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
+      if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
+      return result.length;
+    }
   async getQuestions() {
     if (this.mongoDb) return await this.mongoDb.collection<Question>('questions').find({}).toArray();
     return this.data?.questions || [];
