@@ -921,6 +921,88 @@ async function startServer() {
     res.json({ student, evaluation: { score, recommendedLevel, narrative }, report });
   });
 
+  // ICR Blue-Pen Filter Stage (standalone — runs only the cv2 blue-pen
+  // isolation, no OCR). Returns the filtered image as a data URL so the
+  // frontend can preview the black-on-white filtered result before the
+  // ~3-second OCR step. This makes the blue-pen filter visible to the
+  // user instead of happening invisibly inside a single round-trip.
+  app.post('/api/icr/filter', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { imageDataUrl } = req.body || {};
+    if (!imageDataUrl || !imageDataUrl.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'imageDataUrl is required and must be a data URL.' });
+    }
+
+    const match = /^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/.exec(imageDataUrl);
+    if (!match) {
+      return res.status(400).json({ error: 'imageDataUrl must be base64-encoded.' });
+    }
+    const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+    const buf = Buffer.from(match[2], 'base64');
+    if (buf.length === 0) {
+      return res.status(400).json({ error: 'imageDataUrl decoded to zero bytes.' });
+    }
+    // Cap at 8 MB to match the evaluate-pdf endpoint's existing limit.
+    if (buf.length > 8 * 1024 * 1024) {
+      return res.status(413).json({ error: 'Image too large (max 8 MB).' });
+    }
+
+    const tempDir = path.join(AI_SERVICES_DIR, 'scratch');
+    fs.mkdirSync(tempDir, { recursive: true });
+    const stamp = Date.now();
+    const inputPath = path.join(tempDir, `filter_${stamp}_in.${ext}`);
+    const outputPath = path.join(tempDir, `filter_${stamp}_out.jpg`);
+
+    try {
+      fs.writeFileSync(inputPath, buf);
+      const { execFileSync } = await import('child_process');
+      const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'bluepen_filter.py');
+      const stdout = execFileSync(
+        PYTHON_BIN,
+        [scriptPath, inputPath, outputPath],
+        { cwd: AI_SERVICES_DIR, timeout: 30000, encoding: 'utf8' }
+      );
+      // Last non-empty line is the JSON result.
+      const jsonLine = stdout.trim().split('\n').filter(Boolean).pop() || '{}';
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(jsonLine);
+      } catch {
+        return res.status(500).json({ success: false, error: `Filter returned non-JSON: ${stdout.slice(0, 300)}` });
+      }
+      if (!parsed.success) {
+        return res.status(500).json({ success: false, error: parsed.error || 'Filter failed.' });
+      }
+      const filteredBuf = fs.readFileSync(outputPath);
+      const filteredDataUrl = `data:image/jpeg;base64,${filteredBuf.toString('base64')}`;
+      return res.json({
+        success: true,
+        imageDataUrl: filteredDataUrl,
+        bluePixelRatio: parsed.blue_pixel_ratio,
+        bluePixelCount: parsed.blue_pixel_count,
+        imageSize: parsed.image_size,
+        // Pass the temp output path so the OCR step can read the same file
+        // without re-running the filter. (Frontend currently ignores this
+        // and re-uploads the data URL — both work; this is just an
+        // optimization for server-side chaining later.)
+        filteredPath: outputPath,
+      });
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      console.error('[icr-filter] failed:', msg);
+      return res.status(500).json({ success: false, error: msg });
+    } finally {
+      // Clean up the input; leave outputPath around briefly so the OCR
+      // endpoint could pick it up if it wanted (filteredPath). For now
+      // the frontend re-uploads the data URL, so outputPath is also safe
+      // to delete.
+      try { fs.unlinkSync(inputPath); } catch { /* noop */ }
+      try { fs.unlinkSync(outputPath); } catch { /* noop */ }
+    }
+  });
+
   // ICR Answer Sheet Scanner (Single or Bulk Class Evaluation for PDF & Image uploads with EasyOCR)
   app.post('/api/icr/evaluate-pdf', async (req, res) => {
     const user = getAuthUser(req);
