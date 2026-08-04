@@ -3,7 +3,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, Announcement } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
@@ -13,7 +13,6 @@ import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN
 import { registerAnnouncementRoutes } from './routes/announcements';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
-import cors from 'cors';
 
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -965,7 +964,7 @@ async function startServer() {
 
     // Map answers sequentially (diag_q_X_Y to Q1, Q2, Q3...)
     const pipelineAnswers: { [qId: string]: { answer: string, confidence: number } } = {};
-    questions.forEach((q, idx) => {
+    questions.forEach((q: any, idx: any) => {
       const qNum = idx + 1;
       const pipelineQId = `Q${qNum}`;
       const submitted = (answers[q.question_id] || '').trim();
@@ -1050,10 +1049,10 @@ async function startServer() {
 
     // Determine the subLevel based on weakest-level mapping questions
     let subLevel = 0; // default Mastery
-    const levelQuestions = questions.filter(q => q.source_level === recommendedLevel);
+    const levelQuestions = questions.filter((q: any) => q.source_level === recommendedLevel);
     if (levelQuestions.length > 0) {
       let failedCount = 0;
-      levelQuestions.forEach(q => {
+      levelQuestions.forEach((q: any) => {
         const submitted = (answers[q.question_id] || '').trim().toLowerCase();
         const correct = q.answer.trim().toLowerCase();
         if (submitted !== correct) {

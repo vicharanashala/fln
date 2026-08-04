@@ -11,22 +11,45 @@ import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
 
+const getStoredValue = (key: string) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const getStoredUser = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const savedUser = getStoredValue('user');
+    return savedUser ? (JSON.parse(savedUser) as User) : null;
+  } catch {
+    return null;
+  }
+};
+
+const AppFallback = ({ message }: { message: string }) => (
+  <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12 text-slate-700">
+    <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+      <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-slate-900" />
+      <h2 className="text-lg font-semibold text-slate-900">Preparing your workspace</h2>
+      <p className="mt-2 text-sm text-slate-500">{message}</p>
+    </div>
+  </div>
+);
+
 export default function App() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'coordinator' | 'geo' | 'tracking'>('overview');
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token') || localStorage.getItem('fln_token'));
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const savedUser = localStorage.getItem('user');
-      return savedUser ? (JSON.parse(savedUser) as User) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [token, setToken] = useState<string | null>(() => getStoredValue('token') || getStoredValue('fln_token'));
+  const [currentUser, setCurrentUser] = useState<User | null>(() => getStoredUser());
   const [currentView, setCurrentView] = useState<'home' | 'login' | 'dashboard'>(() => {
-    const saved = localStorage.getItem('currentView');
+    const saved = getStoredValue('currentView');
     return (saved as 'home' | 'login' | 'dashboard') || 'home';
   });
+  const [authReady, setAuthReady] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<string>('workspace');
@@ -55,6 +78,7 @@ export default function App() {
 
     if (!activeToken) {
       clearSession();
+      setAuthReady(true);
       return;
     }
 
@@ -68,12 +92,14 @@ export default function App() {
 
         if (res.status === 401 || res.status === 403) {
           clearSession();
+          setAuthReady(true);
           return;
         }
 
         if (!res.ok) {
           setCurrentView('login');
           localStorage.setItem('currentView', 'login');
+          setAuthReady(true);
           return;
         }
 
@@ -97,10 +123,15 @@ export default function App() {
             localStorage.setItem('currentView', 'dashboard');
           }
         }
+
+        if (!cancelled) {
+          setAuthReady(true);
+        }
       } catch (error) {
         console.error('Auth check failed:', error);
         if (!cancelled) {
           clearSession();
+          setAuthReady(true);
         }
       }
     };
@@ -297,23 +328,30 @@ export default function App() {
 
   const safeActivePanel = activePanel || 'workspace';
   const AnnouncementComplianceView = (RoleDashboards as any).AnnouncementComplianceView;
+  const safeCurrentView = currentView || 'home';
+  const hasSession = Boolean(token) && Boolean(currentUser);
 
-  if (currentView === 'login' || !currentUser) {
-    return <LoginView onLoginSuccess={handleLoginSuccess} onBackToHome={() => setCurrentView('home')} />;
-  }
+  try {
+    if (!authReady && Boolean(token)) {
+      return <AppFallback message="Checking your session and loading the workspace." />;
+    }
 
-  return (
-    <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
-      <Layout
-        currentUser={currentUser}
-        onRoleSwitch={handleRoleSwitch}
-        activeView={safeActivePanel}
-        onSelectView={setActivePanel}
-        notifications={announcements}
-        onMarkNotificationRead={handleMarkNotificationRead}
-        onClearNotifications={handleClearNotifications}
-        onLogout={handleLogout}
-      >
+    if (!hasSession || safeCurrentView === 'login') {
+      return <LoginView onLoginSuccess={handleLoginSuccess} onBackToHome={() => setCurrentView('home')} />;
+    }
+
+    return (
+      <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+        <Layout
+          currentUser={currentUser!}
+          onRoleSwitch={handleRoleSwitch}
+          activeView={safeActivePanel}
+          onSelectView={setActivePanel}
+          notifications={announcements}
+          onMarkNotificationRead={handleMarkNotificationRead}
+          onClearNotifications={handleClearNotifications}
+          onLogout={handleLogout}
+        >
         {activeUrgentAnnouncements.length > 0 && (
           <div className="flex items-center justify-between rounded-xl border border-amber-300/80 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-700/70 dark:bg-amber-950/40 dark:text-amber-200">
             <div className="flex items-center gap-2">
@@ -377,7 +415,7 @@ export default function App() {
         )}
 
         {safeActivePanel === 'logbook' && <LogbookView token={token || ''} user={currentUser} />}
-        {safeActivePanel === 'tickets' && <TicketSubmission token={token || ''} userRole={currentUser?.role || 'user'} />}
+        {safeActivePanel === 'tickets' && <TicketSubmission token={token || ''} userRole={currentUser?.role ?? UserRole.TEACHER} />}
         {safeActivePanel === 'calendar' && <AssessmentCalendar />}
 
         {safeActivePanel === 'settings' && (
@@ -402,19 +440,23 @@ export default function App() {
           </div>
         )}
 
-        {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(safeActivePanel) && (
+        {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(safeActivePanel) && currentUser && (
           <PanelViews activePanel={safeActivePanel} currentUser={currentUser} token={token || ''} />
         )}
 
-        {toast && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-2xl dark:border-slate-600">
-            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white">
-              <ShieldCheck className="h-3 w-3" />
+          {toast && (
+            <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-2xl dark:border-slate-600">
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white">
+                <ShieldCheck className="h-3 w-3" />
+              </div>
+              <span>{toast}</span>
             </div>
-            <span>{toast}</span>
-          </div>
-        )}
-      </Layout>
-    </div>
-  );
+          )}
+        </Layout>
+      </div>
+    );
+  } catch (error) {
+    console.error('App render failed:', error);
+    return <LoginView onLoginSuccess={handleLoginSuccess} onBackToHome={() => setCurrentView('home')} />;
+  }
 }

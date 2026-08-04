@@ -471,7 +471,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
             {/* Total Indicator */}
             <div className="text-center md:text-right mt-3">
               <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
-                Roster segment: <strong className="text-zinc-800 dark:text-zinc-100">{Object.values(activeMetrics.levelDistribution || {}).reduce((a: any, b: any) => a + b, 0)} student profiles</strong>
+                Roster segment: <strong className="text-zinc-800 dark:text-zinc-100">{String(Object.values(activeMetrics.levelDistribution || {}).reduce((a: unknown, b: unknown) => Number(a) + Number(b), 0))} student profiles</strong>
               </span>
             </div>
           </div>
@@ -502,7 +502,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
             : [];
 
         setAnnouncements(trackedAnnouncements);
-        if (trackedAnnouncements.length > 0 && !trackedAnnouncements.some((announcement) => announcement.id === selectedId)) {
+        if (trackedAnnouncements.length > 0 && !trackedAnnouncements.some((announcement: { id?: string } | null | undefined) => announcement?.id === selectedId)) {
           setSelectedId(trackedAnnouncements[0].id);
         }
       } catch (e) {
