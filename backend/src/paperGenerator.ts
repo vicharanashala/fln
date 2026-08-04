@@ -27,13 +27,15 @@ export interface PaperGenerationResult {
   pdfFileName?: string;
   pdfFilePath?: string;
   answerKeyData?: Array<{
-    setNum: number;
-    studentId: string;
-    studentName: string;
-    masterJson: any;
-    coords: any;
-    questionPaperJson: any;
-  }>;
+      setNum: number;
+      studentId: string;
+      studentName: string;
+      masterJson: any;
+      coords: any;
+      questionPaperJson: any;
+      questions?: any[];
+      answerKey?: any[];
+    }>;
 }
 
 export interface WorksheetPdfResult {

@@ -4,6 +4,26 @@ All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
 routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
+## 2026-08-04
+
+- **ICR Scanner: "Pass OCR (Manual Entry)" Mode**
+  - Added a new **✏️ Pass OCR (Manual Entry)** button next to the Choose File input in [frontend/src/components/IcrScanner.tsx](frontend/src/components/IcrScanner.tsx). Skips the OCR engine and jumps straight to the "Inspect OCR & Verify" page so the teacher can fill student answers manually — useful for verifying question→row mapping against a known answer key without a real scanned sheet.
+  - On click, the handler calls `GET /api/diagnostic/student/:studentId/answer-key` for the selected student (or the first student in the class if "All Students" is picked). Loads `answerKey.length` questions exactly — no hardcoded cap — so a student with 47 answers gets 47 fields, a student with 3 answers gets 3.
+  - Falls back to a 15-row placeholder grid if no answer key is found for the class.
+  - Sets `ocrEngine: 'Manual Entry (skipped)'` in the inspection panel so it's obvious no OCR happened.
+- **ICR Scanner: Enter-Key Navigation Between Answer Fields**
+  - Each answer input now has an `onKeyDown` handler. Pressing **Enter** auto-advances focus to the next question's input and selects the existing text for quick overwrite. No mouse needed to walk through the full answer list.
+  - Added a `answerInputRefs` ref array; refs are cleared on every fresh paper load (`passOcrManualEntry`, `resetScanner`) so stale refs from a previous paper can't steal focus.
+- **ICR Scanner: Diagnostic Placement Now Actually Runs**
+  - `confirmEvaluation` was previously a no-op — it just set `step='result'` with a generic success message, leaving the result page blank.
+  - Rewrote it to: (a) compute score vs. the loaded `correctAnswer` for each question, skipping placeholder rows; (b) build a real `EvaluationReport` with concept mastery per topic; (c) apply a simple placement rule — ≥80% → +1 sublevel, 60–80% → flat, <60% → -1 sublevel (clamped to L2.0–L2.5); (d) hand off to the existing result page which now shows Final Score, Placed Level, Status, and the side-by-side verified question breakdown.
+- **Backend: Closed 4 TypeScript Errors in `paperGenerator.ts`**
+  - Yesterday's answer-key commit added `questions?: any[]` and `answerKey?: any[]` to the runtime `answerKeyData` items being pushed, but did not update the type declaration. `tsc --noEmit` (the workspace `lint` script) flagged 4 errors at [backend/src/index.ts:2158–2173](backend/src/index.ts).
+  - Added the two missing optional fields to the `answerKeyData` item type in [backend/src/paperGenerator.ts:29](backend/src/paperGenerator.ts).
+  - `npm run lint` now passes with **0 TS errors** (frontend + backend). Was a 4-error baseline before this turn.
+- **Tasks.md Created**
+  - New repo-root file [tasks.md](tasks.md) — a parking lot for items the team has explicitly put on hold. Initial entry: "Worksheet formatting changes (HOLD)" — pending changes to question paper formatting in `frontend/public/worksheets/proposed-levels/`. Scope not yet defined; do not touch worksheet HTMLs until reopened.
+
 ## 2026-08-03
 
 - **Diagnostic Answer Key Storage Fix**

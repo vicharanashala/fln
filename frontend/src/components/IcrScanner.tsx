@@ -52,6 +52,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const [originalOcrAnswers, setOriginalOcrAnswers] = useState<{ [questionId: string]: string }>({});
   const [questions, setQuestions] = useState<Array<{ id: string; question: string; correctAnswer: string; topic?: string }>>([]);
   const [report, setReport] = useState<EvaluationReport | null>(null);
+  const answerInputRefs = React.useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -129,6 +130,98 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     if (e.target.files && e.target.files[0]) {
       setUploadedFile(e.target.files[0]);
       setError('');
+    }
+  };
+
+  /**
+   * "Pass OCR (Manual Entry)" — skip the OCR engine entirely.
+   * The user will manually fill answers on the Inspect & Verify page
+   * (useful for testing question→row mapping against a known answer key
+   * without a real scanned answer sheet on hand).
+   *
+   * Loads:
+   *   - latest diagnostic answer key for the selected student/class (real questions+answers)
+   *   - or, if none found, a 15-question placeholder grid
+   * Then jumps to step='verify' exactly like a successful OCR scan would.
+   */
+  const passOcrManualEntry = async () => {
+    if (!selectedClassId) {
+      setError('Please select a class first.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Try to load a real answer key for the selected student (or first student in class).
+      let loadedQuestions: Array<{ id: string; question: string; correctAnswer: string; topic?: string }> = [];
+      let loadedAnswers: { [questionId: string]: string } = {};
+      let sourceLabel = '';
+
+      const targetStudentId = selectedStudentId && selectedStudentId !== 'ALL_STUDENTS'
+        ? selectedStudentId
+        : students.find(s => {
+            const cls = classes.find(c => c.id === selectedClassId);
+            return cls && (s.classGroup === cls.className || (s.classGroup || '').includes(cls.className));
+          })?.id;
+
+      if (targetStudentId) {
+        try {
+          const res = await apiFetch(
+            `/api/diagnostic/student/${encodeURIComponent(targetStudentId)}/answer-key`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const ak = (data && (data.answerKey || data.questions)) || [];
+            if (Array.isArray(ak) && ak.length > 0) {
+              loadedQuestions = ak.map((item: any, i: number) => ({
+                id: item.qid || item.question_id || item.id || `q_${i + 1}`,
+                question: item.question || item.prompt || `Question #${i + 1}`,
+                correctAnswer: String(item.answer ?? item.expected ?? ''),
+                topic: item.topic,
+              }));
+              loadedAnswers = Object.fromEntries(
+                loadedQuestions.map(q => [q.id, '']) // user fills these manually
+              );
+              sourceLabel = `loaded ${loadedQuestions.length} answers from latest diagnostic answer key for ${data.studentName || targetStudentId}`;
+            }
+          }
+        } catch {
+          // non-fatal — fall through to placeholder grid
+        }
+      }
+
+      if (loadedQuestions.length === 0) {
+        // Fallback placeholder: 15 blank rows so the user can type freely.
+        loadedQuestions = Array.from({ length: 15 }, (_, i) => ({
+          id: `manual_q_${i + 1}`,
+          question: `Question #${i + 1} (manual entry)`,
+          correctAnswer: '',
+        }));
+        loadedAnswers = {};
+        sourceLabel = 'no answer key found for this class — using a 15-row placeholder grid';
+      }
+
+      setQuestions(loadedQuestions);
+      setExtractedAnswers(loadedAnswers);
+      setOriginalOcrAnswers({}); // nothing came from OCR
+      answerInputRefs.current = [];
+      setOcrPreviewData({
+        rawOcrText: '[MANUAL ENTRY — no OCR pass performed]',
+        extractedTokens: [],
+        processingTimeMs: 0,
+        ocrEngine: 'Manual Entry (skipped)',
+      });
+      setReport(null);
+      setBulkResults(null);
+      setStep('verify');
+      setSuccess(`Manual entry mode: ${sourceLabel}. Fill in the student's answers below to verify question→row mapping.`);
+    } catch (err: any) {
+      setError('Failed to load manual entry state: ' + (err?.message || 'unknown error'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -230,8 +323,48 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   };
 
   const confirmEvaluation = async () => {
+    // Compute score from the verified answers vs. the loaded correctAnswer for each question.
+    let score = 0;
+    let graded = 0;
+    const mastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' } = {};
+    for (const q of questions) {
+      if (!q) continue;
+      const userVal = (extractedAnswers[q.id] || '').trim();
+      const expected = (q.correctAnswer || '').trim();
+      // Only count questions that have a known correct answer. Manual-entry
+      // placeholder rows (correctAnswer === '') are skipped from the score.
+      if (expected.length === 0) continue;
+      graded++;
+      if (userVal === expected) score++;
+      const topic = q.topic || 'Number Sense';
+      if (!mastery[topic]) {
+        mastery[topic] = userVal === expected ? 'Strong' : 'Needs Practice';
+      }
+    }
+
+    const percentage = graded > 0 ? Math.round((score / graded) * 100) : 0;
+    // Simple placement rule:
+    //   >=80% → +1 sublevel, 60-80% → flat, <60% → -1 sublevel.
+    // Clamped to [0, 5] sublevels within a fixed base of level 2 (mid-primary).
+    const baseLevel = 2;
+    let sub = 1;
+    if (percentage >= 80) sub = Math.min(5, sub + 1);
+    else if (percentage < 60) sub = Math.max(0, sub - 1);
+
+    setReport({
+      id: 'rep_' + Date.now(),
+      studentId: selectedStudentId && selectedStudentId !== 'ALL_STUDENTS' ? selectedStudentId : 'manual_entry',
+      worksheetId: 'icr_manual_pass',
+      score,
+      totalQuestions: graded > 0 ? graded : questions.length,
+      conceptMastery: mastery,
+      narrative: `Manual-entry ICR verification: ${score}/${graded} correct (${percentage}%). Recommended level L${baseLevel}.${sub}.`,
+      recommendedLevel: baseLevel,
+      recommendedSubLevel: sub,
+      timestamp: new Date().toISOString(),
+    });
     setStep('result');
-    setSuccess(`Verification confirmed and diagnostic placement recorded!`);
+    setSuccess(`Verification confirmed — ${score}/${graded} correct (${percentage}%). Diagnostic placement: L${baseLevel}.${sub}.`);
   };
 
   const resetScanner = () => {
@@ -240,6 +373,8 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     setBulkResults(null);
     setUploadedFile(null);
     setOcrPreviewData(null);
+    setQuestions([]);
+    answerInputRefs.current = [];
     setStep('select');
     setError('');
     setSuccess('');
@@ -383,13 +518,27 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase">
                 📷 Upload Answer Sheet Image or PDF (PNG, JPG, WEBP, PDF)
               </label>
-              <input
-                type="file"
-                accept="application/pdf,image/png,image/jpeg,image/jpg,image/webp"
-                onChange={handleFileChange}
-                disabled={!selectedClassId}
-                className="block w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer disabled:opacity-50"
-              />
+              <div className="flex items-stretch gap-2">
+                <input
+                  type="file"
+                  accept="application/pdf,image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={handleFileChange}
+                  disabled={!selectedClassId}
+                  className="flex-1 block w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={passOcrManualEntry}
+                  disabled={!selectedClassId || loading}
+                  title="Skip the OCR engine — go straight to the Inspect & Verify page to fill answers manually"
+                  className="shrink-0 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 text-white font-medium text-xs py-2.5 px-4 rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                >
+                  {loading ? 'Loading…' : '✏️ Pass OCR (Manual Entry)'}
+                </button>
+              </div>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono leading-relaxed">
+                Use <strong>Pass OCR</strong> to skip the scan and fill the student's answers manually on the next step — useful for verifying question→row mapping against a known answer key.
+              </p>
               {uploadedFile && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between">
                   <div className="text-xs text-blue-800 dark:text-blue-300 font-mono">
@@ -511,7 +660,19 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                               <input
                                 type="text"
                                 value={userVal}
+                                ref={(el) => { answerInputRefs.current[idx] = el; }}
                                 onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                                onKeyDown={(e) => {
+                                  // Enter → jump to next answer field. No mouse needed.
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const next = answerInputRefs.current[idx + 1];
+                                    if (next) {
+                                      next.focus();
+                                      next.select?.();
+                                    }
+                                  }
+                                }}
                                 className={`w-full text-xs font-mono border rounded-lg p-2 outline-none transition-colors ${
                                   isTeacherEdited
                                     ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 font-bold'
