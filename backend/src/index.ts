@@ -144,6 +144,48 @@ async function startServer() {
   res.json(withReadStatus);
 });
 
+  app.post('/api/announcements/read', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { announcementId, id, userId, userEmail } = req.body || {};
+    const resolvedAnnouncementId = announcementId || id;
+    const resolvedUserId = userId || user.id;
+    const resolvedUserEmail = userEmail || user.email;
+
+    if (!resolvedAnnouncementId) {
+      return res.status(400).json({ error: 'announcementId is required.' });
+    }
+
+    try {
+      const receipt = {
+        id: `ann_read_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        announcementId: resolvedAnnouncementId,
+        userId: resolvedUserId,
+        userEmail: resolvedUserEmail,
+        readAt: new Date().toISOString()
+      };
+
+      const savedReceipt = await dbStore.addAnnouncementRead(receipt as any);
+      res.json(savedReceipt);
+    } catch (error) {
+      console.error('Failed to store announcement read receipt:', error);
+      res.status(500).json({ error: 'Failed to store read receipt.' });
+    }
+  });
+
+  app.get('/api/announcements/tracking', async (_req, res) => {
+    const announcements = await dbStore.getAnnouncements();
+    const reads = await dbStore.getAnnouncementReads();
+
+    const withReadReceipts = announcements.map((announcement: any) => ({
+      ...announcement,
+      readReceipts: reads.filter((receipt: any) => receipt.announcementId === announcement.id)
+    }));
+
+    res.json(withReadReceipts);
+  });
+
   app.post('/api/announcements/create', async (req, res) => {
   const user = getAuthUser(req);
   if (!user || user.role !== UserRole.SUPERADMIN) {

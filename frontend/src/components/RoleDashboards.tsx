@@ -197,15 +197,15 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          setMetrics(data);
-        } else {
-          setMetrics(null);
-        }
+       if (res.ok) {
+        const result = await res.json();
+        setData(result);
+      } else {
+        setData(null);
+      }
     } catch (e) {
       console.error(e);
-      setMetrics(null);
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -220,6 +220,14 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
       <div className="flex justify-center items-center py-16" id="analytics-loader">
         <div className="w-8 h-8 border-4 border-zinc-900 border-t-transparent rounded-full animate-spin" />
         <span className="ml-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 font-mono">Calculating live statistics...</span>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex justify-center items-center py-16 text-red-500 font-medium">
+        Please log in or select valid parameters to view analytics data.
       </div>
     );
   }
@@ -483,13 +491,19 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
   useEffect(() => {
     const fetchAnns = async () => {
       try {
-        const res = await fetch('/api/announcements', {
+        const res = await fetch('/api/announcements/tracking', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
-        if (Array.isArray(data)) {
-          setAnnouncements(data);
-          if (data.length > 0) setSelectedId(data[0].id);
+        const trackedAnnouncements = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.announcements)
+            ? data.announcements
+            : [];
+
+        setAnnouncements(trackedAnnouncements);
+        if (trackedAnnouncements.length > 0 && !trackedAnnouncements.some((announcement) => announcement.id === selectedId)) {
+          setSelectedId(trackedAnnouncements[0].id);
         }
       } catch (e) {
         console.error(e);

@@ -119,6 +119,7 @@ export const Layout: React.FC<LayoutProps> = ({
     const list: NavigationItem[] = [];
 
     list.push({ name: 'Dashboard', view: 'workspace', icon: LayoutDashboard });
+    list.push({ name: 'Announcement Tracking', view: 'announcement-tracking', icon: ShieldCheck });
 
     switch (currentUser.role) {
       case UserRole.TEACHER:
