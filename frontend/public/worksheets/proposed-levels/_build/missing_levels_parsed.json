@@ -1,0 +1,467 @@
+{
+  "S1.1": {
+    "title": "One-to-One Correspondence",
+    "lo": "Child can perform one-to-one physical matching between two small sets of real objects.",
+    "topics": "One-to-one correspondence; object matching."
+  },
+  "S1.2": {
+    "title": "Classification (Single Property)",
+    "lo": "Child can sort a small set of objects correctly by a single named attribute.",
+    "topics": "Classification (single property); sorting."
+  },
+  "S1.3": {
+    "title": "Perceptual Same/Different",
+    "lo": "Child correctly identifies two sets as visually same or different without counting.",
+    "topics": "Perceptual same/different; visual set comparison (non-quantitative)."
+  },
+  "S1.4": {
+    "title": "Rote Verbal Counting to 10",
+    "lo": "Child recites \"1, 2, 3 ... 10\" in order, orally.",
+    "topics": "Rote counting; number-word sequence."
+  },
+  "S1.5": {
+    "title": "Counting Small Sets (1–3) with Support",
+    "lo": "Child counts a set of 1–3 objects accurately with support.",
+    "topics": "Counting small sets; touch-and-count."
+  },
+  "S1.6": {
+    "title": "Shape Matching (Perceptual)",
+    "lo": "Child correctly matches two identical real-world shapes visually.",
+    "topics": "Shape matching; perceptual shape recognition."
+  },
+  "S1.7": {
+    "title": "Perceptual Subitizing",
+    "lo": "Child correctly states the quantity of 1–3 objects shown briefly, without counting aloud or pointing.",
+    "topics": "Perceptual subitizing; instant quantity recognition."
+  },
+  "S2.1": {
+    "title": "Quantity Comparison (More/Less/Equal)",
+    "lo": "Child correctly identifies which of two groups has more, less, or whether they're equal.",
+    "topics": "Quantity comparison; more/less/equal."
+  },
+  "S2.2": {
+    "title": "Seriation (3 Objects)",
+    "lo": "Child correctly orders 3 objects by a single given rule.",
+    "topics": "Seriation; ordering by one rule."
+  },
+  "S2.3": {
+    "title": "Classification (Increasing Complexity)",
+    "lo": "Child sorts a larger/more varied set correctly by one named attribute.",
+    "topics": "Classification; sorting (increasing complexity)."
+  },
+  "S2.4": {
+    "title": "Counting to 5 with Cardinality",
+    "lo": "Child counts up to 5 objects and correctly states the total.",
+    "topics": "Counting with cardinality; counting to 5."
+  },
+  "S2.5": {
+    "title": "Counting 6–10 with Support",
+    "lo": "Child counts 6–10 objects accurately with support.",
+    "topics": "Counting 6–10; scaffolded counting."
+  },
+  "S2.6": {
+    "title": "Shape Identification (Named)",
+    "lo": "Child correctly names circle, square, and triangle when shown.",
+    "topics": "2D shape naming; shape vocabulary."
+  },
+  "S2.7": {
+    "title": "Simple Repeating Pattern (2-Item)",
+    "lo": "Child correctly continues a 2-item repeating pattern.",
+    "topics": "Patterns; 2-item repeating sequences."
+  },
+  "S2.8": {
+    "title": "Comparative Vocabulary (Informal)",
+    "lo": "Child correctly uses comparative measurement vocabulary when comparing two real objects.",
+    "topics": "Comparative vocabulary; informal measurement language."
+  },
+  "S2.9": {
+    "title": "Conceptual Subitizing",
+    "lo": "Child correctly states the total of a small set (~4–6) by recognizing sub-groups, without counting one by one.",
+    "topics": "Conceptual subitizing; part-whole quantity recognition."
+  },
+  "S2.10": {
+    "title": "Shape Composition: Piece Assembly *(added 2026-07-19)*",
+    "lo": "Child combines 2-3 shapes into a simple picture through trial and error.",
+    "topics": "Shape composition; combining shapes."
+  },
+  "S3.1": {
+    "title": "Numeral Recognition (1–10)",
+    "lo": "Child correctly identifies written numerals 1–10.",
+    "topics": "Numeral recognition; number symbols."
+  },
+  "S3.2": {
+    "title": "Numeral–Quantity Correspondence",
+    "lo": "Child correctly matches a written numeral to a counted set of that quantity, and vice versa.",
+    "topics": "Numeral–quantity correspondence."
+  },
+  "S3.3": {
+    "title": "Numeral Comparison (Object-Mediated)",
+    "lo": "Child correctly compares two numerals when allowed to ground each in counted objects.",
+    "topics": "Numeral comparison (object-mediated)."
+  },
+  "S3.4": {
+    "title": "Seriation with Transitivity",
+    "lo": "Child correctly orders 3+ objects and can answer a transitivity question without re-comparing every pair.",
+    "topics": "Seriation with transitivity."
+  },
+  "S3.5": {
+    "title": "Classification (Flexible)",
+    "lo": "Child correctly re-sorts the same set of objects by two different attributes in turn.",
+    "topics": "Flexible classification."
+  },
+  "S3.6": {
+    "title": "Sequencing (Arranges by Sequence)",
+    "lo": "Child correctly arranges a small set of numbers or objects in sequence.",
+    "topics": "Sequencing; ordering."
+  },
+  "S3.7": {
+    "title": "Comparative Vocabulary (Formalizing)",
+    "lo": "Child consistently and correctly uses comparative measurement vocabulary across multiple items.",
+    "topics": "Comparative vocabulary (formalizing)."
+  },
+  "S3.8": {
+    "title": "Patterns (2-Item Independent + 3-Item Introduction)",
+    "lo": "Child independently continues a 2-item pattern and, with support, continues a 3-item pattern.",
+    "topics": "Patterns; 2-item independent, 3-item introduction."
+  },
+  "S3.9": {
+    "title": "Shape Properties (Basic)",
+    "lo": "Child can state at least one defining property of a basic 2D shape (e.g. \"a triangle has 3 sides\").",
+    "topics": "Shape properties (basic)."
+  },
+  "S3.10": {
+    "title": "Shape Composition: Picture Making *(added 2026-07-19)*",
+    "lo": "Child plans and creates a simple picture from multiple shapes, with some intentionality beyond pure trial and error.",
+    "topics": "Shape composition; picture making."
+  },
+  "S4.1": {
+    "title": "Numeral Comparison — Fully Abstract",
+    "lo": "Child correctly compares two bare numerals without needing objects.",
+    "topics": "Numeral comparison, fully abstract."
+  },
+  "S4.2": {
+    "title": "Numeral Comparison — Close Values",
+    "lo": "Child correctly compares two close-valued numerals.",
+    "topics": "Numeral comparison, close values."
+  },
+  "S4.3": {
+    "title": "Counting Objects to 20",
+    "lo": "Child counts up to 20 objects accurately.",
+    "topics": "Counting to 20."
+  },
+  "S4.4": {
+    "title": "Reading/Writing Numbers to 99",
+    "lo": "Child correctly reads and writes any number 1–99.",
+    "topics": "Reading/writing to 99."
+  },
+  "S4.5": {
+    "title": "Place Value — Face Value Only (Pre-Conceptual)",
+    "lo": "Child correctly names the two digits of a given 2-digit number.",
+    "topics": "Place value, face value only."
+  },
+  "S4.6": {
+    "title": "Addition to 9 (Concrete → Abstract)",
+    "lo": "Child solves addition problems with sums up to 9.",
+    "topics": "Addition to 9."
+  },
+  "S4.7": {
+    "title": "Subtraction to 9 (Concrete → Abstract)",
+    "lo": "Child solves subtraction problems within 9.",
+    "topics": "Subtraction to 9."
+  },
+  "S4.8": {
+    "title": "3D Shape Properties",
+    "lo": "Child correctly names corners, edges, and surfaces of a solid shape.",
+    "topics": "3D shape properties."
+  },
+  "S4.9": {
+    "title": "Length Estimation (Non-Standard Units)",
+    "lo": "Child estimates and verifies an object's length using a body-referenced unit.",
+    "topics": "Length estimation, non-standard units."
+  },
+  "S4.10": {
+    "title": "Capacity Estimation (Non-Standard Units)",
+    "lo": "Child estimates and verifies a container's capacity using an informal unit.",
+    "topics": "Capacity estimation, non-standard units."
+  },
+  "S4.11": {
+    "title": "Patterns, 3-Item Repeating Cycle (Independent)",
+    "lo": "Child independently continues a 3-item pattern, including filling in a missing middle term.",
+    "topics": "Patterns, 3-item independent."
+  },
+  "S4.12": {
+    "title": "Zero, as \"None\"/Empty Set",
+    "lo": "Child correctly identifies zero as the count of an empty set, in context.",
+    "topics": "Zero, as \"none.\""
+  },
+  "S4.13": {
+    "title": "Ordinal Numbers",
+    "lo": "Child correctly names and uses ordinal positions 1st–10th.",
+    "topics": "Ordinal numbers."
+  },
+  "S4.14": {
+    "title": "Number Line Placement (Informal, 0–20)",
+    "lo": "Child approximately places a given numeral (0–20) on a blank number line.",
+    "topics": "Number line placement."
+  },
+  "S4.15": {
+    "title": "Shape Composition & Decomposition *(added 2026-07-19)*",
+    "lo": "Child both composes a new shape from parts and decomposes a given shape into parts.",
+    "topics": "Shape composition and decomposition."
+  },
+  "S5.1": {
+    "title": "Reading/Writing Numbers to 999",
+    "lo": "Child correctly reads and writes any number 1–999.",
+    "topics": "Reading/writing to 999."
+  },
+  "S5.2": {
+    "title": "Place Value — Tens as Groups (Unitising)",
+    "lo": "Child explains a 2-digit number in terms of groups of ten plus ones (e.g. \"47 is 4 tens and 7 ones\").",
+    "topics": "Place value, tens as groups."
+  },
+  "S5.3": {
+    "title": "Flexible Decomposition of 2-Digit Numbers",
+    "lo": "Child can express a 2-digit number in more than one valid decomposition.",
+    "topics": "Flexible decomposition."
+  },
+  "S5.4": {
+    "title": "Addition to 99, with Carrying",
+    "lo": "Child correctly solves 2-digit addition problems requiring carrying.",
+    "topics": "Addition to 99, with carrying."
+  },
+  "S5.5": {
+    "title": "Subtraction to 99, Introducing Borrowing",
+    "lo": "Child correctly solves 2-digit subtraction problems requiring borrowing.",
+    "topics": "Subtraction to 99, introducing borrowing."
+  },
+  "S5.6": {
+    "title": "Multiplication as Repeated Addition",
+    "lo": "Child correctly represents a multiplication fact as repeated addition.",
+    "topics": "Multiplication as repeated addition."
+  },
+  "S5.7": {
+    "title": "Division as Equal Sharing",
+    "lo": "Child correctly shares a set of objects equally among a given number of groups.",
+    "topics": "Division as equal sharing."
+  },
+  "S5.8": {
+    "title": "Multiplication Tables 2, 3, 4",
+    "lo": "Child recalls multiplication facts for tables 2, 3, and 4 fluently.",
+    "topics": "Multiplication tables 2, 3, 4."
+  },
+  "S5.9": {
+    "title": "Currency Recognition (Informal)",
+    "lo": "Child correctly identifies common Indian coins and notes.",
+    "topics": "Currency recognition (informal)."
+  },
+  "S5.10": {
+    "title": "Informal Fractions via Folding",
+    "lo": "Child correctly folds/identifies half and quarter of a physical object.",
+    "topics": "Informal fractions via folding."
+  },
+  "S5.11": {
+    "title": "Length/Capacity, Non-Standard *Uniform* Units",
+    "lo": "Child measures an object using a uniform non-standard unit and gets a consistent result.",
+    "topics": "Length/capacity, uniform non-standard units."
+  },
+  "S5.12": {
+    "title": "2D Shape Identification (Named Set)",
+    "lo": "Child correctly names rectangle, triangle, circle, and oval when shown.",
+    "topics": "2D shape identification (named set)."
+  },
+  "S5.13": {
+    "title": "Spatial Vocabulary",
+    "lo": "Child correctly uses spatial-relationship vocabulary to describe object positions.",
+    "topics": "Spatial vocabulary."
+  },
+  "S5.14": {
+    "title": "Calendar, Days/Months",
+    "lo": "Child correctly reads days and months from a calendar.",
+    "topics": "Calendar reading, days/months."
+  },
+  "S5.15": {
+    "title": "Object/Picture Sorting",
+    "lo": "Child correctly sorts and counts objects/pictures by category.",
+    "topics": "Object/picture sorting."
+  },
+  "S5.16": {
+    "title": "Number-Sequence Patterns",
+    "lo": "Child correctly continues a repeating number-sequence pattern.",
+    "topics": "Number-sequence patterns."
+  },
+  "S5.17": {
+    "title": "Zero, as Place-Value Placeholder",
+    "lo": "Child correctly explains why a zero is needed in a number like 40, not just \"4 with nothing after it.\"",
+    "topics": "Zero, as placeholder."
+  },
+  "S5.18": {
+    "title": "Number Line Placement, Extended (0–100)",
+    "lo": "Child approximately places a given numeral (0–100) on a blank number line.",
+    "topics": "Number line placement, extended."
+  },
+  "S5.19": {
+    "title": "Skip Counting by 2s and 5s",
+    "lo": "Child correctly continues a skip-counting sequence by 2s or 5s.",
+    "topics": "Skip counting by 2s and 5s."
+  },
+  "S6.1": {
+    "title": "Place Value — 3-Digit Extension",
+    "lo": "Child correctly decomposes a 3-digit number into hundreds, tens, and ones.",
+    "topics": "Place value, 3-digit extension."
+  },
+  "S6.2": {
+    "title": "Place Value — Flexible 3-Digit Decomposition for Arithmetic",
+    "lo": "Child can decompose and recombine 3-digit numbers by place to support arithmetic.",
+    "topics": "Flexible 3-digit decomposition."
+  },
+  "S6.3": {
+    "title": "Comparison/Ordering of 3-Digit Numbers Using Place-Value Logic",
+    "lo": "Child correctly orders a set of 3-digit numbers using place-value logic.",
+    "topics": "Comparison/ordering of 3-digit numbers."
+  },
+  "S6.4": {
+    "title": "Reading/Writing to 9999",
+    "lo": "Child correctly reads and writes any number 1–9999.",
+    "topics": "Reading/writing to 9999."
+  },
+  "S6.5": {
+    "title": "Addition/Subtraction to 999, Daily-Life Word Problems",
+    "lo": "Child correctly solves 3-digit addition/subtraction word problems.",
+    "topics": "Addition/subtraction to 999, word problems."
+  },
+  "S6.6": {
+    "title": "Multiplication Tables 2–10",
+    "lo": "Child recalls multiplication facts for tables 2 through 10 fluently.",
+    "topics": "Multiplication tables 2–10."
+  },
+  "S6.7": {
+    "title": "Division Facts",
+    "lo": "Child correctly recalls division facts corresponding to tables 2–10.",
+    "topics": "Division facts."
+  },
+  "S6.8": {
+    "title": "Length/Weight/Capacity — Standard Units",
+    "lo": "Child correctly measures using standard units and reads standard measuring tools.",
+    "topics": "Standard units of measurement."
+  },
+  "S6.9": {
+    "title": "Relating 2D Shapes to 3D Shapes",
+    "lo": "Child correctly identifies which 2D shapes make up the faces of a given 3D shape.",
+    "topics": "Relating 2D shapes to 3D shapes."
+  },
+  "S6.10": {
+    "title": "Clock Reading — Hours and Half-Hours",
+    "lo": "Child correctly reads an analog clock to the hour and half-hour.",
+    "topics": "Clock reading, hours and half-hours."
+  },
+  "S6.11": {
+    "title": "Money Arithmetic (Rupees/Paise)",
+    "lo": "Child correctly adds and subtracts rupee/paise amounts.",
+    "topics": "Money arithmetic."
+  },
+  "S6.12": {
+    "title": "Half/One-Fourth/Three-Fourth — of a Whole and of a Collection",
+    "lo": "Child correctly identifies half/one-fourth/three-fourth of both a shape and a collection of objects.",
+    "topics": "Formal fractions, of a whole and of a collection."
+  },
+  "S6.13": {
+    "title": "Pattern Rules + Skip-Counting by 10",
+    "lo": "Child correctly states the rule governing a pattern, not just its next term, and skip-counts by 10.",
+    "topics": "Pattern rules; skip-counting by 10."
+  },
+  "S6.14": {
+    "title": "Tally Charts, Pictographs, Bar Graphs (Up to 4 Categories)",
+    "lo": "Child correctly reads and interprets tally charts, pictographs, and bar graphs with up to 4 categories.",
+    "topics": "Tally charts, pictographs, bar graphs."
+  },
+  "S7.1": {
+    "title": "Place Value — Extending to Thousands",
+    "lo": "Child correctly explains the place value of thousands in a 4-digit number.",
+    "topics": "Place value, thousands."
+  },
+  "S7.2": {
+    "title": "Reading/Writing Large Numbers; Regrouping",
+    "lo": "Child correctly reads, writes, and regroups 4-digit numbers.",
+    "topics": "Reading/writing large numbers; regrouping."
+  },
+  "S7.3": {
+    "title": "Complex Addition/Subtraction, Carrying Across Multiple Digits",
+    "lo": "Child correctly solves multi-digit addition/subtraction word problems requiring multiple regroupings.",
+    "topics": "Complex addition/subtraction, multi-digit carrying."
+  },
+  "S7.4": {
+    "title": "Multiplication Tables to 15; Multi-Digit Multiplication",
+    "lo": "Child correctly multiplies up to 2-digit×2-digit numbers.",
+    "topics": "Multiplication tables to 15 (unverified conventional scope); multi-digit multiplication (externally verified)."
+  },
+  "S7.5": {
+    "title": "Formal Division — 4 Methods",
+    "lo": "Child correctly solves division problems using at least two of the four named methods.",
+    "topics": "Formal division, four methods."
+  },
+  "S7.6": {
+    "title": "Numerical Fraction Notation + Equivalence",
+    "lo": "Child correctly writes fractions numerically and identifies at least one equivalent pair.",
+    "topics": "Fraction notation; equivalence."
+  },
+  "S7.7": {
+    "title": "Unit Conversion (m↔cm, km↔m)",
+    "lo": "Child correctly converts between related standard units (e.g. 100cm = 1m).",
+    "topics": "Unit conversion."
+  },
+  "S7.8": {
+    "title": "Measurement Word Problems (All 4 Operations)",
+    "lo": "Child correctly solves word problems involving length/weight/capacity using all 4 operations.",
+    "topics": "Measurement word problems."
+  },
+  "S7.9": {
+    "title": "3D Shapes — Cube, Cuboid; Nets (Introductory)",
+    "lo": "Child correctly identifies the net of a simple 3D shape (cube or cuboid).",
+    "topics": "3D shapes; nets (introductory)."
+  },
+  "S7.10": {
+    "title": "Hours, Minutes, Time Intervals, AM/PM",
+    "lo": "Child correctly reads a clock to the minute and calculates simple time intervals, using AM/PM correctly.",
+    "topics": "Hours, minutes, time intervals, AM/PM."
+  },
+  "S7.11": {
+    "title": "Complex Money Word Problems",
+    "lo": "Child correctly solves multi-step word problems involving money.",
+    "topics": "Complex money word problems."
+  },
+  "S7.12": {
+    "title": "Number Patterns, Rule Identification",
+    "lo": "Child correctly identifies and states the rule for a more complex number pattern.",
+    "topics": "Number patterns, rule identification."
+  },
+  "S7.13": {
+    "title": "Bar Graphs — Reading and Interpreting",
+    "lo": "Child correctly reads and interprets a bar graph, including comparison questions across categories.",
+    "topics": "Bar graphs, reading and interpreting."
+  },
+  "S7.14": {
+    "title": "Factors & Multiples *(added 2026-07-19)*",
+    "lo": "Child correctly lists factors and multiples of a given number, and identifies common factors/multiples of two numbers.",
+    "topics": "Factors; multiples; common factors/multiples; prime/composite."
+  },
+  "S7.15": {
+    "title": "Decimals (Introduction) *(added 2026-07-19)*",
+    "lo": "Child correctly reads, writes, and compares simple decimal numbers (tenths and hundredths).",
+    "topics": "Decimal numbers; tenths; hundredths; decimal place value."
+  },
+  "S7.16": {
+    "title": "Angles *(added 2026-07-19)*",
+    "lo": "Child correctly identifies and classifies the four named angle types.",
+    "topics": "Angles; angle types; introductory measurement."
+  },
+  "S7.17": {
+    "title": "Symmetry & Reflection *(added 2026-07-19)*",
+    "lo": "Child correctly identifies symmetrical figures, draws a line of symmetry, and completes a missing symmetrical half.",
+    "topics": "Symmetry; line of symmetry; reflection; mirror images."
+  },
+  "S7.18": {
+    "title": "Perimeter & Area *(resolved 2026-07-19 — was a flagged gap, not a node, until now)*",
+    "lo": "Child correctly calculates both perimeter and area of simple rectangles/squares and explains the difference between them.",
+    "topics": "Perimeter; area; square units."
+  }
+}

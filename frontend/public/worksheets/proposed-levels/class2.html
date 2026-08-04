@@ -492,9 +492,9 @@ function tensOnesBlocks(number){
 function section8(){
   let rows='';
   const answers=[];
-  for(let i=0;i<1;i++){
-      const number=randInt(11,99);
-      const reveal=i<1;
+  for(let i=0;i<3;i++){
+    const number=randInt(11,99);
+    const reveal=i<3;
     const instr=reveal?'Show the number <b>'+number+'</b> using tens and ones.':'Look at the blocks. Write the number.';
     const blocks=tensOnesBlocks(number);
     const answer='Tens: <span class="blankline" data-omr="q8-r'+(i+1)+'-tens"></span>&nbsp;&nbsp;Ones: <span class="blankline" data-omr="q8-r'+(i+1)+'-ones"></span>&nbsp;&nbsp;Number: <span class="blankline" data-omr="q8-r'+(i+1)+'-number" style="width:64px;"></span>';
@@ -555,8 +555,8 @@ function buildPatternRow(){
 function section10(){
   let rows='';
   const answers=[];
-  for(let i=0;i<1;i++){
-      const {seq,label,type,next1,next2}=buildPatternRow();
+  for(let i=0;i<3;i++){
+    const {seq,label,type,next1,next2}=buildPatternRow();
     const shapesHtml=seq.map(s=>renderIcon(s,34)).join('');
     const blanksHtml='<span class="dashedbox" data-omr="q10-r'+(i+1)+'-next1"></span><span class="dashedbox" data-omr="q10-r'+(i+1)+'-next2"></span>';
     rows+='<tr><td class="rownum">'+(i+1)+'</td><td style="width:30%;">'+label+'</td><td><div class="objcell">'+shapesHtml+blanksHtml+'</div></td></tr>';

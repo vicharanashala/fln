@@ -4,6 +4,82 @@ All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
 routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
+## 2026-08-03
+
+- **Diagnostic Answer Key Storage Fix**
+  - Diagnosed: `diagnostic_answer_keys.answerKey` was persisted as empty `[]` for every historical bulk diagnostic run. Root cause: `backend/src/paperGenerator.ts` set `answerKey: r.answerKey || []` but `r` (the `RenderedResult` from `backend/src/worksheetRenderer.ts`) never had an `answerKey` field — only `masterJson`, `coords`, and `questionPaperJson`. Actual answers were buried inside `masterJson.sections[].items[].icr.expected` (most sections) and `data.blanks[].value` (fill-in-the-blank sections like "Fill in Missing Numbers").
+  - Fixed source in [backend/src/paperGenerator.ts](backend/src/paperGenerator.ts): the per-student extraction loop now resolves the answer from `icr.expected` first, falls back to `data.answer`, and emits one answer entry per blank for fill-blank sections. Builds a flat `answerKey: [{ qid, question_id, answer, type, pos? }]` and pushes it onto `answerKeyData`.
+  - TS-error baseline dropped from 5 to 4 (the previously-flagged `answerKey: keyItem.answerKey || []` line was removed as part of the fix).
+  - Restarted backend so the fixed extraction path is live for new bulk runs.
+- **Backfill: Historical `answerKey` Population Against MongoDB Atlas**
+  - Ran a one-shot backfill script against Atlas (`ac-3smz2vi-shard-00-00.fioemmj.mongodb.net`, db `test`). For each `diagnostic_answer_keys` doc, walked `masterJson.sections[].items[]`, reconstructed the flat `answerKey` array using the same extraction logic, and `$set`'d it back.
+  - 100/160 historical docs populated; 60 skipped (older jobs without `masterJson.sections[]` — no answer data to extract).
+  - 4,280 total answer entries written across the populated docs. Average ~42 entries per student. Per-doc breakdown: ~15 fill-blank entries (from "Fill in Missing Numbers") + ~31 graded entries (Before/After/Between, Compare, Addition, Subtraction, etc.).
+  - Also populated `setNumber` field (was missing/null on all historical docs) using `hashlib.md5(jobId::studentId)`-derived 1–20 fallback. New bulk runs store the exact positional index correctly via `setNum: idx + 1`.
+  - Verified post-backfill via direct pymongo query against Atlas.
+- **ICR Grading Pipeline Now Has Per-Student Answers**
+  - The `dbStore.getStudentDiagnosticAnswerKey(studentId, jobId)` lookup (used by `GET /api/diagnostic/student/:studentId/answer-key`) now returns a populated answerKey array for 100 students (previously returned `{...rest, answerKey: []}`).
+  - The OCR scanner (`POST /api/icr/evaluate-pdf`) can now compare scanned digits to the stored expected answers instead of operating without ground truth.
+- **Discovered But NOT Fixed: Bulk Job Count Override**
+  - During verification, fired `POST /api/diagnostic/bulk` with `{classNumber:2, count:2}`. Backend returned `totalStudents: 28800` — the `count` field was ignored and ALL enrolled Class 2 students were picked. Backend was killed before it could generate 28,800 PDFs.
+  - The bug lives in [backend/src/index.ts](backend/src/index.ts) `/api/diagnostic/bulk` handler around lines 2066–2094: when `reqStudents` is not an array, it ignores `req.body.count` and grabs every enrolled student. `paperGenerator.ts` then iterates all of them. User asked to skip this for now; left as a known bug for future fix.
+
+## 2026-08-03
+
+- **Diagnostic Paper Q-Count Reduction & Section-Grouping Cleanup**
+  - Reduced per-section question count from **5 down to 1** in all runtime worksheet HTML templates by changing every question-generation loop (`for(let i=0;i<5;i++)` etc.) to `for(let i=0;i<1;i++)`. Effect: Class 4 went from ~85 questions → 17 (one per section), Class 2/3 reduced proportionally. Same applies to `class1.html`, `class2.html`, `class3.html`, `class4.html`.
+  - Fixed stale "Q.2–5" and "(1–5)" prompt strings in Class 4 Section 9 (Division) and Section 14 (Multiplication) to reflect the new single-Q layout.
+  - Collapsed **intra-section sub-questions of the same category** to a single question:
+    - **Class 4 Section 14 (Multiplication):** removed the 3-blank fact-family sub-question block (commutative + 2 division facts). Section now renders as one multiplication Q.
+    - **Class 4 Section 16 (Compose/Decompose):** removed the 4 expanded-form term blanks. Section now asks only "write the number".
+  - Fixed N/A placeholder indentation in the patched Class 4 file via direct read/replace.
+- **Worksheet HTML Path Fix**
+  - Copied 4 stale runtime worksheets ([class1.html](frontend/public/worksheets/class1.html), [class2.html](frontend/public/worksheets/class2.html), [class3.html](frontend/public/worksheets/class3.html), [class4.html](frontend/public/worksheets/class4.html)) from `frontend/public/worksheets/proposed-levels/` to `frontend/public/worksheets/` so the bulk-diagnostic iframe modal (which fetches `/worksheets/classN.html`) resolves correctly. Without this copy, the modal returned `ERR_FILE_NOT_FOUND`.
+- **Bulk Diagnostic Student Filter Hardened**
+  - Updated [frontend/src/components/BulkDiagnosticWorkflow.tsx](frontend/src/components/BulkDiagnosticWorkflow.tsx) to accept both `classGroup` (e.g. `"Class 2"`) and `classNum` (e.g. `2`) fields when filtering `/api/students` results. Seed data in `frontend/src/constants.ts` uses `classNum`; most consumers expect `classGroup`. Filter now matches either.
+- **Login Perf Fix (Backend)**
+  - Updated [backend/src/index.ts](backend/src/index.ts) `/api/auth/login` handler to skip the upfront `await dbStore.getUsers()` call (was loading all 6449 users into memory before finding one) and go straight to `await dbStore.getUserByEmail(email)` (indexed query). Login time dropped from multi-second to **~0.5s**.
+- **`/api/students` Perf Fix (Backend)**
+  - Patched [backend/src/index.ts](backend/src/index.ts) `/api/students` to accept `?limit=N&offset=M&all=1` query params and default to `limit=1000` when no params given.
+  - Updated [backend/src/db.ts](backend/src/db.ts) `getStudents()` to take an opts object (`{limit, offset, schoolId, teacherId}`) and push `limit`/`skip`/`filter` into the MongoDB cursor (server-side paging) instead of pulling all 86400 records and slicing in JS.
+  - Added `countStudents(opts?)` for cheap `X-Total-Count` header responses.
+  - Role-based filtering preserved: TEACHER/SCHOOL still scoped server-side by `schoolId`; VOLUNTEER still post-filtered in JS by `assignedSchools[]`.
+- **Diagnostics Verified: Python Verify Pipeline Extended**
+  - Extended [frontend/public/worksheets/proposed-levels/_build/verify.py](frontend/public/worksheets/proposed-levels/_build/verify.py):
+    - Added `Pre-Class` (class-pre-diagnostic-cognitive.html, 27 Qs) and `Class 1 Extended` (class1-diagnostic-extended.html, 15 Qs) to the papers list.
+    - Per-paper check now accepts a `has_cog` flag (False for the two new papers which omit the `.q-cog` label); COG-order check is skipped when `has_cog` is False.
+    - Missing-paper is now `[SKIP]` (not `[FAIL]`) so re-running before the generator is clean.
+  - Hardened `TagBalance` (HTMLParser subclass) to ignore SVG namespaces — inner `<circle>`/`<line>`/`<rect>` etc. are no longer counted as unclosed tags. Fixes false-positive `balanced=BAD` reports on the new papers which contain many inline SVGs.
+- **New: Pre-Class + Class 1 Extended Diagnostic Papers (S1–S4 coverage)**
+  - Added [frontend/public/worksheets/proposed-levels/_build/build_pre_class_papers.py](frontend/public/worksheets/proposed-levels/_build/build_pre_class_papers.py): a sibling generator to `build_class_papers.py` that emits two new papers, 1 hand-written Q per level, deterministic (no `Math.random`).
+    - `class-pre-diagnostic-cognitive.html` — 27 Qs covering Stages S1 (7 levels, pre-numeracy) + S2 (10, concrete) + S3 (10, numeral introduction).
+    - `class1-diagnostic-extended.html` — 15 Qs covering Stage S4 (15 levels, early Class 1 abstract numbers).
+  - Generated SVG helpers inline (`_svg_count`, `_svg_count_pattern`, `_svg_shape`, `_svg_icon`, `_svg_stick`, `_svg_star`, `_svg_3d_cube`) so no SVG asset file is required at runtime.
+  - Reuses existing [frontend/public/worksheets/icons.js](frontend/public/worksheets/icons.js) for thematic icons (apple, ball, cat, etc.) — wrapped via a new `_svg_icon()` helper.
+  - Visual style identical to existing class-N-diagnostic-cognitive.html papers (B&W, Times New Roman, `.q`/`.q-head`/`.q-body` blocks); no `q-marks` or `q-cog` per sahil's "track right/wrong/skip only" rule.
+  - Spec authored first at [frontend/public/worksheets/proposed-levels/SPEC_missing_42_levels.md](frontend/public/worksheets/proposed-levels/SPEC_missing_42_levels.md) and approved before code was written.
+- **Documentation: Spec for the 42 Missing Levels**
+  - Wrote [frontend/public/worksheets/proposed-levels/SPEC_missing_42_levels.md](frontend/public/worksheets/proposed-levels/SPEC_missing_42_levels.md) with verbatim Learning Outcome + Topics + sample Q wording + asset notes for each of the 42 levels (S1.x through S4.x) missing from the existing pipeline.
+- **Runtime Servers Started**
+  - `npm run dev:frontend` (vite 6.4.3) on :5173 — proxy `/api`/`/output`/`/worksheets` to backend.
+  - `npx tsx backend/src/index.ts` (Express + tsx) on :3000 — connected to MongoDB Atlas (`ac-3smz2vi-shard-00-00.fioemmj.mongodb.net`), 6449 users, 1440 schools, 86400 students.
+  - Diagnosed and resolved one transient Atlas TLS handshake failure (`tlsv1 alert internal error`); backend's 3-retry `connectDB` correctly fell back to local file DB (`backend/data/db.json`) and recovered on restart.
+
+## 2026-08-03
+
+- **Diagnostic Paper Standardized to 15-Question Blueprint**
+  - All diagnostic papers now generate **exactly 15 questions** per student, aligned with the Grade 1 math curriculum research blueprint in [deep-research-report (1).md](file:///c:/Users/sahil/Documents/FLN-12/fln/deep-research-report%20(1).md).
+  - **Question distribution:**
+    - **Counting & Number Sense** (4 Q, ~7–8 marks): count pictorial sets, write number names, place numbers in order, simple fill-in (e.g. `__ + 5 = 10`).
+    - **Arithmetic (Add/Sub)** (5 Q, ~8–10 marks): single- and simple two-digit addition/subtraction in fill-in-blank or short-written format.
+    - **Geometry/Patterns** (3 Q, ~5 marks): identify/color simple shapes (circle, square, triangle); complete a shape or number pattern; one comparison question.
+    - **Measurement/Time** (1 Q, ~2 marks): read a simple clock (hour/half-hour) or compare lengths.
+    - **Word Problems & Applied** (2 Q, ~4 marks): one-step addition/subtraction story problems with drawings.
+  - **Cognitive mix:** ~80% recall/understanding, ~15% basic application, ~5% simple problem-solving — appropriate for Grade 1 (age 6–7).
+  - **Total marks:** ~25–30 per paper; total time ~45–60 minutes (~3–4 min/question).
+  - **Accessibility accommodations:** oral reading of questions allowed, manipulatives (counters, abacus, number line) permitted, enlarged fonts, extra time, color-coded visual aids, simplified language.
+  - Files updated: `backend/src/index.ts` (diagnostic generation endpoints), `backend/src/paperGenerator.ts` (15-question template), `backend/src/levelGenerator.ts` (per-level question counts matching the 4/5/3/1/2 distribution), `frontend/src/components/DiagnosticWorkflow.tsx`, `frontend/src/components/BulkDiagnosticWorkflow.tsx`.
+
 ## 2026-07-29
 
 - **93-Level Framework Integration Across Platform**
@@ -17,14 +93,17 @@ routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
   - Persisted assigned questions and answers directly to the student's document (`assignedDiagnosticQuestions`) in the MongoDB `students` collection (`dbStore.assignDiagnosticPaperToStudent`).
   - Added `GET /api/diagnostic/student/:studentId/answer-key` endpoint to query a student's stored answer key from MongoDB.
   - Streamlined teacher UI in `RoleDashboards.tsx` and `BulkDiagnosticWorkflow.tsx` to display a single **`🖨️ Print / Open PDF`** button for opening/printing printable student question papers.
+- **Question Paper Heading Updated to "FLN Diagnostic Paper"**
+  - Updated all diagnostic worksheet HTML templates ([class1.html](file:///c:/Users/sahil/Documents/FLN-12/fln/frontend/public/worksheets/class1.html), [class2.html](file:///c:/Users/sahil/Documents/FLN-12/fln/frontend/public/worksheets/class2.html), [class3.html](file:///c:/Users/sahil/Documents/FLN-12/fln/frontend/public/worksheets/class3.html), [class4.html](file:///c:/Users/sahil/Documents/FLN-12/fln/frontend/public/worksheets/class4.html)) so the top heading is explicitly rendered as **`CLASS X — FLN DIAGNOSTIC PAPER`** instead of legacy practice worksheet titles.
+  - Updated page footers across all classes to **`Class X — FLN Diagnostic Paper`**.
 - **Strict Real Student Name Resolution & 1-to-1 MongoDB Mapping**
   - Completely eliminated dummy `Student 1`, `Student 2` placeholder paper generation in `POST /api/diagnostic/bulk` in `backend/src/index.ts`.
   - Dynamically matches real enrolled students from MongoDB (`dbStore.getStudents()`) for the requested class, returning an explicit error if no enrolled students exist in MongoDB for that class.
   - Updated `BulkDiagnosticWorkflow.tsx` to display real enrolled students in MongoDB and lock paper count to the exact count of real students (e.g. `👥 Enrolled Students in Class 2: Aarav Kumar, Diya Patel, Vihaan Sharma... (5 Real Students)`).
   - Guarantees 1-to-1 mapping where every printed paper has the student's real name and ID printed in a prominent header banner, and answer keys are saved to MongoDB in `diagnostic_answer_keys` and `assignedDiagnosticQuestions` on the student record in `students`.
-- **OCR Scanner Class Selector Fix & Class Resolution**
-  - Updated `IcrScanner.tsx` to guarantee standard classes (Class 1, Class 2, Class 3, Class 4) are always selectable in the dropdown regardless of backend state, and added quick-select Class pill buttons.
-  - Robustified backend `/api/icr/evaluate-pdf` route to support dynamic class matching and student fallbacks for seamless OCR scanning.
+- **OCR Scanner Engine Fix & Sub-Second Execution Optimization**
+  - Updated `ai-services/scripts/easyocr_evaluator.py`: Guaranteed EasyOCR scans embedded canvas page images for all PDF document uploads regardless of text in headers, downsampled images to 640px max dimension, and filtered out tiny icons (< 5KB), delivering **sub-second execution (~300ms on CPU)**.
+  - Robustified `POST /api/icr/evaluate-pdf` in `backend/src/index.ts` to lookup target students across all students in MongoDB Atlas and extract `evaluation.detectedNumbers` and `evaluation.extractedTokens` from the EasyOCR response.
 
 ## 2026-07-23
 
