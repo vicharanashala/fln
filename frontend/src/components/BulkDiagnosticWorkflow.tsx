@@ -37,14 +37,18 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
         if (res.ok) {
           const stdData = await res.json();
           if (Array.isArray(stdData)) {
-            const targetClassName = `Class ${classLevel}`;
-            const filtered = stdData.filter(s => {
-              const cg = (s.classGroup || '').toLowerCase().trim();
-              return cg === targetClassName.toLowerCase() ||
-                     cg === String(classLevel) ||
-                     cg.includes(`class ${classLevel}`) ||
-                     cg.includes(`class_${classLevel}`);
-            });
+                      const targetClassName = `Class ${classLevel}`;
+                      const filtered = stdData.filter(s => {
+                        const cg = (s.classGroup || '').toLowerCase().trim();
+                        const cn = String(s.classNum ?? '').trim();
+                        // Match by classGroup ("Class 2") OR by classNum (2) — seed data in
+                        // constants.ts uses classNum while most consumers expect classGroup.
+                        return cg === targetClassName.toLowerCase() ||
+                               cg === String(classLevel) ||
+                               cg.includes(`class ${classLevel}`) ||
+                               cg.includes(`class_${classLevel}`) ||
+                               cn === String(classLevel);
+                      });
             const mapped = filtered.map(s => ({ name: s.name, studentId: s.id }));
             setEnrolledStudents(mapped);
             if (mapped.length > 0) {
