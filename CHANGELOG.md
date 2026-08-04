@@ -6,6 +6,14 @@ routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
 ## 2026-08-04
 
+- **OCR Engine: Blue-Pen Ink Isolation**
+  - Updated [ai-services/scripts/easyocr_evaluator.py](ai-services/scripts/easyocr_evaluator.py): added a cv2-based blue-pen HSV filter (H 100–130, S ≥ 60, V 50–255) that runs after PIL downsampling and before EasyOCR's `readtext` on image scans. The filter inverts the blue mask so blue ink renders as black text on white — the format EasyOCR is trained on. Morphological close + open clean up broken strokes and single-pixel noise.
+  - New dependency flags `CV2_AVAILABLE` and `numpy` mirror the existing `EASYOCR_AVAILABLE` / `PIL_AVAILABLE` pattern: if cv2 isn't installed the script silently falls back to the unfiltered OCR path, so existing dev environments without opencv keep working.
+  - Temp JPEG is written to `<original>_blue_inv.jpg` and cleaned up in the `finally` block — no orphan files left behind on the disk.
+  - New helper [ai-services/scripts/test_blue_pen_isolation.py](ai-services/scripts/test_blue_pen_isolation.py) runs `easyocr_evaluator.py` against the sample scans in `ai-services/scratch/` and prints token counts + average confidence. On the notebook-style scans (4, 5, 7, 7 hand-drawn) EasyOCR now extracts the correct digits at ~0.80 avg confidence, where the previous full-page OCR returned garbage from the ruled lines.
+- **Worksheet Iframe Preview Now Points at New Diagnostic Papers**
+  - Updated [frontend/src/components/WorksheetIframeModal.tsx](frontend/src/components/WorksheetIframeModal.tsx) `CLASS_FILE_MAP`: Class 1–4 now resolve to `/worksheets/proposed-levels/class-N-diagnostic-cognitive.html` (the deterministic B&W papers from the earlier Q-count-reduction commit) instead of the stale `/worksheets/classN.html` files. The bulk-modal iframe preview actually shows the reduced-question-count papers users generated, instead of a stale copy of the old template.
+  - Old `worksheets/classN.html` files are left on disk so the `file://` load path still resolves; the runtime path now points at the new papers.
 - **ICR Scanner: "Pass OCR (Manual Entry)" Mode**
   - Added a new **✏️ Pass OCR (Manual Entry)** button next to the Choose File input in [frontend/src/components/IcrScanner.tsx](frontend/src/components/IcrScanner.tsx). Skips the OCR engine and jumps straight to the "Inspect OCR & Verify" page so the teacher can fill student answers manually — useful for verifying question→row mapping against a known answer key without a real scanned sheet.
   - On click, the handler calls `GET /api/diagnostic/student/:studentId/answer-key` for the selected student (or the first student in the class if "All Students" is picked). Loads `answerKey.length` questions exactly — no hardcoded cap — so a student with 47 answers gets 47 fields, a student with 3 answers gets 3.

@@ -35,6 +35,14 @@ try:
 except ImportError:
     pass
 
+CV2_AVAILABLE = False
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    pass
+
 # Singleton cached reader for fast execution
 _CACHED_READER = None
 
@@ -46,6 +54,50 @@ def get_fast_easyocr_reader():
         except Exception as e:
             sys.stderr.write(f"[easyocr] Reader init error: {e}\n")
     return _CACHED_READER
+
+
+def isolate_blue_pen(image_path: str) -> str | None:
+    """
+    Strict HSV blue-pen isolation. Returns the path to a temp JPEG where
+    blue ink is rendered as BLACK text on WHITE background — the format
+    EasyOCR is trained on (dark text, light background).
+
+    HSV range (H 100-130, S >= 60) covers royal blue through cyan-blue ballpoint
+    ink while rejecting:
+      - navy ink (H ~140, outside range)
+      - pencil / graphite (low saturation)
+      - photocopier light-blue (low saturation)
+      - printed red margin lines (different hue entirely)
+
+    If cv2 isn't installed, or the file isn't readable, returns None so the
+    caller can fall back to the unfiltered path.
+
+    Returns None on failure — never raises.
+    """
+    if not CV2_AVAILABLE:
+        return None
+    try:
+        bgr = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        if bgr is None:
+            return None
+        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+        lower = np.array([100, 60, 50], dtype=np.uint8)
+        upper = np.array([130, 255, 255], dtype=np.uint8)
+        mask = cv2.inRange(hsv, lower, upper)
+        # Light morphological clean-up: fill broken strokes, drop single-pixel noise
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+        # Invert: EasyOCR wants dark text on light background, so blue ink
+        # (white in the mask) becomes black; non-blue (black in the mask)
+        # becomes white.
+        inverted = cv2.bitwise_not(mask)
+        out_path = image_path + "_blue_inv.jpg"
+        cv2.imwrite(out_path, inverted, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+        return out_path
+    except Exception as e:
+        sys.stderr.write(f"[blue-pen] isolation failed: {e}\n")
+        return None
 
 
 def run_fast_ocr(file_path):
@@ -87,6 +139,18 @@ def run_fast_ocr(file_path):
                 except Exception as e:
                     sys.stderr.write(f"[easyocr] PIL downsampling warning: {e}\n")
 
+            # Blue-pen isolation (only for non-PDF image scans). Converts
+            # the target image so blue ink becomes black text on white — the
+            # format EasyOCR is trained on. We do this AFTER PIL downsampling
+            # so the cv2 work happens on a smaller image. Falls back to the
+            # unfiltered target_path if cv2 isn't installed or fails.
+            temp_blue_path = None
+            if not is_pdf and CV2_AVAILABLE:
+                blue_path = isolate_blue_pen(target_path)
+                if blue_path and os.path.exists(blue_path):
+                    temp_blue_path = blue_path
+                    target_path = blue_path
+
             try:
                 results = ocr_reader.readtext(
                     target_path,
@@ -113,6 +177,11 @@ def run_fast_ocr(file_path):
                 if temp_resized_path and os.path.exists(temp_resized_path):
                     try:
                         os.remove(temp_resized_path)
+                    except Exception:
+                        pass
+                if temp_blue_path and os.path.exists(temp_blue_path):
+                    try:
+                        os.remove(temp_blue_path)
                     except Exception:
                         pass
 
