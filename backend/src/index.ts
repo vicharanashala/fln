@@ -1010,8 +1010,67 @@ async function startServer() {
 
     const { classId, studentId, pdfBase64, fileBase64, filename } = req.body;
     const inputBase64 = fileBase64 || pdfBase64;
-    if (!classId || !inputBase64) {
-      return res.status(400).json({ error: 'classId and fileBase64/pdfBase64 are required.' });
+    if (!inputBase64) {
+      return res.status(400).json({ error: 'fileBase64 or pdfBase64 is required.' });
+    }
+
+    // Fast path: no classId → single-image OCR. Just run EasyOCR once and
+    // return a flat answer list keyed by position (q_1, q_2, ...). No
+    // student/class lookup, no bulk evaluation. Used by the new two-stage
+    // ICR flow (frontend's IcrTwoStageScan component) which doesn't have
+    // a class context at scan time.
+    if (!classId) {
+      const tempDir = path.join(AI_SERVICES_DIR, 'scratch');
+      fs.mkdirSync(tempDir, { recursive: true });
+      const ext = path.extname(filename || 'worksheet.jpg') || '.jpg';
+      const tempFilePath = path.join(tempDir, `scan_noclass_${Date.now()}_file${ext}`);
+      const cleanBase64 = inputBase64.includes(',') ? inputBase64.split(',')[1] : inputBase64;
+      fs.writeFileSync(tempFilePath, Buffer.from(cleanBase64, 'base64'));
+      try {
+        const { execFileSync } = await import('child_process');
+        const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'ocr.py');
+        const output = execFileSync(PYTHON_BIN, [scriptPath, tempFilePath, 'SCAN', '1'], {
+          cwd: AI_SERVICES_DIR,
+          env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+          timeout: 60000,
+          maxBuffer: 10 * 1024 * 1024,
+        });
+        const ocrResult = JSON.parse(output.toString());
+        const tokens = ocrResult?.evaluation?.extractedTokens || ocrResult?.extracted_tokens || [];
+        const rawText = ocrResult?.evaluation?.rawOcrText || ocrResult?.raw_text || '';
+        const detectedNumbers = ocrResult?.evaluation?.detectedNumbers || ocrResult?.digits_found || [];
+        // Build a flat answers map: q_1, q_2, ... for each detected digit/token.
+        const answers: Record<string, { value: string; confidence: number; blue_pixels: number }> = {};
+        const sourceItems = detectedNumbers.length > 0 ? detectedNumbers : tokens.map((t: any) => t.text);
+        sourceItems.forEach((item: any, i: number) => {
+          const value = typeof item === 'string' ? item : (item.text || '');
+          const conf = typeof item === 'object' && item?.confidence != null ? item.confidence : 0.5;
+          answers[`q_${i + 1}`] = { value: String(value), confidence: Number(conf) || 0.5, blue_pixels: 0 };
+        });
+        // Cleanup temp file
+        try { fs.unlinkSync(tempFilePath); } catch { /* noop */ }
+        return res.json({
+          success: true,
+          isSingleImage: true,
+          answers,
+          ocrAnalysis: {
+            rawOcrText: rawText,
+            extractedTokens: tokens,
+            processingTimeMs: ocrResult?.processingTimeMs || 0,
+            ocrEngine: ocrResult?.evaluation?.ocrEngine || 'EasyOCR (PyTorch Fast Reader)',
+          },
+          totalEvaluated: sourceItems.length,
+        });
+      } catch (e: any) {
+        const raw = e?.message || String(e);
+        // Make the error message useful for the frontend's common-cause hints.
+        // ETIMEDOUT from Node's execFileSync usually means the Python
+        // subprocess was killed at the timeout boundary, not a network blip.
+        const friendly = raw.includes('ETIMEDOUT')
+          ? 'OCR took too long (>60s) and was timed out. The image may be very large or the EasyOCR model is still warming up. Try again.'
+          : raw;
+        return res.status(500).json({ success: false, error: `EasyOCR failed: ${friendly}` });
+      }
     }
 
     try {
@@ -1106,7 +1165,7 @@ async function startServer() {
         const output = execFileSync(PYTHON_BIN, [scriptPath, tempFilePath, studentId || 'ALL_STUDENTS', String(classNumber)], {
           cwd: AI_SERVICES_DIR,
           env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
-          timeout: 10000,
+          timeout: 60000,
           maxBuffer: 10 * 1024 * 1024
         });
         sharedOcrResult = JSON.parse(output.toString());
