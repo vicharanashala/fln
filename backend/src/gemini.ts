@@ -5,7 +5,7 @@ import { Question } from "./db";
 // Centralized here so the call sites below don't drift; these match the IDs the
 // ai-services Python pipeline uses (ai-services/scripts/_api.py). The previous IDs
 // ("gemini-3.5-flash" / "gemini-3.1-*") do not exist and made every AI call 404.
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"] as const;
+const GEMINI_MODELS = ["gemini-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-lite-latest"] as const;
 const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
 
 // Helper to get Gemini client or null if key is missing
@@ -393,7 +393,7 @@ Diagnostic Questions: ${JSON.stringify(questions)}
 Student Submitted Answers: ${JSON.stringify(submittedAnswers)}
 
 Grade these answers. Compute total score out of ${questions.length}.
-Implement "Weakest-Level Mapping" (SRS §6.2): Assign the student to the lowest level (from 1 to 59) where they showed weakness or made mistakes, or level 1 if they struggle with everything. If they solved all perfectly, assign level 35.
+Implement "Weakest-Level Mapping" (SRS §6.2): Assign the student to the lowest level (from 1 to 93) where they showed weakness or made mistakes, or level 1 if they struggle with everything. If they solved all perfectly, assign level 35.
 Provide a clean narrative feedback summary.`;
 
     const response = await generateContentWithRetry({
@@ -406,7 +406,7 @@ Provide a clean narrative feedback summary.`;
           type: Type.OBJECT,
           properties: {
             score: { type: Type.INTEGER, description: "Number of correct answers" },
-            recommendedLevel: { type: Type.INTEGER, description: "Level from 1 to 59 based on weakest-level mapping" },
+            recommendedLevel: { type: Type.INTEGER, description: "Level from 1 to 93 based on weakest-level mapping" },
             narrative: { type: Type.STRING, description: "Warm and encouraging narrative explaining how the student did and what they need to work on." }
           },
           required: ["score", "recommendedLevel", "narrative"]
@@ -452,9 +452,9 @@ Provide a clean narrative feedback summary.`;
   if (failedLevels.length > 0) {
     recommendedLevel = Math.min(...failedLevels);
   } else {
-    // If they got all questions correct, place them at highest level + 1 (capped at 59)
+    // If they got all questions correct, place them at highest level + 1 (capped at 93)
     const maxLevel = Math.max(...questions.map(q => q.source_level), 0);
-    recommendedLevel = Math.min(59, maxLevel + 1);
+    recommendedLevel = Math.min(93, maxLevel + 1);
   }
 
   return {
@@ -579,7 +579,7 @@ Answers submitted: ${JSON.stringify(submittedAnswers)}
 
 Grade the student's submission. Evaluate each concept topic.
 Recommended Level progression rules:
-- If score is 80%+ (e.g. 3/3 or near perfect): Recommend Level ${Math.min(59, level + 1)}.
+- If score is 80%+ (e.g. 3/3 or near perfect): Recommend Level ${Math.min(93, level + 1)}.
 - If score is 50%-80%: Retain at Level ${level}.
 - If score is < 50%: Retain at Level ${level} or suggest review at Level ${Math.max(1, level - 1)}.
 Generate a narrative report summarizing strengths and learning gaps.`;
@@ -640,7 +640,7 @@ Generate a narrative report summarizing strengths and learning gaps.`;
   });
 
   const percent = (score / questions.length) * 100;
-  const recommendedLevel = percent >= 80 ? Math.min(59, level + 1) : level;
+  const recommendedLevel = percent >= 80 ? Math.min(93, level + 1) : level;
 
   return {
     score,

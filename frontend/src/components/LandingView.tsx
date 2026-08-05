@@ -203,7 +203,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
                 Curriculum Integration
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-slate-300">
-                Our unified model defines 59 cumulative proficiency levels mapped precisely to Class 1, 2, 3, and 4 standards across foundational numeracy strands. Utilizing a specialized evaluation system, we generate diagnostic assessments on demand to pinpoint students' exact gaps.
+                Our unified model defines 93 cumulative proficiency levels mapped precisely to Class 1, 2, 3, and 4 standards across foundational numeracy strands. Utilizing a specialized evaluation system, we generate diagnostic assessments on demand to pinpoint students' exact gaps.
               </p>
             </div>
           </div>
