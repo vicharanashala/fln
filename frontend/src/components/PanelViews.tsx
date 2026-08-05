@@ -1,7 +1,35 @@
-import { apiFetch } from '../services/apiClient';
-import React, { useState, useEffect } from 'react';
+import { apiFetch, withBase } from '../services/apiClient';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
-import { Users, ShieldAlert, BookOpen, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
+import {
+  Users,
+  ShieldAlert,
+  BookOpen,
+  UserCheck,
+  Calendar,
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  SlidersHorizontal,
+  Layers,
+  Award,
+  MapPin,
+  School as SchoolIcon,
+  BarChart3,
+  FileText,
+  ClipboardList,
+  Building2,
+  GraduationCap,
+  BookMarked,
+  Globe,
+  Settings,
+  Database,
+  RefreshCw,
+  Search,
+  ChevronDown,
+  Download,
+  Printer,
+} from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
@@ -26,6 +54,96 @@ const STUDENTS_FALLBACK: Student[] = [
   { id: 's6', name: 'Neha Gupta', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', currentLevel: 38, currentSubLevel: 1, targetLevel: 40, aadharMasked: 'XXXX-XXXX-2345', levelHistory: [{ level: 38, date: '2026-03-01', reason: 'Mid-year' }], streak: 4 },
   { id: 's7', name: 'Simran Kaur', age: 6, classGroup: 'Class 1', section: 'A', schoolId: 'gps-mt-001', currentLevel: 4, currentSubLevel: 0, targetLevel: 8, aadharMasked: 'XXXX-XXXX-6789', levelHistory: [], streak: 0 },
 ];
+
+type RankedStudent = {
+  student: Student;
+  rank: number;
+  issuedAt?: string;
+};
+
+const ordinal = (rank: number) => {
+  const endings = ['th', 'st', 'nd', 'rd'];
+  const remainder = rank % 100;
+  return `${rank}${endings[(remainder - 20) % 10] || endings[remainder] || endings[0]}`;
+};
+
+const printCertificate = async (certificate?: HTMLDivElement) => {
+  await document.fonts?.ready;
+  const originalParent = certificate?.parentNode;
+  const originalNextSibling = certificate?.nextSibling;
+
+  // Normal certificates live below the student-profile header and tabs. Move
+  // only that print target to the body while the dialog is open so none of its
+  // screen-layout ancestors can contribute a top offset to the printed page.
+  if (certificate) document.body.appendChild(certificate);
+
+  const cleanup = () => {
+    document.body.classList.remove('printing-certificate');
+    document.body.classList.remove('printing-normal-certificate');
+    if (certificate && originalParent) {
+      originalParent.insertBefore(certificate, originalNextSibling ?? null);
+    }
+  };
+  document.body.classList.add('printing-certificate');
+  if (certificate) document.body.classList.add('printing-normal-certificate');
+  window.addEventListener('afterprint', cleanup, { once: true });
+  window.print();
+};
+
+function RankCertificate({ ranked, teacherName, allStudents, certificateRef }: { ranked: RankedStudent; teacherName: string; allStudents: Student[]; certificateRef?: React.RefObject<HTMLDivElement | null> }) {
+  const issuedAt = ranked.issuedAt ? new Date(ranked.issuedAt) : new Date();
+  const issuedDate = issuedAt.toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
+  const weekOfMonth = Math.ceil(issuedAt.getDate() / 7);
+  const month = issuedAt.toLocaleDateString('en-IN', { month: 'long' });
+  const classmates = allStudents
+    .filter(student => student.classGroup === ranked.student.classGroup && student.section === ranked.student.section)
+    .sort((a, b) => b.currentLevel - a.currentLevel || b.streak - a.streak || a.name.localeCompare(b.name));
+  const classRank = classmates.findIndex(student => student.id === ranked.student.id) + 1;
+
+  return (
+    <div ref={certificateRef} data-certificate-preview className="rank-certificate">
+      <div className="rank-certificate__paper">
+        <span className="rank-certificate__corner rank-certificate__corner--tl" aria-hidden="true" />
+        <span className="rank-certificate__corner rank-certificate__corner--br" aria-hidden="true" />
+
+        <div className="rank-certificate__content">
+          <p className="rank-certificate__portal">FLN PORTAL · FOUNDATIONAL LITERACY &amp; NUMERACY</p>
+          <p className="rank-certificate__title">
+            <span className="rank-certificate__title-main">Certificate</span>
+            <span className="rank-certificate__title-sub">of Appreciation</span>
+          </p>
+          <p className="rank-certificate__awarded">This Certificate is Awarded to :</p>
+          <p className="rank-certificate__name">{ranked.student.name}</p>
+          <div className="rank-certificate__divider" />
+          <p className="rank-certificate__achievement">For coming in top 5 as of {ordinal(weekOfMonth)} week of {month}</p>
+          <div className="rank-certificate__facts">
+            <span>Class <b>{ranked.student.classGroup} {ranked.student.section}</b></span>
+            <span>Class comparison <b>#{classRank} of {classmates.length}</b></span>
+            <span>Level <b>L{ranked.student.currentLevel}.{ranked.student.currentSubLevel ?? 0}</b></span>
+          </div>
+          <div className="rank-certificate__bottom">
+            <div className="rank-certificate__signatures">
+              <div><strong>{issuedDate}</strong><span>Date</span></div>
+            </div>
+            <div className="rank-certificate__medal" aria-label={`${ordinal(ranked.rank)} rank`}>
+              <svg className="rank-certificate__medal-ribbon" viewBox="0 0 287 190" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M220.027 0H143.341H66.6835L0 147.997L66.6549 122.761L91.8911 189.416L143.341 75.1915L194.791 189.416L220.027 122.761L286.682 147.997L220.027 0Z" fill="#2298FF" />
+              </svg>
+              <span className="rank-certificate__medal-ring-outer" aria-hidden="true" />
+              <span className="rank-certificate__medal-ring-inner" aria-hidden="true" />
+              <span className="rank-certificate__medal-circle"><span>{ranked.rank}</span></span>
+            </div>
+            <div className="rank-certificate__signatures">
+              <div><strong>{teacherName}</strong><span>Teacher</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const REPORTS_MOCK: EvaluationReport[] = [
   { id: 'r1', studentId: 's1', worksheetId: 'ws1', score: 8, totalQuestions: 10, conceptMastery: { 'Number Sense': 'Strong', 'Addition': 'Satisfactory', 'Subtraction': 'Needs Practice' }, narrative: 'Shows good number sense but needs practice with borrowing in subtraction.', recommendedLevel: 12, timestamp: '2026-03-15T10:00:00Z' },
@@ -154,7 +272,10 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [blockFilter, setBlockFilter] = useState('all');
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
   const [sel, setSel] = useState('');
-  const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
+  const [profileTab, setProfileTab] = useState<
+    'overview' | 'academic' | 'personal' | 'activity' | 'certificate'
+  >('overview');
+
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileDraft, setProfileDraft] = useState<Partial<Student>>({});
   const [savingProfile, setSavingProfile] = useState(false);
@@ -165,6 +286,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [expandedDist, setExpandedDist] = useState<string | null>(null);
   const [userRoleFilter, setUserRoleFilter] = useState('superadmin');
   const [userSearch, setUserSearch] = useState('');
+  const [rankCertificate, setRankCertificate] = useState<RankedStudent | null>(null);
+  const certificatePreviewRef = useRef<HTMLDivElement>(null);
+  const rankCertificatePreviewRef = useRef<HTMLDivElement>(null);
 
   const [apiStudents, setApiStudents] = useState<Student[]>([]);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
@@ -251,6 +375,15 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   });
 
   const panel = activePanel;
+  const canIssueCertificates = [UserRole.TEACHER, UserRole.VOLUNTEER].includes(currentUser.role);
+
+  useEffect(() => {
+    if (!canIssueCertificates && profileTab === 'certificate') {
+      setProfileTab('overview');
+    } else if (canIssueCertificates && panel === 'certificates') {
+      setProfileTab('certificate');
+    }
+  }, [canIssueCertificates, panel, profileTab]);
 
   const handleDownloadPDF = (student: Student, r: EvaluationReport, examResponses: any[]) => {
     const printWindow = window.open('', '_blank');
@@ -382,6 +515,185 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     printWindow.document.close();
   };
 
+  const legacyDownloadCertificate = async (student: Student) => {
+    // Certificates are deliberately available only in the teacher workspace. The
+    // values below are the selected student returned by the authenticated roster
+    // API and the authenticated teacher's name, rather than form input.
+    if (currentUser.role !== UserRole.TEACHER) return;
+
+    // This must happen synchronously within the click event. Opening it after
+    // awaiting the API request makes modern browsers block it as a popup.
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to download the certificate as a PDF.');
+      return;
+    }
+    printWindow.document.write('<title>Preparing certificate…</title><p style="font-family:system-ui;padding:2rem">Preparing your PDF certificate…</p>');
+
+    const certificate: {
+      student: Pick<Student, 'name' | 'classGroup' | 'section' | 'currentLevel' | 'currentSubLevel' | 'streak'>;
+      teacherName: string;
+      issuedOn: string;
+    } = {
+      // `student` is the selected record from the authenticated /api/students
+      // roster; `currentUser` is the authenticated teacher session.
+      student: {
+        name: student.name,
+        classGroup: student.classGroup,
+        section: student.section,
+        currentLevel: student.currentLevel,
+        currentSubLevel: student.currentSubLevel,
+        streak: student.streak,
+      },
+      teacherName: currentUser.name,
+      issuedOn: new Date().toISOString(),
+    };
+
+    const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+    }[char] || char));
+    const issueDate = new Date(certificate.issuedOn).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    });
+    const isClassOne = /^class\s*1(?:\D|$)/i.test(certificate.student.classGroup.trim());
+    const isClassTwo = /^class\s*2(?:\D|$)/i.test(certificate.student.classGroup.trim());
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>Certificate - ${escapeHtml(certificate.student.name)}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link href="https://fonts.googleapis.com/css2?family=Luxurious+Script&family=Caveat:wght@700&display=swap" rel="stylesheet">
+          <style>
+            @page { size: A4 landscape; margin: 0; }
+            * { box-sizing: border-box; }
+            body { margin: 0; background: #f8fafc; color: #172554; font-family: Georgia, 'Times New Roman', serif; }
+            .certificate { position: relative; width: 297mm; min-height: 210mm; overflow: hidden; background: #fffdf8; padding: 18mm 26mm; }
+            .certificate::before, .certificate::after { content: ''; position: absolute; inset: 8mm; border: 3px solid #fb923c; pointer-events: none; }
+            .certificate::after { inset: 11mm; border: 2px solid #facc15; }
+            .ribbon { position: absolute; top: 0; left: 0; right: 0; height: 15mm; background: linear-gradient(90deg, #ef4444, #fb923c, #facc15); }
+            .corner { position: absolute; font-family: Arial, sans-serif; font-size: 42px; line-height: 1; z-index: 1; }
+            .one { top: 19mm; left: 16mm; color: #facc15; } .two { top: 18mm; right: 17mm; color: #14b8a6; }
+            .three { bottom: 14mm; left: 17mm; color: #fb923c; } .four { bottom: 15mm; right: 17mm; color: #f43f5e; }
+            .content { position: relative; z-index: 2; text-align: center; }
+            .seal { display: inline-flex; width: 32mm; height: 32mm; align-items: center; justify-content: center; border-radius: 50%; background: #facc15; border: 4px solid #f97316; color: #fff; font: 700 34px Arial, sans-serif; box-shadow: 0 0 0 5px #fffdf8, 0 0 0 8px #14b8a6; }
+            .portal { margin: 6mm 0 2mm; color: #0f766e; font: 700 12px Arial, sans-serif; letter-spacing: 3px; text-transform: uppercase; }
+            h1 { margin: 2mm 0 4mm; color: #172554; font-size: 27pt; letter-spacing: 1px; }
+            .excellence { margin: 0; color: #f97316; font: 800 34pt Arial, sans-serif; letter-spacing: 3px; text-transform: uppercase; }
+            .intro { margin: 12mm 0 5mm; font-size: 16pt; color: #475569; }
+            .student { display: inline-block; min-width: 145mm; padding: 0 10mm 3mm; border-bottom: 2px solid #172554; color: #1d4ed8; font-size: 26pt; font-weight: 700; }
+            .summary { margin: 8mm auto 10mm; max-width: 195mm; color: #334155; font-size: 14pt; line-height: 1.6; }
+            .summary strong { color: #0f766e; }
+            .facts { display: flex; justify-content: center; gap: 8mm; margin: 7mm auto 15mm; }
+            .fact { min-width: 52mm; padding: 4mm 6mm; border-radius: 6mm; background: #ecfeff; border: 1px solid #67e8f9; color: #155e75; font: 700 11pt Arial, sans-serif; }
+            .fact b { display: block; margin-top: 1mm; color: #0f766e; font-size: 17pt; }
+            .signatures { display: flex; justify-content: center; gap: 48mm; color: #334155; font-size: 11pt; }
+            .signature { width: 62mm; padding-top: 5mm; border-top: 1.5px solid #334155; }
+            .signature strong { display: block; margin-bottom: 1mm; color: #172554; font-family: Arial, sans-serif; }
+            .download-note { position: absolute; right: 18mm; bottom: 16mm; color: #64748b; font: 9pt Arial, sans-serif; }
+            /* A playful, early-years treatment used only for Class 1 certificates. */
+            .certificate.class-one { background: #fff; font-family: 'Comic Sans MS', 'Trebuchet MS', Arial, sans-serif; }
+            .class-one::before { border-color: #ff5d3b; border-width: 2px; }
+            .class-one::after { border-color: #ffbd15; border-width: 3px; }
+            .class-one .ribbon { height: 3mm; background: linear-gradient(90deg, #ff4055, #ff6530, #ffc51a); }
+            .class-one .seal { display: none; }
+            .class-one .portal { margin-top: 14mm; color: #55bdca; font-size: 10pt; letter-spacing: 2px; }
+            .class-one h1 { margin-top: 2mm; color: #000; font-size: 34pt; font-family: 'Comic Sans MS', 'Trebuchet MS', Arial, sans-serif; }
+            .class-one .excellence { color: #ff5c28; font-size: 47pt; font-family: 'Comic Sans MS', 'Trebuchet MS', Arial, sans-serif; letter-spacing: 1px; }
+            .class-one .intro { margin-top: 9mm; color: #5b4b2c; font-size: 17pt; }
+            .class-one .student { color: #111; font-size: 25pt; min-width: 160mm; }
+            .class-one .summary { margin-top: 5mm; color: #5b4b2c; font-size: 13pt; }
+            .class-one .facts { margin-top: 5mm; margin-bottom: 10mm; }
+            .class-one .fact { background: #fffdf4; border-color: #ffd76a; color: #7a521d; border-radius: 5mm; }
+            .class-one .fact b { color: #f35d2a; }
+            .class-one-decor { position: absolute; z-index: 1; font-family: Arial, sans-serif; }
+            .class-one-sun { top: 11mm; left: 13mm; color: #ffc21a; font-size: 72pt; line-height: 1; text-shadow: 0 2px 0 #f7941d; }
+            .class-one-sun span { display: block; color: #58c3cf; font: 700 11pt 'Comic Sans MS', Arial; transform: rotate(-17deg); margin-top: -15px; }
+            .class-one-rainbow { top: 9mm; right: 15mm; padding: 7mm 5mm 3mm; border: 8px solid #ff6631; border-bottom: 0; border-radius: 80mm 80mm 0 0; color: #fff; background: #54c4ce; font: 700 18pt 'Comic Sans MS', Arial; transform: rotate(12deg); }
+            .class-one-trophy { right: 26mm; bottom: 43mm; color: #f4a329; font-size: 45pt; }
+            .class-one-stars { bottom: 15mm; left: 22mm; color: #ffc21a; font-size: 30pt; letter-spacing: 18mm; }
+            /* Class 2 gets its own colourful school-themed certificate. */
+            .certificate.class-two { background: #cfe9fb; padding: 18mm 26mm; font-family: Arial, sans-serif; }
+            .class-two::before { border-color: #0D99FF; border-radius: 20px; }
+            .class-two::after { border-color: #0D99FF; border-radius: 14px; background: none; box-shadow: none; opacity: 1; }
+            .class-two .ribbon, .class-two .seal, .class-two .corner { display: none; }
+            .class-two .content { padding: 12mm 10mm; z-index: 2; }
+            .class-two .portal { color: #0D99FF; }
+            .class-two h1 { margin: 5mm 0 3mm; color: #0D99FF; font-family: 'Luxurious Script', cursive; font-size: 44pt; font-weight: 400; letter-spacing: 0; }
+            .class-two .excellence { color: #0D99FF; font-family: 'Caveat', cursive; font-size: 52pt; font-weight: 700; letter-spacing: 0; text-transform: none; }
+            .class-two .intro { margin-top: 15mm; color: #0D99FF; font-size: 17pt; letter-spacing: 2px; }
+            .class-two .student { color: #1E1E1E; font: 700 28pt Arial, sans-serif; min-width: 145mm; border-color: #0D99FF; }
+            .class-two .summary { color: #0D99FF; font-size: 13pt; margin-top: 7mm; }
+            .class-two .facts { margin-top: 6mm; margin-bottom: 11mm; }
+            .class-two .fact { background: #fff; border-color: #0D99FF; color: #0D99FF; }
+            .class-two .fact b { color: #0D99FF; }
+            .class-two-star { position: absolute; z-index: 3; color: #facc15; -webkit-text-stroke: 2px #fff; paint-order: stroke fill; }
+            .class-two-star.big { font-size: 52pt; } .class-two-star.med { font-size: 26pt; } .class-two-star.small { font-size: 18pt; }
+            .class-two-star.tl-1 { top: 6mm; left: 12mm; } .class-two-star.tl-2 { top: 20mm; left: 26mm; } .class-two-star.tl-3 { top: 15mm; left: 38mm; }
+            .class-two-star.tr-1 { top: 4mm; right: 12mm; } .class-two-star.bl-1 { bottom: 16mm; left: 16mm; }
+            @media print { * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } body { background: #fff; } .certificate { page-break-after: avoid; } }
+          </style>
+        </head>
+        <body>
+          <main class="certificate${isClassOne ? ' class-one' : isClassTwo ? ' class-two' : ''}">
+            <div class="ribbon"></div>${isClassOne
+              ? '<div class="class-one-decor class-one-sun">☀<span>FANTASTIC!</span></div><div class="class-one-decor class-one-rainbow">Brilliant!</div><div class="class-one-decor class-one-trophy">🏆</div><div class="class-one-decor class-one-stars">★ ✦ ★</div>'
+              : isClassTwo
+                ? '<div class="class-two-star big tl-1">★</div><div class="class-two-star med tl-2">★</div><div class="class-two-star small tl-3">★</div><div class="class-two-star big tr-1">★</div><div class="class-two-star small bl-1">★</div>'
+              : '<div class="corner one">★</div><div class="corner two">✦</div><div class="corner three">✶</div><div class="corner four">✹</div>'}
+            <div class="content">
+              <div class="seal">★</div>
+              <div class="portal">FLN Portal · Foundational Literacy &amp; Numeracy</div>
+              <h1>Certificate of</h1>
+              <p class="excellence">Excellence</p>
+              <p class="intro">This certificate is proudly presented to</p>
+              <div class="student">${escapeHtml(certificate.student.name)}</div>
+              <p class="summary">for their dedicated learning journey and progress in foundational literacy and numeracy.</p>
+              <div class="facts">
+                <div class="fact">Class<b>${escapeHtml(`${certificate.student.classGroup} - ${certificate.student.section}`)}</b></div>
+                <div class="fact">Current Level<b>L${certificate.student.currentLevel}.${certificate.student.currentSubLevel ?? 0}</b></div>
+                <div class="fact">Learning Streak<b>${certificate.student.streak} days</b></div>
+              </div>
+              <div class="signatures">
+                <div class="signature"><strong>${issueDate}</strong>Date issued</div>
+                <div class="signature"><strong>${escapeHtml(certificate.teacherName)}</strong>Teacher signature</div>
+              </div>
+            </div>
+            <div class="download-note">Issued digitally by FLN Portal</div>
+          </main>
+          <script>
+            // Native print-to-PDF preserves the page's HTML and CSS as vectors;
+            // unlike the old canvas screenshot, it does not reduce print quality.
+            window.onload = () => window.setTimeout(() => window.print(), 300);
+          <\/script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handlePrintCertificate = async () => {
+    if (!certificatePreviewRef.current) return;
+    try {
+      await printCertificate(certificatePreviewRef.current);
+    } catch (error) {
+      console.error(error);
+      alert('The certificate could not be printed. Please try again.');
+    }
+  };
+
+  const printRankCertificate = async () => {
+    if (!rankCertificate || !rankCertificatePreviewRef.current) return;
+    try {
+      await printCertificate();
+    } catch (error) {
+      console.error(error);
+      alert('The certificate could not be printed. Please try again.');
+    }
+  };
+
   // ===================== TEACHER PANELS =====================
   if (panel === 'student_list') {
     return (
@@ -392,7 +704,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  if (panel === 'student_profile') {
+  if (panel === 'student_profile' || panel === 'certificates') {
     const s = students.find(x => x.id === sel) || students[0];
 
     const filteredStudents = students.filter(x =>
@@ -465,12 +777,15 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       ...s.levelHistory.map(lh => ({ type: 'level_change' as const, label: `Level changed to L${lh.level}`, date: lh.date, detail: lh.reason })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const filteredActivity = activityFilter === 'all' ? recentActivity : recentActivity.filter(a => a.type === activityFilter);
+    const isClassOne = /^class\s*1(?:\D|$)/i.test(s.classGroup.trim());
+    const isClassTwo = /^class\s*2(?:\D|$)/i.test(s.classGroup.trim());
 
     const tabs = [
       { key: 'overview' as const, label: 'Overview', icon: BarChart3 },
       { key: 'academic' as const, label: 'Academic Record', icon: BookOpen },
       { key: 'personal' as const, label: 'Personal Details', icon: Users },
       { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
+      ...(canIssueCertificates ? [{ key: 'certificate' as const, label: 'Certificate', icon: Award }] : []),
     ];
 
     return (
@@ -540,7 +855,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         </div>
 
         {/* Tab navigation */}
-        <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 w-fit">
+        <div className="flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 w-fit">
           {tabs.map(t => (
             <button key={t.key} onClick={() => setProfileTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${profileTab === t.key ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}>
               <t.icon className="w-3.5 h-3.5" /> {t.label}
@@ -991,6 +1306,58 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             </div>
           </div>
         )}
+
+        {/* ===== CERTIFICATE TAB (teacher only) ===== */}
+        {canIssueCertificates && profileTab === 'certificate' && (
+          <div className="max-w-4xl">
+            <div ref={certificatePreviewRef} data-certificate-preview className={`aspect-[297/210] overflow-hidden rounded-2xl border-4 shadow-lg ${isClassOne ? 'border-orange-400 bg-white' : isClassTwo ? 'border-[#0D99FF] bg-[#CFE9FB] p-2' : 'border-amber-300 bg-[#fffdf8]'}`}>
+              <div className={isClassTwo ? '' : `h-3 ${isClassOne ? 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-300' : 'bg-gradient-to-r from-rose-500 via-orange-400 to-amber-300'}`} />
+              <div className={`relative px-6 py-10 text-center sm:px-12 ${isClassTwo ? 'h-full rounded-xl border-2 border-[#0D99FF]' : ''}`}>
+                {isClassOne ? <>
+                  <div className="absolute left-4 top-3 text-6xl text-amber-400">☀</div><div className="absolute left-4 top-20 -rotate-12 text-[10px] font-black text-cyan-500">FANTASTIC!</div>
+                  <div className="absolute right-5 top-7 rotate-12 rounded-t-full border-8 border-b-0 border-orange-500 bg-cyan-400 px-3 py-2 text-sm font-black text-white">Brilliant!</div>
+                  <div className="absolute bottom-5 left-7 text-3xl text-amber-400">★ ✦</div><div className="absolute bottom-4 right-8 text-4xl">🏆</div>
+                </> : isClassTwo ? <>
+                  <div className="certificate-star absolute left-3 top-2 text-3xl">★</div>
+                  <div className="certificate-star absolute left-9 top-9 text-base">★</div>
+                  <div className="certificate-star absolute left-14 top-6 text-xs">★</div>
+                  <div className="certificate-star absolute right-4 top-2 text-3xl">★</div>
+                  <div className="certificate-star absolute bottom-3 left-6 text-base">★</div>
+                </> : <>
+                  <div className="absolute left-5 top-5 text-4xl text-amber-400">★</div><div className="absolute right-6 top-7 text-4xl text-teal-500">✦</div>
+                  <div className="absolute bottom-5 left-8 text-3xl text-orange-400">✶</div><div className="absolute bottom-5 right-8 text-3xl text-rose-500">✹</div>
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-4 border-orange-500 bg-amber-300 text-3xl text-white shadow-[0_0_0_5px_#fffdf8,0_0_0_8px_#14b8a6]">★</div>
+                </>}
+                <p className={`mt-5 text-[10px] font-bold uppercase tracking-[0.25em] ${isClassTwo ? 'text-[#0D99FF]' : 'text-teal-700'}`}>FLN Portal · Foundational Literacy &amp; Numeracy</p>
+                <h3 className={`mt-3 text-3xl font-bold sm:text-4xl ${isClassTwo ? 'font-script font-normal text-[#0D99FF] normal-case' : `text-slate-900 ${isClassOne ? 'font-sans' : 'font-serif'}`}`}>Certificate of</h3>
+                <p className={`mt-1 text-3xl sm:text-5xl ${isClassTwo ? 'font-hand font-bold normal-case tracking-normal text-[#0D99FF] text-4xl sm:text-6xl' : `font-black uppercase tracking-wider text-orange-500 ${isClassOne ? 'font-sans' : ''}`}`}>Excellence</p>
+                <p className={`mt-7 text-base ${isClassTwo ? 'text-[#0D99FF]' : 'text-slate-600'}`}>This certificate is proudly presented to</p>
+                <p className={`mx-auto mt-3 max-w-xl border-b-2 px-4 pb-2 text-2xl font-bold sm:text-4xl ${isClassTwo ? 'border-[#0D99FF] text-[#1E1E1E]' : 'border-slate-700 text-blue-700'}`}>{s.name}</p>
+                <p className={`mx-auto mt-6 max-w-2xl text-sm leading-6 ${isClassTwo ? 'text-[#0D99FF]' : 'text-slate-600'}`}>for dedication and progress in foundational literacy and numeracy.</p>
+                <div className="mx-auto mt-7 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
+                  {[
+                    ['Class', `${s.classGroup} - ${s.section}`],
+                    ['Current Level', `L${s.currentLevel}.${s.currentSubLevel ?? 0}`],
+                    ['Learning Streak', `${s.streak} days`],
+                  ].map(([label, value]) => (
+                    <div key={label} className={`rounded-xl border px-3 py-3 text-xs font-bold ${isClassTwo ? 'border-[#0D99FF] bg-white text-[#0D99FF]' : 'border-cyan-200 bg-cyan-50 text-cyan-900'}`}>
+                      {label}<span className={`mt-1 block text-lg ${isClassTwo ? 'text-[#0D99FF]' : 'text-teal-700'}`}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className={`mx-auto mt-10 grid max-w-xl grid-cols-2 gap-10 text-xs ${isClassTwo ? 'text-[#0D99FF]' : 'text-slate-600'}`}>
+                  <div className={`border-t pt-2 ${isClassTwo ? 'border-[#0D99FF]' : 'border-slate-600'}`}><strong className={`block ${isClassTwo ? 'text-[#1E1E1E]' : 'text-slate-800'}`}>{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>Date issued</div>
+                  <div className={`border-t pt-2 ${isClassTwo ? 'border-[#0D99FF]' : 'border-slate-600'}`}><strong className={`block ${isClassTwo ? 'text-[#1E1E1E]' : 'text-slate-800'}`}>{currentUser.name}</strong>Teacher signature</div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end">
+              <button onClick={() => void handlePrintCertificate()} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700">
+                <Printer className="h-4 w-4" /> Print Certificate
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1081,8 +1448,11 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'performance') {
-    const isTeacher = currentUser.role === UserRole.TEACHER || currentUser.role === UserRole.VOLUNTEER;
-    const topStudents = [...students].sort((a, b) => b.currentLevel - a.currentLevel).slice(0, 5);
+    const canIssueRankCertificates = canIssueCertificates;
+    const topStudents = [...students]
+      .sort((a, b) => b.currentLevel - a.currentLevel || b.streak - a.streak || a.name.localeCompare(b.name))
+      .slice(0, 5)
+      .map((student, index) => ({ student, rank: index + 1 }));
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1092,17 +1462,28 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           <MetricCard title="Pending Diagnostic" value={students.filter(s => s.levelHistory.length === 0).length} subtext="Need placement" icon={ShieldAlert} />
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-          <PageHeader title={isTeacher ? "Class Performance" : "School Performance"} desc="FLN level distribution and trends" />
+          <PageHeader title={canIssueRankCertificates ? "Class Performance" : "School Performance"} desc="FLN level distribution and trends" />
           <div className="space-y-3">
             <h4 className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 uppercase">Top Performing Students</h4>
-            <div className="space-y-2">{topStudents.map(s => (
-              <div key={s.id} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
-                <div className="flex items-center gap-3"><span className="text-sm font-semibold">{s.name}</span><span className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup}</span></div>
-                <div className="flex items-center gap-4"><div className="w-32 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / 59) * 100}%` }} /></div><span className="font-mono font-bold text-sm">L{s.currentLevel}</span></div>
+            <div className="space-y-2">{topStudents.map(({ student: s, rank }) => (
+              <div key={s.id} className="flex flex-wrap justify-between items-center gap-3 p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
+                <div className="flex items-center gap-3"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-xs font-black text-amber-700">{rank}</span><span className="text-sm font-semibold">{s.name}</span><span className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup}</span></div>
+                <div className="flex items-center gap-3"><div className="w-24 sm:w-32 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / 59) * 100}%` }} /></div><span className="font-mono font-bold text-sm">L{s.currentLevel}</span>{canIssueRankCertificates && <button onClick={() => setRankCertificate({ student: s, rank })} className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"><Award className="h-3.5 w-3.5" /> Certificate</button>}</div>
               </div>
             ))}</div>
           </div>
         </div>
+        {canIssueRankCertificates && rankCertificate && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/75 p-4 sm:p-8">
+            <div className="w-full max-w-6xl">
+              <div className="mb-3 flex items-center justify-between gap-3 text-white">
+                <div><p className="text-sm font-bold">Top 5 Rank Certificate</p><p className="text-xs text-slate-300">{rankCertificate.student.name} · {ordinal(rankCertificate.rank)} rank</p></div>
+                <div className="flex gap-2"><button onClick={() => void printRankCertificate()} className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"><Printer className="h-4 w-4" /> Print Certificate</button><button onClick={() => setRankCertificate(null)} className="rounded-lg border border-white/35 px-3 py-2 text-sm font-semibold hover:bg-white/10">Close</button></div>
+              </div>
+              <RankCertificate ranked={rankCertificate} teacherName={currentUser.name} allStudents={students} certificateRef={rankCertificatePreviewRef} />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
