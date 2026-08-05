@@ -24,6 +24,8 @@ interface LayoutProps {
   onMarkNotificationRead: (id: string) => void;
   onClearNotifications: () => void;
   onLogout: () => void;
+  isDark: boolean;
+  onThemeToggle: () => void;
   children: React.ReactNode;
 }
 
@@ -36,6 +38,8 @@ export const Layout: React.FC<LayoutProps> = ({
   onMarkNotificationRead,
   onClearNotifications,
   onLogout,
+  isDark,
+  onThemeToggle,
   children
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -49,13 +53,8 @@ export const Layout: React.FC<LayoutProps> = ({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    try {
-      return localStorage.getItem('fln_dark_mode') === 'true';
-    } catch {
-      return false;
-    }
-  });
+
+
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const [fontSize, setFontSize] = useState(() => {
     try {
@@ -97,16 +96,6 @@ export const Layout: React.FC<LayoutProps> = ({
   React.useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;
   }, []);
-
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    localStorage.setItem('fln_dark_mode', String(darkMode));
-  }, [darkMode]);
 
   const collapsed = false;
 
@@ -216,7 +205,6 @@ export const Layout: React.FC<LayoutProps> = ({
       case UserRole.SUPERADMIN:
         list.push({ name: 'Users', view: 'users', icon: Users });
         list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Question Bank', view: 'question_bank', icon: BookOpen });
         list.push({ name: 'Worksheet Templates', view: 'worksheet_templates', icon: ClipboardList });
         list.push({ name: 'Content', view: 'content', icon: BookOpen });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
@@ -362,13 +350,13 @@ export const Layout: React.FC<LayoutProps> = ({
             </span>
           </button>
 
-          {/* Theme Toggle Button */}
+          {/* Theme Toggle */}
           <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 transition dark:text-slate-400 dark:hover:bg-slate-800"
-            title="Toggle Theme"
+            onClick={onThemeToggle}
+            className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 hover:text-slate-800 transition-all duration-200 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {darkMode ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+            {isDark ? <Sun className="h-4.5 w-4.5 text-amber-500" /> : <Moon className="h-4.5 w-4.5" />}
           </button>
 
           {/* Notifications bell */}
@@ -643,7 +631,7 @@ export const Layout: React.FC<LayoutProps> = ({
         )}
 
         {/* Central main display viewport */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50">
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50 dark:bg-slate-950">
 
           {/* Breadcrumbs */}
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider mb-2 select-none dark:text-slate-500">

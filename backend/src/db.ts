@@ -66,6 +66,7 @@ export interface User {
   name: string;
   role: UserRole;
   passwordHash?: string; // bcrypt hash; verified at login. Never sent to clients.
+  phoneNumber?: string;
   stateCode?: string;
   districtCode?: string;
   blockCode?: string;
@@ -109,6 +110,21 @@ export interface Student {
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
   assignedDiagnosticQuestions?: Question[];
+  // Extended profile — optional, filled in by the student's own school/teacher.
+  // guardianContact and address are PII and are redacted for roles beyond
+  // superadmin/school/teacher (same treatment as aadharMasked, §13.2 R-6).
+  gender?: 'Male' | 'Female' | 'Other';
+  dob?: string;
+  guardianName?: string;
+  guardianRelation?: string;
+  guardianContact?: string;
+  address?: string;
+  bloodGroup?: string;
+  disabilityStatus?: string;
+  midDayMealBeneficiary?: boolean;
+  busRoute?: string;
+  siblingsInSchool?: string;
+  teacherNotes?: string;
 }
 
 export interface Question {
