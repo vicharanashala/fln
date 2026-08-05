@@ -1660,10 +1660,9 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-6">
             {filtered.map(level => (
-              <button
+              <div
                 key={level.id}
-                onClick={() => window.open(`/output/level-${level.id}.html`, '_blank')}
-                className="text-left border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md transition-all group"
+                className="text-left border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <span className="inline-block text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
@@ -1681,7 +1680,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                     {level.strand}
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
 
