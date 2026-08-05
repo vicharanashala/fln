@@ -16,16 +16,14 @@ export function withBase(path: string): string {
 }
 
 // fetch() against a base-relative app path. Drop-in replacement for fetch("/api/...").
-// Auto-attaches the `Authorization: Bearer <token>` header from localStorage so
-// authenticated endpoints don't need to remember to add it.
-export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  const token = localStorage.getItem('fln_token');
-  const headers: Record<string, string> = {
-    ...((init?.headers as Record<string, string> | undefined) || {}),
-  };
-  if (token && !headers['Authorization'] && !path.includes('/api/auth/login')) {
-    headers['Authorization'] = `Bearer ${token}`;
+// Attaches the stored auth token as a Bearer header unless the caller already set one.
+export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  if (!headers.has('Authorization')) {
+    const token = localStorage.getItem('fln_token');
+    if (token) headers.set('Authorization', `Bearer ${token}`);
   }
+
   const res = await fetch(withBase(path), { ...init, headers });
   if (res.status === 401 && !path.includes('/api/auth/login')) {
     localStorage.removeItem('fln_token');
