@@ -27,13 +27,11 @@ export default defineConfig(() => {
       // Forward all /api calls to the real backend server (Express, :3000).
       // Override the target with VITE_API_TARGET if the backend runs elsewhere.
       proxy: {
-        '/api/states': { target: 'http://localhost:5000', changeOrigin: true },
-        '/api/districts': { target: 'http://localhost:5000', changeOrigin: true },
-        '/api/blocks': { target: 'http://localhost:5000', changeOrigin: true },
-        '/api/schools': { target: 'http://localhost:5000', changeOrigin: true },
-        '/api/teachers': { target: 'http://localhost:5000', changeOrigin: true },
-        '/api/classes': { target: 'http://localhost:5000', changeOrigin: true },
-        '/api/students': { target: 'http://localhost:5000', changeOrigin: true },
+        // /api catch-all: forward to the main backend. Specific routes
+        // (intro/lessons/etc.) used to point at a Levels API on :5000 that
+        // isn't running in this dev environment — they caused 500s when
+        // the frontend fetched /api/students etc. Let the catch-all route
+        // everything to the main backend to avoid the misrouting.
         '/api': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true },
         '/output': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true },
         '/worksheets': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true },

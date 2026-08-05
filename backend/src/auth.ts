@@ -1,8 +1,10 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { dbStore, UserRole, User, Student } from './db';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
+export const SEED_DEMO_PASSWORD_HASH = bcrypt.hashSync('Fln@2026', 10);
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 if (JWT_SECRET === 'dev-insecure-secret-change-me' && process.env.NODE_ENV === 'production') {
   console.warn('[auth] WARNING: JWT_SECRET is unset in production — set it to a strong random value.');

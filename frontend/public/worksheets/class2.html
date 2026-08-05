@@ -492,9 +492,9 @@ function tensOnesBlocks(number){
 function section8(){
   let rows='';
   const answers=[];
-  for(let i=0;i<3;i++){
-    const number=randInt(11,99);
-    const reveal=i<3;
+  for(let i=0;i<1;i++){
+      const number=randInt(11,99);
+      const reveal=i<1;
     const instr=reveal?'Show the number <b>'+number+'</b> using tens and ones.':'Look at the blocks. Write the number.';
     const blocks=tensOnesBlocks(number);
     const answer='Tens: <span class="blankline" data-omr="q8-r'+(i+1)+'-tens"></span>&nbsp;&nbsp;Ones: <span class="blankline" data-omr="q8-r'+(i+1)+'-ones"></span>&nbsp;&nbsp;Number: <span class="blankline" data-omr="q8-r'+(i+1)+'-number" style="width:64px;"></span>';
@@ -555,8 +555,8 @@ function buildPatternRow(){
 function section10(){
   let rows='';
   const answers=[];
-  for(let i=0;i<3;i++){
-    const {seq,label,type,next1,next2}=buildPatternRow();
+  for(let i=0;i<1;i++){
+      const {seq,label,type,next1,next2}=buildPatternRow();
     const shapesHtml=seq.map(s=>renderIcon(s,34)).join('');
     const blanksHtml='<span class="dashedbox" data-omr="q10-r'+(i+1)+'-next1"></span><span class="dashedbox" data-omr="q10-r'+(i+1)+'-next2"></span>';
     rows+='<tr><td class="rownum">'+(i+1)+'</td><td style="width:30%;">'+label+'</td><td><div class="objcell">'+shapesHtml+blanksHtml+'</div></td></tr>';
@@ -688,16 +688,16 @@ function buildWorksheetAndKey(setNum){
   const studentId = document.getElementById('studentId')?.value.trim();
   const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
   const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
-  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+  const studentDetails = `<div class="student-header-box" style="margin-top:6px;margin-bottom:4px;padding:5px 10px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:6px;font-size:13px;color:#0f172a;display:flex;align-items:center;justify-content:space-between;page-break-inside:avoid;"><div><span style="font-weight:700;color:#334155;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Student Name:</span> <span style="font-weight:800;font-size:15px;color:#0284c7;margin-left:6px;text-transform:uppercase;">${nameText}</span></div><div><span style="font-weight:700;color:#334155;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Student ID:</span> <span style="font-weight:700;font-family:monospace;font-size:13px;color:#475569;margin-left:6px;">${idText}</span></div></div>`;
 
   const worksheetHtml='<div class="page-wrapper">'+reg+
     '<div class="page" id="page-set-'+setNum+'">'+
     '<div class="ws-header">'+
-      '<div class="ws-title">CLASS 2 — MATHEMATICS PRACTICE WORKSHEET</div>'+worksheetQRHtml(setNum)+
+      '<div class="ws-title">CLASS 2 — FLN DIAGNOSTIC PAPER</div>'+worksheetQRHtml(setNum)+
       '<div class="ws-sub">Set '+setNum+'</div>'+
       studentDetails+
     '</div>'+sectionsHtml+
-    '<div class="ws-footer">Class 2 — Math FLN Practice &nbsp;|&nbsp; Set '+setNum+'</div>'+
+    '<div class="ws-footer">Class 2 — FLN Diagnostic Paper &nbsp;|&nbsp; Set '+setNum+'</div>'+
     '<div class="ws-page-id">'+pid+'</div>'+
   '</div></div>';
   return {worksheetHtml, answerKey};

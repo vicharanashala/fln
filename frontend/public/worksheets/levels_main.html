@@ -8281,7 +8281,7 @@ function buildWorksheet(levelId, subIdx, setNum, totalForStamp){
   const studentId = document.getElementById('studentId')?.value.trim();
   const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
   const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
-  const studentDetails = `<div class="student-details">Name: <span style="font-family: monospace;">${esc(nameText)}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${esc(idText)}</span></div>`;
+  const studentDetails = `<div class="student-header-box" style="margin-top:6px;margin-bottom:4px;padding:5px 10px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:6px;font-size:13px;color:#0f172a;display:flex;align-items:center;justify-content:space-between;page-break-inside:avoid;"><div><span style="font-weight:700;color:#334155;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Student Name:</span> <span style="font-weight:800;font-size:15px;color:#0284c7;margin-left:6px;text-transform:uppercase;">${esc(nameText)}</span></div><div><span style="font-weight:700;color:#334155;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Student ID:</span> <span style="font-weight:700;font-family:monospace;font-size:13px;color:#475569;margin-left:6px;">${esc(idText)}</span></div></div>`;
   const headerHtml = hOverride ? `
     <div class="worksheet-header-full">
       ${worksheetQRHtml(level,sublevelId,setNum)}
@@ -8384,7 +8384,7 @@ function makeHiddenContainer(html){
   return div;
 }
 async function renderEl(el, targetWidthMM){
-  const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff'});
+  const canvas = await html2canvas(el, {scale:1.5, backgroundColor:'#ffffff'});
   const widthMM = targetWidthMM || PDF_CONTENT_W;
   const heightMM = canvas.height * (widthMM/canvas.width);
   return {canvas, heightMM, widthMM};
@@ -8401,14 +8401,14 @@ async function buildPdfBlob(idx){
   let y = PDF_MARGIN_MM;
   let first=true;
   const {canvas:hc, heightMM:hh} = await renderEl(headerEl, PDF_CONTENT_W);
-  pdf.addImage(hc.toDataURL('image/png'),'PNG',PDF_MARGIN_MM,y,PDF_CONTENT_W,hh);
+  pdf.addImage(hc.toDataURL('image/jpeg', 0.80),'JPEG',PDF_MARGIN_MM,y,PDF_CONTENT_W,hh);
   y += hh + 3;
   for(const el of sectionEls){
     const {canvas, heightMM} = await renderEl(el, PDF_CONTENT_W);
     let hMM = heightMM, wMM = PDF_CONTENT_W;
     if(hMM > PDF_CONTENT_H - PDF_MARGIN_MM){ const scale=(PDF_CONTENT_H-PDF_MARGIN_MM)/hMM; hMM*=scale; wMM*=scale; }
     if(y + hMM > PDF_PAGE_H_MM - PDF_MARGIN_MM){ pdf.addPage(); y = PDF_MARGIN_MM; }
-    pdf.addImage(canvas.toDataURL('image/png'),'PNG',PDF_MARGIN_MM,y,wMM,hMM);
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.80),'JPEG',PDF_MARGIN_MM,y,wMM,hMM);
     y += hMM + 4;
     first=false;
   }

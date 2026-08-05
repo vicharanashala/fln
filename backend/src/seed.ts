@@ -2,6 +2,10 @@ import 'dotenv/config';
 import { MongoClient } from 'mongodb';
 import bcrypt from 'bcrypt';
 import { UserRole } from './db';
+import { STATES_UTS } from './geoData';
+import questionBankSeed from './data/question_bank_seed.json';
+
+const SEED_PASSWORD_HASH = bcrypt.hashSync('Fln@2026', 10);
 
 
 // ============================================================
@@ -446,7 +450,7 @@ async function main() {
                 teacherId: teacherIds[cIdx],
                 currentLevel: currentLevel,
                 currentSubLevel: randomSubLevel(),
-                targetLevel: Math.min(currentLevel + 1, 59),
+                targetLevel: Math.min(currentLevel + 1, 93),
                 aadharMasked: generateAadhaar(),
                 levelHistory: [
                   {
@@ -469,11 +473,10 @@ async function main() {
   // ════════════════════════════════════════════
   console.log('\nInserting data into collections...');
 
-  const defaultPasswordHash = bcrypt.hashSync('Fln@2026', 10);
   const hashedUsers = allUsers.map(u => ({
     ...u,
     passwordHash: u.password === 'Fln@2026' || !u.password
-      ? defaultPasswordHash
+      ? SEED_PASSWORD_HASH
       : bcrypt.hashSync(u.password, 10)
   }));
   const usersResult = await db.collection('users').insertMany(hashedUsers);

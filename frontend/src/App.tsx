@@ -139,15 +139,17 @@ export default function App() {
 
     switch (currentUser.role) {
       case 'superadmin':
-        return <SuperadminDashboard user={currentUser} token={token || ''} />;
+return <SuperadminDashboard user={currentUser} token={token!} />;
       case 'admin':
-        return <AdminDashboard user={currentUser} token={token || ''} />;
+      case 'district_admin':
+      case 'block_admin':
+        return <AdminDashboard user={currentUser} token={token!} />;
       case 'school':
-        return <SchoolDashboard user={currentUser} token={token || ''} />;
+        return <SchoolDashboard user={currentUser} token={token!} />;
       case 'teacher':
-        return <TeacherDashboard user={currentUser} token={token || ''} />;
+        return <TeacherDashboard user={currentUser} token={token!} />;
       case 'volunteer':
-        return <VolunteerDashboard user={currentUser} token={token || ''} />;
+        return <VolunteerDashboard user={currentUser} token={token!} />;
       default:
         return <div />;
     }

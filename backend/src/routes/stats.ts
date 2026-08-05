@@ -2,6 +2,16 @@ import express from 'express';
 import { dbStore } from '../db';
 
 export function registerStatsRoutes(app: express.Express) {
+  // DB connection status (used by the header status indicator).
+  // Returns the active db mode + counts so the UI can show MongoDB Atlas vs local.
+  app.get('/api/db-status', (_req, res) => {
+    return res.json({
+      connected: true,
+      usingMongo: dbStore.useMongo,
+      mode: dbStore.useMongo ? 'MongoDB Atlas' : 'Local File DB (Fallback)',
+    });
+  });
+
   // Public stats (no auth required — used by landing page)
   app.get('/api/stats', async (_req, res) => {
     const db = dbStore.getDb();
