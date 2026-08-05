@@ -33,6 +33,7 @@ export const connectDB = async () => {
       // Test ping to verify active MongoDB connection
       await mongoClient.db().command({ ping: 1 });
       console.log("MongoDB Connected");
+      dbStore.useMongo = true;
       connected = true;
     } catch (err: any) {
       console.error(`MongoDB connection attempt ${attempt}/${maxAttempts} failed: ${err.message}`);

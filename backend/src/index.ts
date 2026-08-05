@@ -1,7 +1,16 @@
+// Explicitly load .env from the backend directory. The dev wrapper
+// script runs `npm run dev --workspace @fln/backend` from the repo root,
+// so dotenv's default cwd lookup misses backend/.env and the backend
+// silently falls back to the local file DB. This ensures the Atlas
+// connection string is loaded regardless of how the script is started.
 import 'dotenv/config';
-import express from 'express';
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+const __dotenv_dir = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dotenv_dir, '..', '.env') });
+
+import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
@@ -32,7 +41,7 @@ const AI_SERVICES_DIR = process.env.AI_SERVICES_DIR || path.resolve(ROOT_DIR, '.
 // Throttle auth endpoints to slow down brute-force / credential-stuffing attempts.
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 10,
+  limit: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Please try again later.' },
