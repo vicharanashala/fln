@@ -5,6 +5,7 @@ import { Users, ShieldAlert, BookOpen, Calendar, ArrowRight, CheckCircle2, XCirc
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
+import { FLN_LEVELS_LIST } from './RoleDashboards';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -1581,62 +1582,121 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   }
 
   if (panel === 'content') {
-    const [levelHtmlList, setLevelHtmlList] = useState<{ levelNumber: number; title: string; fileName: string }[]>([]);
-    const [selectedLevel, setSelectedLevel] = useState<{ levelNumber: number; title: string } | null>(null);
-    const [levelHtml, setLevelHtml] = useState('');
-    const [levelLoading, setLevelLoading] = useState(false);
+    // Render the full 93-level FLN framework as cards, grouped by class
+    // (Preschool 1/2/3 + Class 1/2/3/4). All data comes from
+    // FLN_LEVELS_LIST in RoleDashboards — no backend fetch needed since
+    // the worksheet HTML is generated on demand by the worksheet engine
+    // when the user clicks "Open" / "Print".
+    const [search, setSearch] = useState('');
+    const [classFilter, setClassFilter] = useState<string>('ALL');
 
-    useEffect(() => {
-      fetch('/api/level-html').then(r => r.json()).then(d => { if (Array.isArray(d)) setLevelHtmlList(d); }).catch(() => {});
-    }, []);
+    const classOrder = ['Preschool 1', 'Preschool 2', 'Preschool 3', 'Class 1', 'Class 2', 'Class 3', 'Class 4'];
+    const classesPresent = Array.from(new Set(FLN_LEVELS_LIST.map(l => l.class)))
+      .sort((a, b) => classOrder.indexOf(a) - classOrder.indexOf(b));
 
-    const openLevel = async (level: { levelNumber: number; title: string }) => {
-      setSelectedLevel(level);
-      setLevelLoading(true);
-      setLevelHtml('');
-      try {
-        const res = await fetch(`/api/level-html/${level.levelNumber}`);
-        const data = await res.json();
-        setLevelHtml(data.htmlContent || '');
-      } catch { setLevelHtml('<p>Failed to load level content.</p>'); }
-      finally { setLevelLoading(false); }
-    };
+    const filtered = FLN_LEVELS_LIST.filter(l => {
+      if (classFilter !== 'ALL' && l.class !== classFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return l.name.toLowerCase().includes(q) ||
+               l.strand.toLowerCase().includes(q) ||
+               String(l.id).includes(q);
+      }
+      return true;
+    });
 
     return (
       <div className="space-y-6">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-          <PageHeader title="FLN Level Content Library" desc={`SVG worksheet templates for all 93 FLN levels (${levelHtmlList.length} loaded from database)`} icon={<BookMarked className="h-5 w-5" />} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
-            {levelHtmlList.map(t => (
-              <button key={t.levelNumber} onClick={() => openLevel(t)} className="text-left border border-slate-200 dark:border-slate-700 rounded-lg p-3 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md transition-all bg-slate-50 dark:bg-slate-800/50">
-                <div className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase">Level {t.levelNumber}</div>
-                <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-1 line-clamp-2">{t.title}</div>
-              </button>
-            ))}
-            {levelHtmlList.length === 0 && <p className="text-xs text-slate-400 dark:text-slate-500 col-span-full">No level templates found. Run <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">npm run seed:html</code> first.</p>}
-          </div>
-        </div>
-
-        {selectedLevel && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80" onClick={() => setSelectedLevel(null)}>
-            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">Level {selectedLevel.levelNumber}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{selectedLevel.title}</p>
-                </div>
-                <button onClick={() => setSelectedLevel(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none px-2">&times;</button>
-              </div>
-              <div className="flex-1 overflow-auto p-4">
-                {levelLoading ? (
-                  <div className="flex items-center justify-center py-20 text-slate-400 dark:text-slate-500 text-sm animate-pulse">Loading level content...</div>
-                ) : (
-                  <div dangerouslySetInnerHTML={{ __html: levelHtml }} className="prose prose-sm dark:prose-invert max-w-none" />
-                )}
-              </div>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <BookMarked className="h-5 w-5" />
+                FLN Level Content Library
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                All {FLN_LEVELS_LIST.length} FLN levels across {classesPresent.length} class groups.
+                Click a card to open the level's worksheet template.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search level name or strand..."
+                className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-2 text-xs w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <select
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="ALL">All Classes ({FLN_LEVELS_LIST.length})</option>
+                {classesPresent.map(c => (
+                  <option key={c} value={c}>
+                    {c} ({FLN_LEVELS_LIST.filter(l => l.class === c).length})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
-        )}
+
+          <div className="mt-4 flex flex-wrap gap-1 text-[10px] font-mono">
+            {classOrder.filter(c => classesPresent.includes(c)).map(c => (
+              <button
+                key={c}
+                onClick={() => setClassFilter(c)}
+                className={`px-2.5 py-1 rounded-full border transition-colors ${
+                  classFilter === c
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                }`}
+              >
+                {c} · {FLN_LEVELS_LIST.filter(l => l.class === c).length}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-6">
+            {filtered.map(level => (
+              <button
+                key={level.id}
+                onClick={() => window.open(`/output/level-${level.id}.html`, '_blank')}
+                className="text-left border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md transition-all group"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="inline-block text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                    Level {level.id}
+                  </span>
+                  <span className="text-[9px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                    {level.class}
+                  </span>
+                </div>
+                <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug min-h-[2.5rem]">
+                  {level.name}
+                </div>
+                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                  <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">
+                    {level.strand}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {filtered.length === 0 && (
+            <div className="text-center text-xs text-slate-400 dark:text-slate-500 py-12">
+              No levels match your search.
+            </div>
+          )}
+
+          {filtered.length > 0 && (
+            <div className="mt-4 text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right">
+              Showing {filtered.length} of {FLN_LEVELS_LIST.length} levels
+            </div>
+          )}
+        </div>
       </div>
     );
   }
