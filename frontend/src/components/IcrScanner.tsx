@@ -1,6 +1,17 @@
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { Student, ClassGroup, Question, EvaluationReport, User } from '../types';
+<<<<<<< HEAD
+=======
+import { ReasoningSection } from './EducationalReasoning';
+import { FLN_LEVELS } from '../data/flnLevels';
+import { generateQuestionsForLevel } from '../utils/levelGenerator';
+// EXPERIMENTAL - SAFE TO REMOVE
+// Import for the competency-aware 8-question worksheet generator (Phase 3).
+// Each question is tied to a unique competency parsed from the existing
+// FLN curriculum markdown files. Replaces the previous 4-question generator.
+import { generateMixedCompetencyWorksheetNew as generateExperimentalWorksheet } from '../utils/experimentalQuestionGenerator';
+>>>>>>> 781012a (feat: improve FLN worksheet generation with mixed competency questions)
 
 interface IcrScannerProps {
   token: string;
@@ -26,6 +37,14 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const [scanPhase, setScanPhase] = useState<'idle' | 'feeding' | 'scanning' | 'done'>('idle');
   const [extractedAnswers, setExtractedAnswers] = useState<{ [questionId: string]: string }>({});
   const [report, setReport] = useState<EvaluationReport | null>(null);
+
+  // Developer Test Mode — internal tool for validating Educational Reasoning
+  // across many combinations of students / classes / FLN levels / answers.
+  // When OFF, behaves identically to the standard ICR Scanner flow.
+  const [developerTestMode, setDeveloperTestMode] = useState(false);
+  const [testFlnLevel, setTestFlnLevel] = useState<number>(24);
+  const [testSubLevel, setTestSubLevel] = useState<number>(0);
+  const [isDevModePaper, setIsDevModePaper] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,6 +97,67 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
       setError('Network error generating diagnostic.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Developer Test Mode: build a paper locally from the chosen FLN level
+  // using the canonical generateQuestionsForLevel utility, then route it
+  // through the existing setPaper choke point. Skips the physical-scan
+  // animation; goes straight to the 'verify' step. No student records
+  // are created.
+  const generateDevPaper = () => {
+    if (!selectedStudent) {
+      setError('Select a student before generating the test paper.');
+      return;
+    }
+    setError('');
+    setSuccess('');
+    let questions: Question[];
+
+    // EXPERIMENTAL - SAFE TO REMOVE
+    // Experimental routing point: always try the FLN Levels Structure
+    // markdown-driven worksheet first. If no markdown is available for the
+    // requested level (or the generator returns nothing), fall back to the
+    // legacy hardcoded generator. To revert: replace the block below with
+    // the original `questions = generateQuestionsForLevel(testFlnLevel, testSubLevel);`
+    // and remove the import above and this block.
+    try {
+      const experimentalQuestions = generateExperimentalWorksheet(testFlnLevel);
+      if (experimentalQuestions.length > 0) {
+        questions = experimentalQuestions.map((q) => ({
+          question_id: q.question_id,
+          question: q.question,
+          answer: q.answer,
+          answer_type: q.answer_type,
+          topic: q.topic,
+          subtopic: q.subtopic,
+          difficulty: q.difficulty,
+          source_level: q.source_level,
+        }));
+        setSuccess(
+          `Dev test (experimental): ${questions.length} question(s) from L${testFlnLevel}.${testSubLevel} — 8 unique competencies across the FLN pool ready for ${selectedStudent.name}.`
+        );
+      } else {
+        questions = generateQuestionsForLevel(testFlnLevel, testSubLevel);
+        setSuccess(
+          `Dev test (legacy fallback): ${questions.length} question(s) from L${testFlnLevel}.${testSubLevel} (no markdown available) ready for ${selectedStudent.name}.`
+        );
+      }
+    } catch (e) {
+      setError('Failed to generate questions: ' + (e instanceof Error ? e.message : String(e)));
+      return;
+    }
+    const builtPaper = { id: 'dev_test_' + Date.now(), questions };
+    setPaper(builtPaper);
+    setExtractedAnswers(
+      Object.fromEntries(questions.map(q => [q.question_id, '']))
+    );
+    setReport(null);
+    setStep('verify');
+    setIsDevModePaper(true);
+    if (!questions.length || questions[0].question_id.startsWith('EXP-PLACEHOLDER')) {
+      // Note placeholder usage in success message for experimental run
+      setSuccess(prev => prev + ' (placeholders used where bank had no match)');
     }
   };
 
@@ -167,11 +247,17 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     setSuccess('');
     setScanPhase('idle');
     setIsScanning(false);
+    setIsDevModePaper(false);
   };
 
   return (
+<<<<<<< HEAD
     <div className="space-y-6" id="icr-scanner">
       <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-4">
+=======
+     <div className="space-y-6" id="icr-scanner">
+      <div className="flex justify-between items-center border-b border-zinc-200 pb-4">
+>>>>>>> 781012a (feat: improve FLN worksheet generation with mixed competency questions)
         <div>
           <button onClick={onBack} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white text-xs font-mono mb-2 block">
             ← Back to Dashboard
@@ -223,7 +309,35 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
 
       {/* Step: Select Student */}
       {step === 'select' && (
+<<<<<<< HEAD
         <div className="bg-white dark:bg-slate-900 p-8 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
+=======
+        <div className="bg-white p-8 border border-zinc-200 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
+          {/* --- Developer Test Mode (toggle) --- */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="text-[10px] font-mono font-bold text-amber-800 uppercase tracking-wider">
+                  Developer Test Mode
+                </span>
+                <p className="text-[10px] text-amber-700 mt-0.5">
+                  Internal only — exercises the same evaluation + Educational Reasoning pipeline.
+                </p>
+                <p className="text-[10px] text-amber-700 mt-0.5">
+                  Example: pick Level 24 + Sub-level 0, answer all questions, see Educational Reasoning for the placed level.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={developerTestMode}
+                onChange={(e) => setDeveloperTestMode(e.target.checked)}
+                className="w-4 h-4 accent-amber-600"
+                data-testid="dev-test-mode-toggle"
+              />
+            </label>
+          </div>
+
+>>>>>>> 781012a (feat: improve FLN worksheet generation with mixed competency questions)
           <div className="text-center space-y-2">
             <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto">
               <svg className="w-8 h-8 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -236,6 +350,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
             </p>
           </div>
 
+<<<<<<< HEAD
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Class</label>
@@ -281,17 +396,127 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                   <span className={`font-mono text-xs font-bold ${selectedStudent.levelHistory.length === 0 ? 'text-amber-600' : 'text-green-600'}`}>
                     {selectedStudent.levelHistory.length === 0 ? 'Pending' : 'Completed'}
                   </span>
+=======
+          {/* --- Developer Test Mode (toggle ON) --- */}
+          {!developerTestMode ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono font-bold text-zinc-500 uppercase mb-1.5">Select Class</label>
+                <select
+                  value={selectedClassId}
+                  onChange={(e) => { setSelectedClassId(e.target.value); setSelectedStudentId(''); }}
+                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-white focus:border-zinc-500 outline-none"
+                >
+                  <option value="">Choose a class...</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.className} - Section {c.section}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono font-bold text-zinc-500 uppercase mb-1.5">Select Student</label>
+                <select
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  disabled={!selectedClassId}
+                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-white focus:border-zinc-500 outline-none disabled:opacity-50"
+                >
+                  <option value="">Choose a student...</option>
+                  {filteredStudents.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} (L{s.currentLevel}.{s.currentSubLevel ?? 0})</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedStudent && (
+                <div className="bg-zinc-50 p-4 border border-zinc-200 rounded-xl space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Student</span>
+                    <span className="font-medium text-zinc-900">{selectedStudent.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Current Level</span>
+                    <span className="font-mono font-bold">L{selectedStudent.currentLevel}.{selectedStudent.currentSubLevel ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Diagnostic Status</span>
+                    <span className={`font-mono text-xs font-bold ${selectedStudent.levelHistory.length === 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                      {selectedStudent.levelHistory.length === 0 ? 'Pending' : 'Completed'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3 bg-amber-50/40 border border-amber-200/60 rounded-xl p-4">
+              <div>
+                <label className="block text-[10px] font-mono font-bold text-zinc-500 uppercase mb-1">Select Student</label>
+                <select
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  className="w-full text-sm border border-zinc-200 rounded-lg p-2 bg-white focus:border-zinc-500 outline-none"
+                >
+                  <option value="">Choose a student...</option>
+                  {students.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.classGroup})</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedStudent && (
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-500 uppercase mb-1">Class</label>
+                  <div className="w-full text-sm border border-zinc-200 rounded-lg p-2 bg-zinc-50 text-zinc-700 font-mono">
+                    {selectedStudent.classGroup}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-500 uppercase mb-1">FLN Level</label>
+                  <select
+                    value={testFlnLevel}
+                    onChange={(e) => setTestFlnLevel(Number(e.target.value))}
+                    disabled={!selectedStudent}
+                    className="w-full text-sm border border-zinc-200 rounded-lg p-2 bg-white focus:border-zinc-500 outline-none font-mono disabled:opacity-50"
+                  >
+                    {FLN_LEVELS.filter(l => l.classGroup === selectedStudent?.classGroup).map(l => (
+                      <option key={l.id} value={l.id}>
+                        L{l.id} · {l.name} ({l.strand})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-500 uppercase mb-1">Sub-Level</label>
+                  <select
+                    value={testSubLevel}
+                    onChange={(e) => setTestSubLevel(Number(e.target.value))}
+                    disabled={!selectedStudent}
+                    className="w-full text-sm border border-zinc-200 rounded-lg p-2 bg-white focus:border-zinc-500 outline-none font-mono disabled:opacity-50"
+                  >
+                    <option value={0}>0 — Mastery</option>
+                    <option value={1}>1 — Easier</option>
+                    <option value={2}>2 — Remedial</option>
+                  </select>
+>>>>>>> 781012a (feat: improve FLN worksheet generation with mixed competency questions)
                 </div>
               </div>
-            )}
-          </div>
+
+              {FLN_LEVELS.length === 0 && (
+                <p className="text-[10px] text-red-700">No FLN levels available.</p>
+              )}
+            </div>
+          )}
 
           <button
-            onClick={generatePaper}
-            disabled={!selectedStudent || loading}
+            onClick={developerTestMode ? generateDevPaper : generatePaper}
+            disabled={developerTestMode ? loading || !selectedStudentId : !selectedStudent || loading}
             className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-6 rounded-lg transition-colors disabled:opacity-50"
           >
-            {loading ? 'Generating Diagnostic Paper...' : 'Generate Paper & Proceed to Scanner'}
+            {loading ? 'Generating Diagnostic Paper...' : (developerTestMode ? 'Create Test Paper & Enter Answers' : 'Generate Paper & Proceed to Scanner')}
           </button>
         </div>
       )}
@@ -418,7 +643,13 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
 
       {/* Step: Verify extracted answers */}
       {step === 'verify' && paper && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-4">
+          {isDevModePaper && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-[11px] font-mono text-amber-800">
+              Dev Mode Scenario — {selectedStudent?.classGroup} · L{testFlnLevel}.{testSubLevel} · {FLN_LEVELS.find(l => l.id === testFlnLevel)?.name ?? 'Unknown'} · {FLN_LEVELS.find(l => l.id === testFlnLevel)?.strand ?? ''} · {paper.questions.length} questions
+            </div>
+          )}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-4">
             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
@@ -507,13 +738,23 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               </div>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* Step: Results */}
       {step === 'result' && report && (
         <div className="max-w-2xl mx-auto">
+<<<<<<< HEAD
           <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm space-y-6">
+=======
+          {isDevModePaper && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-[11px] font-mono text-amber-800 mb-3">
+              Dev Mode Result — {selectedStudent?.classGroup} · L{testFlnLevel}.{testSubLevel} · {FLN_LEVELS.find(l => l.id === testFlnLevel)?.name ?? 'Unknown'} · {FLN_LEVELS.find(l => l.id === testFlnLevel)?.strand ?? ''}
+            </div>
+          )}
+          <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-6">
+>>>>>>> 781012a (feat: improve FLN worksheet generation with mixed competency questions)
             <div className="text-center space-y-2">
               <div className="w-16 h-16 bg-green-50 dark:bg-green-950 rounded-full flex items-center justify-center mx-auto border border-green-200 dark:border-green-800">
                 <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
