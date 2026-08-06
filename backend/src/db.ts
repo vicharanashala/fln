@@ -558,6 +558,144 @@ export class DBStore {
       if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
       return result.length;
     }
+
+
+  /**
+   * Fast aggregation: count of students, optionally filtered.
+   * Uses MongoDB countDocuments (uses index, no docs loaded).
+   */
+  async countStudentsFast(opts?: { schoolId?: string; currentLevelMin?: number }): Promise<number> {
+    if (this.mongoDb) {
+      const filter: any = {};
+      if (opts?.schoolId) filter.schoolId = opts.schoolId;
+      if (opts?.currentLevelMin != null) filter.currentLevel = { $gte: opts.currentLevelMin };
+      return await this.mongoDb.collection('students').countDocuments(filter);
+    }
+    let result = this.data?.students || [];
+    if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
+    if (opts?.currentLevelMin != null) result = result.filter(s => (s.currentLevel || 0) >= opts.currentLevelMin!);
+    return result.length;
+  }
+
+  /** Fast count of schools with optional filters. */
+  async countSchoolsFast(opts?: { stateCode?: string; schoolType?: string; accessLocked?: boolean }): Promise<number> {
+    if (this.mongoDb) {
+      const filter: any = {};
+      if (opts?.stateCode) filter.stateCode = opts.stateCode;
+      if (opts?.schoolType) filter.schoolType = opts.schoolType;
+      if (opts?.accessLocked != null) filter.accessLocked = opts.accessLocked;
+      return await this.mongoDb.collection('schools').countDocuments(filter);
+    }
+    let result = (this.data?.schools || []) as any[];
+    if (opts?.stateCode) result = result.filter((s: any) => s.stateCode === opts!.stateCode);
+    if (opts?.schoolType) result = result.filter((s: any) => s.schoolType === opts!.schoolType);
+    if (opts?.accessLocked != null) result = result.filter((s: any) => s.accessLocked === opts!.accessLocked);
+    return result.length;
+  }
+
+  /** Fast count of users by role. Returns { role: count }. */
+  async countUsersByRole(): Promise<Record<string, number>> {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection('users').aggregate([
+        { $group: { _id: '$role', count: { $sum: 1 } } }
+      ]).toArray();
+      const counts: Record<string, number> = {};
+      result.forEach(r => { counts[r._id] = r.count; });
+      return counts;
+    }
+    const counts: Record<string, number> = {};
+    (this.data?.users || []).forEach(u => {
+      const r = u.role || 'unknown';
+      counts[r] = (counts[r] || 0) + 1;
+    });
+    return counts;
+  }
+
+  /**
+   * Fast aggregation: school counts grouped by stateCode.
+   * Returns [{ stateCode, count }] sorted by count desc.
+   */
+  async countSchoolsByState(): Promise<Array<{ stateCode: string; count: number }>> {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection('schools').aggregate([
+        { $group: { _id: '$stateCode', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]).toArray();
+      return result.map(r => ({ stateCode: r._id || 'UNKNOWN', count: r.count }));
+    }
+    const counts: Record<string, number> = {};
+    (this.data?.schools || []).forEach(s => {
+      const sc = s.stateCode || 'UNKNOWN';
+      counts[sc] = (counts[sc] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([stateCode, count]) => ({ stateCode, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  /** Fast aggregation: school counts grouped by schoolType. */
+  async countSchoolsByType(): Promise<Array<{ schoolType: string; count: number }>> {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection('schools').aggregate([
+        { $group: { _id: '$schoolType', count: { $sum: 1 } } }
+      ]).toArray();
+      return result.map(r => ({ schoolType: r._id || 'Unknown', count: r.count }));
+    }
+    const counts: Record<string, number> = {};
+    ((this.data?.schools || []) as any[]).forEach(s => {
+      const t = s.schoolType || 'Unknown';
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    return Object.entries(counts).map(([schoolType, count]) => ({ schoolType, count }));
+  }
+
+  /** Fast aggregation: student count per school (for ranking). Returns top N. */
+  async getSchoolStudentCounts(): Promise<Map<string, number>> {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection('students').aggregate([
+        { $group: { _id: '$schoolId', count: { $sum: 1 }, avgLevel: { $avg: '$currentLevel' } } }
+      ]).toArray();
+      const map = new Map<string, number>();
+      result.forEach(r => { map.set(r._id, r.count); });
+      return map;
+    }
+    const counts = new Map<string, number>();
+    (this.data?.students || []).forEach(s => {
+      counts.set(s.schoolId, (counts.get(s.schoolId) || 0) + 1);
+    });
+    return counts;
+  }
+
+  /** Fast aggregation: count of evaluation reports. */
+  async countReports(): Promise<number> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection('evaluation_reports').countDocuments({});
+    }
+    return (this.data?.evaluationReports || []).length;
+  }
+
+  /** Fast aggregation: count reports grouped by pass/fail (score >= 50). */
+  async countReportsByOutcome(): Promise<{ pass: number; fail: number; total: number; avgScore: number }> {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection('evaluation_reports').aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            pass: { $sum: { $cond: [{ $gte: ['$score', 50] }, 1, 0] } },
+            avgScore: { $avg: '$score' }
+          }
+        }
+      ]).toArray();
+      if (result.length === 0) return { pass: 0, fail: 0, total: 0, avgScore: 0 };
+      const r = result[0];
+      return { pass: r.pass, fail: r.total - r.pass, total: r.total, avgScore: Math.round(r.avgScore || 0) };
+    }
+    const all = this.data?.evaluationReports || [];
+    const pass = all.filter(r => (r.score ?? 0) >= 50).length;
+    const avg = all.length > 0 ? all.reduce((s, r) => s + (r.score ?? 0), 0) / all.length : 0;
+    return { pass, fail: all.length - pass, total: all.length, avgScore: Math.round(avg) };
+  }
   async getQuestions() {
     if (this.mongoDb) return await this.mongoDb.collection<Question>('questions').find({}).toArray();
     return this.data?.questions || [];
