@@ -55,6 +55,18 @@ export interface Student {
   aadharMasked: string;
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
+  gender?: 'Male' | 'Female' | 'Other';
+  dob?: string;
+  guardianName?: string;
+  guardianRelation?: string;
+  guardianContact?: string;
+  address?: string;
+  bloodGroup?: string;
+  disabilityStatus?: string;
+  midDayMealBeneficiary?: boolean;
+  busRoute?: string;
+  siblingsInSchool?: string;
+  teacherNotes?: string;
 }
 
 export interface Question {

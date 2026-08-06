@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Class 1 — FLN Diagnostic Paper</title>
+<style>
+  *{box-sizing:border-box;}
+  body{
+    font-family:"Times New Roman",Times,serif;
+    background:#fff;color:#000;margin:0;padding:0;
+    line-height:1.5;
+  }
+
+  .sheet{
+    width:210mm;min-height:297mm;margin:0 auto;padding:16mm 18mm;
+  }
+
+  .header{
+    text-align:center;border:2px solid #000;padding:10px 8px;margin-bottom:14px;
+  }
+  .header .top-line{
+    font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+    display:flex;justify-content:space-between;border-bottom:1px solid #000;
+    padding-bottom:6px;margin-bottom:8px;
+  }
+  .header h1{font-size:22px;margin:0;letter-spacing:1px;font-weight:bold;text-transform:uppercase;}
+  .header .subtitle{font-size:13px;margin-top:4px;font-style:italic;}
+  .header .meta{
+    display:flex;justify-content:space-between;margin-top:8px;
+    font-size:12px;border-top:1px solid #000;padding-top:6px;
+  }
+
+  .student-info{
+    border:1.5px solid #000;padding:8px 12px;margin-bottom:18px;
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;font-size:13px;
+  }
+  .student-info .field{display:flex;align-items:baseline;gap:6px;}
+  .student-info .field b{font-weight:bold;}
+  .student-info .line{
+    flex:1;border-bottom:1.5px solid #000;height:18px;
+  }
+
+  .instructions{
+    border:1px solid #000;padding:8px 12px;margin-bottom:18px;font-size:12px;
+    background:#fff;
+  }
+  .instructions b{text-transform:uppercase;letter-spacing:0.5px;}
+  .instructions ol{margin:4px 0 0 18px;padding:0;}
+  .instructions li{margin:2px 0;}
+
+  .q{
+    margin:0 0 14px 0;padding:0;
+    page-break-inside:avoid;
+  }
+  .q-head{
+    display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;
+  }
+  .q-num{
+    border:1.5px solid #000;width:28px;height:28px;display:inline-flex;
+    align-items:center;justify-content:center;font-weight:bold;font-size:14px;
+    flex-shrink:0;font-family:Arial,sans-serif;
+  }
+  .q-title{
+    font-weight:bold;font-size:14px;flex:1;padding-top:4px;
+  }
+  .q-marks{
+    font-size:11px;font-style:italic;border:1px solid #000;padding:1px 6px;
+    margin-top:4px;flex-shrink:0;
+  }
+
+  .q-body{margin-left:38px;font-size:13.5px;}
+
+  .objects{
+    font-size:22px;letter-spacing:6px;margin:8px 0;line-height:1.5;
+  }
+  .boxed{font-size:14px;margin:6px 0;}
+  .answer-box{
+    display:inline-block;border:1.5px solid #000;min-width:46px;height:26px;
+    vertical-align:middle;margin:0 3px;
+  }
+
+  .mcq-list{margin:6px 0 0 0;list-style:none;padding:0;}
+  .mcq-list li{
+    margin:3px 0;padding-left:24px;text-indent:-24px;
+  }
+  .mcq-list .bubble{
+    display:inline-block;width:14px;height:14px;border:1.5px solid #000;
+    border-radius:50%;margin-right:8px;vertical-align:middle;
+  }
+
+  .numberline-wrap{margin:14px 0 10px 0;position:relative;}
+  .numberline{
+    position:relative;height:24px;
+  }
+  .numberline .tick{
+    position:absolute;top:0;width:1.5px;height:14px;background:#000;
+  }
+  .numberline .label{
+    position:absolute;top:16px;transform:translateX(-50%);
+    font-size:13px;font-weight:bold;font-family:Arial,sans-serif;
+  }
+  .mark-here{font-size:11px;margin-top:4px;font-style:italic;}
+
+  .shape-grid{display:flex;gap:14px;margin:8px 0;align-items:center;}
+  .shape-cell{
+    width:60px;height:60px;display:inline-block;position:relative;
+  }
+  .shape-cell .label{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:12px;}
+  .sh-circle{border:2px solid #000;border-radius:50%;}
+  .sh-square{border:2px solid #000;}
+  .sh-triangle{
+    width:0;height:0;background:transparent;
+    border-left:30px solid transparent;border-right:30px solid transparent;
+    border-bottom:54px solid #000;
+  }
+
+  .compare-groups{display:flex;align-items:center;gap:14px;margin:8px 0;flex-wrap:wrap;}
+  .compare-group{
+    border:2px solid #000;padding:8px 14px;font-size:22px;letter-spacing:4px;
+    background:#fff;
+  }
+  .compare-vs{font-size:14px;font-weight:bold;}
+
+  .pattern-row{
+    font-size:24px;letter-spacing:10px;margin:8px 0;
+    font-family:Arial,sans-serif;
+  }
+  .pattern-blank{
+    display:inline-block;width:38px;height:38px;border:2px solid #000;
+    vertical-align:middle;margin:0 2px;
+  }
+
+  .match-table{
+    width:100%;border-collapse:collapse;margin:8px 0;font-size:14px;
+  }
+  .match-table td{
+    border:1.5px solid #000;padding:8px 12px;text-align:center;
+    vertical-align:middle;
+  }
+  .match-table .obj{font-size:22px;letter-spacing:4px;}
+  .match-table .conn{
+    width:60px;border-left:none;border-right:none;
+  }
+
+  .wordbox{
+    border:1.5px solid #000;padding:10px 14px;margin:6px 0;font-size:14px;
+    background:#fff;
+  }
+
+  .footer{
+    margin-top:24px;border-top:2px solid #000;padding-top:8px;
+    display:flex;justify-content:space-between;font-size:11px;
+  }
+  .signoff{
+    margin-top:32px;display:flex;justify-content:space-between;font-size:12px;
+  }
+  .signoff .sig{
+    border-top:1px solid #000;width:140px;padding-top:4px;text-align:center;
+  }
+
+  .pagebreak{page-break-after:always;break-after:page;}
+  @page{size:A4;margin:0;}
+
+  @media print{
+    body{margin:0;}
+    .sheet{padding:14mm 16mm;}
+    .q{page-break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 ============ -->
+<div class="sheet">
+
+  <div class="header">
+    <div class="top-line">
+      <span>FLN Assessment Programme</span>
+      <span>Session: 2025–26</span>
+    </div>
+    <h1>Class 1 — FLN Diagnostic Paper</h1>
+    <div class="subtitle">Foundational Literacy &amp; Numeracy</div>
+    <div class="meta">
+      <span>Total Questions: <b>15</b></span>
+      <span>Maximum Marks: <b>25</b></span>
+      <span>Time Allowed: <b>45 minutes</b></span>
+    </div>
+  </div>
+
+  <div class="student-info">
+    <div class="field"><b>Name:</b><span class="line"></span></div>
+    <div class="field"><b>Roll No.:</b><span class="line"></span></div>
+    <div class="field"><b>Date:</b><span class="line"></span></div>
+  </div>
+
+  <div class="instructions">
+    <b>Instructions to the Student:</b>
+    <ol>
+      <li>Read each question carefully before writing your answer.</li>
+      <li>Write all answers in the space provided. Do not write outside the boxes.</li>
+      <li>For multiple choice questions, tick (✓) only one option.</li>
+      <li>You may use your fingers or a pencil to count. Do <b>not</b> use a calculator.</li>
+      <li>If you cannot answer a question, move on to the next one and come back later.</li>
+    </ol>
+  </div>
+
+  <!-- Q1: Count Objects (Observe) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">1</span>
+      <span class="q-title">Count Objects</span>
+      <span class="q-marks">[1 mark]</span>
+    </div>
+    <div class="q-body">
+      Count the objects below. How many are there?
+      <div class="objects">★ &nbsp; ★ &nbsp; ★ &nbsp; ★ &nbsp; ★</div>
+      <div class="boxed">Answer = <span class="answer-box" style="width:70px;"></span></div>
+    </div>
+  </div>
+
+  <!-- Q2: Number Recognition (Recognize) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">2</span>
+      <span class="q-title">Number Recognition</span>
+      <span class="q-marks">[1 mark]</span>
+    </div>
+    <div class="q-body">
+      Look at the group of stars. Which numeral shows how many there are?
+      <div class="objects">▲ &nbsp; ▲ &nbsp; ▲ &nbsp; ▲ &nbsp; ▲ &nbsp; ▲ &nbsp; ▲</div>
+      <ul class="mcq-list">
+        <li><span class="bubble"></span>(A) 5</li>
+        <li><span class="bubble"></span>(B) 6</li>
+        <li><span class="bubble"></span>(C) 7</li>
+        <li><span class="bubble"></span>(D) 8</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Q3: Write Number (Recall) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">3</span>
+      <span class="q-title">Write Number</span>
+      <span class="q-marks">[1 mark]</span>
+    </div>
+    <div class="q-body">
+      Write the numeral for the given group of objects.
+      <div class="objects">● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ●</div>
+      <div class="boxed">Answer = <span class="answer-box" style="width:70px;"></span></div>
+    </div>
+  </div>
+
+  <!-- Q4: Before Number (Sequence) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">4</span>
+      <span class="q-title">Before Number</span>
+      <span class="q-marks">[1 mark]</span>
+    </div>
+    <div class="q-body">
+      What number comes <b>just before</b> 7?
+      <div class="boxed" style="font-size:18px;margin-top:8px;">
+        Answer = <span class="answer-box" style="width:70px;"></span> , &nbsp; <b>7</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q5: After Number (Sequence) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">5</span>
+      <span class="q-title">After Number</span>
+      <span class="q-marks">[1 mark]</span>
+    </div>
+    <div class="q-body">
+      What number comes <b>just after</b> 9?
+      <div class="boxed" style="font-size:18px;margin-top:8px;">
+        <b>9</b> , &nbsp; Answer = <span class="answer-box" style="width:70px;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q6: Missing Number (Sequence) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">6</span>
+      <span class="q-title">Missing Number</span>
+      <span class="q-marks">[1 mark]</span>
+    </div>
+    <div class="q-body">
+      Fill in the missing number in the counting sequence below.
+      <div style="font-size:18px;font-weight:bold;margin:10px 0;letter-spacing:8px;font-family:Arial,sans-serif;">
+        2 &nbsp; 3 &nbsp; <span class="pattern-blank"></span> &nbsp; 5 &nbsp; 6
+      </div>
+    </div>
+  </div>
+
+  <!-- Q7: Greater or Smaller (Compare) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">7</span>
+      <span class="q-title">Greater or Smaller</span>
+      <span class="q-marks">[1 mark]</span>
+    </div>
+    <div class="q-body">
+      Circle the number that is the <b>greatest</b>:
+      <div style="font-size:22px;font-weight:bold;margin:8px 0;letter-spacing:12px;font-family:Arial,sans-serif;text-align:center;">
+        4 &nbsp;&nbsp; 9 &nbsp;&nbsp; 6 &nbsp;&nbsp; 3
+      </div>
+    </div>
+  </div>
+
+  <!-- Q8: Compare Quantities (Compare) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">8</span>
+      <span class="q-title">Compare Quantities</span>
+      <span class="q-marks">[1 mark]</span>
+    </div>
+    <div class="q-body">
+      Look at the two groups of bananas. Circle the group that has <b>more</b> bananas.
+      <div class="compare-groups">
+        <div class="compare-group">▮ ▮ ▮ ▮</div>
+        <span class="compare-vs">vs.</span>
+        <div class="compare-group">▮ ▮ ▮ ▮ ▮ ▮ ▮ ▮</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ PAGE 2 ============ -->
+<div class="sheet pagebreak">
+
+  <!-- Q9: Number Line (Represent) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">9</span>
+      <span class="q-title">Number Line</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Mark the position of the number <b>4</b> on the number line below with a cross (×).
+      <div class="numberline-wrap">
+        <div class="numberline" id="numline">
+          <div class="tick" style="left:0%;"></div><div class="label" style="left:0%;">0</div>
+          <div class="tick" style="left:20%;"></div><div class="label" style="left:20%;">1</div>
+          <div class="tick" style="left:40%;"></div><div class="label" style="left:40%;">2</div>
+          <div class="tick" style="left:60%;"></div><div class="label" style="left:60%;">3</div>
+          <div class="tick" style="left:80%;"></div><div class="label" style="left:80%;">4</div>
+          <div class="tick" style="left:100%;"></div><div class="label" style="left:100%;">5</div>
+        </div>
+      </div>
+      <div class="mark-here">(Mark your answer clearly above the number 4.)</div>
+    </div>
+  </div>
+
+  <!-- Q10: Simple Addition (Combine) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">10</span>
+      <span class="q-title">Simple Addition</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Add the two groups and write the total.
+      <div style="font-size:22px;margin:10px 0;letter-spacing:6px;font-family:Arial,sans-serif;">
+        ▲ ▲ ▲ &nbsp; + &nbsp; ▲ ▲ &nbsp; = &nbsp; <span class="answer-box" style="width:80px;height:32px;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q11: Simple Subtraction (Take Away) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">11</span>
+      <span class="q-title">Simple Subtraction</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Cross out (×) the objects being taken away. How many remain?
+      <div style="font-size:22px;margin:10px 0;letter-spacing:6px;font-family:Arial,sans-serif;">
+        ● ● ● ● ● &nbsp; − &nbsp; ● ● &nbsp; = &nbsp; <span class="answer-box" style="width:80px;height:32px;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q12: Identify Shapes (Classify) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">12</span>
+      <span class="q-title">Identify Shapes</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Tick (✓) the correct shape for each name.
+      <div style="margin-top:12px;">
+        <div style="margin:8px 0;">
+          <b>(a) Circle</b>
+          <div class="shape-choices">
+            <div class="choice"><div class="draw"><span class="shape-cell sh-circle"></span></div><div class="check">☐</div></div>
+            <div class="choice"><div class="draw"><span class="shape-cell sh-square"></span></div><div class="check">☐</div></div>
+            <div class="choice"><div class="draw"><span class="shape-cell sh-triangle"></span></div><div class="check">☐</div></div>
+          </div>
+        </div>
+        <div style="margin:8px 0;">
+          <b>(b) Triangle</b>
+          <div class="shape-choices">
+            <div class="choice"><div class="draw"><span class="shape-cell sh-circle"></span></div><div class="check">☐</div></div>
+            <div class="choice"><div class="draw"><span class="shape-cell sh-square"></span></div><div class="check">☐</div></div>
+            <div class="choice"><div class="draw"><span class="shape-cell sh-triangle"></span></div><div class="check">☐</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q13: Patterns (Generalize) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">13</span>
+      <span class="q-title">Patterns</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Look at the pattern below. What shape comes next?
+      <div class="pattern-row">
+        ▲ &nbsp; ● &nbsp; ▲ &nbsp; ● &nbsp; ▲ &nbsp; <span class="pattern-blank"></span>
+      </div>
+      <div style="font-size:11px;font-style:italic;margin-top:4px;">
+        (Hint: follow the same rule used to make the pattern.)
+      </div>
+    </div>
+  </div>
+
+  <!-- Q14: Match Objects (Relate) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">14</span>
+      <span class="q-title">Match Objects</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Draw a line to match each group on the left with the correct numeral on the right.
+      <table class="match-table">
+        <tr>
+          <td class="obj" style="width:45%;">●●●</td>
+          <td class="conn"></td>
+          <td style="width:20%;font-size:18px;font-weight:bold;">5</td>
+        </tr>
+        <tr>
+          <td class="obj">●●●●●</td>
+          <td class="conn"></td>
+          <td style="font-size:18px;font-weight:bold;">3</td>
+        </tr>
+        <tr>
+          <td class="obj">●●●●</td>
+          <td class="conn"></td>
+          <td style="font-size:18px;font-weight:bold;">4</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Q15: One-Step Word Problem (Apply) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">15</span>
+      <span class="q-title">One-Step Word Problem</span>
+      <span class="q-marks">[3 marks]</span>
+    </div>
+    <div class="q-body">
+      <div class="wordbox">
+        Ravi has <b>4 toffees</b>. His mother gives him <b>3 more toffees</b>.<br>
+        How many toffees does Ravi have altogether?
+      </div>
+      <div class="boxed" style="margin-top:8px;">
+        Number sentence: &nbsp;
+        <span class="answer-box" style="width:50px;"></span>
+        + <span class="answer-box" style="width:50px;"></span>
+        = <span class="answer-box" style="width:50px;"></span>
+      </div>
+      <div class="boxed" style="margin-top:8px;">
+        Answer: Ravi has <span class="answer-box" style="width:60px;"></span> toffees.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>FLN · Class 1 · Diagnostic Paper</span>
+    <span>End of Paper · 15 Questions · 25 Marks</span>
+  </div>
+
+</div>
+
+</body>
+</html>

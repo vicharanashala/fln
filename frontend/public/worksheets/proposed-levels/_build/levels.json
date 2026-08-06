@@ -1,0 +1,416 @@
+{
+  "Class 2": [
+    {
+      "code": "S5.1",
+      "title": "Reading/Writing Numbers to 999",
+      "strand": "Number Sense",
+      "objective": "Child correctly reads and writes any number 1–999.",
+      "learning_outcome": "Child correctly reads and writes any number 1–999.",
+      "topics": "Reading/writing to 999."
+    },
+    {
+      "code": "S5.2",
+      "title": "Place Value — Tens as Groups (Unitising)",
+      "strand": "Number Sense",
+      "objective": "Child explains a 2-digit number in terms of groups of ten plus ones (e.",
+      "learning_outcome": "Child explains a 2-digit number in terms of groups of ten plus ones (e.g. \"47 is 4 tens and 7 ones\").",
+      "topics": "Place value, tens as groups."
+    },
+    {
+      "code": "S5.3",
+      "title": "Flexible Decomposition of 2-Digit Numbers",
+      "strand": "Number Sense",
+      "objective": "Child can express a 2-digit number in more than one valid decomposition.",
+      "learning_outcome": "Child can express a 2-digit number in more than one valid decomposition.",
+      "topics": "Flexible decomposition."
+    },
+    {
+      "code": "S5.4",
+      "title": "Addition to 99, with Carrying",
+      "strand": "Number Operations",
+      "objective": "Child correctly solves 2-digit addition problems requiring carrying.",
+      "learning_outcome": "Child correctly solves 2-digit addition problems requiring carrying.",
+      "topics": "Addition to 99, with carrying."
+    },
+    {
+      "code": "S5.5",
+      "title": "Subtraction to 99, Introducing Borrowing",
+      "strand": "Number Operations",
+      "objective": "Child correctly solves 2-digit subtraction problems requiring borrowing.",
+      "learning_outcome": "Child correctly solves 2-digit subtraction problems requiring borrowing.",
+      "topics": "Subtraction to 99, introducing borrowing."
+    },
+    {
+      "code": "S5.6",
+      "title": "Multiplication as Repeated Addition",
+      "strand": "Number Operations",
+      "objective": "Child correctly represents a multiplication fact as repeated addition.",
+      "learning_outcome": "Child correctly represents a multiplication fact as repeated addition.",
+      "topics": "Multiplication as repeated addition."
+    },
+    {
+      "code": "S5.7",
+      "title": "Division as Equal Sharing",
+      "strand": "Number Operations",
+      "objective": "Child correctly shares a set of objects equally among a given number of groups.",
+      "learning_outcome": "Child correctly shares a set of objects equally among a given number of groups.",
+      "topics": "Division as equal sharing."
+    },
+    {
+      "code": "S5.8",
+      "title": "Multiplication Tables 2, 3, 4",
+      "strand": "Number Operations",
+      "objective": "Child recalls multiplication facts for tables 2, 3, and 4 fluently.",
+      "learning_outcome": "Child recalls multiplication facts for tables 2, 3, and 4 fluently.",
+      "topics": "Multiplication tables 2, 3, 4."
+    },
+    {
+      "code": "S5.9",
+      "title": "Currency Recognition (Informal)",
+      "strand": "Money",
+      "objective": "Child correctly identifies common Indian coins and notes.",
+      "learning_outcome": "Child correctly identifies common Indian coins and notes.",
+      "topics": "Currency recognition (informal)."
+    },
+    {
+      "code": "S5.10",
+      "title": "Informal Fractions via Folding",
+      "strand": "Fractions",
+      "objective": "Child correctly folds/identifies half and quarter of a physical object.",
+      "learning_outcome": "Child correctly folds/identifies half and quarter of a physical object.",
+      "topics": "Informal fractions via folding."
+    },
+    {
+      "code": "S5.11",
+      "title": "Length/Capacity, Non-Standard *Uniform* Units",
+      "strand": "Measurement",
+      "objective": "Child measures an object using a uniform non-standard unit and gets a consistent result.",
+      "learning_outcome": "Child measures an object using a uniform non-standard unit and gets a consistent result.",
+      "topics": "Length/capacity, uniform non-standard units."
+    },
+    {
+      "code": "S5.12",
+      "title": "2D Shape Identification (Named Set)",
+      "strand": "Shapes & Spatial",
+      "objective": "Child correctly names rectangle, triangle, circle, and oval when shown.",
+      "learning_outcome": "Child correctly names rectangle, triangle, circle, and oval when shown.",
+      "topics": "2D shape identification (named set)."
+    },
+    {
+      "code": "S5.13",
+      "title": "Spatial Vocabulary",
+      "strand": "Shapes & Spatial",
+      "objective": "Child correctly uses spatial-relationship vocabulary to describe object positions.",
+      "learning_outcome": "Child correctly uses spatial-relationship vocabulary to describe object positions.",
+      "topics": "Spatial vocabulary."
+    },
+    {
+      "code": "S5.14",
+      "title": "Calendar, Days/Months",
+      "strand": "Calendar & Time",
+      "objective": "Child correctly reads days and months from a calendar.",
+      "learning_outcome": "Child correctly reads days and months from a calendar.",
+      "topics": "Calendar reading, days/months."
+    },
+    {
+      "code": "S5.15",
+      "title": "Object/Picture Sorting",
+      "strand": "Data Handling",
+      "objective": "Child correctly sorts and counts objects/pictures by category.",
+      "learning_outcome": "Child correctly sorts and counts objects/pictures by category.",
+      "topics": "Object/picture sorting."
+    },
+    {
+      "code": "S5.16",
+      "title": "Number-Sequence Patterns",
+      "strand": "Patterns",
+      "objective": "Child correctly continues a repeating number-sequence pattern.",
+      "learning_outcome": "Child correctly continues a repeating number-sequence pattern.",
+      "topics": "Number-sequence patterns."
+    },
+    {
+      "code": "S5.17",
+      "title": "Zero, as Place-Value Placeholder",
+      "strand": "Number Sense",
+      "objective": "Child correctly explains why a zero is needed in a number like 40, not just \"4 with nothing after it.",
+      "learning_outcome": "Child correctly explains why a zero is needed in a number like 40, not just \"4 with nothing after it.\"",
+      "topics": "Zero, as placeholder."
+    },
+    {
+      "code": "S5.18",
+      "title": "Number Line Placement, Extended (0–100)",
+      "strand": "Number Sense",
+      "objective": "Child approximately places a given numeral (0–100) on a blank number line.",
+      "learning_outcome": "Child approximately places a given numeral (0–100) on a blank number line.",
+      "topics": "Number line placement, extended."
+    },
+    {
+      "code": "S5.19",
+      "title": "Skip Counting by 2s and 5s",
+      "strand": "Patterns",
+      "objective": "Child correctly continues a skip-counting sequence by 2s or 5s.",
+      "learning_outcome": "Child correctly continues a skip-counting sequence by 2s or 5s.",
+      "topics": "Skip counting by 2s and 5s."
+    }
+  ],
+  "Class 3": [
+    {
+      "code": "S6.1",
+      "title": "Place Value — 3-Digit Extension",
+      "strand": "Number Sense",
+      "objective": "Child correctly decomposes a 3-digit number into hundreds, tens, and ones.",
+      "learning_outcome": "Child correctly decomposes a 3-digit number into hundreds, tens, and ones.",
+      "topics": "Place value, 3-digit extension."
+    },
+    {
+      "code": "S6.2",
+      "title": "Place Value — Flexible 3-Digit Decomposition for Arithmetic",
+      "strand": "Number Sense",
+      "objective": "Child can decompose and recombine 3-digit numbers by place to support arithmetic.",
+      "learning_outcome": "Child can decompose and recombine 3-digit numbers by place to support arithmetic.",
+      "topics": "Flexible 3-digit decomposition."
+    },
+    {
+      "code": "S6.3",
+      "title": "Comparison/Ordering of 3-Digit Numbers Using Place-Value Logic",
+      "strand": "Number Sense",
+      "objective": "Child correctly orders a set of 3-digit numbers using place-value logic.",
+      "learning_outcome": "Child correctly orders a set of 3-digit numbers using place-value logic.",
+      "topics": "Comparison/ordering of 3-digit numbers."
+    },
+    {
+      "code": "S6.4",
+      "title": "Reading/Writing to 9999",
+      "strand": "Number Sense",
+      "objective": "Child correctly reads and writes any number 1–9999.",
+      "learning_outcome": "Child correctly reads and writes any number 1–9999.",
+      "topics": "Reading/writing to 9999."
+    },
+    {
+      "code": "S6.5",
+      "title": "Addition/Subtraction to 999, Daily-Life Word Problems",
+      "strand": "Number Operations",
+      "objective": "Child correctly solves 3-digit addition/subtraction word problems.",
+      "learning_outcome": "Child correctly solves 3-digit addition/subtraction word problems.",
+      "topics": "Addition/subtraction to 999, word problems."
+    },
+    {
+      "code": "S6.6",
+      "title": "Multiplication Tables 2–10",
+      "strand": "Number Operations",
+      "objective": "Child recalls multiplication facts for tables 2 through 10 fluently.",
+      "learning_outcome": "Child recalls multiplication facts for tables 2 through 10 fluently.",
+      "topics": "Multiplication tables 2–10."
+    },
+    {
+      "code": "S6.7",
+      "title": "Division Facts",
+      "strand": "Number Operations",
+      "objective": "Child correctly recalls division facts corresponding to tables 2–10.",
+      "learning_outcome": "Child correctly recalls division facts corresponding to tables 2–10.",
+      "topics": "Division facts."
+    },
+    {
+      "code": "S6.8",
+      "title": "Length/Weight/Capacity — Standard Units",
+      "strand": "Measurement",
+      "objective": "Child correctly measures using standard units and reads standard measuring tools.",
+      "learning_outcome": "Child correctly measures using standard units and reads standard measuring tools.",
+      "topics": "Standard units of measurement."
+    },
+    {
+      "code": "S6.9",
+      "title": "Relating 2D Shapes to 3D Shapes",
+      "strand": "Shapes & Spatial",
+      "objective": "Child correctly identifies which 2D shapes make up the faces of a given 3D shape.",
+      "learning_outcome": "Child correctly identifies which 2D shapes make up the faces of a given 3D shape.",
+      "topics": "Relating 2D shapes to 3D shapes."
+    },
+    {
+      "code": "S6.10",
+      "title": "Clock Reading — Hours and Half-Hours",
+      "strand": "Calendar & Time",
+      "objective": "Child correctly reads an analog clock to the hour and half-hour.",
+      "learning_outcome": "Child correctly reads an analog clock to the hour and half-hour.",
+      "topics": "Clock reading, hours and half-hours."
+    },
+    {
+      "code": "S6.11",
+      "title": "Money Arithmetic (Rupees/Paise)",
+      "strand": "Money",
+      "objective": "Child correctly adds and subtracts rupee/paise amounts.",
+      "learning_outcome": "Child correctly adds and subtracts rupee/paise amounts.",
+      "topics": "Money arithmetic."
+    },
+    {
+      "code": "S6.12",
+      "title": "Half/One-Fourth/Three-Fourth — of a Whole and of a Collection",
+      "strand": "Fractions",
+      "objective": "Child correctly identifies half/one-fourth/three-fourth of both a shape and a collection of objects.",
+      "learning_outcome": "Child correctly identifies half/one-fourth/three-fourth of both a shape and a collection of objects.",
+      "topics": "Formal fractions, of a whole and of a collection."
+    },
+    {
+      "code": "S6.13",
+      "title": "Pattern Rules + Skip-Counting by 10",
+      "strand": "Patterns",
+      "objective": "Child correctly states the rule governing a pattern, not just its next term, and skip-counts by 10.",
+      "learning_outcome": "Child correctly states the rule governing a pattern, not just its next term, and skip-counts by 10.",
+      "topics": "Pattern rules; skip-counting by 10."
+    },
+    {
+      "code": "S6.14",
+      "title": "Tally Charts, Pictographs, Bar Graphs (Up to 4 Categories)",
+      "strand": "Data Handling",
+      "objective": "Child correctly reads and interprets tally charts, pictographs, and bar graphs with up to 4 categories.",
+      "learning_outcome": "Child correctly reads and interprets tally charts, pictographs, and bar graphs with up to 4 categories.",
+      "topics": "Tally charts, pictographs, bar graphs."
+    }
+  ],
+  "Class 4": [
+    {
+      "code": "S7.1",
+      "title": "Place Value — Extending to Thousands",
+      "strand": "Number Sense",
+      "objective": "Child correctly explains the place value of thousands in a 4-digit number.",
+      "learning_outcome": "Child correctly explains the place value of thousands in a 4-digit number.",
+      "topics": "Place value, thousands."
+    },
+    {
+      "code": "S7.2",
+      "title": "Reading/Writing Large Numbers; Regrouping",
+      "strand": "Number Sense",
+      "objective": "Child correctly reads, writes, and regroups 4-digit numbers.",
+      "learning_outcome": "Child correctly reads, writes, and regroups 4-digit numbers.",
+      "topics": "Reading/writing large numbers; regrouping."
+    },
+    {
+      "code": "S7.3",
+      "title": "Complex Addition/Subtraction, Carrying Across Multiple Digits",
+      "strand": "Number Operations",
+      "objective": "Child correctly solves multi-digit addition/subtraction word problems requiring multiple regroupings.",
+      "learning_outcome": "Child correctly solves multi-digit addition/subtraction word problems requiring multiple regroupings.",
+      "topics": "Complex addition/subtraction, multi-digit carrying."
+    },
+    {
+      "code": "S7.4",
+      "title": "Multiplication Tables to 15; Multi-Digit Multiplication",
+      "strand": "Number Operations",
+      "objective": "Child correctly multiplies up to 2-digit×2-digit numbers.",
+      "learning_outcome": "Child correctly multiplies up to 2-digit×2-digit numbers.",
+      "topics": "Multiplication tables to 15 (unverified conventional scope); multi-digit multiplication (externally verified)."
+    },
+    {
+      "code": "S7.5",
+      "title": "Formal Division — 4 Methods",
+      "strand": "Number Operations",
+      "objective": "Child correctly solves division problems using at least two of the four named methods.",
+      "learning_outcome": "Child correctly solves division problems using at least two of the four named methods.",
+      "topics": "Formal division, four methods."
+    },
+    {
+      "code": "S7.6",
+      "title": "Numerical Fraction Notation + Equivalence",
+      "strand": "Fractions",
+      "objective": "Child correctly writes fractions numerically and identifies at least one equivalent pair.",
+      "learning_outcome": "Child correctly writes fractions numerically and identifies at least one equivalent pair.",
+      "topics": "Fraction notation; equivalence."
+    },
+    {
+      "code": "S7.7",
+      "title": "Unit Conversion (m↔cm, km↔m)",
+      "strand": "Measurement",
+      "objective": "Child correctly converts between related standard units (e.",
+      "learning_outcome": "Child correctly converts between related standard units (e.g. 100cm = 1m).",
+      "topics": "Unit conversion."
+    },
+    {
+      "code": "S7.8",
+      "title": "Measurement Word Problems (All 4 Operations)",
+      "strand": "Measurement",
+      "objective": "Child correctly solves word problems involving length/weight/capacity using all 4 operations.",
+      "learning_outcome": "Child correctly solves word problems involving length/weight/capacity using all 4 operations.",
+      "topics": "Measurement word problems."
+    },
+    {
+      "code": "S7.9",
+      "title": "3D Shapes — Cube, Cuboid; Nets (Introductory)",
+      "strand": "Shapes & Spatial",
+      "objective": "Child correctly identifies the net of a simple 3D shape (cube or cuboid).",
+      "learning_outcome": "Child correctly identifies the net of a simple 3D shape (cube or cuboid).",
+      "topics": "3D shapes; nets (introductory)."
+    },
+    {
+      "code": "S7.10",
+      "title": "Hours, Minutes, Time Intervals, AM/PM",
+      "strand": "Calendar & Time",
+      "objective": "Child correctly reads a clock to the minute and calculates simple time intervals, using AM/PM correctly.",
+      "learning_outcome": "Child correctly reads a clock to the minute and calculates simple time intervals, using AM/PM correctly.",
+      "topics": "Hours, minutes, time intervals, AM/PM."
+    },
+    {
+      "code": "S7.11",
+      "title": "Complex Money Word Problems",
+      "strand": "Money",
+      "objective": "Child correctly solves multi-step word problems involving money.",
+      "learning_outcome": "Child correctly solves multi-step word problems involving money.",
+      "topics": "Complex money word problems."
+    },
+    {
+      "code": "S7.12",
+      "title": "Number Patterns, Rule Identification",
+      "strand": "Patterns",
+      "objective": "Child correctly identifies and states the rule for a more complex number pattern.",
+      "learning_outcome": "Child correctly identifies and states the rule for a more complex number pattern.",
+      "topics": "Number patterns, rule identification."
+    },
+    {
+      "code": "S7.13",
+      "title": "Bar Graphs — Reading and Interpreting",
+      "strand": "Data Handling",
+      "objective": "Child correctly reads and interprets a bar graph, including comparison questions across categories.",
+      "learning_outcome": "Child correctly reads and interprets a bar graph, including comparison questions across categories.",
+      "topics": "Bar graphs, reading and interpreting."
+    },
+    {
+      "code": "S7.14",
+      "title": "Factors & Multiples *(added 2026-07-19)*",
+      "strand": "Number Operations",
+      "objective": "Child correctly lists factors and multiples of a given number, and identifies common factors/multiples of two numbers.",
+      "learning_outcome": "Child correctly lists factors and multiples of a given number, and identifies common factors/multiples of two numbers.",
+      "topics": "Factors; multiples; common factors/multiples; prime/composite."
+    },
+    {
+      "code": "S7.15",
+      "title": "Decimals (Introduction) *(added 2026-07-19)*",
+      "strand": "Number Sense",
+      "objective": "Child correctly reads, writes, and compares simple decimal numbers (tenths and hundredths).",
+      "learning_outcome": "Child correctly reads, writes, and compares simple decimal numbers (tenths and hundredths).",
+      "topics": "Decimal numbers; tenths; hundredths; decimal place value."
+    },
+    {
+      "code": "S7.16",
+      "title": "Angles *(added 2026-07-19)*",
+      "strand": "Shapes & Spatial",
+      "objective": "Child correctly identifies and classifies the four named angle types.",
+      "learning_outcome": "Child correctly identifies and classifies the four named angle types.",
+      "topics": "Angles; angle types; introductory measurement."
+    },
+    {
+      "code": "S7.17",
+      "title": "Symmetry & Reflection *(added 2026-07-19)*",
+      "strand": "Shapes & Spatial",
+      "objective": "Child correctly identifies symmetrical figures, draws a line of symmetry, and completes a missing symmetrical half.",
+      "learning_outcome": "Child correctly identifies symmetrical figures, draws a line of symmetry, and completes a missing symmetrical half.",
+      "topics": "Symmetry; line of symmetry; reflection; mirror images."
+    },
+    {
+      "code": "S7.18",
+      "title": "Perimeter & Area *(resolved 2026-07-19 — was a flagged gap, not a node, until now)*",
+      "strand": "Measurement",
+      "objective": "Child correctly calculates both perimeter and area of simple rectangles/squares and explains the difference between them.",
+      "learning_outcome": "Child correctly calculates both perimeter and area of simple rectangles/squares and explains the difference between them.",
+      "topics": "Perimeter; area; square units."
+    }
+  ]
+}

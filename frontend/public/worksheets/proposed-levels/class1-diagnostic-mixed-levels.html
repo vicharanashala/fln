@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Class 1 — FLN Diagnostic (Mixed Levels, 15 Questions)</title>
+<style>
+  *{box-sizing:border-box;}
+  body{
+    font-family:"Times New Roman",Times,serif;
+    background:#fff;color:#000;margin:0;padding:0;
+    line-height:1.5;
+  }
+
+  .sheet{
+    width:210mm;min-height:297mm;margin:0 auto;padding:16mm 18mm;
+  }
+
+  .header{
+    text-align:center;border:2px solid #000;padding:10px 8px;margin-bottom:14px;
+  }
+  .header .top-line{
+    font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+    display:flex;justify-content:space-between;border-bottom:1px solid #000;
+    padding-bottom:6px;margin-bottom:8px;
+  }
+  .header h1{font-size:22px;margin:0;letter-spacing:1px;font-weight:bold;text-transform:uppercase;}
+  .header .subtitle{font-size:13px;margin-top:4px;font-style:italic;}
+  .header .meta{
+    display:flex;justify-content:space-between;margin-top:8px;
+    font-size:12px;border-top:1px solid #000;padding-top:6px;
+  }
+
+  .student-info{
+    border:1.5px solid #000;padding:8px 12px;margin-bottom:18px;
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;font-size:13px;
+  }
+  .student-info .field{display:flex;align-items:baseline;gap:6px;}
+  .student-info .field b{font-weight:bold;}
+  .student-info .line{
+    flex:1;border-bottom:1.5px solid #000;height:18px;
+  }
+
+  .instructions{
+    border:1px solid #000;padding:8px 12px;margin-bottom:18px;font-size:12px;
+    background:#fff;
+  }
+  .instructions b{text-transform:uppercase;letter-spacing:0.5px;}
+  .instructions ol{margin:4px 0 0 18px;padding:0;}
+  .instructions li{margin:2px 0;}
+
+  .legend{
+    border:1px solid #000;padding:6px 10px;margin-bottom:14px;font-size:11.5px;
+  }
+  .legend b{letter-spacing:0.5px;}
+
+  .q{
+    margin:0 0 14px 0;padding:0;
+    page-break-inside:avoid;
+  }
+  .q-head{
+    display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;
+  }
+  .q-num{
+    border:1.5px solid #000;width:28px;height:28px;display:inline-flex;
+    align-items:center;justify-content:center;font-weight:bold;font-size:14px;
+    flex-shrink:0;font-family:Arial,sans-serif;
+  }
+  .q-title{
+    font-weight:bold;font-size:14px;flex:1;padding-top:4px;
+  }
+  .q-tag{
+    font-size:10.5px;font-style:italic;color:#222;
+    border:1px solid #000;padding:1px 6px;margin-top:4px;flex-shrink:0;
+  }
+  .q-marks{
+    font-size:11px;font-style:italic;border:1px solid #000;padding:1px 6px;
+    margin-top:4px;flex-shrink:0;margin-left:6px;
+  }
+
+  .q-body{margin-left:38px;font-size:13.5px;}
+
+  .objects{
+    font-size:22px;letter-spacing:6px;margin:8px 0;line-height:1.5;
+    font-family:Arial,sans-serif;
+  }
+  .boxed{font-size:14px;margin:6px 0;}
+  .answer-box{
+    display:inline-block;border:1.5px solid #000;min-width:46px;height:26px;
+    vertical-align:middle;margin:0 3px;
+  }
+
+  .mcq-list{margin:6px 0 0 0;list-style:none;padding:0;}
+  .mcq-list li{
+    margin:3px 0;padding-left:24px;text-indent:-24px;
+  }
+  .mcq-list .bubble{
+    display:inline-block;width:14px;height:14px;border:1.5px solid #000;
+    border-radius:50%;margin-right:8px;vertical-align:middle;
+  }
+
+  .numberline-wrap{margin:14px 0 10px 0;position:relative;}
+  .numberline{position:relative;height:24px;}
+  .numberline .tick{
+    position:absolute;top:0;width:1.5px;height:14px;background:#000;
+  }
+  .numberline .label{
+    position:absolute;top:16px;transform:translateX(-50%);
+    font-size:13px;font-weight:bold;font-family:Arial,sans-serif;
+  }
+  .mark-here{font-size:11px;margin-top:4px;font-style:italic;}
+
+  .shape-grid{display:flex;gap:14px;margin:8px 0;align-items:center;}
+  .shape-cell{
+    width:60px;height:60px;display:inline-block;position:relative;
+  }
+  .shape-cell .label{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:12px;}
+  .sh-circle{border:2px solid #000;border-radius:50%;}
+  .sh-square{border:2px solid #000;}
+  .sh-triangle{
+    width:0;height:0;background:transparent;
+    border-left:30px solid transparent;border-right:30px solid transparent;
+    border-bottom:54px solid #000;
+  }
+
+  .compare-groups{display:flex;align-items:center;gap:14px;margin:8px 0;flex-wrap:wrap;}
+  .compare-group{
+    border:2px solid #000;padding:8px 14px;font-size:22px;letter-spacing:4px;
+    background:#fff;
+  }
+  .compare-vs{font-size:14px;font-weight:bold;}
+
+  .pattern-row{
+    font-size:24px;letter-spacing:10px;margin:8px 0;
+    font-family:Arial,sans-serif;
+  }
+  .pattern-blank{
+    display:inline-block;width:38px;height:38px;border:2px solid #000;
+    vertical-align:middle;margin:0 2px;
+  }
+
+  .match-table{
+    width:100%;border-collapse:collapse;margin:8px 0;font-size:14px;
+  }
+  .match-table td{
+    border:1.5px solid #000;padding:8px 12px;text-align:center;
+    vertical-align:middle;
+  }
+  .match-table .obj{font-size:22px;letter-spacing:4px;font-family:Arial,sans-serif;}
+  .match-table .conn{width:60px;border-left:none;border-right:none;}
+
+  table.prop-table{
+    width:90%;margin:6px auto;border-collapse:collapse;
+    font-family:Arial,sans-serif;font-size:12.5px;
+  }
+  table.prop-table th, table.prop-table td{
+    border:1.5px solid #000;padding:8px;text-align:center;
+  }
+
+  .ord-row{display:flex;gap:12px;justify-content:center;margin:6px 0;}
+  .ord-item{display:flex;flex-direction:column;align-items:center;}
+  .ord-art{width:60px;height:60px;display:flex;align-items:center;justify-content:center;}
+  .ord-pos{font-family:Arial,sans-serif;font-weight:bold;font-size:13px;margin-top:2px;}
+
+  .wordbox{
+    border:1.5px solid #000;padding:10px 14px;margin:6px 0;font-size:14px;
+    background:#fff;
+  }
+
+  .footer{
+    margin-top:24px;border-top:2px solid #000;padding-top:8px;
+    display:flex;justify-content:space-between;font-size:11px;
+  }
+  .signoff{
+    margin-top:24px;display:flex;justify-content:space-between;font-size:12px;
+  }
+  .signoff .sig{
+    border-top:1px solid #000;width:140px;padding-top:4px;text-align:center;
+  }
+
+  .pagebreak{page-break-after:always;break-after:page;}
+  @page{size:A4;margin:0;}
+
+  @media print{
+    body{margin:0;}
+    .sheet{padding:14mm 16mm;}
+    .q{page-break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 ============ -->
+<div class="sheet">
+
+  <div class="header">
+    <div class="top-line">
+      <span>FLN Assessment Programme</span>
+      <span>Session: 2025–26</span>
+    </div>
+    <h1>Class 1 — FLN Diagnostic (Mixed Levels)</h1>
+    <div class="subtitle">One question per competency, sampled from proposed levels S4.1 to S4.15</div>
+    <div class="meta">
+      <span>Total Questions: <b>15</b></span>
+      <span>Maximum Marks: <b>30</b></span>
+      <span>Time Allowed: <b>45 minutes</b></span>
+    </div>
+  </div>
+
+  <div class="student-info">
+    <div class="field"><b>Name:</b><span class="line"></span></div>
+    <div class="field"><b>Roll No.:</b><span class="line"></span></div>
+    <div class="field"><b>Date:</b><span class="line"></span></div>
+  </div>
+
+  <div class="instructions">
+    <b>Instructions to the Student:</b>
+    <ol>
+      <li>Each question tests a different skill (level). Read each one carefully.</li>
+      <li>Write all answers in the space provided. Do not write outside the boxes.</li>
+      <li>For multiple choice questions, tick (✓) only one option.</li>
+      <li>You may use your fingers or a pencil to count. Do <b>not</b> use a calculator.</li>
+      <li>If you cannot answer a question, move on to the next one and come back later.</li>
+    </ol>
+  </div>
+
+  <div class="legend">
+    <b>Skill legend:</b> every question is tagged with the FLN level it comes from
+    (e.g. <i>S4.6 — Addition to 9</i>). The tag is for the teacher's reference only;
+    students answer the question itself.
+  </div>
+
+  <!-- Q1: S4.1 Numeral Comparison (abstract) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">1</span>
+      <span class="q-title">Compare Two Numbers</span>
+      <span class="q-tag">S4.1</span>
+      <span class="q-marks">[1 mark]</span>
+    </div>
+    <div class="q-body">
+      Look at the two numbers below. Which sign goes between them: <b>&gt;</b>, <b>&lt;</b>, or <b>=</b>?
+      <div class="boxed" style="font-size:24px;font-weight:bold;margin:10px 0;letter-spacing:10px;font-family:Arial,sans-serif;text-align:center;">
+        7 &nbsp;<span class="answer-box" style="width:50px;height:32px;"></span>&nbsp; 3
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2: S4.2 Numeral Comparison (close values) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">2</span>
+      <span class="q-title">Compare Close Numbers</span>
+      <span class="q-tag">S4.2</span>
+      <span class="q-marks">[1 mark]</span>
+    </div>
+    <div class="q-body">
+      Same task, but with two close numbers. Write <b>&gt;</b>, <b>&lt;</b>, or <b>=</b>:
+      <div class="boxed" style="font-size:24px;font-weight:bold;margin:10px 0;letter-spacing:10px;font-family:Arial,sans-serif;text-align:center;">
+        8 &nbsp;<span class="answer-box" style="width:50px;height:32px;"></span>&nbsp; 9
+      </div>
+    </div>
+  </div>
+
+  <!-- Q3: S4.3 Counting to 20 -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">3</span>
+      <span class="q-title">Count Objects</span>
+      <span class="q-tag">S4.3</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Count the objects below. How many are there? Write the number.
+      <div class="objects">● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ● &nbsp; ●</div>
+      <div class="boxed">Answer = <span class="answer-box" style="width:70px;"></span></div>
+    </div>
+  </div>
+
+  <!-- Q4: S4.4 Reading/Writing to 99 -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">4</span>
+      <span class="q-title">Read and Write Numbers</span>
+      <span class="q-tag">S4.4</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Look at the numeral. Write it in <b>words</b>.
+      <div class="boxed" style="font-size:24px;font-weight:bold;margin:10px 0;font-family:Arial,sans-serif;">
+        14
+      </div>
+      <div class="boxed">In words: <span class="answer-box" style="width:240px;"></span></div>
+    </div>
+  </div>
+
+  <!-- Q5: S4.5 Place Value (face value) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">5</span>
+      <span class="q-title">Face Value</span>
+      <span class="q-tag">S4.5</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Look at the number. Write the digit in the <b>tens</b> place and the digit in the <b>ones</b> place.
+      <div class="boxed" style="font-size:24px;font-weight:bold;margin:10px 0;font-family:Arial,sans-serif;">
+        42
+      </div>
+      <div class="boxed" style="font-family:Arial,sans-serif;">
+        Tens = <span class="answer-box" style="width:50px;"></span>
+        &nbsp;&nbsp; Ones = <span class="answer-box" style="width:50px;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q6: S4.6 Addition to 9 -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">6</span>
+      <span class="q-title">Simple Addition</span>
+      <span class="q-tag">S4.6</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Add the two groups and write the total.
+      <div class="objects">▲ ▲ ▲ &nbsp; + &nbsp; ▲ ▲ ▲ ▲ &nbsp; = &nbsp; <span class="answer-box" style="width:80px;height:32px;"></span></div>
+    </div>
+  </div>
+
+  <!-- Q7: S4.7 Subtraction to 9 -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">7</span>
+      <span class="q-title">Simple Subtraction</span>
+      <span class="q-tag">S4.7</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Cross out (×) the objects being taken away. How many remain?
+      <div class="objects">● ● ● ● ● ● ● &nbsp; − &nbsp; ● ● ● ● &nbsp; = &nbsp; <span class="answer-box" style="width:80px;height:32px;"></span></div>
+    </div>
+  </div>
+
+  <!-- Q8: S4.8 3D shape properties -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">8</span>
+      <span class="q-title">3D Shape Properties</span>
+      <span class="q-tag">S4.8</span>
+      <span class="q-marks">[3 marks]</span>
+    </div>
+    <div class="q-body">
+      Look at the cube. Fill in the table.
+      <div style="text-align:center;margin:6px 0;">
+        <svg viewBox="0 0 90 90" width="90" height="90" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="9,27 49.5,27 49.5,72 9,72" fill="none" stroke="#000" stroke-width="1.6"/>
+          <polygon points="34.2,5.2 74.7,5.2 74.7,50.2 34.2,50.2" fill="none" stroke="#000" stroke-width="1.6"/>
+          <line x1="9" y1="27" x2="34.2" y2="5.2" stroke="#000" stroke-width="1.6"/>
+          <line x1="49.5" y1="27" x2="74.7" y2="5.2" stroke="#000" stroke-width="1.6"/>
+          <line x1="49.5" y1="72" x2="74.7" y2="50.2" stroke="#000" stroke-width="1.6"/>
+          <line x1="9" y1="72" x2="34.2" y2="50.2" stroke="#000" stroke-width="1.6"/>
+        </svg>
+      </div>
+      <table class="prop-table">
+        <tr><th>Corners</th><th>Edges</th><th>Faces</th></tr>
+        <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ PAGE 2 ============ -->
+<div class="sheet pagebreak">
+
+  <!-- Q9: S4.9 Length (non-standard) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">9</span>
+      <span class="q-title">Length Estimation</span>
+      <span class="q-tag">S4.9</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Look at the two objects below. Circle the one that is <b>longer</b>.
+      <div style="margin:10px 0;display:flex;align-items:center;gap:24px;">
+        <svg viewBox="0 0 120 24" width="120" height="24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="9" width="112" height="6" fill="none" stroke="#000" stroke-width="1.6"/>
+        </svg>
+        <span style="font-size:13px;">Pencil</span>
+        <svg viewBox="0 0 50 24" width="50" height="24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="9" width="42" height="6" fill="none" stroke="#000" stroke-width="1.6"/>
+        </svg>
+        <span style="font-size:13px;">Eraser</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q10: S4.10 Capacity (non-standard) -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">10</span>
+      <span class="q-title">Capacity Comparison</span>
+      <span class="q-tag">S4.10</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Look at the two containers below. Tick (✓) the one that holds <b>more</b> water.
+      <div style="margin:10px 0;display:flex;align-items:flex-end;gap:32px;justify-content:center;">
+        <div style="text-align:center;">
+          <svg viewBox="0 0 60 100" width="60" height="100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="30" width="20" height="60" fill="none" stroke="#000" stroke-width="1.6"/>
+            <ellipse cx="30" cy="30" rx="10" ry="3" fill="none" stroke="#000" stroke-width="1.6"/>
+          </svg>
+          <div style="font-size:12px;margin-top:4px;">Glass</div>
+          <div style="font-size:16px;margin-top:2px;">☐</div>
+        </div>
+        <div style="text-align:center;">
+          <svg viewBox="0 0 110 100" width="110" height="100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="40" width="90" height="50" fill="none" stroke="#000" stroke-width="1.6"/>
+            <ellipse cx="55" cy="40" rx="45" ry="6" fill="none" stroke="#000" stroke-width="1.6"/>
+          </svg>
+          <div style="font-size:12px;margin-top:4px;">Bucket</div>
+          <div style="font-size:16px;margin-top:2px;">☐</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q11: S4.11 Patterns -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">11</span>
+      <span class="q-title">Pattern (3-item cycle)</span>
+      <span class="q-tag">S4.11</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Look at the pattern below. What shape comes next? Fill the blank.
+      <div class="pattern-row">
+        ▲ &nbsp; ● &nbsp; ■ &nbsp; ▲ &nbsp; ● &nbsp; ■ &nbsp; ▲ &nbsp; <span class="pattern-blank"></span>
+      </div>
+      <div style="font-size:11px;font-style:italic;margin-top:4px;">
+        (Hint: the pattern repeats every 3 shapes.)
+      </div>
+    </div>
+  </div>
+
+  <!-- Q12: S4.12 Zero as "none" -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">12</span>
+      <span class="q-title">Zero</span>
+      <span class="q-tag">S4.12</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Ravi had 5 toffees. He gave all 5 to his sister. How many toffees does Ravi have <b>now</b>?
+      <div class="boxed" style="font-size:20px;margin:10px 0;font-family:Arial,sans-serif;letter-spacing:4px;">
+        5 &nbsp; − &nbsp; 5 &nbsp; = &nbsp; <span class="answer-box" style="width:80px;height:32px;"></span>
+      </div>
+      <div style="font-size:11px;font-style:italic;margin-top:4px;">
+        (Write the number of toffees Ravi has left.)
+      </div>
+    </div>
+  </div>
+
+  <!-- Q13: S4.13 Ordinal Numbers -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">13</span>
+      <span class="q-title">Ordinal Numbers</span>
+      <span class="q-tag">S4.13</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Look at the row of shapes. The <b>3rd</b> shape from the left is circled.
+      <div class="ord-row">
+        <div class="ord-item"><div class="ord-art"><span class="shape-cell sh-square"></span></div><div class="ord-pos">1st</div></div>
+        <div class="ord-item"><div class="ord-art"><span class="shape-cell sh-triangle"></span></div><div class="ord-pos">2nd</div></div>
+        <div class="ord-item"><div class="ord-art"><span class="shape-cell sh-circle"></span></div><div class="ord-pos">3rd</div></div>
+        <div class="ord-item"><div class="ord-art"><span class="shape-cell sh-square"></span></div><div class="ord-pos">4th</div></div>
+        <div class="ord-item"><div class="ord-art"><span class="shape-cell sh-triangle"></span></div><div class="ord-pos">5th</div></div>
+      </div>
+      <div class="boxed" style="margin-top:18px;">The 3rd shape is a <span class="answer-box" style="width:140px;"></span></div>
+    </div>
+  </div>
+
+  <!-- Q14: S4.14 Number Line Placement -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">14</span>
+      <span class="q-title">Number Line</span>
+      <span class="q-tag">S4.14</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Mark the position of the number <b>8</b> on the number line below with a cross (×).
+      <div class="numberline-wrap">
+        <div class="numberline" id="numline">
+          <div class="tick" style="left:0%;"></div><div class="label" style="left:0%;">0</div>
+          <div class="tick" style="left:10%;"></div><div class="label" style="left:10%;">2</div>
+          <div class="tick" style="left:20%;"></div><div class="label" style="left:20%;">4</div>
+          <div class="tick" style="left:30%;"></div><div class="label" style="left:30%;">6</div>
+          <div class="tick" style="left:40%;"></div><div class="label" style="left:40%;">8</div>
+          <div class="tick" style="left:50%;"></div><div class="label" style="left:50%;">10</div>
+          <div class="tick" style="left:60%;"></div><div class="label" style="left:60%;">12</div>
+          <div class="tick" style="left:70%;"></div><div class="label" style="left:70%;">14</div>
+          <div class="tick" style="left:80%;"></div><div class="label" style="left:80%;">16</div>
+          <div class="tick" style="left:90%;"></div><div class="label" style="left:90%;">18</div>
+          <div class="tick" style="left:100%;"></div><div class="label" style="left:100%;">20</div>
+        </div>
+      </div>
+      <div class="mark-here">(Draw a small × on the line directly above the number 8.)</div>
+    </div>
+  </div>
+
+  <!-- Q15: S4.15 Shape Composition -->
+  <div class="q">
+    <div class="q-head">
+      <span class="q-num">15</span>
+      <span class="q-title">Shape Composition</span>
+      <span class="q-tag">S4.15</span>
+      <span class="q-marks">[2 marks]</span>
+    </div>
+    <div class="q-body">
+      Two <b>square</b> shapes can fit together to make one <b>rectangle</b>.
+      Tick (✓) the picture that shows this correctly.
+      <div style="margin:14px 0;display:flex;gap:30px;justify-content:center;align-items:flex-end;flex-wrap:wrap;">
+        <div style="text-align:center;">
+          <svg viewBox="0 0 130 70" width="130" height="70" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="60" height="60" fill="none" stroke="#000" stroke-width="1.6"/>
+            <rect x="68" y="2" width="60" height="60" fill="none" stroke="#000" stroke-width="1.6"/>
+          </svg>
+          <div style="font-size:12px;margin-top:6px;">(A) Two squares side by side</div>
+          <div style="font-size:16px;">☐</div>
+        </div>
+        <div style="text-align:center;">
+          <svg viewBox="0 0 130 70" width="130" height="70" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="126" height="60" fill="none" stroke="#000" stroke-width="1.6"/>
+          </svg>
+          <div style="font-size:12px;margin-top:6px;">(B) One long rectangle</div>
+          <div style="font-size:16px;">☐</div>
+        </div>
+        <div style="text-align:center;">
+          <svg viewBox="0 0 130 70" width="130" height="70" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="65,4 126,64 4,64" fill="none" stroke="#000" stroke-width="1.6"/>
+          </svg>
+          <div style="font-size:12px;margin-top:6px;">(C) A triangle</div>
+          <div style="font-size:16px;">☐</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>FLN · Class 1 · Diagnostic (Mixed Levels) · 15 Qs</span>
+    <span>One question per competency · S4.1 → S4.15</span>
+  </div>
+
+</div>
+
+</body>
+</html>

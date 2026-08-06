@@ -16,6 +16,18 @@ export function withBase(path: string): string {
 }
 
 // fetch() against a base-relative app path. Drop-in replacement for fetch("/api/...").
-export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  return fetch(withBase(path), init);
+// Attaches the stored auth token as a Bearer header unless the caller already set one.
+export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  if (!headers.has('Authorization')) {
+    const token = localStorage.getItem('fln_token');
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const res = await fetch(withBase(path), { ...init, headers });
+  if (res.status === 401 && !path.includes('/api/auth/login')) {
+    localStorage.removeItem('fln_token');
+    window.dispatchEvent(new Event('fln_unauthorized'));
+  }
+  return res;
 }

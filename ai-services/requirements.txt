@@ -1,1 +1,5 @@
 requests>=2.31.0
+easyocr>=1.7.0
+pillow>=10.0.0
+pypdf>=3.17.0
+numpy>=1.24.0

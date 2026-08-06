@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { User, UserRole, Announcement } from '../types';
+import { apiFetch } from '../services/apiClient';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound,   Clock
+  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound, Clock, Database
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -23,6 +24,8 @@ interface LayoutProps {
   onMarkNotificationRead: (id: string) => void;
   onClearNotifications: () => void;
   onLogout: () => void;
+  isDark: boolean;
+  onThemeToggle: () => void;
   children: React.ReactNode;
 }
 
@@ -35,6 +38,8 @@ export const Layout: React.FC<LayoutProps> = ({
   onMarkNotificationRead,
   onClearNotifications,
   onLogout,
+  isDark,
+  onThemeToggle,
   children
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -48,13 +53,8 @@ export const Layout: React.FC<LayoutProps> = ({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    try {
-      return localStorage.getItem('fln_dark_mode') === 'true';
-    } catch {
-      return false;
-    }
-  });
+
+
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const [fontSize, setFontSize] = useState(() => {
     try {
@@ -65,6 +65,18 @@ export const Layout: React.FC<LayoutProps> = ({
     }
   });
   const [pinnedItems, setPinnedItems] = useState<string[]>(['Dashboard']);
+  const [dbStatus, setDbStatus] = useState<{ connected: boolean; mode: string } | null>(null);
+  const [showDbModal, setShowDbModal] = useState(false);
+  const [customUri, setCustomUri] = useState('');
+  const [dbConnecting, setDbConnecting] = useState(false);
+  const [dbConnectMsg, setDbConnectMsg] = useState<{ success: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    apiFetch('/api/db-status')
+      .then(res => res.json())
+      .then(data => setDbStatus(data))
+      .catch(() => setDbStatus({ connected: false, mode: 'Local File DB (Fallback)' }));
+  }, []);
 
   const adjustFontSize = (delta: number) => {
     setFontSize((prev) => {
@@ -84,16 +96,6 @@ export const Layout: React.FC<LayoutProps> = ({
   React.useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;
   }, []);
-
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    localStorage.setItem('fln_dark_mode', String(darkMode));
-  }, [darkMode]);
 
   const collapsed = false;
 
@@ -203,7 +205,6 @@ export const Layout: React.FC<LayoutProps> = ({
       case UserRole.SUPERADMIN:
         list.push({ name: 'Users', view: 'users', icon: Users });
         list.push({ name: 'Schools', view: 'schools', icon: School });
-        list.push({ name: 'Question Bank', view: 'question_bank', icon: BookOpen });
         list.push({ name: 'Worksheet Templates', view: 'worksheet_templates', icon: ClipboardList });
         list.push({ name: 'Content', view: 'content', icon: BookOpen });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
@@ -333,19 +334,29 @@ export const Layout: React.FC<LayoutProps> = ({
 
         {/* Topbar Right Section */}
         <div className="flex items-center gap-4">
-          {/* Database Storage Status (MongoDB Only) */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-xs font-mono font-bold shrink-0">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <span className="text-emerald-700 text-[10px] uppercase tracking-wider">MongoDB Connected</span>
-          </div>
-
-          {/* Theme Toggle Button */}
+          {/* Dynamic Database Storage Status */}
           <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 transition dark:text-slate-400 dark:hover:bg-slate-800"
-            title="Toggle Theme"
+            onClick={() => setShowDbModal(true)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono font-bold shrink-0 cursor-pointer transition ${
+              dbStatus?.connected
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
+                : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300'
+            }`}
+            title="Click to view Database status and options"
           >
-            {darkMode ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+            <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${dbStatus?.connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+            <span className="text-[10px] uppercase tracking-wider">
+              {dbStatus?.connected ? 'MongoDB Atlas Connected' : 'Local DB (Offline)'}
+            </span>
+          </button>
+
+          {/* Theme Toggle */}
+          <button
+            onClick={onThemeToggle}
+            className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 hover:text-slate-800 transition-all duration-200 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {isDark ? <Sun className="h-4.5 w-4.5 text-amber-500" /> : <Moon className="h-4.5 w-4.5" />}
           </button>
 
           {/* Notifications bell */}
@@ -620,7 +631,7 @@ export const Layout: React.FC<LayoutProps> = ({
         )}
 
         {/* Central main display viewport */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50">
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50 dark:bg-slate-950">
 
           {/* Breadcrumbs */}
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider mb-2 select-none dark:text-slate-500">
@@ -644,6 +655,102 @@ export const Layout: React.FC<LayoutProps> = ({
           </footer>
         </main>
       </div>
+
+      {/* Database Connection & Status Modal */}
+      {showDbModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-xl rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-150">
+            
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${dbStatus?.connected ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'}`}>
+                  <Database className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Database Connection Manager</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Manage MongoDB Atlas & Local Database Storage</p>
+                </div>
+              </div>
+              <button onClick={() => setShowDbModal(false)} className="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Current Status Banner */}
+            <div className={`p-4 rounded-lg border text-xs space-y-1 ${dbStatus?.connected ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300' : 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300'}`}>
+              <div className="flex items-center justify-between font-bold">
+                <span>Active Mode: {dbStatus?.mode || 'Local File DB'}</span>
+                <span className="px-2 py-0.5 rounded text-[10px] uppercase font-mono font-bold border border-current">{dbStatus?.connected ? 'Connected' : 'Offline Mode'}</span>
+              </div>
+              <p className="text-[11px] opacity-90">
+                {dbStatus?.connected 
+                  ? 'Your app is directly reading and writing live data from your MongoDB Atlas cloud database.'
+                  : 'Remote MongoDB Atlas timed out or IP was not whitelisted. System is automatically running on local file DB fallback (data/db.json).'}
+              </p>
+            </div>
+
+            {/* Live Connect Input Form */}
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!customUri.trim()) return;
+              setDbConnecting(true);
+              setDbConnectMsg(null);
+              try {
+                const res = await apiFetch('/api/db-config', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ mongodbUri: customUri.trim() })
+                });
+                const data = await res.json();
+                if (data.success) {
+                  setDbConnectMsg({ success: true, text: 'Successfully connected to MongoDB Atlas!' });
+                  setDbStatus({ connected: true, mode: 'MongoDB Atlas' });
+                } else {
+                  setDbConnectMsg({ success: false, text: data.error || 'Connection failed. Verify IP Whitelist in Atlas.' });
+                }
+              } catch (_) {
+                setDbConnectMsg({ success: false, text: 'Failed to reach server endpoint.' });
+              } finally {
+                setDbConnecting(false);
+              }
+            }} className="space-y-3 pt-2">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                Connect New MongoDB Atlas Connection String:
+              </label>
+              <input
+                type="text"
+                value={customUri}
+                onChange={(e) => setCustomUri(e.target.value)}
+                placeholder="mongodb+srv://user:password@cluster.mongodb.net/fln"
+                className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+              
+              {dbConnectMsg && (
+                <div className={`p-2.5 rounded text-xs border font-medium ${dbConnectMsg.success ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+                  {dbConnectMsg.text}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDbModal(false)}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={dbConnecting || !customUri.trim()}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition"
+                >
+                  {dbConnecting ? 'Connecting...' : 'Connect to MongoDB'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
