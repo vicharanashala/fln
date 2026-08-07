@@ -82,9 +82,12 @@ async function startServer() {
       return res.status(400).json({ error: 'Password does not meet complexity requirements.' });
     }
 
-    // Check if the user is preloaded
-    const users = await dbStore.getUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const cleanEmail = email.trim().toLowerCase();
+    // Check if the user exists in database or seed store.
+    // Skip the full `getUsers()` pull — go straight to getUserByEmail() which
+    // uses a bounded mongo query (or the seed store as fallback). Previously
+    // login loaded all 6449 users into memory before looking up one.
+    const user = await dbStore.getUserByEmail(cleanEmail);
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
