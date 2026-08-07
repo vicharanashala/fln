@@ -12,9 +12,13 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'general' | 'curriculum'>('general');
+  const [priority, setPriority] = useState<'Low' | 'Medium' | 'High' | 'Urgent'>('Medium');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Open' | 'Reviewed' | 'Resolved'>('All');
+  const [typeFilter, setTypeFilter] = useState<'All' | 'general' | 'curriculum'>('All');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'priority_high' | 'priority_low'>('newest')
 
   const fetchTickets = async () => {
     try {
@@ -34,6 +38,42 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
     fetchTickets();
   }, [token]);
 
+  const priorityRank: Record<Ticket['priority'], number> = {
+    Low: 1,
+    Medium: 2,
+    High: 3,
+    Urgent: 4,
+  };
+
+  const visibleTickets = React.useMemo(() => {
+    let result = tickets.filter(
+      t =>
+        (statusFilter === 'All' || t.status === statusFilter) &&
+        (typeFilter === 'All' || t.type === typeFilter)
+    );
+
+    result = [...result].sort((a, b) => {
+      switch (sortOrder) {
+        case 'newest':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+
+        case 'priority_high':
+          return priorityRank[b.priority] - priorityRank[a.priority];
+
+        case 'priority_low':
+          return priorityRank[a.priority] - priorityRank[b.priority];
+
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [tickets, statusFilter, typeFilter, sortOrder]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject || !description) {
@@ -51,7 +91,7 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ type, subject, description })
+        body: JSON.stringify({ type, subject, description, priority })
       });
       const data = await res.json();
       if (res.ok) {
@@ -59,6 +99,7 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
         setSubject('');
         setDescription('');
         fetchTickets();
+        setTimeout(() => setSuccess(''), 4000);
       } else {
         setError(data.error || 'Failed to submit ticket.');
       }
@@ -118,6 +159,20 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
               </div>
 
               <div>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Priority</label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value as 'Low' | 'Medium' | 'High' | 'Urgent')}
+                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 focus:border-zinc-500 focus:ring-0 outline-none text-zinc-900 dark:text-white"
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Urgent">Urgent</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Subject</label>
                 <input
                   type="text"
@@ -167,27 +222,119 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
           <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">
             {userRole === UserRole.SUPERADMIN ? 'Global Review Queue' : 'Your Submitted Tickets'}
           </h3>
+          {userRole === UserRole.SUPERADMIN && (
+            <div className="flex flex-wrap items-end gap-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
+              {/* Status Filter */}
+              <div>
+                <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) =>
+                    setStatusFilter(
+                      e.target.value as 'All' | 'Open' | 'Reviewed' | 'Resolved'
+                    )
+                  }
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-indigo-500 focus:outline-none dark:border-zinc-700 dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="All">All</option>
+                  <option value="Open">Open</option>
+                  <option value="Reviewed">Reviewed</option>
+                  <option value="Resolved">Resolved</option>
+                </select>
+              </div>
 
-          {tickets.length === 0 ? (
+              {/* Type Filter */}
+              <div>
+                <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Type
+                </label>
+                <select
+                  value={typeFilter}
+                  onChange={(e) =>
+                    setTypeFilter(
+                      e.target.value as 'All' | 'general' | 'curriculum'
+                    )
+                  }
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-indigo-500 focus:outline-none dark:border-zinc-700 dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="All">All</option>
+                  <option value="general">General</option>
+                  <option value="curriculum">Curriculum</option>
+                </select>
+              </div>
+
+              {/* Sort Filter */}
+              <div>
+                <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Sort By
+                </label>
+                <select
+                  value={sortOrder}
+                  onChange={(e) =>
+                    setSortOrder(
+                      e.target.value as
+                      | 'newest'
+                      | 'oldest'
+                      | 'priority_high'
+                      | 'priority_low'
+                    )
+                  }
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-indigo-500 focus:outline-none dark:border-zinc-700 dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="priority_high">Priority (High → Low)</option>
+                  <option value="priority_low">Priority (Low → High)</option>
+                </select>
+              </div>
+
+              {/* Clear Filters */}
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter('All');
+                  setTypeFilter('All');
+                  setSortOrder('newest');
+                }}
+                className="rounded-lg bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+              >
+                Clear Filters
+              </button>
+
+              {/* Results Count */}
+              <div className="ml-auto text-sm text-zinc-500 dark:text-zinc-400">
+                Showing <span className="font-semibold">{visibleTickets.length}</span>{' '}
+                {visibleTickets.length === 1 ? 'ticket' : 'tickets'}
+              </div>
+            </div>
+          )}
+          {visibleTickets.length === 0 ? (
             <div className="p-8 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-center text-zinc-400 dark:text-zinc-500 text-sm">
-              No active feedback tickets found.
+              No tickets exist
             </div>
           ) : (
             <div className="space-y-3">
-              {tickets.map((t) => (
+              {visibleTickets.map((t) => (
                 <div key={t.id} className="bg-white dark:bg-slate-900 p-5 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${
-                          t.type === 'curriculum' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-blue-100 text-blue-800 border border-blue-200'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${t.type === 'curriculum' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-blue-100 text-blue-800 border border-blue-200'
+                          }`}>
                           {t.type}
                         </span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${
-                          t.status === 'Open' ? 'bg-red-100 text-red-800' : t.status === 'Reviewed' ? 'bg-indigo-100 text-indigo-800' : 'bg-green-100 text-green-800'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${t.status === 'Open' ? 'bg-red-100 text-red-800' : t.status === 'Reviewed' ? 'bg-indigo-100 text-indigo-800' : 'bg-green-100 text-green-800'
+                          }`}>
                           {t.status}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${t.priority === 'Urgent' ? 'bg-red-600 text-white' :
+                          t.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+                            t.priority === 'Low' ? 'bg-slate-100 text-slate-600' :
+                              'bg-yellow-100 text-yellow-800'
+                          }`}>
+                          {t.priority || 'Medium'}
                         </span>
                       </div>
                       <h4 className="font-display font-medium text-zinc-900 dark:text-white mt-2">{t.subject}</h4>

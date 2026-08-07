@@ -146,7 +146,7 @@ registerStatsRoutes(app);
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { type, subject, description } = req.body;
+    const { type, subject, description, priority } = req.body;
     if (type === 'curriculum' && user.role !== UserRole.TEACHER && user.role !== UserRole.VOLUNTEER) {
       return res.status(400).json({ error: 'Curriculum feedback can only be submitted by Teachers or Volunteers.' });
     }
@@ -158,6 +158,7 @@ registerStatsRoutes(app);
       userName: user.name,
       userRole: user.role,
       type: type || 'general',
+      priority: priority || 'Medium',
       subject,
       description,
       status: 'Open',

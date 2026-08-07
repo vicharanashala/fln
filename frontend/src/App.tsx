@@ -208,11 +208,10 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                         announcements.map(notif => (
                           <div
                             key={notif.id}
-                            className={`space-y-2 rounded-xl border p-4 ${
-                              notif.isUrgent
-                                ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30'
-                                : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'
-                            }`}
+                            className={`space-y-2 rounded-xl border p-4 ${notif.isUrgent
+                              ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30'
+                              : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'
+                              }`}
                           >
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-bold text-slate-900 dark:text-white">{notif.title}</h4>

@@ -262,6 +262,7 @@ export interface Ticket {
   userName: string;
   userRole: UserRole;
   type: 'general' | 'curriculum';
+  priority: 'Low' | 'Medium' | 'High' | 'Urgent';
   subject: string;
   description: string;
   status: 'Open' | 'Reviewed' | 'Resolved';
