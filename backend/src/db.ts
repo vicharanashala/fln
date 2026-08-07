@@ -262,6 +262,7 @@ export interface Ticket {
   userName: string;
   userRole: UserRole;
   type: 'general' | 'curriculum';
+  priority: 'Low' | 'Medium' | 'High' | 'Urgent';
   subject: string;
   description: string;
   status: 'Open' | 'Reviewed' | 'Resolved';
@@ -321,6 +322,8 @@ export interface Intervention {
   isPromoted: boolean;
   promotedAt?: string;
   createdAt: string;
+  teacherNotes?: string;
+  linkedWorksheetIds?: string[];
 }
 
 export interface BestPractice {
@@ -339,6 +342,7 @@ export interface BestPractice {
   tags: string[];
   viewCount: number;
   createdAt: string;
+  linkedWorksheetIds?: string[];
 }
 
 interface DatabaseSchema {
@@ -532,7 +536,7 @@ export class DBStore {
           }
           return u;
         }
-      } catch (_) {}
+      } catch (_) { }
     }
     return this.getUserSync(cleanEmail);
   }
@@ -550,36 +554,36 @@ export class DBStore {
     return this.data?.classes || [];
   }
   async getStudents(opts?: { limit?: number; offset?: number; schoolId?: string; teacherId?: string }) {
-      if (this.mongoDb) {
-        const filter: any = {};
-        if (opts?.schoolId) filter.schoolId = opts.schoolId;
-        if (opts?.teacherId) filter.teacherId = opts.teacherId;
-        const skip = opts?.offset || 0;
-        const limit = opts?.limit || 0;
-        const cursor = this.mongoDb.collection<Student>('students').find(filter);
-        if (skip) cursor.skip(skip);
-        if (limit) cursor.limit(limit);
-        return await cursor.toArray();
-      }
-      let result = this.data?.students || [];
-      if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
-      if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
-      if (opts?.offset) result = result.slice(opts.offset);
-      if (opts?.limit) result = result.slice(0, opts.limit);
-      return result;
+    if (this.mongoDb) {
+      const filter: any = {};
+      if (opts?.schoolId) filter.schoolId = opts.schoolId;
+      if (opts?.teacherId) filter.teacherId = opts.teacherId;
+      const skip = opts?.offset || 0;
+      const limit = opts?.limit || 0;
+      const cursor = this.mongoDb.collection<Student>('students').find(filter);
+      if (skip) cursor.skip(skip);
+      if (limit) cursor.limit(limit);
+      return await cursor.toArray();
     }
-    async countStudents(opts?: { schoolId?: string; teacherId?: string }) {
-      if (this.mongoDb) {
-        const filter: any = {};
-        if (opts?.schoolId) filter.schoolId = opts.schoolId;
-        if (opts?.teacherId) filter.teacherId = opts.teacherId;
-        return await this.mongoDb.collection('students').countDocuments(filter);
-      }
-      let result = this.data?.students || [];
-      if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
-      if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
-      return result.length;
+    let result = this.data?.students || [];
+    if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
+    if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
+    if (opts?.offset) result = result.slice(opts.offset);
+    if (opts?.limit) result = result.slice(0, opts.limit);
+    return result;
+  }
+  async countStudents(opts?: { schoolId?: string; teacherId?: string }) {
+    if (this.mongoDb) {
+      const filter: any = {};
+      if (opts?.schoolId) filter.schoolId = opts.schoolId;
+      if (opts?.teacherId) filter.teacherId = opts.teacherId;
+      return await this.mongoDb.collection('students').countDocuments(filter);
     }
+    let result = this.data?.students || [];
+    if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
+    if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
+    return result.length;
+  }
 
 
   /**
@@ -769,7 +773,7 @@ export class DBStore {
             { $sample: { size: 1 } }
           ]).toArray();
           if (docs && docs.length > 0) qDoc = docs[0];
-        } catch (_) {}
+        } catch (_) { }
       }
 
       if (qDoc) {
@@ -1016,6 +1020,14 @@ export class DBStore {
       if (idx !== -1) this.data.bestPractices[idx] = bp;
     }
     return bp || undefined;
+  }
+
+  async deleteIntervention(id: string) {
+    await this.mongoDb!.collection('interventions').deleteOne({ id });
+    if (this.data) {
+      this.data.interventions = this.data.interventions.filter(i => i.id !== id);
+    }
+    return { success: true };
   }
 
   // --- Diagnostic Answer Key Methods ---
@@ -2756,6 +2768,7 @@ export class DBStore {
         userName: 'Ritu Sharma',
         userRole: UserRole.TEACHER,
         type: 'curriculum',
+        priority: 'High',
         subject: 'Ambiguous wording in Level 3 patterns question',
         description: 'The shapes used in the patterns question of Level 3 are hard for Class 2 children to identify. Recommend replacing with simpler fruit SVGs.',
         status: 'Open',
@@ -2768,6 +2781,7 @@ export class DBStore {
         userName: 'Meena Kumari',
         userRole: UserRole.TEACHER,
         type: 'curriculum',
+        priority: 'Medium',
         subject: 'Measurement Level 3 cuts question difficulty',
         description: 'The pencil cutting subtraction is highly appropriate but students need concrete centimeter rulers to visualize better. Can we suggest visual graphics?',
         status: 'Reviewed',
@@ -2780,6 +2794,7 @@ export class DBStore {
         userName: 'Harpreet Kaur',
         userRole: UserRole.TEACHER,
         type: 'general',
+        priority: 'Urgent',
         subject: 'Delay in receiving printed worksheets for Bathinda school',
         description: 'The printed worksheets for Class 3 students in Bathinda have not arrived. Please check logistics.',
         status: 'Open',
@@ -2792,6 +2807,7 @@ export class DBStore {
         userName: 'Kavita Sharma',
         userRole: UserRole.TEACHER,
         type: 'curriculum',
+        priority: 'High',
         subject: 'Level 8 subtraction questions too advanced for Class 2',
         description: 'Some students placed at Level 8 are struggling with subtraction with borrowing. Suggest revisiting the difficulty curve.',
         status: 'Reviewed',
@@ -2804,6 +2820,7 @@ export class DBStore {
         userName: 'Rahul Kumar',
         userRole: UserRole.VOLUNTEER,
         type: 'general',
+        priority: 'Urgent',
         subject: 'Volunteer access to diagnostic tools in Moga village',
         description: 'Unable to generate diagnostic worksheets for students at GPS Rural Village Moga. Access restricted.',
         status: 'Open',
