@@ -26,6 +26,7 @@ import fs from 'fs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
+import nodemailer from 'nodemailer';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -64,7 +65,7 @@ async function startServer() {
 
   // --- API Endpoints ---
 
-registerStatsRoutes(app);
+  registerStatsRoutes(app);
 
   // Auth: Login
   app.post('/api/auth/login', authRateLimiter, async (req, res) => {
@@ -73,7 +74,7 @@ registerStatsRoutes(app);
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-// Verify Password Rules (§3.2 A-3)
+    // Verify Password Rules (§3.2 A-3)
     const hasUppercase = /[A-Z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
@@ -81,11 +82,9 @@ registerStatsRoutes(app);
       return res.status(400).json({ error: 'Password does not meet complexity requirements.' });
     }
 
-    // Check if the user exists in database or seed store.
-    // Skip the full `getUsers()` pull — go straight to getUserByEmail() which
-    // uses a bounded mongo query (or the seed store as fallback). Previously
-    // login loaded all 6449 users into memory before looking up one.
-    const user = await dbStore.getUserByEmail(email);
+    // Check if the user is preloaded
+    const users = await dbStore.getUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -145,6 +144,54 @@ registerStatsRoutes(app);
     console.log(`🔗 RESET LINK: ${resetLink}`);
     console.log(`======================================================\n`);
 
+    try {
+      let transporter;
+      
+      if (process.env.SMTP_HOST) {
+        transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587', 10),
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+      } else {
+        // Fallback to Ethereal for local testing if no SMTP provided
+        console.log("No SMTP_HOST found in .env, generating a test Ethereal account...");
+        const testAccount = await nodemailer.createTestAccount();
+        transporter = nodemailer.createTransport({
+          host: "smtp.ethereal.email",
+          port: 587,
+          secure: false,
+          auth: {
+            user: testAccount.user,
+            pass: testAccount.pass,
+          },
+        });
+      }
+
+      const info = await transporter.sendMail({
+        from: process.env.SMTP_FROM || '"FLN Platform" <noreply@fln-platform.com>',
+        to: user.email,
+        subject: 'Password Reset Request',
+        text: `Hello ${user.name},\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetLink}\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe FLN Platform Team`,
+        html: `<p>Hello ${user.name},</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br>The FLN Platform Team</p>`
+      });
+      
+      console.log(`📧 Email successfully sent to ${user.email}`);
+      
+      if (!process.env.SMTP_HOST) {
+        console.log(`\n======================================================`);
+        console.log(`✉️  PREVIEW TEST EMAIL AT: ${nodemailer.getTestMessageUrl(info)}`);
+        console.log(`======================================================\n`);
+      }
+    } catch (error) {
+      console.error(`Failed to send password reset email to ${user.email}:`, error);
+      // We still return success to the user so we don't leak account existence or error states
+    }
+
     return res.json({ success: true, message: 'If an account exists, a reset link will be sent.' });
   });
 
@@ -171,10 +218,10 @@ registerStatsRoutes(app);
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await dbStore.updateUser(user.id, { 
-      passwordHash, 
-      resetToken: undefined, 
-      resetTokenExpiry: undefined 
+    await dbStore.updateUser(user.id, {
+      passwordHash,
+      resetToken: undefined,
+      resetTokenExpiry: undefined
     });
 
     return res.json({ success: true, message: 'Password has been successfully reset' });
@@ -560,57 +607,57 @@ registerStatsRoutes(app);
 
   // Students
   app.get('/api/students', async (req, res) => {
-      const user = getAuthUser(req);
-      if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-      // The students collection has 86400+ docs in Atlas; without a server-side
-      // limit a single query takes multi-seconds and the dashboard hangs. Push the
-      // limit/offset into mongo. Default 1000 unless caller opts in to full set.
-      const DEFAULT_LIMIT = 1000;
-      const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
-      const requestedOffset = parseInt(String(req.query.offset ?? ''), 10) || 0;
-      const wantAll = req.query.all === '1' || req.query.all === 'true';
-      const limit = wantAll ? 0 : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
+    // The students collection has 86400+ docs in Atlas; without a server-side
+    // limit a single query takes multi-seconds and the dashboard hangs. Push the
+    // limit/offset into mongo. Default 1000 unless caller opts in to full set.
+    const DEFAULT_LIMIT = 1000;
+    const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
+    const requestedOffset = parseInt(String(req.query.offset ?? ''), 10) || 0;
+    const wantAll = req.query.all === '1' || req.query.all === 'true';
+    const limit = wantAll ? 0 : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
 
-      // server-side role scoping
-      let schoolScope: string | undefined;
-      if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
-        schoolScope = user.schoolId;
+    // server-side role scoping
+    let schoolScope: string | undefined;
+    if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
+      schoolScope = user.schoolId;
+    }
+
+    const opts: { limit?: number; offset?: number; schoolId?: string } = {
+      offset: requestedOffset,
+    };
+    if (limit > 0) opts.limit = limit;
+    if (schoolScope) opts.schoolId = schoolScope;
+
+    const students = await dbStore.getStudents(opts);
+
+    // volunteer filter still applied in JS (assignedSchools list, not a single key)
+    const filtered = (user.role === UserRole.VOLUNTEER)
+      ? students.filter(s => user.assignedSchools?.includes(s.schoolId))
+      : students;
+
+    // Mask Aadhar for non-Superadmins (§13.2 R-6)
+    const masked = filtered.map(s => {
+      if (user.role !== UserRole.SUPERADMIN) {
+        return { ...s, aadharMasked: 'XXXX-XXXX-' + String(s.aadharMasked || '').slice(-4) };
       }
-
-      const opts: { limit?: number; offset?: number; schoolId?: string } = {
-        offset: requestedOffset,
-      };
-      if (limit > 0) opts.limit = limit;
-      if (schoolScope) opts.schoolId = schoolScope;
-
-      const students = await dbStore.getStudents(opts);
-
-      // volunteer filter still applied in JS (assignedSchools list, not a single key)
-      const filtered = (user.role === UserRole.VOLUNTEER)
-        ? students.filter(s => user.assignedSchools?.includes(s.schoolId))
-        : students;
-
-      // Mask Aadhar for non-Superadmins (§13.2 R-6)
-      const masked = filtered.map(s => {
-        if (user.role !== UserRole.SUPERADMIN) {
-          return { ...s, aadharMasked: 'XXXX-XXXX-' + String(s.aadharMasked || '').slice(-4) };
-        }
-        return s;
-      });
-
-      // total count (for client-side pagination headers)
-      const total = await dbStore.countStudents(schoolScope ? { schoolId: schoolScope } : undefined);
-      res.set('X-Total-Count', String(total));
-      res.json(masked);
+      return s;
     });
+
+    // total count (for client-side pagination headers)
+    const total = await dbStore.countStudents(schoolScope ? { schoolId: schoolScope } : undefined);
+    res.set('X-Total-Count', String(total));
+    res.json(masked);
+  });
 
   // Get or generate student's assigned 10-question FLN paper from MongoDB Atlas (Class 2: Levels 22 to 31)
   app.get('/api/students/:id/diagnostic-paper', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-const students = await dbStore.getStudents();
+    const students = await dbStore.getStudents();
 
     // Roles with a direct, day-to-day relationship to the child (and superadmin)
     // see full contact/address PII; aggregate-scope admins and volunteers get it
@@ -1282,7 +1329,7 @@ const students = await dbStore.getStudents();
       const allStudents = await dbStore.getStudents();
       let classStudents = allStudents.filter(
         s => (s.classGroup || '').toLowerCase().includes(targetClass!.className.toLowerCase()) ||
-             targetClass!.className.toLowerCase().includes((s.classGroup || '').toLowerCase())
+          targetClass!.className.toLowerCase().includes((s.classGroup || '').toLowerCase())
       );
 
       if (classStudents.length === 0) {
@@ -2457,11 +2504,11 @@ const students = await dbStore.getStudents();
       // Calculate grade band filter factor
       let gradeFactor = 1.0;
       if (grade !== 'ALL') {
-        if (grade === 'Level 1-3') gradeFactor = 3/16;
-        else if (grade === 'Level 4-7') gradeFactor = 4/16;
-        else if (grade === 'Level 8-12') gradeFactor = 5/16;
-        else if (grade === 'Level 13-16') gradeFactor = 4/16;
-        else gradeFactor = 1/93;
+        if (grade === 'Level 1-3') gradeFactor = 3 / 16;
+        else if (grade === 'Level 4-7') gradeFactor = 4 / 16;
+        else if (grade === 'Level 8-12') gradeFactor = 5 / 16;
+        else if (grade === 'Level 13-16') gradeFactor = 4 / 16;
+        else gradeFactor = 1 / 93;
       }
 
       const totalStudents = Math.round(totalRegisteredSchools * 180 * gradeFactor);
@@ -2923,9 +2970,9 @@ const students = await dbStore.getStudents();
       const enrolled = allDbStudents.filter(s => {
         const cg = (s.classGroup || '').toLowerCase().trim();
         return cg === targetClassName.toLowerCase() ||
-               cg === String(classNumber) ||
-               cg.includes(`class ${classNumber}`) ||
-               cg.includes(`class_${classNumber}`);
+          cg === String(classNumber) ||
+          cg.includes(`class ${classNumber}`) ||
+          cg.includes(`class_${classNumber}`);
       });
 
       if (enrolled.length === 0) {
