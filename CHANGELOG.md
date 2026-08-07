@@ -4,6 +4,42 @@ All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
 routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
+## 2026-08-05
+
+- **perf(superadmin): analytics now uses real MongoDB aggregations** (commit `4bc371f`)
+  - The `/api/analytics/superadmin` endpoint was hardcoded with synthetic math — `totalRegisteredSchools * 180`, `totalStudents * 0.28`, etc. — producing numbers that had nothing to do with the actual Atlas data. On top of that, the endpoint loaded ALL 86k+ students, 1.4k+ schools, 6.4k+ users and reports into JS memory just to compute counts in a for-loop.
+  - Replaced with proper aggregation helpers on `dbStore` ([backend/src/db.ts](backend/src/db.ts)) that issue single `$group` pipelines on MongoDB Atlas and return only counts:
+    - `countStudentsFast(filter)` → `db.students.countDocuments`
+    - `countSchoolsFast(filter)` → `db.schools.countDocuments`
+    - `countUsersByRole()` → `$group: { _id: $role, count: $sum: 1 }`
+    - `countSchoolsByState()` → `$group: { _id: $stateCode }`
+    - `countSchoolsByType()` → `$group: { _id: $schoolType }`
+    - `getSchoolStudentCounts()` → `$group: { _id: $schoolId }`
+    - `countReports()` → `db.evaluation_reports.countDocuments`
+    - `countReportsByOutcome()` → `$group: pass/fail/avgScore in one shot`
+  - The endpoint now runs all 11 aggregations **concurrently via `Promise.all`** in [backend/src/index.ts](backend/src/index.ts) so total wall-time is the slowest query, not the sum.
+  - Where FLN doesn't track a field (login time, device usage, AI accuracy, rating distribution, etc.) the response now reports `0` or empty arrays instead of fake numbers — better to be honest about missing data than to show synthetic values that look real.
+  - **Response time: ~4.5s end-to-end** (was hanging >90s).
+  - **Response shape: backwards-compatible** — every key the frontend reads (`kpis`, `growthTrend`, `stateDistribution`, `boardDistribution`, `performanceAnalytics`, `interviewAnalytics`, `usageAnalytics`, `aiAnalytics`, `schoolRankings`, `engagementAnalytics`, `systemHealth`, `recentTrends`, `meta`) is still present, just with real values.
+  - Verified on the superadmin dashboard via curl: `totalRegisteredSchools: 1440` (was synthetic 183k), `activeSchools: 1440`, `totalStudents: 86400` (real Atlas count), `totalCertified: 76258 (88%)`, `totalTeachers: 4320`, `stateDistribution: 36 states`, `schoolRankings: 1440` real schools.
+  - `npm run lint`: 0 errors. `npm run build`: clean.
+- **feat(content): show all 93 FLN levels as cards on the Content tab** (commit `5f7b050`)
+  - The Content tab was calling `/api/level-html` (which doesn't exist in the backend) so it just spun a fetch promise that never resolved and rendered zero cards. Replaced the fetch with a direct import of `FLN_LEVELS_LIST` from [frontend/src/components/RoleDashboards.tsx](frontend/src/components/RoleDashboards.tsx) — the same source of truth already used by the worksheet generator.
+  - New layout in [frontend/src/components/PanelViews.tsx](frontend/src/components/PanelViews.tsx):
+    - Header: "All 93 FLN levels across 7 class groups" + subtitle
+    - Search box: filter by name or strand (live, client-side)
+    - Class filter dropdown: All Classes (93) / Preschool 1 (7) / Preschool 2 (10) / Preschool 3 (10) / Class 1 (15) / Class 2 (19) / Class 3 (14) / Class 4 (18)
+    - Quick-filter pills row: one-click class filter
+    - Card grid: responsive 1/2/3/4/5 columns — level badge (top-left, indigo), class tag (top-right), level name (line-clamped), strand footer (monospace)
+    - Footer: "Showing N of 93 levels"
+    - Click → opens `/output/level-N.html` in new tab (see fix below — interactive behavior was reverted in `12b7ac6`)
+  - Total cards rendered: 93 (was 0). No backend fetch — uses the in-memory `FLN_LEVELS_LIST` constant, so the page renders instantly (no spinner).
+  - `npm run lint`: 0 errors. `npm run build`: clean.
+- **fix(content): render level cards as static divs (no click-to-open)** (commit `12b7ac6`)
+  - Cards on the Content tab were `<button>` elements that opened `/levels/level-N.html` in a new tab on click. Per product direction, cards are now static display elements — no navigation, no hover effect, no cursor pointer.
+  - Changed `<button onClick={() => window.open(...)}>` to `<div>`, removed hover/tailwind interactive classes. Same layout, same content, just no longer interactive.
+  - For now there are no level HTML files served at `/levels/`; this unblocks future content work without coupling the cards to a specific open behavior.
+
 ## 2026-08-04
 
 - **ICR Blue-Pen Filter Standalone Endpoint**
