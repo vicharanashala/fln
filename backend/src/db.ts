@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import bcrypt from 'bcrypt';
+import dns from 'dns';
 import { MongoClient, Db } from 'mongodb';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
@@ -20,6 +21,12 @@ export const connectDB = async () => {
     console.log("MONGODB_URI not set — using local DB");
     return;
   }
+
+  // Windows system DNS often refuses SRV queries for mongodb+srv:// URIs in Node.
+  // Fall back to reliable public DNS resolvers (Google / Cloudflare) for SRV lookup.
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+  } catch (_) {}
   let connected = false;
   let attempt = 1;
   const maxAttempts = 3;
@@ -420,17 +427,33 @@ export class DBStore {
         for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
           (this.data as any)[key] = [];
         }
-        // Load users into memory for sync auth lookups (getUserSync)
-        this.data.users = await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
-        const userCount = this.data.users.length;
+        const seed = this.getSeedData();
+        // Load users into memory for sync auth lookups
+        this.data.users = await db.collection<User>('users').find({}).toArray();
+
+        // Ensure all demo seed users (with password hashes) exist in MongoDB Atlas and memory
+        for (const seedUser of seed.users) {
+          const idx = this.data.users.findIndex(u => u.email.toLowerCase() === seedUser.email.toLowerCase());
+          if (idx < 0) {
+            this.data.users.push(seedUser);
+            await db.collection('users').updateOne(
+              { email: seedUser.email },
+              { $setOnInsert: seedUser },
+              { upsert: true }
+            );
+          } else if (!this.data.users[idx].passwordHash) {
+            this.data.users[idx].passwordHash = seedUser.passwordHash;
+            await db.collection('users').updateOne(
+              { email: seedUser.email },
+              { $set: { passwordHash: seedUser.passwordHash } }
+            );
+          }
+        }
+
+        const userCount = await db.collection('users').countDocuments();
         const schoolCount = await db.collection('schools').countDocuments();
         const studentCount = await db.collection('students').countDocuments();
 
-        // If MongoDB Atlas users collection is empty, merge local seed users into memory without modifying MongoDB
-        if (userCount === 0) {
-          const seed = this.getSeedData();
-          this.data.users = seed.users;
-        }
         console.log(`MongoDB ready: ${userCount} users in Atlas (${this.data.users.length} active), ${schoolCount} schools, ${studentCount} students`);
         return;
       } catch (err: any) {
