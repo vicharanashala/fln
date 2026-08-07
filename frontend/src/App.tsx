@@ -142,6 +142,7 @@ export default function App() {
     switch (currentUser.role) {
       case 'superadmin':
         return <SuperadminDashboard user={currentUser} token={token!} />;
+return <SuperadminDashboard user={currentUser} token={token!} />;
       case 'admin':
       case 'district_admin':
       case 'block_admin':

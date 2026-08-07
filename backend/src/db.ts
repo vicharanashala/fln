@@ -405,6 +405,28 @@ export class DBStore {
     return null;
   }
 
+  // Generic key-value config store. Keys are arbitrary strings; values
+  // are arbitrary JSON-serializable blobs. Stored in MongoDB collection
+  // `appConfig` ({_id: key, value}). Used for runtime config like
+  // ICR_CLOUD_API_KEY_GOOGLE etc that admins set via the API instead
+  // of environment variables.
+  async getConfig(key: string): Promise<any> {
+    const db = this.getDb();
+    if (!db) return null;
+    const doc = await db.collection('appConfig').findOne({ _id: key } as any);
+    return doc?.value ?? null;
+  }
+
+  async setConfig(key: string, value: any): Promise<void> {
+    const db = this.getDb();
+    if (!db) throw new Error('MongoDB not connected');
+    await db.collection('appConfig').updateOne(
+      { _id: key } as any,
+      { $set: { value, updatedAt: new Date() } },
+      { upsert: true }
+    );
+  }
+
   async init() {
     if (mongoClient) {
       try {
@@ -454,6 +476,17 @@ export class DBStore {
         const schoolCount = await db.collection('schools').countDocuments();
         const studentCount = await db.collection('students').countDocuments();
 
+        // Load users into memory for sync auth lookups (getUserSync)
+        this.data.users = await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
+        const userCount = this.data.users.length;
+        const schoolCount = await db.collection('schools').countDocuments();
+        const studentCount = await db.collection('students').countDocuments();
+
+        // If MongoDB Atlas users collection is empty, merge local seed users into memory without modifying MongoDB
+        if (userCount === 0) {
+          const seed = this.getSeedData();
+          this.data.users = seed.users;
+        }
         console.log(`MongoDB ready: ${userCount} users in Atlas (${this.data.users.length} active), ${schoolCount} schools, ${studentCount} students`);
         return;
       } catch (err: any) {

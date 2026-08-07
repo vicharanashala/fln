@@ -134,6 +134,28 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
       setError('');
     }
   };
+      if (e.target.files && e.target.files[0]) {
+        const f = e.target.files[0];
+        // Reject empty files up-front. The blue-ink filter requires a
+        // raster image (PNG/JPEG/WebP) or a PDF — anything else slips past
+        // the <input accept=> hint on some browsers and produces an
+        // empty/invalid data URL when FileReader runs.
+        if (f.size === 0) {
+          setError('That file is empty (0 bytes). Try re-uploading.');
+          setUploadedFile(null);
+          return;
+        }
+        const isImage = f.type.startsWith('image/');
+        const isPdf = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+        if (!isImage && !isPdf) {
+          setError(`Unsupported file type: ${f.type || 'unknown'}. Please upload a PNG/JPEG/WebP image or a PDF.`);
+          setUploadedFile(null);
+          return;
+        }
+        setUploadedFile(f);
+        setError('');
+      }
+    };
 
   const passOcrManualEntry = async () => {
     if (!selectedClassId) {

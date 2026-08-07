@@ -43,6 +43,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
 
     const loginEmail = (customEmail || email).trim();
     const loginPass = (customPass || password).trim();
+    const loginEmail = customEmail || email;
+    const loginPass = customPass || password;
 
     try {
       const res = await apiFetch('/api/auth/login', {

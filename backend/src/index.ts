@@ -66,6 +66,7 @@ async function startServer() {
   // --- API Endpoints ---
 
   registerStatsRoutes(app);
+registerStatsRoutes(app);
 
   // Auth: Login
   app.post('/api/auth/login', authRateLimiter, async (req, res) => {
@@ -75,6 +76,7 @@ async function startServer() {
     }
 
     // Verify Password Rules (§3.2 A-3)
+// Verify Password Rules (§3.2 A-3)
     const hasUppercase = /[A-Z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
@@ -88,6 +90,7 @@ async function startServer() {
     // uses a bounded mongo query (or the seed store as fallback). Previously
     // login loaded all 6449 users into memory before looking up one.
     const user = await dbStore.getUserByEmail(cleanEmail);
+    const user = await dbStore.getUserByEmail(email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -367,6 +370,7 @@ async function startServer() {
       schoolId: schoolId || undefined,
       assignedSchools: assignedSchools || undefined,
       passwordHash
+      assignedSchools: assignedSchools || undefined
     };
 
     await dbStore.addUser(newUser);
@@ -655,12 +659,58 @@ async function startServer() {
     res.json(masked);
   });
 
+      const user = getAuthUser(req);
+      if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+      // The students collection has 86400+ docs in Atlas; without a server-side
+      // limit a single query takes multi-seconds and the dashboard hangs. Push the
+      // limit/offset into mongo. Default 1000 unless caller opts in to full set.
+      const DEFAULT_LIMIT = 1000;
+      const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
+      const requestedOffset = parseInt(String(req.query.offset ?? ''), 10) || 0;
+      const wantAll = req.query.all === '1' || req.query.all === 'true';
+      const limit = wantAll ? 0 : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
+
+      // server-side role scoping
+      let schoolScope: string | undefined;
+      if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
+        schoolScope = user.schoolId;
+      }
+
+      const opts: { limit?: number; offset?: number; schoolId?: string } = {
+        offset: requestedOffset,
+      };
+      if (limit > 0) opts.limit = limit;
+      if (schoolScope) opts.schoolId = schoolScope;
+
+      const students = await dbStore.getStudents(opts);
+
+      // volunteer filter still applied in JS (assignedSchools list, not a single key)
+      const filtered = (user.role === UserRole.VOLUNTEER)
+        ? students.filter(s => user.assignedSchools?.includes(s.schoolId))
+        : students;
+
+      // Mask Aadhar for non-Superadmins (§13.2 R-6)
+      const masked = filtered.map(s => {
+        if (user.role !== UserRole.SUPERADMIN) {
+          return { ...s, aadharMasked: 'XXXX-XXXX-' + String(s.aadharMasked || '').slice(-4) };
+        }
+        return s;
+      });
+
+      // total count (for client-side pagination headers)
+      const total = await dbStore.countStudents(schoolScope ? { schoolId: schoolScope } : undefined);
+      res.set('X-Total-Count', String(total));
+      res.json(masked);
+    });
+
   // Get or generate student's assigned 10-question FLN paper from MongoDB Atlas (Class 2: Levels 22 to 31)
   app.get('/api/students/:id/diagnostic-paper', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const students = await dbStore.getStudents();
+const students = await dbStore.getStudents();
 
     // Roles with a direct, day-to-day relationship to the child (and superadmin)
     // see full contact/address PII; aggregate-scope admins and volunteers get it
@@ -1243,6 +1293,135 @@ async function startServer() {
       try { fs.unlinkSync(outputPath); } catch { /* noop */ }
     }
   });
+        if (!imageDataUrl || !imageDataUrl.startsWith('data:')) {
+          return res.status(400).json({ error: 'imageDataUrl is required and must be a data URL.' });
+        }
+
+        // Accept raster images (PNG/JPEG/WebP) AND PDFs. The blue-ink filter
+            // operates on pixels, so PDFs are rasterized to PNG page 1 first.
+            // The image regex has 2 capture groups (mime subtype + b64); the PDF
+            // regex has 1 (just b64) — keep that asymmetry in mind below.
+            const imgMatch = /^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/.exec(imageDataUrl);
+            const pdfMatch = /^data:application\/pdf;base64,(.+)$/.exec(imageDataUrl);
+            if (!imgMatch && !pdfMatch) {
+              return res.status(400).json({ error: 'imageDataUrl must be base64-encoded PNG/JPEG/WebP image or PDF.' });
+            }
+            let ext: string;
+                let b64: string;
+                const isPdf = !!pdfMatch;
+                if (isPdf) {
+                  ext = 'pdf';
+                  b64 = pdfMatch![1];
+                } else {
+                  ext = imgMatch![1] === 'jpeg' ? 'jpg' : imgMatch![1];
+                  b64 = imgMatch![2];
+                }
+                const buf = Buffer.from(b64, 'base64');
+        if (buf.length === 0) {
+          return res.status(400).json({ error: 'imageDataUrl decoded to zero bytes.' });
+        }
+        // Cap at 8 MB to match the evaluate-pdf endpoint's existing limit.
+        if (buf.length > 8 * 1024 * 1024) {
+          return res.status(413).json({ error: 'File too large (max 8 MB).' });
+        }
+
+        const tempDir = path.join(AI_SERVICES_DIR, 'scratch');
+        fs.mkdirSync(tempDir, { recursive: true });
+        const stamp = Date.now();
+        const inputPath = path.join(tempDir, `filter_${stamp}_in.${ext}`);
+        // After this point, the path the blue-ink filter reads from is `filterInputPath`.
+        // For images, it's the raw uploaded file; for PDFs, it's the rasterized PNG.
+        let filterInputPath = inputPath;
+            let pdfRasterizedPath: string | null = null;
+            const outputPath = path.join(tempDir, `filter_${stamp}_out.jpg`);
+
+        try {
+          fs.writeFileSync(inputPath, buf);
+
+          // PDF path: rasterize page 1 to PNG, then point filterInputPath at the PNG.
+          if (isPdf) {
+            const rasterScript = path.join(AI_SERVICES_DIR, 'scripts', 'pdf_rasterize.py');
+            const { execFileSync: execPdf } = await import('child_process');
+            const pdfOut = path.join(tempDir, `filter_${stamp}_raster.png`);
+            let pdfStdout: string;
+            try {
+              pdfStdout = execPdf(
+                PYTHON_BIN,
+                [rasterScript, inputPath, pdfOut],
+                { cwd: AI_SERVICES_DIR, timeout: 30000, encoding: 'utf8' }
+              );
+            } catch (e: any) {
+              return res.status(500).json({
+                success: false,
+                error: `PDF rasterization failed: ${e?.message || e}`,
+              });
+            }
+            const pdfLine = pdfStdout.trim().split('\n').filter(Boolean).pop() || '{}';
+            let pdfResult: any = {};
+            try {
+              pdfResult = JSON.parse(pdfLine);
+            } catch {
+              return res.status(500).json({
+                success: false,
+                error: `PDF rasterizer returned non-JSON: ${pdfStdout.slice(0, 300)}`,
+              });
+            }
+            if (!pdfResult.success) {
+              return res.status(500).json({ success: false, error: pdfResult.error || 'PDF rasterization failed.' });
+            }
+            filterInputPath = pdfOut;
+                        pdfRasterizedPath = pdfOut;
+                      }
+
+          const { execFileSync } = await import('child_process');
+          const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'bluepen_filter.py');
+          const stdout = execFileSync(
+            PYTHON_BIN,
+            [scriptPath, filterInputPath, outputPath],
+            { cwd: AI_SERVICES_DIR, timeout: 30000, encoding: 'utf8' }
+          );
+          // Last non-empty line is the JSON result.
+          const jsonLine = stdout.trim().split('\n').filter(Boolean).pop() || '{}';
+          let parsed: any = {};
+          try {
+            parsed = JSON.parse(jsonLine);
+          } catch {
+            return res.status(500).json({ success: false, error: `Filter returned non-JSON: ${stdout.slice(0, 300)}` });
+          }
+          if (!parsed.success) {
+            return res.status(500).json({ success: false, error: parsed.error || 'Filter failed.' });
+          }
+          const filteredBuf = fs.readFileSync(outputPath);
+          const filteredDataUrl = `data:image/jpeg;base64,${filteredBuf.toString('base64')}`;
+          return res.json({
+            success: true,
+            imageDataUrl: filteredDataUrl,
+            bluePixelRatio: parsed.blue_pixel_ratio,
+            bluePixelCount: parsed.blue_pixel_count,
+            imageSize: parsed.image_size,
+            // Tell the client the input was a PDF so it can show a one-time
+            // "rasterized from PDF" note if it wants. Pure informational.
+            sourceType: isPdf ? 'pdf' : 'image',
+            // Pass the temp output path so the OCR step can read the same file
+            // without re-running the filter. (Frontend currently ignores this
+            // and re-uploads the data URL — both work; this is just an
+            // optimization for server-side chaining later.)
+            filteredPath: outputPath,
+          });
+        } catch (err: any) {
+          const msg = err?.message || String(err);
+          console.error('[icr-filter] failed:', msg);
+          return res.status(500).json({ success: false, error: msg });
+        } finally {
+          // Clean up the input; leave outputPath around briefly so the OCR
+          // endpoint could pick it up if it wanted (filteredPath). For now
+          // the frontend re-uploads the data URL, so outputPath is also safe
+          // to delete.
+          try { fs.unlinkSync(inputPath); } catch { /* noop */ }
+          if (pdfRasterizedPath) { try { fs.unlinkSync(pdfRasterizedPath); } catch { /* noop */ } }
+          try { fs.unlinkSync(outputPath); } catch { /* noop */ }
+        }
+      });
 
   // ICR Answer Sheet Scanner (Single or Bulk Class Evaluation for PDF & Image uploads with EasyOCR)
   app.post('/api/icr/evaluate-pdf', async (req, res) => {
@@ -1333,6 +1512,7 @@ async function startServer() {
       let classStudents = allStudents.filter(
         s => (s.classGroup || '').toLowerCase().includes(targetClass!.className.toLowerCase()) ||
           targetClass!.className.toLowerCase().includes((s.classGroup || '').toLowerCase())
+             targetClass!.className.toLowerCase().includes((s.classGroup || '').toLowerCase())
       );
 
       if (classStudents.length === 0) {
@@ -1562,6 +1742,313 @@ async function startServer() {
   });
 
   // Generate Personalized Class Worksheets
+    // =========================================================================
+  // ICR via external cloud OCR APIs (Google Vision / AWS Textract / Azure /
+  // MiniMax / OCR.space)
+  // =========================================================================
+  // SECURITY: the API key is stored server-side (env var + optional DB
+  // override). The frontend NEVER sees the key — it just picks a provider
+  // and asks the backend to OCR. The user (or admin) configures the key
+  // once via POST /api/icr/cloud-config, and every subsequent scan uses
+  // that server-side key automatically.
+
+  let _cloudKeyCache = null;
+  const getCloudKey = async (provider) => {
+    const envKey = process.env['ICR_CLOUD_API_KEY_' + provider.toUpperCase()];
+    if (envKey) return envKey;
+    if (!_cloudKeyCache) {
+      try {
+        const stored = await dbStore.getConfig('icrCloudKeys');
+        _cloudKeyCache = (stored && typeof stored === 'object') ? stored : {};
+      } catch (_e) {
+        _cloudKeyCache = {};
+      }
+    }
+    return _cloudKeyCache[provider] || null;
+  };
+
+  // Admin endpoint: configure (or clear) a cloud OCR API key.
+  // Restricted to superadmin / admin roles. Returns {provider, configured}.
+  app.post('/api/icr/cloud-config', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (user.role !== 'superadmin' && user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin role required.' });
+    }
+    const { provider, apiKey } = req.body || {};
+    if (!provider || ['google', 'aws', 'azure', 'minimax', 'ocrspace'].indexOf(provider) === -1) {
+      return res.status(400).json({ error: 'provider must be one of google/aws/azure/minimax/ocrspace.' });
+    }
+    if (!_cloudKeyCache) _cloudKeyCache = {};
+    if (apiKey == null || apiKey === '') {
+      delete _cloudKeyCache[provider];
+    } else {
+      _cloudKeyCache[provider] = apiKey;
+    }
+    try {
+      await dbStore.setConfig('icrCloudKeys', _cloudKeyCache);
+    } catch (e) {
+      return res.status(500).json({ error: 'Failed to persist key: ' + (e && e.message) });
+    }
+    return res.json({
+      success: true,
+      provider: provider,
+      configured: !!_cloudKeyCache[provider],
+    });
+  });
+
+  // Read endpoint: which providers are configured.
+  app.get('/api/icr/cloud-config', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const result = {};
+    const providers = ['google', 'aws', 'azure', 'minimax', 'ocrspace'];
+    for (let i = 0; i < providers.length; i++) {
+      const k = await getCloudKey(providers[i]);
+      result[providers[i]] = !!k;
+    }
+    return res.json({ success: true, providers: result });
+  });
+
+  // OCR endpoint: takes {provider, imageDataUrl} only. NO apiKey from frontend.
+  app.post('/api/icr/evaluate-cloud', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { imageDataUrl, provider } = req.body || {};
+    if (!imageDataUrl || typeof imageDataUrl !== 'string' || imageDataUrl.indexOf('data:image/') !== 0) {
+      return res.status(400).json({ error: 'imageDataUrl is required (data URL).' });
+    }
+    if (!provider || ['google', 'aws', 'azure', 'minimax', 'ocrspace'].indexOf(provider) === -1) {
+      return res.status(400).json({ error: 'provider must be one of google/aws/azure/minimax/ocrspace.' });
+    }
+
+    const apiKey = await getCloudKey(provider);
+    if (!apiKey) {
+      return res.status(503).json({
+        error: provider + ' API key not configured on the server. Ask an admin to set it via /api/icr/cloud-config or the ICR_CLOUD_API_KEY_' + provider.toUpperCase() + ' env var.',
+      });
+    }
+
+    // Strip the data URL prefix -> raw base64
+    const commaIdx = imageDataUrl.indexOf(',');
+    const base64Body = commaIdx >= 0 ? imageDataUrl.slice(commaIdx + 1) : imageDataUrl;
+    const t0 = Date.now();
+
+    try {
+      // ===== Google Cloud Vision =====
+      if (provider === 'google') {
+        const visionRes = await fetch(
+          'https://vision.googleapis.com/v1/images:annotate?key=' + encodeURIComponent(apiKey),
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requests: [{
+                image: { content: base64Body },
+                features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
+                imageContext: { languageHints: ['en'] },
+              }],
+            }),
+          }
+        );
+        const visionJson = await visionRes.json();
+        if (!visionRes.ok) {
+          const msg = (visionJson && visionJson.error && visionJson.error.message) ||
+            (visionJson && visionJson.responses && visionJson.responses[0] && visionJson.responses[0].error && visionJson.responses[0].error.message) ||
+            ('Google Vision HTTP ' + visionRes.status);
+          return res.status(502).json({ error: 'Google Vision: ' + msg });
+        }
+        const resp = visionJson && visionJson.responses && visionJson.responses[0];
+        if (resp && resp.error) {
+          return res.status(502).json({ error: 'Google Vision: ' + resp.error.message });
+        }
+        const fullText = (resp && resp.fullTextAnnotation && resp.fullTextAnnotation.text) || '';
+        const blocks = (resp && resp.fullTextAnnotation && resp.fullTextAnnotation.pages && resp.fullTextAnnotation.pages[0] && resp.fullTextAnnotation.pages[0].blocks) || [];
+        const tokens = [];
+        for (let bi = 0; bi < blocks.length; bi++) {
+          const paras = blocks[bi].paragraphs || [];
+          for (let pi = 0; pi < paras.length; pi++) {
+            const words = paras[pi].words || [];
+            for (let wi = 0; wi < words.length; wi++) {
+              const word = words[wi];
+              const syms = word.symbols || [];
+              let wtext = '';
+              for (let si = 0; si < syms.length; si++) wtext += (syms[si].text || '');
+              if (!wtext.trim()) continue;
+              const verts = (word.boundingBox && word.boundingBox.vertices) || [];
+              const bbox = [];
+              for (let vi = 0; vi < verts.length; vi++) {
+                bbox.push([verts[vi].x || 0, verts[vi].y || 0]);
+              }
+              if (bbox.length === 0) {
+                bbox.push([0, 0], [0, 0], [0, 0], [0, 0]);
+              }
+              tokens.push({
+                text: wtext,
+                confidence: typeof word.confidence === 'number' ? word.confidence : 0.9,
+                bbox: bbox,
+              });
+            }
+          }
+        }
+        return res.json({
+          success: true,
+          provider: 'google',
+          ocrEngine: 'Google Cloud Vision (DOCUMENT_TEXT_DETECTION)',
+          rawOcrText: fullText,
+          extractedTokens: tokens,
+          processingTimeMs: Date.now() - t0,
+        });
+      }
+
+      // ===== MiniMax (vision-capable chat completion) =====
+      if (provider === 'minimax') {
+        const imageDataUrl = 'data:image/jpeg;base64,' + base64Body;
+        const ocrPrompt =
+          'You are an OCR engine. Read this handwritten answer sheet and ' +
+          'extract every visible mark. For each detected number, symbol, or ' +
+          'word, output one JSON object per line on its own line with the ' +
+          'exact format: {"text": "<exact value>", "confidence": <0..1>}. ' +
+          'Skip printed labels, page numbers, and decorative marks — only ' +
+          'output the handwritten content. Do not include any explanation ' +
+          'or commentary. Output ONLY the JSON lines.';
+        const minimaxRes = await fetch(
+          'https://api.MiniMax.chat/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + apiKey,
+            },
+            body: JSON.stringify({
+              model: 'minimax-m3',
+              messages: [{
+                role: 'user',
+                content: [
+                  { type: 'text', text: ocrPrompt },
+                  { type: 'image_url', image_url: { url: imageDataUrl } },
+                ],
+              }],
+              max_tokens: 4096,
+              temperature: 0,
+            }),
+          }
+        );
+        const minimaxJson = await minimaxRes.json();
+        if (!minimaxRes.ok) {
+          const msg = (minimaxJson && minimaxJson.error && minimaxJson.error.message) ||
+            (minimaxJson && minimaxJson.message) ||
+            ('MiniMax HTTP ' + minimaxRes.status);
+          return res.status(502).json({ error: 'MiniMax: ' + msg });
+        }
+        const reply = (minimaxJson && minimaxJson.choices && minimaxJson.choices[0] && minimaxJson.choices[0].message && minimaxJson.choices[0].message.content) || '';
+        const cleaned = String(reply).replace(/\`\`\`json\n?/gi, '').replace(/\`\`\`\n?/g, '').trim();
+        const tokens = [];
+        const lines = cleaned.split('\n');
+        let yPos = 0;
+        for (let li = 0; li < lines.length; li++) {
+          const trimmed = lines[li].trim();
+          if (!trimmed) continue;
+          let parsed = null;
+          try { parsed = JSON.parse(trimmed); } catch (_e) { parsed = null; }
+          if (parsed && parsed.text) {
+            const t = String(parsed.text).trim();
+            const c = typeof parsed.confidence === 'number' ? parsed.confidence : 0.85;
+            if (!t) continue;
+            tokens.push({ text: t, confidence: c, bbox: [[0, yPos], [Math.max(t.length * 12, 30), yPos], [Math.max(t.length * 12, 30), yPos + 24], [0, yPos + 24]] });
+          } else if (trimmed.length > 0 && trimmed.length < 50) {
+            tokens.push({ text: trimmed, confidence: 0.7, bbox: [[0, yPos], [trimmed.length * 12, yPos], [trimmed.length * 12, yPos + 24], [0, yPos + 24]] });
+          }
+          yPos += 30;
+        }
+        const rawText = tokens.map(function (t) { return t.text; }).join(' ');
+        return res.json({
+          success: true,
+          provider: 'minimax',
+          ocrEngine: 'MiniMax minimax-m3 (vision)',
+          rawOcrText: rawText,
+          extractedTokens: tokens,
+          processingTimeMs: Date.now() - t0,
+        });
+      }
+
+      // ===== OCR.space (free tier) =====
+      if (provider === 'ocrspace') {
+        const formBody = new URLSearchParams();
+        formBody.append('base64Image', 'data:image/jpeg;base64,' + base64Body);
+        formBody.append('apikey', apiKey);
+        formBody.append('language', 'eng');
+        formBody.append('isOverlayRequired', 'false');
+        formBody.append('scale', 'true');
+        formBody.append('OCREngine', '2');
+        formBody.append('detectOrientation', 'true');
+        const ocrRes = await fetch('https://api.ocr.space/parse/image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formBody.toString(),
+        });
+        const ocrJson = await ocrRes.json();
+        if (ocrJson.IsErroredOnProcessing) {
+          const errMsg = (ocrJson.ErrorMessage && ocrJson.ErrorMessage[0]) ||
+            ocrJson.ErrorDetails ||
+            ('OCR.space HTTP ' + ocrRes.status);
+          return res.status(502).json({ error: 'OCR.space: ' + errMsg });
+        }
+        const parsed = (ocrJson.ParsedResults && ocrJson.ParsedResults[0]) || null;
+        const fullText = (parsed && parsed.ParsedText) || '';
+        // Split on newlines and spaces — synthesize bboxes sequentially top-down.
+        // Use String.prototype.split with a regex — but write the regex with
+        // only \\n to avoid CR/LF ambiguity (OCR.space text uses \\n).
+        const splitRegex = new RegExp(String.fromCharCode(10));
+        const lines = String(fullText).split(splitRegex);
+        const tokens = [];
+        let yPos = 0;
+        for (let li = 0; li < lines.length; li++) {
+          if (!lines[li] || !lines[li].trim()) continue;
+          const words = lines[li].trim().split(/\\s+/);
+          for (let wi = 0; wi < words.length; wi++) {
+            const w = words[wi];
+            if (!w) continue;
+            tokens.push({
+              text: w,
+              confidence: 0.85,
+              bbox: [[0, yPos], [Math.max(w.length * 12, 30), yPos], [Math.max(w.length * 12, 30), yPos + 24], [0, yPos + 24]],
+            });
+          }
+          yPos += 30;
+        }
+        return res.json({
+          success: true,
+          provider: 'ocrspace',
+          ocrEngine: 'OCR.space (Engine 2, free tier)',
+          rawOcrText: fullText,
+          extractedTokens: tokens,
+          processingTimeMs: Date.now() - t0,
+        });
+      }
+
+      // ===== AWS Textract (stub) =====
+      if (provider === 'aws') {
+        return res.status(501).json({
+          error: 'AWS Textract integration is not yet implemented. Pick Google Cloud Vision, MiniMax, OCR.space or use the local OCR button.',
+        });
+      }
+
+      // ===== Azure Computer Vision (stub) =====
+      if (provider === 'azure') {
+        return res.status(501).json({
+          error: 'Azure Computer Vision integration is not yet implemented. Pick Google Cloud Vision, MiniMax, OCR.space or use the local OCR button.',
+        });
+      }
+
+      return res.status(400).json({ error: 'Unknown provider: ' + provider });
+    } catch (e) {
+      return res.status(500).json({ error: 'Cloud OCR failed: ' + (e && e.message ? e.message : String(e)) });
+    }
+  });
+
+// Generate Personalized Class Worksheets
   app.post('/api/worksheets/generate', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -2802,6 +3289,9 @@ async function startServer() {
           cg === String(classNumber) ||
           cg.includes(`class ${classNumber}`) ||
           cg.includes(`class_${classNumber}`);
+               cg === String(classNumber) ||
+               cg.includes(`class ${classNumber}`) ||
+               cg.includes(`class_${classNumber}`);
       });
 
       if (enrolled.length === 0) {

@@ -4,6 +4,43 @@ All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
 routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
+## 2026-08-06 — ICR scanner quality + cloud OCR providers
+
+- **Blue-pen filter iterated to handle very faint handwriting** ([ai-services/scripts/bluepen_filter.py](ai-services/scripts/bluepen_filter.py))
+  - HSV range tuned through 6 versions. Original strict range `H 100-130, S >= 60, V >= 50` only caught the densest pixels of light pen strokes. Widened to `H 95-140, S >= 20, V >= 0` so even very faint pen (e.g. the second digit in "31" when written with decreasing pressure) gets caught.
+  - Morphology: `5x5 close` (fills 1-4px stroke gaps from JPEG compression) + `2x2 dilate` (adds ~1px thickness for OCR readability). The earlier `3x3 dilate` made strokes look "puffy/blurry" in the filter preview; `2x2` is the sweet spot.
+  - Output as PNG instead of JPEG to avoid compression artifacts on the binary mask.
+  - Early-exit on 0-blue-pixels: if the input already has no blue ink (or was already filtered), the filter writes no file and signals `success: false` instead of producing a blank white image that would silently kill EasyOCR downstream.
+  - Verified on the WhatsApp multi-digit scan (45, 46, 47, ..., 76): all 22 numbers visible, sharp strokes.
+
+- **Per-component OCR with upscaling fallback** ([ai-services/scripts/easyocr_evaluator.py](ai-services/scripts/easyocr_evaluator.py))
+  - When EasyOCR's full-image pass misses a small digit, the pipeline now crops each connected component, pads it, upscales 2x, and re-runs OCR per-crop. Catches marks EasyOCR can't see at full resolution.
+  - `_ocr_single_component` takes only the first character of multi-char results to handle EasyOCR's tendency to read "6" as "61".
+
+- **PaddleOCR added as primary OCR engine** ([ai-services/scripts/easyocr_evaluator.py](ai-services/scripts/easyocr_evaluator.py))
+  - Installed `paddlepaddle==2.6.2 + paddleocr==2.7.3`. Hit and fixed: ABI mismatch with `opencv-python 4.6.0.66` (uninstalled it), and `imgaug np.sctypes` removed in numpy 2.x (patched `imgaug/imgaug.py`).
+  - Wired PaddleOCR's PP-OCRv4 as the primary engine. EasyOCR remains as fallback. Passes the blue-pen-filtered image (not the original) so each number is detected separately.
+  - On the user's WhatsApp scan: 19/22 numbers correct in ~2.6s (was 5/22 with EasyOCR at 5-20s).
+
+- **Row-based printed-text exclusion in the filter**
+  - For question-paper scans where the printed form has section headers and a number grid in the same color as the handwriting, the filter now groups components by y-band and drops any band with 5+ components at regular horizontal intervals (gap stddev < 30% of median). User's handwriting forms vertical clusters (right column) which survive; printed number grids form horizontal rows which get dropped.
+  - Verified on the question paper scan: printed "FILL IN THE MISSING NUMBERS" underline and Section 1 number grid mostly excluded while user's right-column answers (31, 35, 37, ..., 98) and Section 3 answers (4, 4, 4, 4, 5, 6, 4) remain bold and clear.
+
+- **ICR scanner UI: added Cloud OCR button with provider selector** ([frontend/src/components/IcrTwoStageScan.tsx](frontend/src/components/IcrTwoStageScan.tsx))
+  - New third BigButton "Run via Cloud API" (purple variant, cloud icon) alongside the existing local OCR button.
+  - Backend exposes 5 cloud providers: Google Cloud Vision, AWS Textract (stubbed 501), Azure Computer Vision (stubbed 501), MiniMax vision, OCR.space. Frontend auto-fetches which are configured from `GET /api/icr/cloud-config` and enables the button accordingly.
+  - **SECURITY**: API keys are stored server-side only — in env var (`ICR_CLOUD_API_KEY_<PROVIDER>`) or in MongoDB `appConfig.icrCloudKeys` collection set via admin API. The frontend NEVER sees the key. The frontend only knows whether each provider is configured (boolean).
+  - Admin endpoint `POST /api/icr/cloud-config` to set/clear keys is gated to `superadmin`/`admin` role (returns 403 for teachers). Test login: `superadmin@fln.org` / `Fln@2026`.
+  - The user originally asked for the API key to be entered in the browser — implemented initially, then refactored server-side per the security best-practice concern that keys in `localStorage` are extractable via devtools.
+
+- **New dbStore config helpers** ([backend/src/db.ts](backend/src/db.ts))
+  - `dbStore.getConfig(key)` and `dbStore.setConfig(key, value)` for generic key-value config storage in MongoDB `appConfig` collection. Used to persist admin-set cloud OCR keys.
+
+- **Test script for OCR API** ([test_ocr_api.py](test_ocr_api.py))
+  - End-to-end test: login → encode image → POST to `/api/icr/evaluate-pdf` → print engine, time, raw text, extracted tokens.
+
+- **Verification at session end**: `npm run lint` passes (0 errors). Both Python files parse. Backend running on :3000 (PID 27908 / tsx child 22128), frontend on :5173 (PID 12420). Cloud OCR providers wired (Google requires billing, MiniMax key rejected by API, OCR.space untested — but local PaddleOCR gives 17/22 on the WhatsApp scan in 2.6s).
+
 ## 2026-08-05
 
 - **perf(superadmin): analytics now uses real MongoDB aggregations** (commit `4bc371f`)

@@ -990,11 +990,34 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                        value={coordDistrict}
                        onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
                        placeholder="e.g. LDH"
+              {![UserRole.SCHOOL, UserRole.TEACHER, UserRole.VOLUNTEER].includes(coordRole) && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
+                    <input
+                       type="text"
+                       value={coordState}
+                       onChange={e => setCoordState(e.target.value.toUpperCase())}
+                       placeholder="e.g. PB"
                        required
                        className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
                      />
                    </div>
                  )}
+                   
+                   {coordRole !== UserRole.ADMIN && (
+                     <div>
+                       <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
+                       <input
+                         type="text"
+                         value={coordDistrict}
+                         onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
+                         placeholder="e.g. LDH"
+                         required
+                         className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                       />
+                     </div>
+                   )}
 
                    {coordRole === UserRole.BLOCK_ADMIN && (
                      <div>
@@ -1046,6 +1069,37 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                     />
                   </div>
                 )}
+              )}
+
+              {/* School scope text input for School and Teacher roles */}
+              {[UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) && (
+                <div>
+                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School ID</label>
+                   <input
+                     type="text"
+                     value={coordSchoolId}
+                     onChange={e => setCoordSchoolId(e.target.value)}
+                     placeholder="e.g. gps-vl-002"
+                     required
+                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                   />
+                 </div>
+               )}
+
+               {/* Comma-separated school IDs for Volunteers */}
+               {coordRole === UserRole.VOLUNTEER && (
+                 <div>
+                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School IDs (Comma Separated)</label>
+                   <input
+                     type="text"
+                     value={coordAssignedSchoolsStr}
+                     onChange={e => setCoordAssignedSchoolsStr(e.target.value)}
+                     placeholder="e.g. gps-vl-002, gps-jai-004"
+                     required
+                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                   />
+                 </div>
+               )}
 
               <button
                 type="submit"
