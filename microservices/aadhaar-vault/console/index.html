@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aadhaar Vault Developer Console</title>
+  <link rel="stylesheet" href="/console/styles.css" />
+  <style>
+    .top-nav {
+      background: var(--c-surface-2);
+      border-bottom: 1px solid var(--c-border);
+      padding: 0 24px;
+    }
+    .top-nav-list {
+      display: flex;
+      gap: 20px;
+    }
+    .top-nav-item {
+      padding: 14px 16px;
+      color: var(--c-text-dim);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .top-nav-item:hover {
+      color: var(--c-text);
+    }
+    .top-nav-item.active {
+      color: var(--c-accent);
+      border-bottom-color: var(--c-accent);
+      font-weight: 600;
+    }
+    /* Hide layout sidebar since we have top nav now */
+    .layout .sidebar { display: none; }
+  </style>
+</head>
+<body>
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark">AV</div>
+      <div class="brand-text">
+        <div class="brand-title">Aadhaar Vault Developer Console</div>
+        <div class="brand-eyebrow">Secure Aadhaar Tokenization</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="meta-pill" id="version-pill">
+        <span class="meta-label">Version</span>
+        <span class="meta-value" id="app-version">0.2.0</span>
+      </div>
+      <div class="meta-pill connection" id="connection-pill" data-state="checking">
+        <span class="dot"></span>
+        <span class="conn-text">Checking…</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="top-nav">
+    <div class="top-nav-list">
+      <a href="index.html" class="top-nav-item active">Tokenization</a>
+      <a href="stepup.html" class="top-nav-item">Step-Up Detokenization</a>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- ===== MAIN ===== -->
+    <main class="main" style="max-width: 1000px; margin: 0 auto;">
+      <section class="page active" id="page-tokenize">
+
+        <!-- =========================== SECTION 1 =========================== -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-head">
+            <h3>Architecture Overview</h3>
+          </div>
+          <div class="card-body">
+            <div class="flow-row">
+              <div class="flow-node">Citizen Aadhaar</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node frontend">Developer Console</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">POST /v1/tokenize</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">Envelope Encryption</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">Generate DEK</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">Encrypt Aadhaar</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">Store Ciphertext</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node events">Generate Vault Token</div>
+            </div>
+            <div class="flow-row" style="padding-top: 0;">
+               <div class="flow-arrow">Returns: Token ID, Identity ID, Audit ID</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="margin-bottom: 24px;">
+          <!-- =========================== SECTION 2 =========================== -->
+          <div class="card">
+            <div class="card-head"><h3>Tokenization API</h3></div>
+            <div class="card-body">
+              <form id="form-tokenize">
+                <label class="field"><span>API Base</span><input type="url" id="set-base-url" name="apiBase" value="http://localhost:4101" required /></label>
+                <label class="field"><span>Bearer Token</span><textarea id="set-bearer" name="bearer" rows="2" placeholder="paste JWT here"></textarea></label>
+                
+                <div class="grid grid-2 tight">
+                  <label class="field"><span>Actor ID</span><input type="text" id="tz-actor-id" name="actorId" placeholder="volunteer-789" /></label>
+                  <label class="field"><span>Actor Role</span>
+                    <select id="tz-actor-role" name="actorRole">
+                      <option>TEACHER</option><option>SCHOOL_ADMIN</option>
+                      <option>STATE_ADMIN</option><option>SUPER_ADMIN</option>
+                      <option>SERVICE</option>
+                    </select>
+                  </label>
+                </div>
+                
+                <label class="field"><span>Purpose / Reason</span><input type="text" id="tz-reason" name="reason" value="student-enrollment" required /></label>
+                <label class="field"><span>Aadhaar Number</span><input type="text" id="tz-raw" name="raw" placeholder="123412341234" maxlength="14" required /></label>
+                
+                <div class="actions" style="margin-top: 8px;">
+                  <button type="submit" class="btn primary">Tokenize</button>
+                  <span class="duration" id="tz-duration"></span>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- =========================== SECTION 3 =========================== -->
+          <div class="card">
+            <div class="card-head"><h3>Tokenization Result</h3>
+              <div class="head-tools">
+                <button class="icon-btn" data-copy-target="tz-body" title="Copy">⧉</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="kv-block"><span class="kv-label">Token ID</span><code id="tz-token" class="kv-value">—</code></div>
+              <div class="kv-block"><span class="kv-label">Identity ID</span><code id="tz-identity" class="kv-value">—</code></div>
+              <div class="kv-block"><span class="kv-label">Last 4 Digits</span><code id="tz-last4" class="kv-value">—</code></div>
+              <div class="kv-block"><span class="kv-label">Audit ID</span><code id="tz-audit" class="kv-value">—</code></div>
+              <div class="kv-block"><span class="kv-label">Timestamp</span><code id="tz-timestamp" class="kv-value">—</code></div>
+              <div class="response-viewer tall" style="margin-top: 12px; min-height: 120px;"><pre id="tz-body"><code>Submit a request to see the response here.</code></pre></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =========================== SECTION 4 =========================== -->
+        <div class="grid grid-3" style="margin-bottom: 24px;">
+          <div class="card stat">
+            <div class="stat-label">Envelope Encryption</div>
+            <div class="stat-trend" style="white-space: normal; font-size: 13px; margin-top: 6px; color: var(--c-text);">Aadhaar is encrypted before DB storage.</div>
+          </div>
+          <div class="card stat">
+            <div class="stat-label">DEK Generation</div>
+            <div class="stat-trend" style="white-space: normal; font-size: 13px; margin-top: 6px; color: var(--c-text);">Unique Data Encryption Key for each record.</div>
+          </div>
+          <div class="card stat">
+            <div class="stat-label">KEK Protection</div>
+            <div class="stat-trend" style="white-space: normal; font-size: 13px; margin-top: 6px; color: var(--c-text);">Master Key secures the DEKs.</div>
+          </div>
+          <div class="card stat">
+            <div class="stat-label">Vault Token</div>
+            <div class="stat-trend" style="white-space: normal; font-size: 13px; margin-top: 6px; color: var(--c-text);">Opaque vlt_v1_... identifier returned.</div>
+          </div>
+          <div class="card stat">
+            <div class="stat-label">Identity ID</div>
+            <div class="stat-trend" style="white-space: normal; font-size: 13px; margin-top: 6px; color: var(--c-text);">Hash to check duplicates securely.</div>
+          </div>
+          <div class="card stat">
+            <div class="stat-label">Audit Trail</div>
+            <div class="stat-trend" style="white-space: normal; font-size: 13px; margin-top: 6px; color: var(--c-text);">Every action is logged in an HMAC chain.</div>
+          </div>
+        </div>
+
+        <!-- =========================== SECTION 5 =========================== -->
+        <div class="card">
+          <div class="card-head"><h3>Detokenization Architecture</h3><span class="hint">Informational overview of the secure flow</span></div>
+          <div class="card-body">
+            <div class="flow-row">
+              <div class="flow-node">Token ID</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">Enroll MFA</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">Receive OTP URI</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">Generate Current TOTP</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">Request Step-Up</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">Approve Challenge</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">Detokenize</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node events">Plain Aadhaar</div>
+            </div>
+            
+            <div class="actions" style="margin-top: 2rem; justify-content: center;">
+              <a href="stepup.html" class="btn ghost" style="border-color: var(--c-accent); color: var(--c-accent);">Open Step-Up Console</a>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- ===== NOTIFICATIONS ===== -->
+  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+  <!-- Shared modules -->
+  <script src="/console/config.js" defer></script>
+  <script src="/console/storage.js" defer></script>
+  <script src="/console/logger.js" defer></script>
+  <script src="/console/api.js" defer></script>
+  <script src="/console/ui.js" defer></script>
+
+  <script src="/console/app.js" defer></script>
+</body>
+</html>

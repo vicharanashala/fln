@@ -1,0 +1,38 @@
+{
+  "name": "@aadhaar-vault/api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tokenization microservice for FLN student identity numbers. See AADHAAR_VAULT_FREE_ARCHITECTURE.md.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "lint": "tsc --noEmit",
+    "migrate": "tsx --env-file=.env src/cli/migrate.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke:stepup": "node smoke-stepup.mjs"
+  },
+  "dependencies": {
+    "@fastify/static": "^6.12.0",
+    "fastify": "^4.28.1",
+    "fastify-plugin": "4.5.1",
+    "jose": "5.9.6",
+    "otpauth": "^9.5.1",
+    "pg": "^8.13.1",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "~5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

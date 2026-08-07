@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+.env
+.env.local
+*.log
+.DS_Store
+.vscode
+.idea
+*.tsbuildinfo
+.openapi.gen.yaml

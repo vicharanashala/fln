@@ -1,0 +1,54 @@
+name: aadhaar-vault
+
+# Session 1 only wires up PostgreSQL so reviewers can `docker compose up`
+# and confirm the stack is reachable. The vault API container is defined
+# but does not yet have a fully built image (Session 2+ adds the runtime).
+# Bring-up command from this directory:
+#   docker compose up -d postgres
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aadhaar-vault-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vault
+      POSTGRES_PASSWORD: vault
+      POSTGRES_DB: aadhaar_vault
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - vault_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vault -d aadhaar_vault"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  vault-api:
+    # Placeholder container — image is built in Session 2.
+    # Once the Dockerfile is finalized this block will reference the
+    # built image and the application will be reachable on :4101.
+    profiles: ["future"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aadhaar-vault-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 4101
+      HOST: 0.0.0.0
+      VAULT_DB_URI: postgres://vault:vault@postgres:5432/aadhaar_vault
+      KEY_PROVIDER: local-dev
+      KEY_VERSION: kv-1
+    ports:
+      - "4101:4101"
+
+volumes:
+  vault_pg_data:
+    name: aadhaar_vault_pg_data
