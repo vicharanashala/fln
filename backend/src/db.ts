@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import bcrypt from 'bcrypt';
+import dns from 'dns';
 import { MongoClient, Db } from 'mongodb';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
@@ -25,6 +26,13 @@ export const connectDB = async () => {
   const maxAttempts = 3;
   while (!connected && attempt <= maxAttempts) {
     try {
+      if (uri.startsWith('mongodb+srv://')) {
+        try {
+          dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+        } catch {
+          // Ignore if custom DNS servers can't be set
+        }
+      }
       mongoClient = new MongoClient(uri, {
         serverSelectionTimeoutMS: 5000,
         connectTimeoutMS: 8000,
@@ -75,6 +83,8 @@ export interface User {
   assignedSchools?: string[]; // for Volunteers
   delayedAttemptsCount?: number;
   isBanned?: boolean;
+  resetToken?: string;
+  resetTokenExpiry?: number;
 }
 
 export interface School {

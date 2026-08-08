@@ -10,6 +10,8 @@ import { Announcement, User, UserRole } from './types';
 import CoordinatorRegistration from './pages/CoordinatorRegistration';
 import { LandingView } from './components/LandingView';
 import { LoginView } from './components/LoginView';
+import { ForgotPasswordView } from './components/ForgotPasswordView';
+import { ResetPasswordView } from './components/ResetPasswordView';
 import { Layout } from './components/Layout';
 import {
   SuperadminDashboard,
@@ -160,6 +162,8 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
   return (
     <Routes>
       <Route path="/register-coordinator" element={<CoordinatorRegistration />} />
+      <Route path="/forgot-password" element={<ForgotPasswordView onBackToLogin={() => { navigate('/'); setCurrentView('login'); }} />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordView onBackToLogin={() => { navigate('/'); setCurrentView('login'); }} />} />
       <Route
         path="*"
         element={

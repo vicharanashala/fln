@@ -3,3 +3,6 @@ dist
 output
 # Runtime data written by the AI pipeline / server
 *.local
+.env
+.env.*
+*.env

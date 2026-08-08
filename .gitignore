@@ -1,4 +1,4 @@
-﻿# Archive and outputs
+# Archive and outputs
 archive/
 mvp/
 output/
@@ -16,6 +16,8 @@ backend/data/
 
 # Environment / secrets
 .env
+.env.*
+*.env
 .env.local
 .env.*.local
 
