@@ -5,6 +5,7 @@ import { apiFetch } from '../services/apiClient';
  */
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
 import { User, UserRole } from '../types';
 
@@ -40,8 +41,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
     setError(null);
     setLoading(true);
 
-    const loginEmail = customEmail || email;
-    const loginPass = customPass || password;
+    const loginEmail = (customEmail || email).trim();
+    const loginPass = (customPass || password).trim();
 
     try {
       const res = await apiFetch('/api/auth/login', {
@@ -126,6 +127,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
+            </div>
+            
+            <div className="flex justify-end mt-1">
+              <Link 
+                to="/forgot-password" 
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline"
+              >
+                Forgot Password?
+              </Link>
             </div>
           </div>
 

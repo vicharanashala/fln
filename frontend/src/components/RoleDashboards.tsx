@@ -669,6 +669,40 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       ? coordAssignedSchoolsStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
       : undefined;
 
+    if (coordState && !/^[A-Z]{2}$/.test(coordState.trim().toUpperCase())) {
+      setCoordError('State Code must be 2 uppercase letters (e.g. PB)');
+      setLoading(false);
+      return;
+    }
+
+    if (coordDistrict && !/^[A-Z]{3}$/.test(coordDistrict.trim().toUpperCase())) {
+      setCoordError('District Code must be 3 uppercase letters (e.g. LDH)');
+      setLoading(false);
+      return;
+    }
+
+    if (coordBlock && !/^[A-Z]{3}-\d{2}$/.test(coordBlock.trim().toUpperCase())) {
+      setCoordError('Block Code must be in the format XXX-00 (e.g. LDH-01)');
+      setLoading(false);
+      return;
+    }
+
+    if ([UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole)) {
+      if (!coordSchoolId || !/^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$/.test(coordSchoolId.trim().toLowerCase())) {
+        setCoordError('Assigned School ID must be strictly formatted like gps-vl-002 (3-part format ending in 3 digits)');
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (coordRole === UserRole.VOLUNTEER) {
+      if (!assignedSchools || assignedSchools.length === 0 || assignedSchools.some(s => !/^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$/.test(s))) {
+        setCoordError('Assigned School IDs must be strictly formatted like gps-vl-002 (e.g. gps-vl-002, gps-jai-004)');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const res = await apiFetch('/api/admin/create', {
         method: 'POST',
@@ -969,79 +1003,87 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               </div>
 
               {/* Scope nodes triggers dynamically depending on role */}
-              {![UserRole.SCHOOL, UserRole.TEACHER, UserRole.VOLUNTEER].includes(coordRole) && (
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
-                    <input
-                       type="text"
-                       value={coordState}
-                       onChange={e => setCoordState(e.target.value.toUpperCase())}
-                       placeholder="e.g. PB"
-                       required
-                       className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
-                     />
-                   </div>
-                   
-                   {coordRole !== UserRole.ADMIN && (
-                     <div>
-                       <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
-                       <input
-                         type="text"
-                         value={coordDistrict}
-                         onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
-                         placeholder="e.g. LDH"
-                         required
-                         className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
-                       />
-                     </div>
-                   )}
-
-                   {coordRole === UserRole.BLOCK_ADMIN && (
-                     <div>
-                       <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
-                       <input
-                         type="text"
-                         value={coordBlock}
-                         onChange={e => setCoordBlock(e.target.value.toUpperCase())}
-                         placeholder="e.g. LDH-01"
-                         required
-                         className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
-                      />
-                    </div>
-                  )}
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
+                  <input
+                    type="text"
+                    value={coordState}
+                    onChange={e => setCoordState(e.target.value.toUpperCase())}
+                    placeholder="e.g. PB"
+                    required
+                    pattern="^[A-Z]{2}$"
+                    title="State Code must be 2 uppercase letters (e.g. PB)"
+                    className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                  />
                 </div>
-              )}
+                
+                {![UserRole.ADMIN, UserRole.SCHOOL, UserRole.TEACHER, UserRole.VOLUNTEER].includes(coordRole) && (
+                  <div>
+                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
+                    <input
+                      type="text"
+                      value={coordDistrict}
+                      onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
+                      placeholder="e.g. LDH"
+                      required
+                      pattern="^[A-Z]{3}$"
+                      title="District Code must be 3 uppercase letters (e.g. LDH)"
+                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                    />
+                  </div>
+                )}
+
+                {coordRole === UserRole.BLOCK_ADMIN && (
+                  <div>
+                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
+                    <input
+                      type="text"
+                      value={coordBlock}
+                      onChange={e => setCoordBlock(e.target.value.toUpperCase())}
+                      placeholder="e.g. LDH-01"
+                      required
+                      pattern="^[A-Z]{3}-\d{2}$"
+                      title="Block code must be in the format XXX-00 (e.g. LDH-01)"
+                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                    />
+                  </div>
+                )}
+              </div>
 
               {/* School scope text input for School and Teacher roles */}
               {[UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) && (
                 <div>
-                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School ID</label>
-                   <input
-                     type="text"
-                     value={coordSchoolId}
-                     onChange={e => setCoordSchoolId(e.target.value)}
-                     placeholder="e.g. gps-vl-002"
-                     required
-                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
-                   />
-                 </div>
-               )}
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School ID</label>
+                  <input
+                    type="text"
+                    value={coordSchoolId}
+                    onChange={e => setCoordSchoolId(e.target.value.toLowerCase())}
+                    placeholder="e.g. gps-vl-002"
+                    required
+                    pattern="^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$"
+                    title="School ID must be strictly formatted like gps-vl-002 (3-part format ending in 3 digits, e.g. gps-vl-002)"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+              )}
 
-               {/* Comma-separated school IDs for Volunteers */}
-               {coordRole === UserRole.VOLUNTEER && (
-                 <div>
-                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School IDs (Comma Separated)</label>
-                   <input
-                     type="text"
-                     value={coordAssignedSchoolsStr}
-                     onChange={e => setCoordAssignedSchoolsStr(e.target.value)}
-                     placeholder="e.g. gps-vl-002, gps-jai-004"
-                     required
-                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
-                   />
-                 </div>
-               )}
+              {/* Comma-separated school IDs for Volunteers */}
+              {coordRole === UserRole.VOLUNTEER && (
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School IDs (Comma Separated)</label>
+                  <input
+                    type="text"
+                    value={coordAssignedSchoolsStr}
+                    onChange={e => setCoordAssignedSchoolsStr(e.target.value.toLowerCase())}
+                    placeholder="e.g. gps-vl-002, gps-jai-004"
+                    required
+                    pattern="^([a-z]{2,5}-[a-z0-9]{1,5}-\d{3})(,\s*[a-z]{2,5}-[a-z0-9]{1,5}-\d{3})*$"
+                    title="School IDs must be comma-separated in 3-part format ending in 3 digits (e.g. gps-vl-002, gps-jai-004)"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"
