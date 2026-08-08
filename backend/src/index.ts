@@ -65,6 +65,30 @@ const icrRateLimiter = rateLimit({
 // unbounded payload before spawning a subprocess or calling an external API.
 const ICR_MAX_DECODED_BYTES = 8 * 1024 * 1024;
 
+// The students collection has 86400+ docs in Atlas; without a server-side
+// limit a single query takes multi-seconds and the dashboard hangs.
+const STUDENTS_DEFAULT_LIMIT = 1000;
+// `all=1` used to set limit=0, which the query builder only forwards
+// `if (limit > 0)` — so 0 meant "no limit passed at all", i.e. a true
+// unbounded dump of the whole table in one response. This ceiling keeps
+// `all=1` useful (bypass the default page size) without removing the limit
+// entirely; genuine full-table reads still work via `offset` pagination in
+// a loop, which /api/students already supports.
+const STUDENTS_HARD_MAX_ROWS = 10000;
+
+// Pulled out of the /api/students handler as a small pure function so it's
+// directly unit-testable against the real ceiling value, instead of only
+// provable by seeding 10,000+ rows into a test database.
+export function resolveStudentsQueryLimit(query: { all?: unknown; limit?: unknown }): number {
+  const wantAll = query.all === '1' || query.all === 'true';
+  if (wantAll) return STUDENTS_HARD_MAX_ROWS;
+  const requestedLimit = parseInt(String(query.limit ?? ''), 10);
+  if (Number.isFinite(requestedLimit) && requestedLimit > 0) {
+    return Math.min(requestedLimit, STUDENTS_DEFAULT_LIMIT * 5);
+  }
+  return STUDENTS_DEFAULT_LIMIT;
+}
+
 // Builds and returns the fully-routed Express app, with no Vite mount and no
 // .listen() call. Split out from startServer() so tests can get a handle on
 // a real, working app (same routes, same middleware) and wrap it in their
@@ -504,21 +528,8 @@ registerStatsRoutes(app);
       const user = getAuthUser(req);
       if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-      // The students collection has 86400+ docs in Atlas; without a server-side
-      // limit a single query takes multi-seconds and the dashboard hangs. Push the
-      // limit/offset into mongo. Default 1000 unless caller opts in to full set.
-      const DEFAULT_LIMIT = 1000;
-      // `all=1` used to set limit=0, which the code below only forwards to the
-      // query `if (limit > 0)` — so 0 meant "no limit passed at all", i.e. a
-      // true unbounded dump of the whole table in one response. HARD_MAX_ROWS
-      // keeps `all=1` useful (bypass the default page size) without removing
-      // the ceiling entirely; genuine full-table reads still work via `offset`
-      // pagination in a loop, which this endpoint already supports.
-      const HARD_MAX_ROWS = 10000;
-      const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
       const requestedOffset = parseInt(String(req.query.offset ?? ''), 10) || 0;
-      const wantAll = req.query.all === '1' || req.query.all === 'true';
-      const limit = wantAll ? HARD_MAX_ROWS : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
+      const limit = resolveStudentsQueryLimit(req.query);
 
       // server-side role scoping
       let schoolScope: string | undefined;
@@ -1620,19 +1631,22 @@ const students = await dbStore.getStudents();
       return res.status(400).json({ error: 'provider must be one of google/aws/azure/minimax/ocrspace.' });
     }
 
+    // Strip the data URL prefix -> raw base64
+    const commaIdx = imageDataUrl.indexOf(',');
+    const base64Body = commaIdx >= 0 ? imageDataUrl.slice(commaIdx + 1) : imageDataUrl;
+    const decodedBuf = Buffer.from(base64Body, 'base64');
+    // Checked before the apiKey lookup below: an oversized payload should be
+    // rejected immediately, not only after (and regardless of) whether a
+    // provider key happens to be configured.
+    if (decodedBuf.length > ICR_MAX_DECODED_BYTES) {
+      return res.status(413).json({ error: `File too large (max ${ICR_MAX_DECODED_BYTES / (1024 * 1024)} MB).` });
+    }
+
     const apiKey = await getCloudKey(provider);
     if (!apiKey) {
       return res.status(503).json({
         error: provider + ' API key not configured on the server. Ask an admin to set it via /api/icr/cloud-config or the ICR_CLOUD_API_KEY_' + provider.toUpperCase() + ' env var.',
       });
-    }
-
-    // Strip the data URL prefix -> raw base64
-    const commaIdx = imageDataUrl.indexOf(',');
-    const base64Body = commaIdx >= 0 ? imageDataUrl.slice(commaIdx + 1) : imageDataUrl;
-    const decodedBuf = Buffer.from(base64Body, 'base64');
-    if (decodedBuf.length > ICR_MAX_DECODED_BYTES) {
-      return res.status(413).json({ error: `File too large (max ${ICR_MAX_DECODED_BYTES / (1024 * 1024)} MB).` });
     }
     const t0 = Date.now();
 

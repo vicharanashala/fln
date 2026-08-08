@@ -23,7 +23,7 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 // capable headless Chrome instance (printPage.setContent below). Escape
 // before interpolating so a crafted name can't inject markup that Puppeteer
 // would then execute.
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return String(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

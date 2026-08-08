@@ -171,7 +171,7 @@ async function callGroq(apiKey: string, params: LLMParams): Promise<string> {
  * different providers for the same class of work. Returns raw text;
  * callers JSON.parse it themselves when jsonMode is set.
  */
-async function callLLM(params: LLMParams): Promise<string> {
+export async function callLLM(params: LLMParams): Promise<string> {
   const groqKey = process.env.GROQ_API_KEY;
   if (groqKey) {
     try {
