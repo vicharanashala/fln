@@ -669,6 +669,22 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       ? coordAssignedSchoolsStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
       : undefined;
 
+    if ([UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole)) {
+      if (!coordSchoolId || !/^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$/.test(coordSchoolId.trim().toLowerCase())) {
+        setCoordError('Assigned School ID must be strictly formatted like gps-vl-002 (3-part format ending in 3 digits)');
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (coordRole === UserRole.VOLUNTEER) {
+      if (!assignedSchools || assignedSchools.length === 0 || assignedSchools.some(s => !/^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$/.test(s))) {
+        setCoordError('Assigned School IDs must be strictly formatted like gps-vl-002 (e.g. gps-vl-002, gps-jai-004)');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const res = await apiFetch('/api/admin/create', {
         method: 'POST',
@@ -1020,11 +1036,11 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   <input
                     type="text"
                     value={coordSchoolId}
-                    onChange={e => setCoordSchoolId(e.target.value)}
+                    onChange={e => setCoordSchoolId(e.target.value.toLowerCase())}
                     placeholder="e.g. gps-vl-002"
                     required
-                    pattern="^[a-z0-9]+(-[a-z0-9]+)+$"
-                    title="School ID must be lowercase hyphen-separated (e.g. gps-vl-002)"
+                    pattern="^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$"
+                    title="School ID must be strictly formatted like gps-vl-002 (3-part format ending in 3 digits, e.g. gps-vl-002)"
                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
                   />
                 </div>
@@ -1037,11 +1053,11 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   <input
                     type="text"
                     value={coordAssignedSchoolsStr}
-                    onChange={e => setCoordAssignedSchoolsStr(e.target.value)}
+                    onChange={e => setCoordAssignedSchoolsStr(e.target.value.toLowerCase())}
                     placeholder="e.g. gps-vl-002, gps-jai-004"
                     required
-                    pattern="^([a-z0-9]+(-[a-z0-9]+)+)(,\s*[a-z0-9]+(-[a-z0-9]+)+)*$"
-                    title="Comma-separated school IDs (e.g. gps-vl-002, gps-jai-004)"
+                    pattern="^([a-z]{2,5}-[a-z0-9]{1,5}-\d{3})(,\s*[a-z]{2,5}-[a-z0-9]{1,5}-\d{3})*$"
+                    title="School IDs must be comma-separated in 3-part format ending in 3 digits (e.g. gps-vl-002, gps-jai-004)"
                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
                   />
                 </div>

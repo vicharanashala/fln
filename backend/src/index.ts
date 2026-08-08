@@ -339,14 +339,14 @@ async function startServer() {
       return res.status(400).json({ error: 'Block code must be in the format XXX-00 (e.g. LDH-01)' });
     }
 
-    if (schoolId && !/^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)+$/.test(schoolId)) {
-      return res.status(400).json({ error: 'School ID must be hyphen-separated alphanumeric (e.g. gps-vl-002)' });
+    if (schoolId && !/^[a-zA-Z]{2,5}-[a-zA-Z0-9]{1,5}-\d{3}$/.test(schoolId)) {
+      return res.status(400).json({ error: 'School ID format must be strictly like gps-vl-002 (3-part format ending in 3 digits)' });
     }
 
     if (assignedSchools && Array.isArray(assignedSchools)) {
       for (const sid of assignedSchools) {
-        if (!/^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)+$/.test(sid)) {
-          return res.status(400).json({ error: `Invalid assigned school ID: ${sid}` });
+        if (!/^[a-zA-Z]{2,5}-[a-zA-Z0-9]{1,5}-\d{3}$/.test(sid)) {
+          return res.status(400).json({ error: `Invalid assigned school ID: ${sid}. Format must be strictly like gps-vl-002 (3-part format ending in 3 digits)` });
         }
       }
     }
@@ -552,6 +552,10 @@ async function startServer() {
     const { id, name, stateCode, districtCode, blockCode, strength } = req.body;
     if (!id || !name || !stateCode || !districtCode || !blockCode) {
       return res.status(400).json({ error: 'Missing required school fields.' });
+    }
+
+    if (!/^[a-zA-Z]{2,5}-[a-zA-Z0-9]{1,5}-\d{3}$/.test(id)) {
+      return res.status(400).json({ error: 'School ID format must be strictly like gps-vl-002 (3-part format ending in 3 digits)' });
     }
 
     const schools = await dbStore.getSchools();
