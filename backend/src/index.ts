@@ -47,7 +47,12 @@ const authRateLimiter = rateLimit({
   message: { error: 'Too many login attempts. Please try again later.' },
 });
 
-async function startServer() {
+// Builds and returns the fully-routed Express app, with no Vite mount and no
+// .listen() call. Split out from startServer() so tests can get a handle on
+// a real, working app (same routes, same middleware) and wrap it in their
+// own ephemeral http server, instead of needing the dev-server's Vite
+// middleware or a fixed port.
+export async function createApp() {
   // Connect to MongoDB
   await connectDB();
 
@@ -3512,6 +3517,12 @@ const students = await dbStore.getStudents();
     res.json({ ...bp, viewCount: (bp.viewCount || 0) + 1 });
   });
 
+  return app;
+}
+
+async function startServer() {
+  const app = await createApp();
+
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).
   if (process.env.NODE_ENV !== "production") {
@@ -3542,4 +3553,9 @@ const students = await dbStore.getStudents();
   });
 }
 
-startServer();
+// Only auto-start when this file is the process entry point (tsx dev, or the
+// esbuild-bundled dist/server.cjs) — not when createApp() is imported by
+// tests, which need a handle on the app without a real listening server.
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  startServer();
+}
