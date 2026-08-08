@@ -19,6 +19,7 @@ import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS } from './geoData';
 import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN, SEED_DEMO_PASSWORD_HASH } from './auth';
+import { MAX_LEVEL, CERTIFICATION_LEVEL } from '../../shared/constants';
 import { registerAnnouncementRoutes } from './routes/announcements';
 import { registerStatsRoutes } from './routes/stats';
 import { randomUUID } from 'crypto';
@@ -764,12 +765,12 @@ const students = await dbStore.getStudents();
       const startLevel = (classNumber - 1) * 12 + 1;
       questions = [];
       for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-        const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 93), 0);
+        const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, MAX_LEVEL), 0);
         lvlQuestions.forEach(q => {
           questions.push({
             ...q,
             question_id: `DIAG_${lvl}_${q.question_id}`,
-            source_level: Math.min(lvl, 93)
+            source_level: Math.min(lvl, MAX_LEVEL)
           });
         });
       }
@@ -978,7 +979,7 @@ const students = await dbStore.getStudents();
     await dbStore.updateStudent(student.id, {
       currentLevel: recommendedLevel,
       currentSubLevel: subLevel,
-      targetLevel: Math.min(93, recommendedLevel + 1),
+      targetLevel: Math.min(MAX_LEVEL, recommendedLevel + 1),
       levelHistory
     });
 
@@ -1278,7 +1279,7 @@ const students = await dbStore.getStudents();
             section: targetClass.section || 'A',
             schoolId: 'gps-mt-001',
             currentLevel: classNum * 10,
-            targetLevel: 93,
+            targetLevel: MAX_LEVEL,
             aadharMasked: 'XXXX-XXXX-1234',
             levelHistory: [],
             streak: 0
@@ -1321,7 +1322,7 @@ const students = await dbStore.getStudents();
             section: targetClass.section || 'A',
             schoolId: 'gps-mt-001',
             currentLevel: classNumber * 10,
-            targetLevel: 93,
+            targetLevel: MAX_LEVEL,
             aadharMasked: 'XXXX-XXXX-1234',
             levelHistory: [],
             streak: 0
@@ -1400,7 +1401,11 @@ const students = await dbStore.getStudents();
         }
 
         const percentage = Math.round((score / totalQ) * 100);
-        const recommendedLevel = Math.max(1, Math.min(93, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
+        const recommendedLevel = Math.max(1, Math.min(MAX_LEVEL, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
+        // Note: this 80/50 sub-level banding is a separate, 3-tier scheme from the
+        // Strong/Satisfactory concept-mastery bands below — not the same threshold
+        // despite sharing the "80" value, so it's intentionally left as a literal
+        // rather than forced onto SCORE_BAND_STRONG/SCORE_BAND_SATISFACTORY.
         const subLevel = percentage >= 80 ? 0 : percentage >= 50 ? 1 : 2;
 
         const levelHistory = [...(student.levelHistory || []), {
@@ -1413,7 +1418,7 @@ const students = await dbStore.getStudents();
         await dbStore.updateStudent(student.id, {
           currentLevel: recommendedLevel,
           currentSubLevel: subLevel,
-          targetLevel: Math.min(93, recommendedLevel + 1),
+          targetLevel: Math.min(MAX_LEVEL, recommendedLevel + 1),
           levelHistory
         });
 
@@ -2347,7 +2352,7 @@ const students = await dbStore.getStudents();
     await dbStore.updateStudent(student.id, {
       currentLevel: evaluation.recommendedLevel,
       currentSubLevel: newSubLevel,
-      targetLevel: Math.min(93, evaluation.recommendedLevel + 1),
+      targetLevel: Math.min(MAX_LEVEL, evaluation.recommendedLevel + 1),
       levelHistory,
       streak: student.streak + 1
     });
@@ -2525,7 +2530,7 @@ const students = await dbStore.getStudents();
       }
       const sumLevel = filteredStudents.reduce((acc, s) => acc + s.currentLevel, 0);
       const avgLevel = Math.round((sumLevel / count) * 10) / 10;
-      const certified = filteredStudents.filter(s => s.currentLevel >= 5).length;
+      const certified = filteredStudents.filter(s => s.currentLevel >= CERTIFICATION_LEVEL).length;
       const certificationRate = Math.round((certified / count) * 100);
 
       // Create stable topic mastery values that reflect the current average level
@@ -2563,7 +2568,7 @@ const students = await dbStore.getStudents();
     const totalStudents = students.length;
     const totalSchools = schools.length;
     const totalWorksheets = worksheets.length;
-    const certifiedCount = students.filter(s => s.currentLevel >= 5).length;
+    const certifiedCount = students.filter(s => s.currentLevel >= CERTIFICATION_LEVEL).length;
     const certificationPercent = totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0;
 
     const pipeline = {
@@ -2767,7 +2772,7 @@ const students = await dbStore.getStudents();
           name: sch.name,
           stateCode: sch.stateCode,
           schoolType: sch.schoolType || 'Government',
-          performanceScore: schStudents > 0 ? Math.round((schStudents / 93) * 100) : 0,
+          performanceScore: schStudents > 0 ? Math.round((schStudents / MAX_LEVEL) * 100) : 0,
           completionRate: 0,
           studentSatisfaction: 0,
           interviewSuccessRate: 0,
@@ -3302,12 +3307,12 @@ const students = await dbStore.getStudents();
         const startLevel = (classNumber - 1) * 12 + 1;
         questions = [];
         for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-          const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 93), 0);
+          const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, MAX_LEVEL), 0);
           lvlQuestions.forEach(q => {
             questions.push({
               ...q,
               question_id: `DIAG_${lvl}_${q.question_id}`,
-              source_level: Math.min(lvl, 93)
+              source_level: Math.min(lvl, MAX_LEVEL)
             });
           });
         }
