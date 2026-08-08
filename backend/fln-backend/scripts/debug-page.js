@@ -28,7 +28,7 @@ const APP_URL = pathToFileURL(path.join(__dirname, '..', 'app', 'index.html')).h
   );
 
   console.log('Loading', APP_URL, '...');
-  await page.goto(APP_URL, { waitUntil: 'networkidle0', timeout: 60000 }).catch((e) =>
+  await page.goto(APP_URL, { waitUntil: 'load', timeout: 15000 }).catch((e) =>
     console.log('[goto error]', e.message)
   );
 

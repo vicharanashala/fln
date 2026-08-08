@@ -147,3 +147,5 @@ flowchart TB
 ```
 
 **Deltas from current → target:** delete the mock; frontend talks only to the real backend via `apiClient`; real auth; real database behind a repository interface; the 1580-line `index.ts` split into domain modules; business logic and secrets (answer keys, PII) removed from the frontend.
+
+```

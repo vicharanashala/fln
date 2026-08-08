@@ -776,7 +776,7 @@ interface BigButtonProps {
   subtitle: string;
   timeTaken: ScanTiming | null;
   liveElapsed: number | null;
-  state: 'idle' | 'running' | 'done' | 'error' | 'pending';
+  state: 'idle' | 'filtering' | 'running' | 'done' | 'error' | 'pending';
   onClick: () => void;
   disabled: boolean;
 }
@@ -811,7 +811,7 @@ const BigButton: React.FC<BigButtonProps> = ({
   onClick,
   disabled,
 }) => {
-  const isRunning = state === 'running';
+  const isRunning = state === 'running' || state === 'filtering';
   const isDone = state === 'done';
   // Pick the bg class from a literal lookup so Tailwind's JIT sees every
   // class as a literal. providerKey (preferred for cloud buttons) wins

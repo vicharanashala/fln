@@ -56,13 +56,16 @@ let browserPromise = null;
 /** Launch (once) and reuse a single headless Chromium instance for the process lifetime. */
 function getBrowser() {
   if (!browserPromise) {
+    const executablePath = process.env.CHROME_EXECUTABLE_PATH || undefined;
     browserPromise = puppeteer.launch({
       headless: 'new',
+      executablePath,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--allow-file-access-from-files'
       ]
     });
   }
@@ -97,7 +100,7 @@ async function createRenderPage() {
     }
   });
 
-  await page.goto(APP_URL, { waitUntil: 'networkidle0', timeout: 60000 });
+  await page.goto(APP_URL, { waitUntil: 'load', timeout: 15000 });
   await page.waitForFunction(REQUIRED_GLOBALS_CHECK, { timeout: 30000 });
 
   return page;

@@ -5,12 +5,14 @@ import { apiFetch } from './services/apiClient';
  */
 
 import React, { useEffect, useState } from 'react';
+import { buildUrl } from './utils/apiBase';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { Announcement, User, UserRole } from './types';
 import CoordinatorRegistration from './pages/CoordinatorRegistration';
 import { LandingView } from './components/LandingView';
 import { LoginView } from './components/LoginView';
 import { Layout } from './components/Layout';
+import { RemediationNotesView } from './components/RemediationNotesView';
 import {
   SuperadminDashboard,
   AdminDashboard,
@@ -23,7 +25,7 @@ import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
-
+// import { RemediationNotesView } from './components/RemediationNotesView';
 export default function App() {
   const navigate = useNavigate();
   const [token, setToken] = useState<string | null>(localStorage.getItem('fln_token'));
@@ -76,8 +78,8 @@ export default function App() {
         }
 
         const data = await res.json();
-        if (cancelled) return;
-        setCurrentUser(data.user);
+        const payload = data?.data || data;
+        setCurrentUser(payload.user);
         setCurrentView('dashboard');
       } catch {
         if (cancelled) return;
@@ -160,6 +162,7 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
   return (
     <Routes>
       <Route path="/register-coordinator" element={<CoordinatorRegistration />} />
+      <Route path="/remediation-note/:studentId/:examId" element={<RemediationNotesView />} />
       <Route
         path="*"
         element={
@@ -208,11 +211,10 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                         announcements.map(notif => (
                           <div
                             key={notif.id}
-                            className={`space-y-2 rounded-xl border p-4 ${
-                              notif.isUrgent
-                                ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30'
-                                : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'
-                            }`}
+                            className={`space-y-2 rounded-xl border p-4 ${notif.isUrgent
+                              ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30'
+                              : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'
+                              }`}
                           >
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-bold text-slate-900 dark:text-white">{notif.title}</h4>
@@ -251,23 +253,14 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800 dark:text-slate-300">Accessibility Configuration</h3>
-                        <div className="space-y-3 rounded-lg border border-slate-150 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
-                          <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={isDark}
-                              onChange={() => setIsDark(!isDark)}
-                              className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900"
-                            />
-                            <span>Use Dark Theme Preference</span>
-                          </label>
-                          <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
-                            <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900" />
+                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800">Accessibility Configuration</h3>
+                        <div className="space-y-3 rounded-lg border border-slate-150 bg-slate-50 p-4">
+                          <label htmlFor="high-contrast-checkbox" className="flex items-center gap-2 font-medium">
+                            <input id="high-contrast-checkbox" name="highContrast" type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-650" />
                             <span>Enable High-Contrast Border Outlines</span>
                           </label>
-                          <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
-                            <input type="checkbox" className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900" />
+                          <label htmlFor="voice-narration-checkbox" className="flex items-center gap-2 font-medium">
+                            <input id="voice-narration-checkbox" name="voiceNarration" type="checkbox" className="rounded border-slate-300 text-indigo-650" />
                             <span>Audio voice narration on hover (SLA §2.3)</span>
                           </label>
                         </div>

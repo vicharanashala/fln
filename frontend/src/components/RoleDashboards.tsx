@@ -1,5 +1,6 @@
 import { apiFetch, withBase } from '../services/apiClient';
 import React, { useState, useEffect, useMemo } from 'react';
+import { buildUrl } from '../utils/apiBase';
 import { Link } from 'react-router-dom';
 import { User, UserRole, Student, ClassGroup, School, LogEntry, Ticket } from '../types';
 import { DiagnosticWorkflow } from './DiagnosticWorkflow';
@@ -169,9 +170,8 @@ export const FLNLevelReferenceModal: React.FC<{ isOpen: boolean; onClose: () => 
                 <button
                   key={c}
                   onClick={() => setSelectedClass(c)}
-                  className={`text-[10px] font-mono font-semibold px-2 py-1.5 rounded border transition-colors ${
-                    selectedClass === c ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-white dark:bg-slate-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700'
-                  }`}
+                  className={`text-[10px] font-mono font-semibold px-2 py-1.5 rounded border transition-colors ${selectedClass === c ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-white dark:bg-slate-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700'
+                    }`}
                 >
                   {c}
                 </button>
@@ -197,7 +197,7 @@ export const FLNLevelReferenceModal: React.FC<{ isOpen: boolean; onClose: () => 
                 </div>
                 <div className="mt-4 pt-2 border-t border-zinc-100 dark:border-zinc-800 dark:border-zinc-800 flex justify-between items-center text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
                   <span>Strand: <strong className="text-zinc-700 dark:text-zinc-200">{l.strand}</strong></span>
-                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -233,7 +233,7 @@ interface DashboardProps {
 export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({ token, user }) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Scopes
   const [stateCode, setStateCode] = useState(user.stateCode || 'PB');
   const [districtCode, setDistrictCode] = useState(user.districtCode || 'LDH');
@@ -271,7 +271,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
   // Determine active level comparison
   let activeLabel = 'National';
   let activeMetrics = data?.national;
-  
+
   if (user.role === UserRole.SUPERADMIN) {
     activeLabel = blockCode ? `Block: ${blockCode}` : districtCode ? `District: ${districtCode}` : stateCode ? `State: ${stateCode}` : 'National';
     activeMetrics = blockCode && data?.block ? data.block : districtCode && data?.district ? data.district : stateCode && data?.state ? data.state : data?.national;
@@ -293,9 +293,9 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
         <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-end text-xs font-sans">
           <div className="flex-grow">
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter State</label>
-            <input 
-              type="text" 
-              value={stateCode} 
+            <input
+              type="text"
+              value={stateCode}
               onChange={e => {
                 setStateCode(e.target.value.toUpperCase());
                 setDistrictCode('');
@@ -307,9 +307,9 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
           </div>
           <div className="flex-grow">
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter District</label>
-            <input 
-              type="text" 
-              value={districtCode} 
+            <input
+              type="text"
+              value={districtCode}
               onChange={e => {
                 setDistrictCode(e.target.value.toUpperCase());
                 setBlockCode('');
@@ -320,15 +320,15 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
           </div>
           <div className="flex-grow">
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter Block</label>
-            <input 
-              type="text" 
-              value={blockCode} 
+            <input
+              type="text"
+              value={blockCode}
               onChange={e => setBlockCode(e.target.value.toUpperCase())}
               placeholder="e.g. LDH-01"
               className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
-          <button 
+          <button
             onClick={fetchAnalytics}
             className="bg-zinc-900 text-white hover:bg-zinc-800 font-medium font-mono text-xs py-3 px-5 rounded-lg cursor-pointer shadow-sm transition-colors"
           >
@@ -339,7 +339,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
 
       {/* Side-by-Side Comparison layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
+
         {/* National Benchmark (Visible to All) */}
         <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm space-y-6">
           <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
@@ -437,7 +437,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
       {/* Dynamic Visual Charts & Insights */}
       {activeMetrics && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm" id="analytics-charts-panel">
-          
+
           {/* Donut Pie Chart for Certification Rate */}
           <div className="flex flex-col items-center justify-center p-5 border border-zinc-100 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/50" id="certification-donut-chart">
             <h5 className="text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-4">Certification Rate (Pie / Donut Chart)</h5>
@@ -447,10 +447,10 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
                 <circle cx="90" cy="90" r="70" fill="transparent" stroke="#f4f4f5" strokeWidth="16" />
                 {/* Certified segment */}
                 <circle cx="90" cy="90" r="70" fill="transparent" stroke="#10b981" strokeWidth="16"
-                        strokeDasharray={439.8}
-                        strokeDashoffset={439.8 - (439.8 * (activeMetrics.certificationRate || 0)) / 100}
-                        strokeLinecap="round"
-                        className="transition-all duration-700 ease-out" />
+                  strokeDasharray={439.8}
+                  strokeDashoffset={439.8 - (439.8 * (activeMetrics.certificationRate || 0)) / 100}
+                  strokeLinecap="round"
+                  className="transition-all duration-700 ease-out" />
               </svg>
               {/* Inner absolute content */}
               <div className="absolute text-center">
@@ -458,7 +458,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
                 <span className="text-[9px] text-zinc-500 dark:text-zinc-400 font-mono uppercase font-bold tracking-widest mt-1.5 inline-block">Certified</span>
               </div>
             </div>
-            
+
             {/* Legend */}
             <div className="flex gap-6 mt-6 text-xs font-medium">
               <div className="flex items-center gap-2">
@@ -480,7 +480,7 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
                 Aggregated cohort size representing count profiles across foundational literacy & numeracy levels.
               </p>
             </div>
-            
+
             {/* Visual Bars container */}
             <div className="flex items-end justify-between gap-3 h-48 px-2 border-b border-zinc-200 dark:border-zinc-700 pb-2">
               {Object.entries(activeMetrics.levelDistribution || { "Level 1": 0, "Level 2": 0, "Level 3": 0, "Level 4": 0, "Level 5": 0, "Level 6": 0 }).map(([level, val]: any) => {
@@ -503,11 +503,26 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
                 );
               })}
             </div>
-            
             {/* Total Indicator */}
             <div className="text-center md:text-right mt-3">
               <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
-                Roster segment: <strong className="text-zinc-800 dark:text-zinc-100">{Object.values(activeMetrics.levelDistribution || {}).reduce((a: any, b: any) => a + b, 0)} student profiles</strong>
+                Roster segment:{' '}
+                <strong className="text-zinc-800 dark:text-zinc-100">
+                  {/* 🎯 ULTIMATE TREE PARSING SAFE COMPUTATION */}
+                  {(() => {
+                    const trackingData = (activeMetrics as any)?.levelDistribution;
+                    if (!trackingData) return 0;
+
+                    const datasetValues = Object.values(trackingData);
+                    let finalSum = 0;
+
+                    for (let index = 0; index < datasetValues.length; index++) {
+                      finalSum += Number(datasetValues[index]) || 0;
+                    }
+                    return finalSum;
+                  })()}{' '}
+                  student profiles
+                </strong>
               </span>
             </div>
           </div>
@@ -525,10 +540,10 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
 // ==========================================
 export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'coordinators' | 'analytics'>('overview');
-  
+
   // Overview data
   const [schools, setSchools] = useState<School[]>([]);
-  const [stats, setStats] = useState<{ totalStudents: number; certifiedCount: number; certifiedPercent: number; avgFlnLevel: number; [key: string]: any } | null>(null);
+  const [stats, setStats] = useState<{ totalStudents: number; certifiedCount: number; certifiedPercent: number; avgFlnLevel: number;[key: string]: any } | null>(null);
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementMsg, setAnnouncementMsg] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
@@ -577,12 +592,12 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
     )).sort();
   }, [coordinatorsList, stateFilter]);
 
-  const schoolFilterOptions = useMemo(() => {
+  const schoolFilterOptions = useMemo<string[]>(() => {
     return Array.from(new Set(
       coordinatorsList
         .filter(c => (!stateFilter || c.stateCode === stateFilter) && (!districtFilter || c.districtCode === districtFilter))
         .map(c => c.schoolId)
-        .filter(Boolean)
+        .filter((schoolId): schoolId is string => Boolean(schoolId))
     )).sort();
   }, [coordinatorsList, stateFilter, districtFilter]);
 
@@ -656,7 +671,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         setIsUrgent(false);
         setTimeout(() => setSuccessMsg(''), 5000);
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const handleCreateCoordinator = async (e: React.FormEvent) => {
@@ -700,7 +715,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         setCoordSchoolId('');
         setCoordAssignedSchoolsStr('');
         await fetchCoordinators();
-        
+
         // Refresh school data
         const schRes = await apiFetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
         const schData = await schRes.json();
@@ -780,25 +795,22 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700 w-fit self-start">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'overview' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'overview' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+              }`}
           >
             📋 Overview
           </button>
           <button
             onClick={() => setActiveTab('coordinators')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'coordinators' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'coordinators' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+              }`}
           >
             👤 Coordinator Management
           </button>
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'analytics' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'analytics' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+              }`}
           >
             📊 Geographical Analytics
           </button>
@@ -817,58 +829,87 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         </button>
       </div>
 
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
-          <SuperAdminExecutiveDashboard user={user} token={token} />
+      {activeTab === 'overview' && (() => {
+        const schoolColumns: Column<School>[] = [
+          { header: 'School ID', accessor: 'id', sortKey: 'id', className: 'font-mono text-xs text-slate-500 dark:text-slate-400' },
+          { header: 'School Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-800 dark:text-slate-200' },
+          { header: 'State', accessor: 'stateCode', sortKey: 'stateCode', className: 'font-mono' },
+          {
+            header: 'Deployment',
+            accessor: (s) => (
+              <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400">{s.teachersCount ? `${s.teachersCount} teachers` : '—'}</span>
+            )
+          },
+          {
+            header: 'Avg Level',
+            accessor: () => <span className="font-mono font-bold text-emerald-600">Level 3.2</span>
+          }
+        ];
 
-          {/* Global Announcement Drawer */}
-          <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
-              <span>📣 Post Global Announcement & Email Escalate</span>
-            </h3>
-            <form onSubmit={postAnnouncement} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div className="md:col-span-1">
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Title</label>
-                <input
-                  type="text"
-                  value={announcementTitle}
-                  onChange={(e) => setAnnouncementTitle(e.target.value)}
-                  placeholder="Announcement title..."
-                  className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl p-2.5 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white outline-none focus:border-indigo-500"
-                />
+        return (
+          <>
+            {/* Analytics Card Deck */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <MetricCard title="Total Schools Tracked" value={schools.length} subtext="● 100% Active" icon={SchoolIcon} />
+              <MetricCard title="Primary FLN Students" value={stats?.totalStudents?.toLocaleString() ?? '—'} subtext="Across all classes" icon={Users} />
+              <MetricCard title="National FLN Score" value={stats?.avgFlnLevel ? `L${stats.avgFlnLevel}` : '—'} subtext="Average student level" icon={BarChart3} />
+              <MetricCard title="FLN Certification Rate" value={stats?.certifiedPercent != null ? `${stats.certifiedPercent}%` : '—'} subtext={stats?.certifiedCount != null ? `${stats.certifiedCount.toLocaleString()} students verified competent` : 'Loading...'} icon={Award} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* National Schools Mapping */}
+              <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
+                <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">State / School Performance Table</h3>
+                <Table data={schools} columns={schoolColumns} searchPlaceholder="Search schools by name..." searchKey="name" />
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Message Content</label>
-                <input
-                  type="text"
-                  value={announcementMsg}
-                  onChange={(e) => setAnnouncementMsg(e.target.value)}
-                  placeholder="Broadcast message details..."
-                  className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl p-2.5 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="md:col-span-1 flex flex-col justify-end gap-2">
+
+
+            {/* Create announcement / Broadcast */}
+            <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm h-fit">
+              <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-4">Post Global Announcement</h3>
+              <form onSubmit={postAnnouncement} className="space-y-4">
+                {successMsg && <div className="p-3 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded border border-green-100 dark:border-green-800">{successMsg}</div>}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={announcementTitle}
+                    onChange={(e) => setAnnouncementTitle(e.target.value)}
+                    placeholder="Announcement title..."
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Message Content</label>
+                  <textarea
+                    value={announcementMsg}
+                    onChange={(e) => setAnnouncementMsg(e.target.value)}
+                    rows={3}
+                    placeholder="Details of the broadcast..."
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
+                  />
+                </div>
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={isUrgent}
                     onChange={(e) => setIsUrgent(e.target.checked)}
-                    className="rounded border-zinc-300 text-red-600 focus:ring-red-500"
+                    className="rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white focus:ring-zinc-900"
                   />
-                  <span className="text-[11px] text-red-600 font-bold uppercase font-mono">Urgent Email</span>
+                  <span className="text-xs text-red-600 font-medium uppercase font-mono">Flag Urgent & Email Escalate</span>
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-xs py-2.5 px-4 rounded-xl hover:bg-zinc-800 transition-colors"
+                  className="w-full bg-zinc-900 text-white font-medium text-sm py-2 px-4 rounded-lg hover:bg-zinc-800 transition-colors"
                 >
-                  Broadcast
+                  Broadcast Message
                 </button>
-              </div>
-            </form>
-            {successMsg && <div className="mt-3 p-2 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded-xl border border-green-200">{successMsg}</div>}
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        </>
+        );
+      })()}
 
 
       {activeTab === 'coordinators' && (
@@ -918,7 +959,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   required
                   className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
                 />
-                
+
                 {/* Real-time complexity checklist (§3.2 A-3) */}
                 <div className="mt-2.5 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-1.5">
                   <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-bold block">Password SLA Checks</span>
@@ -974,39 +1015,39 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   <div>
                     <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
                     <input
-                       type="text"
-                       value={coordState}
-                       onChange={e => setCoordState(e.target.value.toUpperCase())}
-                       placeholder="e.g. PB"
-                       required
-                       className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
-                     />
-                   </div>
-                   
-                   {coordRole !== UserRole.ADMIN && (
-                     <div>
-                       <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
-                       <input
-                         type="text"
-                         value={coordDistrict}
-                         onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
-                         placeholder="e.g. LDH"
-                         required
-                         className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
-                       />
-                     </div>
-                   )}
+                      type="text"
+                      value={coordState}
+                      onChange={e => setCoordState(e.target.value.toUpperCase())}
+                      placeholder="e.g. PB"
+                      required
+                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                    />
+                  </div>
 
-                   {coordRole === UserRole.BLOCK_ADMIN && (
-                     <div>
-                       <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
-                       <input
-                         type="text"
-                         value={coordBlock}
-                         onChange={e => setCoordBlock(e.target.value.toUpperCase())}
-                         placeholder="e.g. LDH-01"
-                         required
-                         className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                  {coordRole !== UserRole.ADMIN && (
+                    <div>
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
+                      <input
+                        type="text"
+                        value={coordDistrict}
+                        onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
+                        placeholder="e.g. LDH"
+                        required
+                        className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                      />
+                    </div>
+                  )}
+
+                  {coordRole === UserRole.BLOCK_ADMIN && (
+                    <div>
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
+                      <input
+                        type="text"
+                        value={coordBlock}
+                        onChange={e => setCoordBlock(e.target.value.toUpperCase())}
+                        placeholder="e.g. LDH-01"
+                        required
+                        className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
                       />
                     </div>
                   )}
@@ -1016,32 +1057,32 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               {/* School scope text input for School and Teacher roles */}
               {[UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) && (
                 <div>
-                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School ID</label>
-                   <input
-                     type="text"
-                     value={coordSchoolId}
-                     onChange={e => setCoordSchoolId(e.target.value)}
-                     placeholder="e.g. gps-vl-002"
-                     required
-                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
-                   />
-                 </div>
-               )}
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School ID</label>
+                  <input
+                    type="text"
+                    value={coordSchoolId}
+                    onChange={e => setCoordSchoolId(e.target.value)}
+                    placeholder="e.g. gps-vl-002"
+                    required
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+              )}
 
-               {/* Comma-separated school IDs for Volunteers */}
-               {coordRole === UserRole.VOLUNTEER && (
-                 <div>
-                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School IDs (Comma Separated)</label>
-                   <input
-                     type="text"
-                     value={coordAssignedSchoolsStr}
-                     onChange={e => setCoordAssignedSchoolsStr(e.target.value)}
-                     placeholder="e.g. gps-vl-002, gps-jai-004"
-                     required
-                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
-                   />
-                 </div>
-               )}
+              {/* Comma-separated school IDs for Volunteers */}
+              {coordRole === UserRole.VOLUNTEER && (
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School IDs (Comma Separated)</label>
+                  <input
+                    type="text"
+                    value={coordAssignedSchoolsStr}
+                    onChange={e => setCoordAssignedSchoolsStr(e.target.value)}
+                    placeholder="e.g. gps-vl-002, gps-jai-004"
+                    required
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -1056,68 +1097,68 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           {/* Coordinators lists */}
           <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-end gap-3 justify-between">
-              <div>
-                <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Registered Coordinators Index</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">Filter coordinator records by state, district, and school.</p>
+              <div className="flex flex-wrap items-end gap-3 justify-between">
+                <div>
+                  <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Registered Coordinators Index</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Filter coordinator records by state, district, and school.</p>
+                </div>
+                <button
+                  onClick={resetCoordinatorFilters}
+                  className="text-xs font-semibold text-indigo-700 hover:underline"
+                >
+                  Reset filters
+                </button>
               </div>
-              <button
-                onClick={resetCoordinatorFilters}
-                className="text-xs font-semibold text-indigo-700 hover:underline"
-              >
-                Reset filters
-              </button>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">State</label>
-                <select
-                  value={stateFilter}
-                  onChange={(e) => {
-                    setStateFilter(e.target.value);
-                    setDistrictFilter('');
-                    setSchoolFilter('');
-                  }}
-                  className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
-                >
-                  <option value="">All states</option>
-                  {stateFilterOptions.map(code => (
-                    <option key={code} value={code}>{code}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">District</label>
-                <select
-                  value={districtFilter}
-                  onChange={(e) => {
-                    setDistrictFilter(e.target.value);
-                    setSchoolFilter('');
-                  }}
-                  className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
-                >
-                  <option value="">All districts</option>
-                  {districtFilterOptions.map(code => (
-                    <option key={code} value={code}>{code}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">School</label>
-                <select
-                  value={schoolFilter}
-                  onChange={(e) => setSchoolFilter(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
-                >
-                  <option value="">All schools</option>
-                  {schoolFilterOptions.map(id => (
-                    <option key={id} value={id}>{schoolNameById[id] ? `${schoolNameById[id]} (${id})` : id}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">State</label>
+                  <select
+                    value={stateFilter}
+                    onChange={(e) => {
+                      setStateFilter(e.target.value);
+                      setDistrictFilter('');
+                      setSchoolFilter('');
+                    }}
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
+                  >
+                    <option value="">All states</option>
+                    {stateFilterOptions.map(code => (
+                      <option key={code} value={code}>{code}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">District</label>
+                  <select
+                    value={districtFilter}
+                    onChange={(e) => {
+                      setDistrictFilter(e.target.value);
+                      setSchoolFilter('');
+                    }}
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
+                  >
+                    <option value="">All districts</option>
+                    {districtFilterOptions.map(code => (
+                      <option key={code} value={code}>{code}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">School</label>
+                  <select
+                    value={schoolFilter}
+                    onChange={(e) => setSchoolFilter(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
+                  >
+                    <option value="">All schools</option>
+                    {schoolFilterOptions.map(id => (
+                      <option key={id} value={id}>{schoolNameById[id] ? `${schoolNameById[id]} (${id})` : id}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
 
             {(() => {
               const coordinatorColumns: Column<User>[] = [
@@ -1126,9 +1167,8 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 {
                   header: 'Role Tier',
                   accessor: (c) => (
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
-                      c.role === UserRole.SUPERADMIN ? 'bg-slate-900 text-slate-100 dark:bg-slate-100 dark:text-slate-900' : c.role === UserRole.ADMIN ? 'bg-indigo-105 text-indigo-850 dark:bg-indigo-950 dark:text-indigo-200' : c.role === UserRole.DISTRICT_ADMIN ? 'bg-emerald-105 text-emerald-850 dark:bg-emerald-950 dark:text-emerald-200' : 'bg-amber-105 text-amber-855 dark:bg-amber-950 dark:text-amber-200'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${c.role === UserRole.SUPERADMIN ? 'bg-slate-900 text-slate-100 dark:bg-slate-100 dark:text-slate-900' : c.role === UserRole.ADMIN ? 'bg-indigo-105 text-indigo-850 dark:bg-indigo-950 dark:text-indigo-200' : c.role === UserRole.DISTRICT_ADMIN ? 'bg-emerald-105 text-emerald-850 dark:bg-emerald-950 dark:text-emerald-200' : 'bg-amber-105 text-amber-855 dark:bg-amber-950 dark:text-amber-200'
+                      }`}>
                       {c.role}
                     </span>
                   )
@@ -1265,7 +1305,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     const total = schStudents.length;
     const certified = schStudents.filter(s => s.currentLevel >= 5).length;
     const rate = total > 0 ? Math.round((certified / total) * 100) : 0;
-    
+
     let statusText = '';
     let isLagging = false;
     if (total === 0) {
@@ -1298,7 +1338,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     { name: 'Vipin Yadav', email: 'vol.hr_vipin@fln.org', assignedSchools: ['gps-amb-003'], status: 'On-Site Active' }
   ];
 
-  const scopedVolunteers = preseededVolunteers.filter(v => 
+  const scopedVolunteers = preseededVolunteers.filter(v =>
     v.assignedSchools.some(schId => scopedSchoolIds.includes(schId))
   );
 
@@ -1314,25 +1354,22 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700 w-fit self-start">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'overview' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'overview' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+              }`}
           >
             📋 Scoped Overview
           </button>
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'analytics' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'analytics' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+              }`}
           >
             📊 Scoped & Comparative Analytics
           </button>
           <button
             onClick={() => setActiveTab('access')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-              activeTab === 'access' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-            }`}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === 'access' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+              }`}
           >
             🛡️ Access Control & Defaulters
           </button>
@@ -1373,13 +1410,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                   <p className="text-zinc-400 dark:text-zinc-500 text-xs text-center py-6 font-mono">No preseeded schools found in this regional scope.</p>
                 ) : (
                   schoolPerformance.map(perf => (
-                    <div 
-                      key={perf.schoolId} 
-                      className={`flex justify-between items-center p-3 border rounded-lg ${
-                        perf.isLagging 
-                          ? 'border-red-100 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50' 
-                          : 'border-zinc-150 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
-                      }`}
+                    <div
+                      key={perf.schoolId}
+                      className={`flex justify-between items-center p-3 border rounded-lg ${perf.isLagging
+                        ? 'border-red-100 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50'
+                        : 'border-zinc-150 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800'
+                        }`}
                     >
                       <div>
                         <h5 className={`font-medium text-sm ${perf.isLagging ? 'text-red-900 dark:text-red-200' : 'text-zinc-900 dark:text-white'}`}>
@@ -1389,11 +1425,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                           {perf.deploymentMode}
                         </p>
                       </div>
-                      <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded border ${
-                        perf.isLagging 
-                          ? 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900 border-red-200 dark:border-red-800' 
-                          : 'text-zinc-700 dark:text-zinc-200 bg-zinc-200 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600'
-                      }`}>
+                      <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded border ${perf.isLagging
+                        ? 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900 border-red-200 dark:border-red-800'
+                        : 'text-zinc-700 dark:text-zinc-200 bg-zinc-200 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600'
+                        }`}>
                         {perf.statusText}
                       </span>
                     </div>
@@ -1467,7 +1502,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                         const schRes = await apiFetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
                         const schData = await schRes.json();
                         if (Array.isArray(schData)) setSchools(schData);
-                        
                         const uRes = await apiFetch('/api/admin/coordinators', { headers: { 'Authorization': `Bearer ${token}` } });
                         const uData = await uRes.json();
                         if (Array.isArray(uData)) setAllUsers(uData);
@@ -1487,22 +1521,20 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                         <div className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">ID: {sch.id} · Teachers: {sch.teachersCount ?? 0}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                          isLocked 
-                            ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800' 
-                            : 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
-                        }`}>
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${isLocked
+                          ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                          : 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                          }`}>
                           {isLocked ? 'LOCKED OUT' : 'ACTIVE'}
                         </span>
                         {isLocked && (
                           <button
                             disabled={!canRestore}
                             onClick={handleRestore}
-                            className={`font-mono text-[9px] font-bold px-2 py-1 rounded shadow-sm border transition-colors ${
-                              canRestore 
-                                ? 'bg-white dark:bg-slate-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 hover:border-zinc-400 cursor-pointer' 
-                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border-zinc-200 dark:border-zinc-700 cursor-not-allowed'
-                            }`}
+                            className={`font-mono text-[9px] font-bold px-2 py-1 rounded shadow-sm border transition-colors ${canRestore
+                              ? 'bg-white dark:bg-slate-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 hover:border-zinc-400 cursor-pointer'
+                              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border-zinc-200 dark:border-zinc-700 cursor-not-allowed'
+                              }`}
                             title={!canRestore ? 'Only State Admin / Superadmin can restore School access.' : ''}
                           >
                             Restore
@@ -1541,7 +1573,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                         const schRes = await apiFetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
                         const schData = await schRes.json();
                         if (Array.isArray(schData)) setSchools(schData);
-                        
                         const uRes = await apiFetch('/api/admin/coordinators', { headers: { 'Authorization': `Bearer ${token}` } });
                         const uData = await uRes.json();
                         if (Array.isArray(uData)) setAllUsers(uData);
@@ -1563,11 +1594,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                          isSuspended 
-                            ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800' 
-                            : 'text-zinc-650 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600'
-                        }`}>
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${isSuspended
+                          ? 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                          : 'text-zinc-650 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600'
+                          }`}>
                           {isSuspended ? 'SUSPENDED' : 'NORMAL'}
                         </span>
                         {isSuspended && (
@@ -1893,8 +1923,8 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         },
         body: JSON.stringify({
           name,
-          age,
-          classGroup: finalClassGroup,
+          age: Number(age),
+          class: finalClassGroup,
           section: finalSection,
           schoolId: schoolId,
           aadharNumber: aadhar
@@ -1933,13 +1963,20 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     );
   }
 
+  const [scannerStudentId, setScannerStudentId] = useState<string | undefined>(undefined);
+  const [scannerClassId, setScannerClassId] = useState<string | undefined>(undefined);
+
   if (showIcrScanner) {
     return (
       <IcrScanner
         token={token}
         user={user}
+        initialStudentId={scannerStudentId}
+        initialClassId={scannerClassId}
         onBack={() => {
           setShowIcrScanner(false);
+          setScannerStudentId(undefined);
+          setScannerClassId(undefined);
           fetchTeacherData();
         }}
       />
@@ -2057,7 +2094,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               Register Student in <span className="text-zinc-900 dark:text-white">{activeClass ? `${activeClass.className} - ${activeClass.section}` : `${cls} - ${sec}`}</span>
             </h4>
           </div>
-          
+
           {regError && (
             <div className="p-3 text-xs bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-lg border border-red-100 dark:border-red-800 font-medium">
               ⚠️ {regError}
@@ -2128,9 +2165,9 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         {classes.map(c => (
           <button
             key={c.id}
-            onClick={() => { setShowAllStudents(false); setActiveClass(c); }}
+            onClick={() => setActiveClass(c)}
             className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
-              !showAllStudents && activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+              activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
           >
             {c.className} - {c.section}
@@ -2367,17 +2404,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           {/* Class roster table */}
           <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b border-zinc-150 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
-              <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">
-                {showAllStudents ? `All Students — School Roster (${classStudents.length})` : `Classroom Student Roster (${classStudents.length})`}
-              </h3>
-              {!showAllStudents && activeClass && (
+              <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">Classroom Student Roster ({classStudents.length})</h3>
               <button
-                onClick={() => setShowWorksheetPortal(true)}
+                onClick={() => setShowWorksheetPortal(true)} // Open worksheets flow
                 className="bg-white dark:bg-slate-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-mono text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer hover:border-zinc-400 transition-colors"
               >
                 Trigger Worksheets Flow
               </button>
-              )}
             </div>
             <div className="p-4">
               {(() => {
@@ -2451,36 +2484,36 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           </div>
 
 
-          {/* Quick-action worksheets shortcuts */}
-          <div className="xl:col-span-1 space-y-4">
-            <div className="bg-white dark:bg-slate-900 p-5 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm space-y-4">
-              <h4 className="font-display font-medium text-zinc-900 dark:text-white text-sm">Exam Worksheets Engine</h4>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                Trigger class-wide personalized mathematics worksheets or grade submitted solution sheets using ICR scanner integrations.
-              </p>
-              <button
-                onClick={() => setShowBulkDiagnostic(true)}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-mono font-semibold text-xs py-3 rounded-lg transition-colors shadow cursor-pointer flex items-center justify-center gap-2"
-              >
-                <BulkIcon className="w-4 h-4" />
-                Bulk Diagnostic Generator
-              </button>
-              <button
-                onClick={() => setShowWorksheetPortal(true)} // Worksheets flow
-                className="w-full bg-zinc-950 text-white font-mono font-semibold text-xs py-3 rounded-lg hover:bg-zinc-850 transition-colors shadow cursor-pointer animate-pulse"
-              >
-                Open Personalization Portal
-              </button>
-              <button
-                onClick={() => setShowIcrScanner(true)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-semibold text-xs py-3 rounded-lg transition-colors shadow cursor-pointer"
-              >
-                ICR Answer Sheet Scanner
-              </button>
+            {/* Quick-action worksheets shortcuts */}
+            <div className="xl:col-span-1 space-y-4">
+              <div className="bg-white dark:bg-slate-900 p-5 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm space-y-4">
+                <h4 className="font-display font-medium text-zinc-900 dark:text-white text-sm">Exam Worksheets Engine</h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  Trigger class-wide personalized mathematics worksheets or grade submitted solution sheets using ICR scanner integrations.
+                </p>
+                <button
+                  onClick={() => setShowBulkDiagnostic(true)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-mono font-semibold text-xs py-3 rounded-lg transition-colors shadow cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <BulkIcon className="w-4 h-4" />
+                  Bulk Diagnostic Generator
+                </button>
+                <button
+                  onClick={() => setShowWorksheetPortal(true)} // Worksheets flow
+                  className="w-full bg-zinc-950 text-white font-mono font-semibold text-xs py-3 rounded-lg hover:bg-zinc-850 transition-colors shadow cursor-pointer animate-pulse"
+                >
+                  Open Personalization Portal
+                </button>
+                <button
+                  onClick={() => setShowIcrScanner(true)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-semibold text-xs py-3 rounded-lg transition-colors shadow cursor-pointer"
+                >
+                  ICR Answer Sheet Scanner
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
       )}
       <FLNLevelReferenceModal isOpen={showLevelRef} onClose={() => setShowLevelRef(false)} />
     </div>
@@ -2658,13 +2691,20 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
     );
   }
 
+  const [scannerStudentId, setScannerStudentId] = useState<string | undefined>(undefined);
+  const [scannerClassId, setScannerClassId] = useState<string | undefined>(undefined);
+
   if (showIcrScanner) {
     return (
       <IcrScanner
         token={token}
         user={user}
+        initialStudentId={scannerStudentId}
+        initialClassId={scannerClassId}
         onBack={() => {
           setShowIcrScanner(false);
+          setScannerStudentId(undefined);
+          setScannerClassId(undefined);
           fetchVolunteerData();
         }}
       />
@@ -2780,7 +2820,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
               Register Student in <span className="text-zinc-900 dark:text-white">{activeClass ? `${activeClass.className} - ${activeClass.section}` : `${cls} - ${sec}`}</span>
             </h4>
           </div>
-          
+
           {regError && (
             <div className="p-3 text-xs bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-lg border border-red-100 dark:border-red-800 font-medium">
               ⚠️ {regError}
@@ -2843,9 +2883,8 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
           <button
             key={c.id}
             onClick={() => setActiveClass(c)}
-            className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
-              activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-            }`}
+            className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+              }`}
           >
             {c.className} - {c.section}
           </button>
@@ -3032,116 +3071,127 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-zinc-150 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
-              <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">Classroom Student Roster ({classStudents.length})</h3>
-              <button
-                onClick={() => setShowWorksheetPortal(true)}
-                className="bg-white dark:bg-slate-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-mono text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer hover:border-zinc-400 transition-colors"
-              >
-                Trigger Worksheets Flow
-              </button>
-            </div>
-            <div className="p-4">
-              {(() => {
-                const studentColumns: Column<Student>[] = [
-                  { header: 'ID', accessor: 'id', sortKey: 'id', className: 'font-mono text-xs text-slate-400 dark:text-slate-500' },
-                  { header: 'Student Name', accessor: 'name', sortKey: 'name', className: 'font-medium text-slate-900 dark:text-slate-100' },
-                  { header: 'Aadhar / ID No.', accessor: 'aadharMasked', className: 'font-mono text-xs text-slate-500 dark:text-slate-400' },
-                  {
-                    header: 'Current Level',
-                    accessor: (s) => (
-                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-xs">
-                        L{s.currentLevel}.{s.currentSubLevel ?? 0}
-                      </span>
-                    )
-                  },
-                  {
-                    header: 'Target Level',
-                    accessor: (s) => <span className="font-mono text-slate-500 dark:text-slate-400 text-xs">Level {s.targetLevel}</span>
-                  },
-                  {
-                    header: 'Streak',
-                    accessor: (s) => <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{s.streak} 🔥</span>
-                  },
-                  {
-                    header: 'Diagnostic Status',
-                    accessor: (s) => s.levelHistory.length === 0 ? (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => setDiagnosticStudent(s)}
-                          className="bg-amber-600 hover:bg-amber-700 text-white font-mono text-[10px] font-bold px-2 py-1 rounded cursor-pointer"
-                        >
-                          Run Diagnostic
-                        </button>
-                        <button
-                          onClick={() => setBaselineStudent(s)}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-mono text-[10px] font-bold px-2 py-1 rounded cursor-pointer"
-                        >
-                          Upload Sheet
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-green-700 dark:text-green-400 font-mono text-[9px] font-bold uppercase bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">
-                          Placed
+            <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-zinc-150 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
+                <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">Classroom Student Roster ({classStudents.length})</h3>
+                <button
+                  onClick={() => setShowWorksheetPortal(true)}
+                  className="bg-white dark:bg-slate-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-mono text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer hover:border-zinc-400 transition-colors"
+                >
+                  Trigger Worksheets Flow
+                </button>
+              </div>
+              <div className="p-4">
+                {(() => {
+                  const studentColumns: Column<Student>[] = [
+                    { header: 'ID', accessor: 'id', sortKey: 'id', className: 'font-mono text-xs text-slate-400 dark:text-slate-500' },
+                    { header: 'Student Name', accessor: 'name', sortKey: 'name', className: 'font-medium text-slate-900 dark:text-slate-100' },
+                    { header: 'Aadhar / ID No.', accessor: 'aadharMasked', className: 'font-mono text-xs text-slate-500 dark:text-slate-400' },
+                    {
+                      header: 'Current Level',
+                      accessor: (s) => (
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-xs">
+                          L{s.currentLevel}.{s.currentSubLevel ?? 0}
                         </span>
-                        <button
-                          onClick={() => handlePrintLevelWorksheet(s)}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95"
-                          title="Generate and print level-wise question paper using Levels_wise_question_generator pipeline"
-                        >
-                          Print L{s.currentLevel}.{s.currentSubLevel || 0}
-                        </button>
-                        <a
-                          href={withBase(`/worksheets/levels_main.html?level=${s.currentLevel}&sub=${s.currentSubLevel || 0}`)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1"
-                          title="Open in-browser interactive generator for this specific level"
-                        >
-                          🌐 Interactive
-                        </a>
-                      </div>
-                    )
-                  }
-                ];
-                return (
-                  <Table data={classStudents} columns={studentColumns} searchPlaceholder="Search roster by name..." searchKey="name" />
-                );
-              })()}
+                      )
+                    },
+                    {
+                      header: 'Target Level',
+                      accessor: (s) => <span className="font-mono text-slate-500 dark:text-slate-400 text-xs">Level {s.targetLevel}</span>
+                    },
+                    {
+                      header: 'Streak',
+                      accessor: (s) => <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{s.streak} 🔥</span>
+                    },
+                    {
+                      header: 'Diagnostic Status',
+                      accessor: (s) => s.levelHistory.length === 0 ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => setDiagnosticStudent(s)}
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-mono text-[10px] font-bold px-2 py-1 rounded cursor-pointer"
+                          >
+                            Run Diagnostic
+                          </button>
+                          <button
+                            onClick={() => setBaselineStudent(s)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-mono text-[10px] font-bold px-2 py-1 rounded cursor-pointer"
+                          >
+                            Upload Sheet
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-700 dark:text-green-400 font-mono text-[9px] font-bold uppercase bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">
+                            Placed
+                          </span>
+                          <button
+                            onClick={() => handlePrintLevelWorksheet(s)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95"
+                            title="Generate and print level-wise question paper using Levels_wise_question_generator pipeline"
+                          >
+                            Print L{s.currentLevel}.{s.currentSubLevel || 0}
+                          </button>
+                          <a
+                            href={withBase(`/worksheets/levels_main.html?level=${s.currentLevel}&sub=${s.currentSubLevel || 0}`)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1"
+                            title="Open in-browser interactive generator for this specific level"
+                          >
+                            🌐 Interactive
+                          </a>
+                          <button
+                            onClick={() => {
+                              setScannerStudentId(s.id);
+                              setScannerClassId(activeClass?.id);
+                              setShowIcrScanner(true);
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95"
+                            title="Automatically grade this student's worksheet using ICR Scanner"
+                          >
+                            Scan Worksheet
+                          </button>
+                        </div>
+                      )
+                    }
+                  ];
+                  return (
+                    <Table data={classStudents} columns={studentColumns} searchPlaceholder="Search roster by name..." searchKey="name" />
+                  );
+                })()}
+              </div>
             </div>
-          </div>
 
-          <div className="xl:col-span-1 space-y-4">
-            <div className="bg-white dark:bg-slate-900 p-5 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm space-y-4">
-              <h4 className="font-display font-medium text-zinc-900 dark:text-white text-sm">Exam Worksheets Engine</h4>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                Trigger class-wide personalized mathematics worksheets or grade submitted solution sheets using ICR scanner integrations.
-              </p>
-              <button
-                onClick={() => setShowBulkDiagnostic(true)}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-mono font-semibold text-xs py-3 rounded-lg transition-colors shadow cursor-pointer flex items-center justify-center gap-2"
-              >
-                <BulkIcon className="w-4 h-4" />
-                Bulk Diagnostic Generator
-              </button>
-              <button
-                onClick={() => setShowWorksheetPortal(true)}
-                className="w-full bg-zinc-950 text-white font-mono font-semibold text-xs py-3 rounded-lg hover:bg-zinc-850 transition-colors shadow cursor-pointer animate-pulse"
-              >
-                Open Personalization Portal
-              </button>
-              <button
-                onClick={() => setShowIcrScanner(true)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-semibold text-xs py-3 rounded-lg transition-colors shadow cursor-pointer"
-              >
-                ICR Answer Sheet Scanner
-              </button>
+            <div className="xl:col-span-1 space-y-4">
+              <div className="bg-white dark:bg-slate-900 p-5 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm space-y-4">
+                <h4 className="font-display font-medium text-zinc-900 dark:text-white text-sm">Exam Worksheets Engine</h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  Trigger class-wide personalized mathematics worksheets or grade submitted solution sheets using ICR scanner integrations.
+                </p>
+                <button
+                  onClick={() => setShowBulkDiagnostic(true)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-mono font-semibold text-xs py-3 rounded-lg transition-colors shadow cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <BulkIcon className="w-4 h-4" />
+                  Bulk Diagnostic Generator
+                </button>
+                <button
+                  onClick={() => setShowWorksheetPortal(true)}
+                  className="w-full bg-zinc-950 text-white font-mono font-semibold text-xs py-3 rounded-lg hover:bg-zinc-850 transition-colors shadow cursor-pointer animate-pulse"
+                >
+                  Open Personalization Portal
+                </button>
+                <button
+                  onClick={() => setShowIcrScanner(true)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-semibold text-xs py-3 rounded-lg transition-colors shadow cursor-pointer"
+                >
+                  ICR Answer Sheet Scanner
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
       )}
       <FLNLevelReferenceModal isOpen={showLevelRef} onClose={() => setShowLevelRef(false)} />
     </div>

@@ -22,7 +22,7 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "react", "react-dom"]
   },
   "include": [
     "src/**/*"

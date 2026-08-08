@@ -141,9 +141,11 @@ async function processBatch(roster, existingBatchId) {
   updateStatus(batchId, { total: jobs.length, message: `Rendering ${jobs.length} file(s)...` });
 
   // Render pool: each worker owns its own page for the whole run.
-  const pages = await Promise.all(
-    Array.from({ length: Math.min(CONCURRENCY, Math.max(1, jobs.length)) }, () => createRenderPage())
-  );
+  const pages = [];
+  const pagesCount = Math.min(CONCURRENCY, Math.max(1, jobs.length));
+  for (let i = 0; i < pagesCount; i++) {
+    pages.push(await createRenderPage());
+  }
 
   let processed = 0;
   const errors = [];

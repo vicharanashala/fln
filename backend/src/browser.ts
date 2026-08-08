@@ -8,20 +8,31 @@ import puppeteer, { Browser } from 'puppeteer';
 //
 // If the browser can't start (not installed, or missing system libraries), we
 // throw one clear, actionable error instead of a raw Puppeteer stack trace.
+let browserPromise: Promise<Browser> | null = null;
+
 export async function launchBrowser(): Promise<Browser> {
-  const executablePath = process.env.CHROME_EXECUTABLE_PATH || undefined;
-  try {
-    return await puppeteer.launch({
-      headless: true,
-      executablePath,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-  } catch (err: any) {
-    throw new Error(
-      'Failed to launch Chrome for PDF generation. Install the browser with ' +
-        '`npx puppeteer browsers install chrome` (and its system libraries), or set ' +
-        'CHROME_EXECUTABLE_PATH to a valid Chrome binary. Original error: ' +
-        (err?.message || String(err)),
-    );
+  if (browserPromise) {
+    return browserPromise;
   }
+
+  const executablePath = process.env.CHROME_EXECUTABLE_PATH || undefined;
+  browserPromise = (async () => {
+    try {
+      return await puppeteer.launch({
+        headless: true,
+        executablePath,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--allow-file-access-from-files'],
+      });
+    } catch (err: any) {
+      browserPromise = null;
+      throw new Error(
+        'Failed to launch Chrome for PDF generation. Install the browser with ' +
+          '`npx puppeteer browsers install chrome` (and its system libraries), or set ' +
+          'CHROME_EXECUTABLE_PATH to a valid Chrome binary. Original error: ' +
+          (err?.message || String(err)),
+      );
+    }
+  })();
+
+  return browserPromise;
 }

@@ -74,6 +74,7 @@ export interface Question {
   question: string;
   answer: string;
   answer_type: 'text' | 'number' | 'choice';
+  questionType?: string;
   choices?: string[];
   topic: string;
   subtopic: string;
@@ -129,6 +130,9 @@ export interface EvaluationReport {
   id: string;
   studentId: string;
   worksheetId: string;
+  worksheetType?: 'diagnostic' | 'level';
+  levelId?: number;
+  sublevelId?: number;
   score: number;
   totalQuestions: number;
   conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' };
@@ -136,6 +140,7 @@ export interface EvaluationReport {
   recommendedLevel: number;
   recommendedSubLevel?: number;
   timestamp: string;
+  responses?: any[];
 }
 
 export interface Ticket {

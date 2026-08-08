@@ -209,6 +209,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Content', view: 'content', icon: BookOpen });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Exam Blueprint', view: 'exam_blueprint', icon: Database });
         list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });
         list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
         break;

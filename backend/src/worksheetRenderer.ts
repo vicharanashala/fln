@@ -162,6 +162,6 @@ export async function renderBatch(
 
     return results;
   } finally {
-    await browser.close();
+    // Shared browser is kept open; page instances are closed inside renderSingle
   }
 }
