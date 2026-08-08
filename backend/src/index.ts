@@ -335,6 +335,14 @@ async function startServer() {
       return res.status(400).json({ error: 'User with this email already exists.' });
     }
 
+    if (stateCode && !/^[A-Za-z]{2}$/.test(stateCode)) {
+      return res.status(400).json({ error: 'State code must be 2 uppercase letters (e.g. PB)' });
+    }
+
+    if (districtCode && !/^[A-Za-z]{3}$/.test(districtCode)) {
+      return res.status(400).json({ error: 'District code must be 3 uppercase letters (e.g. LDH)' });
+    }
+
     if (blockCode && !/^[A-Za-z]{3}-\d{2}$/.test(blockCode)) {
       return res.status(400).json({ error: 'Block code must be in the format XXX-00 (e.g. LDH-01)' });
     }

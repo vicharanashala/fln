@@ -669,6 +669,24 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       ? coordAssignedSchoolsStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
       : undefined;
 
+    if (coordState && !/^[A-Z]{2}$/.test(coordState.trim().toUpperCase())) {
+      setCoordError('State Code must be 2 uppercase letters (e.g. PB)');
+      setLoading(false);
+      return;
+    }
+
+    if (coordDistrict && !/^[A-Z]{3}$/.test(coordDistrict.trim().toUpperCase())) {
+      setCoordError('District Code must be 3 uppercase letters (e.g. LDH)');
+      setLoading(false);
+      return;
+    }
+
+    if (coordBlock && !/^[A-Z]{3}-\d{2}$/.test(coordBlock.trim().toUpperCase())) {
+      setCoordError('Block Code must be in the format XXX-00 (e.g. LDH-01)');
+      setLoading(false);
+      return;
+    }
+
     if ([UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole)) {
       if (!coordSchoolId || !/^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$/.test(coordSchoolId.trim().toLowerCase())) {
         setCoordError('Assigned School ID must be strictly formatted like gps-vl-002 (3-part format ending in 3 digits)');
@@ -994,6 +1012,8 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                     onChange={e => setCoordState(e.target.value.toUpperCase())}
                     placeholder="e.g. PB"
                     required
+                    pattern="^[A-Z]{2}$"
+                    title="State Code must be 2 uppercase letters (e.g. PB)"
                     className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
                   />
                 </div>
@@ -1007,6 +1027,8 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                       onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
                       placeholder="e.g. LDH"
                       required
+                      pattern="^[A-Z]{3}$"
+                      title="District Code must be 3 uppercase letters (e.g. LDH)"
                       className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
                     />
                   </div>
