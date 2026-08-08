@@ -18,6 +18,20 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
+// studentName/studentId are admin/teacher-entered data, not sanitized on the
+// way in, and get interpolated into HTML that's fed to a real, network-
+// capable headless Chrome instance (printPage.setContent below). Escape
+// before interpolating so a crafted name can't inject markup that Puppeteer
+// would then execute.
+function escapeHtml(s: string): string {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export interface PaperGenerationResult {
   fileName: string;
   filePath: string;
@@ -373,10 +387,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#fff;color:var(
       <div class="page-wrapper">
         <div class="page-header">
           <h1>Level Personalized Worksheet</h1>
-          <span class="sub">Student: ${studentName.toUpperCase()} · Level ${levelId}.${subIdx}</span>
+          <span class="sub">Student: ${escapeHtml(studentName.toUpperCase())} · Level ${levelId}.${subIdx}</span>
         </div>
         ${data.html}
-        <div class="footer-stamp">Student ID: ${studentId} · Date: ${new Date().toLocaleDateString()}</div>
+        <div class="footer-stamp">Student ID: ${escapeHtml(studentId)} · Date: ${new Date().toLocaleDateString()}</div>
       </div>
     </body></html>`;
 
