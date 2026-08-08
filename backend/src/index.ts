@@ -508,10 +508,17 @@ registerStatsRoutes(app);
       // limit a single query takes multi-seconds and the dashboard hangs. Push the
       // limit/offset into mongo. Default 1000 unless caller opts in to full set.
       const DEFAULT_LIMIT = 1000;
+      // `all=1` used to set limit=0, which the code below only forwards to the
+      // query `if (limit > 0)` — so 0 meant "no limit passed at all", i.e. a
+      // true unbounded dump of the whole table in one response. HARD_MAX_ROWS
+      // keeps `all=1` useful (bypass the default page size) without removing
+      // the ceiling entirely; genuine full-table reads still work via `offset`
+      // pagination in a loop, which this endpoint already supports.
+      const HARD_MAX_ROWS = 10000;
       const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
       const requestedOffset = parseInt(String(req.query.offset ?? ''), 10) || 0;
       const wantAll = req.query.all === '1' || req.query.all === 'true';
-      const limit = wantAll ? 0 : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
+      const limit = wantAll ? HARD_MAX_ROWS : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
 
       // server-side role scoping
       let schoolScope: string | undefined;
