@@ -173,11 +173,50 @@ async function startServer() {
       }
 
       const info = await transporter.sendMail({
-        from: process.env.SMTP_FROM || '"FLN Platform" <noreply@fln-platform.com>',
+        from: process.env.SMTP_FROM || '"FLN Security Center" <noreply@fln-platform.com>',
         to: user.email,
-        subject: 'Password Reset Request',
-        text: `Hello ${user.name},\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetLink}\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe FLN Platform Team`,
-        html: `<p>Hello ${user.name},</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br>The FLN Platform Team</p>`
+        subject: '🚨 SECURITY WARNING: Password Reset Requested for Your Account',
+        text: `Hello ${user.name},\n\n======================================================\n🚨 CRITICAL SECURITY WARNING: PASSWORD RESET REQUESTED\n======================================================\nA password reset request was initiated for your FLN account (${user.email}).\n\nIF YOU DID NOT REQUEST THIS RESET:\nSomeone else entered your email address on the FLN portal attempting to reset your password.\n• Your account remains 100% SECURE.\n• Your password has NOT been changed.\n• The requester received NO information or access.\n\nIF YOU REQUESTED THIS RESET:\nUse the secure link below to reset your password:\n${resetLink}\n\nDo NOT share this link with anyone.\n\nFLN Cybersecurity & Oversight Team`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #cbd5e1; border-radius: 12px; background-color: #ffffff;">
+            <div style="background-color: #991b1b; padding: 18px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h2 style="color: #ffffff; margin: 0; font-size: 18px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">🚨 CRITICAL SECURITY ALERT</h2>
+            </div>
+            
+            <div style="padding: 24px 20px; color: #1e293b;">
+              <p style="font-size: 15px; margin-top: 0;">Hello <strong>${user.name}</strong>,</p>
+              
+              <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-left: 5px solid #dc2626; padding: 16px; margin: 20px 0; border-radius: 6px;">
+                <h4 style="margin: 0 0 6px 0; color: #991b1b; font-size: 13px; font-weight: 800; text-transform: uppercase; tracking: wider;">⚠️ SECURITY WARNING: UNAUTHORIZED RESET ATTEMPT</h4>
+                <p style="margin: 0; font-size: 13px; color: #7f1d1d; line-height: 1.5;">
+                  A password reset attempt was initiated for your FLN account (<strong>${user.email}</strong>).<br><br>
+                  <strong>If this was NOT you:</strong> Someone else entered your email address on the FLN portal trying to access your account. <strong>Your account is completely SAFE.</strong> Your password has not been changed, and no reset link or information was shared with the requester — only you received this notice.
+                </p>
+              </div>
+
+              <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+                If <strong>YOU</strong> requested this password reset, click the secure button below to set a new password:
+              </p>
+
+              <div style="text-align: center; margin: 28px 0;">
+                <a href="${resetLink}" style="background-color: #1e293b; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  Reset My Password
+                </a>
+              </div>
+
+              <p style="font-size: 12px; color: #64748b; margin-top: 24px; word-break: break-all;">
+                If the button above does not work, copy and paste this link into your browser:<br>
+                <a href="${resetLink}" style="color: #2563eb; text-decoration: underline;">${resetLink}</a>
+              </p>
+              
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+              
+              <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">
+                FLN National Oversight & Cybersecurity Team • Automated security dispatch to account owner.
+              </p>
+            </div>
+          </div>
+        `
       });
       
       console.log(`📧 Email successfully sent to ${user.email}`);
