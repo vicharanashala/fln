@@ -48,6 +48,23 @@ const authRateLimiter = rateLimit({
   message: { error: 'Too many login attempts. Please try again later.' },
 });
 
+// Throttle ICR OCR endpoints: each request can trigger a paid external API
+// call (Google Vision / MiniMax / OCR.space) or a 60s local subprocess, and
+// were previously reachable by any authenticated account with no limit at
+// all — an easy way to run up the server's cloud OCR bill or exhaust CPU.
+const icrRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many OCR requests. Please try again later.' },
+});
+
+// Same 8MB ceiling /api/icr/filter already enforces on decoded input — apply
+// it to the other two upload endpoints too so none of them accept an
+// unbounded payload before spawning a subprocess or calling an external API.
+const ICR_MAX_DECODED_BYTES = 8 * 1024 * 1024;
+
 // Builds and returns the fully-routed Express app, with no Vite mount and no
 // .listen() call. Split out from startServer() so tests can get a handle on
 // a real, working app (same routes, same middleware) and wrap it in their
@@ -1177,7 +1194,7 @@ const students = await dbStore.getStudents();
       });
 
   // ICR Answer Sheet Scanner (Single or Bulk Class Evaluation for PDF & Image uploads with EasyOCR)
-  app.post('/api/icr/evaluate-pdf', async (req, res) => {
+  app.post('/api/icr/evaluate-pdf', icrRateLimiter, async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -1198,7 +1215,11 @@ const students = await dbStore.getStudents();
       const ext = path.extname(filename || 'worksheet.jpg') || '.jpg';
       const tempFilePath = path.join(tempDir, `scan_noclass_${Date.now()}_file${ext}`);
       const cleanBase64 = inputBase64.includes(',') ? inputBase64.split(',')[1] : inputBase64;
-      fs.writeFileSync(tempFilePath, Buffer.from(cleanBase64, 'base64'));
+      const decodedBuf = Buffer.from(cleanBase64, 'base64');
+      if (decodedBuf.length > ICR_MAX_DECODED_BYTES) {
+        return res.status(413).json({ error: `File too large (max ${ICR_MAX_DECODED_BYTES / (1024 * 1024)} MB).` });
+      }
+      fs.writeFileSync(tempFilePath, decodedBuf);
       try {
         const { execFileSync } = await import('child_process');
         const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'ocr.py');
@@ -1220,8 +1241,6 @@ const students = await dbStore.getStudents();
           const conf = typeof item === 'object' && item?.confidence != null ? item.confidence : 0.5;
           answers[`q_${i + 1}`] = { value: String(value), confidence: Number(conf) || 0.5, blue_pixels: 0 };
         });
-        // Cleanup temp file
-        try { fs.unlinkSync(tempFilePath); } catch { /* noop */ }
         return res.json({
           success: true,
           isSingleImage: true,
@@ -1243,9 +1262,16 @@ const students = await dbStore.getStudents();
           ? 'OCR took too long (>60s) and was timed out. The image may be very large or the EasyOCR model is still warming up. Try again.'
           : raw;
         return res.status(500).json({ success: false, error: `EasyOCR failed: ${friendly}` });
+      } finally {
+        // Always clean up, including on the error/timeout paths above — an
+        // unhandled exec failure used to leave tempFilePath on disk forever.
+        try { fs.unlinkSync(tempFilePath); } catch { /* noop */ }
       }
     }
 
+    // Declared outside the try so the finally below can always clean it up,
+    // even if something throws before the loop's own inline cleanup runs.
+    let tempFilePath: string | undefined;
     try {
       const classes = await dbStore.getClasses();
       let targetClass = classes.find(c => c.id === classId || c.className.toLowerCase() === String(classId).toLowerCase());
@@ -1291,10 +1317,14 @@ const students = await dbStore.getStudents();
       const tempDir = path.join(AI_SERVICES_DIR, 'scratch');
       fs.mkdirSync(tempDir, { recursive: true });
       const ext = path.extname(filename || 'worksheet.pdf') || '.pdf';
-      const tempFilePath = path.join(tempDir, `scan_${Date.now()}_file${ext}`);
+      tempFilePath = path.join(tempDir, `scan_${Date.now()}_file${ext}`);
 
       const cleanBase64 = inputBase64.includes(',') ? inputBase64.split(',')[1] : inputBase64;
-      fs.writeFileSync(tempFilePath, Buffer.from(cleanBase64, 'base64'));
+      const decodedBuf = Buffer.from(cleanBase64, 'base64');
+      if (decodedBuf.length > ICR_MAX_DECODED_BYTES) {
+        return res.status(413).json({ error: `File too large (max ${ICR_MAX_DECODED_BYTES / (1024 * 1024)} MB).` });
+      }
+      fs.writeFileSync(tempFilePath, decodedBuf);
 
       const classMatch = targetClass.className.match(/\d+/);
       const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
@@ -1494,6 +1524,11 @@ const students = await dbStore.getStudents();
     } catch (err: any) {
       console.error('ICR PDF Evaluation Error:', err);
       res.status(500).json({ error: err.message || 'Failed to process ICR PDF scan.' });
+    } finally {
+      // Safety net for any throw before the loop's own inline cleanup runs
+      // (e.g. a dbStore call failing mid-evaluation) — otherwise the temp
+      // file leaks into ai-services/scratch permanently.
+      if (tempFilePath) { try { fs.unlinkSync(tempFilePath); } catch { /* noop */ } }
     }
   });
 
@@ -1566,7 +1601,7 @@ const students = await dbStore.getStudents();
   });
 
   // OCR endpoint: takes {provider, imageDataUrl} only. NO apiKey from frontend.
-  app.post('/api/icr/evaluate-cloud', async (req, res) => {
+  app.post('/api/icr/evaluate-cloud', icrRateLimiter, async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -1588,6 +1623,10 @@ const students = await dbStore.getStudents();
     // Strip the data URL prefix -> raw base64
     const commaIdx = imageDataUrl.indexOf(',');
     const base64Body = commaIdx >= 0 ? imageDataUrl.slice(commaIdx + 1) : imageDataUrl;
+    const decodedBuf = Buffer.from(base64Body, 'base64');
+    if (decodedBuf.length > ICR_MAX_DECODED_BYTES) {
+      return res.status(413).json({ error: `File too large (max ${ICR_MAX_DECODED_BYTES / (1024 * 1024)} MB).` });
+    }
     const t0 = Date.now();
 
     try {
