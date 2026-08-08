@@ -13,12 +13,13 @@ dotenv.config({ path: path.resolve(__dotenv_dir, '..', '.env') });
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice } from './db';
-import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
+import { generateAIDiagnostic, evaluateAIDiagnostic, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS } from './geoData';
 import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN, SEED_DEMO_PASSWORD_HASH } from './auth';
+import { MAX_LEVEL, CERTIFICATION_LEVEL } from '../../shared/constants';
 import { registerAnnouncementRoutes } from './routes/announcements';
 import { registerStatsRoutes } from './routes/stats';
 import { randomUUID } from 'crypto';
@@ -47,7 +48,53 @@ const authRateLimiter = rateLimit({
   message: { error: 'Too many login attempts. Please try again later.' },
 });
 
-async function startServer() {
+// Throttle ICR OCR endpoints: each request can trigger a paid external API
+// call (Google Vision / MiniMax / OCR.space) or a 60s local subprocess, and
+// were previously reachable by any authenticated account with no limit at
+// all — an easy way to run up the server's cloud OCR bill or exhaust CPU.
+const icrRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many OCR requests. Please try again later.' },
+});
+
+// Same 8MB ceiling /api/icr/filter already enforces on decoded input — apply
+// it to the other two upload endpoints too so none of them accept an
+// unbounded payload before spawning a subprocess or calling an external API.
+const ICR_MAX_DECODED_BYTES = 8 * 1024 * 1024;
+
+// The students collection has 86400+ docs in Atlas; without a server-side
+// limit a single query takes multi-seconds and the dashboard hangs.
+const STUDENTS_DEFAULT_LIMIT = 1000;
+// `all=1` used to set limit=0, which the query builder only forwards
+// `if (limit > 0)` — so 0 meant "no limit passed at all", i.e. a true
+// unbounded dump of the whole table in one response. This ceiling keeps
+// `all=1` useful (bypass the default page size) without removing the limit
+// entirely; genuine full-table reads still work via `offset` pagination in
+// a loop, which /api/students already supports.
+const STUDENTS_HARD_MAX_ROWS = 10000;
+
+// Pulled out of the /api/students handler as a small pure function so it's
+// directly unit-testable against the real ceiling value, instead of only
+// provable by seeding 10,000+ rows into a test database.
+export function resolveStudentsQueryLimit(query: { all?: unknown; limit?: unknown }): number {
+  const wantAll = query.all === '1' || query.all === 'true';
+  if (wantAll) return STUDENTS_HARD_MAX_ROWS;
+  const requestedLimit = parseInt(String(query.limit ?? ''), 10);
+  if (Number.isFinite(requestedLimit) && requestedLimit > 0) {
+    return Math.min(requestedLimit, STUDENTS_DEFAULT_LIMIT * 5);
+  }
+  return STUDENTS_DEFAULT_LIMIT;
+}
+
+// Builds and returns the fully-routed Express app, with no Vite mount and no
+// .listen() call. Split out from startServer() so tests can get a handle on
+// a real, working app (same routes, same middleware) and wrap it in their
+// own ephemeral http server, instead of needing the dev-server's Vite
+// middleware or a fixed port.
+export async function createApp() {
   // Connect to MongoDB
   await connectDB();
 
@@ -481,14 +528,8 @@ registerStatsRoutes(app);
       const user = getAuthUser(req);
       if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-      // The students collection has 86400+ docs in Atlas; without a server-side
-      // limit a single query takes multi-seconds and the dashboard hangs. Push the
-      // limit/offset into mongo. Default 1000 unless caller opts in to full set.
-      const DEFAULT_LIMIT = 1000;
-      const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
       const requestedOffset = parseInt(String(req.query.offset ?? ''), 10) || 0;
-      const wantAll = req.query.all === '1' || req.query.all === 'true';
-      const limit = wantAll ? 0 : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
+      const limit = resolveStudentsQueryLimit(req.query);
 
       // server-side role scoping
       let schoolScope: string | undefined;
@@ -759,12 +800,12 @@ const students = await dbStore.getStudents();
       const startLevel = (classNumber - 1) * 12 + 1;
       questions = [];
       for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-        const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 93), 0);
+        const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, MAX_LEVEL), 0);
         lvlQuestions.forEach(q => {
           questions.push({
             ...q,
             question_id: `DIAG_${lvl}_${q.question_id}`,
-            source_level: Math.min(lvl, 93)
+            source_level: Math.min(lvl, MAX_LEVEL)
           });
         });
       }
@@ -973,7 +1014,7 @@ const students = await dbStore.getStudents();
     await dbStore.updateStudent(student.id, {
       currentLevel: recommendedLevel,
       currentSubLevel: subLevel,
-      targetLevel: Math.min(93, recommendedLevel + 1),
+      targetLevel: Math.min(MAX_LEVEL, recommendedLevel + 1),
       levelHistory
     });
 
@@ -1171,7 +1212,7 @@ const students = await dbStore.getStudents();
       });
 
   // ICR Answer Sheet Scanner (Single or Bulk Class Evaluation for PDF & Image uploads with EasyOCR)
-  app.post('/api/icr/evaluate-pdf', async (req, res) => {
+  app.post('/api/icr/evaluate-pdf', icrRateLimiter, async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -1192,7 +1233,11 @@ const students = await dbStore.getStudents();
       const ext = path.extname(filename || 'worksheet.jpg') || '.jpg';
       const tempFilePath = path.join(tempDir, `scan_noclass_${Date.now()}_file${ext}`);
       const cleanBase64 = inputBase64.includes(',') ? inputBase64.split(',')[1] : inputBase64;
-      fs.writeFileSync(tempFilePath, Buffer.from(cleanBase64, 'base64'));
+      const decodedBuf = Buffer.from(cleanBase64, 'base64');
+      if (decodedBuf.length > ICR_MAX_DECODED_BYTES) {
+        return res.status(413).json({ error: `File too large (max ${ICR_MAX_DECODED_BYTES / (1024 * 1024)} MB).` });
+      }
+      fs.writeFileSync(tempFilePath, decodedBuf);
       try {
         const { execFileSync } = await import('child_process');
         const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'ocr.py');
@@ -1214,8 +1259,6 @@ const students = await dbStore.getStudents();
           const conf = typeof item === 'object' && item?.confidence != null ? item.confidence : 0.5;
           answers[`q_${i + 1}`] = { value: String(value), confidence: Number(conf) || 0.5, blue_pixels: 0 };
         });
-        // Cleanup temp file
-        try { fs.unlinkSync(tempFilePath); } catch { /* noop */ }
         return res.json({
           success: true,
           isSingleImage: true,
@@ -1237,9 +1280,16 @@ const students = await dbStore.getStudents();
           ? 'OCR took too long (>60s) and was timed out. The image may be very large or the EasyOCR model is still warming up. Try again.'
           : raw;
         return res.status(500).json({ success: false, error: `EasyOCR failed: ${friendly}` });
+      } finally {
+        // Always clean up, including on the error/timeout paths above — an
+        // unhandled exec failure used to leave tempFilePath on disk forever.
+        try { fs.unlinkSync(tempFilePath); } catch { /* noop */ }
       }
     }
 
+    // Declared outside the try so the finally below can always clean it up,
+    // even if something throws before the loop's own inline cleanup runs.
+    let tempFilePath: string | undefined;
     try {
       const classes = await dbStore.getClasses();
       let targetClass = classes.find(c => c.id === classId || c.className.toLowerCase() === String(classId).toLowerCase());
@@ -1273,7 +1323,7 @@ const students = await dbStore.getStudents();
             section: targetClass.section || 'A',
             schoolId: 'gps-mt-001',
             currentLevel: classNum * 10,
-            targetLevel: 93,
+            targetLevel: MAX_LEVEL,
             aadharMasked: 'XXXX-XXXX-1234',
             levelHistory: [],
             streak: 0
@@ -1285,10 +1335,14 @@ const students = await dbStore.getStudents();
       const tempDir = path.join(AI_SERVICES_DIR, 'scratch');
       fs.mkdirSync(tempDir, { recursive: true });
       const ext = path.extname(filename || 'worksheet.pdf') || '.pdf';
-      const tempFilePath = path.join(tempDir, `scan_${Date.now()}_file${ext}`);
+      tempFilePath = path.join(tempDir, `scan_${Date.now()}_file${ext}`);
 
       const cleanBase64 = inputBase64.includes(',') ? inputBase64.split(',')[1] : inputBase64;
-      fs.writeFileSync(tempFilePath, Buffer.from(cleanBase64, 'base64'));
+      const decodedBuf = Buffer.from(cleanBase64, 'base64');
+      if (decodedBuf.length > ICR_MAX_DECODED_BYTES) {
+        return res.status(413).json({ error: `File too large (max ${ICR_MAX_DECODED_BYTES / (1024 * 1024)} MB).` });
+      }
+      fs.writeFileSync(tempFilePath, decodedBuf);
 
       const classMatch = targetClass.className.match(/\d+/);
       const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
@@ -1316,7 +1370,7 @@ const students = await dbStore.getStudents();
             section: targetClass.section || 'A',
             schoolId: 'gps-mt-001',
             currentLevel: classNumber * 10,
-            targetLevel: 93,
+            targetLevel: MAX_LEVEL,
             aadharMasked: 'XXXX-XXXX-1234',
             levelHistory: [],
             streak: 0
@@ -1395,7 +1449,11 @@ const students = await dbStore.getStudents();
         }
 
         const percentage = Math.round((score / totalQ) * 100);
-        const recommendedLevel = Math.max(1, Math.min(93, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
+        const recommendedLevel = Math.max(1, Math.min(MAX_LEVEL, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
+        // Note: this 80/50 sub-level banding is a separate, 3-tier scheme from the
+        // Strong/Satisfactory concept-mastery bands below — not the same threshold
+        // despite sharing the "80" value, so it's intentionally left as a literal
+        // rather than forced onto SCORE_BAND_STRONG/SCORE_BAND_SATISFACTORY.
         const subLevel = percentage >= 80 ? 0 : percentage >= 50 ? 1 : 2;
 
         const levelHistory = [...(student.levelHistory || []), {
@@ -1408,7 +1466,7 @@ const students = await dbStore.getStudents();
         await dbStore.updateStudent(student.id, {
           currentLevel: recommendedLevel,
           currentSubLevel: subLevel,
-          targetLevel: Math.min(93, recommendedLevel + 1),
+          targetLevel: Math.min(MAX_LEVEL, recommendedLevel + 1),
           levelHistory
         });
 
@@ -1484,6 +1542,11 @@ const students = await dbStore.getStudents();
     } catch (err: any) {
       console.error('ICR PDF Evaluation Error:', err);
       res.status(500).json({ error: err.message || 'Failed to process ICR PDF scan.' });
+    } finally {
+      // Safety net for any throw before the loop's own inline cleanup runs
+      // (e.g. a dbStore call failing mid-evaluation) — otherwise the temp
+      // file leaks into ai-services/scratch permanently.
+      if (tempFilePath) { try { fs.unlinkSync(tempFilePath); } catch { /* noop */ } }
     }
   });
 
@@ -1556,7 +1619,7 @@ const students = await dbStore.getStudents();
   });
 
   // OCR endpoint: takes {provider, imageDataUrl} only. NO apiKey from frontend.
-  app.post('/api/icr/evaluate-cloud', async (req, res) => {
+  app.post('/api/icr/evaluate-cloud', icrRateLimiter, async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -1568,16 +1631,23 @@ const students = await dbStore.getStudents();
       return res.status(400).json({ error: 'provider must be one of google/aws/azure/minimax/ocrspace.' });
     }
 
+    // Strip the data URL prefix -> raw base64
+    const commaIdx = imageDataUrl.indexOf(',');
+    const base64Body = commaIdx >= 0 ? imageDataUrl.slice(commaIdx + 1) : imageDataUrl;
+    const decodedBuf = Buffer.from(base64Body, 'base64');
+    // Checked before the apiKey lookup below: an oversized payload should be
+    // rejected immediately, not only after (and regardless of) whether a
+    // provider key happens to be configured.
+    if (decodedBuf.length > ICR_MAX_DECODED_BYTES) {
+      return res.status(413).json({ error: `File too large (max ${ICR_MAX_DECODED_BYTES / (1024 * 1024)} MB).` });
+    }
+
     const apiKey = await getCloudKey(provider);
     if (!apiKey) {
       return res.status(503).json({
         error: provider + ' API key not configured on the server. Ask an admin to set it via /api/icr/cloud-config or the ICR_CLOUD_API_KEY_' + provider.toUpperCase() + ' env var.',
       });
     }
-
-    // Strip the data URL prefix -> raw base64
-    const commaIdx = imageDataUrl.indexOf(',');
-    const base64Body = commaIdx >= 0 ? imageDataUrl.slice(commaIdx + 1) : imageDataUrl;
     const t0 = Date.now();
 
     try {
@@ -2342,7 +2412,7 @@ const students = await dbStore.getStudents();
     await dbStore.updateStudent(student.id, {
       currentLevel: evaluation.recommendedLevel,
       currentSubLevel: newSubLevel,
-      targetLevel: Math.min(93, evaluation.recommendedLevel + 1),
+      targetLevel: Math.min(MAX_LEVEL, evaluation.recommendedLevel + 1),
       levelHistory,
       streak: student.streak + 1
     });
@@ -2520,7 +2590,7 @@ const students = await dbStore.getStudents();
       }
       const sumLevel = filteredStudents.reduce((acc, s) => acc + s.currentLevel, 0);
       const avgLevel = Math.round((sumLevel / count) * 10) / 10;
-      const certified = filteredStudents.filter(s => s.currentLevel >= 5).length;
+      const certified = filteredStudents.filter(s => s.currentLevel >= CERTIFICATION_LEVEL).length;
       const certificationRate = Math.round((certified / count) * 100);
 
       // Create stable topic mastery values that reflect the current average level
@@ -2558,7 +2628,7 @@ const students = await dbStore.getStudents();
     const totalStudents = students.length;
     const totalSchools = schools.length;
     const totalWorksheets = worksheets.length;
-    const certifiedCount = students.filter(s => s.currentLevel >= 5).length;
+    const certifiedCount = students.filter(s => s.currentLevel >= CERTIFICATION_LEVEL).length;
     const certificationPercent = totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0;
 
     const pipeline = {
@@ -2762,7 +2832,7 @@ const students = await dbStore.getStudents();
           name: sch.name,
           stateCode: sch.stateCode,
           schoolType: sch.schoolType || 'Government',
-          performanceScore: schStudents > 0 ? Math.round((schStudents / 93) * 100) : 0,
+          performanceScore: schStudents > 0 ? Math.round((schStudents / MAX_LEVEL) * 100) : 0,
           completionRate: 0,
           studentSatisfaction: 0,
           interviewSuccessRate: 0,
@@ -3297,12 +3367,12 @@ const students = await dbStore.getStudents();
         const startLevel = (classNumber - 1) * 12 + 1;
         questions = [];
         for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-          const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 93), 0);
+          const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, MAX_LEVEL), 0);
           lvlQuestions.forEach(q => {
             questions.push({
               ...q,
               question_id: `DIAG_${lvl}_${q.question_id}`,
-              source_level: Math.min(lvl, 93)
+              source_level: Math.min(lvl, MAX_LEVEL)
             });
           });
         }
@@ -3512,6 +3582,12 @@ const students = await dbStore.getStudents();
     res.json({ ...bp, viewCount: (bp.viewCount || 0) + 1 });
   });
 
+  return app;
+}
+
+async function startServer() {
+  const app = await createApp();
+
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).
   if (process.env.NODE_ENV !== "production") {
@@ -3542,4 +3618,9 @@ const students = await dbStore.getStudents();
   });
 }
 
-startServer();
+// Only auto-start when this file is the process entry point (tsx dev, or the
+// esbuild-bundled dist/server.cjs) — not when createApp() is imported by
+// tests, which need a handle on the app without a real listening server.
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  startServer();
+}
