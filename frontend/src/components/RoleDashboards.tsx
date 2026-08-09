@@ -3158,6 +3158,87 @@ export const AnnouncementComplianceView: React.FC<{ token?: string; user?: any }
   // scoping stats by role/district) without breaking TypeScript.
   void user;
 
+  // Post-announcement form state (live-demo helper).
+  const [showForm, setShowForm] = useState(false);
+  const [formTitle, setFormTitle] = useState('');
+  const [formMessage, setFormMessage] = useState('');
+  const [formIsUrgent, setFormIsUrgent] = useState(false);
+  const [formRoles, setFormRoles] = useState<string[]>([]);
+  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const TARGET_ROLES = Object.keys(ROLE_LABELS);
+
+  const resetForm = () => {
+    setFormTitle('');
+    setFormMessage('');
+    setFormIsUrgent(false);
+    setFormRoles([]);
+    setFormError(null);
+  };
+
+  const refreshAnnouncements = async (preferId?: string) => {
+    try {
+      const res = await fetch('/api/announcements/tracking', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      const trackedAnnouncements = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.announcements)
+          ? data.announcements
+          : [];
+      setAnnouncements(trackedAnnouncements);
+      if (preferId && trackedAnnouncements.some((a: { id?: string }) => a?.id === preferId)) {
+        setSelectedId(preferId);
+      } else if (trackedAnnouncements.length > 0 && !trackedAnnouncements.some((a: { id?: string }) => a?.id === selectedId)) {
+        setSelectedId(trackedAnnouncements[0].id);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handlePostAnnouncement = async () => {
+    if (!token) {
+      setFormError('You must be signed in to post an announcement.');
+      return;
+    }
+    if (!formTitle.trim() || !formMessage.trim()) {
+      setFormError('Title and message are required.');
+      return;
+    }
+    setFormSubmitting(true);
+    setFormError(null);
+    try {
+      const res = await fetch('/api/announcements/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: formTitle.trim(),
+          message: formMessage.trim(),
+          isUrgent: formIsUrgent,
+          targetRoles: formRoles.length === TARGET_ROLES.length || formRoles.length === 0 ? [] : formRoles
+        })
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `HTTP ${res.status}`);
+      }
+      const created: Announcement = await res.json();
+      resetForm();
+      setShowForm(false);
+      await refreshAnnouncements(created.id);
+    } catch (e: any) {
+      setFormError(e?.message || 'Failed to post announcement.');
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
   // Pretty labels for the role breakdown list. Falls back to a
   // humanised version of the raw enum value for any unlisted role.
   const ROLE_LABELS: Record<string, string> = {
@@ -3234,7 +3315,117 @@ const readPercent = totalRecipients > 0 ? Math.round((readCount / totalRecipient
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
-        <h3 className="text-lg font-display font-medium text-zinc-900">Announcements</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-display font-medium text-zinc-900">Announcements</h3>
+          <button
+            type="button"
+            onClick={() => { setShowForm((v) => !v); setFormError(null); }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition-colors"
+            aria-expanded={showForm}
+          >
+            {showForm ? 'Close' : '+ Post Announcement'}
+          </button>
+        </div>
+
+        {showForm && (
+          <div className="border border-zinc-200 rounded-lg p-4 bg-zinc-50 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono font-bold uppercase text-zinc-500 tracking-widest">Title</label>
+                <input
+                  type="text"
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  placeholder="Announcement title"
+                  className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500 bg-white"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono font-bold uppercase text-zinc-500 tracking-widest">Urgency</label>
+                <label className="flex items-center gap-2 text-sm text-zinc-700 bg-white border border-zinc-200 rounded-lg p-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formIsUrgent}
+                    onChange={(e) => setFormIsUrgent(e.target.checked)}
+                    className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>Mark as urgent / critical alert</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono font-bold uppercase text-zinc-500 tracking-widest">Message</label>
+              <textarea
+                value={formMessage}
+                onChange={(e) => setFormMessage(e.target.value)}
+                placeholder="What do you want to communicate?"
+                rows={4}
+                className="w-full text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500 bg-white resize-y"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono font-bold uppercase text-zinc-500 tracking-widest">Target Roles</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormRoles(formRoles.length === TARGET_ROLES.length ? [] : [...TARGET_ROLES])}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                    formRoles.length === TARGET_ROLES.length || formRoles.length === 0
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400'
+                  }`}
+                >
+                  All Roles
+                </button>
+                {TARGET_ROLES.map((role) => {
+                  const active = formRoles.includes(role);
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => setFormRoles(active ? formRoles.filter((r) => r !== role) : [...formRoles, role])}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                        active
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400'
+                      }`}
+                    >
+                      {ROLE_LABELS[role] ?? role}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-zinc-400 font-mono">Leave empty or select &ldquo;All Roles&rdquo; to broadcast to everyone.</p>
+            </div>
+
+            {formError && (
+              <div className="p-3 text-xs font-mono text-red-700 bg-red-50 border border-red-200 rounded-lg">
+                {formError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { resetForm(); setShowForm(false); }}
+                disabled={formSubmitting}
+                className="px-4 py-2 text-xs font-semibold text-zinc-700 bg-white border border-zinc-200 rounded-lg hover:bg-zinc-100 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handlePostAnnouncement}
+                disabled={formSubmitting || !formTitle.trim() || !formMessage.trim()}
+                className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {formSubmitting ? 'Sending…' : 'Send Announcement'}
+              </button>
+            </div>
+          </div>
+        )}
         {announcements.length === 0 ? (
           <div className="p-4 bg-zinc-50 border border-dashed border-zinc-200 rounded-lg text-center text-zinc-500 text-xs font-mono">
             No announcements created in MongoDB yet. Use &apos;Post Global Announcement&apos; to publish one.
