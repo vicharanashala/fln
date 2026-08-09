@@ -488,6 +488,18 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
   const [loading, setLoading] = useState(false);
   const [showList, setShowList] = useState<'read' | 'unread'>('unread');
 
+  // Pretty labels for the role breakdown list. Falls back to a
+  // humanised version of the raw enum value for any unlisted role.
+  const ROLE_LABELS: Record<string, string> = {
+    superadmin: 'Super Admin',
+    admin: 'Admin',
+    district_admin: 'District Admin',
+    block_admin: 'Block Admin',
+    school: 'School',
+    teacher: 'Teacher',
+    volunteer: 'Volunteer'
+  };
+
   useEffect(() => {
     const fetchAnns = async () => {
       try {
@@ -553,15 +565,21 @@ const readPercent = totalRecipients > 0 ? Math.round((readCount / totalRecipient
     <div className="space-y-6">
       <div className="bg-white p-6 border border-zinc-200 rounded-xl shadow-sm space-y-4">
         <h3 className="text-lg font-display font-medium text-zinc-900">Announcements</h3>
-        <select
-          value={selectedId}
-          onChange={(e) => setSelectedId(e.target.value)}
-          className="w-full md:w-96 text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500"
-        >
-          {announcements.map(a => (
-            <option key={a.id} value={a.id}>{a.title}</option>
-          ))}
-        </select>
+        {announcements.length === 0 ? (
+          <div className="p-4 bg-zinc-50 border border-dashed border-zinc-200 rounded-lg text-center text-zinc-500 text-xs font-mono">
+            No announcements created in MongoDB yet. Use &apos;Post Global Announcement&apos; to publish one.
+          </div>
+        ) : (
+          <select
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value)}
+            className="w-full md:w-96 text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500"
+          >
+            {announcements.map(a => (
+              <option key={a.id} value={a.id}>{a.title}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {loading && (
@@ -577,8 +595,8 @@ const readPercent = totalRecipients > 0 ? Math.round((readCount / totalRecipient
             <MetricCard title="Unread" value={unreadCount} />
             <MetricCard
               title="Last Viewed"
-              value={stats.lastViewedAt ? new Date(stats.lastViewedAt).toLocaleTimeString() : '—'}
-              subtext={stats.firstViewedAt ? `First: ${new Date(stats.firstViewedAt).toLocaleTimeString()}` : undefined}
+              value={stats.lastViewedAt ? new Date(stats.lastViewedAt).toLocaleString() : '—'}
+              subtext={stats.firstViewedAt ? `First: ${new Date(stats.firstViewedAt).toLocaleString()}` : undefined}
             />
           </div>
 
@@ -612,8 +630,8 @@ const readPercent = totalRecipients > 0 ? Math.round((readCount / totalRecipient
                   return (
                     <div key={role} className="space-y-1">
                       <div className="flex justify-between text-xs font-medium">
-                        <span className="text-zinc-600 capitalize">
-                          {role.replace('_', ' ')}
+                        <span className="text-zinc-600">
+                          {ROLE_LABELS[role] ?? role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                         </span>
                         <span className="font-semibold text-zinc-900">
                           {roleRead}/{roleTotal}
