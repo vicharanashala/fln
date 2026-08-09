@@ -17,7 +17,7 @@ import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorks
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
-import { STATES_UTS } from './geoData';
+import { STATES_UTS, getGeoLookup } from './geoData';
 import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN, SEED_DEMO_PASSWORD_HASH } from './auth';
 import { registerAnnouncementRoutes } from './routes/announcements';
 import { registerStatsRoutes } from './routes/stats';
@@ -438,6 +438,17 @@ async function startServer() {
 
   app.get('/api/states', (_req, res) => {
     res.json(STATES_UTS.map(s => ({ id: s.code, name: s.name })));
+  });
+
+  app.get('/api/geo/lookup', (req, res) => {
+    try {
+      const stateInput = typeof req.query.state === 'string' ? req.query.state : undefined;
+      const districtInput = typeof req.query.district === 'string' ? req.query.district : undefined;
+      const result = getGeoLookup(stateInput, districtInput);
+      return res.json(result);
+    } catch (err) {
+      return res.status(500).json({ error: (err as Error).message });
+    }
   });
 
   app.get('/api/districts/by-state/:stateId', (req, res) => {

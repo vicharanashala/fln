@@ -3,44 +3,32 @@ archive/
 mvp/
 output/
 
-# Node
+# Node & Build
 node_modules/
-
-# Build outputs
 dist/
 backend/dist/
 frontend/dist/
 
-# Backend data (local seed files) - keep ignored by default
+# Local data & seed files
 backend/data/
 
-# Environment / secrets
+# Environment / Secret Files (STRICTLY EXCLUDED FROM GIT)
 .env
 .env.*
 *.env
 .env.local
 .env.*.local
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+ai-services/.env
+ai-services/.env.*
 
-# OS files
+# OS & Python & Logs
 .DS_Store
-
-# Python
 __pycache__/
 *.pyc
-
-# Logs
 *.log
-
-# Misc
-# Add any IDE/editor folders you want to ignore
 .vscode/
-.idea/
-archive/
-mvp/
-node_modules/
-.DS_Store
-.env
-backend/data/
-backend/dist/
-frontend/dist/
-*.log
+.idea/

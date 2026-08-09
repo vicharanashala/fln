@@ -117,7 +117,7 @@ export const DISTRICT_NAMES: Record<string, string> = {
   JAI: 'Jaipur', JDP: 'Jodhpur', ESK: 'East Sikkim', WSK: 'West Sikkim',
   CHN: 'Chennai', CBE: 'Coimbatore', HYD: 'Hyderabad', WGL: 'Warangal',
   WTR: 'West Tripura', SPJ: 'Sepahijala', DDN: 'Dehradun', HRW: 'Haridwar',
-  LKO: 'Lucknow', KNP: 'Kanpur', KOL: 'Kolkata', HWR: 'Howrah',
+  LKO: 'Lucknow', KNP: 'Kanpur', KOL: 'Kolkata', HWR: 'Howrah', HWH: 'Howrah',
   SAN: 'South Andaman', NMA: 'North and Middle Andaman', CHU: 'Chandigarh Urban',
   CHR: 'Chandigarh Rural', SLS: 'Silvassa', DDR: 'Dadra', DMA: 'Daman', DIU: 'Diu',
   NDL: 'North Delhi', SDL: 'South Delhi', SRN: 'Srinagar', JMU: 'Jammu',

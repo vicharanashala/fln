@@ -1,6 +1,13 @@
 __pycache__/
 *.pyc
 evaluation_reports/
-.env
 student_responses/
+
+# Environment & Secret files (STRICTLY IGNORED)
+.env
+.env.*
+*.env
+.env.local
+.env.*.local
+
 

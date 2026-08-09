@@ -3,6 +3,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { useStates, useDistricts, useBlocks, useSchools, useCreateTeacher } from '../hooks/useCoordinator';
 import { UserRole } from '../types';
+import { GeoCodeFetcher } from '../components/GeoCodeFetcher';
+import { fetchGeoDetails } from '../utils/geoLookup';
 
 type Role = 'teacher' | 'admin' | 'superadmin';
 
@@ -298,10 +300,32 @@ export default function CoordinatorRegistration() {
             <div className="mt-6 space-y-4">
               <h3 className="text-sm font-semibold text-slate-700">School Assignment</h3>
 
+              {/* Automatic Geo-Code Fetcher Tool */}
+              <GeoCodeFetcher
+                compact
+                onAutoSelect={({ stateCode, districtCode }) => {
+                  if (stateCode && states?.some((s) => s.id === stateCode)) {
+                    onStateChange(stateCode);
+                    setValue('stateId', stateCode);
+                  }
+                  if (districtCode) {
+                    onDistrictChange(districtCode);
+                    setValue('districtId', districtCode);
+                  }
+                }}
+              />
+
               <div>
-                <label htmlFor="stateId" className="mb-1 block text-sm font-medium text-slate-700">
-                  State <span className="text-red-500">*</span>
-                </label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="stateId" className="block text-sm font-medium text-slate-700">
+                    State <span className="text-red-500">*</span>
+                  </label>
+                  {selectedState && (
+                    <span className="inline-flex items-center gap-1 rounded bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-700">
+                      Code: {selectedState}
+                    </span>
+                  )}
+                </div>
                 {statesLoading ? (
                   <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-400">
                     <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -329,7 +353,7 @@ export default function CoordinatorRegistration() {
                     <option value="">Select State</option>
                     {states?.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name}
+                        {s.name} ({s.id})
                       </option>
                     ))}
                   </select>
@@ -340,9 +364,16 @@ export default function CoordinatorRegistration() {
               </div>
 
               <div>
-                <label htmlFor="districtId" className="mb-1 block text-sm font-medium text-slate-700">
-                  District <span className="text-red-500">*</span>
-                </label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label htmlFor="districtId" className="block text-sm font-medium text-slate-700">
+                    District <span className="text-red-500">*</span>
+                  </label>
+                  {selectedDistrict && (
+                    <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                      Code: {selectedDistrict}
+                    </span>
+                  )}
+                </div>
                 <select
                   id="districtId"
                   value={selectedDistrict}
@@ -366,7 +397,7 @@ export default function CoordinatorRegistration() {
                   </option>
                   {districts?.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.name}
+                      {d.name} ({d.id})
                     </option>
                   ))}
                 </select>

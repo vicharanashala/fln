@@ -14,6 +14,7 @@ import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { Input, Select, Textarea } from './Form';
 import { SuperAdminExecutiveDashboard } from './SuperAdminExecutiveDashboard';
+import { fetchStateCode, fetchDistrictCode, fetchGeoDetails } from '../utils/geoLookup';
 
 
 
@@ -292,29 +293,51 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
       {user.role === UserRole.SUPERADMIN && (
         <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-end text-xs font-sans">
           <div className="flex-grow">
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter State</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Filter State</label>
+              {fetchStateCode(stateCode).name && (
+                <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchStateCode(stateCode).code}</span>
+              )}
+            </div>
             <input 
               type="text" 
               value={stateCode} 
               onChange={e => {
-                setStateCode(e.target.value.toUpperCase());
+                const val = e.target.value;
+                const res = fetchStateCode(val);
+                setStateCode(res.code || val.toUpperCase());
                 setDistrictCode('');
                 setBlockCode('');
               }}
-              placeholder="e.g. PB"
+              onBlur={e => {
+                const res = fetchStateCode(e.target.value);
+                if (res.code) setStateCode(res.code);
+              }}
+              placeholder="e.g. Punjab, PB"
               className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
           <div className="flex-grow">
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter District</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Filter District</label>
+              {fetchDistrictCode(districtCode).name && (
+                <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchDistrictCode(districtCode).code}</span>
+              )}
+            </div>
             <input 
               type="text" 
               value={districtCode} 
               onChange={e => {
-                setDistrictCode(e.target.value.toUpperCase());
+                const val = e.target.value;
+                const res = fetchDistrictCode(val);
+                setDistrictCode(res.code || val.toUpperCase());
                 setBlockCode('');
               }}
-              placeholder="e.g. LDH"
+              onBlur={e => {
+                const res = fetchDistrictCode(e.target.value);
+                if (res.code) setDistrictCode(res.code);
+              }}
+              placeholder="e.g. Ludhiana, LDH"
               className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
@@ -669,14 +692,18 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       ? coordAssignedSchoolsStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
       : undefined;
 
-    if (coordState && !/^[A-Z]{2}$/.test(coordState.trim().toUpperCase())) {
-      setCoordError('State Code must be 2 uppercase letters (e.g. PB)');
+    const geo = fetchGeoDetails(coordState, coordDistrict);
+    const effectiveState = geo.stateCode || coordState.trim().toUpperCase();
+    const effectiveDistrict = geo.districtCode || coordDistrict.trim().toUpperCase();
+
+    if (effectiveState && !/^[A-Z]{2}$/.test(effectiveState)) {
+      setCoordError('State Code must be 2 uppercase letters or valid State/District name (e.g. PB, Punjab, Howrah)');
       setLoading(false);
       return;
     }
 
-    if (coordDistrict && !/^[A-Z]{3}$/.test(coordDistrict.trim().toUpperCase())) {
-      setCoordError('District Code must be 3 uppercase letters (e.g. LDH)');
+    if (effectiveDistrict && !/^[A-Z]{3}$/.test(effectiveDistrict)) {
+      setCoordError('District Code must be 3 uppercase letters or valid District name (e.g. LDH or Howrah)');
       setLoading(false);
       return;
     }
@@ -715,8 +742,8 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           email: coordEmail,
           password: coordPass,
           role: coordRole,
-          stateCode: coordState,
-          districtCode: coordDistrict,
+          stateCode: effectiveState,
+          districtCode: effectiveDistrict,
           blockCode: coordBlock,
           schoolId: [UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) ? coordSchoolId : undefined,
           assignedSchools: coordRole === UserRole.VOLUNTEER ? assignedSchools : undefined
@@ -1005,32 +1032,95 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               {/* Scope nodes triggers dynamically depending on role */}
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider">State Code / Name</label>
+                    {fetchStateCode(coordState).name && (
+                      <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchStateCode(coordState).code}</span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={coordState}
-                    onChange={e => setCoordState(e.target.value.toUpperCase())}
-                    placeholder="e.g. PB"
+                    onChange={e => {
+                      const val = e.target.value;
+                      const res = fetchStateCode(val);
+                      if (res.code) {
+                        setCoordState(res.code);
+                        // If auto-detected from a district (e.g. Howrah), also set district code automatically!
+                        const distRes = fetchDistrictCode(val);
+                        if (distRes.code && !coordDistrict) {
+                          setCoordDistrict(distRes.code);
+                        }
+                      } else {
+                        setCoordState(val.toUpperCase());
+                      }
+                    }}
+                    onBlur={e => {
+                      const res = fetchStateCode(e.target.value);
+                      if (res.code) {
+                        setCoordState(res.code);
+                        const distRes = fetchDistrictCode(e.target.value);
+                        if (distRes.code && !coordDistrict) {
+                          setCoordDistrict(distRes.code);
+                        }
+                      }
+                    }}
+                    placeholder="e.g. Punjab, PB, Ludhiana..."
                     required
-                    pattern="^[A-Z]{2}$"
-                    title="State Code must be 2 uppercase letters (e.g. PB)"
-                    className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                    title="Type State Name (e.g. Punjab) or District Name (e.g. Ludhiana) or State Code (e.g. PB)"
+                    className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200 focus:border-indigo-500"
                   />
+                  {fetchStateCode(coordState).name && (
+                    <span className="text-[10px] text-emerald-600 font-medium block mt-0.5">
+                      Fetched: {fetchStateCode(coordState).name} ({fetchStateCode(coordState).code})
+                      {fetchStateCode(coordState).detectedFromDistrict && ` · Auto-detected from ${fetchStateCode(coordState).detectedFromDistrict}`}
+                    </span>
+                  )}
                 </div>
                 
                 {![UserRole.ADMIN, UserRole.SCHOOL, UserRole.TEACHER, UserRole.VOLUNTEER].includes(coordRole) && (
                   <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
+                    <div className="flex justify-between items-center mb-0.5">
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider">District Code / Name</label>
+                      {fetchDistrictCode(coordDistrict).name && (
+                        <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchDistrictCode(coordDistrict).code}</span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       value={coordDistrict}
-                      onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
-                      placeholder="e.g. LDH"
+                      onChange={e => {
+                        const val = e.target.value;
+                        const res = fetchDistrictCode(val);
+                        if (res.code) {
+                          setCoordDistrict(res.code);
+                          if (res.stateCode && coordState !== res.stateCode) {
+                            setCoordState(res.stateCode);
+                          }
+                        } else {
+                          setCoordDistrict(val.toUpperCase());
+                        }
+                      }}
+                      onBlur={e => {
+                        const res = fetchDistrictCode(e.target.value);
+                        if (res.code) {
+                          setCoordDistrict(res.code);
+                          if (res.stateCode && coordState !== res.stateCode) {
+                            setCoordState(res.stateCode);
+                          }
+                        }
+                      }}
+                      placeholder="e.g. Ludhiana, LDH..."
                       required
-                      pattern="^[A-Z]{3}$"
-                      title="District Code must be 3 uppercase letters (e.g. LDH)"
-                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                      title="Type District Name (e.g. Ludhiana) or District Code (e.g. LDH)"
+                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200 focus:border-indigo-500"
                     />
+                    {fetchDistrictCode(coordDistrict).name && (
+                      <span className="text-[10px] text-emerald-600 font-medium block mt-0.5">
+                        Fetched: {fetchDistrictCode(coordDistrict).name} ({fetchDistrictCode(coordDistrict).code})
+                        {fetchDistrictCode(coordDistrict).stateName && ` · State: ${fetchDistrictCode(coordDistrict).stateName} (${fetchDistrictCode(coordDistrict).stateCode})`}
+                      </span>
+                    )}
                   </div>
                 )}
 

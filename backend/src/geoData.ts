@@ -208,7 +208,7 @@ export const STATES_UTS: StateInfo[] = [
     code: 'WB', name: 'West Bengal',
     districts: [
       { code: 'KOL', name: 'Kolkata' },
-      { code: 'HWR', name: 'Howrah' },
+      { code: 'HWH', name: 'Howrah' },
     ],
   },
   // ── 8 UNION TERRITORIES ──
@@ -269,3 +269,46 @@ export const STATES_UTS: StateInfo[] = [
     ],
   },
 ];
+
+/**
+ * Auto-resolves state & district names to official codes (e.g. Punjab -> PB, Howrah -> HWH)
+ */
+export function getGeoLookup(stateInput?: string, districtInput?: string) {
+  let matchedState: StateInfo | undefined;
+  let matchedDistrict: DistrictInfo | undefined;
+
+  const sClean = stateInput?.trim().toLowerCase();
+  const dClean = districtInput?.trim().toLowerCase();
+
+  if (sClean) {
+    matchedState = STATES_UTS.find(
+      s => s.code.toLowerCase() === sClean || s.name.toLowerCase() === sClean
+    );
+  }
+
+  if (dClean) {
+    // If state is matched, prioritize districts within that state
+    const targetStates = matchedState ? [matchedState] : STATES_UTS;
+    for (const st of targetStates) {
+      const found = st.districts.find(
+        d =>
+          d.code.toLowerCase() === dClean ||
+          d.name.toLowerCase() === dClean ||
+          (dClean === 'hwr' && d.code === 'HWH') // alias support
+      );
+      if (found) {
+        matchedDistrict = found;
+        if (!matchedState) matchedState = st;
+        break;
+      }
+    }
+  }
+
+  return {
+    stateCode: matchedState?.code || null,
+    stateName: matchedState?.name || null,
+    districtCode: matchedDistrict?.code || null,
+    districtName: matchedDistrict?.name || null,
+  };
+}
+
