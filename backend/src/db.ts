@@ -873,8 +873,25 @@ export class DBStore {
   // --- Write / Update Helpers ---
 
   async addUser(user: User) {
-    await this.mongoDb!.collection('users').insertOne(user);
-    if (this.data) this.data.users.push(user);
+    if (user.role === UserRole.BLOCK_ADMIN && user.blockCode) {
+      const users = await this.getUsers();
+      const normBlock = user.blockCode.trim().toUpperCase();
+      const existing = users.find(u => 
+        u.role === UserRole.BLOCK_ADMIN && 
+        u.blockCode && 
+        u.blockCode.trim().toUpperCase() === normBlock
+      );
+      if (existing) {
+        throw new Error(`A Block Coordinator already exists for Block Code '${normBlock}' (${existing.name} - ${existing.email}). Each Block can only have one assigned Block Coordinator.`);
+      }
+    }
+    if (this.useMongo && this.mongoDb) {
+      await this.mongoDb.collection('users').insertOne(user);
+    } else {
+      if (!this.data) this.data = { users: [], schools: [], classes: [], students: [], questions: [], worksheets: [], levelWorksheets: [], levelHtmlTemplates: [], answerSubmissions: [], evaluationReports: [], tickets: [], logbook: [], announcements: [] } as any;
+      if (!this.data.users) this.data.users = [];
+      this.data.users.push(user);
+    }
     return user;
   }
 

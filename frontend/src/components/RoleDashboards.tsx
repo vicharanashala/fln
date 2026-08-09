@@ -714,6 +714,20 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       return;
     }
 
+    if (coordRole === UserRole.BLOCK_ADMIN && coordBlock) {
+      const normBlock = coordBlock.trim().toUpperCase();
+      const existingBlockAdmin = coordinatorsList.find(c => 
+        c.role === UserRole.BLOCK_ADMIN && 
+        c.blockCode && 
+        c.blockCode.trim().toUpperCase() === normBlock
+      );
+      if (existingBlockAdmin) {
+        setCoordError(`A Block Coordinator already exists for Block Code '${normBlock}' (${existingBlockAdmin.name}). Each Block can only have one assigned Block Coordinator.`);
+        setLoading(false);
+        return;
+      }
+    }
+
     if ([UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole)) {
       if (!coordSchoolId || !/^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$/.test(coordSchoolId.trim().toLowerCase())) {
         setCoordError('Assigned School ID must be strictly formatted like gps-vl-002 (3-part format ending in 3 digits)');

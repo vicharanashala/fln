@@ -386,6 +386,20 @@ async function startServer() {
       return res.status(400).json({ error: 'Block code must be in the format XXX-00 (e.g. LDH-01)' });
     }
 
+    if (role === UserRole.BLOCK_ADMIN && blockCode) {
+      const normalizedBlock = blockCode.trim().toUpperCase();
+      const existingBlockAdmin = users.find(u => 
+        u.role === UserRole.BLOCK_ADMIN && 
+        u.blockCode && 
+        u.blockCode.trim().toUpperCase() === normalizedBlock
+      );
+      if (existingBlockAdmin) {
+        return res.status(400).json({ 
+          error: `A Block Coordinator already exists for Block Code '${normalizedBlock}' (${existingBlockAdmin.name} - ${existingBlockAdmin.email}). Each Block can only have one assigned Block Coordinator.` 
+        });
+      }
+    }
+
     if (schoolId && !/^[a-zA-Z]{2,5}-[a-zA-Z0-9]{1,5}-\d{3}$/.test(schoolId)) {
       return res.status(400).json({ error: 'School ID format must be strictly like gps-vl-002 (3-part format ending in 3 digits)' });
     }
