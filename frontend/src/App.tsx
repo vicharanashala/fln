@@ -242,7 +242,7 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                         <p className="text-xs text-slate-500 dark:text-slate-400">Live delivery, read receipts, and engagement tracking across all announcements.</p>
                       </div>
                     </div>
-                    <AnnouncementComplianceView token={token || ''} />
+                    <AnnouncementComplianceView token={token || localStorage.getItem('fln_token') || ''} user={currentUser} />
                   </div>
                 )}
 

@@ -3148,12 +3148,15 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
   );
 };
 
-export const AnnouncementComplianceView: React.FC<{ token: string }> = ({ token }) => {
+export const AnnouncementComplianceView: React.FC<{ token?: string; user?: any }> = ({ token, user }) => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [stats, setStats] = useState<AnnouncementReadStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [showList, setShowList] = useState<'read' | 'unread'>('unread');
+  // Surface the user prop so it can be used for downstream logic (e.g.
+  // scoping stats by role/district) without breaking TypeScript.
+  void user;
 
   // Pretty labels for the role breakdown list. Falls back to a
   // humanised version of the raw enum value for any unlisted role.
