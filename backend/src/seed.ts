@@ -5,9 +5,8 @@ import { UserRole } from './db';
 import { STATES_UTS } from './geoData';
 import questionBankSeed from './data/question_bank_seed.json';
 
-// All seeded demo accounts share this password; store only its bcrypt hash
-// (never plaintext) so `passwordHash` matches what login (index.ts) verifies.
 const SEED_PASSWORD_HASH = bcrypt.hashSync('Fln@2026', 10);
+
 
 // ============================================================
 // NAME POOLS — 250+ realistic Indian names
@@ -451,7 +450,7 @@ async function main() {
                 teacherId: teacherIds[cIdx],
                 currentLevel: currentLevel,
                 currentSubLevel: randomSubLevel(),
-                targetLevel: Math.min(currentLevel + 1, 59),
+                targetLevel: Math.min(currentLevel + 1, 93),
                 aadharMasked: generateAadhaar(),
                 levelHistory: [
                   {
@@ -474,7 +473,13 @@ async function main() {
   // ════════════════════════════════════════════
   console.log('\nInserting data into collections...');
 
-  const usersResult = await db.collection('users').insertMany(allUsers);
+  const hashedUsers = allUsers.map(u => ({
+    ...u,
+    passwordHash: u.password === 'Fln@2026' || !u.password
+      ? SEED_PASSWORD_HASH
+      : bcrypt.hashSync(u.password, 10)
+  }));
+  const usersResult = await db.collection('users').insertMany(hashedUsers);
   console.log(`  users:          ${usersResult.insertedCount} inserted`);
 
   const schoolsResult = await db.collection('schools').insertMany(allSchools);

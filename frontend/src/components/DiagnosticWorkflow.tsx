@@ -294,7 +294,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
             </div>
             <div className="text-center">
               <span className="block text-xs font-mono text-zinc-400 dark:text-zinc-500 uppercase">Target Level</span>
-              <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">Level {Math.min(59, report.recommendedLevel + 1)}</span>
+              <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">Level {Math.min(93, report.recommendedLevel + 1)}</span>
             </div>
           </div>
 

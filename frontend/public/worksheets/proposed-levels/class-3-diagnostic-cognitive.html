@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Class 3 — FLN Diagnostic Paper</title>
+<style>
+*{box-sizing:border-box;}
+body{font-family:"Times New Roman",Times,serif;background:#fff;color:#000;margin:0;padding:0;line-height:1.5;}
+.sheet{width:210mm;min-height:297mm;margin:0 auto;padding:16mm 18mm;}
+.header{text-align:center;border:2px solid #000;padding:10px 8px;margin-bottom:14px;}
+.header .top-line{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;display:flex;justify-content:space-between;border-bottom:1px solid #000;padding-bottom:6px;margin-bottom:8px;}
+.header h1{font-size:22px;margin:0;letter-spacing:1px;font-weight:bold;text-transform:uppercase;}
+.header .subtitle{font-size:13px;margin-top:4px;font-style:italic;}
+.header .meta{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;border-top:1px solid #000;padding-top:6px;}
+.student-info{border:1.5px solid #000;padding:8px 12px;margin-bottom:18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;font-size:13px;}
+.student-info .field{display:flex;align-items:baseline;gap:6px;}
+.student-info .field b{font-weight:bold;}
+.student-info .line{flex:1;border-bottom:1.5px solid #000;height:18px;}
+.instructions{border:1px solid #000;padding:8px 12px;margin-bottom:18px;font-size:12px;background:#fff;}
+.instructions b{text-transform:uppercase;letter-spacing:0.5px;}
+.instructions ol{margin:4px 0 0 18px;padding:0;}
+.instructions li{margin:2px 0;}
+.cog-legend{border:1px solid #000;padding:6px 10px;margin-bottom:14px;font-size:11.5px;}
+.q{margin:0 0 13px 0;padding:0;page-break-inside:avoid;}
+.q-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.q-num{border:1.5px solid #000;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;flex-shrink:0;font-family:Arial,sans-serif;}
+.q-title{font-weight:bold;font-size:14px;flex:1;padding-top:4px;}
+.q-cog{font-size:10.5px;font-style:italic;color:#222;border:1px solid #000;padding:1px 6px;margin-top:4px;flex-shrink:0;}
+.q-marks{font-size:11px;font-style:italic;border:1px solid #000;padding:1px 6px;margin-top:4px;flex-shrink:0;margin-left:6px;}
+.q-body{margin-left:38px;font-size:13.5px;}
+.objects{font-size:22px;letter-spacing:6px;margin:8px 0;line-height:1.5;}
+.boxed{font-size:14px;margin:6px 0;}
+.answer-box{display:inline-block;border:1.5px solid #000;min-width:46px;height:26px;vertical-align:middle;margin:0 3px;}
+.mcq-list{margin:6px 0 0 0;list-style:none;padding:0;}
+.mcq-list li{margin:3px 0;padding-left:24px;text-indent:-24px;}
+.mcq-list .bubble{display:inline-block;width:14px;height:14px;border:1.5px solid #000;border-radius:50%;margin-right:8px;vertical-align:middle;}
+.numberline-wrap{margin:14px 0 10px 0;position:relative;}
+.numberline{position:relative;height:24px;}
+.numberline .tick{position:absolute;top:0;width:1.5px;height:14px;background:#000;}
+.numberline .label{position:absolute;top:16px;transform:translateX(-50%);font-size:13px;font-weight:bold;font-family:Arial,sans-serif;}
+.mark-here{font-size:11px;margin-top:4px;font-style:italic;}
+.shape-cell{width:60px;height:60px;display:inline-block;position:relative;}
+.compare-groups{display:flex;align-items:center;gap:14px;margin:8px 0;flex-wrap:wrap;}
+.compare-group{border:2px solid #000;padding:8px 14px;font-size:22px;letter-spacing:4px;background:#fff;}
+.compare-vs{font-size:14px;font-weight:bold;}
+.pat-row{display:flex;gap:8px;justify-content:center;align-items:center;margin:8px 0;}
+.pat-cell{width:54px;height:54px;border:1.6px solid #000;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:bold;}
+.pat-cell.pat-blank{background:#f0f0f0;}
+.pattern-row{font-size:24px;letter-spacing:10px;margin:8px 0;font-family:Arial,sans-serif;}
+.pattern-blank{display:inline-block;width:38px;height:38px;border:2px solid #000;vertical-align:middle;margin:0 2px;}
+.wordbox{border:1.5px solid #000;padding:10px 14px;margin:6px 0;font-size:14px;background:#fff;}
+.footer{margin-top:24px;border-top:2px solid #000;padding-top:8px;display:flex;justify-content:space-between;font-size:11px;}
+.pagebreak{page-break-after:always;break-after:page;}
+@page{size:A4;margin:0;}
+@media print{body{margin:0;}.sheet{padding:14mm 16mm;}.q{page-break-inside:avoid;}}
+</style>
+</head>
+<body>
+<div class="sheet">
+      <div class="header">
+        <div class="top-line">
+          <span>FLN Assessment Programme</span>
+          <span>Session: 2025–26</span>
+        </div>
+        <h1>Class 3 — FLN Diagnostic Paper</h1>
+        <div class="subtitle">One question per level, ordered by cognitive progression</div>
+        <div class="meta">
+          <span>Total Questions: <b>14</b></span>
+          <span>Maximum Marks: <b>24</b></span>
+          <span>Time Allowed: <b>60 minutes</b></span>
+        </div>
+      </div>
+      <div class="student-info">
+        <div class="field"><b>Name:</b><span class="line"></span></div>
+        <div class="field"><b>Roll No.:</b><span class="line"></span></div>
+        <div class="field"><b>Date:</b><span class="line"></span></div>
+      </div>
+      <div class="instructions">
+        <b>Instructions to the Student:</b>
+        <ol>
+          <li>Each question tests a different skill (level). Read each one carefully.</li>
+          <li>Write all answers in the space provided. Do not write outside the boxes.</li>
+          <li>For multiple choice questions, tick (✓) only one option.</li>
+          <li>You may use your fingers or a pencil to count. Do <b>not</b> use a calculator.</li>
+          <li>If you cannot answer a question, move on to the next one and come back later.</li>
+        </ol>
+      </div>
+      <div class="cog-legend">
+        <b>Cognitive order:</b> every question is tagged with the cognitive skill it tests
+        (Observe → Recognize → Recall → Sequence → Compare → Represent → Combine →
+        Take Away → Classify → Relate → Generalize → Interpret → Apply). Questions are
+        presented in that order so the difficulty progression is from concrete observation
+        to abstract application.
+      </div>
+    <div class="q"><div class="q-head"><span class="q-num">1</span><span class="q-title">3-Digit Place Value</span><span class="q-cog">Recall</span><span class="q-marks">[2 marks]</span></div><div class="q-body">Look at <b style="font-size:18px;">347</b>. Write the value of each digit.<div class="boxed" style="margin-top:6px;font-family:Arial,sans-serif;">Hundreds digit: <span class="answer-box" style="width:50px;"></span><br>Tens digit: <span class="answer-box" style="width:50px;"></span><br>Ones digit: <span class="answer-box" style="width:50px;"></span></div></div></div><div class="q"><div class="q-head"><span class="q-num">2</span><span class="q-title">Read and Write (up to 9999)</span><span class="q-cog">Recall</span><span class="q-marks">[2 marks]</span></div><div class="q-body">Write the number <b>two thousand, four hundred and twelve</b> in numerals.<div class="boxed" style="font-size:20px;margin-top:8px;font-family:Arial,sans-serif;">In numerals: <span class="answer-box" style="width:90px;"></span></div></div></div><div class="q"><div class="q-head"><span class="q-num">3</span><span class="q-title">Multiplication Tables (2–10)</span><span class="q-cog">Recall</span><span class="q-marks">[1 mark]</span></div><div class="q-body">Fill in the missing number.<div class="boxed" style="font-size:18px;margin-top:6px;font-family:Arial,sans-serif;">7 × <span class="answer-box" style="width:50px;"></span> = 56</div></div></div><div class="q"><div class="q-head"><span class="q-num">4</span><span class="q-title">Division Facts</span><span class="q-cog">Recall</span><span class="q-marks">[1 mark]</span></div><div class="q-body">Fill in the missing number.<div class="boxed" style="font-size:18px;margin-top:6px;font-family:Arial,sans-serif;">48 ÷ 6 = <span class="answer-box" style="width:50px;"></span></div></div></div><div class="q"><div class="q-head"><span class="q-num">5</span><span class="q-title">Compare 3-Digit Numbers</span><span class="q-cog">Compare</span><span class="q-marks">[1 mark]</span></div><div class="q-body">Write <b>&gt;</b>, <b>&lt;</b>, or <b>=</b> between the numbers.<div class="boxed" style="font-size:24px;margin-top:6px;font-family:Arial,sans-serif;text-align:center;letter-spacing:8px;">472 &nbsp;<span class="answer-box" style="width:50px;height:32px;"></span>&nbsp; 427</div></div></div><div class="q"><div class="q-head"><span class="q-num">6</span><span class="q-title">Standard Units</span><span class="q-cog">Represent</span><span class="q-marks">[1 mark]</span></div><div class="q-body">Which unit is best to measure the length of a <b>pencil</b>?<ul class="mcq-list"><li><span class="bubble"></span>(A) Kilometre (km)</li><li><span class="bubble"></span>(B) Metre (m)</li><li><span class="bubble"></span>(C) Centimetre (cm)</li><li><span class="bubble"></span>(D) Millimetre (mm)</li></ul></div></div><div class="q"><div class="q-head"><span class="q-num">7</span><span class="q-title">Clock Reading (Hour / Half-Hour)</span><span class="q-cog">Represent</span><span class="q-marks">[2 marks]</span></div><div class="q-body">What time does this clock show? Write it in numbers.<div style="text-align:center;margin:8px 0;"><svg viewBox="0 0 120 120" width="120" height="120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="none" stroke="#000" stroke-width="1.6"/><line x1="60" y1="60" x2="60" y2="20" stroke="#000" stroke-width="3" stroke-linecap="round"/><line x1="60" y1="60" x2="92" y2="60" stroke="#000" stroke-width="2" stroke-linecap="round"/><circle cx="60" cy="60" r="3" fill="#000"/><text x="60" y="14" font-family="Arial" font-size="11" text-anchor="middle">12</text><text x="110" y="64" font-family="Arial" font-size="11" text-anchor="middle">3</text><text x="60" y="116" font-family="Arial" font-size="11" text-anchor="middle">6</text><text x="10" y="64" font-family="Arial" font-size="11" text-anchor="middle">9</text></svg></div><div class="boxed">Time = <span class="answer-box" style="width:40px;"></span> : <span class="answer-box" style="width:40px;"></span></div></div></div><div class="q"><div class="q-head"><span class="q-num">8</span><span class="q-title">Fractions of a Collection</span><span class="q-cog">Classify</span><span class="q-marks">[2 marks]</span></div><div class="q-body">There are <b>12 marbles</b> in a bag. <b>One-fourth</b> of them are red. How many red marbles?<div class="boxed" style="margin-top:6px;">12 ÷ 4 = <span class="answer-box" style="width:60px;"></span> red marbles.</div></div></div></div><div class="sheet pagebreak"><div class="q"><div class="q-head"><span class="q-num">9</span><span class="q-title">2D and 3D Shapes</span><span class="q-cog">Relate</span><span class="q-marks">[1 mark]</span></div><div class="q-body">A <b>cube</b> has 6 flat surfaces. What shape is each surface?<ul class="mcq-list"><li><span class="bubble"></span>(A) Circle</li><li><span class="bubble"></span>(B) Square</li><li><span class="bubble"></span>(C) Triangle</li><li><span class="bubble"></span>(D) Oval</li></ul></div></div><div class="q"><div class="q-head"><span class="q-num">10</span><span class="q-title">Flexible 3-Digit Decomposition</span><span class="q-cog">Generalize</span><span class="q-marks">[2 marks]</span></div><div class="q-body">Show <b>two</b> different ways to make 325 using hundreds, tens, and ones.<div class="boxed" style="margin-top:6px;">Way 1: 325 = <span class="answer-box" style="width:40px;"></span> + <span class="answer-box" style="width:40px;"></span> + <span class="answer-box" style="width:40px;"></span><br>Way 2: 325 = <span class="answer-box" style="width:40px;"></span> + <span class="answer-box" style="width:40px;"></span> + <span class="answer-box" style="width:40px;"></span></div></div></div><div class="q"><div class="q-head"><span class="q-num">11</span><span class="q-title">Pattern Rule</span><span class="q-cog">Generalize</span><span class="q-marks">[2 marks]</span></div><div class="q-body">What is the rule? Continue the sequence.<div class="boxed" style="font-size:18px;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:4px;">15, 25, 35, 45, <span class="answer-box" style="width:50px;"></span>, <span class="answer-box" style="width:50px;"></span></div><div class="boxed" style="margin-top:4px;">Rule: add <b>10</b> each time. (<span class="answer-box" style="width:80px;"></span>)</div></div></div><div class="q"><div class="q-head"><span class="q-num">12</span><span class="q-title">Read a Bar Graph</span><span class="q-cog">Interpret</span><span class="q-marks">[2 marks]</span></div><div class="q-body">A bar graph shows: Apples = 5, Bananas = 8, Cherries = 3, Dates = 6. Which fruit was sold the <b>most</b>?<div class="boxed" style="margin-top:6px;">Most sold: <span class="answer-box" style="width:80px;"></span></div><div style="font-size:11px;font-style:italic;margin-top:4px;">How many bananas? <span class="answer-box" style="width:60px;"></span></div></div></div><div class="q"><div class="q-head"><span class="q-num">13</span><span class="q-title">Word Problem (Add/Sub)</span><span class="q-cog">Apply</span><span class="q-marks">[3 marks]</span></div><div class="q-body"><div class="wordbox">A shop had <b>485 apples</b> in the morning. By evening, <b>127</b> were sold. How many apples are left?</div><div class="boxed" style="margin-top:6px;">Number sentence: <span class="answer-box" style="width:60px;"></span> − <span class="answer-box" style="width:60px;"></span> = <span class="answer-box" style="width:60px;"></span><br>Answer: <span class="answer-box" style="width:80px;"></span> apples.</div></div></div><div class="q"><div class="q-head"><span class="q-num">14</span><span class="q-title">Money Arithmetic</span><span class="q-cog">Apply</span><span class="q-marks">[2 marks]</span></div><div class="q-body">Riya has <b>₹85</b>. Her mother gives her <b>₹40</b> more. How much does Riya have now?<div class="boxed" style="margin-top:6px;">₹<span class="answer-box" style="width:60px;"></span> + ₹<span class="answer-box" style="width:60px;"></span> = ₹<span class="answer-box" style="width:60px;"></span><br>Riya has ₹<span class="answer-box" style="width:80px;"></span> now.</div></div></div>
+          <div class="footer">
+            <span>FLN · Class 3 · Diagnostic Paper</span>
+            <span>End of Paper · 14 Questions · 24 Marks</span>
+          </div>
+        </div>
+</body>
+</html>

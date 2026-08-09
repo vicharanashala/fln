@@ -84,13 +84,42 @@ This project is built on the **MERN stack**:
 
 ## Getting Started
 
-> Setup instructions (installation, environment variables, running locally) will be added here as the codebase matures.
-
 ```bash
 git clone https://github.com/vicharanashala/fln.git
 cd fln
-# setup instructions coming soon
+npm install
 ```
+
+### Run against your own MongoDB (recommended for local dev)
+
+Each contributor should point their local backend at **their own** MongoDB — either
+a free [Atlas](https://www.mongodb.com/cloud/atlas/register) cluster or a local
+`mongod` — instead of hardcoding data or sharing one database. This lets you seed
+your own test data and iterate on features without touching anyone else's.
+
+1. Copy the backend env template: `cp backend/.env.example backend/.env`
+   (the file at the repo root, `.env.example`, is only for the AI scripts in
+   `ai-services/` — it does **not** configure the database).
+2. In `backend/.env`, set `MONGODB_URI` to your own connection string, e.g.
+   `mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/fln` (Atlas) or
+   `mongodb://127.0.0.1:27017/fln` (local mongod).
+3. Populate it with the full demo dataset (states/districts/schools/teachers/
+   volunteers/students — matches the demo login buttons in the UI):
+   ```bash
+   npm run seed --workspace @fln/backend
+   ```
+   Optionally also run `npm run seed:question-bank` and `npm run seed:html`
+   (workspace-scoped) to load the question bank / worksheet HTML collections.
+4. Start the app:
+   ```bash
+   npm run dev:backend    # API on :3000, reads backend/.env
+   npm run dev:frontend   # Vite dev server on :5173
+   ```
+
+Demo login after seeding: `superadmin@fln.org`, password `Fln@2026` (see
+`backend/src/seed.ts` for the full list of generated teacher/volunteer/admin
+emails, which follow a predictable `role.<state>_<district>_<block>_<school>@fln.org`
+pattern).
 
 ## Contribution Guidelines
 
