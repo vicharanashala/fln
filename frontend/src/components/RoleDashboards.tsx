@@ -3148,15 +3148,34 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
   );
 };
 
-export const AnnouncementComplianceView: React.FC<{ token?: string; user?: any }> = ({ token, user }) => {
+
+
+
+// Pretty labels for the role breakdown list. Defined at module scope so it is
+// hoisted before AnnouncementComplianceView runs and is not redeclared on
+// every render. Keys match the lowercase UserRole enum string values
+// (see frontend/src/types.ts) so backend role identifiers map cleanly.
+const ROLE_LABELS: Record<string, string> = {
+  superadmin: 'Super Admin',
+  admin: 'Admin',
+  district_admin: 'District Admin',
+  block_admin: 'Block Admin',
+  school: 'School',
+  teacher: 'Teacher',
+  volunteer: 'Volunteer'
+};
+
+// Derived once at module scope; reused by TARGET_ROLES lookup inside the
+// component. Keeping this at the top level avoids the prior TDZ-style bug
+// where TARGET_ROLES was computed before ROLE_LABELS was defined.
+const TARGET_ROLES = Object.keys(ROLE_LABELS);
+
+export const AnnouncementComplianceView: React.FC<{ token?: string }> = ({ token }) => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [stats, setStats] = useState<AnnouncementReadStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [showList, setShowList] = useState<'read' | 'unread'>('unread');
-  // Surface the user prop so it can be used for downstream logic (e.g.
-  // scoping stats by role/district) without breaking TypeScript.
-  void user;
 
   // Post-announcement form state (live-demo helper).
   const [showForm, setShowForm] = useState(false);
@@ -3167,8 +3186,8 @@ export const AnnouncementComplianceView: React.FC<{ token?: string; user?: any }
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const TARGET_ROLES = Object.keys(ROLE_LABELS);
 
+  
   const resetForm = () => {
     setFormTitle('');
     setFormMessage('');
@@ -3237,18 +3256,6 @@ export const AnnouncementComplianceView: React.FC<{ token?: string; user?: any }
     } finally {
       setFormSubmitting(false);
     }
-  };
-
-  // Pretty labels for the role breakdown list. Falls back to a
-  // humanised version of the raw enum value for any unlisted role.
-  const ROLE_LABELS: Record<string, string> = {
-    superadmin: 'Super Admin',
-    admin: 'Admin',
-    district_admin: 'District Admin',
-    block_admin: 'Block Admin',
-    school: 'School',
-    teacher: 'Teacher',
-    volunteer: 'Volunteer'
   };
 
   useEffect(() => {
@@ -3426,7 +3433,7 @@ const readPercent = totalRecipients > 0 ? Math.round((readCount / totalRecipient
             </div>
           </div>
         )}
-        {announcements.length === 0 ? (
+        {(announcements?.length ?? 0) === 0 ? (
           <div className="p-4 bg-zinc-50 border border-dashed border-zinc-200 rounded-lg text-center text-zinc-500 text-xs font-mono">
             No announcements created in MongoDB yet. Use &apos;Post Global Announcement&apos; to publish one.
           </div>
@@ -3436,7 +3443,7 @@ const readPercent = totalRecipients > 0 ? Math.round((readCount / totalRecipient
             onChange={(e) => setSelectedId(e.target.value)}
             className="w-full md:w-96 text-sm border border-zinc-200 rounded-lg p-2.5 outline-none focus:border-zinc-500"
           >
-            {announcements.map(a => (
+            {(announcements ?? []).map(a => (
               <option key={a.id} value={a.id}>{a.title}</option>
             ))}
           </select>

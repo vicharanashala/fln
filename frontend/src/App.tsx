@@ -1,4 +1,4 @@
-import { apiFetch } from './services/apiClient';
+﻿import { apiFetch } from './services/apiClient';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -233,7 +233,7 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                 {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role} />}
                 {activePanel === 'calendar' && <AssessmentCalendar />}
 
-                {activePanel === 'tracking' && (
+                {(activePanel === 'tracking' || activePanel === 'announcement-tracking') && (
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                     <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
                       <Bell className="h-6 w-6 text-slate-500 dark:text-slate-400" />
@@ -242,7 +242,7 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                         <p className="text-xs text-slate-500 dark:text-slate-400">Live delivery, read receipts, and engagement tracking across all announcements.</p>
                       </div>
                     </div>
-                    <AnnouncementComplianceView token={token || localStorage.getItem('fln_token') || ''} user={currentUser} />
+                    <AnnouncementComplianceView token={token || localStorage.getItem('fln_token') || localStorage.getItem('token') || ''} />
                   </div>
                 )}
 
@@ -290,7 +290,7 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                   </div>
                 )}
 
-                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'tracking'].includes(activePanel) && (
+                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'tracking', 'announcement-tracking'].includes(activePanel) && (
                   <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
                 )}
 
