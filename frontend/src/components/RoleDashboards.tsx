@@ -3170,191 +3170,15 @@ const ROLE_LABELS: Record<string, string> = {
 // where TARGET_ROLES was computed before ROLE_LABELS was defined.
 const TARGET_ROLES = Object.keys(ROLE_LABELS);
 
-// ---------------------------------------------------------------------------
-// Mock telemetry pool. When the MongoDB backend returns an empty body or
-// fails (a common state during live demos / first-time setup), this pool
-// keeps the dashboard populated so it never renders blank. Numbers below are
-// verbatim from the reference screenshots:
-//   * Total Recipients: 61
-//   * Roles: admin 4, district_admin 9, block_admin 11, school 13,
-//           teacher 16, volunteer 8 (superadmin: 0)
-//   * Districts: LDH 3, AMB 2, JAI 2, LKO 3, BTH 2, ASR 2, PKL 2, UDA 2,
-//                KNP 2 (= 20 recipients with districts; remaining 41 are
-//                "National" so the by-district panel shows exactly the 9
-//                districts above)
-// ---------------------------------------------------------------------------
-
-type MockRecipient = {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  district: string;
-};
-
-const ROLE_DISTRIBUTION: Array<[string, number]> = [
-  ['admin', 4],
-  ['district_admin', 9],
-  ['block_admin', 11],
-  ['school', 13],
-  ['teacher', 16],
-  ['volunteer', 8],
-];
-
-const MOCK_DISTRICTS = ['LDH', 'AMB', 'JAI', 'LKO', 'BTH', 'ASR', 'PKL', 'UDA', 'KNP'];
-// District per-role counts exactly match the reference by-district panel.
-const MOCK_DISTRICT_COUNTS: Record<string, number> = {
-  LDH: 3,
-  AMB: 2,
-  JAI: 2,
-  LKO: 3,
-  BTH: 2,
-  ASR: 2,
-  PKL: 2,
-  UDA: 2,
-  KNP: 2,
-};
-
-const MOCK_NAMES: Array<[string, string]> = [
-  ['Ritu', 'Sharma'], ['Aman', 'Verma'], ['Priya', 'Singh'], ['Vikram', 'Kumar'],
-  ['Sneha', 'Patel'], ['Arjun', 'Gupta'], ['Meera', 'Yadav'], ['Karan', 'Reddy'],
-  ['Pooja', 'Iyer'], ['Rahul', 'Joshi'], ['Anjali', 'Nair'], ['Rohan', 'Das'],
-  ['Kavita', 'Roy'], ['Sanjay', 'Mukherjee'], ['Neha', 'Bose'], ['Aditya', 'Chatterjee'],
-  ['Divya', 'Khan'], ['Manoj', 'Ahmed'], ['Shruti', 'Malhotra'], ['Vivek', 'Kapoor'],
-  ['Geeta', 'Bhatia'], ['Suresh', 'Chauhan'], ['Asha', 'Rawat'], ['Rakesh', 'Bisht'],
-  ['Kiran', 'Saxena'], ['Naveen', 'Mehra'], ['Sunita', 'Srinivasan'], ['Pankaj', 'Banerjee'],
-  ['Rekha', 'Pandey'], ['Tarun', 'Tiwari'], ['Anita', 'Saxena'], ['Deepak', 'Mehra'],
-  ['Lata', 'Iyer'], ['Gopal', 'Joshi'], ['Maya', 'Nair'], ['Hari', 'Das'],
-  ['Indira', 'Roy'], ['Jai', 'Mukherjee'], ['Kala', 'Bose'], ['Lakshmi', 'Chatterjee'],
-];
-
-const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '');
-
-const MOCK_RECIPIENTS: MockRecipient[] = (() => {
-  const out: MockRecipient[] = [];
-  let nameIdx = 0;
-  let districtCursor = 0;
-  const districtQueue: string[] = [];
-  // Build a flat list of district assignments up front, exactly matching
-  // the per-district totals in MOCK_DISTRICT_COUNTS.
-  MOCK_DISTRICTS.forEach((d) => {
-    const count = MOCK_DISTRICT_COUNTS[d] ?? 0;
-    for (let i = 0; i < count; i++) districtQueue.push(d);
-  });
-  // sanity: queue length should be 20
-  let globalIdx = 0;
-  ROLE_DISTRIBUTION.forEach(([role, count]) => {
-    for (let i = 0; i < count; i++) {
-      const [first, last] = MOCK_NAMES[nameIdx % MOCK_NAMES.length];
-      nameIdx++;
-      const district =
-        globalIdx < districtQueue.length ? districtQueue[globalIdx] : 'National';
-      globalIdx++;
-      const slug = `${slugify(first)}-${slugify(last)}${(i + 1).toString().padStart(2, '0')}`;
-      out.push({
-        id: `mock-${role}-${i}`,
-        name: `${first} ${last}`,
-        email: `${slug}@fln.org`,
-        role,
-        district,
-      });
-    }
-  });
-  return out;
-})();
-
-// Which mock recipients have read the demo announcement? Exactly one — the
-// first block_admin recipient (matches the Block Admin 1/11 read row and
-// the LDH 1/3 read cell in the by-district panel).
-const DEFAULT_READ_IDS = new Set<string>(['mock-block_admin-0']);
-
-// Two seed announcements so the dropdown has something meaningful to
-// select without depending on the backend.
-const MOCK_ANNOUNCEMENTS: Announcement[] = [
-  {
-    id: 'ann_demo_worksheet_v3',
-    title: 'New Worksheet Template Live',
-    message:
-      'The v3 worksheet template is now live across all districts. Please review and submit feedback by Friday.',
-    isUrgent: false,
-    authorEmail: 'state-admin@fln.org',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-  },
-  {
-    id: 'ann_demo_urgent_outage',
-    title: 'Scheduled Maintenance Window',
-    message:
-      'Portal maintenance scheduled Sunday 02:00–04:00 IST. Plan assessments accordingly.',
-    isUrgent: true,
-    authorEmail: 'superadmin@fln.org',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-  },
-];
-
-function buildMockStats(announcementId: string, readIds: Set<string>): AnnouncementReadStats {
-  const byRole: Record<string, { read: number; total: number }> = {};
-  const byDistrict: Record<string, { read: number; total: number }> = {};
-  const readUsers: { id: string; name: string; email: string; role: string }[] = [];
-  const unreadUsers: { id: string; name: string; email: string; role: string }[] = [];
-  MOCK_RECIPIENTS.forEach((u) => {
-    const isRead = readIds.has(u.id);
-    const roleBucket = (byRole[u.role] = byRole[u.role] ?? { read: 0, total: 0 });
-    roleBucket.total += 1;
-    if (isRead) roleBucket.read += 1;
-    if (u.district && u.district !== 'National') {
-      const districtBucket = (byDistrict[u.district] = byDistrict[u.district] ?? { read: 0, total: 0 });
-      districtBucket.total += 1;
-      if (isRead) districtBucket.read += 1;
-    }
-    const lite = { id: u.id, name: u.name, email: u.email, role: u.role };
-    (isRead ? readUsers : unreadUsers).push(lite);
-  });
-  const totalRecipients = MOCK_RECIPIENTS.length;
-  const readCount = readUsers.length;
-  const unreadCount = unreadUsers.length;
-  // Read percent with one decimal place (e.g. 1.6%) so cards display
-  // fractional values exactly like the reference screenshots.
-  const readPercent =
-    totalRecipients > 0 ? Math.round((readCount / totalRecipients) * 1000) / 10 : 0;
-  const now = new Date().toISOString();
-  return {
-    announcementId,
-    totalRecipients,
-    readCount,
-    unreadCount,
-    readPercent,
-    firstViewedAt: readCount > 0 ? now : null,
-    lastViewedAt: readCount > 0 ? now : null,
-    byRole,
-    byDistrict,
-    readUsers,
-    unreadUsers,
-  };
-}
-
-// Cache pre-computed stats per announcementId so re-selecting a known
-// demo announcement is instantaneous (no recompute work per render).
-const MOCK_STATS_CACHE = new Map<string, AnnouncementReadStats>();
-function getMockStats(announcementId: string, readIds: Set<string> = DEFAULT_READ_IDS) {
-  const key = `${announcementId}|${[...readIds].sort().join(',')}`;
-  let cached = MOCK_STATS_CACHE.get(key);
-  if (!cached) {
-    cached = buildMockStats(announcementId, readIds);
-    MOCK_STATS_CACHE.set(key, cached);
-  }
-  return cached;
-}
-
 export const AnnouncementComplianceView: React.FC<{ token?: string }> = ({ token }) => {
+  // All data is sourced live from MongoDB via /api/announcements and
+  // /api/announcements/:id/reads. No client-side mock fallback: the
+  // dashboard reflects the real database state at all times.
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [selectedId, setSelectedId] = useState<string>(MOCK_ANNOUNCEMENTS[0]?.id ?? '');
+  const [selectedId, setSelectedId] = useState<string>('');
   const [stats, setStats] = useState<AnnouncementReadStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [showList, setShowList] = useState<'read' | 'unread'>('unread');
-  // Tracks announcements created locally during the session (e.g. via the
-  // Post Announcement form). Stats for these IDs must be derived from the
-  // mock pool rather than fetched from the backend.
-  const [localAnnouncementIds, setLocalAnnouncementIds] = useState<Set<string>>(new Set());
 
   // Post-announcement form state (live-demo helper).
   const [showForm, setShowForm] = useState(false);
@@ -3386,35 +3210,22 @@ export const AnnouncementComplianceView: React.FC<{ token?: string }> = ({ token
         : Array.isArray(data?.announcements)
           ? data.announcements
           : [];
-      // If backend returned nothing (fresh DB / offline mode) seed with the
-      // mock catalogue so the dropdown always has something to show.
-      const merged = remoteList.length > 0 ? remoteList : MOCK_ANNOUNCEMENTS;
-      setAnnouncements((prev) => {
-        // Preserve locally-posted announcements so a stale remote response
-        // (which won't include them) doesn't wipe them out.
-        const remoteIds = new Set(merged.map((a) => a.id));
-        const locals = prev.filter((a) => localAnnouncementIds.has(a.id) && !remoteIds.has(a.id));
-        return [...locals, ...merged];
-      });
-      if (preferId && merged.some((a) => a.id === preferId)) {
+      setAnnouncements(remoteList);
+      if (preferId && remoteList.some((a) => a.id === preferId)) {
         setSelectedId(preferId);
-      } else if (merged.length > 0 && !merged.some((a) => a.id === selectedId)) {
-        setSelectedId(merged[0].id);
+      } else if (remoteList.length > 0 && !remoteList.some((a) => a.id === selectedId)) {
+        setSelectedId(remoteList[0].id);
+      } else if (remoteList.length === 0) {
+        // Database is empty: clear any stale selection so the empty-state
+        // UI can take over.
+        setSelectedId('');
+        setStats(null);
       }
     } catch (e) {
-      console.error(e);
-      // Backend unreachable: fall back to mock catalogue so the UI still
-      // renders meaningful demo data.
-      setAnnouncements((prev) => {
-        const ids = new Set(MOCK_ANNOUNCEMENTS.map((a) => a.id));
-        const locals = prev.filter((a) => localAnnouncementIds.has(a.id) && !ids.has(a.id));
-        return [...locals, ...MOCK_ANNOUNCEMENTS];
-      });
-      if (preferId && MOCK_ANNOUNCEMENTS.some((a) => a.id === preferId)) {
-        setSelectedId(preferId);
-      } else if (!MOCK_ANNOUNCEMENTS.some((a) => a.id === selectedId)) {
-        setSelectedId(MOCK_ANNOUNCEMENTS[0].id);
-      }
+      console.error('Failed to load announcements from /api/announcements/tracking', e);
+      setAnnouncements([]);
+      setSelectedId('');
+      setStats(null);
     }
   };
 
@@ -3450,22 +3261,8 @@ export const AnnouncementComplianceView: React.FC<{ token?: string }> = ({ token
       const created: Announcement = await res.json();
       resetForm();
       setShowForm(false);
-      // Mark this announcement as locally-known so refreshAnnouncements
-      // won't drop it if the backend hasn't indexed it yet.
-      setLocalAnnouncementIds((prev) => {
-        const next = new Set(prev);
-        next.add(created.id);
-        return next;
-      });
-      // Seed the local announcement into the dropdown immediately for a
-      // snappy UX; refreshAnnouncements will dedupe with the backend list.
-      setAnnouncements((prev) =>
-        prev.some((a) => a.id === created.id) ? prev : [created, ...prev]
-      );
-      setSelectedId(created.id);
-      // For brand-new announcements the backend has no read receipts yet,
-      // so derive stats from the mock pool with zero readers.
-      setStats(getMockStats(created.id, new Set()));
+      // Re-fetch from the backend so the dropdown and stats reflect the
+      // canonical MongoDB state right after the insert.
       await refreshAnnouncements(created.id);
     } catch (e: any) {
       setFormError(e?.message || 'Failed to post announcement.');
@@ -3487,60 +3284,53 @@ export const AnnouncementComplianceView: React.FC<{ token?: string }> = ({ token
             ? data.announcements
             : [];
 
-        // Backend healthy but empty: still seed mock catalogue so the
-        // dropdown is usable during demos.
-        const finalList = trackedAnnouncements.length > 0 ? trackedAnnouncements : MOCK_ANNOUNCEMENTS;
-        setAnnouncements(finalList);
-        if (finalList.length > 0 && !finalList.some((a) => a.id === selectedId)) {
-          setSelectedId(finalList[0].id);
+        setAnnouncements(trackedAnnouncements);
+        if (trackedAnnouncements.length > 0 && !trackedAnnouncements.some((a) => a.id === selectedId)) {
+          setSelectedId(trackedAnnouncements[0].id);
+        } else if (trackedAnnouncements.length === 0) {
+          setSelectedId('');
+          setStats(null);
         }
       } catch (e) {
-        console.error(e);
-        setAnnouncements(MOCK_ANNOUNCEMENTS);
-        if (!MOCK_ANNOUNCEMENTS.some((a) => a.id === selectedId)) {
-          setSelectedId(MOCK_ANNOUNCEMENTS[0].id);
-        }
+        console.error('Failed to load announcements from /api/announcements/tracking', e);
+        setAnnouncements([]);
+        setSelectedId('');
+        setStats(null);
       }
     };
     fetchAnns();
+    // We intentionally only re-run on token change; selectedId updates are
+    // handled inside refreshAnnouncements to avoid an extra fetch loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId) {
+      setStats(null);
+      return;
+    }
     const fetchStats = async () => {
       setLoading(true);
-      // Locally-posted announcements have no backend read receipts; serve
-      // mock stats directly (zero readers by default).
-      if (localAnnouncementIds.has(selectedId)) {
-        setStats(getMockStats(selectedId, new Set()));
-        setLoading(false);
-        return;
-      }
       try {
         const res = await fetch(`/api/announcements/${selectedId}/reads`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
           const d = await res.json();
-          console.log("FETCHED READ STATS FROM BACKEND:", d);
-          console.log("READ USERS LIST FROM BACKEND:", d.readUsers);
-          // Backend returned a payload but if it has no readers/recipients,
-          // fall through to the mock so the dashboard renders fully.
-          if (d && (d.totalRecipients > 0 || (d.readUsers?.length ?? 0) > 0 || (d.unreadUsers?.length ?? 0) > 0)) {
-            setStats(d);
-            setLoading(false);
-            return;
-          }
+          setStats(d);
+        } else {
+          console.error(`Failed to load reads for ${selectedId}: HTTP ${res.status}`);
+          setStats(null);
         }
       } catch (e) {
-        console.error(e);
+        console.error(`Failed to load reads for ${selectedId}:`, e);
+        setStats(null);
+      } finally {
+        setLoading(false);
       }
-      // Fallback path: backend missing/empty — derive from mock pool.
-      setStats(getMockStats(selectedId));
-      setLoading(false);
     };
     fetchStats();
-  }, [selectedId, token, localAnnouncementIds]);
+  }, [selectedId, token]);
 
   const byRoleEntries = Object.entries((stats?.byRole as Record<string, any>) ?? {}) as Array<
     [string, { read?: number; total?: number }]
@@ -3684,8 +3474,20 @@ export const AnnouncementComplianceView: React.FC<{ token?: string }> = ({ token
           </div>
         )}
         {(announcements?.length ?? 0) === 0 ? (
-          <div className="p-4 bg-zinc-50 border border-dashed border-zinc-200 rounded-lg text-center text-zinc-500 text-xs font-mono">
-            No announcements created in MongoDB yet. Use &apos;Post Global Announcement&apos; to publish one.
+          <div className="flex flex-col items-center justify-center gap-3 p-8 bg-zinc-50 border border-dashed border-zinc-200 rounded-lg text-center">
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-zinc-900">No announcements found in MongoDB</div>
+              <div className="text-xs text-zinc-500 font-mono">
+                Publish your first announcement to start tracking compliance across roles and districts.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setShowForm(true); setFormError(null); }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition-colors"
+            >
+              + Post Announcement
+            </button>
           </div>
         ) : (
           <select
