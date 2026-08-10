@@ -131,16 +131,60 @@ registerStatsRoutes(app);
   // Announcements
   app.get('/api/announcements', async (req, res) => {
     const anns = await dbStore.getAnnouncements();
-   const user = getAuthUser(req);
+    const user = getAuthUser(req);
     if (!user) return res.json(anns);
 
-  const reads = await dbStore.getAnnouncementReads();
-  const readIds = new Set(reads.filter(r => r.userId === user.id).map(r => r.announcementId));
+    // Targeting-aware filter: only return broadcasts the current user is
+    // eligible to receive. The "no targeting" fallback is intentional —
+    // older rows in MongoDB pre-date the targeting model and should still
+    // surface globally rather than become invisible.
+    const userRole = (user.role as string) || '';
+    const userState = (user as any).stateCode || null;
+    const userDistrict = (user as any).districtCode || null;
+    const isSuperRole = userRole === UserRole.SUPERADMIN || userRole === UserRole.ADMIN;
 
-  const withReadStatus = anns.map(a => ({ ...a, readByMe: readIds.has(a.id) }));
+    const includesAll = (arr?: string[]) => Array.isArray(arr) && arr.some(v => String(v).toUpperCase() === 'ALL');
+    const roleMatches = (roles?: string[]) => {
+      if (!roles || roles.length === 0) return false;
+      if (includesAll(roles)) return true;
+      return roles.some(r => String(r).toLowerCase() === userRole.toLowerCase());
+    };
+    const geoMatches = (arr?: string[]) => {
+      if (!arr || arr.length === 0) return false;
+      if (includesAll(arr)) return true;
+      const target = (userState || userDistrict || '').toLowerCase();
+      if (!target) return false;
+      return arr.some(v => String(v).toLowerCase() === target);
+    };
 
-  res.json(withReadStatus);
-});
+    const visible = anns.filter((a: any) => {
+      // If the document has NO targeting fields set, treat it as a
+      // GLOBAL broadcast so it remains visible to every authenticated
+      // user. This is the documented fallback for legacy rows.
+      const hasAnyTarget =
+        (Array.isArray(a.targetRoles) && a.targetRoles.length > 0) ||
+        (Array.isArray(a.targetStates) && a.targetStates.length > 0) ||
+        (Array.isArray(a.targetDistricts) && a.targetDistricts.length > 0);
+      if (!hasAnyTarget) return true;
+
+      // Superadmins and admins see everything (regardless of targeting)
+      // because they are the ones who author and audit broadcasts.
+      if (isSuperRole) return true;
+
+      // Otherwise the announcement must match on at least one dimension.
+      if (roleMatches(a.targetRoles)) return true;
+      if (geoMatches(a.targetStates)) return true;
+      if (geoMatches(a.targetDistricts)) return true;
+      return false;
+    });
+
+    const reads = await dbStore.getAnnouncementReads();
+    const readIds = new Set(reads.filter(r => r.userId === user.id).map(r => r.announcementId));
+
+    const withReadStatus = visible.map(a => ({ ...a, readByMe: readIds.has(a.id) }));
+
+    res.json(withReadStatus);
+  });
 
   app.post('/api/announcements/read', async (req, res) => {
     const user = getAuthUser(req);
@@ -269,14 +313,29 @@ registerStatsRoutes(app);
     return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
   }
 
-  const { title, message, isUrgent } = req.body;
+  const { title, message, isUrgent, targetRoles, targetStates, targetDistricts } = req.body;
+    // Defaults: when no targeting is specified, broadcast to ALL roles,
+    // ALL states, and ALL districts. This guarantees every recipient role
+    // receives the announcement instead of being silently filtered out.
+    const normRoles = Array.isArray(targetRoles) && targetRoles.length > 0
+      ? targetRoles
+      : ['ALL'];
+    const normStates = Array.isArray(targetStates) && targetStates.length > 0
+      ? targetStates
+      : ['ALL'];
+    const normDistricts = Array.isArray(targetDistricts) && targetDistricts.length > 0
+      ? targetDistricts
+      : ['ALL'];
     const newAnn: Announcement = {
       id: 'ann_' + Date.now(),
       title,
       message,
       isUrgent: !!isUrgent,
       authorEmail: user.email,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      targetRoles: normRoles,
+      targetStates: normStates,
+      targetDistricts: normDistricts
     };
     await dbStore.addAnnouncement(newAnn);
 

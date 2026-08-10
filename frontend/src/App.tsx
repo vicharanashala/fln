@@ -135,6 +135,34 @@ export default function App() {
     return () => window.removeEventListener('fln_unauthorized', handleUnauthorized);
   }, [navigate]);
 
+  // Refresh notifications whenever the logged-in identity changes (login,
+  // logout, role-switch, token rotation). The dependency on both currentUser
+  // and token ensures each new identity triggers exactly one refetch.
+  useEffect(() => {
+    if (currentUser && token) {
+      refreshNotifications();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, currentUser?.role, token]);
+
+  // Refetch whenever the user navigates into the dashboard surface or
+  // opens the Notifications panel. Keeps the badge and popover fresh
+  // after returning from another tab/view without needing a manual
+  // reload.
+  useEffect(() => {
+    if (currentView === 'dashboard') {
+      refreshNotifications();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentView]);
+
+  useEffect(() => {
+    if (currentView === 'dashboard' && activePanel === 'notifications') {
+      refreshNotifications();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePanel, currentView]);
+
   const handleLoginSuccess = (newToken: string, user: User) => {
     setToken(newToken);
     localStorage.setItem('fln_token', newToken);

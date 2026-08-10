@@ -288,6 +288,14 @@ export interface Announcement {
   isUrgent: boolean;
   authorEmail: string;
   createdAt: string;
+  // Optional targeting fields. If ALL three arrays are missing/empty on
+  // a stored document, the GET handler treats it as a GLOBAL broadcast
+  // (returned to every authenticated user) so legacy rows remain visible.
+  // 'ALL' as a literal entry is a wildcard that matches every role/state/
+  // district (case-insensitive comparison).
+  targetRoles?: string[];
+  targetStates?: string[];
+  targetDistricts?: string[];
 }
 
 export interface AnnouncementRead {
