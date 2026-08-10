@@ -2325,13 +2325,23 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                   )}
                 </div>
                 {levelBatchResults.length > 0 && (
-                  <div className="max-h-40 overflow-y-auto space-y-1">
+                  <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
                     {levelBatchResults.map((r, i) => (
-                      <div key={`${r.studentId}-${r.sublevelId}-${r.setNum}-${i}`} className="flex items-center justify-between text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded px-2 py-1">
-                        <div className="flex items-center gap-2">
-                          <a href={r.pdfUrl} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-mono font-bold">📄 Student PDF</a>
+                      <div key={`${r.studentId}-${r.sublevelId}-${r.setNum}-${i}`} className="flex items-center justify-between text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded px-2.5 py-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-750 transition-colors">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                            {r.studentName || r.studentId || `Student ${i+1}`}
+                          </span>
+                          {r.sublevelId && (
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0">
+                              Level {r.sublevelId}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <a href={r.pdfUrl} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-mono font-bold hover:underline flex items-center gap-1">📄 Student PDF</a>
                           {r.answerKeyPdfUrl && (
-                            <a href={r.answerKeyPdfUrl} target="_blank" rel="noreferrer" className="text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 font-mono font-bold">🔑 Answer Key</a>
+                            <a href={r.answerKeyPdfUrl} target="_blank" rel="noreferrer" className="text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 font-mono font-bold hover:underline flex items-center gap-1">🔑 Answer Key</a>
                           )}
                         </div>
                       </div>
