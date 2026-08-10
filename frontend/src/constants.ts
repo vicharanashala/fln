@@ -53,7 +53,7 @@ export const DISTRICTS_DATA: Record<string, { id: string; name: string; blocksCo
   ]
 };
 
-export const BLOCKS_DATA: Record<string, { id: string; name: string; districtId: string; avgScore: number }[]> = {
+export const BLOCKS_DATA: Record<string, { id: string; name: string; districtId: string; avgScore: number }[]> = new Proxy({
   'ldh': [
     { id: 'LDH-01', name: 'Ludhiana Block 1', districtId: 'ldh', avgScore: 78 },
     { id: 'LDH-02', name: 'Ludhiana Block 2', districtId: 'ldh', avgScore: 65 }
@@ -87,8 +87,30 @@ export const BLOCKS_DATA: Record<string, { id: string; name: string; districtId:
   ],
   'knp': [
     { id: 'KNP-01', name: 'Kanpur Block 1', districtId: 'knp', avgScore: 44 }
+  ],
+  'hwh': [
+    { id: 'HWH-01', name: 'Howrah Block 1', districtId: 'hwh', avgScore: 75 },
+    { id: 'HWH-02', name: 'Howrah Block 2', districtId: 'hwh', avgScore: 68 }
+  ],
+  'hwr': [
+    { id: 'HWR-01', name: 'Howrah Block 1', districtId: 'hwr', avgScore: 75 },
+    { id: 'HWR-02', name: 'Howrah Block 2', districtId: 'hwr', avgScore: 68 }
   ]
-};
+}, {
+  get(target, prop: string) {
+    if (typeof prop !== 'string') return (target as any)[prop];
+    const key = prop.toLowerCase();
+    if (target[key]) return target[key];
+    
+    // Auto-generate block list for any unlisted district code (e.g. hwh, kol, vsk, etc.)
+    const dCode = key.toUpperCase();
+    const dName = DISTRICT_NAMES[dCode] || dCode;
+    return [
+      { id: `${dCode}-01`, name: `${dName} Block 1`, districtId: key, avgScore: 68 },
+      { id: `${dCode}-02`, name: `${dName} Block 2`, districtId: key, avgScore: 62 }
+    ];
+  }
+});
 
 // Code-to-name mappings for all 36 States/UTs, Districts, and Blocks
 export const STATE_NAMES: Record<string, string> = {

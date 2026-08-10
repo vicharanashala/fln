@@ -472,17 +472,26 @@ async function startServer() {
   });
 
   app.get('/api/blocks/by-district/:districtId', async (req, res) => {
-    const districtCode = req.params.districtId.toUpperCase();
-    const district = STATES_UTS.flatMap(s => s.districts).find(d => d.code === districtCode);
+    const rawId = (req.params.districtId || '').trim();
+    const districtCode = rawId.toUpperCase();
+    const district = STATES_UTS.flatMap(s => s.districts).find(
+      d => d.code === districtCode || d.code.toLowerCase() === rawId.toLowerCase()
+    );
     if (!district) return res.status(404).json({ error: 'Unknown district.' });
 
     const schools = await dbStore.getSchools();
-    const blockCodes = Array.from(new Set(
-      schools.filter(s => s.districtCode === districtCode).map(s => s.blockCode)
-    )).sort();
+    const existingBlockCodes = Array.from(new Set(
+      schools.filter(s => s.districtCode?.toUpperCase() === districtCode || s.districtCode?.toLowerCase() === rawId.toLowerCase()).map(s => s.blockCode)
+    )).filter(Boolean).sort();
+
+    // Fallback to district standard blocks if no schools exist yet for this district
+    const blockCodes = existingBlockCodes.length > 0
+      ? existingBlockCodes
+      : [`${districtCode}_01`, `${districtCode}_02`];
 
     res.json(blockCodes.map(code => {
-      const blockNum = parseInt(code.split('_').pop() || '0', 10);
+      const rawNum = code.split(/[_-]/).pop() || '1';
+      const blockNum = parseInt(rawNum, 10) || 1;
       return { id: code, name: `${district.name} Block ${blockNum}`, districtId: districtCode };
     }));
   });
