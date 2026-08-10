@@ -21,6 +21,9 @@ interface LayoutProps {
   activeView: string;
   onSelectView: (view: string) => void;
   notifications: Announcement[];
+  // Live unread count sourced from /api/notifications/unread-count so the
+  // bell + sidebar badges stay in sync without re-deriving from the list.
+  unreadCount: number;
   onMarkNotificationRead: (id: string) => void;
   onClearNotifications: () => void;
   onLogout: () => void;
@@ -35,6 +38,7 @@ export const Layout: React.FC<LayoutProps> = ({
   activeView,
   onSelectView,
   notifications,
+  unreadCount,
   onMarkNotificationRead,
   onClearNotifications,
   onLogout,
@@ -215,11 +219,11 @@ export const Layout: React.FC<LayoutProps> = ({
         break;
     }
 
-    list.push({ name: 'Notifications', view: 'notifications', icon: Bell, badge: notifications.filter(n => !n.readByMe).length > 0 ? String(notifications.filter(n => !n.readByMe).length) : undefined });
+    list.push({ name: 'Notifications', view: 'notifications', icon: Bell, badge: unreadCount > 0 ? String(unreadCount) : undefined });
     list.push({ name: 'Settings', view: 'settings', icon: Settings });
 
     return list;
-  }, [currentUser.role, notifications.length]);
+  }, [currentUser.role, notifications.length, unreadCount]);
 
   const filteredNavItems = useMemo(() => {
     if (!searchQuery) return navigationItems;
@@ -374,9 +378,9 @@ export const Layout: React.FC<LayoutProps> = ({
               className="relative rounded-lg p-2 text-slate-505 hover:bg-slate-100 transition dark:text-slate-400 dark:hover:bg-slate-800"
             >
             <Bell className="h-4.5 w-4.5" />
-              {notifications.filter(n => !n.readByMe).length > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white dark:bg-rose-600">
-                  {notifications.filter(n => !n.readByMe).length}
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white dark:bg-rose-600">
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </button>

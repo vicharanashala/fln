@@ -52,11 +52,36 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'home' | 'login' | 'dashboard'>('home');
   const [activePanel, setActivePanel] = useState<string>('workspace');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [toast, setToast] = useState<string | null>(null);
 
   const triggerToast = (msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), 4000);
+  };
+
+  // Pulls announcements + unread-count from the live MongoDB API. Safe to
+  // call on login and whenever a read receipt is recorded (so the bell
+  // badge stays in sync after marking individual items as read).
+  const refreshNotifications = async () => {
+    try {
+      const [annRes, countRes] = await Promise.all([
+        apiFetch('/api/announcements'),
+        apiFetch('/api/notifications/unread-count')
+      ]);
+      if (annRes.ok) {
+        const data = await annRes.json();
+        // Backend already annotates each row with readByMe for the
+        // current user (see GET /api/announcements in backend/src/index.ts).
+        setAnnouncements(Array.isArray(data) ? data : []);
+      }
+      if (countRes.ok) {
+        const data = await countRes.json();
+        setUnreadCount(typeof data.unreadCount === 'number' ? data.unreadCount : 0);
+      }
+    } catch (e) {
+      console.warn('Failed to refresh notifications:', e);
+    }
   };
 
   useEffect(() => {
@@ -80,6 +105,9 @@ export default function App() {
         if (cancelled) return;
         setCurrentUser(data.user);
         setCurrentView('dashboard');
+        // Pull the announcement list + unread count once a session is
+        // established so the bell badge and popover reflect real data.
+        refreshNotifications();
       } catch {
         if (cancelled) return;
         setToken(null);
@@ -121,11 +149,55 @@ export default function App() {
     triggerToast('Role switched');
   };
 
-  const handleMarkNotificationRead = (id: string) => {
-    setAnnouncements(prev => prev.map(a => (a.id === id ? { ...a, read: true } : a)));
+  // Records a read receipt in MongoDB. Idempotent — the backend
+  // collapses duplicate POSTs into a single receipt row — so clicking
+  // the same notification repeatedly never throws or duplicates.
+  const handleMarkNotificationRead = async (id: string) => {
+    // Optimistic local update so the bell badge + popover update instantly.
+    setAnnouncements(prev =>
+      prev.map(a => (a.id === id ? { ...a, readByMe: true } : a))
+    );
+    setUnreadCount(c => Math.max(0, c - 1));
+    try {
+      const res = await apiFetch('/api/announcements/read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ announcementId: id })
+      });
+      if (!res.ok) {
+        console.warn('Failed to record read receipt:', res.status);
+        // Roll back optimistic update so the badge stays accurate.
+        setAnnouncements(prev =>
+          prev.map(a => (a.id === id ? { ...a, readByMe: false } : a))
+        );
+        setUnreadCount(c => c + 1);
+      }
+    } catch (e) {
+      console.warn('Failed to record read receipt:', e);
+      setAnnouncements(prev =>
+        prev.map(a => (a.id === id ? { ...a, readByMe: false } : a))
+      );
+      setUnreadCount(c => c + 1);
+    }
   };
 
-  const handleClearNotifications = () => setAnnouncements([]);
+  // Mark all notifications as read via the bulk backend endpoint.
+  // Local state mirrors the backend so the bell badge drops to zero.
+  const handleClearNotifications = async () => {
+    setAnnouncements(prev => prev.map(a => ({ ...a, readByMe: true })));
+    setUnreadCount(0);
+    try {
+      const res = await apiFetch('/api/announcements/clear-all', { method: 'POST' });
+      if (!res.ok) {
+        console.warn('Failed to clear notifications:', res.status);
+        // Re-sync from the source of truth so the badge isn't stuck at 0.
+        refreshNotifications();
+      }
+    } catch (e) {
+      console.warn('Failed to clear notifications:', e);
+      refreshNotifications();
+    }
+  };
 
   const handleLogout = () => {
     setToken(null);
@@ -175,6 +247,7 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                 activeView={activePanel}
                 onSelectView={setActivePanel}
                 notifications={announcements}
+                unreadCount={unreadCount}
                 onMarkNotificationRead={handleMarkNotificationRead}
                 onClearNotifications={handleClearNotifications}
                 onLogout={handleLogout}
@@ -197,33 +270,66 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                     <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
                       <Bell className="h-6 w-6 text-slate-550 dark:text-slate-400" />
-                      <div>
+                      <div className="flex-1">
                         <h2 className="font-sans text-lg font-bold text-slate-900 dark:text-white">Announcements Log</h2>
                         <p className="text-xs text-slate-505 dark:text-slate-400">Official notifications escalated by state administrative coordinators.</p>
                       </div>
+                      {unreadCount > 0 && (
+                        <span className="rounded-full bg-rose-500 px-2.5 py-0.5 text-[10px] font-bold text-white dark:bg-rose-600">
+                          {unreadCount} unread
+                        </span>
+                      )}
                     </div>
                     <div className="space-y-4">
                       {announcements.length === 0 ? (
                         <div className="p-8 text-center font-mono text-xs text-slate-400 dark:text-slate-500">No active broadcasts.</div>
                       ) : (
-                        announcements.map(notif => (
-                          <div
-                            key={notif.id}
-                            className={`space-y-2 rounded-xl border p-4 ${
-                              notif.isUrgent
-                                ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30'
-                                : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-sm font-bold text-slate-900 dark:text-white">{notif.title}</h4>
-                              <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                                {new Date(notif.createdAt).toLocaleString()}
-                              </span>
+                        announcements.map(notif => {
+                          const isUnread = !notif.readByMe;
+                          // Amber highlight for unread cards mirrors the
+                          // popover pill so the page stays visually
+                          // consistent with the header bell.
+                          const cardStyles = isUnread
+                            ? 'border-amber-300 bg-amber-50/50 dark:border-amber-700 dark:bg-amber-950/30'
+                            : notif.isUrgent
+                              ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30'
+                              : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50';
+                          return (
+                            <div
+                              key={notif.id}
+                              onClick={() => isUnread && handleMarkNotificationRead(notif.id)}
+                              className={`space-y-2 rounded-xl border p-4 transition-colors ${cardStyles} ${
+                                isUnread ? 'cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/30' : ''
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <h4 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                                  {isUnread ? (
+                                    <span className="inline-block h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
+                                  ) : (
+                                    <span className="text-emerald-500">✓</span>
+                                  )}
+                                  {notif.title}
+                                </h4>
+                                <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                                  {new Date(notif.createdAt).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="font-sans text-xs leading-relaxed text-slate-650 dark:text-slate-300">{notif.message}</p>
+                              {isUnread && (
+                                <div className="flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleMarkNotificationRead(notif.id); }}
+                                    className="rounded-lg border border-amber-300 bg-white px-3 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/40"
+                                  >
+                                    ✓ Mark as Read
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                            <p className="font-sans text-xs leading-relaxed text-slate-650 dark:text-slate-300">{notif.message}</p>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   </div>

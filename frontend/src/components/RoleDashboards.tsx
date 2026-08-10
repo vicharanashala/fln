@@ -3332,6 +3332,45 @@ export const AnnouncementComplianceView: React.FC<{ token?: string }> = ({ token
     fetchStats();
   }, [selectedId, token]);
 
+  // Live compliance re-sync: when ANY user marks an announcement as read
+  // in the bell popover / notifications page, the SuperAdmin dashboard
+  // should reflect that without a manual reload. We re-fetch stats on:
+  //   1) window focus  (user returns to the tab)
+  //   2) visibilitychange  (tab becomes visible again)
+  //   3) every 30s while the panel is mounted and a selection is active
+  // The polling is intentionally low-frequency so the server isn't
+  // hammered during demos.
+  useEffect(() => {
+    if (!selectedId) return;
+    const refetch = () => {
+      // Re-run only when the current selectedId is unchanged; otherwise
+      // the primary useEffect above handles it.
+      if (!selectedId) return;
+      const fetchStatsQuiet = async () => {
+        try {
+          const res = await fetch(`/api/announcements/${selectedId}/reads`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const d = await res.json();
+            setStats(d);
+          }
+        } catch {
+          /* silent: background poll failures are non-fatal */
+        }
+      };
+      fetchStatsQuiet();
+    };
+    window.addEventListener('focus', refetch);
+    document.addEventListener('visibilitychange', refetch);
+    const interval = window.setInterval(refetch, 30_000);
+    return () => {
+      window.removeEventListener('focus', refetch);
+      document.removeEventListener('visibilitychange', refetch);
+      window.clearInterval(interval);
+    };
+  }, [selectedId, token]);
+
   const byRoleEntries = Object.entries((stats?.byRole as Record<string, any>) ?? {}) as Array<
     [string, { read?: number; total?: number }]
   >;

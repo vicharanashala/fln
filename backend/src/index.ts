@@ -156,11 +156,27 @@ registerStatsRoutes(app);
     }
 
     try {
+      // Idempotency: if a receipt already exists for this user + announce-
+      // ment, return the existing one instead of inserting a duplicate
+      // (so repeat clicks from the bell popover don't pile up rows).
+      const existingReads = await dbStore.getAnnouncementReads();
+      const existing = existingReads.find(
+        (r: any) => r.announcementId === resolvedAnnouncementId && r.userId === resolvedUserId
+      );
+      if (existing) {
+        return res.json(existing);
+      }
+
       const receipt = {
         id: `ann_read_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         announcementId: resolvedAnnouncementId,
         userId: resolvedUserId,
         userEmail: resolvedUserEmail,
+        // Capture role + district at read-time so the SuperAdmin compliance
+        // dashboard can break down reads by userRole and by userDistrict
+        // without joining the users collection at query time.
+        userRole: user.role,
+        userDistrict: (user as any).districtCode || null,
         readAt: new Date().toISOString()
       };
 
@@ -169,6 +185,69 @@ registerStatsRoutes(app);
     } catch (error) {
       console.error('Failed to store announcement read receipt:', error);
       res.status(500).json({ error: 'Failed to store read receipt.' });
+    }
+  });
+
+  // Mark every existing announcement as read for the calling user. Used
+  // by the bell popover's "Clear All" button. Calls the same internal
+  // helpers as /read so it is idempotent and audited identically.
+  app.post('/api/announcements/clear-all', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      const announcements = await dbStore.getAnnouncements();
+      const existingReads = await dbStore.getAnnouncementReads();
+      const timestamp = new Date().toISOString();
+      let inserted = 0;
+      let skipped = 0;
+      for (const announcement of announcements) {
+        const already = existingReads.some(
+          (r: any) => r.announcementId === announcement.id && r.userId === user.id
+        );
+        if (already) {
+          skipped++;
+          continue;
+        }
+        await dbStore.addAnnouncementRead({
+          id: `ann_read_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          announcementId: announcement.id,
+          userId: user.id,
+          userEmail: user.email,
+          userRole: user.role,
+          userDistrict: (user as any).districtCode || null,
+          readAt: timestamp
+        } as any);
+        inserted++;
+      }
+      res.json({ success: true, inserted, skipped, total: announcements.length });
+    } catch (error) {
+      console.error('Failed to clear notifications:', error);
+      res.status(500).json({ error: 'Failed to clear notifications.' });
+    }
+  });
+
+  // Returns the exact unread count for the current user's JWT session.
+  // Superadmins see 0 (they are typically the broadcast authors and
+  // auto-acknowledge their own posts).
+  app.get('/api/notifications/unread-count', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      if (user.role === UserRole.SUPERADMIN) {
+        return res.json({ unreadCount: 0, total: 0, role: user.role });
+      }
+      const announcements = await dbStore.getAnnouncements();
+      const reads = await dbStore.getAnnouncementReads();
+      const readIds = new Set(
+        reads.filter((r: any) => r.userId === user.id).map((r: any) => r.announcementId)
+      );
+      const unreadCount = announcements.filter((a: any) => !readIds.has(a.id)).length;
+      res.json({ unreadCount, total: announcements.length, role: user.role });
+    } catch (error) {
+      console.error('Failed to compute unread count:', error);
+      res.status(500).json({ error: 'Failed to compute unread count.' });
     }
   });
 
@@ -217,35 +296,6 @@ registerStatsRoutes(app);
 
     res.json(newAnn);
   });
-
-  const markAnnouncementAsRead = async (id: string) => {
-  if (!id) return;
-
-  try {
-    const token = localStorage.getItem('fln_token');
-    
-    // Get stored user from localStorage if state isn't populated
-    const storedUserRaw = localStorage.getItem('fln_user');
-    const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
-    
-    const activeUserId = storedUser?.id || 'volunteer_pb';
-    const activeUserEmail = storedUser?.email || 'volunteer.pb@fln.org';
-
-    await fetch(`/api/announcements/${id}/read`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({ 
-        userId: activeUserId, 
-        userEmail: activeUserEmail 
-      })
-    });
-  } catch (err) {
-    console.error('Failed to persist read receipt:', err);
-  }
-};
 
   app.get('/api/announcements/:id/reads', async (req, res) => {
     const user = getAuthUser(req);

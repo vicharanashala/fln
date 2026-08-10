@@ -295,7 +295,13 @@ export interface AnnouncementRead {
   announcementId: string;
   userId: string;
   userEmail: string;
-  readAt: string;}
+  readAt: string;
+  // Captured at read-time so the compliance dashboard can break down
+  // receipts by role and district without joining the users collection.
+  // Optional for backward compatibility with pre-existing rows.
+  userRole?: UserRole;
+  userDistrict?: string | null;
+}
 export type InterventionStrategyType = 'small_group' | 'one_on_one' | 'peer_tutoring' | 'visual_aids' | 'manipulatives' | 'worksheets' | 'game_based' | 'other';
 
 export interface Intervention {
