@@ -14,7 +14,7 @@ import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { Input, Select, Textarea } from './Form';
 import { SuperAdminExecutiveDashboard } from './SuperAdminExecutiveDashboard';
-import { fetchStateCode, fetchDistrictCode, fetchGeoDetails } from '../utils/geoLookup';
+import { fetchStateCode, fetchDistrictCode, fetchBlockCode, fetchGeoDetails } from '../utils/geoLookup';
 
 
 
@@ -587,30 +587,31 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [schoolFilter, setSchoolFilter] = useState('');
 
   const stateFilterOptions = useMemo(() => {
-    return Array.from(new Set(coordinatorsList.map(c => c.stateCode).filter(Boolean)))
+    return Array.from(new Set((coordinatorsList || []).map(c => c?.stateCode).filter(Boolean)))
       .sort();
   }, [coordinatorsList]);
 
   const districtFilterOptions = useMemo(() => {
     return Array.from(new Set(
-      coordinatorsList
-        .filter(c => !stateFilter || c.stateCode === stateFilter)
-        .map(c => c.districtCode)
+      (coordinatorsList || [])
+        .filter(c => c && (!stateFilter || c.stateCode === stateFilter))
+        .map(c => c?.districtCode)
         .filter(Boolean)
     )).sort();
   }, [coordinatorsList, stateFilter]);
 
   const schoolFilterOptions = useMemo(() => {
     return Array.from(new Set(
-      coordinatorsList
-        .filter(c => (!stateFilter || c.stateCode === stateFilter) && (!districtFilter || c.districtCode === districtFilter))
-        .map(c => c.schoolId)
+      (coordinatorsList || [])
+        .filter(c => c && (!stateFilter || c.stateCode === stateFilter) && (!districtFilter || c.districtCode === districtFilter))
+        .map(c => c?.schoolId)
         .filter(Boolean)
     )).sort();
   }, [coordinatorsList, stateFilter, districtFilter]);
 
   const filteredCoordinators = useMemo(() => {
-    return coordinatorsList.filter(c => {
+    return (coordinatorsList || []).filter(c => {
+      if (!c) return false;
       if (stateFilter && c.stateCode !== stateFilter) return false;
       if (districtFilter && c.districtCode !== districtFilter) return false;
       if (schoolFilter && c.schoolId !== schoolFilter) return false;
@@ -695,6 +696,8 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
     const geo = fetchGeoDetails(coordState, coordDistrict);
     const effectiveState = geo.stateCode || coordState.trim().toUpperCase();
     const effectiveDistrict = geo.districtCode || coordDistrict.trim().toUpperCase();
+    const blockRes = fetchBlockCode(coordBlock, effectiveDistrict);
+    const effectiveBlock = blockRes.code || coordBlock.trim().toUpperCase();
 
     if (effectiveState && !/^[A-Z]{2}$/.test(effectiveState)) {
       setCoordError('State Code must be 2 uppercase letters or valid State/District name (e.g. PB, Punjab, Howrah)');
@@ -708,15 +711,16 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       return;
     }
 
-    if (coordBlock && !/^[A-Z]{3}-\d{2}$/.test(coordBlock.trim().toUpperCase())) {
-      setCoordError('Block Code must be in the format XXX-00 (e.g. LDH-01)');
+    if (coordBlock && !/^[A-Z]{3}-\d{2}$/.test(effectiveBlock)) {
+      setCoordError('Block Code must be in the format XXX-00 (e.g. LDH-01 or 01)');
       setLoading(false);
       return;
     }
 
-    if (coordRole === UserRole.BLOCK_ADMIN && coordBlock) {
-      const normBlock = coordBlock.trim().toUpperCase();
-      const existingBlockAdmin = coordinatorsList.find(c => 
+    if (coordRole === UserRole.BLOCK_ADMIN && effectiveBlock) {
+      const normBlock = effectiveBlock;
+      const existingBlockAdmin = (coordinatorsList || []).find(c => 
+        c &&
         c.role === UserRole.BLOCK_ADMIN && 
         c.blockCode && 
         c.blockCode.trim().toUpperCase() === normBlock
@@ -758,7 +762,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           role: coordRole,
           stateCode: effectiveState,
           districtCode: effectiveDistrict,
-          blockCode: coordBlock,
+          blockCode: effectiveBlock,
           schoolId: [UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) ? coordSchoolId : undefined,
           assignedSchools: coordRole === UserRole.VOLUNTEER ? assignedSchools : undefined
         })
@@ -1140,17 +1144,54 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
                 {coordRole === UserRole.BLOCK_ADMIN && (
                   <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider">Block Code</label>
+                      {coordBlock.trim() && fetchBlockCode(coordBlock, coordDistrict, coordState).code && (
+                        <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchBlockCode(coordBlock, coordDistrict, coordState).code}</span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       value={coordBlock}
-                      onChange={e => setCoordBlock(e.target.value.toUpperCase())}
-                      placeholder="e.g. LDH-01"
+                      onChange={e => {
+                        const val = e.target.value;
+                        setCoordBlock(val.toUpperCase());
+                        if (val.trim()) {
+                          const res = fetchBlockCode(val, coordDistrict, coordState);
+                          if (res.code && res.districtCode && (!coordDistrict || coordDistrict !== res.districtCode)) {
+                            setCoordDistrict(res.districtCode);
+                            if (res.stateCode && (!coordState || coordState !== res.stateCode)) {
+                              setCoordState(res.stateCode);
+                            }
+                          }
+                        }
+                      }}
+                      onBlur={e => {
+                        if (e.target.value.trim()) {
+                          const res = fetchBlockCode(e.target.value, coordDistrict, coordState);
+                          if (res.code) {
+                            setCoordBlock(res.code);
+                            if (res.districtCode && (!coordDistrict || coordDistrict !== res.districtCode)) {
+                              setCoordDistrict(res.districtCode);
+                            }
+                            if (res.stateCode && (!coordState || coordState !== res.stateCode)) {
+                              setCoordState(res.stateCode);
+                            }
+                          }
+                        }
+                      }}
+                      placeholder="e.g. 01, HWH-01..."
                       required
-                      pattern="^[A-Z]{3}-\d{2}$"
-                      title="Block code must be in the format XXX-00 (e.g. LDH-01)"
-                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
+                      title="Type Block Code (e.g. 01 or HWH-01)"
+                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200 focus:border-indigo-500 font-mono"
                     />
+                    {coordBlock.trim() && fetchBlockCode(coordBlock, coordDistrict, coordState).name && (
+                      <span className="text-[10px] text-emerald-600 font-medium block mt-0.5">
+                        Fetched: {fetchBlockCode(coordBlock, coordDistrict, coordState).name} ({fetchBlockCode(coordBlock, coordDistrict, coordState).code})
+                        {fetchBlockCode(coordBlock, coordDistrict, coordState).districtName && ` · District: ${fetchBlockCode(coordBlock, coordDistrict, coordState).districtName} (${fetchBlockCode(coordBlock, coordDistrict, coordState).districtCode})`}
+                        {fetchBlockCode(coordBlock, coordDistrict, coordState).stateName && ` · State: ${fetchBlockCode(coordBlock, coordDistrict, coordState).stateName} (${fetchBlockCode(coordBlock, coordDistrict, coordState).stateCode})`}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

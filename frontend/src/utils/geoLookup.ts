@@ -1,10 +1,12 @@
-import { STATE_NAMES, DISTRICT_NAMES } from '../constants';
+import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
 
 export interface GeoLookupResult {
   stateCode: string | null;
   stateName: string | null;
   districtCode: string | null;
   districtName: string | null;
+  blockCode: string | null;
+  blockName: string | null;
 }
 
 // Complete Master Geo Dataset: 36 States/UTs & 72 Districts
@@ -215,21 +217,153 @@ export function fetchDistrictCode(input?: string): { code: string | null; name: 
 }
 
 /**
- * Smart Geo Details Resolver with cross-inference between state & district inputs.
+ * Fetch block code & block name from block input (e.g., "01", "1", "LDH-01", "HWH-01", "Ludhiana Block 1").
+ * Uses parent district and/or parent state to resolve numeric inputs (e.g. WB + 01 -> HWH-01 / Howrah Block 1).
  */
-export function fetchGeoDetails(stateInput?: string, districtInput?: string): GeoLookupResult {
-  let stateRes = fetchStateCode(stateInput);
-  let districtRes = fetchDistrictCode(districtInput);
+export function fetchBlockCode(input?: string, parentDistrict?: string, parentState?: string): {
+  code: string | null;
+  name: string | null;
+  districtCode: string | null;
+  districtName: string | null;
+  stateCode: string | null;
+  stateName: string | null;
+} {
+  if (!input || !input.trim()) {
+    return { code: null, name: null, districtCode: null, districtName: null, stateCode: null, stateName: null };
+  }
 
-  // If state was typed as a district name (e.g. "Ludhiana"), auto-infer district too!
-  if (!districtRes.code && stateInput) {
-    const distCheck = fetchDistrictCode(stateInput);
-    if (distCheck.code) {
-      districtRes = distCheck;
+  const rawInput = input.trim();
+  const cleanInput = rawInput.toLowerCase();
+  
+  // 1. Resolve parent district if provided
+  let distInfo = parentDistrict ? fetchDistrictCode(parentDistrict) : null;
+  let stateInfo = parentState ? fetchStateCode(parentState) : null;
+
+  // If district was not provided or not resolved, infer primary district for state if state is provided
+  if ((!distInfo || !distInfo.code) && (stateInfo?.code || parentState)) {
+    const sCode = stateInfo?.code || fetchStateCode(parentState).code;
+    if (sCode) {
+      const firstDistrictMatch = MASTER_GEO_DATA.find((m) => m.stateCode === sCode);
+      if (firstDistrictMatch) {
+        distInfo = {
+          code: firstDistrictMatch.districtCode,
+          name: firstDistrictMatch.districtName,
+          stateCode: firstDistrictMatch.stateCode,
+          stateName: firstDistrictMatch.stateName,
+        };
+      }
     }
   }
 
-  // If district was typed as a state name (e.g. "Punjab"), auto-infer state too!
+  const targetDistCode = distInfo?.code || 'LDH';
+  const targetDistName = distInfo?.name || 'Ludhiana';
+  const targetStateCode = distInfo?.stateCode || stateInfo?.code || 'PB';
+  const targetStateName = distInfo?.stateName || stateInfo?.name || 'Punjab';
+
+  // 2. Check if user typed numeric block code e.g. "01", "1", "02", "2"
+  if (/^\d{1,2}$/.test(rawInput)) {
+    const num = parseInt(rawInput, 10);
+    const numStr = num.toString().padStart(2, '0');
+    const constructedCode = `${targetDistCode}-${numStr}`;
+    const keyUnderscore = `${targetDistCode}_${numStr}`;
+    const blockName = BLOCK_NAMES[keyUnderscore] || `${targetDistName} Block ${num}`;
+
+    return {
+      code: constructedCode,
+      name: blockName,
+      districtCode: targetDistCode,
+      districtName: targetDistName,
+      stateCode: targetStateCode,
+      stateName: targetStateName,
+    };
+  }
+
+  // 3. Key lookups (handle hyphen e.g. LDH-01 -> LDH_01 or HWH-01 -> HWH_01)
+  const keyWithUnderscore = cleanInput.replace(/-/g, '_').toUpperCase();
+
+  // 4. Direct match in BLOCK_NAMES (e.g. BLOCK_NAMES['HWH_01'] -> "Howrah Block 1")
+  let matchedName: string | null = BLOCK_NAMES[keyWithUnderscore] || null;
+
+  // Reverse lookup: check if user typed a block name (e.g. "Howrah Block 1")
+  let reverseMatchedCode: string | null = null;
+  if (!matchedName) {
+    const entry = Object.entries(BLOCK_NAMES).find(
+      ([k, v]) => v.toLowerCase() === cleanInput || k.toLowerCase() === cleanInput
+    );
+    if (entry) {
+      reverseMatchedCode = entry[0].replace(/_/g, '-');
+      matchedName = entry[1];
+    }
+  }
+
+  // Pattern check for valid block format (e.g., LDH-01, HWH-01, ASR-02)
+  const matchesBlockPattern = /^[A-Za-z]{2,4}[_-]?\d{1,3}$/i.test(rawInput);
+
+  if (!matchedName && !reverseMatchedCode && !matchesBlockPattern) {
+    return {
+      code: null,
+      name: null,
+      districtCode: distInfo?.code || null,
+      districtName: distInfo?.name || null,
+      stateCode: distInfo?.stateCode || stateInfo?.code || null,
+      stateName: distInfo?.stateName || stateInfo?.name || null,
+    };
+  }
+
+  const finalCode = reverseMatchedCode || rawInput.toUpperCase().replace(/_/g, '-');
+
+  // Extract District Code prefix (e.g. "HWH" from "HWH-01")
+  const distCodePrefix = finalCode.split('-')[0] || targetDistCode;
+  const resolvedDist = fetchDistrictCode(distCodePrefix);
+
+  if (!matchedName && (resolvedDist.name || distInfo?.name)) {
+    const numMatch = finalCode.match(/\d+/);
+    const blockNum = numMatch ? parseInt(numMatch[0], 10) : '';
+    const dName = resolvedDist.name || targetDistName;
+    matchedName = blockNum ? `${dName} Block ${blockNum}` : `${dName} Block`;
+  }
+
+  return {
+    code: finalCode,
+    name: matchedName,
+    districtCode: resolvedDist.code || distInfo?.code || targetDistCode,
+    districtName: resolvedDist.name || distInfo?.name || targetDistName,
+    stateCode: resolvedDist.stateCode || distInfo?.stateCode || targetStateCode,
+    stateName: resolvedDist.stateName || distInfo?.stateName || targetStateName,
+  };
+}
+
+/**
+ * Smart Geo Details Resolver with cross-inference between state, district, & block inputs.
+ */
+export function fetchGeoDetails(stateInput?: string, districtInput?: string, blockInput?: string): GeoLookupResult {
+  let stateRes = fetchStateCode(stateInput);
+  let districtRes = fetchDistrictCode(districtInput);
+  let blockRes = fetchBlockCode(
+    blockInput,
+    districtRes.code || districtInput || undefined,
+    stateRes.code || stateInput || undefined
+  );
+
+  // Cross-inference from block input (e.g. typing "01" or "HWH-01" auto-detects Howrah district & West Bengal state!)
+  if (blockRes.code) {
+    if (!districtRes.code && blockRes.districtCode) {
+      districtRes = {
+        code: blockRes.districtCode,
+        name: blockRes.districtName,
+        stateCode: blockRes.stateCode,
+        stateName: blockRes.stateName,
+      };
+    }
+    if (!stateRes.code && blockRes.stateCode) {
+      stateRes = {
+        code: blockRes.stateCode,
+        name: blockRes.stateName,
+      };
+    }
+  }
+
+  // Cross-inference from district input if state is empty
   if (!stateRes.code && districtInput) {
     const stateCheck = fetchStateCode(districtInput);
     if (stateCheck.code) {
@@ -237,10 +371,21 @@ export function fetchGeoDetails(stateInput?: string, districtInput?: string): Ge
     }
   }
 
+  // Cross-inference from state input if district is empty but stateInput was typed as district
+  if (!districtRes.code && stateInput) {
+    const distCheck = fetchDistrictCode(stateInput);
+    if (distCheck.code) {
+      districtRes = distCheck;
+    }
+  }
+
   return {
-    stateCode: stateRes.code || districtRes.stateCode,
-    stateName: stateRes.name || districtRes.stateName,
-    districtCode: districtRes.code,
-    districtName: districtRes.name,
+    stateCode: stateRes.code || districtRes.stateCode || blockRes.stateCode,
+    stateName: stateRes.name || districtRes.stateName || blockRes.stateName,
+    districtCode: districtRes.code || blockRes.districtCode,
+    districtName: districtRes.name || blockRes.districtName,
+    blockCode: blockRes.code,
+    blockName: blockRes.name,
   };
 }
+
