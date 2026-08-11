@@ -69,6 +69,7 @@ export const STATES_UTS: StateInfo[] = [
     districts: [
       { code: 'AMB', name: 'Ambala' },
       { code: 'PKL', name: 'Panchkula' },
+      { code: 'KRN', name: 'Karnal' },
     ],
   },
   {
@@ -151,8 +152,29 @@ export const STATES_UTS: StateInfo[] = [
   {
     code: 'PB', name: 'Punjab',
     districts: [
-      { code: 'LDH', name: 'Ludhiana' },
       { code: 'ASR', name: 'Amritsar' },
+      { code: 'BNL', name: 'Barnala' },
+      { code: 'BTH', name: 'Bathinda' },
+      { code: 'FDK', name: 'Faridkot' },
+      { code: 'FGS', name: 'Fatehgarh Sahib' },
+      { code: 'FZK', name: 'Fazilka' },
+      { code: 'FZP', name: 'Ferozepur' },
+      { code: 'GSP', name: 'Gurdaspur' },
+      { code: 'HSP', name: 'Hoshiarpur' },
+      { code: 'JAL', name: 'Jalandhar' },
+      { code: 'KPT', name: 'Kapurthala' },
+      { code: 'LDH', name: 'Ludhiana' },
+      { code: 'MLK', name: 'Malerkotla' },
+      { code: 'MNS', name: 'Mansa' },
+      { code: 'MOG', name: 'Moga' },
+      { code: 'PTK', name: 'Pathankot' },
+      { code: 'PAT', name: 'Patiala' },
+      { code: 'RUP', name: 'Rupnagar' },
+      { code: 'SAS', name: 'SAS Nagar (Mohali)' },
+      { code: 'SBS', name: 'SBS Nagar (Nawanshahr)' },
+      { code: 'MKS', name: 'Sri Muktsar Sahib' },
+      { code: 'SNG', name: 'Sangrur' },
+      { code: 'TTN', name: 'Tarn Taran' },
     ],
   },
   {
@@ -160,6 +182,8 @@ export const STATES_UTS: StateInfo[] = [
     districts: [
       { code: 'JAI', name: 'Jaipur' },
       { code: 'JDP', name: 'Jodhpur' },
+      { code: 'UDA', name: 'Udaipur' },
+      { code: 'AJM', name: 'Ajmer' },
     ],
   },
   {
@@ -202,6 +226,7 @@ export const STATES_UTS: StateInfo[] = [
     districts: [
       { code: 'LKO', name: 'Lucknow' },
       { code: 'KNP', name: 'Kanpur' },
+      { code: 'VAR', name: 'Varanasi' },
     ],
   },
   {

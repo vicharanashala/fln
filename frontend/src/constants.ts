@@ -62,7 +62,8 @@ export const BLOCKS_DATA: Record<string, { id: string; name: string; districtId:
     { id: 'BTH-01', name: 'Bathinda Block 1', districtId: 'bth', avgScore: 38 }
   ],
   'asr': [
-    { id: 'ASR-01', name: 'Amritsar Block 1', districtId: 'asr', avgScore: 68 }
+    { id: 'ASR-01', name: 'Ajnala Block', districtId: 'asr', avgScore: 68 },
+    { id: 'ASR-02', name: 'Attari Block', districtId: 'asr', avgScore: 65 }
   ],
   'mog': [
     { id: 'MOG-02', name: 'Moga Block 2', districtId: 'mog', avgScore: 52 }
@@ -135,7 +136,12 @@ export const DISTRICT_NAMES: Record<string, string> = {
   BPL: 'Bhopal', IND: 'Indore', MUM: 'Mumbai', PUN: 'Pune',
   IMW: 'Imphal West', IME: 'Imphal East', EKH: 'East Khasi Hills', WJH: 'West Jaintia Hills',
   AIZ: 'Aizawl', CMP: 'Champhai', KOH: 'Kohima', DIM: 'Dimapur',
-  BBS: 'Bhubaneswar', CTC: 'Cuttack', LDH: 'Ludhiana', ASR: 'Amritsar',
+  BBS: 'Bhubaneswar', CTC: 'Cuttack',
+  ASR: 'Amritsar', BNL: 'Barnala', BTH: 'Bathinda', FDK: 'Faridkot', FGS: 'Fatehgarh Sahib',
+  FZK: 'Fazilka', FZP: 'Ferozepur', GSP: 'Gurdaspur', HSP: 'Hoshiarpur', JAL: 'Jalandhar',
+  KPT: 'Kapurthala', LDH: 'Ludhiana', MLK: 'Malerkotla', MNS: 'Mansa', MOG: 'Moga',
+  PTK: 'Pathankot', PAT: 'Patiala', RUP: 'Rupnagar', SAS: 'SAS Nagar (Mohali)',
+  SBS: 'SBS Nagar (Nawanshahr)', MKS: 'Sri Muktsar Sahib', SNG: 'Sangrur', TTN: 'Tarn Taran',
   JAI: 'Jaipur', JDP: 'Jodhpur', ESK: 'East Sikkim', WSK: 'West Sikkim',
   CHN: 'Chennai', CBE: 'Coimbatore', HYD: 'Hyderabad', WGL: 'Warangal',
   WTR: 'West Tripura', SPJ: 'Sepahijala', DDN: 'Dehradun', HRW: 'Haridwar',
@@ -186,11 +192,11 @@ export const BLOCK_NAMES: Record<string, string> = {
   'DIM_01': 'Dimapur Block 1', 'DIM_02': 'Dimapur Block 2',
   'BBS_01': 'Bhubaneswar Block 1', 'BBS_02': 'Bhubaneswar Block 2',
   'CTC_01': 'Cuttack Block 1', 'CTC_02': 'Cuttack Block 2',
-  'LDH_01': 'Ludhiana Block 1', 'LDH_02': 'Ludhiana Block 2',
-  'ASR_01': 'Amritsar Block 1', 'ASR_02': 'Amritsar Block 2',
-  'JAL_01': 'Jalandhar Block 1', 'JAL_02': 'Jalandhar Block 2',
-  'BTH_01': 'Bathinda Block 1', 'BTH_02': 'Bathinda Block 2',
-  'PAT_01': 'Patiala Block 1', 'PAT_02': 'Patiala Block 2',
+  'ASR_01': 'Ajnala Block', 'ASR_02': 'Attari Block', 'ASR_03': 'Jandiala Guru Block',
+  'ASR_04': 'Majitha Block', 'ASR_05': 'Rayya Block', 'ASR_06': 'Verka Block',
+  'ASR_07': 'Chogawan Block', 'ASR_08': 'Tarsikka Block',
+  'LDH_01': 'Ludhiana Block 1', 'LDH_02': 'Ludhiana Block 2', 'LDH_03': 'Khanna Block', 'LDH_04': 'Jagraon Block', 'LDH_05': 'Samrala Block',
+  'PAT_01': 'Patiala Block 1', 'PAT_02': 'Patiala Block 2', 'PAT_03': 'Nabha Block', 'PAT_04': 'Rajpura Block', 'PAT_05': 'Samana Block',
   'MOG_01': 'Moga Block 1', 'MOG_02': 'Moga Block 2',
   'JAI_01': 'Jaipur Block 1', 'JAI_02': 'Jaipur Block 2',
   'JDP_01': 'Jodhpur Block 1', 'JDP_02': 'Jodhpur Block 2',

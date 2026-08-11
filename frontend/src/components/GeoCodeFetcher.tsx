@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { fetchGeoDetails } from '../utils/geoLookup';
+import { DistrictAutocomplete } from './DistrictAutocomplete';
+import { BlockAutocomplete } from './BlockAutocomplete';
 
 interface GeoCodeFetcherProps {
   onAutoSelect?: (details: { stateCode: string | null; districtCode: string | null; blockCode: string | null; blockName: string | null }) => void;
@@ -42,7 +44,7 @@ export const GeoCodeFetcher: React.FC<GeoCodeFetcherProps> = ({ onAutoSelect, co
 
   const presetExamples = [
     { state: 'Punjab', district: 'Ludhiana', block: 'LDH-01', expectedS: 'PB', expectedD: 'LDH', expectedBName: 'Ludhiana Block 1' },
-    { state: 'Punjab', district: 'Amritsar', block: 'ASR-02', expectedS: 'PB', expectedD: 'ASR', expectedBName: 'Amritsar Block 2' },
+    { state: 'Punjab', district: 'Amritsar', block: 'ASR-01', expectedS: 'PB', expectedD: 'ASR', expectedBName: 'Ajnala Block' },
     { state: 'Rajasthan', district: 'Jaipur', block: 'JAI-01', expectedS: 'RJ', expectedD: 'JAI', expectedBName: 'Jaipur Block 1' },
     { state: 'Haryana', district: 'Ambala', block: 'AMB-01', expectedS: 'HR', expectedD: 'AMB', expectedBName: 'Ambala Block 1' },
   ];
@@ -102,11 +104,17 @@ export const GeoCodeFetcher: React.FC<GeoCodeFetcherProps> = ({ onAutoSelect, co
               <span className="text-xs text-amber-600 font-medium">Unrecognized</span>
             ) : null}
           </div>
-          <input
-            type="text"
+          <DistrictAutocomplete
             value={districtInput}
-            onChange={handleDistrictChange}
-            placeholder="e.g. Ludhiana, Jaipur..."
+            stateInput={stateInput}
+            onChange={(val) => {
+              setDistrictInput(val);
+              const details = fetchGeoDetails(stateInput, val, blockInput);
+              if (onAutoSelect) {
+                onAutoSelect({ stateCode: details.stateCode, districtCode: details.districtCode, blockCode: details.blockCode, blockName: details.blockName });
+              }
+            }}
+            placeholder="e.g. Ludhiana, Amritsar..."
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
           />
         </div>
@@ -125,11 +133,18 @@ export const GeoCodeFetcher: React.FC<GeoCodeFetcherProps> = ({ onAutoSelect, co
               <span className="text-xs text-amber-600 font-medium">Unrecognized code</span>
             ) : null}
           </div>
-          <input
-            type="text"
+          <BlockAutocomplete
             value={blockInput}
-            onChange={handleBlockChange}
-            placeholder="e.g. LDH-01, ASR-02..."
+            parentDistrict={districtInput}
+            parentState={stateInput}
+            onChange={(val) => {
+              setBlockInput(val);
+              const details = fetchGeoDetails(stateInput, districtInput, val);
+              if (onAutoSelect) {
+                onAutoSelect({ stateCode: details.stateCode, districtCode: details.districtCode, blockCode: details.blockCode, blockName: details.blockName });
+              }
+            }}
+            placeholder="e.g. 01, ASR-01..."
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 font-mono"
           />
         </div>

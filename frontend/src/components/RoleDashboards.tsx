@@ -15,6 +15,8 @@ import { MetricCard } from './Card';
 import { Input, Select, Textarea } from './Form';
 import { SuperAdminExecutiveDashboard } from './SuperAdminExecutiveDashboard';
 import { fetchStateCode, fetchDistrictCode, fetchBlockCode, fetchGeoDetails } from '../utils/geoLookup';
+import { DistrictAutocomplete } from './DistrictAutocomplete';
+import { BlockAutocomplete } from './BlockAutocomplete';
 
 
 
@@ -320,35 +322,32 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
           <div className="flex-grow">
             <div className="flex justify-between items-center mb-1">
               <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Filter District</label>
-              {fetchDistrictCode(districtCode).name && (
-                <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchDistrictCode(districtCode).code}</span>
+              {fetchDistrictCode(districtCode, stateCode).name && (
+                <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchDistrictCode(districtCode, stateCode).code}</span>
               )}
             </div>
-            <input 
-              type="text" 
+            <DistrictAutocomplete 
               value={districtCode} 
-              onChange={e => {
-                const val = e.target.value;
-                const res = fetchDistrictCode(val);
-                setDistrictCode(res.code || val.toUpperCase());
+              stateInput={stateCode}
+              onChange={(val, selectedItem) => {
+                const targetVal = selectedItem ? selectedItem.code : val;
+                const res = fetchDistrictCode(targetVal, stateCode);
+                setDistrictCode(res.code || targetVal.toUpperCase());
                 setBlockCode('');
               }}
-              onBlur={e => {
-                const res = fetchDistrictCode(e.target.value);
-                if (res.code) setDistrictCode(res.code);
-              }}
-              placeholder="e.g. Ludhiana, LDH"
+              placeholder="e.g. Ludhiana, LDH, Amritsar..."
               className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
           <div className="flex-grow">
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter Block</label>
-            <input 
-              type="text" 
+            <BlockAutocomplete 
               value={blockCode} 
-              onChange={e => setBlockCode(e.target.value.toUpperCase())}
-              placeholder="e.g. LDH-01"
-              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
+              parentDistrict={districtCode}
+              parentState={stateCode}
+              onChange={val => setBlockCode(val.toUpperCase())}
+              placeholder="e.g. 01, ASR-01"
+              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400 font-mono"
             />
           </div>
           <button 
@@ -696,7 +695,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
     const geo = fetchGeoDetails(coordState, coordDistrict);
     const effectiveState = geo.stateCode || coordState.trim().toUpperCase();
     const effectiveDistrict = geo.districtCode || coordDistrict.trim().toUpperCase();
-    const blockRes = fetchBlockCode(coordBlock, effectiveDistrict);
+    const blockRes = fetchBlockCode(coordBlock, effectiveDistrict, effectiveState);
     const effectiveBlock = blockRes.code || coordBlock.trim().toUpperCase();
 
     if (effectiveState && !/^[A-Z]{2}$/.test(effectiveState)) {
@@ -1065,7 +1064,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                       if (res.code) {
                         setCoordState(res.code);
                         // If auto-detected from a district (e.g. Howrah), also set district code automatically!
-                        const distRes = fetchDistrictCode(val);
+                        const distRes = fetchDistrictCode(val, coordState);
                         if (distRes.code && !coordDistrict) {
                           setCoordDistrict(distRes.code);
                         }
@@ -1077,7 +1076,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                       const res = fetchStateCode(e.target.value);
                       if (res.code) {
                         setCoordState(res.code);
-                        const distRes = fetchDistrictCode(e.target.value);
+                        const distRes = fetchDistrictCode(e.target.value, coordState);
                         if (distRes.code && !coordDistrict) {
                           setCoordDistrict(distRes.code);
                         }
@@ -1100,43 +1099,34 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                   <div>
                     <div className="flex justify-between items-center mb-0.5">
                       <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider">District Code / Name</label>
-                      {fetchDistrictCode(coordDistrict).name && (
-                        <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchDistrictCode(coordDistrict).code}</span>
+                      {fetchDistrictCode(coordDistrict, coordState).name && (
+                        <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchDistrictCode(coordDistrict, coordState).code}</span>
                       )}
                     </div>
-                    <input
-                      type="text"
+                    <DistrictAutocomplete
                       value={coordDistrict}
-                      onChange={e => {
-                        const val = e.target.value;
-                        const res = fetchDistrictCode(val);
+                      stateInput={coordState}
+                      onChange={(val, selectedItem) => {
+                        const targetVal = selectedItem ? selectedItem.code : val;
+                        const res = fetchDistrictCode(targetVal, coordState);
                         if (res.code) {
                           setCoordDistrict(res.code);
                           if (res.stateCode && coordState !== res.stateCode) {
                             setCoordState(res.stateCode);
                           }
                         } else {
-                          setCoordDistrict(val.toUpperCase());
+                          setCoordDistrict(targetVal.toUpperCase());
                         }
                       }}
-                      onBlur={e => {
-                        const res = fetchDistrictCode(e.target.value);
-                        if (res.code) {
-                          setCoordDistrict(res.code);
-                          if (res.stateCode && coordState !== res.stateCode) {
-                            setCoordState(res.stateCode);
-                          }
-                        }
-                      }}
-                      placeholder="e.g. Ludhiana, LDH..."
+                      placeholder="e.g. Ludhiana, LDH, Amritsar..."
                       required
                       title="Type District Name (e.g. Ludhiana) or District Code (e.g. LDH)"
                       className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200 focus:border-indigo-500"
                     />
-                    {fetchDistrictCode(coordDistrict).name && (
+                    {fetchDistrictCode(coordDistrict, coordState).name && (
                       <span className="text-[10px] text-emerald-600 font-medium block mt-0.5">
-                        Fetched: {fetchDistrictCode(coordDistrict).name} ({fetchDistrictCode(coordDistrict).code})
-                        {fetchDistrictCode(coordDistrict).stateName && ` · State: ${fetchDistrictCode(coordDistrict).stateName} (${fetchDistrictCode(coordDistrict).stateCode})`}
+                        Fetched: {fetchDistrictCode(coordDistrict, coordState).name} ({fetchDistrictCode(coordDistrict, coordState).code})
+                        {fetchDistrictCode(coordDistrict, coordState).stateName && ` · State: ${fetchDistrictCode(coordDistrict, coordState).stateName} (${fetchDistrictCode(coordDistrict, coordState).stateCode})`}
                       </span>
                     )}
                   </div>
@@ -1150,15 +1140,16 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                         <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchBlockCode(coordBlock, coordDistrict, coordState).code}</span>
                       )}
                     </div>
-                    <input
-                      type="text"
+                    <BlockAutocomplete
                       value={coordBlock}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setCoordBlock(val.toUpperCase());
-                        if (val.trim()) {
-                          const res = fetchBlockCode(val, coordDistrict, coordState);
-                          if (res.code && res.districtCode && (!coordDistrict || coordDistrict !== res.districtCode)) {
+                      parentDistrict={coordDistrict}
+                      parentState={coordState}
+                      onChange={(val, selectedItem) => {
+                        const targetVal = selectedItem ? selectedItem.code : val.toUpperCase();
+                        setCoordBlock(targetVal);
+                        if (targetVal.trim()) {
+                          const res = fetchBlockCode(targetVal, coordDistrict, coordState);
+                          if (res.code && res.districtCode && res.isExplicitDistrict && (!coordDistrict || coordDistrict !== res.districtCode)) {
                             setCoordDistrict(res.districtCode);
                             if (res.stateCode && (!coordState || coordState !== res.stateCode)) {
                               setCoordState(res.stateCode);
@@ -1166,23 +1157,9 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                           }
                         }
                       }}
-                      onBlur={e => {
-                        if (e.target.value.trim()) {
-                          const res = fetchBlockCode(e.target.value, coordDistrict, coordState);
-                          if (res.code) {
-                            setCoordBlock(res.code);
-                            if (res.districtCode && (!coordDistrict || coordDistrict !== res.districtCode)) {
-                              setCoordDistrict(res.districtCode);
-                            }
-                            if (res.stateCode && (!coordState || coordState !== res.stateCode)) {
-                              setCoordState(res.stateCode);
-                            }
-                          }
-                        }
-                      }}
-                      placeholder="e.g. 01, HWH-01..."
+                      placeholder="e.g. 01, ASR-01..."
                       required
-                      title="Type Block Code (e.g. 01 or HWH-01)"
+                      title="Type or select Block Code (e.g. 01 or ASR-01)"
                       className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200 focus:border-indigo-500 font-mono"
                     />
                     {coordBlock.trim() && fetchBlockCode(coordBlock, coordDistrict, coordState).name && (

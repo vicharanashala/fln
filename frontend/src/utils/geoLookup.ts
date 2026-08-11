@@ -69,13 +69,30 @@ export const MASTER_GEO_DATA: { stateCode: string; stateName: string; districtCo
   // Odisha (OD)
   { stateCode: 'OD', stateName: 'Odisha', districtCode: 'BBS', districtName: 'Bhubaneswar' },
   { stateCode: 'OD', stateName: 'Odisha', districtCode: 'CTC', districtName: 'Cuttack' },
-  // Punjab (PB)
-  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'LDH', districtName: 'Ludhiana' },
+  // Punjab (PB) - All 23 Official Districts
   { stateCode: 'PB', stateName: 'Punjab', districtCode: 'ASR', districtName: 'Amritsar' },
-  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'JAL', districtName: 'Jalandhar' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'BNL', districtName: 'Barnala' },
   { stateCode: 'PB', stateName: 'Punjab', districtCode: 'BTH', districtName: 'Bathinda' },
-  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'PAT', districtName: 'Patiala' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'FDK', districtName: 'Faridkot' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'FGS', districtName: 'Fatehgarh Sahib' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'FZK', districtName: 'Fazilka' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'FZP', districtName: 'Ferozepur' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'GSP', districtName: 'Gurdaspur' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'HSP', districtName: 'Hoshiarpur' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'JAL', districtName: 'Jalandhar' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'KPT', districtName: 'Kapurthala' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'LDH', districtName: 'Ludhiana' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'MLK', districtName: 'Malerkotla' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'MNS', districtName: 'Mansa' },
   { stateCode: 'PB', stateName: 'Punjab', districtCode: 'MOG', districtName: 'Moga' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'PTK', districtName: 'Pathankot' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'PAT', districtName: 'Patiala' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'RUP', districtName: 'Rupnagar' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'SAS', districtName: 'SAS Nagar (Mohali)' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'SBS', districtName: 'SBS Nagar (Nawanshahr)' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'MKS', districtName: 'Sri Muktsar Sahib' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'SNG', districtName: 'Sangrur' },
+  { stateCode: 'PB', stateName: 'Punjab', districtCode: 'TTN', districtName: 'Tarn Taran' },
   // Rajasthan (RJ)
   { stateCode: 'RJ', stateName: 'Rajasthan', districtCode: 'JAI', districtName: 'Jaipur' },
   { stateCode: 'RJ', stateName: 'Rajasthan', districtCode: 'JDP', districtName: 'Jodhpur' },
@@ -196,13 +213,15 @@ export function fetchStateCode(input?: string): { code: string | null; name: str
 }
 
 /**
- * Fetch district code, canonical name, and parent state details from district input (name or code).
+ * Fetch district code, canonical name, and parent state details from district input (name, code, or numeric index 1..N).
  * Example: "Ludhiana" -> { code: "LDH", name: "Ludhiana", stateCode: "PB", stateName: "Punjab" }
+ * Example (with state=PB): "5" -> { code: "PAT", name: "Patiala", stateCode: "PB", stateName: "Punjab" }
  */
-export function fetchDistrictCode(input?: string): { code: string | null; name: string | null; stateCode: string | null; stateName: string | null } {
+export function fetchDistrictCode(input?: string, parentState?: string): { code: string | null; name: string | null; stateCode: string | null; stateName: string | null } {
   if (!input || !input.trim()) return { code: null, name: null, stateCode: null, stateName: null };
   const clean = input.trim().toLowerCase();
 
+  // 1. Direct match in lookup (code, name, or alias)
   const match = DISTRICT_LOOKUP[clean];
   if (match) {
     return {
@@ -211,6 +230,25 @@ export function fetchDistrictCode(input?: string): { code: string | null; name: 
       stateCode: match.stateCode || null,
       stateName: match.stateName || null,
     };
+  }
+
+  // 2. Numeric district index lookup (e.g. "1", "5", "01", "05")
+  if (/^\d{1,2}$/.test(clean)) {
+    const num = parseInt(clean, 10);
+    const targetStateCode = parentState ? fetchStateCode(parentState).code : null;
+    const stateDistricts = targetStateCode 
+      ? MASTER_GEO_DATA.filter((m) => m.stateCode === targetStateCode)
+      : MASTER_GEO_DATA;
+
+    if (num >= 1 && num <= stateDistricts.length) {
+      const item = stateDistricts[num - 1];
+      return {
+        code: item.districtCode,
+        name: item.districtName,
+        stateCode: item.stateCode,
+        stateName: item.stateName,
+      };
+    }
   }
 
   return { code: null, name: null, stateCode: null, stateName: null };
@@ -227,54 +265,52 @@ export function fetchBlockCode(input?: string, parentDistrict?: string, parentSt
   districtName: string | null;
   stateCode: string | null;
   stateName: string | null;
+  isExplicitDistrict?: boolean;
 } {
   if (!input || !input.trim()) {
-    return { code: null, name: null, districtCode: null, districtName: null, stateCode: null, stateName: null };
+    return { code: null, name: null, districtCode: null, districtName: null, stateCode: null, stateName: null, isExplicitDistrict: false };
   }
 
   const rawInput = input.trim();
   const cleanInput = rawInput.toLowerCase();
   
   // 1. Resolve parent district if provided
-  let distInfo = parentDistrict ? fetchDistrictCode(parentDistrict) : null;
+  let distInfo = parentDistrict ? fetchDistrictCode(parentDistrict, parentState) : null;
   let stateInfo = parentState ? fetchStateCode(parentState) : null;
 
-  // If district was not provided or not resolved, infer primary district for state if state is provided
-  if ((!distInfo || !distInfo.code) && (stateInfo?.code || parentState)) {
-    const sCode = stateInfo?.code || fetchStateCode(parentState).code;
-    if (sCode) {
-      const firstDistrictMatch = MASTER_GEO_DATA.find((m) => m.stateCode === sCode);
-      if (firstDistrictMatch) {
-        distInfo = {
-          code: firstDistrictMatch.districtCode,
-          name: firstDistrictMatch.districtName,
-          stateCode: firstDistrictMatch.stateCode,
-          stateName: firstDistrictMatch.stateName,
-        };
-      }
-    }
-  }
-
-  const targetDistCode = distInfo?.code || 'LDH';
-  const targetDistName = distInfo?.name || 'Ludhiana';
-  const targetStateCode = distInfo?.stateCode || stateInfo?.code || 'PB';
-  const targetStateName = distInfo?.stateName || stateInfo?.name || 'Punjab';
-
-  // 2. Check if user typed numeric block code e.g. "01", "1", "02", "2"
+  // 2. Check if user typed numeric block code e.g. "01", "1", "02", "2", "5"
   if (/^\d{1,2}$/.test(rawInput)) {
     const num = parseInt(rawInput, 10);
     const numStr = num.toString().padStart(2, '0');
-    const constructedCode = `${targetDistCode}-${numStr}`;
-    const keyUnderscore = `${targetDistCode}_${numStr}`;
-    const blockName = BLOCK_NAMES[keyUnderscore] || `${targetDistName} Block ${num}`;
 
+    if (distInfo && distInfo.code) {
+      const constructedCode = `${distInfo.code}-${numStr}`;
+      const keyUnderscore = `${distInfo.code}_${numStr}`;
+      const blockName = BLOCK_NAMES[keyUnderscore] || `${distInfo.name} Block ${num}`;
+
+      return {
+        code: constructedCode,
+        name: blockName,
+        districtCode: distInfo.code,
+        districtName: distInfo.name,
+        stateCode: distInfo.stateCode || stateInfo?.code || null,
+        stateName: distInfo.stateName || stateInfo?.name || null,
+        isExplicitDistrict: false,
+      };
+    }
+
+    // If parent district is not explicitly provided:
+    const sCode = stateInfo?.code || null;
+    const sName = stateInfo?.name || null;
+    
     return {
-      code: constructedCode,
-      name: blockName,
-      districtCode: targetDistCode,
-      districtName: targetDistName,
-      stateCode: targetStateCode,
-      stateName: targetStateName,
+      code: `${sCode ? sCode + '-' : ''}${numStr}`,
+      name: `Block ${num}`,
+      districtCode: null,
+      districtName: null,
+      stateCode: sCode,
+      stateName: sName,
+      isExplicitDistrict: false,
     };
   }
 
@@ -307,29 +343,32 @@ export function fetchBlockCode(input?: string, parentDistrict?: string, parentSt
       districtName: distInfo?.name || null,
       stateCode: distInfo?.stateCode || stateInfo?.code || null,
       stateName: distInfo?.stateName || stateInfo?.name || null,
+      isExplicitDistrict: false,
     };
   }
 
   const finalCode = reverseMatchedCode || rawInput.toUpperCase().replace(/_/g, '-');
 
   // Extract District Code prefix (e.g. "HWH" from "HWH-01")
-  const distCodePrefix = finalCode.split('-')[0] || targetDistCode;
-  const resolvedDist = fetchDistrictCode(distCodePrefix);
+  const distCodePrefix = finalCode.split('-')[0];
+  const resolvedDist = fetchDistrictCode(distCodePrefix, parentState);
+  const hasExplicitDistrictInInput = Boolean(resolvedDist.code);
 
   if (!matchedName && (resolvedDist.name || distInfo?.name)) {
     const numMatch = finalCode.match(/\d+/);
     const blockNum = numMatch ? parseInt(numMatch[0], 10) : '';
-    const dName = resolvedDist.name || targetDistName;
+    const dName = resolvedDist.name || distInfo?.name || '';
     matchedName = blockNum ? `${dName} Block ${blockNum}` : `${dName} Block`;
   }
 
   return {
     code: finalCode,
     name: matchedName,
-    districtCode: resolvedDist.code || distInfo?.code || targetDistCode,
-    districtName: resolvedDist.name || distInfo?.name || targetDistName,
-    stateCode: resolvedDist.stateCode || distInfo?.stateCode || targetStateCode,
-    stateName: resolvedDist.stateName || distInfo?.stateName || targetStateName,
+    districtCode: resolvedDist.code || distInfo?.code || null,
+    districtName: resolvedDist.name || distInfo?.name || null,
+    stateCode: resolvedDist.stateCode || distInfo?.stateCode || stateInfo?.code || null,
+    stateName: resolvedDist.stateName || distInfo?.stateName || stateInfo?.name || null,
+    isExplicitDistrict: hasExplicitDistrictInInput,
   };
 }
 
@@ -338,7 +377,7 @@ export function fetchBlockCode(input?: string, parentDistrict?: string, parentSt
  */
 export function fetchGeoDetails(stateInput?: string, districtInput?: string, blockInput?: string): GeoLookupResult {
   let stateRes = fetchStateCode(stateInput);
-  let districtRes = fetchDistrictCode(districtInput);
+  let districtRes = fetchDistrictCode(districtInput, stateRes.code || stateInput || undefined);
   let blockRes = fetchBlockCode(
     blockInput,
     districtRes.code || districtInput || undefined,
@@ -373,7 +412,7 @@ export function fetchGeoDetails(stateInput?: string, districtInput?: string, blo
 
   // Cross-inference from state input if district is empty but stateInput was typed as district
   if (!districtRes.code && stateInput) {
-    const distCheck = fetchDistrictCode(stateInput);
+    const distCheck = fetchDistrictCode(stateInput, stateRes.code || stateInput);
     if (distCheck.code) {
       districtRes = distCheck;
     }
@@ -387,5 +426,154 @@ export function fetchGeoDetails(stateInput?: string, districtInput?: string, blo
     blockCode: blockRes.code,
     blockName: blockRes.name,
   };
+}
+
+/**
+ * Auto-suggest districts matching search query for the specified state.
+ * Example: parentState="PB", query="a" -> [{ code: 'ASR', name: 'Amritsar', ... }]
+ */
+export function getDistrictSuggestions(
+  query: string,
+  parentState?: string
+): { code: string; name: string; stateCode: string; stateName: string }[] {
+  const cleanQ = (query || '').trim().toLowerCase();
+  const stateRes = parentState ? fetchStateCode(parentState) : null;
+  const targetStateCode = stateRes?.code || (parentState?.trim().toUpperCase() ?? null);
+
+  let pool = MASTER_GEO_DATA;
+  if (targetStateCode) {
+    pool = pool.filter((m) => m.stateCode === targetStateCode);
+  }
+
+  if (!cleanQ) {
+    return pool.map((item) => ({
+      code: item.districtCode,
+      name: item.districtName,
+      stateCode: item.stateCode,
+      stateName: item.stateName,
+    }));
+  }
+
+  const startsWithMatches: typeof MASTER_GEO_DATA = [];
+  const containsMatches: typeof MASTER_GEO_DATA = [];
+
+  for (const item of pool) {
+    const nameLower = item.districtName.toLowerCase();
+    const codeLower = item.districtCode.toLowerCase();
+
+    if (nameLower.startsWith(cleanQ) || codeLower.startsWith(cleanQ)) {
+      startsWithMatches.push(item);
+    } else if (nameLower.includes(cleanQ) || codeLower.includes(cleanQ)) {
+      containsMatches.push(item);
+    }
+  }
+
+  const combined = [...startsWithMatches, ...containsMatches];
+  const seen = new Set<string>();
+
+  return combined
+    .filter((item) => {
+      if (seen.has(item.districtCode)) return false;
+      seen.add(item.districtCode);
+      return true;
+    })
+    .map((item) => ({
+      code: item.districtCode,
+      name: item.districtName,
+      stateCode: item.stateCode,
+      stateName: item.stateName,
+    }));
+}
+
+/**
+ * Auto-suggest blocks matching search query for the specified district & state.
+ * Example: parentDistrict="ASR", query="1" -> [
+ *   { code: 'ASR-01', name: 'Amritsar Block 1', districtCode: 'ASR', districtName: 'Amritsar', stateCode: 'PB', stateName: 'Punjab' },
+ *   { code: 'ASR-10', name: 'Tarsikka Block', districtCode: 'ASR', districtName: 'Amritsar', stateCode: 'PB', stateName: 'Punjab' }
+ * ]
+ */
+export function getBlockSuggestions(
+  query: string,
+  parentDistrict?: string,
+  parentState?: string
+): { code: string; name: string; districtCode: string; districtName: string; stateCode: string; stateName: string }[] {
+  const cleanQ = (query || '').trim().toLowerCase();
+
+  const distRes = parentDistrict ? fetchDistrictCode(parentDistrict, parentState) : null;
+  const stateRes = parentState ? fetchStateCode(parentState) : null;
+
+  const targetDistCode = distRes?.code || (parentDistrict?.trim().toUpperCase() ?? null);
+  const targetDistName = distRes?.name || parentDistrict || 'District';
+  const targetStateCode = distRes?.stateCode || stateRes?.code || 'PB';
+  const targetStateName = distRes?.stateName || stateRes?.name || 'State';
+
+  if (!targetDistCode) {
+    return [];
+  }
+
+  const candidateBlocks: { code: string; name: string; districtCode: string; districtName: string; stateCode: string; stateName: string }[] = [];
+  const prefixKey = `${targetDistCode}_`;
+  const customEntries = Object.entries(BLOCK_NAMES).filter(([k]) => k.startsWith(prefixKey));
+
+  if (customEntries.length > 0) {
+    for (const [k, name] of customEntries) {
+      const codeStr = k.replace(/_/g, '-');
+      candidateBlocks.push({
+        code: codeStr,
+        name: name,
+        districtCode: targetDistCode,
+        districtName: targetDistName,
+        stateCode: targetStateCode,
+        stateName: targetStateName,
+      });
+    }
+  } else {
+    for (let i = 1; i <= 10; i++) {
+      const numStr = i.toString().padStart(2, '0');
+      const bCode = `${targetDistCode}-${numStr}`;
+      const bName = `${targetDistName} Block ${i}`;
+      candidateBlocks.push({
+        code: bCode,
+        name: bName,
+        districtCode: targetDistCode,
+        districtName: targetDistName,
+        stateCode: targetStateCode,
+        stateName: targetStateName,
+      });
+    }
+  }
+
+  if (!cleanQ) {
+    return candidateBlocks;
+  }
+
+  const startsWithMatches: typeof candidateBlocks = [];
+  const containsMatches: typeof candidateBlocks = [];
+
+  for (const block of candidateBlocks) {
+    const codeLower = block.code.toLowerCase();
+    const nameLower = block.name.toLowerCase();
+    const numPart = block.code.split('-').pop() || '';
+    const numInt = parseInt(numPart, 10).toString();
+
+    if (
+      codeLower.startsWith(cleanQ) ||
+      nameLower.startsWith(cleanQ) ||
+      numPart.startsWith(cleanQ) ||
+      numInt === cleanQ
+    ) {
+      startsWithMatches.push(block);
+    } else if (codeLower.includes(cleanQ) || nameLower.includes(cleanQ)) {
+      containsMatches.push(block);
+    }
+  }
+
+  const combined = [...startsWithMatches, ...containsMatches];
+  const seen = new Set<string>();
+  return combined.filter((b) => {
+    if (seen.has(b.code)) return false;
+    seen.add(b.code);
+    return true;
+  });
 }
 
