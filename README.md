@@ -7,7 +7,7 @@ A large-scale, personalized assessment system that helps teachers measure, track
 ## Table of Contents
 - [What is FLN?](#what-is-fln)
 - [Why FLN Matters](#why-fln-matters)
-- [Government Initiatives](#government-initiatives)
+- [Initiatives](#initiatives)
 - [What This Software Does](#what-this-software-does)
 - [How It Works (Workflow)](#how-it-works-workflow)
 - [Tech Stack](#tech-stack)
@@ -32,11 +32,11 @@ The National Education Policy (NEP) 2020 explicitly recognized this and stated t
 
 This is the problem our project aims to help solve: giving schools and teachers a reliable, scalable, and personalized way to **assess** where each child stands on FLN, **act** on that data quickly, and **track** progress until every child clears the foundational bar.
 
-## Government Initiatives
+## Initiatives
 
 Some of the key national and state-level efforts this project aligns with:
 
-- **NIPUN Bharat** (National Initiative for Proficiency in Reading with Understanding and Numeracy) — launched by the Ministry of Education in July 2021 under the Samagra Shiksha scheme, with the goal that every child achieves grade-level FLN competencies by the end of Grade 3, by 2026–27. It uses a five-tier implementation structure (national, state, district, block, school).
+- **NIPUN Bharat** (National Initiative for Proficiency in Reading with Understanding and Numeracy) — launched in July 2021 under the Samagra Shiksha scheme, with the goal that every child achieves grade-level FLN competencies by the end of Grade 3, by 2026–27. It uses a five-tier implementation structure (national, state, district, block, school).
 - **NEP 2020** — the policy mandate that established universal FLN as the top priority for the Indian school system.
 - **DIKSHA & UDISE+** — existing national digital infrastructure for teacher resources and student/school data that FLN initiatives are encouraged to build on or align with.
 - **State-led missions** — several states have their own FLN programs aligned with NIPUN Bharat (e.g., Mission Buniyaad in Delhi, Mission Ankur in Madhya Pradesh), often with localized assessment tools and workbooks.
@@ -84,13 +84,42 @@ This project is built on the **MERN stack**:
 
 ## Getting Started
 
-> Setup instructions (installation, environment variables, running locally) will be added here as the codebase matures.
-
 ```bash
 git clone https://github.com/vicharanashala/fln.git
 cd fln
-# setup instructions coming soon
+npm install
 ```
+
+### Run against your own MongoDB (recommended for local dev)
+
+Each contributor should point their local backend at **their own** MongoDB — either
+a free [Atlas](https://www.mongodb.com/cloud/atlas/register) cluster or a local
+`mongod` — instead of hardcoding data or sharing one database. This lets you seed
+your own test data and iterate on features without touching anyone else's.
+
+1. Copy the backend env template: `cp backend/.env.example backend/.env`
+   (the file at the repo root, `.env.example`, is only for the AI scripts in
+   `ai-services/` — it does **not** configure the database).
+2. In `backend/.env`, set `MONGODB_URI` to your own connection string, e.g.
+   `mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/fln` (Atlas) or
+   `mongodb://127.0.0.1:27017/fln` (local mongod).
+3. Populate it with the full demo dataset (states/districts/schools/teachers/
+   volunteers/students — matches the demo login buttons in the UI):
+   ```bash
+   npm run seed --workspace @fln/backend
+   ```
+   Optionally also run `npm run seed:question-bank` and `npm run seed:html`
+   (workspace-scoped) to load the question bank / worksheet HTML collections.
+4. Start the app:
+   ```bash
+   npm run dev:backend    # API on :3000, reads backend/.env
+   npm run dev:frontend   # Vite dev server on :5173
+   ```
+
+Demo login after seeding: `superadmin@fln.org`, password `Fln@2026` (see
+`backend/src/seed.ts` for the full list of generated teacher/volunteer/admin
+emails, which follow a predictable `role.<state>_<district>_<block>_<school>@fln.org`
+pattern).
 
 ## Contribution Guidelines
 
