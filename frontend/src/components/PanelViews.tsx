@@ -155,7 +155,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [blockFilter, setBlockFilter] = useState('all');
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
   const [sel, setSel] = useState('');
-  const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
+  const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity' | 'interventions'>('overview');
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileDraft, setProfileDraft] = useState<Partial<Student>>({});
   const [savingProfile, setSavingProfile] = useState(false);
@@ -172,14 +172,17 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [apiUsers, setApiUsers] = useState<any[]>([]);
   const [apiReports, setApiReports] = useState<EvaluationReport[]>([]);
   const [apiTeachers, setApiTeachers] = useState<any[]>([]);
+  const [apiInterventions, setApiInterventions] = useState<any[]>([]);
+  const [viewingWorksheet, setViewingWorksheet] = useState<any | null>(null);
 
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${token}` };
-    apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
-    apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
-    apiFetch('/api/evaluation/reports', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiReports(d); }).catch(() => {});
+    apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => { });
+    apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => { });
+    apiFetch('/api/evaluation/reports', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiReports(d); }).catch(() => { });
+    apiFetch('/api/interventions', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiInterventions(d); }).catch(() => { });
     if (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN) {
-      apiFetch('/api/teachers', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiTeachers(d); }).catch(() => {});
+      apiFetch('/api/teachers', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiTeachers(d); }).catch(() => { });
     }
   }, [token, currentUser.role]);
 
@@ -191,10 +194,22 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     if (apiStudents.length > 0) return;
     if (STUDENTS_NOT_NEEDED_PANELS.has(activePanel)) return;
     const headers = { 'Authorization': `Bearer ${token}` };
-    apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
+    apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => { });
   }, [token, activePanel, apiStudents.length]);
 
-const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
+  const handleViewWorksheet = async (worksheetId: string) => {
+    try {
+      const res = await apiFetch(`/api/worksheets/${worksheetId}/view`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setViewingWorksheet(data);
+    } catch (err) {
+      console.error('Failed to load worksheet:', err);
+    }
+  };
+
+  const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
   const usersList = apiUsers.length > 0 ? apiUsers : USERS_FALLBACK;
   const reportsList: EvaluationReport[] = apiReports.length > 0 ? apiReports : REPORTS_MOCK;
@@ -472,6 +487,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
       { key: 'academic' as const, label: 'Academic Record', icon: BookOpen },
       { key: 'personal' as const, label: 'Personal Details', icon: Users },
       { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
+      { key: 'interventions' as const, label: 'Intervention Plan', icon: Award },
     ];
 
     return (
@@ -675,7 +691,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                               {improving && <span className="text-emerald-500">↑</span>}
                             </span>
                           </div>
-                            <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div className={`h-full rounded-full transition-all ${mastery === 'Strong' ? 'bg-emerald-500' : mastery === 'Satisfactory' ? 'bg-blue-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
                           </div>
                           {history.length >= 2 && (
@@ -768,7 +784,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                       <div className="flex flex-wrap gap-1.5">{Object.entries(r.conceptMastery).map(([t, m]) => (
                         <span key={t} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${m === 'Strong' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : m === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{t}: {m}</span>
                       ))}</div>
-                      
+
                       <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
                         <button onClick={() => setExpandedReportId(expandedReportId === r.id ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                           {expandedReportId === r.id ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
@@ -992,6 +1008,127 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
             </div>
           </div>
         )}
+
+        {/* ===== INTERVENTIONS TAB ===== */}
+        {profileTab === 'interventions' && (() => {
+          const studentInterventions = apiInterventions.filter((i: any) => i.studentId === s.id);
+          const strategyLabels: Record<string, string> = {
+            small_group: 'Small Group', one_on_one: 'One-on-One', peer_tutoring: 'Peer Tutoring',
+            visual_aids: 'Visual Aids', manipulatives: 'Manipulatives', worksheets: 'Worksheets',
+            game_based: 'Game-Based', other: 'Other'
+          };
+          return (
+            <div className="max-w-3xl space-y-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    Intervention Plans for {s.name}
+                  </h3>
+                  <span className="text-[10px] font-mono text-slate-400">{studentInterventions.length} total</span>
+                </div>
+
+                {studentInterventions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">No intervention plans recorded for this student yet.</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500">Go to the Interventions page from the sidebar to create one.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {studentInterventions.map((intv: any) => (
+                      <div key={intv.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${intv.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                            intv.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                            {intv.status}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 text-slate-700">
+                            {strategyLabels[intv.strategyType] || intv.strategyType}
+                          </span>
+                        </div>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {intv.weakCompetencies.map((c: string) => (
+                            <span key={c} className="text-[10px] px-1.5 py-0.5 bg-red-50 text-red-700 rounded border border-red-100">{c}</span>
+                          ))}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{intv.strategyDescription}</p>
+                        <div className="text-[10px] text-slate-400">
+                          Duration: {intv.duration} · Started {new Date(intv.startDate).toLocaleDateString()}
+                        </div>
+                        {intv.status === 'completed' && intv.outcome && (
+                          <div className={`p-2 rounded text-xs mt-2 ${intv.outcome.improved ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                            {intv.outcome.improved ? '✓ Improved' : '✗ No Improvement'} — Level {intv.outcome.previousLevel} → {intv.outcome.newLevel}
+                          </div>
+                        )}
+                        {intv.teacherNotes && (
+                          <div className="text-xs text-slate-600 dark:text-slate-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded p-2 mt-2">
+                            <span className="font-bold text-[10px] uppercase text-amber-700">Notes: </span>{intv.teacherNotes}
+                          </div>
+                        )}
+                        {intv.linkedWorksheetIds && intv.linkedWorksheetIds.length > 0 && (
+                          <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800">
+                            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                              Linked Worksheets
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {intv.linkedWorksheetIds.map((wsId: string) => (
+                                <button
+                                  key={wsId}
+                                  onClick={() => handleViewWorksheet(wsId)}
+                                  className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-1 rounded hover:bg-indigo-100"
+                                >
+                                  📄 {wsId}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+        {viewingWorksheet && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingWorksheet(null)}>
+            <div
+              className="bg-white dark:bg-slate-900 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                    {viewingWorksheet.className} {viewingWorksheet.section} — {viewingWorksheet.cycle}
+                  </h3>
+                  <p className="text-xs text-zinc-400">{viewingWorksheet.id} · {viewingWorksheet.date}</p>
+                </div>
+                <button
+                  onClick={() => setViewingWorksheet(null)}
+                  className="text-zinc-400 hover:text-zinc-700 font-bold text-lg"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {viewingWorksheet.questions.map((q: any, idx: number) => (
+                  <div key={idx} className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-3">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                        {q.topic} {q.subtopic ? `· ${q.subtopic}` : ''}
+                      </span>
+                      <span className="text-[10px] font-mono text-zinc-400 uppercase">{q.difficulty}</span>
+                    </div>
+                    <p className="text-sm text-zinc-800 dark:text-zinc-100 whitespace-normal break-words leading-relaxed">{q.question.replace(/^\[For.*?\]\s*/, '')}</p>
+                    <p className="text-xs text-emerald-600 mt-1">Answer: {q.answer}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1188,7 +1325,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
           {reportsList.map(r => {
             const student = students.find(s => s.id === r.studentId);
             const isExpanded = expandedReportId === r.id;
-            
+
             // Mock exam questions and student responses for side-by-side preview
             const examResponses = student ? (
               student.id === 's1' ? [
@@ -1214,7 +1351,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
               <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-600 transition-all">
                 <div className="flex justify-between items-center"><span className="font-semibold text-sm">{student?.name || 'Unknown'}</span><span className="text-xs text-slate-400 dark:text-slate-500">{new Date(r.timestamp).toLocaleDateString()}</span></div>
                 <div className="flex gap-4 text-sm"><span>Score: <strong>{r.score}/{r.totalQuestions}</strong></span><span>Level: <strong>L{r.recommendedLevel}.{r.recommendedSubLevel ?? 0}</strong></span></div>
-                
+
                 <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-3">
                   <span className="text-[9px] font-mono font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Evaluation Report Narrative</span>
                   <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed whitespace-pre-line">{r.narrative}</p>

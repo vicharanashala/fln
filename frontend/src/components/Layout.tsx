@@ -146,6 +146,8 @@ export const Layout: React.FC<LayoutProps> = ({
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
+        list.push({ name: 'Interventions', view: 'interventions', icon: ShieldCheck });
+        list.push({ name: 'Best Practices', view: 'best-practices', icon: BookOpen });
         break;
 
       case UserRole.VOLUNTEER:
@@ -171,6 +173,7 @@ export const Layout: React.FC<LayoutProps> = ({
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
+        list.push({ name: 'Best Practices', view: 'best-practices', icon: BookOpen });
         break;
 
       case UserRole.SCHOOL:
@@ -179,6 +182,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
+        list.push({ name: 'Best Practices', view: 'best-practices', icon: BookOpen });
         break;
 
       case UserRole.BLOCK_ADMIN:
@@ -200,6 +204,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Districts', view: 'districts', icon: MapPin });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Best Practices', view: 'best-practices', icon: BookOpen });
         break;
 
       case UserRole.SUPERADMIN:
@@ -451,11 +456,10 @@ export const Layout: React.FC<LayoutProps> = ({
 
         {/* Sidebar Left panel */}
         <aside
-          className={`hidden md:flex flex-col bg-white transition-all duration-300 ease-in-out shrink-0 dark:bg-slate-900 ${
-            sidebarCollapsed
-              ? 'w-0 opacity-0 overflow-hidden border-r-0 pointer-events-none'
-              : 'w-[280px] opacity-100 border-r border-slate-200 dark:border-r dark:border-slate-700'
-          }`}
+          className={`hidden md:flex flex-col bg-white transition-all duration-300 ease-in-out shrink-0 dark:bg-slate-900 ${sidebarCollapsed
+            ? 'w-0 opacity-0 overflow-hidden border-r-0 pointer-events-none'
+            : 'w-[280px] opacity-100 border-r border-slate-200 dark:border-r dark:border-slate-700'
+            }`}
           aria-hidden={sidebarCollapsed}
         >
           <div className="w-[280px] flex flex-col h-full flex-1">
@@ -481,88 +485,86 @@ export const Layout: React.FC<LayoutProps> = ({
               </button>
             </div>
 
-          {/* Navigation Items menu */}
-          <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
-            {/* Pinned shortcuts header */}
-            {!collapsed && pinnedItems.length > 0 && (
-              <div className="px-3 py-1 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest block mb-1 dark:text-slate-500">
-                📌 Pinned Views
-              </div>
-            )}
+            {/* Navigation Items menu */}
+            <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
+              {/* Pinned shortcuts header */}
+              {!collapsed && pinnedItems.length > 0 && (
+                <div className="px-3 py-1 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest block mb-1 dark:text-slate-500">
+                  📌 Pinned Views
+                </div>
+              )}
 
-            {filteredNavItems.map(item => {
-              const hasSub = !!item.subItems;
-              const isExpanded = !!expandedMenus[item.name];
-              const isSelected = activeView === item.view || item.subItems?.some(s => s.view === activeView);
+              {filteredNavItems.map(item => {
+                const hasSub = !!item.subItems;
+                const isExpanded = !!expandedMenus[item.name];
+                const isSelected = activeView === item.view || item.subItems?.some(s => s.view === activeView);
 
-              return (
-                <div key={item.name} className="space-y-1">
-                  <div className="flex items-center justify-between group">
-                    <button
-                      onClick={() => hasSub ? toggleSubMenu(item.name) : onSelectView(item.view)}
-                      className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold transition duration-150 border ${
-                        isSelected
+                return (
+                  <div key={item.name} className="space-y-1">
+                    <div className="flex items-center justify-between group">
+                      <button
+                        onClick={() => hasSub ? toggleSubMenu(item.name) : onSelectView(item.view)}
+                        className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold transition duration-150 border ${isSelected
                           ? 'bg-indigo-700 text-white border-indigo-300 shadow-sm dark:bg-indigo-900 dark:text-indigo-200 dark:border-indigo-800'
                           : 'text-slate-650 hover:bg-slate-100 border-transparent hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100 dark:border-transparent'
-                      }`}
-                    >
-                      <item.icon className={`h-4 w-4 ${isSelected ? 'text-indigo-200 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`} />
-                      {!collapsed && <span>{item.name}</span>}
-                      {!collapsed && item.badge && (
-                        <span className="ml-auto bg-rose-500 text-white font-mono text-[9px] px-1.5 py-0.5 rounded-full">
-                          {item.badge}
-                        </span>
-                      )}
-                      {!collapsed && hasSub && (
-                        <ChevronDown className={`ml-auto h-3 w-3 transition ${isExpanded ? 'rotate-180' : ''}`} />
-                      )}
-                    </button>
-
-                    {/* Pin button */}
-                    {!collapsed && (
-                      <button
-                        onClick={() => handlePinToggle(item.name)}
-                        className={`opacity-0 group-hover:opacity-100 p-1 mr-1 text-slate-400 hover:text-indigo-600 transition dark:text-slate-500 dark:hover:text-indigo-400`}
+                          }`}
                       >
-                        ★
+                        <item.icon className={`h-4 w-4 ${isSelected ? 'text-indigo-200 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                        {!collapsed && <span>{item.name}</span>}
+                        {!collapsed && item.badge && (
+                          <span className="ml-auto bg-rose-500 text-white font-mono text-[9px] px-1.5 py-0.5 rounded-full">
+                            {item.badge}
+                          </span>
+                        )}
+                        {!collapsed && hasSub && (
+                          <ChevronDown className={`ml-auto h-3 w-3 transition ${isExpanded ? 'rotate-180' : ''}`} />
+                        )}
                       </button>
-                    )}
-                  </div>
 
-                  {/* Nested Sub Menu */}
-                  {!collapsed && hasSub && isExpanded && (
-                    <div className="pl-6 space-y-1 border-l border-slate-150 ml-5 py-1 dark:border-slate-700">
-                      {item.subItems?.map(sub => {
-                        const isSubSelected = activeView === sub.view;
-                        return (
-                          <button
-                            key={sub.name}
-                            onClick={() => onSelectView(sub.view)}
-                            className={`flex w-full items-center gap-2 px-3 py-2 text-[11px] font-semibold rounded-md transition ${
-                              isSubSelected
+                      {/* Pin button */}
+                      {!collapsed && (
+                        <button
+                          onClick={() => handlePinToggle(item.name)}
+                          className={`opacity-0 group-hover:opacity-100 p-1 mr-1 text-slate-400 hover:text-indigo-600 transition dark:text-slate-500 dark:hover:text-indigo-400`}
+                        >
+                          ★
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Nested Sub Menu */}
+                    {!collapsed && hasSub && isExpanded && (
+                      <div className="pl-6 space-y-1 border-l border-slate-150 ml-5 py-1 dark:border-slate-700">
+                        {item.subItems?.map(sub => {
+                          const isSubSelected = activeView === sub.view;
+                          return (
+                            <button
+                              key={sub.name}
+                              onClick={() => onSelectView(sub.view)}
+                              className={`flex w-full items-center gap-2 px-3 py-2 text-[11px] font-semibold rounded-md transition ${isSubSelected
                                 ? 'text-indigo-700 bg-indigo-50/50 dark:text-indigo-400 dark:bg-indigo-950/40'
                                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800'
-                            }`}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                            <span>{sub.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
+                                }`}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                              <span>{sub.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </nav>
 
-          {/* Support Branding Footer */}
-          <div className="border-t border-slate-200 p-4 dark:border-slate-700">
-            <div className={`flex items-center gap-2 px-2 text-[10px] font-semibold text-slate-450 ${collapsed ? 'justify-center' : ''} dark:text-slate-500`}>
-              <HelpCircle className="h-4 w-4 text-slate-400 shrink-0 dark:text-slate-500" />
-              {!collapsed && <span>IIT Ropar VLED Labs</span>}
+            {/* Support Branding Footer */}
+            <div className="border-t border-slate-200 p-4 dark:border-slate-700">
+              <div className={`flex items-center gap-2 px-2 text-[10px] font-semibold text-slate-450 ${collapsed ? 'justify-center' : ''} dark:text-slate-500`}>
+                <HelpCircle className="h-4 w-4 text-slate-400 shrink-0 dark:text-slate-500" />
+                {!collapsed && <span>IIT Ropar VLED Labs</span>}
+              </div>
             </div>
-          </div>
           </div>
         </aside>
 
@@ -593,11 +595,10 @@ export const Layout: React.FC<LayoutProps> = ({
                             setMobileOpen(false);
                           }
                         }}
-                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold border transition ${
-                          isSelected
-                            ? 'bg-primary-navy text-white border-accent-gold/30 shadow-sm dark:bg-indigo-900 dark:text-indigo-200 dark:border-indigo-800'
-                            : 'text-slate-650 hover:bg-slate-100 border-transparent dark:text-slate-400 dark:hover:bg-slate-800 dark:border-transparent'
-                        }`}
+                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold border transition ${isSelected
+                          ? 'bg-primary-navy text-white border-accent-gold/30 shadow-sm dark:bg-indigo-900 dark:text-indigo-200 dark:border-indigo-800'
+                          : 'text-slate-650 hover:bg-slate-100 border-transparent dark:text-slate-400 dark:hover:bg-slate-800 dark:border-transparent'
+                          }`}
                       >
                         <item.icon className="h-4 w-4 dark:text-slate-500" />
                         <span>{item.name}</span>
@@ -613,9 +614,8 @@ export const Layout: React.FC<LayoutProps> = ({
                                 onSelectView(sub.view);
                                 setMobileOpen(false);
                               }}
-                              className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition ${
-                                activeView === sub.view ? 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950/40' : 'text-slate-500 dark:text-slate-400'
-                              }`}
+                              className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition ${activeView === sub.view ? 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950/40' : 'text-slate-500 dark:text-slate-400'
+                                }`}
                             >
                               <span>{sub.name}</span>
                             </button>

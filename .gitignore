@@ -42,3 +42,6 @@ backend/data/
 backend/dist/
 frontend/dist/
 *.log
+
+check_db.mjs
+ai-services/personalized_evaluation/class_3/
