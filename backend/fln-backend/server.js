@@ -1,5 +1,12 @@
 const express = require('express');
 const path = require('path');
+const originalPort = process.env.PORT;
+try {
+  require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
+} catch (e) {
+  // ignore if dotenv is not present or fails
+}
+process.env.PORT = originalPort || '4000';
 const { closeBrowser } = require('./services/renderWorksheet');
 const generateRoutes = require('./routes/generate');
 const downloadRoutes = require('./routes/download');

@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { MongoClient } from 'mongodb';
 import bcrypt from 'bcrypt';
 import { UserRole } from './db';
+import dns from 'node:dns';
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 import { STATES_UTS } from './geoData';
 import questionBankSeed from './data/question_bank_seed.json';
 
@@ -408,6 +410,19 @@ async function main() {
             });
           }
 
+          // ── EXACT REAL TEACHER & STUDENT SCHOOL LINK ──
+          // Hum wahi ID choose kar rahe hain jisme backend auto-seeding data generate karta hai
+          const fixedSchoolId = "HR_AMB_AMB_01_03";
+
+          // 1. Aapki real email aur password ko is exact school se link karo
+          allUsers.push({
+            id: "u_tch_real_master_fixed",
+            email: "gps-amb-003.t01@fln.org", // Aapki absolute ID
+            name: "Master Teacher Account",
+            role: UserRole.TEACHER,
+            schoolId: fixedSchoolId, // Maps exactly to the data pool
+            password: "FLN@2026",
+          });
           // ── Volunteer for low-strength schools ──
           if (isLowStrength) {
             allUsers.push({

@@ -11,7 +11,7 @@ const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
 // Helper to get Gemini client or null if key is missing
 let aiClient: GoogleGenAI | null = null;
 
-function getAiClient(): GoogleGenAI {
+export function getAiClient(): GoogleGenAI {
   if (!aiClient) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -33,7 +33,7 @@ function getAiClient(): GoogleGenAI {
 /**
  * Call Gemini API with retries and exponential backoff, falling back to other models if needed.
  */
-async function generateContentWithRetry(params: {
+export async function generateContentWithRetry(params: {
   contents: any;
   config?: any;
   model?: string;
@@ -119,7 +119,7 @@ function genClass4Question() {
 export function generateClassSpecificDiagnostic(classGroup: string): Question[] {
   const normalizedClass = (classGroup || 'Class 1').trim().toLowerCase();
   
-  let q1, q2, q3, q4;
+  let q1: string, q2: string, q3: string, q4: string;
   let l1, l2, l3, l4;
 
   if (normalizedClass.includes('1')) {

@@ -1,5 +1,7 @@
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { buildUrl } from '../utils/apiBase';
 import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
 import { Users, ShieldAlert, BookOpen, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
@@ -125,6 +127,7 @@ const SYSTEM_LOGS_MOCK = [
   { action: 'Cache Invalidation', status: 'Success', timestamp: '2026-07-06 06:00', details: 'CDN cache purged for /api/analytics' },
 ];
 
+
 function PageHeader({ title, desc, icon }: { title: string; desc: string; icon?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-4">
@@ -148,12 +151,308 @@ function EmptyStudents({ students }: { students: Student[] }) {
   return <Table data={students} columns={cols} searchPlaceholder="Search students..." searchKey="name" />;
 }
 
+
+interface ParsedReportCard {
+  studentName?: string;
+  studentId?: string;
+  enrolledClass?: string;
+  testDate?: string;
+  assignedLevel?: string;
+  reason?: string;
+  confidence?: string;
+  weakness?: string[];
+  canDo?: string[];
+  growth?: string[];
+  topicsToFocus?: string[];
+  prerequisites?: string[];
+  performanceDifficulty: string[];
+  shortTermSteps?: string[];
+  mediumTermSteps?: string[];
+  rawText: string;
+  isStructured: boolean;
+}
+
+function parseNarrative(text: string): ParsedReportCard {
+  if (!text || !text.includes('FLN ASSESSMENT REPORT CARD')) {
+    return { rawText: text, isStructured: false, performanceDifficulty: [] };
+  }
+
+  const result: ParsedReportCard = {
+    weakness: [],
+    canDo: [],
+    growth: [],
+    topicsToFocus: [],
+    prerequisites: [],
+    performanceDifficulty: [],
+    shortTermSteps: [],
+    mediumTermSteps: [],
+    rawText: text,
+    isStructured: true
+  };
+
+  const getSectionLines = (sectionTitle: string): string[] => {
+    const lines = text.split('\n');
+    const startIdx = lines.findIndex(l => l.toUpperCase().includes(sectionTitle.toUpperCase()));
+    if (startIdx === -1) return [];
+
+    const sectionLines: string[] = [];
+    for (let i = startIdx + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('===') || line.startsWith('---') || (line === line.toUpperCase() && line.length > 5 && !line.includes(':'))) {
+        if (i + 1 < lines.length && lines[i + 1].startsWith('---')) {
+          break;
+        }
+      }
+      if (line) {
+        sectionLines.push(line);
+      }
+    }
+    return sectionLines;
+  };
+
+  const nameMatch = text.match(/Student Name:\s*(.*)/i);
+  if (nameMatch) result.studentName = nameMatch[1].trim();
+
+  const idMatch = text.match(/Student ID:\s*(.*)/i);
+  if (idMatch) result.studentId = idMatch[1].trim();
+
+  const classMatch = text.match(/Enrolled Class:\s*(.*)/i);
+  if (classMatch) result.enrolledClass = classMatch[1].trim();
+
+  const dateMatch = text.match(/Test Date:\s*(.*)/i);
+  if (dateMatch) result.testDate = dateMatch[1].trim();
+
+  const placementLines = getSectionLines('PLACEMENT');
+  placementLines.forEach(l => {
+    if (l.toLowerCase().startsWith('assigned level:')) result.assignedLevel = l.split(':')[1]?.trim();
+    else if (l.toLowerCase().startsWith('reason:')) result.reason = l.split(':')[1]?.trim();
+    else if (l.toLowerCase().startsWith('confidence:')) result.confidence = l.split(':')[1]?.trim();
+  });
+
+  const weaknessLines = getSectionLines('AREAS OF WEAKNESS BY LEVEL');
+  result.weakness = weaknessLines.filter(l => !l.startsWith('Assigned to Level'));
+
+  result.canDo = getSectionLines('WHAT YOUR CHILD CAN DO');
+  result.growth = getSectionLines('AREAS FOR GROWTH');
+
+  const rootCauseLines = getSectionLines('ROOT CAUSE ANALYSIS');
+  rootCauseLines.forEach(l => {
+    if (l.toLowerCase().startsWith('topics to focus:')) {
+      result.topicsToFocus = l.split(':')[1]?.split(',').map(s => s.trim()) || [];
+    } else if (l.toLowerCase().startsWith('prerequisites to review:')) {
+      result.prerequisites = l.split(':')[1]?.split(',').map(s => s.trim()) || [];
+    } else if (l.includes(':')) {
+      result.performanceDifficulty.push(l);
+    }
+  });
+
+  const nextStepsLines = getSectionLines('NEXT STEPS FOR TEACHER');
+  let currentGroup: 'short' | 'medium' | null = null;
+  nextStepsLines.forEach(l => {
+    if (l.toUpperCase().includes('SHORT-TERM')) {
+      currentGroup = 'short';
+    } else if (l.toUpperCase().includes('MEDIUM-TERM')) {
+      currentGroup = 'medium';
+    } else {
+      const cleanLine = l.replace(/^\d+\.\s*/, '').trim();
+      if (cleanLine) {
+        if (currentGroup === 'short') result.shortTermSteps?.push(cleanLine);
+        else if (currentGroup === 'medium') result.mediumTermSteps?.push(cleanLine);
+      }
+    }
+  });
+
+  return result;
+}
+
+const ReportNarrative: React.FC<{ narrative: string }> = ({ narrative }) => {
+  const parsed = parseNarrative(narrative);
+
+  if (!parsed.isStructured) {
+    return <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed whitespace-pre-line">{narrative}</p>;
+  }
+
+  return (
+    <div className="space-y-4 mt-2">
+      {parsed.assignedLevel && (
+        <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 rounded-lg p-3 flex flex-wrap justify-between items-center gap-2">
+          <div>
+            <span className="text-[10px] font-mono font-bold uppercase text-indigo-500 dark:text-indigo-400 block tracking-wider">Assigned Placement</span>
+            <span className="text-base font-bold text-indigo-900 dark:text-indigo-200">{parsed.assignedLevel}</span>
+            {parsed.reason && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{parsed.reason}</p>}
+          </div>
+          {parsed.confidence && (
+            <div className="text-right">
+              <span className="text-[10px] font-mono font-bold uppercase text-slate-400 dark:text-slate-500 block tracking-wider">Confidence</span>
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{parsed.confidence}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {parsed.topicsToFocus && parsed.topicsToFocus.length > 0 && (
+          <div className="border border-red-100 dark:border-red-950 bg-red-50/30 dark:bg-red-950/10 rounded-lg p-3 space-y-2">
+            <span className="text-[10px] font-mono font-bold uppercase text-red-500 dark:text-red-400 tracking-wider block">Needs Focus (Weak Areas)</span>
+            <div className="flex flex-wrap gap-1.5">
+              {parsed.topicsToFocus.map(t => (
+                <span key={t} className="text-[10px] font-semibold px-2 py-0.5 rounded bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/40">{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {parsed.canDo && parsed.canDo.length > 0 && (
+          <div className="border border-green-100 dark:border-green-950 bg-green-50/30 dark:bg-green-950/10 rounded-lg p-3 space-y-2">
+            <span className="text-[10px] font-mono font-bold uppercase text-green-500 dark:text-green-400 tracking-wider block">Current Competencies</span>
+            <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1">
+              {parsed.canDo.map((item, idx) => (
+                <li key={idx} className="flex items-start gap-1.5">
+                  <span className="text-green-500 font-bold">✓</span>
+                  <span>{item.replace(/^\[OK\]\s*/i, '')}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {(parsed.weakness?.length || 0) > 0 && (
+        <div className="space-y-1">
+          <span className="text-[10px] font-mono font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider block">Gaps & Foundational Deficits</span>
+          <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1">
+            {parsed.weakness?.map((item, idx) => (
+              <div key={idx} className="flex items-start gap-2 bg-slate-100 dark:bg-slate-800/60 p-2 rounded border border-slate-200/40 dark:border-slate-700/40">
+                <span className="text-amber-500 font-bold font-mono">⚠️</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {((parsed.shortTermSteps?.length || 0) > 0 || (parsed.mediumTermSteps?.length || 0) > 0) && (
+        <div className="border border-slate-200 dark:border-slate-700/80 rounded-lg overflow-hidden bg-white dark:bg-slate-900">
+          <div className="bg-slate-50 dark:bg-slate-800/80 px-3 py-2 border-b border-slate-200 dark:border-slate-700/80">
+            <span className="text-[10px] font-mono font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Teacher Action Plan</span>
+          </div>
+          <div className="p-3 space-y-3">
+            {parsed.shortTermSteps && parsed.shortTermSteps.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-semibold text-slate-800 dark:text-slate-200 block">Short-Term Action Items:</span>
+                <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-disc list-inside pl-1">
+                  {parsed.shortTermSteps.map((step, idx) => (
+                    <li key={idx} className="leading-relaxed">{step}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {parsed.mediumTermSteps && parsed.mediumTermSteps.length > 0 && (
+              <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-[10px] font-semibold text-slate-800 dark:text-slate-200 block">Medium-Term Action Items:</span>
+                <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-disc list-inside pl-1">
+                  {parsed.mediumTermSteps.map((step, idx) => (
+                    <li key={idx} className="leading-relaxed">{step}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+const calculateAveragePercentage = (reports: EvaluationReport[]) => {
+  if (!reports || reports.length === 0) return 0;
+
+  console.log("Reports:", reports);
+
+  const sumOfPercentages = reports.reduce((acc, r) => {
+    let score = Number(r.score) || 0;
+
+    // Handle mixed old data:
+    // score 1 with total 1 means 100%
+    // score 100 means already percentage
+    const percent = score <= 1 && r.totalQuestions === 1
+      ? score * 100
+      : score;
+
+    console.log({
+      score,
+      total: r.totalQuestions,
+      percent
+    });
+
+    return acc + Math.min(100, Math.max(0, percent));
+  }, 0);
+
+  const average = sumOfPercentages / reports.length;
+
+  console.log("Average =", average);
+
+  return Math.round(average);
+};
+
+
 export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token }) => {
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
   const [distFilter, setDistFilter] = useState('all');
   const [blockFilter, setBlockFilter] = useState('all');
+  const [userSearch, setUserSearch] = useState('');
+  const navigate = useNavigate();
+
+  const handleGoToRemediationNote = (studentId: string, examId: string, studentName?: string) => {
+    const query = studentName ? `?studentName=${encodeURIComponent(studentName)}` : '';
+    navigate(`/remediation-note/${studentId}/${examId}${query}`);
+  };
+
+  const handleRequestRemediation = async (student: Student, report: EvaluationReport, examResponses: any[]) => {
+    const failedQuestionNums = examResponses
+      .map((item: any, idx: number) => ({ item, idx }))
+      .filter(({ item }) => item.status !== 'Correct')
+      .map(({ idx }) => idx + 1);
+
+    // 1. Immediately open the remediation sheet view so user doesn't wait
+    handleGoToRemediationNote(student.id, report.worksheetId, student.name);
+
+    if (failedQuestionNums.length === 0) {
+      return;
+    }
+
+    const originalQuestions = examResponses.map((item: any) => {
+      const answerValue = item.correctAnswer ?? '';
+      const isNumberAnswer =
+        typeof answerValue === 'number' ||
+        (String(answerValue).trim() !== '' && !Number.isNaN(Number(answerValue)));
+
+      return {
+        question: item.question,
+        answer: String(answerValue),
+        topic: item.topic || item.sectionName || item.conceptName || item.concept || '',
+        answer_type: isNumberAnswer ? 'number' : 'choice',
+      };
+    });
+
+    fetch(buildUrl('/api/remediation/generate'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        studentId: student.id,
+        examId: report.worksheetId,
+        failedQuestionNums,
+        originalQuestions,
+      }),
+    }).catch(err => console.error('Background remediation generate error:', err));
+  };
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
+  const [expandedLevelReportId, setExpandedLevelReportId] = useState<string | null>(null);
+  const [reportSubTab, setReportSubTab] = useState<'diagnostic' | 'worksheet'>('diagnostic');
+  const [evalReportTab, setEvalReportTab] = useState<'diagnostic' | 'worksheet'>('diagnostic');
   const [sel, setSel] = useState('');
   const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
   const [editingProfile, setEditingProfile] = useState(false);
@@ -165,22 +464,127 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [expandedDistRpt, setExpandedDistRpt] = useState<string | null>(null);
   const [expandedDist, setExpandedDist] = useState<string | null>(null);
   const [userRoleFilter, setUserRoleFilter] = useState('superadmin');
-  const [userSearch, setUserSearch] = useState('');
+
+  // Blueprint states
+  const [blueprints, setBlueprints] = useState<any[]>([]);
+  const [blueprintSearch, setBlueprintSearch] = useState('');
+  const [selectedExamFilter, setSelectedExamFilter] = useState('all');
+  const [showBlueprintModal, setShowBlueprintModal] = useState(false);
+  const [editingBlueprint, setEditingBlueprint] = useState<any | null>(null);
+  const [bpFormData, setBpFormData] = useState({
+    examId: '',
+    examName: '',
+    questionNumber: 1,
+    conceptName: '',
+    type: 'numeric',
+    template: '',
+    engineData: '{}'
+  });
 
   const [apiStudents, setApiStudents] = useState<Student[]>([]);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
   const [apiReports, setApiReports] = useState<EvaluationReport[]>([]);
+  const [reportsLoaded, setReportsLoaded] = useState(false);
+  const [remediationLedgers, setRemediationLedgers] = useState<any[]>([]);
   const [apiTeachers, setApiTeachers] = useState<any[]>([]);
+
+  const safePercent = (score: number, totalQuestions?: number, fallbackLength = 0) => {
+    const total = Number(totalQuestions) > 0 ? Number(totalQuestions) : fallbackLength;
+    if (total <= 0) return 0;
+
+    const value = Number(score) || 0;
+
+    // score is already percentage
+    return Math.max(0, Math.min(100, Math.round(value)));
+  };
+
+  const getReportPct = (r: EvaluationReport) => {
+    const total = Number(r.totalQuestions) || 5;
+    const score = Number(r.score) || 0;
+    if (score > total) {
+      return Math.min(100, score);
+    }
+    return Math.min(100, Math.round((score / total) * 100));
+  };
+
+  const fetchLedgers = async () => {
+    if (!sel) return;
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const res = await fetch(`/api/remediation/ledgers?studentId=${sel}`, { headers });
+      const d = await res.json();
+      if (d.success && Array.isArray(d.data)) {
+        setRemediationLedgers(d.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch remediation ledgers:', err);
+    }
+  };
+
+  const fetchBlueprints = async () => {
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const res = await fetch('/api/blueprints', { headers });
+      const d = await res.json();
+      if (d.success && Array.isArray(d.data)) {
+        setBlueprints(d.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch blueprints:', err);
+    }
+  };
 
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${token}` };
     apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
     apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
-    apiFetch('/api/evaluation/reports', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiReports(d); }).catch(() => {});
+    apiFetch('/api/evaluation/reports', { headers })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setApiReports(d); })
+      .catch(() => {})
+      .finally(() => setReportsLoaded(true));
     if (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN) {
       apiFetch('/api/teachers', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiTeachers(d); }).catch(() => {});
     }
+    fetchBlueprints();
+
+    // Listen for reports-updated events from other panels (e.g., ICR scanner)
+    const onReportsUpdated = async (ev: Event) => {
+      try {
+        const detail: any = (ev as CustomEvent).detail;
+        if (detail && detail.report) {
+          const newReport: EvaluationReport = detail.report;
+          setApiReports(prev => {
+            if (!prev) return [newReport];
+            const exists = prev.find(p => p.id === newReport.id);
+            if (exists) {
+              return prev.map(p => p.id === newReport.id ? newReport : p);
+            }
+            return [newReport, ...prev];
+          });
+          // If it's a level worksheet, show worksheet tab and expand the new report
+          try {
+            if (newReport.worksheetType === 'level' || String(newReport.worksheetId || '').startsWith('WS-L')) {
+              setEvalReportTab('worksheet');
+            }
+            setExpandedReportId(newReport.id);
+          } catch {}
+          return;
+        }
+
+        // Fallback: refetch full list
+        const res = await apiFetch('/api/evaluation/reports', { headers });
+        if (res.ok) {
+          const d = await res.json();
+          if (Array.isArray(d)) setApiReports(d);
+        }
+      } catch (err) {
+        console.error('Failed to refresh reports after update event:', err);
+      }
+    };
+    window.addEventListener('fln:reports:updated', onReportsUpdated as EventListener);
+    return () => window.removeEventListener('fln:reports:updated', onReportsUpdated as EventListener);
   }, [token, currentUser.role]);
 
   // GET /api/students returns the caller's whole role-scoped list — up to
@@ -194,13 +598,28 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
   }, [token, activePanel, apiStudents.length]);
 
+  useEffect(() => {
+    fetchLedgers();
+  }, [sel, token]);
+
+  useEffect(() => {
+    const hasPendingOrGenerating = remediationLedgers.some(
+      l => l.remediationStatus === 'pending' || l.remediationStatus === 'generating'
+    );
+    if (!hasPendingOrGenerating) return;
+
+    const interval = setInterval(() => {
+      fetchLedgers();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [remediationLedgers]);
+
 const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
   const usersList = apiUsers.length > 0 ? apiUsers : USERS_FALLBACK;
-  const reportsList: EvaluationReport[] = apiReports.length > 0 ? apiReports : REPORTS_MOCK;
   const teachersList = apiTeachers.length > 0 ? apiTeachers : TEACHERS_MOCK;
-
-  // Real per-district / per-block rollups, derived from the already-fetched
+  const reportsList: EvaluationReport[] = apiReports;
   // schools + students (no dedicated aggregation endpoint exists).
   const getDistrictStats = (stateCode: string) => {
     const stateSchools = schools.filter(s => s.stateCode === stateCode);
@@ -259,10 +678,8 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
       alert('Please allow popups to download/print the PDF report card.');
       return;
     }
+    const failedResponses = examResponses.filter((item: any) => item.status !== 'Correct')
 
-    const conceptBadges = Object.entries(r.conceptMastery)
-      .map(([t, m]) => `<span class="badge ${m === 'Strong' ? 'badge-pass' : 'badge-fail'}">${t}: ${m}</span>`)
-      .join(' ');
 
     const tableRows = examResponses.map(item => `
       <tr>
@@ -276,7 +693,9 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
         </td>
       </tr>
     `).join('');
-
+    const scorePct = safePercent(r.score, r.totalQuestions, examResponses.length); const conceptBadges = Object.entries(r.conceptMastery)
+      .map(([t, m]) => `<span class="badge ${m === 'Strong' ? 'badge-pass' : 'badge-fail'}">${t}: ${m}</span>`)
+      .join(' ');
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -333,7 +752,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
             <div class="metric-label">Placed Level</div>
           </div>
           <div class="metric-card">
-            <div class="metric-value">${Math.round((r.score / r.totalQuestions) * 100)}%</div>
+            <div class="metric-value">${Math.min(100, Math.max(0, Number(r.score) || 0))}%</div>
             <div class="metric-label">Accuracy Rate</div>
           </div>
         </div>
@@ -383,6 +802,286 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
     printWindow.document.close();
   };
 
+  const handleViewRemediationNotes = (studentName: string, studentId: string, examId: string) => {
+    // 1. Locate the targeted complete remediation record inside the active state pool
+    const targetLedger = remediationLedgers.find(
+      l => l.studentId === studentId && l.examId === examId
+    );
+
+    if (!targetLedger) return;
+
+    // 2. Open a direct, clean window for viewing and immediate printing
+    const notesWindow = window.open('', '_blank', 'width=850,height=700');
+    if (!notesWindow) {
+      alert('Please allow popups to view remediation notes.');
+      return;
+    }
+
+    const notesHtml = `
+    <html>
+      <head>
+        <title>Remediation Sheet - ${studentName}</title>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; padding: 30px; color: #1f2937; line-height: 1.5; }
+          .header { margin-bottom: 25px; border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; }
+          .student-title { font-size: 24px; font-weight: 700; color: #111827; margin: 0; }
+          .meta-text { color: #4b5563; font-size: 14px; margin-top: 5px; }
+          .failure-block { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+          .failed-question-header { font-size: 16px; font-weight: 600; color: #dc2626; margin-bottom: 12px; border-bottom: 1px dashed #e5e7eb; padding-bottom: 6px; }
+          .practice-list { margin: 0; padding-left: 20px; }
+          .practice-item { margin-bottom: 10px; font-size: 15px; color: #374151; }
+          .practice-instruction { font-weight: 600; color: #111827; margin-bottom: 8px; list-style: none; }
+          .practice-answer { color: #047857; font-weight: 600; margin-left: 8px; }
+          @media print {
+            body { padding: 0; }
+            .failure-block { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1 class="student-title">Remediation Sheet: ${studentName}</h1>
+          <div class="meta-text">Student ID: ${studentId} | Worksheet ID: ${examId}</div>
+        </div>
+
+        ${targetLedger.responses.map((resp: any) => `
+          <div class="failure-block">
+            <div class="failed-question-header">
+              ❌ Failed Question Reference: Question #${resp.questionNumber} (${resp.conceptName})
+            </div>
+            <ol class="practice-list">
+              ${resp.practiceQuestions.map((pq: any) => {
+                if (pq.subQuestions && pq.subQuestions.length > 0) {
+                  const instruction = pq.question || pq.topic || 'Practice Questions';
+                  const subs = pq.subQuestions.map((sq: any, idx: number) => `
+                    <li class="practice-item">
+                      <strong>Q${idx + 1}.</strong> ${sq.prompt || sq.question || ''}
+                      <span class="practice-answer">Answer: ${sq.answer || ''}</span>
+                    </li>`).join('');
+                  return `<li class="practice-item practice-instruction"><strong>${instruction}</strong></li>${subs}`;
+                }
+                return `<li class="practice-item">${pq.question}<span class="practice-answer">Answer: ${pq.answer || ''}</span></li>`;
+              }).join('')}
+            </ol>
+          </div>
+        `).join('')}
+      </body>
+    </html>
+  `;
+
+    notesWindow.document.write(notesHtml);
+    notesWindow.document.close();
+  };
+
+  const handlePrintRemediationSlip = (student: Student, ledger: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print the remediation slip.');
+      return;
+    }
+
+    const failedResponses = (ledger.responses || []).filter((r: any) => !r.isCorrect);
+
+    // Helper to render practice questions - supports both subQuestions format (instruction + 5 sub-qs) and flat format
+    const renderPracticeQuestions = (practiceQs: any[], conceptIdx: number) => {
+      return practiceQs.map((pq: any, qIdx: number) => {
+        // Check if this is the new format with subQuestions (instruction + 5 sub-questions)
+        if (pq.subQuestions && Array.isArray(pq.subQuestions) && pq.subQuestions.length > 0) {
+          const instruction = pq.question || pq.topic || 'Practice Questions';
+          const subQs = pq.subQuestions.map((sq: any, sqIdx: number) => {
+            const prompt = sq.prompt || sq.question || '';
+            const answer = sq.answer || '';
+            return `
+              <div class="sub-question" style="margin-bottom: 14px; padding-left: 16px;">
+                <div class="sub-q-text" style="font-size: 13px; color: #1e293b; margin-bottom: 4px;">
+                  <strong style="color: #374151;">Q${sqIdx + 1}.</strong> ${prompt}
+                </div>
+                <div class="answer-line" style="font-size: 12px; color: #94a3b8; font-family: monospace; margin-top: 4px; height: 24px;">
+                  Answer: __________________________________
+                </div>
+              </div>
+            `;
+          }).join('');
+          return `
+            <div class="concept-block" style="margin-bottom: 24px; page-break-inside: avoid;">
+              <div class="instruction-header" style="font-size: 14px; font-weight: 700; color: #1e3a8a; margin-bottom: 12px; padding: 10px 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 6px 6px 0;">
+                ${instruction}
+              </div>
+              <div class="sub-questions">
+                ${subQs}
+              </div>
+            </div>
+          `;
+        }
+        // Fallback: flat format (old style)
+        return `
+          <div class="question-item" style="margin-bottom: 18px; padding-left: 12px;">
+            <div class="question-text" style="font-size: 13px; color: #1e293b; margin-bottom: 6px;">
+              <strong>Q${qIdx + 1}.</strong> ${pq.question}
+            </div>
+            <div class="answer-space" style="font-size: 12px; color: #94a3b8; font-family: monospace; margin-top: 4px; height: 24px;">
+              Answer: __________________________________
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+
+    // Helper to render answer key
+    const renderAnswerKey = (practiceQs: any[], conceptName: string) => {
+      return practiceQs.map((pq: any, qIdx: number) => {
+        if (pq.subQuestions && Array.isArray(pq.subQuestions) && pq.subQuestions.length > 0) {
+          const answers = pq.subQuestions.map((sq: any, sqIdx: number) => {
+            const answer = sq.answer || '';
+            return `<span style="margin-right: 16px;"><strong>Q${sqIdx + 1}:</strong> ${answer}</span>`;
+          }).join('');
+          return `
+            <div style="margin-bottom: 10px; font-size: 11px;">
+              <strong>${conceptName}</strong> (Instruction: ${pq.question || pq.topic || ''})<br/>
+              ${answers}
+            </div>
+          `;
+        }
+        return `<div style="margin-bottom: 6px; font-size: 11px;"><strong>Q${qIdx + 1}:</strong> ${pq.answer}</div>`;
+      }).join('');
+    };
+
+    const questionsHtml = failedResponses.map((r: any, idx: number) => {
+      const practiceQs = r.practiceQuestions || [];
+      const questionsList = renderPracticeQuestions(practiceQs, idx);
+      return `
+        <div class="concept-section" style="margin-bottom: 30px; page-break-inside: avoid;">
+          <div class="concept-header" style="font-size: 13px; font-weight: 700; background-color: #f1f5f9; padding: 8px 12px; border-left: 4px solid #4f46e5; border-radius: 0 6px 6px 0; color: #0f172a; margin-bottom: 10px;">
+            Concept ${idx + 1}: ${r.conceptName}
+          </div>
+          <div class="original-box" style="font-size: 11px; color: #64748b; margin-bottom: 15px; padding: 0 12px; font-style: italic;">
+            <strong>Original Question (Incorrect):</strong> "${r.originalQuestion}"
+          </div>
+          <div class="practice-list">
+            ${questionsList || '<p style="color:#ef4444; font-size:12px;">No practice questions generated for this concept.</p>'}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const answerKeyHtml = failedResponses.map((r: any) => {
+      const practiceQs = r.practiceQuestions || [];
+      return renderAnswerKey(practiceQs, r.conceptName);
+    }).join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Remediation Slip - ${student.name}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          body { font-family: 'Inter', sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; font-size: 13px; }
+          .header { text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 20px; margin-bottom: 25px; }
+          .title { font-size: 22px; font-weight: 700; color: #4f46e5; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+          .subtitle { font-size: 11px; color: #64748b; margin-top: 5px; font-weight: 600; letter-spacing: 0.5px; }
+          .student-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 15px; }
+          .info-item { font-size: 13px; }
+          .info-item strong { color: #0f172a; }
+          .concept-section { margin-bottom: 30px; page-break-inside: avoid; }
+          .concept-header { font-size: 13px; font-weight: 700; background-color: #f1f5f9; padding: 8px 12px; border-left: 4px solid #4f46e5; border-radius: 0 6px 6px 0; color: #0f172a; margin-bottom: 10px; }
+          .original-box { font-size: 11px; color: #64748b; margin-bottom: 15px; padding: 0 12px; font-style: italic; }
+          .question-item { margin-bottom: 18px; padding-left: 12px; }
+          .question-text { font-size: 13px; color: #1e293b; margin-bottom: 6px; }
+          .answer-space { font-size: 12px; color: #94a3b8; font-family: monospace; margin-top: 4px; height: 24px; }
+          .answer-line { font-size: 12px; color: #94a3b8; font-family: monospace; margin-top: 4px; height: 24px; }
+          .sub-q-text { font-size: 13px; color: #1e293b; margin-bottom: 4px; }
+          .instruction-header { font-size: 14px; font-weight: 700; color: #1e3a8a; margin-bottom: 12px; padding: 10px 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 6px 6px 0; }
+          .answer-key-section { margin-top: 50px; border-top: 2px dashed #cbd5e1; padding-top: 20px; page-break-inside: avoid; }
+          .footer { text-align: center; margin-top: 30px; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+          @media print {
+            body { padding: 20px; }
+            .concept-section, .concept-block { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Remediation Practice Slip</div>
+          <div class="subtitle">Targeted Practice Worksheet for Learning Gaps</div>
+        </div>
+
+        <div class="student-info">
+          <div class="info-item">Student Name: <strong>${student.name}</strong></div>
+          <div class="info-item">Student ID: <strong>${student.id}</strong></div>
+          <div class="info-item">Class / Section: <strong>${student.classGroup} - ${student.section}</strong></div>
+          <div class="info-item">Exam ID: <strong>${ledger.examId}</strong></div>
+        </div>
+
+        <div class="section-title" style="font-weight: 700; font-size: 14px; text-transform: uppercase; margin-bottom: 20px; color: #0f172a;">Targeted Practice Exercises</div>
+
+        ${questionsHtml}
+
+        <div class="answer-key-section">
+          <div style="font-weight: 700; font-size: 12px; text-transform: uppercase; margin-bottom: 15px; color: #475569; letter-spacing: 0.5px;">Teacher Answer Key (For Grading Reference Only)</div>
+          ${answerKeyHtml || '<p style="font-size:11px; color:#64748b;">No keys registered.</p>'}
+        </div>
+
+        <div class="footer">
+          Confidential Remediation Record · Generated by FLN Portal.
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (!window.confirm('Are you sure you want to clear this evaluation report?')) return;
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const res = await fetch(`/api/evaluation/report/${reportId}`, {
+        method: 'DELETE',
+        headers
+      });
+      if (res.ok) {
+        setApiReports(prev => prev.filter(r => r.id !== reportId));
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to clear report.');
+      }
+    } catch {
+      // Clear from local state as fallback for offline/mock reports
+      setApiReports(prev => prev.filter(r => r.id !== reportId));
+    }
+  };
+
+  const handleClearAllReports = async () => {
+    if (!window.confirm('Are you sure you want to clear ALL evaluation reports? This action cannot be undone.')) return;
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const res = await fetch(`/api/evaluation/reports/clear-all`, {
+        method: 'DELETE',
+        headers
+      });
+      if (res.ok) {
+        setApiReports([]);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to clear all reports.');
+      }
+    } catch {
+      // Clear from local state as fallback for offline/mock reports
+      setApiReports([]);
+    }
+  };
+
   // ===================== TEACHER PANELS =====================
   if (panel === 'student_list') {
     return (
@@ -394,6 +1093,15 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   }
 
   if (panel === 'student_profile') {
+    if (students.length === 0) {
+      return (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+          <PageHeader title="Student Profile" desc="No students are currently assigned to your account." icon={<Users className="h-5 w-5" />} />
+          <div className="text-sm text-slate-500 dark:text-slate-400">Please check your class assignment or contact your school administrator.</div>
+        </div>
+      );
+    }
+
     const s = students.find(x => x.id === sel) || students[0];
 
     const filteredStudents = students.filter(x =>
@@ -401,6 +1109,17 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
       x.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const EXTENDED_PROFILES: Record<string, any> = {
+      s1: { gender: 'Male', dob: '2018-04-12', guardian: 'Gurpreet Singh', relation: 'Father', contact: '+91-98765-43210', address: 'House #42, Model Town, Ludhiana, PB-141001', enrollmentDate: '2025-04-01', lastMedical: '2026-01-15', bloodGroup: 'B+', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 7 - Model Town Stop', notes: 'Consistent performer. Shows strong number sense. Encourage peer tutoring.', sibblings: 'Elder sister in Class 5' },
+      s2: { gender: 'Female', dob: '2019-01-25', guardian: 'Harjeet Kaur', relation: 'Mother', contact: '+91-98123-45678', address: 'Village Dhandra, PO Box 23, Ludhiana', enrollmentDate: '2025-07-15', lastMedical: '2026-03-10', bloodGroup: 'O+', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 12 - Village Dhandra', notes: 'Struggles with pattern recognition. Needs visual learning aids. Regular attendance.', sibblings: 'Younger brother in Class 1' },
+      s3: { gender: 'Male', dob: '2017-08-30', guardian: 'Suresh Kumar', relation: 'Father', contact: '+91-99887-76655', address: '456, Green Avenue, Ludhiana, PB-141002', enrollmentDate: '2025-04-01', lastMedical: '2026-02-20', bloodGroup: 'A+', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 3 - Green Ave Stop', notes: 'Top performer in class. Ready for advanced multiplication. Consider skipping to Level 41.', sibblings: 'None' },
+      s4: { gender: 'Female', dob: '2018-11-05', guardian: 'Rajesh Sharma', relation: 'Father', contact: '+91-97654-32100', address: 'Flat 12B, Krishna Apartments, Civil Lines, Ludhiana', enrollmentDate: '2026-01-10', lastMedical: '2026-04-05', bloodGroup: 'AB+', disability: 'None', midDayMeal: 'No', busRoute: 'Route 7 - Civil Lines', notes: 'Newly enrolled. Baseline diagnostic pending. Parents report confidence in basic counting.', sibblings: 'Elder brother in Class 5' },
+      s5: { gender: 'Male', dob: '2019-05-18', guardian: 'Mandeep Verma', relation: 'Mother', contact: '+91-95432-10987', address: 'Ward 3, Basti Jodhewal, Ludhiana', enrollmentDate: '2025-07-15', lastMedical: '2025-12-01', bloodGroup: 'B-', disability: 'Mild visual impairment (corrected)', midDayMeal: 'Yes', busRoute: 'Route 7 - Basti Stop', notes: 'Diagnosed with mild myopia, wears glasses. Performing well in number sense.', sibblings: 'Younger sister (not in school yet)' },
+      s6: { gender: 'Female', dob: '2017-12-22', guardian: 'Vikram Gupta', relation: 'Father', contact: '+91-93210-87654', address: 'H.No. 88, Sarabha Nagar, Ludhiana', enrollmentDate: '2025-04-01', lastMedical: '2026-05-15', bloodGroup: 'O-', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 3 - Sarabha Nagar', notes: 'Exemplary in multiplication. Should be challenged with word problems.', sibblings: 'None' },
+      s7: { gender: 'Female', dob: '2020-03-10', guardian: 'Balwinder Kaur', relation: 'Mother', contact: '+91-98765-01234', address: 'Street 5, Daresi Market Area, Ludhiana', enrollmentDate: '2026-01-10', lastMedical: '2026-02-28', bloodGroup: 'A-', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 12 - Daresi Stop', notes: 'Youngest in class. Recently enrolled. Shows enthusiasm for tracing activities.', sibblings: 'Two elder siblings in school' },
+    };
+
+    const profile = EXTENDED_PROFILES[s.id] || {};
     const reports = reportsList.filter(r => r.studentId === s.id);
     const studentSchool = schools.find(sch => sch.id === s.schoolId);
     const att = ATTENDANCE_MOCK.find(a => a.student === s.name);
@@ -453,17 +1172,35 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
     };
     const classStudents = students.filter(st => st.classGroup === s.classGroup);
     const classAvg = Math.round(classStudents.reduce((a, st) => a + st.currentLevel, 0) / Math.max(1, classStudents.length));
-    const avgScore = reports.length > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reports.length) : 0;
+    const avgScore = calculateAveragePercentage(reports);
     const allSkills = new Map<string, { mastery: string; date: string }[]>();
     reports.forEach(r => Object.entries(r.conceptMastery).forEach(([topic, mastery]) => {
       if (!allSkills.has(topic)) allSkills.set(topic, []);
-      allSkills.get(topic)!.push({ mastery, date: r.timestamp });
+      allSkills.get(topic)!.push({ mastery: mastery as string, date: r.timestamp });
     }));
     const latestSkills = reports.length > 0 ? Object.entries(reports[0].conceptMastery) : [];
     const weakAreas = latestSkills.filter(([_, m]) => m !== 'Strong').map(([t]) => t);
     const recentActivity = [
-      ...reports.map(r => ({ type: 'assessment' as const, label: `${r.score}/${r.totalQuestions} on ${r.worksheetId}`, date: r.timestamp, detail: `Score ${Math.round(r.score / r.totalQuestions * 100)}%` })),
-      ...s.levelHistory.map(lh => ({ type: 'level_change' as const, label: `Level changed to L${lh.level}`, date: lh.date, detail: lh.reason })),
+      ...reports.map(r => {
+        const scorePct = Math.min(
+          100,
+          Math.max(0, Number(r.score) || 0)
+        );
+
+        return {
+          type: 'assessment' as const,
+          label: `${r.score}/${r.totalQuestions} on ${r.worksheetId}`,
+          date: r.timestamp,
+          detail: `Score ${scorePct}%`
+        };
+      }),
+
+      ...s.levelHistory.map(lh => ({
+        type: 'level_change' as const,
+        label: `Level changed to L${lh.level}`,
+        date: lh.date,
+        detail: lh.reason
+      })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const filteredActivity = activityFilter === 'all' ? recentActivity : recentActivity.filter(a => a.type === activityFilter);
 
@@ -500,7 +1237,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                   <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)} />
                   <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden">
                     <div className="p-2 border-b border-slate-100 dark:border-slate-800">
-                      <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search students..." className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+                      <input id="student-search-input" name="studentSearch" aria-label="Search students" autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search students..." className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
                     </div>
                     <div className="max-h-56 overflow-y-auto">
                       {filteredStudents.length === 0 ? (
@@ -599,9 +1336,12 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                   <div className="relative">
                     <div className="flex items-end gap-3 h-40 border-b border-l border-slate-200 dark:border-slate-700 ml-8 pb-2 pl-2">
                       {reports.map((r, i) => {
-                        const pct = Math.round((r.score / r.totalQuestions) * 100);
-                        const barH = Math.max(pct * 0.8, 10);
-                        const isUp = i === 0 || pct >= Math.round((reports[i - 1].score / reports[i - 1].totalQuestions) * 100);
+                        const pct = Math.min(100, Math.max(0, Number(r.score) || 0)); const barH = Math.max(pct * 0.8, 10);
+                        const previousPct = i === 0
+                          ? 0
+                          : Math.min(100, Math.max(0, Number(reports[i - 1].score) || 0));
+
+                        const isUp = i === 0 || pct >= previousPct;
                         return (
                           <div key={r.id} className="flex-1 flex flex-col items-center gap-1.5 group relative">
                             <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8">
@@ -623,8 +1363,20 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                     {reports.length >= 2 && (
                       <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-400">
                         <span>Trend: <strong className={avgScore >= 70 ? 'text-emerald-600' : 'text-amber-600'}>{avgScore}% avg</strong></span>
-                        <span>Best: <strong className="text-emerald-600">{Math.max(...reports.map(r => Math.round((r.score / r.totalQuestions) * 100)))}%</strong></span>
-                        <span>Last: <strong>{Math.round((reports[reports.length - 1].score / reports[reports.length - 1].totalQuestions) * 100)}%</strong></span>
+                        <span>
+                          Best:
+                          <strong className="text-emerald-600">
+                            {Math.max(...reports.map(r => Math.min(100, Math.max(0, Number(r.score) || 0))))}%
+                          </strong>
+                        </span>
+                        <span>
+                          Last: <strong>
+                            {Math.min(
+                              100,
+                              Math.max(0, Number(reports[reports.length - 1].score) || 0)
+                            )}%
+                          </strong>
+                        </span>
                       </div>
                     )}
                   </div>
@@ -675,7 +1427,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                               {improving && <span className="text-emerald-500">↑</span>}
                             </span>
                           </div>
-                            <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div className={`h-full rounded-full transition-all ${mastery === 'Strong' ? 'bg-emerald-500' : mastery === 'Satisfactory' ? 'bg-blue-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
                           </div>
                           {history.length >= 2 && (
@@ -740,7 +1492,17 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Progress Highlights</h3>
                 <div className="space-y-2 text-sm">
-                  {reports.length > 0 && <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Best Score</span><span className="font-bold text-emerald-600">{Math.max(...reports.map(r => Math.round((r.score / r.totalQuestions) * 100)))}%</span></div>}
+                  {reports.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 dark:text-slate-400">Recent Score</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100">
+                        {Math.min(
+                          100,
+                          Math.max(0, Number(reports[reports.length - 1].score) || 0)
+                        )}%
+                      </span>
+                    </div>
+                  )}
                   {reports.length > 0 && <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Recent Score</span><span className="font-bold text-slate-800 dark:text-slate-100">{Math.round((reports[reports.length - 1].score / reports[reports.length - 1].totalQuestions) * 100)}%</span></div>}
                   <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Levels Gained</span><span className="font-bold text-slate-800 dark:text-slate-100">{s.levelHistory.length > 0 ? s.currentLevel - s.levelHistory[0].level : 0}</span></div>
                   <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Strong Skills</span><span className="font-bold text-slate-800 dark:text-slate-100">{latestSkills.filter(([_, m]) => m === 'Strong').length}/{latestSkills.length}</span></div>
@@ -749,99 +1511,428 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
               </div>
             </div>
             <div className="lg:col-span-2 space-y-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">All Assessment Reports</h3>
-                {reports.length > 0 ? <div className="space-y-4">{reports.map(r => {
-                  const scorePct = Math.round((r.score / r.totalQuestions) * 100);
-                  return (
-                    <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300'}`}>{scorePct}%</div>
-                          <div><span className="text-sm font-semibold text-slate-900 dark:text-white">{r.worksheetId}</span><div className="text-[10px] text-slate-400 dark:text-slate-500">{new Date(r.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{r.score}/{r.totalQuestions}</span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{r.narrative}</p>
-                      <div className="flex flex-wrap gap-1.5">{Object.entries(r.conceptMastery).map(([t, m]) => (
-                        <span key={t} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${m === 'Strong' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : m === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{t}: {m}</span>
-                      ))}</div>
-                      
-                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                        <button onClick={() => setExpandedReportId(expandedReportId === r.id ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                          {expandedReportId === r.id ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
-                        </button>
-                        <button onClick={() => {
-                          const examResponses = s.id === 's1' ? [
-                            { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
-                            { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
-                            { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
-                            { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
-                            { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
-                          ] : s.id === 's2' ? [
-                            { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
-                            { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
-                            { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
-                            { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                          ] : [
-                            { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
-                            { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
-                            { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
-                            { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                          ];
-                          handleDownloadPDF(s, r, examResponses);
-                        }} className="text-xs font-semibold text-emerald-650 hover:text-emerald-800 flex items-center gap-1">
-                          📥 Download PDF Report
-                        </button>
-                      </div>
+              {/* Report Sub-Tabs Bar */}
+              <div className="flex border-b border-slate-200 dark:border-slate-700 gap-2">
+                <button
+                  id="report-diagnostic-tab-btn"
+                  name="reportDiagnosticTab"
+                  onClick={() => setReportSubTab('diagnostic')}
+                  className={`px-4 py-2.5 text-xs font-bold font-mono rounded-t-lg border-b-2 transition-all flex items-center gap-2 ${reportSubTab === 'diagnostic'
+                    ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/40'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                >
+                  <span>📊 Diagnostic Reports</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 font-bold">
+                    {reports.filter(r => r.worksheetType !== 'level' && !r.worksheetId?.startsWith('WS-L')).length}
+                  </span>
+                </button>
 
-                      {expandedReportId === r.id && (
-                        <div className="mt-3 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 text-xs">
-                          <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">Side-by-Side Exam Grader Report</div>
-                          <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {(s.id === 's1' ? [
-                              { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
-                              { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
-                              { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
-                              { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
-                              { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
-                            ] : s.id === 's2' ? [
-                              { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
-                              { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
-                              { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
-                              { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                            ] : [
-                              { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
-                              { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
-                              { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
-                              { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                            ]).map((item: any, idx: number) => (
-                              <div key={idx} className="p-3 space-y-1">
-                                <div className="font-semibold text-slate-800 dark:text-slate-100">{item.question}</div>
-                                <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-dotted border-slate-200 dark:border-slate-700">
-                                  <div>
-                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Student Response</span>
-                                    <span className={`font-medium ${item.status === 'Correct' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>{item.studentAnswer}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Correct Keys</span>
-                                    <span className="font-medium text-slate-800 dark:text-slate-100">{item.correctAnswer}</span>
-                                  </div>
+                <button
+                  id="report-worksheet-tab-btn"
+                  name="reportWorksheetTab"
+                  onClick={() => setReportSubTab('worksheet')}
+                  className={`px-4 py-2.5 text-xs font-bold font-mono rounded-t-lg border-b-2 transition-all flex items-center gap-2 ${reportSubTab === 'worksheet'
+                    ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/40'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                >
+                  <span>📝 Level Worksheet Results</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 font-bold">
+                    {reports.filter(r => r.worksheetType === 'level' || r.worksheetId?.startsWith('WS-L')).length}
+                  </span>
+                </button>
+              </div>
+
+              {/* TAB 1: Diagnostic Assessment Reports */}
+              {reportSubTab === 'diagnostic' && (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        Diagnostic Assessment Reports
+                      </h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Baseline diagnostic exams, placement level assessments, and diagnostic grader results.
+                      </p>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const diagRpts = reports.filter(r => r.worksheetType !== 'level' && !r.worksheetId?.startsWith('WS-L'));
+                    if (diagRpts.length === 0) {
+                      return (
+                        <div className="text-center py-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+                          <p className="text-xs text-slate-400 dark:text-slate-500">No diagnostic assessment reports recorded yet.</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-4">
+                        {diagRpts.map(r => {
+                          const scorePct = Math.min(100, Math.max(0, Number(r.score) || 0));
+                          return (
+                            <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300'}`}>{scorePct}%</div>
+                                  <div><span className="text-sm font-semibold text-slate-900 dark:text-white">{r.worksheetId}</span><div className="text-[10px] text-slate-400 dark:text-slate-500">{new Date(r.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
                                 </div>
-                                <div className="pt-1">
-                                  <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{r.score}/{r.totalQuestions}</span>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{r.narrative}</p>
+                              <div className="flex flex-wrap gap-1.5">{Object.entries(r.conceptMastery).map(([t, m]) => (
+                                <span key={t} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${m === 'Strong' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : m === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{t}: {m}</span>
+                              ))}</div>
+
+                              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                <button onClick={() => setExpandedReportId(expandedReportId === r.id ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                  {expandedReportId === r.id ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
+                                </button>
+                                <div className="flex gap-4">
+                                  <button onClick={() => {
+                                    const examResponses = r.responses || (s.id === 's1' ? [
+                                      { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
+                                      { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
+                                      { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
+                                      { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
+                                      { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
+                                    ] : s.id === 's2' ? [
+                                      { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
+                                      { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
+                                      { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
+                                      { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
+                                    ] : [
+                                      { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
+                                      { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
+                                      { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
+                                      { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
+                                    ]);
+                                    handleDownloadPDF(s, r, examResponses);
+                                  }} className="text-xs font-semibold text-emerald-650 hover:text-emerald-850 flex items-center gap-1">
+                                    📥 Download PDF Report
+                                  </button>
+                                  {(() => {
+                                    const ledger = remediationLedgers.find(l => l.examId === r.worksheetId);
+                                    if (scorePct >= 100) {
+                                      return <span className="text-[10px] text-slate-400 font-mono">100% Mastery - No Remediation Needed</span>;
+                                    }
+                                    if (!ledger) {
+                                      return (
+                                        <button
+                                          onClick={async () => {
+                                            try {
+                                              const res = await fetch('/api/remediation/generate', {
+                                                method: 'POST',
+                                                headers: {
+                                                  'Content-Type': 'application/json',
+                                                  'Authorization': `Bearer ${token}`
+                                                },
+                                                body: JSON.stringify({
+                                                  studentId: s.id,
+                                                  examId: r.worksheetId,
+                                                  failedQuestionNums: (r.responses || []).filter((x: any) => x.status === 'Incorrect' || !x.isCorrect).map((_: any, idx: number) => idx + 1)
+                                                })
+                                              });
+                                              const d = await res.json();
+                                              if (d.success) {
+                                                fetchLedgers();
+                                              } else {
+                                                alert(d.error || 'Failed to trigger remediation');
+                                              }
+                                            } catch (err) {
+                                              console.error(err);
+                                            }
+                                          }}
+                                          className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/60 font-mono font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm"
+                                        >
+                                          📝 Generate Remediation Sheet
+                                        </button>
+                                      );
+                                    }
+                                    if (ledger.remediationStatus === 'generating' || ledger.remediationStatus === 'pending') {
+                                      return (
+                                        <span className="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700/60 font-mono font-bold text-xs animate-pulse flex items-center gap-1.5">
+                                          ⏳ Generating Practice...
+                                        </span>
+                                      );
+                                    }
+                                    if (ledger.remediationStatus === 'failed') {
+                                      return (
+                                        <button
+                                          onClick={async () => {
+                                            try {
+                                              const res = await fetch(`/api/remediation/ledgers/${ledger.id}/generate`, {
+                                                method: 'POST',
+                                                headers: { 'Authorization': `Bearer ${token}` }
+                                              });
+                                              const d = await res.json();
+                                              if (d.success) {
+                                                fetchLedgers();
+                                              }
+                                            } catch (err) {
+                                              console.error(err);
+                                            }
+                                          }}
+                                          className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 dark:bg-red-950/40 dark:text-red-300 font-mono font-semibold text-xs"
+                                        >
+                                          ⚠️ Retry Remediation
+                                        </button>
+                                      );
+                                    }
+                                    return (
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => handleViewRemediationNotes(s.name, s.id, r.worksheetId)}
+                                          className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/60 font-mono font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm"
+                                        >
+                                          📝 View Remediation Sheet
+                                        </button>
+                                        <button
+                                          onClick={() => handlePrintRemediationSlip(s, ledger)}
+                                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700 font-mono font-semibold text-xs transition-all flex items-center gap-1 shadow-sm"
+                                        >
+                                          🖨️ Print Slip
+                                        </button>
+                                      </div>
+                                    );
+                                  })()}
+                                  <button onClick={() => handleDeleteReport(r.id)} className="text-xs font-semibold text-red-650 hover:text-red-800 flex items-center gap-1">
+                                    🗑️ Clear Report
+                                  </button>
+                                </div>
+                              </div>
+
+                              {expandedReportId === r.id && (
+                                <div className="mt-3 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 text-xs">
+                                  <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">Side-by-Side Exam Grader Report</div>
+                                  <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                                    {(r.responses || (s.id === 's1' ? [
+                                      { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
+                                      { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
+                                      { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
+                                      { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
+                                      { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
+                                    ] : s.id === 's2' ? [
+                                      { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
+                                      { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
+                                      { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
+                                      { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
+                                    ] : [
+                                      { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
+                                      { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
+                                      { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
+                                      { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
+                                    ])).map((item: any, idx: number) => (
+                                      <div key={idx} className="p-3 space-y-1">
+                                        <div className="font-semibold text-slate-800 dark:text-slate-100">{item.question}</div>
+                                        <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-dotted border-slate-200 dark:border-slate-700">
+                                          <div>
+                                            <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Student Response</span>
+                                            <span className={`font-medium ${item.status === 'Correct' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>{item.studentAnswer}</span>
+                                          </div>
+                                          <div>
+                                            <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Correct Keys</span>
+                                            <span className="font-medium text-slate-800 dark:text-slate-100">{item.correctAnswer}</span>
+                                          </div>
+                                        </div>
+                                        <div className="pt-1">
+                                          <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* TAB 2: Level Worksheet Scan Results */}
+              {reportSubTab === 'worksheet' && (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        Level Worksheet Scan Results (Levels 1–59)
+                      </h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Evaluations submitted via manual entry or ICR scanner for assigned curriculum worksheets.
+                      </p>
                     </div>
-                  );
-                })}</div> : <div className="text-center py-8"><p className="text-xs text-slate-400 dark:text-slate-500">No assessment reports yet.</p></div>}
-              </div>
+                    {(() => {
+                      const levelRpts = reports.filter(r => r.worksheetType === 'level' || r.worksheetId?.startsWith('WS-L'));
+                      return levelRpts.length > 0 ? (
+                        <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                          {levelRpts.length} {levelRpts.length === 1 ? 'Worksheet' : 'Worksheets'}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+
+                  {(() => {
+                    const levelRpts = reports.filter(r => r.worksheetType === 'level' || r.worksheetId?.startsWith('WS-L'));
+                    if (levelRpts.length === 0) {
+                      return (
+                        <div className="text-center py-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+                          <p className="text-xs text-slate-400 dark:text-slate-500">
+                            No level worksheet evaluations recorded for {s.name} yet.
+                          </p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-600 mt-1">
+                            Use the ICR & Level Worksheet Scanner to evaluate physical worksheets.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-4">
+                        {levelRpts.map(r => {
+                          const scorePct = Math.min(100, Math.max(0, Number(r.score) || 0));
+                          const isExpanded = expandedLevelReportId === r.id;
+
+                          return (
+                            <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                              <div className="flex justify-between items-start flex-wrap gap-2">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>
+                                    {scorePct}%
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                                        Level {r.levelId ?? 'N/A'}{r.sublevelId !== undefined ? ` (Sub-level ${r.sublevelId})` : ''}
+                                      </span>
+                                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                        {r.worksheetId}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                                      Evaluated on {new Date(r.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-md ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>
+                                    Score: {r.score} / {r.totalQuestions}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {r.narrative && (
+                                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-md border border-slate-100 dark:border-slate-800">
+                                  {r.narrative}
+                                </p>
+                              )}
+
+                              {r.conceptMastery && Object.keys(r.conceptMastery).length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {Object.entries(r.conceptMastery).map(([topic, mastery]) => (
+                                    <span key={topic} className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded ${mastery === 'Strong' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : mastery === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>
+                                      {topic}: {mastery}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center flex-wrap gap-2">
+                                <button
+                                  onClick={() => setExpandedLevelReportId(isExpanded ? null : r.id)}
+                                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1"
+                                >
+                                  {isExpanded ? '▲ Hide Per-Question Results' : '▼ View Per-Question Breakdown'}
+                                </button>
+
+                                <div className="flex items-center gap-3">
+                                  {scorePct < 100 && (
+                                    <button
+                                      onClick={() => handleRequestRemediation(s, r, r.responses || [])}
+                                      className="text-xs font-semibold text-amber-650 hover:text-amber-850 dark:text-amber-400 flex items-center gap-1"
+                                    >
+                                      💡 Remediation Sheets
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleDownloadPDF(s, r, r.responses || [])}
+                                    className="text-xs font-semibold text-emerald-650 hover:text-emerald-850 dark:text-emerald-400 flex items-center gap-1"
+                                  >
+                                    📥 Download PDF
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Detailed Per-Question Breakdown */}
+                              {isExpanded && (
+                                <div className="mt-3 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 text-xs">
+                                  <div className="bg-slate-100 dark:bg-slate-800/80 px-3 py-2 font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                    <span>Worksheet Level {r.levelId ?? 'N/A'} — Question Responses ({r.responses?.length || 0})</span>
+                                    <span className="text-[10px] font-mono text-slate-400">ID: {r.worksheetId}</span>
+                                  </div>
+
+                                  <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                                    {(r.responses && r.responses.length > 0) ? (
+                                      r.responses.map((item: any, idx: number) => (
+                                        <div key={idx} className="p-3 space-y-1.5">
+                                          <div className="flex justify-between items-start gap-2">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="text-[10px] font-mono font-bold bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 px-1.5 py-0.5 rounded">
+                                                Q{idx + 1}
+                                              </span>
+                                              <span className="font-semibold text-slate-800 dark:text-slate-100">
+                                                {item.question}
+                                              </span>
+                                              {item.questionType && item.questionType !== 'standard' && (
+                                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 capitalize">
+                                                  {item.questionType}
+                                                </span>
+                                              )}
+                                            </div>
+                                            <span className={`inline-block px-2 py-0.5 text-[9px] font-bold font-mono rounded shrink-0 ${item.status === 'Correct' || item.isCorrect ? 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border border-green-200' : 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border border-red-200'}`}>
+                                              {item.status === 'Correct' || item.isCorrect ? 'PASS' : 'FAIL'}
+                                            </span>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-dotted border-slate-200 dark:border-slate-700">
+                                            <div>
+                                              <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Student Response</span>
+                                              <span className={`font-medium ${item.status === 'Correct' || item.isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                                                {item.studentAnswer || item.userAnswer || '(Blank / No answer)'}
+                                              </span>
+                                            </div>
+                                            <div>
+                                              <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Expected Answer Key</span>
+                                              <span className="font-medium text-slate-800 dark:text-slate-100">
+                                                {item.correctAnswer}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="p-4 text-center text-slate-400 text-xs">
+                                        Detailed question responses not stored for this entry.
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1118,7 +2209,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <MetricCard title="Total Reports" value={reportsList.length} subtext="All evaluations" icon={FileText} />
-            <MetricCard title="Avg Score" value={reportsList.length > 0 ? `${Math.round(reportsList.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reportsList.length)}%` : '—'} subtext="Across reports" icon={BarChart3} />
+            <MetricCard title="Avg Score" value={reportsList.length > 0 ? `${Math.round(reportsList.reduce((a, r) => a + getReportPct(r), 0) / reportsList.length)}%` : '—'} subtext="Across reports" icon={BarChart3} />
             <MetricCard title="Schools" value={stateSchools.length} subtext={`In ${userState}`} icon={SchoolIcon} />
             <MetricCard title="Districts" value={stateDistricts.length} subtext="Active jurisdictions" icon={MapPin} />
           </div>
@@ -1140,7 +2231,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                       {distSchools.map(sch => {
                         const schStudents = students.filter(st => st.schoolId === sch.id);
                         const schReports = reportsList.filter(r => schStudents.some(st => st.id === r.studentId));
-                        const avgScore = schReports.length > 0 ? Math.round(schReports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / schReports.length) : 0;
+                        const avgScore = schReports.length > 0 ? Math.round(schReports.reduce((a, r) => a + getReportPct(r), 0) / schReports.length) : 0;
                         return (
                           <div key={sch.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
                             <div className="flex justify-between items-center mb-3"><h4 className="font-bold text-slate-900 dark:text-white text-sm">{sch.name}</h4><span className="text-xs text-slate-400 dark:text-slate-500">{sch.blockCode} · {sch.strength}</span></div>
@@ -1152,7 +2243,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                             {schReports.length > 0 ? (
                               <div className="space-y-2">{schReports.map(r => {
                                 const student = schStudents.find(st => st.id === r.studentId);
-                                const scorePct = Math.round((r.score / r.totalQuestions) * 100);
+                                const scorePct = Math.min(100, Math.max(0, r.score <= 1 ? r.score * 100 : Number(r.score) || 0));
                                 return (
                                   <div key={r.id} className="border border-slate-100 dark:border-slate-700 rounded-lg p-3 text-sm">
                                     <div className="flex justify-between items-center"><span className="font-semibold">{student?.name || 'N/A'}</span><span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300'}`}>{r.score}/{r.totalQuestions} ({scorePct}%)</span></div>
@@ -1176,96 +2267,211 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
         </div>
       );
     }
+    console.log("=== REPORTS ===");
+
+    reportsList.forEach((r, index) => {
+      console.log({
+        report: index + 1,
+        score: r.score,
+        totalQuestions: r.totalQuestions,
+        percentage:
+          (Number(r.score) / Number(r.totalQuestions)) * 100,
+      });
+    });
+    console.log("=== REPORTS ===");
+    reportsList.forEach(r => {
+      console.log({
+        student: r.studentId,
+        score: r.score,
+        totalQuestions: r.totalQuestions,
+        percentage: (Number(r.score) / Number(r.totalQuestions)) * 100
+      });
+    });
+    console.log(reportsList[0]);
+    const avgScore = reportsList.length > 0 ? Math.round(reportsList.reduce((a, r) => a + getReportPct(r), 0) / reportsList.length) : 0;
+    const diagReports = reportsList.filter(r => r.worksheetType !== 'level' && !r.worksheetId?.startsWith('WS-L') && !(r as any).isLevelWorksheet);
+    const worksheetReports = reportsList.filter(r => r.worksheetType === 'level' || r.worksheetId?.startsWith('WS-L') || (r as any).isLevelWorksheet);
+    const displayReports = evalReportTab === 'worksheet' ? worksheetReports : diagReports;
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricCard title="Total Reports" value={reportsList.length} subtext="All evaluations" icon={FileText} />
-          <MetricCard title="Avg Score" value={reportsList.length > 0 ? `${Math.round(reportsList.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reportsList.length)}%` : '—'} subtext="Across reports" icon={BarChart3} />
+          <MetricCard title="Avg Score" value={reportsList.length > 0 ? `${avgScore}%` : '—'} subtext="Across reports" icon={BarChart3} />
           <MetricCard title="Strong Concepts" value={reportsList.reduce((a, r) => a + Object.values(r.conceptMastery).filter(v => v === 'Strong').length, 0)} subtext="Mastered topics" icon={Award} />
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-          <PageHeader title="Evaluation Reports" desc="Detailed assessment narratives and concept mastery breakdowns" />
-          {reportsList.map(r => {
-            const student = students.find(s => s.id === r.studentId);
-            const isExpanded = expandedReportId === r.id;
-            
-            // Mock exam questions and student responses for side-by-side preview
-            const examResponses = student ? (
-              student.id === 's1' ? [
-                { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
-                { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
-                { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
-                { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
-                { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
-              ] : student.id === 's2' ? [
-                { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
-                { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
-                { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
-                { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-              ] : [
-                { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
-                { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
-                { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
-                { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-              ]
-            ) : [];
+          <div className="flex justify-between items-start border-b border-slate-200 dark:border-slate-700 pb-4 flex-wrap gap-2">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Evaluation Reports</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Detailed assessment narratives and concept mastery breakdowns</p>
+            </div>
+            {reportsList.length > 0 && (
+              <button
+                onClick={handleClearAllReports}
+                className="shrink-0 rounded-lg border-0 bg-red-400 dark:bg-red-850 px-4 py-2 text-sm font-medium text-white shadow-sm outline-none transition-all duration-200 hover:bg-red-700 focus:outline-none"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
 
-            return (
-              <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-600 transition-all">
-                <div className="flex justify-between items-center"><span className="font-semibold text-sm">{student?.name || 'Unknown'}</span><span className="text-xs text-slate-400 dark:text-slate-500">{new Date(r.timestamp).toLocaleDateString()}</span></div>
-                <div className="flex gap-4 text-sm"><span>Score: <strong>{r.score}/{r.totalQuestions}</strong></span><span>Level: <strong>L{r.recommendedLevel}.{r.recommendedSubLevel ?? 0}</strong></span></div>
-                
-                <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-3">
-                  <span className="text-[9px] font-mono font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Evaluation Report Narrative</span>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed whitespace-pre-line">{r.narrative}</p>
-                </div>
+          {/* Evaluation Reports Sub-Tabs */}
+          <div className="flex border-b border-slate-200 dark:border-slate-700 gap-2">
+            <button
+              id="eval-diagnostic-tab-btn"
+              name="evalDiagnosticTab"
+              onClick={() => setEvalReportTab('diagnostic')}
+              className={`px-4 py-2.5 text-xs font-bold font-mono rounded-t-lg border-b-2 transition-all flex items-center gap-2 ${evalReportTab === 'diagnostic'
+                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/40'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+            >
+              <span>📊 Diagnostic Reports</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 font-bold">
+                {diagReports.length}
+              </span>
+            </button>
 
-                <div className="flex flex-wrap gap-2">{Object.entries(r.conceptMastery).map(([t, m]) => (
-                  <span key={t} className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${m === 'Strong' ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' : m === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{t}: {m}</span>
-                ))}</div>
+            <button
+              id="eval-worksheet-tab-btn"
+              name="evalWorksheetTab"
+              onClick={() => setEvalReportTab('worksheet')}
+              className={`px-4 py-2.5 text-xs font-bold font-mono rounded-t-lg border-b-2 transition-all flex items-center gap-2 ${evalReportTab === 'worksheet'
+                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/40'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+            >
+              <span>📝 Level Worksheet Results</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 font-bold">
+                {worksheetReports.length}
+              </span>
+            </button>
+          </div>
 
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                  <div className="flex gap-3">
-                    <button onClick={() => setExpandedReportId(isExpanded ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                      {isExpanded ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
-                    </button>
-                    {student && (
-                      <button onClick={() => handleDownloadPDF(student, r, examResponses)} className="text-xs font-semibold text-emerald-650 hover:text-emerald-800 flex items-center gap-1">
-                        📥 Download PDF Report
+          {displayReports.length === 0 ? (
+            <div className="text-center py-10 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                {evalReportTab === 'worksheet'
+                  ? 'No Level Worksheet scan results recorded yet. Use the ICR & Level Worksheet Scanner to evaluate physical worksheets.'
+                  : 'No Diagnostic Assessment reports recorded yet.'}
+              </p>
+            </div>
+          ) : (
+            displayReports.map(r => {
+              const student = students.find(s => s.id === r.studentId);
+              const isExpanded = expandedReportId === r.id;
+              const isWorksheet = r.worksheetType === 'level' || r.worksheetId?.startsWith('WS-L') || (r as any).isLevelWorksheet;
+
+              const examResponses = r.responses || (student ? (
+                student.id === 's1' ? [
+                  { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
+                  { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
+                  { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
+                  { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
+                  { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
+                ] : student.id === 's2' ? [
+                  { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
+                  { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
+                  { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
+                  { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
+                ] : [
+                  { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
+                  { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
+                  { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
+                  { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
+                ]
+              ) : []);
+
+              const scorePct = safePercent(r.score, r.totalQuestions, examResponses.length);
+              const needsRemediation = examResponses.some((item: any) => item.status === 'Incorrect' || item.isCorrect === false);
+              return (
+                <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-600 transition-all">
+                  <div className="flex justify-between items-center flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">{student?.name || (r as any).studentName || 'Unknown Student'}</span>
+                      <span className="text-xs font-mono font-semibold text-slate-400">({r.worksheetId})</span>
+                    </div>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">{new Date(r.timestamp).toLocaleDateString()}</span>
+                  </div>
+
+                  {/* Mastery Badges */}
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(r.conceptMastery || {}).map(([t, m]) => (
+                      <span key={t} className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${m === 'Strong' ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' : m === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{t}: {m}</span>
+                    ))}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center flex-wrap gap-2">
+                    <div className="flex gap-3 flex-wrap items-center">
+                      <button onClick={() => setExpandedReportId(isExpanded ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                        {isExpanded ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
                       </button>
+
+                      {student && (
+                        <button onClick={() => handleDownloadPDF(student, r, examResponses)} className="text-xs font-semibold text-emerald-600 hover:text-emerald-850 flex items-center gap-1">
+                          📥 Download PDF Report
+                        </button>
+                      )}
+
+                      {/* Conditional Remediation Button */}
+                      {needsRemediation ? (
+                        <button
+                          onClick={() => handleRequestRemediation(student || ({ id: r.studentId, name: (r as any).studentName || 'Student' } as any), r, examResponses)}
+                          className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/60 font-mono font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                          📝 Generate Remediation Sheet
+                        </button>
+                      ) : (
+                        <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                          ✅ All answers correct
+                        </span>
+                      )}
+
+                      <button onClick={() => handleDeleteReport(r.id)} className="text-xs font-semibold text-red-600 hover:text-red-800 flex items-center gap-1">
+                        🗑️ Clear Report
+                      </button>
+                    </div>
+
+                    {isWorksheet && (
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800">
+                        Evaluated via Worksheet Scanner
+                      </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Assigned from Diagnostic Pipeline</span>
-                </div>
 
-                {isExpanded && (
-                  <div className="mt-3 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 text-xs">
-                    <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">Side-by-Side Exam Grader Report</div>
-                    <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                      {examResponses.map((item, idx) => (
-                        <div key={idx} className="p-3 space-y-1">
-                          <div className="font-semibold text-slate-800 dark:text-slate-100">{item.question}</div>
-                          <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-dotted border-slate-200 dark:border-slate-700">
-                            <div>
-                              <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Student Response</span>
-                              <span className={`font-medium ${item.status === 'Correct' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>{item.studentAnswer}</span>
-                            </div>
-                            <div>
-                              <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Correct Keys</span>
-                              <span className="font-medium text-slate-800 dark:text-slate-100">{item.correctAnswer}</span>
+                  {isExpanded && (
+                    <div className="mt-3 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 text-xs">
+                      <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                        <span>Side-by-Side Exam Grader Report</span>
+                        <span className="text-[10px] font-mono text-slate-400">ID: {r.worksheetId}</span>
+                      </div>
+                      <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                        {examResponses.map((item, idx) => (
+                          <div key={idx} className="p-3 space-y-1">
+                            <div className="font-semibold text-slate-800 dark:text-slate-100">{item.question}</div>
+                            <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-4 mt-1 pt-1 border-t border-dotted border-slate-200 dark:border-slate-700">
+                              <div>
+                                <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Student Response</span>
+                                <span className={`font-medium ${item.status === 'Correct' || item.isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>{item.studentAnswer}</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Correct Keys</span>
+                                <span className="font-medium text-slate-800 dark:text-slate-100">{item.correctAnswer}</span>
+                              </div>
+                              <div className="pt-1">
+                                <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' || item.isCorrect ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'}`}>{item.status === 'Correct' || item.isCorrect ? 'PASS' : 'FAIL'}</span>
+                              </div>
                             </div>
                           </div>
-                          <div className="pt-1">
-                            <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     );
@@ -1312,7 +2518,15 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
       const reports = reportsList.filter(r => r.studentId === s.id);
       const examsGiven = reports.length;
       const lastExam = examsGiven > 0 ? new Date(Math.max(...reports.map(r => new Date(r.timestamp).getTime()))).toLocaleDateString() : 'N/A';
-      const avgScore = examsGiven > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / examsGiven) : 0;
+      const avgScore = reports.length > 0
+        ? Math.round(
+          (reports.reduce((acc, r) => {
+            const score = Number(r.score) || 0;
+            const total = Number(r.totalQuestions) > 0 ? Number(r.totalQuestions) : 1;
+            return acc + (score / total);
+          }, 0) / reports.length) * 100
+        )
+        : 0;
       return { student: s.name, class: `${s.classGroup} - ${s.section}`, examsGiven, lastExam, avgScore, placed: s.levelHistory.length > 0 };
     });
     const totalExams = examAttendance.reduce((a, e) => a + e.examsGiven, 0);
@@ -1379,9 +2593,9 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap gap-3 items-end">
-          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">State</label><select value={stateFilter} onChange={e => { setStateFilter(e.target.value); setDistFilter('all'); setBlockFilter('all'); }} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]">{stateOpts.map(s => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}<option value="all">All States</option></select></div>
-          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">District</label><select value={distFilter} onChange={e => { setDistFilter(e.target.value); setBlockFilter('all'); }} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]"><option value="all">All Districts</option>{distOpts.map(d => <option key={d.code} value={d.code}>{d.name} ({d.code})</option>)}</select></div>
-          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Block</label><select value={blockFilter} onChange={e => setBlockFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]"><option value="all">All Blocks</option>{blockOpts.map(b => <option key={b.code} value={b.code}>{b.name} ({b.code})</option>)}</select></div>
+          <div><label htmlFor="filter-state-select" className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">State</label><select id="filter-state-select" name="stateFilter" value={stateFilter} onChange={e => { setStateFilter(e.target.value); setDistFilter('all'); setBlockFilter('all'); }} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]">{stateOpts.map(s => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}<option value="all">All States</option></select></div>
+          <div><label htmlFor="filter-dist-select" className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">District</label><select id="filter-dist-select" name="distFilter" value={distFilter} onChange={e => { setDistFilter(e.target.value); setBlockFilter('all'); }} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]"><option value="all">All Districts</option>{distOpts.map(d => <option key={d.code} value={d.code}>{d.name} ({d.code})</option>)}</select></div>
+          <div><label htmlFor="filter-block-select" className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Block</label><select id="filter-block-select" name="blockFilter" value={blockFilter} onChange={e => setBlockFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]"><option value="all">All Blocks</option>{blockOpts.map(b => <option key={b.code} value={b.code}>{b.name} ({b.code})</option>)}</select></div>
           <div className="text-xs text-slate-400 dark:text-slate-500 pb-1">Showing {filteredSchools.length} of {schools.length} schools</div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{filteredSchools.map(s => (
@@ -1541,8 +2755,8 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
         <PageHeader title="User Management" desc={`All registered users across the FLN system (${usersList.length} total)`} icon={<Users className="h-5 w-5" />} />
         <div className="flex flex-wrap gap-3 items-end">
           <div>
-            <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Role</label>
-            <select value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[160px]">
+            <label htmlFor="user-role-filter-select" className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Role</label>
+            <select id="user-role-filter-select" name="userRoleFilter" value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[160px]">
               <option value="all">All Roles</option>
               {roleOrder.filter(r => roleCounts[r] > 0).map(r => (
                 <option key={r} value={r}>{roleFilterLabel(r)} ({roleCounts[r]})</option>
@@ -1550,8 +2764,8 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Search</label>
-            <input type="text" value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Name or email..." className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[200px]" />
+            <label htmlFor="user-search-input" className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Search</label>
+            <input id="user-search-input" name="userSearch" type="text" value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Name or email..." className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[200px]" />
           </div>
           <div className="text-xs text-slate-400 dark:text-slate-500 pb-1">Showing {filteredUsers.length} of {usersList.length} users</div>
         </div>
@@ -1761,6 +2975,376 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
           ))}</div>
           <button className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mt-2"><RefreshCw className="w-3 h-3" /> Refresh Status</button>
         </div>
+      </div>
+    );
+  }
+
+  if (panel === 'exam_blueprint') {
+    const handleSaveBlueprint = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+        let parsedEngineData = {};
+        try {
+          parsedEngineData = JSON.parse(bpFormData.engineData);
+        } catch {
+          alert('Invalid JSON in Engine Data field. Please format as JSON (e.g. {"rangeStart": 1, "rangeEnd": 100})');
+          return;
+        }
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        };
+
+        const method = editingBlueprint ? 'PUT' : 'POST';
+        const url = editingBlueprint
+          ? `/api/blueprints/${editingBlueprint.id}`
+          : '/api/blueprints';
+
+        const res = await fetch(url, {
+          method,
+          headers,
+          body: JSON.stringify({
+            ...bpFormData,
+            engineData: parsedEngineData
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          fetchBlueprints();
+          setShowBlueprintModal(false);
+          setEditingBlueprint(null);
+          setBpFormData({
+            examId: '',
+            examName: '',
+            questionNumber: 1,
+            conceptName: '',
+            type: 'numeric',
+            template: '',
+            engineData: '{}'
+          });
+        } else {
+          alert(data.error || 'Failed to save blueprint');
+        }
+      } catch (err) {
+        console.error('Error saving blueprint:', err);
+      }
+    };
+
+    const handleDeleteBlueprint = async (id: string) => {
+      if (!window.confirm('Are you sure you want to delete this question blueprint rule?')) return;
+      try {
+        const headers = { 'Authorization': `Bearer ${token}` };
+        const res = await fetch(`/api/blueprints/${id}`, {
+          method: 'DELETE',
+          headers
+        });
+        const data = await res.json();
+        if (data.success) {
+          fetchBlueprints();
+        } else {
+          alert(data.error || 'Failed to delete blueprint');
+        }
+      } catch (err) {
+        console.error('Error deleting blueprint:', err);
+      }
+    };
+
+    const handleTestBlueprint = async (id: string) => {
+      try {
+        const headers = { 'Authorization': `Bearer ${token}` };
+        const res = await fetch(`/api/blueprints/${id}/test-generate`, {
+          method: 'POST',
+          headers
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Generated Test Question:\n\nQ: ${data.data.question}\nA: ${data.data.answer}`);
+        } else {
+          alert(data.error || 'Failed to test generation');
+        }
+      } catch (err) {
+        console.error('Error testing blueprint:', err);
+      }
+    };
+
+    const filteredBlueprints = blueprints.filter(b => {
+      const matchesSearch = b.conceptName.toLowerCase().includes(blueprintSearch.toLowerCase()) ||
+        b.examName.toLowerCase().includes(blueprintSearch.toLowerCase());
+      const matchesExam = selectedExamFilter === 'all' || b.examId === selectedExamFilter;
+      return matchesSearch && matchesExam;
+    });
+
+    const uniqueExamIds = [...new Set(blueprints.map(b => b.examId))];
+
+    return (
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-6">
+        <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-4">
+          <PageHeader title="Exam Blueprint Database" desc="Store question generation rules containing templates, concepts, and engines" icon={<Database className="h-5 w-5 text-indigo-500" />} />
+          <button
+            onClick={() => {
+              setEditingBlueprint(null);
+              setBpFormData({
+                examId: '',
+                examName: '',
+                questionNumber: blueprints.length + 1,
+                conceptName: '',
+                type: 'numeric',
+                template: '',
+                engineData: '{\n  "rangeStart": 1,\n  "rangeEnd": 100\n}'
+              });
+              setShowBlueprintModal(true);
+            }}
+            className="rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-medium transition-all"
+          >
+            + Register Question Rule
+          </button>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search concepts or exams..."
+              value={blueprintSearch}
+              onChange={e => setBlueprintSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-indigo-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+            />
+          </div>
+
+          <div className="flex gap-2 w-full sm:w-auto items-center">
+            <span className="text-xs text-slate-500 dark:text-slate-400">Exam:</span>
+            <select
+              value={selectedExamFilter}
+              onChange={e => setSelectedExamFilter(e.target.value)}
+              className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+            >
+              <option value="all">All Exams</option>
+              {uniqueExamIds.map(id => {
+                const name = blueprints.find(b => b.examId === id)?.examName || id;
+                return <option key={id} value={id}>{name}</option>;
+              })}
+            </select>
+          </div>
+        </div>
+
+        {/* Blueprint Rules Table */}
+        <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-800/80">
+              <tr>
+                <th className="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Exam / QNo</th>
+                <th className="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Concept</th>
+                <th className="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Engine Type</th>
+                <th className="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Template Sentence</th>
+                <th className="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Engine Configuration</th>
+                <th className="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+              {filteredBlueprints.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-slate-400 dark:text-slate-500">
+                    No question rules found in blueprint database. Add one to get started!
+                  </td>
+                </tr>
+              ) : filteredBlueprints.map(b => (
+                <tr key={b.id} className="hover:bg-slate-55/40 dark:hover:bg-slate-800/40">
+                  <td className="p-3">
+                    <span className="font-bold block text-slate-900 dark:text-white">{b.examName}</span>
+                    <span className="text-[11px] font-mono text-slate-400 block">{b.examId} · Q#{b.questionNumber}</span>
+                  </td>
+                  <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{b.conceptName}</td>
+                  <td className="p-3">
+                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold font-mono ${b.type === 'numeric' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' :
+                      b.type === 'matrix' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' :
+                        'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
+                      }`}>
+                      {b.type.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="p-3 font-mono text-xs">{b.template}</td>
+                  <td className="p-3">
+                    <pre className="text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-850 p-2 rounded max-h-16 overflow-y-auto">
+                      {JSON.stringify(b.engineData, null, 2)}
+                    </pre>
+                  </td>
+                  <td className="p-3 text-right space-x-2 whitespace-nowrap">
+                    <button
+                      onClick={() => handleTestBlueprint(b.id)}
+                      title="Test Gen"
+                      className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 px-2.5 py-1 rounded-lg hover:bg-emerald-100"
+                    >
+                      ⚡ Test
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingBlueprint(b);
+                        setBpFormData({
+                          examId: b.examId,
+                          examName: b.examName,
+                          questionNumber: b.questionNumber,
+                          conceptName: b.conceptName,
+                          type: b.type,
+                          template: b.template,
+                          engineData: JSON.stringify(b.engineData, null, 2)
+                        });
+                        setShowBlueprintModal(true);
+                      }}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 px-2 py-1 rounded"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBlueprint(b.id)}
+                      className="text-xs text-red-650 hover:text-red-805 dark:text-red-400 px-2 py-1 rounded"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Blueprint Add/Edit Modal */}
+        {showBlueprintModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+              <div className="bg-slate-50 dark:bg-slate-800/80 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                  {editingBlueprint ? 'Edit Question Rule Blueprint' : 'Register New Question Rule'}
+                </h3>
+                <button
+                  onClick={() => setShowBlueprintModal(false)}
+                  className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-300 text-lg font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveBlueprint} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Exam ID</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. exam_baseline_class2"
+                      value={bpFormData.examId}
+                      onChange={e => setBpFormData({ ...bpFormData, examId: e.target.value })}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Exam Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Class 2 Baseline Assessment"
+                      value={bpFormData.examName}
+                      onChange={e => setBpFormData({ ...bpFormData, examName: e.target.value })}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Question Number</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={bpFormData.questionNumber}
+                      onChange={e => setBpFormData({ ...bpFormData, questionNumber: Number(e.target.value) })}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Concept Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Single-digit addition"
+                      value={bpFormData.conceptName}
+                      onChange={e => setBpFormData({ ...bpFormData, conceptName: e.target.value })}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Engine Type</label>
+                  <select
+                    value={bpFormData.type}
+                    onChange={e => {
+                      const newType = e.target.value;
+                      let defaultData = '{}';
+                      if (newType === 'numeric') {
+                        defaultData = '{\n  "rangeStart": 1,\n  "rangeEnd": 100\n}';
+                      } else if (newType === 'matrix') {
+                        defaultData = '{\n  "wordList": ["cat", "dog", "rat", "pig"]\n}';
+                      } else if (newType === 'generative') {
+                        defaultData = '{\n  "prompt": "generate a reading concept question",\n  "topic": "Addition"\n}';
+                      }
+                      setBpFormData({ ...bpFormData, type: newType, engineData: defaultData });
+                    }}
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  >
+                    <option value="numeric">Numeric (number shuffling)</option>
+                    <option value="matrix">Matrix (word selection)</option>
+                    <option value="generative">Generative (AI/Gemini generation)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Template Sentence</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. What is {0} + {1}?"
+                    value={bpFormData.template}
+                    onChange={e => setBpFormData({ ...bpFormData, template: e.target.value })}
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-850 text-slate-900 dark:text-white font-mono"
+                  />
+                  <span className="text-[10px] text-slate-400 block mt-1">Use placeholder blanks like {`{0}`}, {`{1}`} which will be replaced by the engine.</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Engine Configuration (JSON)</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={bpFormData.engineData}
+                    onChange={e => setBpFormData({ ...bpFormData, engineData: e.target.value })}
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-850 text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowBlueprintModal(false)}
+                    className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 text-sm hover:bg-slate-50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-all"
+                  >
+                    Save Rule
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

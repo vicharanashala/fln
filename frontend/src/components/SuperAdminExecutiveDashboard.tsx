@@ -40,6 +40,45 @@ interface SuperAdminDashboardProps {
   token?: string;
 }
 
+type ExecutiveSchoolRanking = {
+  id: string;
+  name: string;
+  stateCode: string;
+  schoolType: string;
+  performanceScore: number;
+  completionRate: number;
+  studentSatisfaction: number;
+  interviewSuccessRate: number;
+};
+
+type BoardCountItem = {
+  board: string;
+  schoolsCount: number;
+  percentage: number;
+};
+
+type SuperAdminAnalyticsData = {
+  schoolRankings?: ExecutiveSchoolRanking[];
+  kpis?: {
+    totalRegisteredSchools?: number;
+    activeSchools?: number;
+    totalStudents?: number;
+    totalTeachers?: number;
+    totalExamsConducted?: number;
+    totalInterviewsCompleted?: number;
+    avgPerformanceScore?: number;
+  };
+  stateDistribution?: Array<{ stateCode: string; schoolsCount: number }>;
+  growthTrend?: any[];
+  performanceAnalytics?: Record<string, any>;
+  interviewAnalytics?: Record<string, any>;
+  usageAnalytics?: Record<string, any>;
+  aiAnalytics?: Record<string, any>;
+  engagementAnalytics?: Record<string, any>;
+  systemHealth?: Record<string, any>;
+  recentTrends?: any[];
+};
+
 export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = ({ user, token }) => {
   // Global Filters state
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '6m' | '1y'>('30d');
@@ -57,7 +96,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [chartLoading, setChartLoading] = useState<boolean>(false);
   const isNextFetchChartOnly = useRef<boolean>(false);
-  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [analyticsData, setAnalyticsData] = useState<SuperAdminAnalyticsData | null>(null);
 
   // States & Filter for Student Performance Analytics school chart
   const [perfChartTab, setPerfChartTab] = useState<'states' | 'schools'>('states');
@@ -141,8 +180,14 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
     return count;
   }, [dateRange, stateCode, schoolType, board, grade, status]);
 
-  const kpis = analyticsData?.kpis || {};
-  const stateDistribution = analyticsData?.stateDistribution || [];
+  const kpis = analyticsData?.kpis ?? {};
+  const stateDistribution = analyticsData?.stateDistribution ?? [];
+  const totalRegisteredSchools = kpis.totalRegisteredSchools ?? 0;
+  const activeSchools = kpis.activeSchools ?? 0;
+  const totalStudentsCount = kpis.totalStudents ?? 0;
+  const totalTeachersCount = kpis.totalTeachers ?? 0;
+  const totalExamsConductedCount = kpis.totalExamsConducted ?? 0;
+  const totalInterviewsCompletedCount = kpis.totalInterviewsCompleted ?? 0;
 
   const boardsData = useMemo(() => {
     const totalSchools = kpis.totalRegisteredSchools || 188435;
@@ -178,7 +223,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
       "West Bengal State Board": "WB"
     };
 
-    const rawList = [
+    const rawList: Array<{ board: string; schoolsCount: number }> = [
       { board: 'CBSE', schoolsCount: Math.round(totalSchools * 0.35) },
       { board: 'CISCE', schoolsCount: Math.round(totalSchools * 0.12) },
       { board: 'NIOS', schoolsCount: Math.round(totalSchools * 0.05) },
@@ -196,12 +241,12 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
     ];
 
     const sumCounts = rawList.reduce((acc, b) => acc + b.schoolsCount, 0) || 1;
-    const withPercentages = rawList.map(b => ({
+    const withPercentages: BoardCountItem[] = rawList.map(b => ({
       ...b,
       percentage: Math.round((b.schoolsCount / sumCounts) * 1000) / 10
     }));
 
-    return withPercentages.sort((a, b) => b.schoolsCount - a.schoolsCount);
+    return withPercentages.sort((a: BoardCountItem, b: BoardCountItem) => b.schoolsCount - a.schoolsCount);
   }, [kpis.totalRegisteredSchools, stateDistribution]);
 
   const filteredBoards = useMemo(() => {
@@ -214,10 +259,10 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
   // Memoized School Rankings sorted by chosen metric and state filter
   const sortedSchoolRankings = useMemo(() => {
     if (!analyticsData?.schoolRankings) return [];
-    let list = [...analyticsData.schoolRankings];
+    let list = [...analyticsData.schoolRankings] as ExecutiveSchoolRanking[];
 
     if (rankingsStateFilter !== 'ALL') {
-      list = list.filter(school => school.stateCode === rankingsStateFilter);
+      list = list.filter((school: ExecutiveSchoolRanking) => school.stateCode === rankingsStateFilter);
 
       // If no schools in database match the filtered state, dynamically generate 5 realistic rankings for that state
       if (list.length === 0) {
@@ -232,7 +277,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
       }
     }
 
-    return list.sort((a, b) => {
+    return list.sort((a: ExecutiveSchoolRanking, b: ExecutiveSchoolRanking) => {
       if (rankingSortMetric === 'performance') return b.performanceScore - a.performanceScore;
       if (rankingSortMetric === 'completion') return b.completionRate - a.completionRate;
       if (rankingSortMetric === 'satisfaction') return b.studentSatisfaction - a.studentSatisfaction;
@@ -536,15 +581,15 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <KPICard
               title="Registered & Active Schools"
-              value={kpis.totalRegisteredSchools?.toLocaleString()}
-              subtext={`${kpis.totalRegisteredSchools ? Math.round((kpis.activeSchools / kpis.totalRegisteredSchools) * 100) : 100}% Operational`}
+              value={totalRegisteredSchools ? totalRegisteredSchools.toLocaleString() : '—'}
+              subtext={`${totalRegisteredSchools ? Math.round((activeSchools / totalRegisteredSchools) * 100) : 100}% Operational`}
               icon={School}
               badge="+4.2%"
               badgeType="up"
             />
             <KPICard
               title="Total Students Enrolled"
-              value={kpis.totalStudents?.toLocaleString()}
+              value={totalStudentsCount.toLocaleString()}
               subtext="Enrolled across FLN"
               icon={Users}
               badge="+8.1%"
@@ -552,7 +597,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             />
             <KPICard
               title="Total Teachers"
-              value={kpis.totalTeachers?.toLocaleString()}
+              value={totalTeachersCount.toLocaleString()}
               subtext="Active Educators"
               icon={ShieldCheck}
               badge="+2.4%"
@@ -560,7 +605,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             />
             <KPICard
               title="Total Assessments Conducted"
-              value={kpis.totalExamsConducted?.toLocaleString()}
+              value={totalExamsConductedCount.toLocaleString()}
               subtext="Assessments sync"
               icon={FileCheck}
               badge="+12%"
@@ -568,7 +613,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             />
             <KPICard
               title="Total AI Interviews Completed"
-              value={kpis.totalInterviewsCompleted?.toLocaleString()}
+              value={totalInterviewsCompletedCount.toLocaleString()}
               subtext="AI Mock Evaluations"
               icon={Zap}
               badge="+15%"

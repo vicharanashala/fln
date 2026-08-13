@@ -20,6 +20,7 @@
     "seed:question-bank": "npm run seed:question-bank --workspace @fln/backend"
   },
   "dependencies": {
+    "cors": "^2.8.6",
     "mongodb": "^7.5.0",
     "mongoose": "^9.7.4"
   }

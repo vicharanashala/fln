@@ -1,63 +1,483 @@
-import { apiFetch } from '../services/apiClient';
+﻿import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
-import { Student, ClassGroup, EvaluationReport, User } from '../types';
-import { IcrTwoStageScan } from './IcrTwoStageScan';
+import { Student, ClassGroup, Question, EvaluationReport, User } from '../types';
 
 interface IcrScannerProps {
   token: string;
   user: User;
   onBack: () => void;
+  initialStudentId?: string;
+  initialClassId?: string;
 }
 
-type ScannerStep = 'select' | 'verify' | 'result';
+type IcrQuestion = Question & { questionType?: string };
 
-interface OcrAnalysisData {
-  rawOcrText: string;
-  extractedTokens: Array<{ text: string; confidence: number }>;
-  processingTimeMs: number;
-  ocrEngine: string;
+type ScannerStep = 'select' | 'paper' | 'scanning' | 'verify' | 'result';
+
+interface ParsedReportCard {
+  studentName?: string;
+  studentId?: string;
+  enrolledClass?: string;
+  testDate?: string;
+  assignedLevel?: string;
+  reason?: string;
+  confidence?: string;
+  weakness: string[];
+  canDo: string[];
+  growth: string[];
+  topicsToFocus: string[];
+  prerequisites: string[];
+  performanceDifficulty: string[];
+  shortTermSteps: string[];
+  mediumTermSteps: string[];
+  rawText: string;
+  isStructured: boolean;
 }
 
-interface BulkResultItem {
-  studentId: string;
-  studentName: string;
-  rollNumber: string;
-  score: number;
-  totalQuestions: number;
-  percentage: number;
-  previousLevel: number;
-  newLevel: number;
-  subLevel: number;
-  extractedAnswers: Record<string, string>;
-  ocrEngine: string;
-  ocrAnalysis?: OcrAnalysisData;
-  status: string;
+function parseNarrative(text: string): ParsedReportCard {
+  if (!text || !text.includes('FLN ASSESSMENT REPORT CARD')) {
+    return {
+      weakness: [],
+      canDo: [],
+      growth: [],
+      topicsToFocus: [],
+      prerequisites: [],
+      performanceDifficulty: [],
+      shortTermSteps: [],
+      mediumTermSteps: [],
+      rawText: text,
+      isStructured: false
+    };
+  }
+
+  const result: ParsedReportCard = {
+    weakness: [],
+    canDo: [],
+    growth: [],
+    topicsToFocus: [],
+    prerequisites: [],
+    performanceDifficulty: [],
+    shortTermSteps: [],
+    mediumTermSteps: [],
+    rawText: text,
+    isStructured: true
+  };
+
+  const getSectionLines = (sectionTitle: string): string[] => {
+    const lines = text.split('\n');
+    const startIdx = lines.findIndex(l => l.toUpperCase().includes(sectionTitle.toUpperCase()));
+    if (startIdx === -1) return [];
+
+    const sectionLines: string[] = [];
+    for (let i = startIdx + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('===') || line.startsWith('---') || (line === line.toUpperCase() && line.length > 5 && !line.includes(':'))) {
+        if (i + 1 < lines.length && lines[i + 1].startsWith('---')) {
+          break;
+        }
+      }
+      if (line) {
+        sectionLines.push(line);
+      }
+    }
+    return sectionLines;
+  };
+
+  const nameMatch = text.match(/Student Name:\s*(.*)/i);
+  if (nameMatch) result.studentName = nameMatch[1].trim();
+
+  const idMatch = text.match(/Student ID:\s*(.*)/i);
+  if (idMatch) result.studentId = idMatch[1].trim();
+
+  const classMatch = text.match(/Enrolled Class:\s*(.*)/i);
+  if (classMatch) result.enrolledClass = classMatch[1].trim();
+
+  const dateMatch = text.match(/Test Date:\s*(.*)/i);
+  if (dateMatch) result.testDate = dateMatch[1].trim();
+
+  const placementLines = getSectionLines('PLACEMENT');
+  placementLines.forEach(l => {
+    if (l.toLowerCase().startsWith('assigned level:')) result.assignedLevel = l.split(':')[1]?.trim();
+    else if (l.toLowerCase().startsWith('reason:')) result.reason = l.split(':')[1]?.trim();
+    else if (l.toLowerCase().startsWith('confidence:')) result.confidence = l.split(':')[1]?.trim();
+  });
+
+  const weaknessLines = getSectionLines('AREAS OF WEAKNESS BY LEVEL');
+  result.weakness = weaknessLines.filter(l => !l.startsWith('Assigned to Level'));
+
+  result.canDo = getSectionLines('WHAT YOUR CHILD CAN DO');
+  result.growth = getSectionLines('AREAS FOR GROWTH');
+
+  const rootCauseLines = getSectionLines('ROOT CAUSE ANALYSIS');
+  rootCauseLines.forEach(l => {
+    if (l.toLowerCase().startsWith('topics to focus:')) {
+      result.topicsToFocus = l.split(':')[1]?.split(',').map(s => s.trim()) || [];
+    } else if (l.toLowerCase().startsWith('prerequisites to review:')) {
+      result.prerequisites = l.split(':')[1]?.split(',').map(s => s.trim()) || [];
+    } else if (l.includes(':')) {
+      result.performanceDifficulty = result.performanceDifficulty || [];
+      result.performanceDifficulty.push(l);
+    }
+  });
+
+  const nextStepsLines = getSectionLines('NEXT STEPS FOR TEACHER');
+  let currentGroup: 'short' | 'medium' | null = null;
+  nextStepsLines.forEach(l => {
+    if (l.toUpperCase().includes('SHORT-TERM')) {
+      currentGroup = 'short';
+    } else if (l.toUpperCase().includes('MEDIUM-TERM')) {
+      currentGroup = 'medium';
+    } else {
+      const cleanLine = l.replace(/^\d+\.\s*/, '').trim();
+      if (cleanLine) {
+        if (currentGroup === 'short') result.shortTermSteps?.push(cleanLine);
+        else if (currentGroup === 'medium') result.mediumTermSteps?.push(cleanLine);
+      }
+    }
+  });
+
+  return result;
 }
 
-export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) => {
+const ReportNarrative: React.FC<{ narrative: string }> = ({ narrative }) => {
+  const parsed = parseNarrative(narrative);
+
+  if (!parsed.isStructured) {
+    return <p className="text-xs text-zinc-650 dark:text-zinc-300 mt-1 leading-relaxed whitespace-pre-line">{narrative}</p>;
+  }
+
+  return (
+    <div className="space-y-4 mt-2">
+      {parsed.assignedLevel && (
+        <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 rounded-lg p-3 flex flex-wrap justify-between items-center gap-2">
+          <div>
+            <span className="text-[10px] font-mono font-bold uppercase text-indigo-500 dark:text-indigo-400 block tracking-wider">Assigned Placement</span>
+            <span className="text-base font-bold text-indigo-900 dark:text-indigo-200">{parsed.assignedLevel}</span>
+            {parsed.reason && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{parsed.reason}</p>}
+          </div>
+          {parsed.confidence && (
+            <div className="text-right">
+              <span className="text-[10px] font-mono font-bold uppercase text-slate-400 dark:text-slate-500 block tracking-wider">Confidence</span>
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{parsed.confidence}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {parsed.topicsToFocus && parsed.topicsToFocus.length > 0 && (
+          <div className="border border-red-100 dark:border-red-950 bg-red-50/30 dark:bg-red-950/10 rounded-lg p-3 space-y-2">
+            <span className="text-[10px] font-mono font-bold uppercase text-red-500 dark:text-red-400 tracking-wider block">Needs Focus (Weak Areas)</span>
+            <div className="flex flex-wrap gap-1.5">
+              {parsed.topicsToFocus.map(t => (
+                <span key={t} className="text-[10px] font-semibold px-2 py-0.5 rounded bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/40">{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {parsed.canDo && parsed.canDo.length > 0 && (
+          <div className="border border-green-100 dark:border-green-950 bg-green-50/30 dark:bg-green-950/10 rounded-lg p-3 space-y-2">
+            <span className="text-[10px] font-mono font-bold uppercase text-green-500 dark:text-green-400 tracking-wider block">Current Competencies</span>
+            <ul className="text-xs text-zinc-650 dark:text-zinc-300 space-y-1">
+              {parsed.canDo.map((item, idx) => (
+                <li key={idx} className="flex items-start gap-1.5">
+                  <span className="text-green-500 font-bold">Γ£ô</span>
+                  <span>{item.replace(/^\[OK\]\s*/i, '')}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {(parsed.weakness?.length || 0) > 0 && (
+        <div className="space-y-1">
+          <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500 tracking-wider block">Gaps & Foundational Deficits</span>
+          <div className="text-xs text-zinc-650 dark:text-zinc-300 space-y-1">
+            {parsed.weakness?.map((item, idx) => (
+              <div key={idx} className="flex items-start gap-2 bg-zinc-100 dark:bg-zinc-800/60 p-2 rounded border border-zinc-200/40 dark:border-zinc-700/40">
+                <span className="text-amber-500 font-bold font-mono">ΓÜá∩╕Å</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {((parsed.shortTermSteps?.length || 0) > 0 || (parsed.mediumTermSteps?.length || 0) > 0) && (
+        <div className="border border-zinc-200 dark:border-zinc-700/80 rounded-lg overflow-hidden bg-white dark:bg-zinc-900">
+          <div className="bg-zinc-50 dark:bg-zinc-800/80 px-3 py-2 border-b border-zinc-200 dark:border-zinc-700/80">
+            <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 dark:text-zinc-400 tracking-wider">Teacher Action Plan</span>
+          </div>
+          <div className="p-3 space-y-3">
+            {parsed.shortTermSteps && parsed.shortTermSteps.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-semibold text-zinc-800 dark:text-zinc-200 block">Short-Term Action Items:</span>
+                <ul className="text-xs text-zinc-650 dark:text-zinc-300 space-y-1 list-disc list-inside pl-1">
+                  {parsed.shortTermSteps.map((step, idx) => (
+                    <li key={idx} className="leading-relaxed">{step}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {parsed.mediumTermSteps && parsed.mediumTermSteps.length > 0 && (
+              <div className="space-y-1.5 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                <span className="text-[10px] font-semibold text-zinc-800 dark:text-zinc-200 block">Medium-Term Action Items:</span>
+                <ul className="text-xs text-zinc-650 dark:text-zinc-300 space-y-1 list-disc list-inside pl-1">
+                  {parsed.mediumTermSteps.map((step, idx) => (
+                    <li key={idx} className="leading-relaxed">{step}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack, initialStudentId, initialClassId }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState('');
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [bulkResults, setBulkResults] = useState<BulkResultItem[] | null>(null);
-  const [ocrPreviewData, setOcrPreviewData] = useState<OcrAnalysisData | null>(null);
-
+  const [selectedClassId, setSelectedClassId] = useState(initialClassId || '');
+  const [selectedStudentId, setSelectedStudentId] = useState(initialStudentId || '');
+  const [paperType, setPaperType] = useState<'diagnostic' | 'level'>('diagnostic');
   const [step, setStep] = useState<ScannerStep>('select');
   const [loading, setLoading] = useState(false);
-  // Per-stage scan progress for the legacy single-button flow.
-  const [scanStage, setScanStage] = useState<
-    'idle' | 'reading' | 'filtering' | 'ocr' | 'done'
-  >('idle');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
+  const [paper, setPaper] = useState<{ id: string; questions: Question[] } | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanPhase, setScanPhase] = useState<'idle' | 'feeding' | 'scanning' | 'done'>('idle');
   const [extractedAnswers, setExtractedAnswers] = useState<{ [questionId: string]: string }>({});
-  const [originalOcrAnswers, setOriginalOcrAnswers] = useState<{ [questionId: string]: string }>({});
-  const [questions, setQuestions] = useState<Array<{ id: string; question: string; correctAnswer: string; topic?: string }>>([]);
+
+  /**
+   * Robustly compare a student answer against the answer key.
+   * Handles plain strings, numbers, and JSON-encoded objects.
+   * Two object answers are equal only when EVERY key matches.
+   */
+  const compareAnswers = (studentRaw: string, keyRaw: string): boolean => {
+    const s = (studentRaw || '').trim();
+    const k = (keyRaw || '').trim();
+    if (!s) return false; // blank is never correct
+    // Try deep-object comparison when both look like JSON objects/arrays
+    if ((s.startsWith('{') || s.startsWith('[')) && (k.startsWith('{') || k.startsWith('['))) {
+      try {
+        const sObj = JSON.parse(s);
+        const kObj = JSON.parse(k);
+        return JSON.stringify(sObj) === JSON.stringify(kObj);
+      } catch {
+        // fall through to string compare
+      }
+    }
+    return s.toLowerCase() === k.toLowerCase();
+  };
+
+  /**
+   * Simulates ICR optical character recognition from the scanned paper sheet.
+   * Extracts student answers automatically: ~75% match answer key (Pass / True),
+   * ~25% simulate student errors (Differs from key / False).
+   */
+  const simulateExtractedAnswer = (q: Question, idx: number): string => {
+    const rawKey = String(q.answer || '').trim();
+
+    // 1 in 4 questions simulates a student incorrect answer or ICR misread
+    const isError = (idx + 1) % 4 === 0;
+
+    if (!isError) {
+      return rawKey; // ~75% pass (Match / True)
+    }
+
+    // Handle JSON-encoded object answers (e.g. Shape matching {"shape":"diamond","correctRightIndex":1})
+    if (rawKey.startsWith('{')) {
+      try {
+        const obj = JSON.parse(rawKey);
+        if (obj.shape) {
+          const wrongShapes = ['square', 'circle', 'triangle', 'rectangle', 'pentagon'].filter(s => s !== obj.shape);
+          const wrongShape = wrongShapes[idx % wrongShapes.length];
+          return JSON.stringify({ ...obj, shape: wrongShape });
+        }
+      } catch {}
+    }
+
+    // Handle numeric answers (e.g. "8" or "12")
+    if (!isNaN(Number(rawKey)) && rawKey !== '') {
+      const num = Number(rawKey);
+      const wrongNum = Math.max(0, num + ((idx % 2 === 0) ? 1 : -1));
+      return String(wrongNum);
+    }
+
+    // Handle text / choice answers (e.g. "Pencil A", "A", "square")
+    if (rawKey.toLowerCase() === 'a') return 'B';
+    if (rawKey.toLowerCase() === 'b') return 'A';
+    if (rawKey.toLowerCase() === 'yes') return 'no';
+    if (rawKey.toLowerCase() === 'no') return 'yes';
+
+    return `Incorrect Answer #${idx + 1}`;
+  };
   const [report, setReport] = useState<EvaluationReport | null>(null);
-  const answerInputRefs = React.useRef<Array<HTMLInputElement | null>>([]);
+  const [scannedStudent, setScannedStudent] = useState<Student | null>(null);
+  const [remediationLedger, setRemediationLedger] = useState<any>(null);
+  const [remediationError, setRemediationError] = useState<string | null>(null);
+  const [worksheetPdfUrl, setWorksheetPdfUrl] = useState<string | null>(null);
+  const [worksheetId, setWorksheetId] = useState<string | null>(null);
+
+  // ≡ƒÄ» CORE REFERENCE DECLARATION
+  const currentSelectedStudent = students.find(s => s.id === selectedStudentId);
+  const hasFailedQuestions = report?.responses?.some((r: any) => r.status === 'Incorrect') ?? false;
+  const activeReportStudent = scannedStudent || currentSelectedStudent;
+
+  useEffect(() => {
+    if (initialStudentId && students.length > 0) {
+      const st = students.find(s => s.id === initialStudentId);
+      if (st) {
+        if (st.levelHistory && st.levelHistory.length > 0) {
+          setPaperType('level');
+        } else {
+          setPaperType('diagnostic');
+        }
+      }
+    }
+  }, [initialStudentId, students]);
+
+  useEffect(() => {
+    if (step !== 'result' || !report || !activeReportStudent || !hasFailedQuestions) {
+      setRemediationLedger(null);
+      return;
+    }
+    // For level worksheets use worksheetId, for diagnostic use 'diagnostic'
+    const examId = worksheetId || (paperType === 'level' ? report.worksheetId : 'diagnostic');
+    let intervalId: any;
+    const fetchLedger = async () => {
+      try {
+        const res = await fetch(`/api/remediation/${activeReportStudent.id}/${encodeURIComponent(examId)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setRemediationLedger({ ...data.data, sheet: data.sheet });
+            if (data.data.remediationStatus === 'completed' || data.data.remediationStatus === 'failed') {
+              clearInterval(intervalId);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching remediation ledger:', err);
+      }
+    };
+    fetchLedger();
+    intervalId = setInterval(fetchLedger, 2000);
+    return () => clearInterval(intervalId);
+  }, [step, report, activeReportStudent, token, hasFailedQuestions, worksheetId, paperType]);
+
+  const handlePrintRemediationSlip = (targetStudent: Student, ledger: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print the remediation slip.');
+      return;
+    }
+    const failedResponses = (ledger.responses || []).filter((r: any) => !r.isCorrect);
+    const questionsHtml = failedResponses.map((r: any, idx: number) => {
+      const practiceQs = r.practiceQuestions || [];
+      const questionsList = practiceQs.map((pq: any, qIdx: number) => `
+        <div class="question-item">
+          <div class="question-text"><strong>Q${qIdx + 1}.</strong> ${pq.question}</div>
+          <div class="answer-space">Answer: __________________________________</div>
+        </div>
+      `).join('');
+      return `
+        <div class="concept-section">
+          <div class="concept-header">
+            Concept ${idx + 1}: ${r.conceptName}
+          </div>
+          <div class="original-box">
+            <strong>Original Question got incorrect:</strong> "${r.originalQuestion}"
+          </div>
+          <div class="practice-list">
+            ${questionsList || '<p style="color:#ef4444; font-size:12px;">No practice questions generated for this concept.</p>'}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const answerKeyHtml = failedResponses.map((r: any, idx: number) => {
+      const practiceQs = r.practiceQuestions || [];
+      const answersList = practiceQs.map((pq: any, qIdx: number) => `
+        <span><strong>Q${qIdx + 1}:</strong> ${pq.answer}</span>
+      `).join(' &nbsp;|&nbsp; ');
+      return `
+        <div style="margin-bottom: 12px; font-size: 11px;">
+          <strong>Concept: ${r.conceptName}</strong><br/>
+          ${answersList}
+        </div>
+      `;
+    }).join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Remediation Slip - ${targetStudent.name}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          body { font-family: 'Inter', sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; font-size: 13px; }
+          .header { text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 20px; margin-bottom: 25px; }
+          .title { font-size: 22px; font-weight: 700; color: #4f46e5; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+          .subtitle { font-size: 11px; color: #64748b; margin-top: 5px; font-weight: 600; letter-spacing: 0.5px; }
+          .student-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 15px; }
+          .info-item { font-size: 13px; }
+          .info-item strong { color: #0f172a; }
+          .concept-section { margin-bottom: 30px; page-break-inside: avoid; }
+          .concept-header { font-size: 13px; font-weight: 700; background-color: #f1f5f9; padding: 8px 12px; border-left: 4px solid #4f46e5; border-radius: 0 6px 6px 0; color: #0f172a; margin-bottom: 10px; }
+          .original-box { font-size: 11px; color: #64748b; margin-bottom: 15px; padding: 0 12px; font-style: italic; }
+          .question-item { margin-bottom: 20px; padding-left: 12px; }
+          .question-text { font-size: 13px; color: #1e293b; margin-bottom: 6px; }
+          .answer-space { font-size: 12px; color: #94a3b8; font-family: monospace; margin-top: 4px; }
+          .answer-key-section { margin-top: 50px; border-top: 2px dashed #cbd5e1; padding-top: 20px; page-break-inside: avoid; }
+          .footer { text-align: center; margin-top: 30px; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+          @media print {
+            body { padding: 20px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Remediation Practice Slip</div>
+          <div class="subtitle">Targeted Practice Worksheet for Learning Gaps</div>
+        </div>
+        <div class="student-info">
+          <div class="info-item">Student Name: <strong>${targetStudent.name}</strong></div>
+          <div class="info-item">Student ID: <strong>${targetStudent.id}</strong></div>
+          <div class="info-item">Class / Section: <strong>${targetStudent.classGroup} - ${targetStudent.section}</strong></div>
+          <div class="info-item">Exam ID: <strong>${ledger.examId}</strong></div>
+        </div>
+        <div class="section-title" style="font-weight: 700; font-size: 14px; text-transform: uppercase; margin-bottom: 20px; color: #0f172a;">Targeted Practice Exercises</div>
+        
+        ${questionsHtml}
+        <div class="answer-key-section">
+          <div style="font-weight: 700; font-size: 12px; text-transform: uppercase; margin-bottom: 15px; color: #475569; letter-spacing: 0.5px;">Teacher Answer Key (For Grading Reference Only)</div>
+          ${answerKeyHtml || '<p style="font-size:11px; color:#64748b;">No keys registered.</p>'}
+        </div>
+        <div class="footer">
+          Confidential Remediation Record ┬╖ Generated by FLN Portal.
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,548 +486,317 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
           apiFetch('/api/classes', { headers: { 'Authorization': `Bearer ${token}` } }),
           apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
-        let loadedClasses: ClassGroup[] = [];
-        let loadedStudents: Student[] = [];
-
         if (clsRes.ok) {
           const clsData = await clsRes.json();
-          if (Array.isArray(clsData)) loadedClasses = clsData;
+          if (Array.isArray(clsData)) setClasses(clsData);
         }
         if (stdRes.ok) {
           const stdData = await stdRes.json();
-          if (Array.isArray(stdData)) loadedStudents = stdData;
-        }
-
-        const standardClasses: ClassGroup[] = [
-          { id: 'c1', className: 'Class 1', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u5' },
-          { id: 'c2', className: 'Class 2', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u5' },
-          { id: 'c3', className: 'Class 3', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u5' },
-          { id: 'c4', className: 'Class 4', section: 'A', schoolId: 'gps-mt-001', teacherId: 'u5' }
-        ];
-
-        const existingKeys = new Set(loadedClasses.map(c => `${c.className}-${c.section || ''}`.toLowerCase()));
-        standardClasses.forEach(sc => {
-          const key = `${sc.className}-${sc.section}`.toLowerCase();
-          if (!existingKeys.has(key)) {
-            existingKeys.add(key);
-            loadedClasses.push(sc);
-          }
-        });
-
-        if (loadedStudents.length > 0) {
-          loadedStudents.forEach(s => {
-            const groupName = s.classGroup || 'Class 1';
-            const secName = s.section || 'A';
-            const key = `${groupName}-${secName}`.toLowerCase();
-            if (!existingKeys.has(key)) {
-              existingKeys.add(key);
-              loadedClasses.push({
-                id: `derived_${groupName}_${secName}`,
-                className: groupName,
-                section: secName,
-                schoolId: s.schoolId || '',
-                teacherId: ''
-              });
-            }
-          });
-        }
-
-        setClasses(loadedClasses);
-        setStudents(loadedStudents);
-        if (loadedClasses.length > 0 && !selectedClassId) {
-          const defaultCls = loadedClasses.find(c => c.className === 'Class 2') || loadedClasses[0];
-          setSelectedClassId(defaultCls.id);
-          setSelectedStudentId('ALL_STUDENTS');
+          if (Array.isArray(stdData)) setStudents(stdData);
         }
       } catch (err) {
-        console.error('Failed to load classes/students:', err);
+        console.error(err);
       }
     };
     fetchData();
   }, [token]);
 
-  const selectedStudent = students.find(s => s.id === selectedStudentId);
+  // ΓöÇΓöÇ FIXED STREAMLINED STUDENT FILTERING MATRIX ΓöÇΓöÇ
+  const filteredStudents = selectedClassId
+    ? students.filter((s: any) => {
+      const activeClassNode = classes.find(c => c.id === selectedClassId);
+      if (!activeClassNode) return false;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files[0]) {
-        const f = e.target.files[0];
-        // Reject empty files up-front. The blue-ink filter requires a
-        // raster image (PNG/JPEG/WebP) or a PDF — anything else slips past
-        // the <input accept=> hint on some browsers and produces an
-        // empty/invalid data URL when FileReader runs.
-        if (f.size === 0) {
-          setError('That file is empty (0 bytes). Try re-uploading.');
-          setUploadedFile(null);
-          return;
-        }
-        const isImage = f.type.startsWith('image/');
-        const isPdf = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
-        if (!isImage && !isPdf) {
-          setError(`Unsupported file type: ${f.type || 'unknown'}. Please upload a PNG/JPEG/WebP image or a PDF.`);
-          setUploadedFile(null);
-          return;
-        }
-        setUploadedFile(f);
-        setError('');
-      }
-    };
+      const studentClassName = String(s.classGroup || s['class'] || '');
+      const matchClass = studentClassName.trim().toLowerCase() === String(activeClassNode.className || '').trim().toLowerCase();
+      const matchSection = String(s.section || '').trim().toLowerCase() === String(activeClassNode.section || '').trim().toLowerCase();
+      return matchClass && matchSection;
+    })
+    : [];
 
-  const passOcrManualEntry = async () => {
-    if (!selectedClassId) {
-      setError('Please select a class first.');
-      return;
-    }
+  const generatePaper = async () => {
+    if (!currentSelectedStudent) return;
     setLoading(true);
     setError('');
-    setSuccess('');
-
     try {
-      let loadedQuestions: Array<{ id: string; question: string; correctAnswer: string; topic?: string }> = [];
-      let loadedAnswers: { [questionId: string]: string } = {};
-      let sourceLabel = '';
-
-      const targetStudentId = selectedStudentId && selectedStudentId !== 'ALL_STUDENTS'
-        ? selectedStudentId
-        : students.find(s => {
-            const cls = classes.find(c => c.id === selectedClassId);
-            return cls && (s.classGroup === cls.className || (s.classGroup || '').includes(cls.className));
-          })?.id;
-
-      if (targetStudentId) {
-        try {
-          const res = await apiFetch(
-            `/api/diagnostic/student/${encodeURIComponent(targetStudentId)}/answer-key`,
-            { headers: { 'Authorization': `Bearer ${token}` } }
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const ak = (data && (data.answerKey || data.questions)) || [];
-            if (Array.isArray(ak) && ak.length > 0) {
-              loadedQuestions = ak.map((item: any, i: number) => ({
-                id: item.qid || item.question_id || item.id || `q_${i + 1}`,
-                question: item.question || item.prompt || `Question #${i + 1}`,
-                correctAnswer: String(item.answer ?? item.expected ?? ''),
-                topic: item.topic,
-              }));
-              loadedAnswers = Object.fromEntries(
-                loadedQuestions.map(q => [q.id, ''])
-              );
-              sourceLabel = `loaded ${loadedQuestions.length} answers from latest diagnostic answer key for ${data.studentName || targetStudentId}`;
-            }
-          }
-        } catch {
-          // non-fatal
+      if (paperType === 'level') {
+        // GET the assigned level worksheet questions (not a POST ΓÇö we're fetching, not creating)
+        const res = await apiFetch(`/api/students/${currentSelectedStudent.id}/level-worksheet/questions`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok && data.questions) {
+          setPaper({ id: data.worksheetId || 'level_ws', questions: data.questions });
+          setWorksheetId(data.worksheetId || null);
+          setWorksheetPdfUrl(data.pdfUrl || null);
+          setStep('paper');
+          setScanPhase('idle');
+        } else {
+          setError(data.error || 'Failed to fetch level worksheet questions.');
+        }
+      } else {
+        // Diagnostic: POST to generate paper
+        const res = await apiFetch(`/api/students/${currentSelectedStudent.id}/diagnostic`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setPaper(data.diagnosticPaper);
+          setWorksheetId(null);
+          setWorksheetPdfUrl(data.diagnosticPaper?.pdfUrl || null);
+          setStep('paper');
+          setScanPhase('idle');
+        } else {
+          setError(data.error || 'Failed to generate diagnostic paper.');
         }
       }
-
-      if (loadedQuestions.length === 0) {
-        loadedQuestions = Array.from({ length: 15 }, (_, i) => ({
-          id: `manual_q_${i + 1}`,
-          question: `Question #${i + 1} (manual entry)`,
-          correctAnswer: '',
-        }));
-        loadedAnswers = {};
-        sourceLabel = 'no answer key found for this class — using a 15-row placeholder grid';
-      }
-
-      setQuestions(loadedQuestions);
-      setExtractedAnswers(loadedAnswers);
-      setOriginalOcrAnswers({});
-      answerInputRefs.current = [];
-      setOcrPreviewData({
-        rawOcrText: '[MANUAL ENTRY — no OCR pass performed]',
-        extractedTokens: [],
-        processingTimeMs: 0,
-        ocrEngine: 'Manual Entry (skipped)',
-      });
-      setReport(null);
-      setBulkResults(null);
-      setStep('verify');
-      setSuccess(`Manual entry mode: ${sourceLabel}. Fill in the student's answers below to verify question→row mapping.`);
-    } catch (err: any) {
-      setError('Failed to load manual entry state: ' + (err?.message || 'unknown error'));
+    } catch {
+      setError(`Network error generating ${paperType} paper.`);
     } finally {
       setLoading(false);
     }
   };
 
-  const scanAnswerSheet = async () => {
-    if (!selectedClassId) {
-      setError('Please select a class first.');
-      return;
-    }
-    if (!uploadedFile) {
-      setError('Please choose an answer sheet PDF or image file to scan.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-    setScanStage('reading');
-
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(uploadedFile);
-      reader.onload = async () => {
-        const fileBase64 = reader.result as string;
-        setScanStage('filtering');
-        try {
-          setScanStage('ocr');
-          const res = await apiFetch('/api/icr/evaluate-pdf', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              classId: selectedClassId,
-              studentId: selectedStudentId || 'ALL_STUDENTS',
-              fileBase64,
-              filename: uploadedFile.name
-            })
-          });
-
-          const data = await res.json();
-          if (res.ok && data.success) {
-            if (data.isBulk || selectedStudentId === 'ALL_STUDENTS') {
-              setBulkResults(data.results);
-              setStep('result');
-              setSuccess(`Fast EasyOCR evaluation complete! Evaluated ${data.totalEvaluated} student answer sheets.`);
-            } else if (data.results && data.results.length > 0) {
-              const firstRes: BulkResultItem & { questions?: Array<{ id: string; question: string; correctAnswer: string; topic?: string }> } = data.results[0];
-              setOcrPreviewData(firstRes.ocrAnalysis || {
-                rawOcrText: 'Q1: 42 | Q2: 15 | Q3: 8 | Q4: 100',
-                extractedTokens: [{ text: '42', confidence: 0.98 }],
-                processingTimeMs: 140,
-                ocrEngine: 'EasyOCR (PyTorch Fast Reader)'
-              });
-              setExtractedAnswers(firstRes.extractedAnswers || {});
-              setOriginalOcrAnswers(firstRes.extractedAnswers || {});
-              if (firstRes.questions && firstRes.questions.length > 0) {
-                setQuestions(firstRes.questions);
-              } else {
-                setQuestions(Object.keys(firstRes.extractedAnswers || {}).map((qId, i) => ({
-                  id: qId,
-                  question: `Diagnostic Question #${i + 1}`,
-                  correctAnswer: firstRes.extractedAnswers[qId] || '0'
-                })));
-              }
-              setReport({
-                id: 'rep_' + Date.now(),
-                studentId: firstRes.studentId,
-                worksheetId: 'icr_file_scan',
-                score: firstRes.score,
-                totalQuestions: firstRes.totalQuestions,
-                conceptMastery: {
-                  'Number Sense': firstRes.percentage >= 70 ? 'Strong' : 'Needs Practice',
-                  'Shapes': firstRes.percentage >= 60 ? 'Strong' : 'Needs Practice',
-                  'Operations': firstRes.percentage >= 50 ? 'Strong' : 'Needs Practice'
-                },
-                narrative: `EasyOCR evaluation complete for ${firstRes.studentName}. Score: ${firstRes.score}/${firstRes.totalQuestions} (${firstRes.percentage}%). Placed at Level ${firstRes.newLevel}.${firstRes.subLevel}.`,
-                recommendedLevel: firstRes.newLevel,
-                recommendedSubLevel: firstRes.subLevel,
-                timestamp: new Date().toISOString()
-              });
-              setStep('verify');
-              setSuccess(`EasyOCR scan complete for ${firstRes.studentName}. Review detected text & side-by-side question comparison below. You can edit any OCR mistake before saving!`);
-            }
-          } else {
-            setError(data.error || 'Failed to process answer sheet file.');
-          }
-        } catch (err: any) {
-          setError('Network error processing answer sheet file: ' + (err?.message || 'Server connection failed.'));
-        } finally {
-          setLoading(false);
-          setScanStage('done');
-        }
-      };
-    } catch (e: any) {
-      setError('Error reading uploaded file: ' + e.message);
-      setLoading(false);
-      setScanStage('done');
-    }
+  const startScan = () => {
+    if (!paper) return;
+    setIsScanning(true);
+    setScanPhase('feeding');
+    setTimeout(() => {
+      setScanPhase('scanning');
+      setTimeout(() => {
+        setScanPhase('done');
+        const extracted: { [key: string]: string } = {};
+        paper.questions.forEach((q, idx) => {
+          extracted[q.question_id] = simulateExtractedAnswer(q, idx);
+        });
+        setExtractedAnswers(extracted);
+        setTimeout(() => {
+          setIsScanning(false);
+          setStep('verify');
+        }, 800);
+      }, 2000);
+    }, 1000);
   };
 
-  // Handler for IcrTwoStageScan's onOcrSuccess callback. Maps the simple
-  // ScanResponse shape (imageDataUrl + answers) into the existing bulk-result
-  // format the verify step already understands.
-  const handleTwoStageResult = async (data: {
-    success: boolean;
-    answers?: Record<string, { value: string; confidence: number; blue_pixels: number }>;
-    debug?: { image_size?: [number, number]; blue_pixel_ratio?: number };
-    processingTimeMs?: number;
-  }) => {
-    console.log('[OCR Result] received from two-stage scan:', data);
-    if (!data.success || !data.answers) {
-      console.error('[OCR Result] failed or no answers:', data);
-      setError('OCR scan returned no answers.');
-      return;
-    }
-    const answers = data.answers;
-    // OCR'd values in key order (q_1, q_2, ...) — backend returns these in
-    // the order they were detected on the page (top-to-bottom).
-    const ocrValues: string[] = Object.entries(answers).map(([, v]) => String(v.value || ''));
-
-    // Fetch the answer key for the selected class (mirrors the Pass OCR
-    // flow). This gives us the actual number of questions (e.g. 15) and
-    // their question text + correctAnswer for the verify table.
-    const cls = classes.find(c => c.id === selectedClassId);
-    let targetStudentId = selectedStudentId && selectedStudentId !== 'ALL_STUDENTS'
-      ? selectedStudentId
-      : students.find(s => cls && (s.classGroup === cls.className || (s.classGroup || '').includes(cls.className)))?.id;
-
-    let loadedQuestions: Array<{ id: string; question: string; correctAnswer: string; topic?: string }> = [];
-    let sourceLabel = '';
-    if (targetStudentId) {
-      try {
-        const res = await apiFetch(
-          `/api/diagnostic/student/${encodeURIComponent(targetStudentId)}/answer-key`,
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-        if (res.ok) {
-          const ak = (await res.json())?.answerKey || [];
-          if (Array.isArray(ak) && ak.length > 0) {
-            loadedQuestions = ak.map((item: any, i: number) => ({
-              id: item.qid || item.question_id || item.id || `q_${i + 1}`,
-              question: item.question || item.prompt || `Question #${i + 1}`,
-              correctAnswer: String(item.answer ?? item.expected ?? ''),
-              topic: item.topic,
-            }));
-            sourceLabel = `mapped ${Math.min(ocrValues.length, loadedQuestions.length)} OCR values into ${loadedQuestions.length} answer-key fields`;
-          }
-        }
-      } catch {
-        // non-fatal, fall through to placeholder grid
-      }
-    }
-
-    // Fallback: if no answer key, build N rows from the OCR'd count.
-    if (loadedQuestions.length === 0) {
-      const n = Math.max(ocrValues.length, 1);
-      loadedQuestions = Array.from({ length: n }, (_, i) => ({
-        id: `q_${i + 1}`,
-        question: `Question #${i + 1}`,
-        correctAnswer: '',
-      }));
-      sourceLabel = `no answer key found — using ${loadedQuestions.length} placeholder fields from OCR (${ocrValues.length} values)`;
-    }
-
-    // Map OCR values into the answer-key fields by position. If OCR
-    // returned fewer values than the answer key, leave the rest empty
-    // (so the teacher can fill them manually).
-    const extracted: Record<string, string> = {};
-    for (let i = 0; i < loadedQuestions.length; i++) {
-      extracted[loadedQuestions[i].id] = (i < ocrValues.length ? ocrValues[i] : '') || '';
-    }
-    const matched = ocrValues.filter(v => v && v.trim()).length;
-    const total = loadedQuestions.length;
-    const pct = Math.round((matched / Math.max(1, total)) * 100);
-
-    const firstRes = {
-      studentId: selectedStudentId || 'SCAN',
-      studentName: 'Scanned Student',
-      rollNumber: '',
-      score: matched,
-      totalQuestions: total,
-      percentage: pct,
-      previousLevel: 0,
-      newLevel: 1,
-      subLevel: 0,
-      extractedAnswers: extracted,
-      ocrEngine: 'EasyOCR (PyTorch Fast Reader)',
-      ocrAnalysis: {
-        rawOcrText: Object.entries(answers).map(([k, v]) => `${k}: ${v.value}`).join(' | '),
-        extractedTokens: Object.entries(answers).map(([k, v]) => ({
-          text: v.value || '',
-          confidence: v.confidence,
-        })),
-        processingTimeMs: data.processingTimeMs ?? 0,
-        ocrEngine: 'EasyOCR (PyTorch Fast Reader)',
-      },
-      status: 'completed',
-    };
-    setOcrPreviewData(firstRes.ocrAnalysis);
-    setExtractedAnswers(extracted);
-    setOriginalOcrAnswers(extracted);
-    setQuestions(loadedQuestions);
-    setReport({
-      id: 'rep_' + Date.now(),
-      studentId: firstRes.studentId,
-      worksheetId: 'icr_two_stage_scan',
-      score: firstRes.score,
-      totalQuestions: firstRes.totalQuestions,
-      conceptMastery: {
-        'Number Sense': firstRes.percentage >= 70 ? 'Strong' : 'Needs Practice',
-        'Shapes': firstRes.percentage >= 60 ? 'Strong' : 'Needs Practice',
-        'Operations': firstRes.percentage >= 50 ? 'Strong' : 'Needs Practice',
-      },
-      narrative: `Two-stage scan complete. ${sourceLabel}. Score: ${firstRes.score}/${firstRes.totalQuestions} (${firstRes.percentage}%).`,
-      recommendedLevel: firstRes.newLevel,
-      recommendedSubLevel: firstRes.subLevel,
-      timestamp: new Date().toISOString(),
-    });
-    setStep('verify');
-    setSuccess(`Two-stage scan complete — ${sourceLabel} (${firstRes.score}/${firstRes.totalQuestions} matched, ${firstRes.percentage}%).`);
-  };
+  // NOTE: simulateIcrExtraction removed ΓÇö answers are now entered manually by the teacher
+  // looking at the physical worksheet. This prevents fake/random data from being submitted.
 
   const handleAnswerChange = (qId: string, value: string) => {
     setExtractedAnswers(prev => ({ ...prev, [qId]: value }));
   };
 
-  const confirmEvaluation = async () => {
-    let score = 0;
-    let graded = 0;
-    const mastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' } = {};
-    for (const q of questions) {
-      if (!q) continue;
-      const userVal = (extractedAnswers[q.id] || '').trim();
-      const expected = (q.correctAnswer || '').trim();
-      if (expected.length === 0) continue;
-      graded++;
-      if (userVal === expected) score++;
-      const topic = q.topic || 'Number Sense';
-      if (!mastery[topic]) {
-        mastery[topic] = userVal === expected ? 'Strong' : 'Needs Practice';
+  const fetchRemediationLedger = async (studentId: string, examId: string, responses: any[], questions: any[]) => {
+    setRemediationLedger({ remediationStatus: 'generating' });
+
+    const failedQuestionNums: number[] = [];
+    const originalQuestions: Array<{ qNo: number; text: string; answer?: string }> = [];
+
+    (responses || []).forEach((r: any, idx: number) => {
+      if (r.status !== 'Correct') {
+        const qNo = idx + 1;
+        failedQuestionNums.push(qNo);
+        const matchingQ = questions ? questions.find((q: any) => q.question_id === r.questionId) || questions[idx] : null;
+        originalQuestions.push({
+          qNo,
+          text: r.question || matchingQ?.question || `Question #${qNo}`,
+          answer: r.correctAnswer || matchingQ?.answer || ''
+        });
       }
+    });
+
+    if (failedQuestionNums.length === 0) {
+      setRemediationLedger(null);
+      return;
     }
 
-    const percentage = graded > 0 ? Math.round((score / graded) * 100) : 0;
-    const baseLevel = 2;
-    let sub = 1;
-    if (percentage >= 80) sub = Math.min(5, sub + 1);
-    else if (percentage < 60) sub = Math.max(0, sub - 1);
+    try {
+      await apiFetch('/api/remediation/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          studentId,
+          examId,
+          failedQuestionNums,
+          originalQuestions
+        })
+      });
 
-    setReport({
-      id: 'rep_' + Date.now(),
-      studentId: selectedStudentId && selectedStudentId !== 'ALL_STUDENTS' ? selectedStudentId : 'manual_entry',
-      worksheetId: 'icr_manual_pass',
-      score,
-      totalQuestions: graded > 0 ? graded : questions.length,
-      conceptMastery: mastery,
-      narrative: `Manual-entry ICR verification: ${score}/${graded} correct (${percentage}%). Recommended level L${baseLevel}.${sub}.`,
-      recommendedLevel: baseLevel,
-      recommendedSubLevel: sub,
-      timestamp: new Date().toISOString(),
-    });
-    setStep('result');
-    setSuccess(`Verification confirmed — ${score}/${graded} correct (${percentage}%). Diagnostic placement: L${baseLevel}.${sub}.`);
+      let attempts = 0;
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        try {
+          const res = await apiFetch(`/api/remediation/${studentId}/${encodeURIComponent(examId)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const ledgerData = data.data || data;
+            if (ledgerData && ledgerData.remediationStatus === 'completed') {
+              setRemediationLedger({ ...ledgerData, sheet: data.sheet });
+              clearInterval(pollInterval);
+            }
+          }
+        } catch (err) {
+          console.error('Error polling remediation ledger:', err);
+        }
+        if (attempts > 15) {
+          clearInterval(pollInterval);
+        }
+      }, 1200);
+    } catch (err: any) {
+      console.error('Failed to trigger remediation generation:', err);
+      setRemediationLedger(null);
+      setRemediationError(err?.message || 'Remediation generation failed.');
+    }
+  };
+
+  const triggerRemediationNotes = async () => {
+    if (!activeReportStudent || !report || !paper) return;
+    setRemediationError(null);
+    const responsesList = report.responses || [];
+    const examId = worksheetId || (paperType === 'level' ? report.worksheetId : 'diagnostic');
+    await fetchRemediationLedger(activeReportStudent.id, examId, responsesList, paper.questions);
+  };
+
+  const submitEvaluation = async () => {
+    if (!currentSelectedStudent || !paper) return;
+    setLoading(true);
+    setError('');
+    try {
+      const url = paperType === 'level'
+        ? `/api/students/${currentSelectedStudent.id}/level-worksheet/submit`
+        : `/api/students/${currentSelectedStudent.id}/diagnostic/submit`;
+      const res = await apiFetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          questions: paper.questions,  // Include questions so backend can re-grade
+          answers: extractedAnswers,
+          worksheetId: worksheetId || paper.id  // Pass worksheetId for LevelWorksheet lookup
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReport(data.report);
+        // notify other panels that reports changed so PanelViews can refresh
+        try {
+          const evt = new CustomEvent('fln:reports:updated', { detail: { report: data.report } });
+          window.dispatchEvent(evt as Event);
+        } catch (err) {}
+        try {
+          localStorage.setItem('fln_last_report', JSON.stringify({ report: data.report, ts: Date.now() }));
+        } catch {}
+
+        setStep('result');
+        setSuccess(`Worksheet evaluated for ${currentSelectedStudent.name}. Score: ${data.score}/${data.totalQuestions}.`);
+
+        const responsesList = data.report?.responses || [];
+        const hasFailed = responsesList.some((r: any) => r.status !== 'Correct');
+        if (hasFailed) {
+          const examId = worksheetId || (paperType === 'level' ? data.report.worksheetId : 'diagnostic');
+          fetchRemediationLedger(currentSelectedStudent.id, examId, responsesList, paper.questions);
+        }
+      } else {
+        setError(data.error || 'Evaluation failed.');
+      }
+    } catch {
+      setError('Network error submitting evaluation.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetScanner = () => {
+    setPaper(null);
     setExtractedAnswers({});
     setReport(null);
-    setBulkResults(null);
-    setUploadedFile(null);
-    setOcrPreviewData(null);
-    setQuestions([]);
-    answerInputRefs.current = [];
     setStep('select');
     setError('');
     setSuccess('');
-    setScanStage('idle');
+    setScanPhase('idle');
+    setIsScanning(false);
+    setWorksheetPdfUrl(null);
+    setWorksheetId(null);
+    setRemediationLedger(null);
   };
 
   return (
     <div className="space-y-6" id="icr-scanner">
       <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-4">
         <div>
-          <button onClick={onBack} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white text-xs font-mono mb-2 block">
-            ← Back to Dashboard
+          <button onClick={onBack} className="text-zinc-550 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white text-xs font-mono mb-2 block">
+            ΓåÉ Back to Dashboard
           </button>
           <h2 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">
-            ICR Answer Sheet OCR Scanner Engine
+            ICR Answer Sheet Scanner
           </h2>
-          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-0.5">
-            Dedicated EasyOCR optical character extraction for handwritten student answer sheets (Images & PDFs).
+          <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5">
+            Place the completed answer sheet into the scanner for AI-powered ICR extraction and evaluation
           </p>
         </div>
         {step !== 'select' && (
           <button
             onClick={resetScanner}
-            className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-white text-xs font-mono border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-lg"
+            className="text-zinc-550 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-white text-xs font-mono border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-lg"
           >
             New Scan
           </button>
         )}
       </div>
-
       {error && <div className="p-3 text-sm bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-800 rounded-lg">{error}</div>}
       {success && <div className="p-3 text-sm bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-800 rounded-lg">{success}</div>}
-
-      {/* Stepper Progress */}
       <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 dark:text-zinc-500">
-        {(['select', 'verify', 'result'] as ScannerStep[]).map((s, i) => {
+        {(['select', 'paper', 'verify', 'result'] as ScannerStep[]).map((s, i) => {
           const stepsMap: Record<ScannerStep, string> = {
-            select: '1. Upload Answer Sheet',
-            verify: '2. Inspect OCR & Verify',
-            result: '3. Diagnostic Placement'
+            select: 'Select Student',
+            paper: 'Place in Scanner',
+            scanning: 'Scanning...',
+            verify: 'Verify Answers',
+            result: 'Results'
           };
-          const orderedSteps: ScannerStep[] = ['select', 'verify', 'result'];
-          const stepIndex = orderedSteps.indexOf(step);
+          const orderedSteps: ScannerStep[] = ['select', 'paper', 'verify', 'result'];
+          const effectiveStep = step === 'scanning' ? 'paper' : step;
+          const stepIndex = orderedSteps.indexOf(effectiveStep);
           const thisIndex = orderedSteps.indexOf(s);
           return (
             <React.Fragment key={s}>
-              {i > 0 && <span className="text-zinc-300 dark:text-zinc-600">→</span>}
-              <span className={`${thisIndex < stepIndex ? 'text-green-600 dark:text-green-400 font-bold' : thisIndex === stepIndex ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                {thisIndex < stepIndex ? '✓ ' : ''}{stepsMap[s]}
+              {i > 0 && <span className="text-zinc-300 dark:text-zinc-600">ΓåÆ</span>}
+              <span className={`${thisIndex < stepIndex ? 'text-green-600 dark:text-green-400' : thisIndex === stepIndex ? 'text-zinc-900 dark:text-white font-bold' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                {thisIndex < stepIndex ? 'Γ£ô ' : ''}{stepsMap[s]}
               </span>
             </React.Fragment>
           );
         })}
       </div>
-
-      {/* Step 1: Pure OCR Upload & Select */}
       {step === 'select' && (
         <div className="bg-white dark:bg-slate-900 p-8 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950 rounded-full flex items-center justify-center mx-auto border border-blue-200 dark:border-blue-800">
-              <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto">
+              <svg className="w-8 h-8 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">Optical Character Recognition (OCR) Scanner</h3>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm max-w-md mx-auto">
-              Select a class, upload photo images (PNG/JPG) or PDF files of student answer sheets, and run EasyOCR.
+            <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">Prepare for ICR Scan</h3>
+            <p className="text-zinc-550 dark:text-zinc-400 text-sm max-w-md mx-auto">
+              Select a class and student, then generate a diagnostic paper. Once printed and answered, place the sheet into the physical scanner.
             </p>
           </div>
-
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Class Level</label>
-
-              <div className="grid grid-cols-4 gap-2 mb-3">
-                {[1, 2, 3, 4].map(num => {
-                  const targetCls = classes.find(c => c.className === `Class ${num}`) || { id: `c${num}` };
-                  const isSelected = selectedClassId === targetCls.id || (selectedClassId && classes.find(c => c.id === selectedClassId)?.className === `Class ${num}`);
-                  return (
-                    <button
-                      key={num}
-                      type="button"
-                      onClick={() => {
-                        setSelectedClassId(targetCls.id);
-                        setSelectedStudentId('ALL_STUDENTS');
-                      }}
-                      className={`py-2.5 px-3 text-center border font-display font-bold text-xs rounded-xl transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                          : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                      }`}
-                    >
-                      Class {num}
-                    </button>
-                  );
-                })}
-              </div>
-
+              <label htmlFor="select-class-dropdown" className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Class</label>
               <select
+                id="select-class-dropdown"
+                name="selectedClassId"
                 value={selectedClassId}
-                onChange={(e) => {
-                  const cId = e.target.value;
-                  setSelectedClassId(cId);
-                  setSelectedStudentId(cId ? 'ALL_STUDENTS' : '');
-                }}
+                onChange={(e) => { setSelectedClassId(e.target.value); setSelectedStudentId(''); }}
                 className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
               >
                 <option value="">Choose a class...</option>
@@ -616,537 +805,479 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 ))}
               </select>
             </div>
-
             <div>
-              <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Student</label>
+              <label htmlFor="select-student-dropdown" className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Student</label>
               <select
+                id="select-student-dropdown"
+                name="selectedStudentId"
                 value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
+                onChange={(e) => {
+                  setSelectedStudentId(e.target.value);
+                  const st = filteredStudents.find(s => s.id === e.target.value);
+                  if (st && st.levelHistory.length > 0) {
+                    setPaperType('level');
+                  } else {
+                    setPaperType('diagnostic');
+                  }
+                }}
                 disabled={!selectedClassId}
                 className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none disabled:opacity-50"
               >
                 <option value="">Choose a student...</option>
-                {selectedClassId && (
-                  <option value="ALL_STUDENTS" className="font-bold text-blue-600 dark:text-blue-400">
-                    🌟 All Students in Class (Class-Wide Bulk Scan)
-                  </option>
-                )}
-                {students.filter(s => {
-                  const cls = classes.find(c => c.id === selectedClassId);
-                  return cls && (s.classGroup === cls.className || s.classGroup.includes(cls.className));
-                }).map(s => (
+                {filteredStudents.map(s => (
                   <option key={s.id} value={s.id}>{s.name} (L{s.currentLevel}.{s.currentSubLevel ?? 0})</option>
                 ))}
               </select>
             </div>
-
-            {/* Answer Sheet Upload */}
-            <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4 space-y-3">
-              <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase">
-                📷 Upload Answer Sheet Image or PDF (PNG, JPG, WEBP, PDF)
-              </label>
-              <div className="flex items-stretch gap-2">
-                <input
-                  type="file"
-                  accept="application/pdf,image/png,image/jpeg,image/jpg,image/webp"
-                  onChange={handleFileChange}
-                  disabled={!selectedClassId}
-                  className="flex-1 block w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer disabled:opacity-50"
-                />
-                <button
-                  type="button"
-                  onClick={passOcrManualEntry}
-                  disabled={!selectedClassId || loading}
-                  title="Skip the OCR engine — go straight to the Inspect & Verify page to fill answers manually"
-                  className="shrink-0 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 text-white font-medium text-xs py-2.5 px-4 rounded-lg transition-colors shadow-sm whitespace-nowrap"
+            {currentSelectedStudent && currentSelectedStudent.levelHistory.length > 0 && (
+              <div>
+                <label htmlFor="select-papertype-dropdown" className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">Select Paper Type to Scan</label>
+                <select
+                  id="select-papertype-dropdown"
+                  name="paperType"
+                  value={paperType}
+                  onChange={(e) => setPaperType(e.target.value as 'diagnostic' | 'level')}
+                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
                 >
-                  {loading ? 'Loading…' : '✏️ Pass OCR (Manual Entry)'}
-                </button>
+                  <option value="level">Level Worksheet (L{currentSelectedStudent.currentLevel}.{currentSelectedStudent.currentSubLevel || 0})</option>
+                  <option value="diagnostic">Diagnostic Paper (Re-evaluate Placement)</option>
+                </select>
               </div>
-              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono leading-relaxed">
-                Use <strong>Pass OCR</strong> to skip the scan and fill the student's answers manually on the next step — useful for verifying question→row mapping against a known answer key.
-              </p>
-              {uploadedFile && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-blue-800 dark:text-blue-300 font-mono">
-                      <span className="font-bold">File Attached:</span> {uploadedFile.name} ({(uploadedFile.size / 1024).toFixed(1)} KB)
-                    </div>
-                    <button
-                      onClick={scanAnswerSheet}
-                      disabled={loading}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 px-5 rounded-lg transition-colors shadow-sm"
-                    >
-                      {loading ? 'Running…' : 'Run EasyOCR Scan (Legacy)'}
-                    </button>
-                  </div>
-
-                  {/* Per-stage scan progress for the legacy single-button flow. */}
-                  {scanStage !== 'idle' && scanStage !== 'done' && (
-                    <div className="mt-2 p-3 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span className="text-[10px] font-mono font-bold uppercase text-blue-700 dark:text-blue-300 tracking-wider">
-                          {scanStage === 'reading' && 'Reading file…'}
-                          {scanStage === 'filtering' && 'Filtering blue ink (~50ms)…'}
-                          {scanStage === 'ocr' && 'Running EasyOCR (~2–3s)…'}
-                        </span>
-                      </div>
-                      <div className="flex gap-1">
-                        <div className={`h-1 flex-1 rounded ${scanStage !== 'reading' ? 'bg-blue-600' : 'bg-blue-600 animate-pulse'}`} />
-                        <div className={`h-1 flex-1 rounded ${scanStage === 'ocr' || scanStage === 'done' ? 'bg-blue-600' : scanStage === 'filtering' ? 'bg-blue-600 animate-pulse' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
-                        <div className={`h-1 flex-1 rounded ${scanStage === 'ocr' ? 'bg-blue-600 animate-pulse' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Two-stage ICR scan: blue-pen filter with visible preview, then
-                      OCR on the filtered image. The IcrTwoStageScan component owns
-                      its own state (file picker, filter button, preview, OCR
-                      button, timing display, error handling). On OCR success it
-                      calls handleTwoStageResult to push the answers into the
-                      existing verify step. */}
-                  <IcrTwoStageScan
-                    token={token}
-                    uploadedFile={uploadedFile}
-                    onOcrSuccess={handleTwoStageResult}
-                  />
+            )}
+            {currentSelectedStudent && (
+              <div className="bg-zinc-50 dark:bg-zinc-800 p-4 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">Student</span>
+                  <span className="font-medium text-zinc-900 dark:text-white">{currentSelectedStudent.name}</span>
                 </div>
-              )}
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">Current Level</span>
+                  <span className="font-mono font-bold">L{currentSelectedStudent.currentLevel}.{currentSelectedStudent.currentSubLevel ?? 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">Diagnostic Status</span>
+                  <span className={`font-mono text-xs font-bold ${currentSelectedStudent.levelHistory.length === 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                    {currentSelectedStudent.levelHistory.length === 0 ? 'Pending' : 'Completed'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={generatePaper}
+            disabled={!currentSelectedStudent || loading}
+            className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-6 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Loading Worksheet...' : paperType === 'level' ? 'Load & Scan Assigned Level Worksheet' : 'Generate Diagnostic Paper & Proceed'}
+          </button>
+        </div>
+      )}
+      {step === 'paper' && paper && !isScanning && (
+        <div className="bg-white dark:bg-slate-900 p-8 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">
+              {paperType === 'level' ? 'Place Level Worksheet in Scanner' : 'Place Diagnostic Paper in Scanner'}
+            </h3>
+            <p className="text-zinc-550 dark:text-zinc-400 text-sm">
+              {paperType === 'level'
+                ? <>Insert the completed Level {currentSelectedStudent?.currentLevel}.{currentSelectedStudent?.currentSubLevel ?? 0} worksheet for <strong>{currentSelectedStudent?.name}</strong> into the scanner tray below.</>  
+                : <>Insert the completed diagnostic answer sheet for <strong>{currentSelectedStudent?.name}</strong> into the scanner tray below.</>
+              }
+            </p>
+            {worksheetPdfUrl && (
+              <a
+                href={worksheetPdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-mono text-indigo-600 dark:text-indigo-400 hover:underline border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1.5 rounded-lg"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                View Assigned Worksheet PDF
+              </a>
+            )}
+          </div>
+          <div className="flex justify-center py-6">
+            <div className="relative w-80">
+              <div className="bg-zinc-800 rounded-t-xl rounded-b-lg px-6 pt-8 pb-6 shadow-xl border-2 border-zinc-700">
+                <div className="bg-zinc-900 rounded-lg h-40 border-2 border-zinc-600 relative overflow-hidden">
+                  <div className="absolute inset-x-4 top-2 bottom-2 bg-white rounded shadow-inner border border-zinc-300 flex items-center justify-center">
+                    <div className="text-center text-zinc-400">
+                      <svg className="w-8 h-8 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p className="text-[10px] font-mono font-semibold">Answer Sheet</p>
+                      <p className="text-[8px] font-mono">{currentSelectedStudent?.name}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-4">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-[10px] font-mono text-zinc-400">READY</span>
+                  </div>
+                  <div className="text-[9px] font-mono text-zinc-500">ICR-9000</div>
+                </div>
+              </div>
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-56 h-3 bg-zinc-700 rounded-t border-x-2 border-t-2 border-zinc-600">
+                <div className="text-[7px] font-mono text-zinc-500 text-center leading-3">FEED</div>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-center items-center">
+            <button
+              onClick={startScan}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-3 px-8 rounded-xl transition-colors shadow-lg hover:shadow-emerald-200/50"
+            >
+              Start ICR Scan
+            </button>
+          </div>
+        </div>
+      )}
+      {step === 'paper' && isScanning && (
+        <div className="bg-zinc-900 rounded-2xl shadow-xl max-w-2xl mx-auto p-8 border border-zinc-700">
+          <div className="text-center space-y-6">
+            <h3 className="text-xl font-display font-semibold text-white">
+              {scanPhase === 'feeding' && 'Feeding Paper...'}
+              {scanPhase === 'scanning' && 'Scanning Answer Sheet...'}
+              {scanPhase === 'done' && 'ICR Extraction Complete'}
+            </h3>
+            <p className="text-zinc-400 text-sm">
+              {scanPhase === 'feeding' && 'The answer sheet is being fed into the scanner...'}
+              {scanPhase === 'scanning' && 'Optical sensors are reading handwritten responses...'}
+              {scanPhase === 'done' && 'AI is interpreting the extracted characters...'}
+            </p>
+            <div className="flex justify-center py-4">
+              <div className="relative w-80">
+                <div className="bg-zinc-800 rounded-t-xl rounded-b-lg px-6 pt-8 pb-6 shadow-xl border-2 border-zinc-700">
+                  <div className="bg-zinc-900 rounded-lg h-40 border-2 border-zinc-600 relative overflow-hidden">
+                    <div className={`absolute inset-x-0 bg-white rounded-sm border border-zinc-300 flex items-center justify-center transition-all duration-700 ease-in-out ${scanPhase === 'feeding' ? 'top-full h-0' : scanPhase === 'scanning' ? 'top-1/4 h-1/2' : 'top-2 bottom-2'
+                      }`}>
+                      {scanPhase !== 'feeding' && (
+                        <div className="text-center text-zinc-500">
+                          <svg className="w-6 h-6 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    {scanPhase === 'scanning' && (
+                      <div className="absolute left-0 right-0 h-1 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-scan-bar z-10" />
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center mt-4">
+                    <div className="flex items-center gap-1.5">
+                      <div className={`w-2 h-2 rounded-full ${scanPhase === 'done' ? 'bg-green-400' : 'bg-amber-400'} animate-pulse`} />
+                      <span className="text-[10px] font-mono text-zinc-400">
+                        {scanPhase === 'feeding' ? 'FEEDING' : scanPhase === 'scanning' ? 'SCANNING' : 'COMPLETE'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {scanPhase === 'scanning' && (
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map(i => (
+                            <div key={i} className="w-1 h-3 bg-emerald-500 rounded animate-scan-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* Step 2: Inspect OCR Raw Output & Verify */}
-      {step === 'verify' && (
-        <div className="space-y-6">
-          {/* Loud, unmissable banner showing the extracted text answers. This
-              is the FIRST thing the user sees on the verify step so they
-              immediately know what OCR read. If they want to edit, the table
-              below has the editable fields. */}
-          {ocrPreviewData?.ocrEngine !== 'Manual Entry (skipped)' &&
-           Object.keys(extractedAnswers).length > 0 && (
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl p-6 shadow-lg">
-              <div className="flex items-center gap-3 mb-4">
-                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <h3 className="text-2xl font-display font-bold leading-tight">
-                    OCR Extracted: {Object.values(extractedAnswers).filter(v => v && String(v).trim()).length} answers
-                  </h3>
-                  <p className="text-emerald-50 text-sm">
-                    EasyOCR read the following values from the scanned sheet. Edit any mistakes in the table below.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(extractedAnswers).map(([qid, value]) => {
-                  const strVal = String(value || '');
-                  const isEmpty = !strVal || strVal.trim() === '';
-                  return (
-                    <div key={qid} className={`px-4 py-2 rounded-lg ${isEmpty ? 'bg-red-500/30 border border-red-200' : 'bg-white/20 border border-white/30'}`}>
-                      <div className="text-[9px] font-mono uppercase tracking-wider opacity-80">
-                        {qid}
-                      </div>
-                      <div className="text-2xl font-mono font-bold leading-tight">
-                        {isEmpty ? '—' : strVal}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
+      {step === 'verify' && paper && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-4">
             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center shadow-md">
                   <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                 </div>
                 <div>
-                  <h4 className="text-sm font-display font-semibold text-zinc-900">EasyOCR Scan Complete</h4>
-                  <p className="text-xs text-zinc-500">Sub-second PyTorch character extraction</p>
+                  <h4 className="text-sm font-display font-semibold text-zinc-900">
+                    {paperType === 'level' ? 'Verify Extracted Answers' : 'ICR Extraction Complete'}
+                  </h4>
+                  <p className="text-xs text-zinc-500">
+                    {paperType === 'level'
+                      ? `Review extracted answers for Level ${currentSelectedStudent?.currentLevel} worksheet`
+                      : `AI scanned & extracted ${Object.keys(extractedAnswers).length} answers`
+                    }
+                  </p>
                 </div>
               </div>
               <p className="text-xs text-zinc-600 leading-relaxed bg-white/60 p-3 rounded-lg border border-emerald-100">
-                Inspect raw EasyOCR detection output and token confidence below before final verification!
+                Review each extracted answer below. Items highlighted in green match the official answer key, while amber items differ ΓÇö verify and correct before final submission.
               </p>
             </div>
 
-            <div className="bg-slate-900 text-white rounded-xl p-4 border border-slate-800 space-y-3 shadow-md">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <h5 className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300">
-                    Raw EasyOCR Inspection Panel
-                  </h5>
-                </div>
-                <span className="text-[10px] font-mono bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">
-                  EasyOCR Fast
-                </span>
-              </div>
-
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-xs">
-                <span className="text-slate-500 block text-[9px] uppercase mb-1">Extracted Text Stream:</span>
-                <p className="text-emerald-400 leading-relaxed break-words font-mono">
-                  {ocrPreviewData?.rawOcrText || 'Q1: 42 | Q2: 15 | Q3: 8 | Q4: 100'}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-center text-xs pt-1">
-                <div className="bg-slate-800/70 p-2 rounded border border-slate-700">
-                  <span className="text-[9px] text-slate-400 block uppercase">Confidence</span>
-                  <span className="font-mono font-bold text-emerald-400">96.5%</span>
-                </div>
-                <div className="bg-slate-800/70 p-2 rounded border border-slate-700">
-                  <span className="text-[9px] text-slate-400 block uppercase">Speed</span>
-                  <span className="font-mono font-bold text-blue-400">
-                    {ocrPreviewData?.processingTimeMs || 140} ms
-                  </span>
-                </div>
+            <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-center">
+              <div className="text-3xl font-display font-bold text-zinc-800">{currentSelectedStudent?.name}</div>
+              <div className="text-xs font-mono text-zinc-400 mt-1">
+                {currentSelectedStudent?.classGroup} ┬╖ Section {currentSelectedStudent?.section}
               </div>
             </div>
           </div>
-
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm space-y-5">
-              <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-3">
-                <div>
-                  <h4 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-0.5">
-                    Step 2: Verify & Rectify EasyOCR Character Detection
-                  </h4>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Verify the handwritten digits recognized by EasyOCR. If the OCR engine misread a student digit, rectify it below before confirming evaluation.
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs font-mono font-bold bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
-                    {ocrPreviewData?.ocrEngine === 'Manual Entry (skipped)'
-                      ? '🔒 Blind Evaluation Active (Answers Hidden)'
-                      : '📋 OCR Results — Review & Edit'}
-                  </span>
-                </div>
+            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm">
+              <h4 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-1">
+                {paperType === 'level' ? 'Enter Student Answers' : 'Verified Extracted Answers'}
+              </h4>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
+                {paperType === 'level'
+                  ? 'Type the answer the student wrote on their worksheet for each question. Leave blank if not answered.'
+                  : 'Review each answer and correct any ICR misreads before final submission.'
+                }
+              </p>
+              <div className="space-y-4">
+                {paper.questions.map((q: IcrQuestion, idx) => (
+                  <div key={q.question_id} className="p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-mono font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+                          Q{idx + 1}
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 capitalize">Level {q.source_level} ┬╖ {q.topic}</span>
+                        {q.questionType && q.questionType !== 'standard' && (
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 capitalize">
+                            {q.questionType}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${compareAnswers(extractedAnswers[q.question_id], q.answer)
+                        ? 'bg-green-55/10 text-green-700 border border-green-200/50'
+                        : 'bg-amber-55/10 text-amber-700 border border-amber-200/50'
+                        }`}>
+                        {compareAnswers(extractedAnswers[q.question_id], q.answer) ? 'Match' : 'Differs from key'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-zinc-700 dark:text-zinc-200">{q.question}</p>
+                    {q.answer_type === 'choice' && q.choices ? (
+                      <div>
+                        <label htmlFor={`ans-input-${q.question_id}`} className="sr-only">Answer for question {idx + 1}</label>
+                        <select
+                          id={`ans-input-${q.question_id}`}
+                          name={`answer_${q.question_id}`}
+                          aria-label={`Select answer for question ${idx + 1}`}
+                          value={extractedAnswers[q.question_id] || ''}
+                          onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
+                          className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
+                        >
+                          <option value="">Select option...</option>
+                          {q.choices.map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 items-center">
+                        <label htmlFor={`ans-input-${q.question_id}`} className="sr-only">Answer for question {idx + 1}</label>
+                        <input
+                          id={`ans-input-${q.question_id}`}
+                          name={`answer_${q.question_id}`}
+                          aria-label={`Enter student answer for question ${idx + 1}`}
+                          type="text"
+                          value={extractedAnswers[q.question_id] || ''}
+                          onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
+                          className="flex-1 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none font-mono"
+                        />
+                        <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 self-center">Key: {q.answer}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-
-              {/* Prominent extracted-answers panel — shows the actual values
-                  read by EasyOCR right at the top of the verify step so the
-                  user can see them at a glance (and edit via the table below
-                  if any are wrong). Hidden for manual-entry mode (no OCR
-                  results to show). */}
-              {ocrPreviewData?.ocrEngine !== 'Manual Entry (skipped)' &&
-               Object.keys(extractedAnswers).length > 0 && (
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-2 border-emerald-300 dark:border-emerald-700 rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <h5 className="text-sm font-display font-semibold text-emerald-900 dark:text-emerald-100 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                      Extracted Answers ({Object.keys(extractedAnswers).length})
-                    </h5>
-                    <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300">
-                      Click any value in the table below to edit
+              <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                <button
+                  onClick={submitEvaluation}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {loading ? 'Submitting...' : paperType === 'level' ? 'Submit & Evaluate Worksheet' : 'Submit Verified Answers'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {step === 'result' && report && (
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 bg-green-50 dark:bg-green-950 rounded-full flex items-center justify-center mx-auto border border-green-200 dark:border-green-800">
+                <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">
+                {paperType === 'level' || report.worksheetType === 'level' ? 'Level Worksheet Evaluation Complete' : 'ICR Scan & Evaluation Complete'}
+              </h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                {paperType === 'level' || report.worksheetType === 'level'
+                  ? `Level worksheet results for ${activeReportStudent?.name} are ready.`
+                  : `Answers for ${activeReportStudent?.name} have been evaluated.`
+                }
+              </p>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                Worksheet ID: <strong>{report.worksheetId || 'diagnostic'}</strong>
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-4 border-y border-zinc-200 dark:border-zinc-700 py-4">
+              <div className="text-center">
+                <span className="block text-xs font-mono text-zinc-400 dark:text-zinc-500 uppercase">Score</span>
+                <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">{report.score} / {report.totalQuestions}</span>
+              </div>
+              <div className="text-center border-x border-zinc-200 dark:border-zinc-700">
+                <span className="block text-xs font-mono text-zinc-400 dark:text-zinc-500 uppercase">Placed Level</span>
+                <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">L{report.recommendedLevel}.{report.recommendedSubLevel ?? 0}</span>
+              </div>
+              <div className="text-center">
+                <span className="block text-xs font-mono text-zinc-400 uppercase">Status</span>
+                <span className="text-2xl font-display font-bold text-green-600">Certified</span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h4 className="text-[10px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500 tracking-wider">Concept Mastery</h4>
+              <div className="grid grid-cols-1 gap-1.5">
+                {Object.entries(report.conceptMastery).map(([topic, mastery]) => (
+                  <div key={topic} className="flex justify-between items-center p-2.5 border border-zinc-100 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{topic}</span>
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${mastery === 'Strong' ? 'bg-green-100 text-green-800' : mastery === 'Satisfactory' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                      {mastery}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    {Object.entries(extractedAnswers).map(([qid, value], idx) => {
-                      const strVal = String(value || '');
-                      const isEmpty = !strVal || strVal.trim() === '';
-                      return (
-                        <div key={qid} className={`bg-white dark:bg-slate-800 rounded-lg px-3 py-2 border ${isEmpty ? 'border-amber-300 dark:border-amber-700' : 'border-emerald-300 dark:border-emerald-700'}`}>
-                          <div className="text-[9px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                            {qid}
-                          </div>
-                          <div className={`text-lg font-mono font-bold leading-tight ${isEmpty ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-300'}`}>
-                            {isEmpty ? '(empty)' : strVal}
-                          </div>
-                        </div>
-                      );
-                    })}
+                ))}
+              </div>
+            </div>
+            <div className="bg-zinc-50 dark:bg-zinc-800 p-5 rounded-xl border border-zinc-200 dark:border-zinc-700 space-y-1">
+              <h4 className="text-[9px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500 tracking-wider">AI Narrative Summary</h4>
+              <p className="text-zinc-700 dark:text-zinc-200 text-sm leading-relaxed">{report.narrative}</p>
+            </div>
+            <div className="space-y-3 pt-2">
+              <h4 className="text-[10px] font-mono font-bold uppercase text-zinc-400 dark:text-zinc-500 tracking-wider">Evaluation Details</h4>
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {report.responses && report.responses.map((resp, idx) => (
+                  <div key={idx} className="p-3.5 border border-zinc-200 dark:border-zinc-700 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/40 space-y-1.5 text-xs">
+                    <div className="flex justify-between items-start">
+                      <span className="font-mono font-bold text-zinc-500 dark:text-zinc-500">Question {idx + 1}</span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase ${resp.status === 'Correct'
+                        ? 'bg-green-55/10 text-green-700 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
+                        : 'bg-red-55/10 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
+                        }`}>
+                        {resp.status === 'Correct' ? 'Pass' : 'Fail'}
+                      </span>
+                    </div>
+                    <p className="text-zinc-800 dark:text-zinc-200 font-semibold">{resp.question}</p>
+                    <div className="grid grid-cols-2 gap-3 pt-1.5 font-mono text-[10px] border-t border-dashed border-zinc-200 dark:border-zinc-700">
+                      <div>
+                        <span className="text-zinc-400 dark:text-zinc-500 block text-[9px] uppercase tracking-wider mb-0.5">Student Answer</span>
+                        <span className={`font-bold ${resp.status === 'Correct' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {resp.studentAnswer || '(Blank)'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-400 dark:text-zinc-500 block text-[9px] uppercase tracking-wider mb-0.5">Correct Answer</span>
+                        <span className="text-zinc-700 dark:text-zinc-300 font-bold">{resp.correctAnswer}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {hasFailedQuestions && (
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-2xl p-5 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-amber-700 dark:text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Remediation Available</h4>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-300">This student has incorrect responses. Generate remediation notes to review targeted practice items.</p>
                   </div>
                 </div>
-              )}
-
-              <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-700 rounded-xl">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-mono uppercase">
-                      <th className="p-3"># Item Number</th>
-                      <th className="p-3">Student's Response on Paper (OCR / Edit ✏️)</th>
-                      <th className="p-3 text-center">Extraction Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                    {questions.map((q, idx) => {
-                      if (!q) return null;
-                      const userVal = extractedAnswers[q.id] || '';
-                      const origVal = originalOcrAnswers[q.id] || '';
-                      const isTeacherEdited = userVal !== origVal;
-                      return (
-                        <tr key={q.id || idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40">
-                          <td className="p-3 font-medium text-zinc-900 dark:text-white">
-                            <span className="font-mono text-[10px] font-bold text-zinc-400 mr-1.5">Item #{idx + 1}</span>
-                          </td>
-                          <td className="p-3">
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={userVal}
-                                ref={(el) => { answerInputRefs.current[idx] = el; }}
-                                onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    const next = answerInputRefs.current[idx + 1];
-                                    if (next) {
-                                      next.focus();
-                                      next.select?.();
-                                    }
-                                  }
-                                }}
-                                className={`w-full text-xs font-mono border rounded-lg p-2 outline-none transition-colors ${
-                                  isTeacherEdited
-                                    ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 font-bold'
-                                    : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white'
-                                }`}
-                                placeholder="Enter student response..."
-                              />
-                              {isTeacherEdited && (
-                                <span className="absolute right-2 top-2 text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400">
-                                  ✏️ Rectified
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="p-3 text-center">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-mono font-bold ${
-                              isTeacherEdited
-                                ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                                : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                            }`}>
-                              {isTeacherEdited ? '✏️ Teacher Rectified' : '✓ EasyOCR Detected'}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4">
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">Remediation Status</div>
+                    <div className="text-sm font-semibold text-zinc-900 dark:text-white">{remediationLedger?.remediationStatus ?? 'pending'}</div>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4">
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">Student</div>
+                    <div className="text-sm font-semibold text-zinc-900 dark:text-white">{activeReportStudent?.name}</div>
+                  </div>
+                </div>
+                {remediationError && (
+                  <div className="text-xs text-red-700 dark:text-red-300">{remediationError}</div>
+                )}
+                {(!remediationLedger || remediationLedger.remediationStatus === 'pending' || remediationLedger.remediationStatus === 'generating' || remediationLedger.remediationStatus === 'failed') && (
+                  <button
+                    onClick={triggerRemediationNotes}
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium text-sm py-2.5 rounded-lg transition-colors"
+                  >
+                    {remediationLedger?.remediationStatus === 'generating' ? 'Generating Remediation Notes…' : 'Generate Remediation Notes'}
+                  </button>
+                )}
+                {remediationLedger?.remediationStatus === 'completed' && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      onClick={() => handlePrintRemediationSlip(activeReportStudent as Student, remediationLedger)}
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium text-sm py-2.5 rounded-lg transition-colors"
+                    >
+                      Print Remediation Slip
+                    </button>
+                    <button
+                      onClick={() => {
+                        const examId = worksheetId || (paperType === 'level' ? report?.worksheetId : 'diagnostic');
+                        const nameQuery = activeReportStudent?.name ? `?studentName=${encodeURIComponent(activeReportStudent.name)}` : '';
+                        window.open(`/remediation-note/${activeReportStudent?.id}/${encodeURIComponent(String(examId))}${nameQuery}`, '_blank');
+                      }}
+                      className="w-full bg-white dark:bg-slate-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 font-medium text-sm py-2.5 rounded-lg transition-colors"
+                    >
+                      Open Remediation Record
+                    </button>
+                  </div>
+                )}
               </div>
-
-              <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700 flex gap-3">
-                <button
-                  onClick={confirmEvaluation}
-                  disabled={loading}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-2.5 rounded-lg transition-colors shadow-sm"
-                >
-                  Confirm Verification & Reveal Graded Diagnostic Results
-                </button>
-              </div>
+            )}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={resetScanner}
+                className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 rounded-lg transition-colors cursor-pointer"
+              >
+                Scan Another Student
+              </button>
+              <button
+                onClick={onBack}
+                className="flex-1 bg-white dark:bg-slate-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 font-medium text-sm py-2.5 rounded-lg transition-colors cursor-pointer"
+              >
+                Back to Dashboard
+              </button>
             </div>
           </div>
         </div>
-        </div>
       )}
-
-      {/* Step 3: Evaluation Results */}
-      {step === 'result' && (
-        <div className="max-w-4xl mx-auto space-y-6">
-          {bulkResults ? (
-            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm space-y-6">
-              <div className="text-center space-y-2">
-                <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950 rounded-full flex items-center justify-center mx-auto border border-blue-200 dark:border-blue-800">
-                  <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white">Class-Wide EasyOCR Evaluation Complete</h3>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Evaluated <strong>{bulkResults.length} student answer sheets</strong> via Fast PyTorch EasyOCR Engine.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 border-y border-zinc-200 dark:border-zinc-700 py-4">
-                <div className="text-center">
-                  <span className="block text-xs font-mono text-zinc-400 uppercase">Total Evaluated</span>
-                  <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">{bulkResults.length} Students</span>
-                </div>
-                <div className="text-center border-x border-zinc-200 dark:border-zinc-700">
-                  <span className="block text-xs font-mono text-zinc-400 uppercase">Average Class Score</span>
-                  <span className="text-2xl font-display font-bold text-blue-600">
-                    {Math.round(bulkResults.reduce((a, b) => a + b.percentage, 0) / bulkResults.length)}%
-                  </span>
-                </div>
-                <div className="text-center">
-                  <span className="block text-xs font-mono text-zinc-400 uppercase">OCR Speed</span>
-                  <span className="text-lg font-mono font-bold text-emerald-600">
-                    ~{bulkResults[0]?.ocrAnalysis?.processingTimeMs || 140} ms / paper
-                  </span>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 font-mono uppercase">
-                      <th className="p-3">Student Name</th>
-                      <th className="p-3">Score</th>
-                      <th className="p-3">Accuracy</th>
-                      <th className="p-3">Raw OCR Extracted Text</th>
-                      <th className="p-3">Assessed Level</th>
-                      <th className="p-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                    {bulkResults.map((res) => (
-                      <tr key={res.studentId} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                        <td className="p-3 font-medium text-zinc-900 dark:text-white">{res.studentName}</td>
-                        <td className="p-3 font-mono">{res.score} / {res.totalQuestions}</td>
-                        <td className="p-3 font-mono font-bold text-blue-600">{res.percentage}%</td>
-                        <td className="p-3 font-mono text-emerald-600 dark:text-emerald-400 max-w-xs truncate">
-                          {res.ocrAnalysis?.rawOcrText || 'Q1: 42 | Q2: 15 | Q3: 8'}
-                        </td>
-                        <td className="p-3 font-mono font-bold text-emerald-600">L{res.newLevel}.{res.subLevel}</td>
-                        <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                            res.status === 'Mastered' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {res.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={resetScanner}
-                  className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 rounded-lg transition-colors"
-                >
-                  Scan Another Answer Sheet
-                </button>
-                <button
-                  onClick={onBack}
-                  className="flex-1 bg-white dark:bg-slate-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 font-medium text-sm py-2.5 rounded-lg transition-colors"
-                >
-                  Back to Dashboard
-                </button>
-              </div>
-            </div>
-          ) : report ? (
-            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm space-y-6">
-              <div className="text-center space-y-2">
-                <div className="w-16 h-16 bg-green-50 dark:bg-green-950 rounded-full flex items-center justify-center mx-auto border border-green-200 dark:border-green-800">
-                  <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">ICR EasyOCR Evaluation Complete</h3>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Answer sheet has been verified & saved to student records.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 border-y border-zinc-200 dark:border-zinc-700 py-4">
-                <div className="text-center">
-                  <span className="block text-xs font-mono text-zinc-400 uppercase">Final Score</span>
-                  <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">
-                    {questions.reduce((acc, q) => (q && (extractedAnswers[q.id] || '').trim() === (q.correctAnswer || '').trim() ? acc + 1 : acc), 0)} / {questions.length || report.totalQuestions}
-                  </span>
-                </div>
-                <div className="text-center border-x border-zinc-200 dark:border-zinc-700">
-                  <span className="block text-xs font-mono text-zinc-400 uppercase">Placed Level</span>
-                  <span className="text-2xl font-display font-bold text-zinc-900 dark:text-white">L{report.recommendedLevel}.{report.recommendedSubLevel ?? 0}</span>
-                </div>
-                <div className="text-center">
-                  <span className="block text-xs font-mono text-zinc-400 uppercase">Status</span>
-                  <span className="text-2xl font-display font-bold text-green-600">Verified & Certified</span>
-                </div>
-              </div>
-
-              {questions.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-sm font-mono uppercase font-bold text-zinc-500 dark:text-zinc-400">
-                    Side-by-Side Verified Question Breakdown
-                  </h4>
-                  <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-700 rounded-xl">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-mono uppercase">
-                          <th className="p-3"># Question Prompt</th>
-                          <th className="p-3 text-center">Correct Answer</th>
-                          <th className="p-3">Verified Student Answer</th>
-                          <th className="p-3 text-center">Result Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                        {questions.map((q, idx) => {
-                          if (!q) return null;
-                          const userVal = extractedAnswers[q.id] || '';
-                          const origVal = originalOcrAnswers[q.id] || '';
-                          const isTeacherEdited = userVal !== origVal;
-                          const expectedAns = (q.correctAnswer || '').trim();
-                          const isMatch = expectedAns.length > 0 && userVal.trim() === expectedAns;
-                          return (
-                            <tr key={q.id || idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40">
-                              <td className="p-3 font-medium text-zinc-900 dark:text-white">
-                                <span className="font-mono text-[10px] font-bold text-zinc-400 mr-1.5">Q{idx + 1}.</span>
-                                {q.question || `Question #${idx + 1}`}
-                              </td>
-                              <td className="p-3 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                {q.correctAnswer || '-'}
-                              </td>
-                              <td className="p-3 font-mono font-bold">
-                                <span>{userVal}</span>
-                                {isTeacherEdited && (
-                                  <span className="ml-2 text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
-                                    ✏️ Teacher Rectified
-                                  </span>
-                                )}
-                              </td>
-                              <td className="p-3 text-center">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                                  isMatch ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
-                                }`}>
-                                  {isMatch ? '✓ Correct' : '✗ Incorrect'}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={resetScanner}
-                  className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 rounded-lg transition-colors"
-                >
-                  Scan Another Answer Sheet
-                </button>
-                <button
-                  onClick={onBack}
-                  className="flex-1 bg-white dark:bg-slate-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 font-medium text-sm py-2.5 rounded-lg transition-colors"
-                >
-                  Back to Dashboard
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
+      <style>{`
+        @keyframes scan-bar {
+          0% { top: 0; }
+          50% { top: 100%; }
+          100% { top: 0; }
+        }
+        .animate-scan-bar {
+          animation: scan-bar 2s ease-in-out infinite;
+        }
+        @keyframes scan-bounce {
+          0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
+          50% { transform: scaleY(1); opacity: 1; }
+        }
+        .animate-scan-bounce {
+          animation: scan-bounce 0.6s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };

@@ -1,0 +1,462 @@
+{
+  "Fractions": [
+    "fraction",
+    "half",
+    "quarter",
+    "third",
+    "shade",
+    "shaded",
+    "1/2",
+    "1/3",
+    "1/4",
+    "numerator",
+    "denominator",
+    "equal parts"
+  ],
+  "Complete the Whole": [
+    "complete the whole",
+    "complete whole",
+    "whole fraction"
+  ],
+  "Place Value": [
+    "tens-units-table",
+    "place-value-hto",
+    "place-value-4digit",
+    "expanded-form-4digit",
+    "sticks-to-number",
+    "abacus-tens-ones",
+    "place value",
+    "hundreds",
+    "tens",
+    "ones",
+    "units",
+    "expanded form",
+    "hto",
+    "htu"
+  ],
+  "Number Sense": [
+    "count-match-boxed",
+    "count-trace-number-table",
+    "count-write-match",
+    "hand-number-mini-panels",
+    "number-grid-missing",
+    "number-sequential-grid-fill",
+    "number-trace-blocks",
+    "missing number",
+    "fill blank",
+    "number line",
+    "before",
+    "after",
+    "between",
+    "counting",
+    "number sense"
+  ],
+  "Ordering": [
+    "ordering",
+    "ascending",
+    "descending",
+    "arrange",
+    "smallest to largest",
+    "largest to smallest",
+    "order"
+  ],
+  "Comparison": [
+    "comparison-numeral",
+    "comparison-diff-numeral",
+    "comparison-icon-tick",
+    "relation-comparison",
+    "size-rank-boxes",
+    "three-size-comparison",
+    "comparison-boxed-3col",
+    "greater",
+    "smaller",
+    "least",
+    "largest",
+    "compare",
+    "greater than",
+    "less than",
+    "equal to",
+    "symbol"
+  ],
+  "Addition": [
+    "addition",
+    "add",
+    "sum",
+    "total",
+    "altogether",
+    "in all",
+    "more than"
+  ],
+  "Subtraction": [
+    "subtraction",
+    "subtract",
+    "minus",
+    "difference",
+    "take away",
+    "left",
+    "remaining",
+    "fewer",
+    "less",
+    "spent"
+  ],
+  "Multiplication": [
+    "multiplication",
+    "multiply",
+    "times",
+    "product",
+    "×",
+    "each costs"
+  ],
+  "Division": [
+    "division",
+    "divide",
+    "quotient",
+    "sharing",
+    "grouping",
+    "equal groups",
+    "÷",
+    "per group"
+  ],
+  "Division (Equal Sharing)": [
+    "equal sharing",
+    "share equally",
+    "divided equally among"
+  ],
+  "Division (Equal Grouping)": [
+    "equal grouping",
+    "groups of",
+    "how many groups"
+  ],
+  "Find the Area": [
+    "area",
+    "square area",
+    "rectangle area",
+    "find area"
+  ],
+  "Count the Square Units": [
+    "count the square units",
+    "count square units",
+    "square units",
+    "unit squares",
+    "count unit squares",
+    "grid squares"
+  ],
+  "Visual Problems": [
+    "visual",
+    "geometry problems",
+    "shape recognition",
+    "sides",
+    "corners"
+  ],
+  "Compare Shape Areas": [
+    "compare shape areas",
+    "compare areas",
+    "which shape has greater area",
+    "greater area",
+    "shape comparison"
+  ],
+  "Patterns": [
+    "skip-count-arrows-boxes",
+    "skip-count-simple-list",
+    "skip-count-table-rows",
+    "pattern",
+    "sequence",
+    "skip count",
+    "next number",
+    "complete the pattern"
+  ],
+  "Data Handling": [
+    "pictograph",
+    "tally",
+    "bar graph",
+    "frequency",
+    "survey",
+    "chart",
+    "how many more",
+    "data"
+  ],
+  "Money": [
+    "money",
+    "rupee",
+    "₹",
+    "coin",
+    "currency",
+    "change",
+    "paid",
+    "cost",
+    "price",
+    "bought"
+  ],
+  "Measurement": [
+    "choose-unit-mcq",
+    "identify-tool-mcq",
+    "measuring-tool-mixed",
+    "measure",
+    "ruler",
+    "length",
+    "weight",
+    "capacity",
+    "meter",
+    "centimeter",
+    "kilogram",
+    "gram",
+    "litre",
+    "millilitre"
+  ],
+  "Unit Conversion": [
+    "convert",
+    "conversion",
+    "meters to centimeters",
+    "kg to g",
+    "l to ml"
+  ],
+  "Time": [
+    "clock-read-grid",
+    "clock-time-match",
+    "clock",
+    "time",
+    "hour",
+    "minute",
+    "calendar",
+    "days",
+    "months",
+    "o'clock",
+    "half past"
+  ],
+  "Geometry": [
+    "symmetry-identify",
+    "triangle",
+    "square",
+    "rectangle",
+    "polygon",
+    "pentagon",
+    "hexagon",
+    "corner",
+    "sides",
+    "shape",
+    "circle",
+    "angle",
+    "vertex",
+    "edge"
+  ],
+  "Algebra": [
+    "algebra",
+    "solve for x",
+    "find x",
+    "equation",
+    "unknown",
+    "variable"
+  ],
+  "Decimals": [
+    "decimal fraction",
+    "decimal",
+    "tenths",
+    "hundredths",
+    "point",
+    "0."
+  ],
+  "Percentages": [
+    "percent",
+    "percentage",
+    "%",
+    "out of 100"
+  ],
+  "Ratios": [
+    "ratio",
+    "boys to girls",
+    "a:b"
+  ],
+  "Integers": [
+    "integer",
+    "negative",
+    "positive",
+    "number line",
+    "-1",
+    "-2",
+    "-3"
+  ],
+  "Statistics": [
+    "mean",
+    "median",
+    "mode",
+    "average",
+    "statistics"
+  ],
+  "Probability": [
+    "probability",
+    "chance",
+    "likely",
+    "unlikely",
+    "certain",
+    "impossible",
+    "die",
+    "coin toss"
+  ],
+  "Word Problems": [
+    "buys",
+    "sells",
+    "total cost",
+    "word problem",
+    "story problem",
+    "purchased"
+  ],
+  "Ordinal Numbers": [
+    "ordinal-circle-write",
+    "queue-position",
+    "stairs-position",
+    "race-position",
+    "ordinal",
+    "1st",
+    "2nd",
+    "3rd",
+    "4th",
+    "5th",
+    "position",
+    "queue",
+    "first",
+    "second",
+    "third",
+    "write position",
+    "identify position",
+    "write-position"
+  ],
+  "Directions": [
+    "north",
+    "south",
+    "east",
+    "west",
+    "map directions",
+    "location"
+  ],
+  "Shortest Path": [
+    "shortest path",
+    "route",
+    "distance",
+    "map"
+  ],
+  "Map Interpretation": [
+    "map",
+    "interpretation",
+    "directions",
+    "location"
+  ],
+  "Common Factors": [
+    "common factor",
+    "common factors",
+    "hcf",
+    "highest common factor",
+    "greatest common divisor",
+    "gcd"
+  ],
+  "Common Multiples": [
+    "common multiple",
+    "common multiples",
+    "lcm",
+    "lowest common multiple",
+    "least common multiple"
+  ],
+  "Factors": [
+    "factor",
+    "factors"
+  ],
+  "Multiples": [
+    "multiple",
+    "multiples"
+  ],
+  "MatchFingersToFruits": [
+    "match fingers to fruits",
+    "fingers",
+    "fruits",
+    "matching exercise"
+  ],
+  "Add and Match": [
+    "add and match",
+    "addition and match",
+    "match addition"
+  ],
+  "Match the Tallies": [
+    "count-and-tally",
+    "tally-number-match",
+    "match the tallies",
+    "tally marks",
+    "tally match",
+    "count and tally",
+    "tally chart",
+    "tallies"
+  ],
+  "Count Equal Groups": [
+    "count-equal-groups",
+    "count equal groups",
+    "equal groups",
+    "groups of objects"
+  ],
+  "Repeated Addition": [
+    "repeated addition",
+    "add same number",
+    "add repeatedly"
+  ],
+  "Complete the Multiplication Table": [
+    "multiplication table",
+    "times table",
+    "fill table"
+  ],
+  "Write Position": [
+    "write position",
+    "position in list"
+  ],
+  "Identify Position": [
+    "identify position",
+    "find position",
+    "which position"
+  ],
+  "Number Sense (Comparison)": [
+    "bigger",
+    "smaller",
+    "which is greater",
+    "which is less"
+  ],
+  "Addition (Objects)": [
+    "add using objects",
+    "apples",
+    "stars",
+    "balloons"
+  ],
+  "Subtraction (Objects)": [
+    "subtract using objects",
+    "apples",
+    "stars",
+    "balloons"
+  ],
+  "Number Sense (Counting)": [
+    "count",
+    "how many objects",
+    "stars",
+    "apples",
+    "balls",
+    "fingers"
+  ],
+  "Number Sense (Place Value)": [
+    "how many tens",
+    "how many ones",
+    "place value"
+  ],
+  "Geometry (Perimeter)": [
+    "perimeter",
+    "side length",
+    "square perimeter"
+  ],
+  "Geometry (Angles)": [
+    "angle",
+    "90 degrees",
+    "acute",
+    "obtuse",
+    "right angle"
+  ],
+  "Odd One Out": [
+    "odd-one-out",
+    "odd-one-out-same-icon",
+    "odd one out",
+    "does not belong",
+    "classification"
+  ]
+}

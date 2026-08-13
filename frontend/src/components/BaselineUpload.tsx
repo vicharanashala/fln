@@ -112,7 +112,7 @@ export const BaselineUpload: React.FC<BaselineUploadProps> = ({ student, token, 
               <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-400">
                 <Upload className="h-4 w-4" />
                 Choose file
-                <input type="file" accept="application/json,.json" className="hidden" onChange={handleFile} />
+                <input id="baseline-json-file-input" name="jsonFile" aria-label="Choose JSON answer sheet file" type="file" accept="application/json,.json" className="hidden" onChange={handleFile} />
               </label>
               {fileName && <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{fileName}</span>}
             </div>

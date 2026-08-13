@@ -29,8 +29,8 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
     return subLevel === 2 ? 'Remedial' : subLevel === 1 ? 'Easier' : 'Mastery';
   };
 
-  // Build 4 questions per level
-  for (let qIdx = 1; qIdx <= 4; qIdx++) {
+  // Build up to 20 questions per level
+  for (let qIdx = 1; qIdx <= 20; qIdx++) {
     const questionId = `${levelStr}_Q${qIdx}`;
     let questionText = '';
     let answerText = '';
@@ -338,31 +338,32 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
         break;
 
       case 39:
-        const add39A = adjust(456, 234, 123);
-        const add39B = adjust(238, 142, 54);
+        const add39A = adjust((qIdx + 3) * 23 + 120, (qIdx + 2) * 15 + 45, (qIdx + 1) * 9 + 12);
+        const add39B = adjust((qIdx + 1) * 17 + 85, (qIdx + 1) * 11 + 32, (qIdx + 1) * 6 + 9);
         questionText = `Solve: ${add39A} + ${add39B} = ?`;
         answerText = String(add39A + add39B);
         break;
 
       case 40:
-        const sub40A = adjust(785, 456, 234);
-        const sub40B = adjust(296, 148, 89);
+        const sub40A = adjust((qIdx + 5) * 35 + 240, (qIdx + 4) * 22 + 110, (qIdx + 3) * 12 + 45);
+        const sub40B = adjust((qIdx + 1) * 14 + 65, (qIdx + 1) * 9 + 34, (qIdx + 1) * 5 + 12);
         questionText = `Solve: ${sub40A} - ${sub40B} = ?`;
         answerText = String(sub40A - sub40B);
         break;
 
       case 41:
-        const multA = adjust(7, 5, 3);
-        const multB = adjust(8, 6, 4);
+        const multA = adjust((qIdx % 8) + 2, (qIdx % 6) + 2, (qIdx % 4) + 1);
+        const multB = adjust((qIdx % 7) + 3, (qIdx % 5) + 2, (qIdx % 3) + 2);
         questionText = `What is ${multA} times ${multB}?`;
         answerText = String(multA * multB);
         break;
 
       case 42:
-        const divA = adjust(24, 12, 6);
-        const divB = adjust(4, 3, 2);
+        const divB = adjust((qIdx % 4) + 2, (qIdx % 3) + 2, 2);
+        const divQuot = (qIdx % 6) + 2;
+        const divA = divB * divQuot;
         questionText = `Divide: ${divA} items shared equally among ${divB} children. How many each?`;
-        answerText = String(divA / divB);
+        answerText = String(divQuot);
         break;
 
       case 43:
