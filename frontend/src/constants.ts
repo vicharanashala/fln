@@ -147,6 +147,14 @@ export const DISTRICT_NAMES: Record<string, string> = {
   RNC: 'Ranchi', DHN: 'Dhanbad',
   BNG: 'Bangalore', MYS: 'Mysore', TVM: 'Thiruvananthapuram', EKM: 'Ernakulam',
   BPL: 'Bhopal', MUM: 'Mumbai', PUN: 'Pune',
+  // Maharashtra (MH) - All 36 Official Districts
+  AHM_MH: 'Ahmednagar / Ahilyanagar', AKL: 'Akola', AMR_MH: 'Amravati', CSN: 'Chhatrapati Sambhaji Nagar', BED: 'Beed',
+  BHD_MH: 'Bhandara', BLD: 'Buldhana', CHD: 'Chandrapur', DHL: 'Dhule', GDC: 'Gadchiroli',
+  GND_MH: 'Gondia', HNG: 'Hingoli', JLG: 'Jalgaon', JLN_MH: 'Jalna', KLP_MH: 'Kolhapur',
+  LTR: 'Latur', MMC: 'Mumbai City', MMS: 'Mumbai Suburban', NGP: 'Nagpur', NND: 'Nanded',
+  NDB: 'Nandurbar', NSK: 'Nashik', DHR_MH: 'Dharashiv / Osmanabad', PLG: 'Palghar', PBN: 'Parbhani',
+  RGD: 'Raigad', RTN: 'Ratnagiri', SGL: 'Sangli', STR: 'Satara',
+  SND: 'Sindhudurg', SLP: 'Solapur', THN: 'Thane', WRD: 'Wardha', WSM: 'Washim', YTL: 'Yavatmal',
   IMW: 'Imphal West', IME: 'Imphal East', EKH: 'East Khasi Hills', WJH: 'West Jaintia Hills',
   AIZ: 'Aizawl', CMP: 'Champhai', KOH: 'Kohima', DIM: 'Dimapur',
   BBS: 'Bhubaneswar', CTC: 'Cuttack',
@@ -156,7 +164,16 @@ export const DISTRICT_NAMES: Record<string, string> = {
   PTK: 'Pathankot', PAT: 'Patiala', RUP: 'Rupnagar', SAS: 'SAS Nagar (Mohali)',
   SBS: 'SBS Nagar (Nawanshahr)', MKS: 'Sri Muktsar Sahib', SNG: 'Sangrur', TTN: 'Tarn Taran',
   JAI: 'Jaipur', JDP: 'Jodhpur', ESK: 'East Sikkim', WSK: 'West Sikkim',
-  CHN: 'Chennai', CBE: 'Coimbatore', HYD: 'Hyderabad', WGL: 'Warangal',
+  // Tamil Nadu (TN) - All 38 Official Districts
+  ARI: 'Ariyalur', CGP: 'Chengalpattu', CHN: 'Chennai', CBE: 'Coimbatore', CUD: 'Cuddalore',
+  DPI: 'Dharmapuri', DGL: 'Dindigul', ERD: 'Erode', KLK: 'Kallakurichi', KCP: 'Kancheepuram',
+  KKM: 'Kanniyakumari', KRR: 'Karur', KGI: 'Krishnagiri', MDU: 'Madurai', MYD: 'Mayiladuthurai',
+  NGP_TN: 'Nagapattinam', NMK: 'Namakkal', PBL: 'Perambalur', PDK: 'Pudukkottai', RMD: 'Ramanathapuram',
+  RPT: 'Ranipet', SLM: 'Salem', SVG: 'Sivaganga', TKS: 'Tenkasi', TNJ: 'Thanjavur',
+  NLG: 'The Nilgiris', THN_TN: 'Theni', TLR: 'Thiruvallur', TVR: 'Thiruvarur', TUT: 'Thoothukudi / Tuticorin',
+  TRI: 'Tiruchirappalli', TNV: 'Tirunelveli', TPR_TN: 'Tirupathur', TPR: 'Tiruppur', TVM_TN: 'Tiruvannamalai',
+  VEL: 'Vellore', VLP: 'Viluppuram', VRD: 'Virudhunagar',
+  HYD: 'Hyderabad', WGL: 'Warangal',
   // Uttar Pradesh (UP) - 75 Districts
   AGR: 'Agra', ALG: 'Aligarh', AMB_UP: 'Ambedkar Nagar', AMT: 'Amethi', AMR: 'Amroha',
   AUR: 'Auraiya', AYO: 'Ayodhya', AZM: 'Azamgarh', BGP: 'Baghpat', BHR: 'Bahraich',
@@ -231,8 +248,154 @@ export const BLOCK_NAMES: Record<string, string> = {
   'MYS_01': 'Mysore Block 1', 'MYS_02': 'Mysore Block 2',
   'TVM_01': 'Thiruvananthapuram Block 1', 'TVM_02': 'Thiruvananthapuram Block 2',
   'EKM_01': 'Ernakulam Block 1', 'EKM_02': 'Ernakulam Block 2',
-  'MUM_01': 'Mumbai Block 1', 'MUM_02': 'Mumbai Block 2',
-  'PUN_01': 'Pune Block 1', 'PUN_02': 'Pune Block 2',
+  // --- MAHARASHTRA (MH) 350+ BLOCKS ACROSS 36 OFFICIAL DISTRICTS ---
+  'AHM_MH_01': 'Akole Block', 'AHM_MH_02': 'Jamkhed Block', 'AHM_MH_03': 'Karjat Block', 'AHM_MH_04': 'Kopargaon Block', 'AHM_MH_05': 'Nagar Block', 'AHM_MH_06': 'Nevasa Block', 'AHM_MH_07': 'Parner Block', 'AHM_MH_08': 'Pathardi Block', 'AHM_MH_09': 'Rahata Block', 'AHM_MH_10': 'Rahuri Block', 'AHM_MH_11': 'Sangamner Block', 'AHM_MH_12': 'Shevgaon Block', 'AHM_MH_13': 'Shrigonda Block', 'AHM_MH_14': 'Shrirampur Block',
+
+  'AKL_01': 'Akola Block', 'AKL_02': 'Akot Block', 'AKL_03': 'Balapur Block', 'AKL_04': 'Barshitakli Block', 'AKL_05': 'Murtizapur Block', 'AKL_06': 'Patur Block', 'AKL_07': 'Telhara Block',
+
+  'AMR_MH_01': 'Achalpur Block', 'AMR_MH_02': 'Amravati Block', 'AMR_MH_03': 'Anjangaon Surji Block', 'AMR_MH_04': 'Bhatkuli Block', 'AMR_MH_05': 'Chandur Railway Block', 'AMR_MH_06': 'Chandurbazar Block', 'AMR_MH_07': 'Chikhaldara Block', 'AMR_MH_08': 'Daryapur Block', 'AMR_MH_09': 'Dhamangaon Railway Block', 'AMR_MH_10': 'Dharni Block', 'AMR_MH_11': 'Morshi Block', 'AMR_MH_12': 'Nandgaon Khandeshwar Block', 'AMR_MH_13': 'Teosa Block', 'AMR_MH_14': 'Warud Block',
+
+  'CSN_01': 'Aurangabad Block', 'CSN_02': 'Gangapur Block', 'CSN_03': 'Kannad Block', 'CSN_04': 'Khuldabad Block', 'CSN_05': 'Paithan Block', 'CSN_06': 'Phulambri Block', 'CSN_07': 'Sillod Block', 'CSN_08': 'Soegaon Block', 'CSN_09': 'Vaijapur Block',
+
+  'BED_01': 'Ambejogai Block', 'BED_02': 'Ashti Block', 'BED_03': 'Beed Block', 'BED_04': 'Georai Block', 'BED_05': 'Kaij Block', 'BED_06': 'Majalgaon Block', 'BED_07': 'Parli Block', 'BED_08': 'Patoda Block', 'BED_09': 'Shirur Kasar Block', 'BED_10': 'Wadwani Block', 'BED_11': 'Dharur Block',
+
+  'BHD_MH_01': 'Bhandara Block', 'BHD_MH_02': 'Lakhandur Block', 'BHD_MH_03': 'Lakhani Block', 'BHD_MH_04': 'Mohadi Block', 'BHD_MH_05': 'Pauni Block', 'BHD_MH_06': 'Sakoli Block', 'BHD_MH_07': 'Tumsar Block',
+
+  'BLD_01': 'Buldhana Block', 'BLD_02': 'Chikhli Block', 'BLD_03': 'Deolgaon Raja Block', 'BLD_04': 'Jalgaon Jamod Block', 'BLD_05': 'Khamgaon Block', 'BLD_06': 'Lonar Block', 'BLD_07': 'Malkapur Block', 'BLD_08': 'Mehkar Block', 'BLD_09': 'Motala Block', 'BLD_10': 'Nandura Block', 'BLD_11': 'Sangrampur Block', 'BLD_12': 'Shegaon Block', 'BLD_13': 'Sindkhed Raja Block',
+
+  'CHD_01': 'Ballarpur Block', 'CHD_02': 'Bhadravati Block', 'CHD_03': 'Brahmapuri Block', 'CHD_04': 'Chandrapur Block', 'CHD_05': 'Chimur Block', 'CHD_06': 'Gondpipri Block', 'CHD_07': 'Jiwati Block', 'CHD_08': 'Korpana Block', 'CHD_09': 'Mul Block', 'CHD_10': 'Nagbhid Block', 'CHD_11': 'Pombhurna Block', 'CHD_12': 'Rajura Block', 'CHD_13': 'Sawali Block', 'CHD_14': 'Sindewahi Block', 'CHD_15': 'Warora Block',
+
+  'DHL_01': 'Dhule Block', 'DHL_02': 'Sakri Block', 'DHL_03': 'Shirpur Block', 'DHL_04': 'Sindkheda Block',
+
+  'GDC_01': 'Aheri Block', 'GDC_02': 'Armori Block', 'GDC_03': 'Bhamragad Block', 'GDC_04': 'Chamorshi Block', 'GDC_05': 'Desaiganj Wadsa Block', 'GDC_06': 'Dhanora Block', 'GDC_07': 'Etapalli Block', 'GDC_08': 'Gadchiroli Block', 'GDC_09': 'Korchi Block', 'GDC_10': 'Kurkheda Block', 'GDC_11': 'Mulchera Block', 'GDC_12': 'Sironcha Block',
+
+  'GND_MH_01': 'Amgaon Block', 'GND_MH_02': 'Arjuni Morgaon Block', 'GND_MH_03': 'Deori Block', 'GND_MH_04': 'Gondia Block', 'GND_MH_05': 'Goregaon Block', 'GND_MH_06': 'Sadak Arjuni Block', 'GND_MH_07': 'Salekasa Block', 'GND_MH_08': 'Tirora Block',
+
+  'HNG_01': 'Aundha Nagnath Block', 'HNG_02': 'Basmath Block', 'HNG_03': 'Hingoli Block', 'HNG_04': 'Kalamnuri Block', 'HNG_05': 'Sengaon Block',
+
+  'JLG_01': 'Amalner Block', 'JLG_02': 'Bhadgaon Block', 'JLG_03': 'Bhusawal Block', 'JLG_04': 'Bodwad Block', 'JLG_05': 'Chalisgaon Block', 'JLG_06': 'Chopda Block', 'JLG_07': 'Dharangaon Block', 'JLG_08': 'Erandol Block', 'JLG_09': 'Jalgaon Block', 'JLG_10': 'Jamner Block', 'JLG_11': 'Muktainagar Block', 'JLG_12': 'Pachora Block', 'JLG_13': 'Parola Block', 'JLG_14': 'Raver Block', 'JLG_15': 'Yawal Block',
+
+  'JLN_MH_01': 'Ambad Block', 'JLN_MH_02': 'Badnapur Block', 'JLN_MH_03': 'Bhokardan Block', 'JLN_MH_04': 'Ghansawangi Block', 'JLN_MH_05': 'Jafrabad Block', 'JLN_MH_06': 'Jalna Block', 'JLN_MH_07': 'Mantha Block', 'JLN_MH_08': 'Partur Block',
+
+  'KLP_MH_01': 'Ajra Block', 'KLP_MH_02': 'Bavda / Gaganbawda Block', 'KLP_MH_03': 'Bhudargad Block', 'KLP_MH_04': 'Chandgad Block', 'KLP_MH_05': 'Gadhinglaj Block', 'KLP_MH_06': 'Hatkanangle Block', 'KLP_MH_07': 'Kagal Block', 'KLP_MH_08': 'Karveer Block', 'KLP_MH_09': 'Panhala Block', 'KLP_MH_10': 'Radhanagari Block', 'KLP_MH_11': 'Shahuwadi Block', 'KLP_MH_12': 'Shirol Block',
+
+  'LTR_01': 'Ahmadpur Block', 'LTR_02': 'Ausa Block', 'LTR_03': 'Chakur Block', 'LTR_04': 'Deoni Block', 'LTR_05': 'Jalkot Block', 'LTR_06': 'Latur Block', 'LTR_07': 'Nilanga Block', 'LTR_08': 'Renapur Block', 'LTR_09': 'Shirur Anantpal Block', 'LTR_10': 'Udgir Block',
+
+  'MMC_01': 'No Rural Blocks - Entirely Urban / Municipal Corporation',
+
+  'MMS_01': 'Andheri / Western Suburban Block', 'MMS_02': 'Borivali / Northern Suburban Block', 'MMS_03': 'Kurla / Eastern Suburban Block',
+
+  'NGP_01': 'Bhiwapur Block', 'NGP_02': 'Hingna Block', 'NGP_03': 'Kalameshwar Block', 'NGP_04': 'Kamptee Block', 'NGP_05': 'Katol Block', 'NGP_06': 'Kuhi Block', 'NGP_07': 'Mouda Block', 'NGP_08': 'Nagpur Rural Block', 'NGP_09': 'Narkhed Block', 'NGP_10': 'Parseoni Block', 'NGP_11': 'Ramtek Block', 'NGP_12': 'Savner Block', 'NGP_13': 'Umred Block',
+
+  'NND_01': 'Ardhapur Block', 'NND_02': 'Bhokar Block', 'NND_03': 'Biloli Block', 'NND_04': 'Deglur Block', 'NND_05': 'Dharmabad Block', 'NND_06': 'Hadgaon Block', 'NND_07': 'Himayatnagar Block', 'NND_08': 'Kandhar Block', 'NND_09': 'Kinwat Block', 'NND_10': 'Loha Block', 'NND_11': 'Mahur Block', 'NND_12': 'Mudkhed Block', 'NND_13': 'Mukhed Block', 'NND_14': 'Naigaon / Khairgaon Block', 'NND_15': 'Nanded Block', 'NND_16': 'Umri Block',
+
+  'NDB_01': 'Akkalkuwa Block', 'NDB_02': 'Akrani / Dhadgaon Block', 'NDB_03': 'Nandurbar Block', 'NDB_04': 'Navapur Block', 'NDB_05': 'Shahada Block', 'NDB_06': 'Taloda Block',
+
+  'NSK_01': 'Baglan / Satana Block', 'NSK_02': 'Chandwad Block', 'NSK_03': 'Deola Block', 'NSK_04': 'Dindori Block', 'NSK_05': 'Igatpuri Block', 'NSK_06': 'Kalwan Block', 'NSK_07': 'Malegaon Block', 'NSK_08': 'Nandgaon Block', 'NSK_09': 'Nashik Block', 'NSK_10': 'Niphad Block', 'NSK_11': 'Peth Block', 'NSK_12': 'Sinnar Block', 'NSK_13': 'Surgana Block', 'NSK_14': 'Trimbakeshwar Block', 'NSK_15': 'Yeola Block',
+
+  'DHR_MH_01': 'Bhoom Block', 'DHR_MH_02': 'Kalamb Block', 'DHR_MH_03': 'Lohara Block', 'DHR_MH_04': 'Osmanabad / Dharashiv Block', 'DHR_MH_05': 'Paranda Block', 'DHR_MH_06': 'Tuljapur Block', 'DHR_MH_07': 'Umarga Block', 'DHR_MH_08': 'Washi Block',
+
+  'PLG_01': 'Dahanu Block', 'PLG_02': 'Jawhar Block', 'PLG_03': 'Mokhada Block', 'PLG_04': 'Palghar Block', 'PLG_05': 'Talasari Block', 'PLG_06': 'Vada Block', 'PLG_07': 'Vasai Block', 'PLG_08': 'Vikramgad Block',
+
+  'PBN_01': 'Gangakhed Block', 'PBN_02': 'Jintur Block', 'PBN_03': 'Manwath Block', 'PBN_04': 'Palam Block', 'PBN_05': 'Parbhani Block', 'PBN_06': 'Pathri Block', 'PBN_07': 'Purna Block', 'PBN_08': 'Sailu Block', 'PBN_09': 'Sonpeth Block',
+
+  'PUN_01': 'Ambegaon Block', 'PUN_02': 'Baramati Block', 'PUN_03': 'Bhor Block', 'PUN_04': 'Daund Block', 'PUN_05': 'Haveli Block', 'PUN_06': 'Indapur Block', 'PUN_07': 'Junnar Block', 'PUN_08': 'Khed Block', 'PUN_09': 'Maval Block', 'PUN_10': 'Mulshi Block', 'PUN_11': 'Purandar Block', 'PUN_12': 'Shirur Block', 'PUN_13': 'Velhe Block',
+
+  'RGD_01': 'Alibag Block', 'RGD_02': 'Karjat Block', 'RGD_03': 'Khalapur Block', 'RGD_04': 'Mahad Block', 'RGD_05': 'Mangaon Block', 'RGD_06': 'Mhasla Block', 'RGD_07': 'Murud Block', 'RGD_08': 'Panvel Block', 'RGD_09': 'Pen Block', 'RGD_10': 'Poladpur Block', 'RGD_11': 'Roha Block', 'RGD_12': 'Shrivardhan Block', 'RGD_13': 'Sudhagad Pali Block', 'RGD_14': 'Tala Block', 'RGD_15': 'Uran Block',
+
+  'RTN_01': 'Chiplun Block', 'RTN_02': 'Dapoli Block', 'RTN_03': 'Guhagar Block', 'RTN_04': 'Khed Block', 'RTN_05': 'Lanja Block', 'RTN_06': 'Mandangad Block', 'RTN_07': 'Rajapur Block', 'RTN_08': 'Ratnagiri Block', 'RTN_09': 'Sangameshwar Block',
+
+  'SGL_01': 'Atpadi Block', 'SGL_02': 'Jat Block', 'SGL_03': 'Kadegaon Block', 'SGL_04': 'Kavathe Mahankal Block', 'SGL_05': 'Khanapur / Vita Block', 'SGL_06': 'Miraj Block', 'SGL_07': 'Palus Block', 'SGL_08': 'Shirala Block', 'SGL_09': 'Tasgaon Block', 'SGL_10': 'Walwa / Islampur Block',
+
+  'STR_01': 'Jaoli Block', 'STR_02': 'Karad Block', 'STR_03': 'Khandala Block', 'STR_04': 'Khatav Block', 'STR_05': 'Koregaon Block', 'STR_06': 'Mahabaleshwar Block', 'STR_07': 'Man Block', 'STR_08': 'Patan Block', 'STR_09': 'Phaltan Block', 'STR_10': 'Satara Block', 'STR_11': 'Wai Block',
+
+  'SND_01': 'Devgad Block', 'SND_02': 'Dodamarg Block', 'SND_03': 'Kankavli Block', 'SND_04': 'Kudal Block', 'SND_05': 'Malvan Block', 'SND_06': 'Sawantwadi Block', 'SND_07': 'Vaibhavwadi Block', 'SND_08': 'Vengurla Block',
+
+  'SLP_01': 'Akkalkot Block', 'SLP_02': 'Barshi Block', 'SLP_03': 'Karmala Block', 'SLP_04': 'Madha Block', 'SLP_05': 'Malshiras Block', 'SLP_06': 'Mangalwedha Block', 'SLP_07': 'Mohol Block', 'SLP_08': 'Pandharpur Block', 'SLP_09': 'Sangole Block', 'SLP_10': 'Solapur North Block', 'SLP_11': 'Solapur South Block',
+
+  'THN_01': 'Ambernath Block', 'THN_02': 'Bhiwandi Block', 'THN_03': 'Kalyan Block', 'THN_04': 'Murbad Block', 'THN_05': 'Shahapur Block', 'THN_06': 'Thane Rural Block', 'THN_07': 'Ulhasnagar Block',
+
+  'WRD_01': 'Arvi Block', 'WRD_02': 'Ashti Block', 'WRD_03': 'Deoli Block', 'WRD_04': 'Hinganghat Block', 'WRD_05': 'Karanja Block', 'WRD_06': 'Samudrapur Block', 'WRD_07': 'Seloo Block', 'WRD_08': 'Wardha Block',
+
+  'WSM_01': 'Karanja Block', 'WSM_02': 'Malegaon Block', 'WSM_03': 'Mangrulpir Block', 'WSM_04': 'Manora Block', 'WSM_05': 'Risod Block', 'WSM_06': 'Washim Block',
+
+  'YTL_01': 'Arni Block', 'YTL_02': 'Babhulgaon Block', 'YTL_03': 'Darwha Block', 'YTL_04': 'Digras Block', 'YTL_05': 'Ghatanji Block', 'YTL_06': 'Kalamb Block', 'YTL_07': 'Kelapur / Pandharkawada Block', 'YTL_08': 'Mahagaon Block', 'YTL_09': 'Maregaon Block', 'YTL_10': 'Ner Block', 'YTL_11': 'Pusad Block', 'YTL_12': 'Ralegaon Block', 'YTL_13': 'Umarkhed Block', 'YTL_14': 'Wani Block', 'YTL_15': 'Yavatmal Block', 'YTL_16': 'Zari-Jamani Block',
+  // --- TAMIL NADU (TN) 388 BLOCKS ACROSS 38 OFFICIAL DISTRICTS ---
+  'ARI_01': 'Andimadam Block', 'ARI_02': 'Ariyalur Block', 'ARI_03': 'Jayankondam Block', 'ARI_04': 'Sendurai Block', 'ARI_05': 'T.Palur Block', 'ARI_06': 'Thirumanur Block',
+
+  'CGP_01': 'Acharapakkam Block', 'CGP_02': 'Chithamur Block', 'CGP_03': 'Kattankolathur Block', 'CGP_04': 'Lathur Block', 'CGP_05': 'Maduranthakam Block', 'CGP_06': 'St. Thomas Mount Block', 'CGP_07': 'Thiruporur Block', 'CGP_08': 'Tirukalukundram Block',
+
+  'CHN_01': 'No Rural Blocks - Entirely Greater Chennai Corporation',
+
+  'CBE_01': 'Anamalai Block', 'CBE_02': 'Annur Block', 'CBE_03': 'Karamadai Block', 'CBE_04': 'Kinathukadavu Block', 'CBE_05': 'Madukkarai Block', 'CBE_06': 'Periyanayakkanpalayam Block', 'CBE_07': 'Pollachi North Block', 'CBE_08': 'Pollachi South Block', 'CBE_09': 'Sarcarsamakulam Block', 'CBE_10': 'Sultanpet Block', 'CBE_11': 'Sulur Block', 'CBE_12': 'Thondamuthur Block',
+
+  'CUD_01': 'Annagramam Block', 'CUD_02': 'Cuddalore Block', 'CUD_03': 'Kammapuram Block', 'CUD_04': 'Kattumannarkoil Block', 'CUD_05': 'Keerapalayam Block', 'CUD_06': 'Kumaratchi Block', 'CUD_07': 'Kurinjipadi Block', 'CUD_08': 'Mangalur Block', 'CUD_09': 'Melbhuvanagiri Block', 'CUD_10': 'Nallur Block', 'CUD_11': 'Panruti Block', 'CUD_12': 'Parangipettai Block', 'CUD_13': 'Srimushnam Block', 'CUD_14': 'Virudhachalam Block',
+
+  'DPI_01': 'Dharmapuri Block', 'DPI_02': 'Harur Block', 'DPI_03': 'Karimangalam Block', 'DPI_04': 'Kadathur Block', 'DPI_05': 'Morappur Block', 'DPI_06': 'Nallampalli Block', 'DPI_07': 'Palakkodu Block', 'DPI_08': 'Pappireddipatti Block', 'DPI_09': 'Pennagaram Block', 'DPI_10': 'Eriyur Block',
+
+  'DGL_01': 'Athoor Block', 'DGL_02': 'Batlagundu Block', 'DGL_03': 'Dindigul Block', 'DGL_04': 'Gujiliamparai Block', 'DGL_05': 'Kodaikanal Block', 'DGL_06': 'Natham Block', 'DGL_07': 'Nilakottai Block', 'DGL_08': 'Oddanchatram Block', 'DGL_09': 'Palani Block', 'DGL_10': 'Reddiarchatram Block', 'DGL_11': 'Shanarpatti Block', 'DGL_12': 'Thoppampatti Block', 'DGL_13': 'Vadamadurai Block', 'DGL_14': 'Vedasandur Block',
+
+  'ERD_01': 'Ammapet Block', 'ERD_02': 'Anthiyur Block', 'ERD_03': 'Bhavani Block', 'ERD_04': 'Bhavanisagar Block', 'ERD_05': 'Chennimalai Block', 'ERD_06': 'Erode Block', 'ERD_07': 'Gobichettipalayam Block', 'ERD_08': 'Kodumudi Block', 'ERD_09': 'Modakkurichi Block', 'ERD_10': 'Nambiyur Block', 'ERD_11': 'Perundurai Block', 'ERD_12': 'Sathyamangalam Block', 'ERD_13': 'Talavadi Block', 'ERD_14': 'T.N.Palayam Block',
+
+  'KLK_01': 'Chinnasalem Block', 'KLK_02': 'Kalrayan Hills Block', 'KLK_03': 'Kallakurichi Block', 'KLK_04': 'Rishivandiyam Block', 'KLK_05': 'Sankarapuram Block', 'KLK_06': 'Thiagadurgam Block', 'KLK_07': 'Tirukkoyilur Block', 'KLK_08': 'Tirunavalur Block', 'KLK_09': 'Ulundurpet Block',
+
+  'KCP_01': 'Kancheepuram Block', 'KCP_02': 'Kundrathur Block', 'KCP_03': 'Sriperumbudur Block', 'KCP_04': 'Uthiramerur Block', 'KCP_05': 'Walajabad Block',
+
+  'KKM_01': 'Agastheeswaram Block', 'KKM_02': 'Killiyoor Block', 'KKM_03': 'Kurunthancode Block', 'KKM_04': 'Melpuram Block', 'KKM_05': 'Munchirai Block', 'KKM_06': 'Rajakkamangalam Block', 'KKM_07': 'Thiruvattar Block', 'KKM_08': 'Thovalai Block', 'KKM_09': 'Thuckalay Block',
+
+  'KRR_01': 'Aravakurichi Block', 'KRR_02': 'K.Paramathi Block', 'KRR_03': 'Kadavur Block', 'KRR_04': 'Karur Block', 'KRR_05': 'Krishnarayapuram Block', 'KRR_06': 'Kulithalai Block', 'KRR_07': 'Thanthoni Block', 'KRR_08': 'Thogaimalai Block',
+
+  'KGI_01': 'Bargur Block', 'KGI_02': 'Hosur Block', 'KGI_03': 'Kaveripattinam Block', 'KGI_04': 'Kelamangalam Block', 'KGI_05': 'Krishnagiri Block', 'KGI_06': 'Mathur Block', 'KGI_07': 'Shoolagiri Block', 'KGI_08': 'Thally Block', 'KGI_09': 'Uthangarai Block', 'KGI_10': 'Veppanapalli Block',
+
+  'MDU_01': 'Alanganallur Block', 'MDU_02': 'Chellampatti Block', 'MDU_03': 'Kallikudi Block', 'MDU_04': 'Kottampatti Block', 'MDU_05': 'Madurai East Block', 'MDU_06': 'Madurai West Block', 'MDU_07': 'Melur Block', 'MDU_08': 'Sedapatti Block', 'MDU_09': 'T.Kallupatti Block', 'MDU_10': 'Thirumangalam Block', 'MDU_11': 'Thirupparankundram Block', 'MDU_12': 'Usilampatti Block', 'MDU_13': 'Vadipatti Block',
+
+  'MYD_01': 'Kollidam Block', 'MYD_02': 'Kuthalam Block', 'MYD_03': 'Mayiladuthurai Block', 'MYD_04': 'Sirkali Block', 'MYD_05': 'Sembanarkoil Block',
+
+  'NGP_TN_01': 'Keelaiyur Block', 'NGP_TN_02': 'Kilvelur Block', 'NGP_TN_03': 'Nagapattinam Block', 'NGP_TN_04': 'Thalainayar Block', 'NGP_TN_05': 'Thirumarugal Block', 'NGP_TN_06': 'Vedaranyam Block',
+
+  'NMK_01': 'Elachipalayam Block', 'NMK_02': 'Erumapatty Block', 'NMK_03': 'Kabilarmalai Block', 'NMK_04': 'Kolli Hills Block', 'NMK_05': 'Mallasamudram Block', 'NMK_06': 'Mohanur Block', 'NMK_07': 'Namagiripet Block', 'NMK_08': 'Namakkal Block', 'NMK_09': 'Paramathi Block', 'NMK_10': 'Puduchatram Block', 'NMK_11': 'Rasipuram Block', 'NMK_12': 'Sendamangalam Block', 'NMK_13': 'Thiruchengode Block', 'NMK_14': 'Vennandur Block', 'NMK_15': 'Pallipalayam Block',
+
+  'PBL_01': 'Alathur Block', 'PBL_02': 'Kurumbalur / Perambalur Block', 'PBL_03': 'Veppanthattai Block', 'PBL_04': 'Veppur Block',
+
+  'PDK_01': 'Annavasal Block', 'PDK_02': 'Aranthangi Block', 'PDK_03': 'Arimalam Block', 'PDK_04': 'Avudayarkoil Block', 'PDK_05': 'Gandarvakottai Block', 'PDK_06': 'Karambakkudi Block', 'PDK_07': 'Kunnandarkoil Block', 'PDK_08': 'Manamelkudi Block', 'PDK_09': 'Mayilappur / Viralimalai Block', 'PDK_10': 'Pudukkottai Block', 'PDK_11': 'Thiruvarankulam Block', 'PDK_12': 'Thirumayam Block', 'PDK_13': 'Ponnamaravathi Block',
+
+  'RMD_01': 'Bogalur Block', 'RMD_02': 'Kadaladi Block', 'RMD_03': 'Kamuthi Block', 'RMD_04': 'Mandapam Block', 'RMD_05': 'Mudukulathur Block', 'RMD_06': 'Nainarkoil Block', 'RMD_07': 'Paramakudi Block', 'RMD_08': 'R.S.Mangalam Block', 'RMD_09': 'Ramanathapuram Block', 'RMD_10': 'Thiruppullani Block', 'RMD_11': 'Thiruvadanai Block',
+
+  'RPT_01': 'Arakkonam Block', 'RPT_02': 'Arcot Block', 'RPT_03': 'Kaveripakkam Block', 'RPT_04': 'Nemili Block', 'RPT_05': 'Sholinghur Block', 'RPT_06': 'Timiri Block', 'RPT_07': 'Walajah Block',
+
+  'SLM_01': 'Attur Block', 'SLM_02': 'Ayothiyapattinam Block', 'SLM_03': 'Gangavalli Block', 'SLM_04': 'Idappadi Block', 'SLM_05': 'Kadayampatti Block', 'SLM_06': 'Kolathur Block', 'SLM_07': 'Konganapuram Block', 'SLM_08': 'Magudanchavadi Block', 'SLM_09': 'Mecheri Block', 'SLM_10': 'Nangavalli Block', 'SLM_11': 'Omalur Block', 'SLM_12': 'Panaimarathupatti Block', 'SLM_13': 'Peddanaickenpalayam Block', 'SLM_14': 'Salem Block', 'SLM_15': 'Sankari Block', 'SLM_16': 'Thalaivasal Block', 'SLM_17': 'Tharamangalam Block', 'SLM_18': 'Valapady Block', 'SLM_19': 'Veerapandi Block', 'SLM_20': 'Yercaud Block',
+
+  'SVG_01': 'Devakottai Block', 'SVG_02': 'Ilanyangudi Block', 'SVG_03': 'Kalayarkoil Block', 'SVG_04': 'Kallal Block', 'SVG_05': 'Kannankudi Block', 'SVG_06': 'Manamadurai Block', 'SVG_07': 'S.Pudur Block', 'SVG_08': 'Sakkottai Block', 'SVG_09': 'Singampunari Block', 'SVG_10': 'Sivaganga Block', 'SVG_11': 'Thiruppuvanam Block', 'SVG_12': 'Tirupathur Block',
+
+  'TKS_01': 'Alangulam Block', 'TKS_02': 'Kadayanallur Block', 'TKS_03': 'Keelapavoor Block', 'TKS_04': 'Kuruvikulam Block', 'TKS_05': 'Melaneelithanallur Block', 'TKS_06': 'Sankarankovil Block', 'TKS_07': 'Shenkottai Block', 'TKS_08': 'Tenkasi Block', 'TKS_09': 'Vasudevanallur Block', 'TKS_10': 'Vembakottai Block',
+
+  'TNJ_01': 'Ammapettai Block', 'TNJ_02': 'Budalur Block', 'TNJ_03': 'Kumbakonam Block', 'TNJ_04': 'Madukkur Block', 'TNJ_05': 'Orathanadu Block', 'TNJ_06': 'Papanasam Block', 'TNJ_07': 'Pattukkottai Block', 'TNJ_08': 'Peravurani Block', 'TNJ_09': 'Sethubhavachatram Block', 'TNJ_10': 'Thanjavur Block', 'TNJ_11': 'Thirappanandal Block', 'TNJ_12': 'Thiruvaiyaru Block', 'TNJ_13': 'Thiruvonam Block', 'TNJ_14': 'Thiruvidaimarudur Block',
+
+  'NLG_01': 'Coonoor Block', 'NLG_02': 'Gudalur Block', 'NLG_03': 'Kotagiri Block', 'NLG_04': 'Udhagamandalam Block',
+
+  'THN_TN_01': 'Andipatti Block', 'THN_TN_02': 'Bodinayakkanur Block', 'THN_TN_03': 'Chinnamanur Block', 'THN_TN_04': 'Cumbum Block', 'THN_TN_05': 'Kadamalaikundu-Myladumparai Block', 'THN_TN_06': 'Periyakulam Block', 'THN_TN_07': 'Theni Block', 'THN_TN_08': 'Uthamapalayam Block',
+
+  'TLR_01': 'Ellapuram Block', 'TLR_02': 'Gummidipoondi Block', 'TLR_03': 'Kadambathur Block', 'TLR_04': 'Minjur Block', 'TLR_05': 'Pallipattu Block', 'TLR_06': 'Poondi Block', 'TLR_07': 'Poonamallee Block', 'TLR_08': 'R.K.Pet Block', 'TLR_09': 'Sholavaram Block', 'TLR_10': 'Tiruttani Block', 'TLR_11': 'Thiruvallur Block', 'TLR_12': 'Thiruvalangadu Block', 'TLR_13': 'Villivakkam Block', 'TLR_14': 'Ekkadu Block',
+
+  'TVR_01': 'Kodavasal Block', 'TVR_02': 'Koradacheri Block', 'TVR_03': 'Kottur Block', 'TVR_04': 'Mannargudi Block', 'TVR_05': 'Muthupettai Block', 'TVR_06': 'Nannilam Block', 'TVR_07': 'Needamangalam Block', 'TVR_08': 'Thirumakkottai Block', 'TVR_09': 'Thiruvarur Block', 'TVR_10': 'Valangaiman Block',
+
+  'TUT_01': 'Alwarthirunagari Block', 'TUT_02': 'Karunkulam Block', 'TUT_03': 'Kayathar Block', 'TUT_04': 'Kovilpatti Block', 'TUT_05': 'Ottapidaram Block', 'TUT_06': 'Pudur Block', 'TUT_07': 'Sattankulam Block', 'TUT_08': 'Srivaikuntam Block', 'TUT_09': 'Thoothukudi Block', 'TUT_10': 'Tiruchendur Block', 'TUT_11': 'Udangudi Block', 'TUT_12': 'Vilathikulam Block',
+
+  'TRI_01': 'Andanallur Block', 'TRI_02': 'Lalgudi Block', 'TRI_03': 'Manachanallur Block', 'TRI_04': 'Manapparai Block', 'TRI_05': 'Manikandam Block', 'TRI_06': 'Marungapuri Block', 'TRI_07': 'Musiri Block', 'TRI_08': 'Pullambadi Block', 'TRI_09': 'Tattayyangarpettai Block', 'TRI_10': 'Thiruverumbur Block', 'TRI_11': 'Thottiam Block', 'TRI_12': 'Thuraiyur Block', 'TRI_13': 'Uppiliyapuram Block', 'TRI_14': 'Vaiyampatti Block',
+
+  'TNV_01': 'Ambasamudram Block', 'TNV_02': 'Cheranmahadevi Block', 'TNV_03': 'Kalakadu Block', 'TNV_04': 'Manur Block', 'TNV_05': 'Nanguneri Block', 'TNV_06': 'Palayamkottai Block', 'TNV_07': 'Pappakudi Block', 'TNV_08': 'Radhapuram Block', 'TNV_09': 'Valliyoor Block',
+
+  'TPR_TN_01': 'Alangayam Block', 'TPR_TN_02': 'Jolarpet Block', 'TPR_TN_03': 'Kandhili Block', 'TPR_TN_04': 'Madhanur Block', 'TPR_TN_05': 'Natrampalli Block', 'TPR_TN_06': 'Tirupathur Block',
+
+  'TPR_01': 'Avinashi Block', 'TPR_02': 'Dharapuram Block', 'TPR_03': 'Gudimangalam Block', 'TPR_04': 'Kangeyam Block', 'TPR_05': 'Kundadam Block', 'TPR_06': 'Madathukulam Block', 'TPR_07': 'Mulanur Block', 'TPR_08': 'Palladam Block', 'TPR_09': 'Pongalur Block', 'TPR_10': 'Tiruppur Block', 'TPR_11': 'Udumalaipettai Block', 'TPR_12': 'Uthukuli Block', 'TPR_13': 'Vellakoil Block',
+
+  'TVM_TN_01': 'Anakkavoor Block', 'TVM_TN_02': 'Arani East Block', 'TVM_TN_03': 'Arani West Block', 'TVM_TN_04': 'Chetpet Block', 'TVM_TN_05': 'Cheyyar Block', 'TVM_TN_06': 'Jawadhu Hills Block', 'TVM_TN_07': 'Kalasapakkam Block', 'TVM_TN_08': 'Kilpennathur Block', 'TVM_TN_09': 'Peranamallur Block', 'TVM_TN_10': 'Polur Block', 'TVM_TN_11': 'Pudupalayam Block', 'TVM_TN_12': 'Thandarampattu Block', 'TVM_TN_13': 'Thellar Block', 'TVM_TN_14': 'Thiruvannamalai Block', 'TVM_TN_15': 'Turinjapuram Block', 'TVM_TN_16': 'Vandavasi Block', 'TVM_TN_17': 'Vembakkam Block', 'TVM_TN_18': 'West Arani Block',
+
+  'VEL_01': 'Anaicut Block', 'VEL_02': 'Gudiyatham Block', 'VEL_03': 'Kaniyambadi Block', 'VEL_04': 'Katpadi Block', 'VEL_05': 'K.V.Kuppam Block', 'VEL_06': 'Pernambut Block', 'VEL_07': 'Vellore Block',
+
+  'VLP_01': 'Gingee Block', 'VLP_02': 'Kanai Block', 'VLP_03': 'Kandamangalam Block', 'VLP_04': 'Koliyanur Block', 'VLP_05': 'Mailam Block', 'VLP_06': 'Marakkanam Block', 'VLP_07': 'Melmalayanur Block', 'VLP_08': 'Mugaiyur Block', 'VLP_09': 'Olakkur Block', 'VLP_10': 'Thiruvennainallur Block', 'VLP_11': 'Vanur Block', 'VLP_12': 'Vikaravandi Block', 'VLP_13': 'Vallam Block',
+
+  'VRD_01': 'Aruppukkottai Block', 'VRD_02': 'Kariapatti Block', 'VRD_03': 'Narikudi Block', 'VRD_04': 'Rajapalayam Block', 'VRD_05': 'Sathur Block', 'VRD_06': 'Sivakasi Block', 'VRD_07': 'Srivilliputhur Block', 'VRD_08': 'Tiruchuli Block', 'VRD_09': 'Vembakottai Block', 'VRD_10': 'Virudhunagar Block', 'VRD_11': 'Watrap Block',
   'IMW_01': 'Imphal West Block 1', 'IMW_02': 'Imphal West Block 2',
   'IME_01': 'Imphal East Block 1', 'IME_02': 'Imphal East Block 2',
   'EKH_01': 'East Khasi Hills Block 1', 'EKH_02': 'East Khasi Hills Block 2',
