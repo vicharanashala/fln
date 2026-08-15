@@ -1,85 +1,106 @@
 /**
  * server/idGenerator.ts
  * ---------------------------------------------------------------------------
- * Centralized ID generation for the FLN platform — replaces the ad-hoc
- * random ID generation currently at two call sites in server/index.ts:
+ * Centralized ID generation for the FLN platform (v2 — person-based,
+ * 60-bit / 15-character).
  *
- *   - POST /api/students        →  'STD_' + Math.floor(10000 + Math.random() * 90000)
- *   - POST /api/admin/create    →  'u_' + Math.random().toString(36).substr(2, 9)
+ * IDs are permanent, opaque, randomly-generated identifiers for a PERSON
+ * (teacher or student), independent of any school, state, district,
+ * mentor, or affiliation. A student who changes school, moves across
+ * districts, is home-schooled, or is mentored independently keeps the
+ * exact same ID for life. How a person is CURRENTLY connected to the
+ * system (school + teacher, or independent + mentor) is tracked
+ * separately on the Student/User record itself (schoolId, teacherId,
+ * mentorId, affiliationType) — never encoded into the ID.
  *
- * Produces two kinds of IDs:
- *   - Teacher ID  (11 chars): version(1) + school(6) + 'T' + seq(2) + checksum(1)
- *   - Student ID  (12 chars): version(1) + school(6) + 'S' + seq(3) + checksum(1)
+ * This explicitly EXCLUDES state/district/block/school from the ID, on
+ * the same principle applied one level further: administrative
+ * boundaries change (district splits/renames, school transfers) and
+ * embedding them would either go stale or leak a child's location from a
+ * bare ID string. That information lives on School/Affiliation, one
+ * lookup away — never duplicated into the identity itself.
  *
- * WHY THIS DESIGN (given what actually exists in this repo today)
+ * ID format (15 characters total):
+ *
+ *   [version: 1] + [random payload: 12] + [type marker: 1] + [checksum: 1]
+ *
+ * WHY 60 BITS, GIVEN A ~10 CRORE (100,000,000) STUDENT TARGET
  * ---------------------------------------------------------------------------
- * The `School` type in types.ts has no UDISE field yet — schools are keyed
- * by a hand-assigned slug (e.g. "gps-mt-001"). So, unlike a design built
- * around a real 11-digit UDISE code, we can't losslessly encode the school
- * segment yet. Instead:
+ * Using the birthday-paradox approximation (expected collisions ≈
+ * n² / (2 × 2^bits)) at n = 100,000,000:
+ *   - 60 bits: ~0.0043 expected collisions — roughly a
+ *     1-in-230 chance of a single collision ever occurring across all 10
+ *     crore IDs.
+ * 60 bits was chosen as the balance between that safety margin and total
+ * ID length (15 chars vs. 19 for an 80-bit version) for a code that
+ * teachers/children may need to hand-copy from printed material.
  *
- *   - The school segment is a deterministic SHA-256 hash of whatever unique
- *     school identifier is currently available, truncated to 6 Base32
- *     characters.
- *   - `getSchoolIdentifier()` prefers `school.udiseCode` if that field is
- *     present, and falls back to `school.id` (the existing manually-created
- *     slug) otherwise.
- *
- * WHY WE DON'T FREEZE/CACHE THE SEGMENT (a deliberate, discussed decision)
+ * ⚠️ UNIQUENESS ENFORCEMENT — NOT YET WIRED UP, MUST HAPPEN BEFORE PRODUCTION
  * ---------------------------------------------------------------------------
- * An earlier version of this module cached the computed segment onto the
- * school record the first time it was generated, so that switching a
- * school's identifier source (slug -> udiseCode) later wouldn't change
- * IDs that were already issued and printed. That protection is only
- * necessary if real IDs get issued to actual students/teachers BEFORE
- * UDISE integration lands.
+ * This module does NOT check a database for prior use — it has no
+ * database dependency at all (generation is pure/synchronous). At 60
+ * bits, real-world collisions are expected to be very rare but are NOT
+ * impossible, so correctness still depends entirely on
+ * the caller enforcing uniqueness at the database level.
  *
- * The plan here is the opposite: UDISE codes get imported and wired into
- * `School.udiseCode` BEFORE this system is used for real (i.e. before any
- * ID that needs to survive long-term gets generated/printed). Any IDs
- * generated before that point are effectively throwaway/dev/demo data.
- * So there's no continuity to protect, and the extra persistence
- * machinery (a `schoolCode` cache field, a `persistSchoolCode` callback,
- * a dbStore.updateSchool dependency) isn't worth carrying. This file
- * simply recomputes the segment from whatever identifier is available on
- * every call — once `udiseCode` is populated for a school, its segment
- * changes automatically and permanently to the UDISE-derived one, with no
- * migration step required.
+ * FOR NOW, per current project decision: db.ts is NOT being updated yet
+ * to add a unique index on `id` or to handle duplicate-key errors on
+ * insert. This module is being written and shipped on the ASSUMPTION
+ * that uniqueness checking will be added on the database side before
+ * this goes anywhere near production data. Concretely, before real
+ * students/teachers are onboarded, db.ts needs:
  *
- * IF THIS ASSUMPTION EVER CHANGES — e.g. if IDs get issued/printed for
- * real use BEFORE UDISE is integrated, and those need to stay valid
- * afterwards — reintroduce a cached `schoolCode` field on `School` and
- * freeze the segment on first generation instead of recomputing it live.
+ *   1. A unique index on the `id` field for both the `students` and
+ *      `users` collections (Mongo's own uniqueness only covers the
+ *      separate internal `_id`, not this `id` field, as-is today).
+ *   2. The insert call sites (addStudent / addUser) wrapped in a retry
+ *      loop that regenerates the ID and retries on a duplicate-key error:
  *
- * Other design points :
+ *        let student: Student | undefined;
+ *        for (let attempt = 0; attempt < 5 && !student; attempt++) {
+ *          const candidate = { ...rest, id: generateStudentId() };
+ *          try {
+ *            student = await dbStore.addStudent(candidate);
+ *          } catch (err: any) {
+ *            if (err?.code !== 11000) throw err; // 11000 = Mongo duplicate key
+ *            // else: collision (rare at 60 bits) — loop and try a new id
+ *          }
+ *        }
+ *        if (!student) throw new Error('Failed to generate a unique student ID after 5 attempts.');
+ *
+ *   3. The equivalent handling for the file-based fallback store, which
+ *      has no index at all today and would need an explicit existence
+ *      check before insert (a separate, already-flagged gap in db.ts,
+ *      independent of this file).
+ *
+ * None of the above is implemented yet — this is a deliberate, agreed
+ * scope decision for now, not an oversight. Do not treat IDs from this
+ * module as guaranteed-unique until the above is done.
+ *
+ * OTHER DESIGN POINTS (unchanged from the previous version)
+ * ---------------------------------------------------------------------------
  *   - Alphabet: Crockford's Base32 (excludes I, L, O, U) to reduce
  *     transcription errors when IDs are hand-copied off printed sheets.
- *   - Every ID carries a checksum character for offline validation.
- *   - Student IDs are NOT tied to a teacher — a student's teacher can
- *     change (see Student.teacherId, which is already a separate,
- *     mutable field in types.ts) without invalidating their ID.
- *   - `generateVerificationToken()` is for anything public-facing
- *     (e.g. a future "verify this certificate" page) — never expose the
- *     raw sequential ID on a public lookup endpoint.
- *
- * KNOWN LIMITATION — PLEASE READ BEFORE WIRING THIS IN
- * ---------------------------------------------------------------------------
- * The `CountBasedSequenceProvider` below determines "next sequence number"
- * by COUNTING existing records for a school via `dbStore.getStudents()` /
- * `dbStore.getUsers()`. This is NOT atomic — two concurrent requests for
- * the same school could read the same count and generate a duplicate
- * sequence number. It's a reasonable stand-in for the current early-MVP
- * stage (file-based store, low concurrency), but should be replaced with
- * a real atomic counter once `server/db.ts` is available to wire against
- * (e.g. a counters collection/section in the file-based store with a
- * file-lock or single-writer-queue increment). I have not patched anything
- * into db.ts, this count-based approach is the intentional current tradeoff,
- * rather than creating an atomic one — swap the implementation without
- * touching `generateTeacherId`/`generateStudentId` at all.
+ *   - Type marker (T/S): lets a raw ID string alone identify whether it's
+ *     a teacher or student ID, without a database lookup.
+ *   - Checksum: lets any ID be validated offline for transcription
+ *     errors/corruption, with no database round-trip.
+ *   - Scheme version: lets the ID format itself change later without
+ *     invalidating IDs already printed on certificates.
+ *   - `generateVerificationToken()`: kept SEPARATE from the permanent ID,
+ *     for anything public-facing (e.g. a certificate verification page).
+ *     The permanent ID is still used for authenticated internal lookups,
+ *     so it should never be the thing exposed on an unauthenticated
+ *     public endpoint.
+ *   - Guardian reference: deliberately NOT modeled as a formal id/entity
+ *     here — per current project decision, independent students continue
+ *     to use lightweight plain-string guardian fields (name/relation/
+ *     contact), matching what already exists on Student in db.ts. To be
+ *     revisited later if guardians need to become a first-class entity.
  * ---------------------------------------------------------------------------
  */
 
-import { createHash, randomBytes } from "crypto";
+import { randomBytes } from "crypto";
 
 // ---------------------------------------------------------------------------
 // Alphabet
@@ -90,88 +111,45 @@ const ALPHABET_INDEX: Record<string, number> = Object.fromEntries(
 );
 
 const SCHEME_VERSION = "A";
-
-const SCHOOL_SEGMENT_LENGTH = 6; // 30 bits of hash space — see note above
-
-// ---------------------------------------------------------------------------
-// Public types
-// ---------------------------------------------------------------------------
+const RANDOM_SEGMENT_LENGTH = 12; // 12 chars x 5 bits = 60 bits of randomness
 
 export type EntityType = "TEACHER" | "STUDENT";
 
-/** Minimal shape this module needs from a School record. */
-export interface SchoolLike {
-  id: string;
-  udiseCode?: string; // not in types.ts yet — populate this once UDISE import lands;
-                       // the school segment switches to it automatically, no migration needed
-}
+const TYPE_MARKER: Record<EntityType, string> = {
+  TEACHER: "T",
+  STUDENT: "S",
+};
 
-export interface SequenceProvider {
-  nextSequence(schoolIdentifier: string, entityType: EntityType): Promise<number>;
-}
-
-export interface ParsedId {
-  version: string;
-  entityType: EntityType | null;
-  schoolSegment: string; // NOTE: not reversible to the original school id/UDISE — see module docstring
-  sequence: number;
-  valid: boolean;
-}
+const MARKER_TO_TYPE: Record<string, EntityType> = {
+  T: "TEACHER",
+  S: "STUDENT",
+};
 
 export class IdGenerationError extends Error {}
 
 // ---------------------------------------------------------------------------
-// Base32 helpers
+// Base32 helpers — operate directly on random bytes/bits, not through a
+// single JS number, so this works cleanly for any character length
+// without worrying about Number precision limits.
 // ---------------------------------------------------------------------------
 
-function toBase32(num: number, length: number): string {
-  if (num < 0 || !Number.isFinite(num)) {
-    throw new IdGenerationError(`toBase32: invalid input ${num}`);
+/** Generates `numChars` Crockford Base32 characters of cryptographically secure randomness. */
+function randomBase32(numChars: number): string {
+  const numBits = numChars * 5;
+  const numBytes = Math.ceil(numBits / 8);
+  const bytes = randomBytes(numBytes);
+
+  let bits = "";
+  for (const b of bytes) {
+    bits += b.toString(2).padStart(8, "0");
   }
-  let n = Math.floor(num);
+
   let out = "";
-  do {
-    out = ALPHABET[n % 32] + out;
-    n = Math.floor(n / 32);
-  } while (n > 0);
-  if (out.length > length) {
-    throw new IdGenerationError(
-      `toBase32: value ${num} does not fit in ${length} base32 characters`
-    );
+  for (let i = 0; i < numChars; i++) {
+    const chunk = bits.slice(i * 5, i * 5 + 5).padEnd(5, "0");
+    out += ALPHABET[parseInt(chunk, 2)];
   }
-  return out.padStart(length, "0");
-}
-
-function fromBase32(str: string): number {
-  let n = 0;
-  for (const ch of str) {
-    const val = ALPHABET_INDEX[ch];
-    if (val === undefined) {
-      throw new IdGenerationError(`fromBase32: invalid character '${ch}' in "${str}"`);
-    }
-    n = n * 32 + val;
-  }
-  return n;
-}
-
-// ---------------------------------------------------------------------------
-// School segment — recomputed live from whatever identifier is currently
-// available. See "WHY WE DON'T FREEZE/CACHE THE SEGMENT" in the module
-// docstring above for why this is intentional, not an oversight.
-// ---------------------------------------------------------------------------
-
-/** Prefers a real UDISE code if present; falls back to the existing school slug. */
-export function getSchoolIdentifier(school: SchoolLike): string {
-  return school.udiseCode ?? school.id;
-}
-
-function hashSchoolIdentifier(identifier: string): string {
-  const digest = createHash("sha256").update(identifier).digest();
-  // Take the first 4 bytes (32 bits) as an unsigned integer, then encode
-  // into SCHOOL_SEGMENT_LENGTH base32 chars (30 bits) — drop the top 2
-  // bits so it always fits.
-  const num = digest.readUInt32BE(0) >>> 2;
-  return toBase32(num, SCHOOL_SEGMENT_LENGTH);
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -191,75 +169,31 @@ function computeChecksum(body: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Per-entity-type layout config
-// ---------------------------------------------------------------------------
-
-const SEQ_LENGTH: Record<EntityType, number> = {
-  TEACHER: 2, // 32^2 = 1,024 teachers per school
-  STUDENT: 3, // 32^3 = 32,768 cumulative student enrollments per school
-};
-
-const TYPE_MARKER: Record<EntityType, string> = {
-  TEACHER: "T",
-  STUDENT: "S",
-};
-
-const MARKER_TO_TYPE: Record<string, EntityType> = {
-  T: "TEACHER",
-  S: "STUDENT",
-};
-
-// ---------------------------------------------------------------------------
 // Public API — generation
 // ---------------------------------------------------------------------------
 
 /**
- * Generates a new, unique Teacher ID for the given school.
- * Call site: server/index.ts POST /api/admin/create (when role === TEACHER).
+ * Generates a new candidate Teacher ID (15 characters).
+ *
+ * ⚠️ Not guaranteed globally unique by itself — see the module-level
+ * "UNIQUENESS ENFORCEMENT" note. Once db.ts enforces a unique index,
+ * call this again to get a fresh candidate on a duplicate-key retry.
  */
-export async function generateTeacherId(
-  school: SchoolLike,
-  sequenceProvider: SequenceProvider
-): Promise<string> {
-  return generateId("TEACHER", school, sequenceProvider);
+export function generateTeacherId(): string {
+  return generateId("TEACHER");
 }
 
 /**
- * Generates a new, unique Student ID for the given school.
- * Call site: server/index.ts POST /api/students.
+ * Generates a new candidate Student ID (15 characters).
+ * Same caveat as generateTeacherId() 
  */
-export async function generateStudentId(
-  school: SchoolLike,
-  sequenceProvider: SequenceProvider
-): Promise<string> {
-  return generateId("STUDENT", school, sequenceProvider);
+export function generateStudentId(): string {
+  return generateId("STUDENT");
 }
 
-async function generateId(
-  entityType: EntityType,
-  school: SchoolLike,
-  sequenceProvider: SequenceProvider
-): Promise<string> {
-  // Recomputed every call, on purpose — see module docstring. Once
-  // school.udiseCode is populated (post-import), this line automatically
-  // starts producing UDISE-derived segments for that school, with no
-  // migration/backfill step required.
-  const identifier = getSchoolIdentifier(school);
-  const schoolSegment = hashSchoolIdentifier(identifier);
-
-  const seq = await sequenceProvider.nextSequence(school.id, entityType);
-  const seqLength = SEQ_LENGTH[entityType];
-  const maxSeq = 32 ** seqLength - 1;
-
-  if (seq > maxSeq) {
-    throw new IdGenerationError(
-      `Sequence overflow for ${entityType} at school ${school.id}: ` +
-        `${seq} exceeds max of ${maxSeq}. Increase SEQ_LENGTH for this entity type.`
-    );
-  }
-
-  const seqSegment = toBase32(seq, seqLength);
-  const body = SCHEME_VERSION + schoolSegment + TYPE_MARKER[entityType] + seqSegment;
+function generateId(entityType: EntityType): string {
+  const randomSegment = randomBase32(RANDOM_SEGMENT_LENGTH);
+  const body = SCHEME_VERSION + randomSegment + TYPE_MARKER[entityType];
   const checksum = computeChecksum(body);
   return body + checksum;
 }
@@ -268,19 +202,24 @@ async function generateId(
 // Public API — offline validation
 // ---------------------------------------------------------------------------
 
+export interface ParsedId {
+  version: string;
+  entityType: EntityType | null;
+  valid: boolean;
+}
+
 /**
- * Validates and decodes a Teacher or Student ID WITHOUT a database lookup.
- * NOTE: because the school segment is a hash (not a lossless encoding,
- * unlike a future UDISE-based version), this can confirm an ID is
- * well-formed and untampered, and tell you the sequence number + entity
- * type — but it CANNOT recover which school the segment came from. That
- * still requires a DB lookup (or a switch to lossless UDISE encoding).
+ * Validates a Teacher or Student ID WITHOUT a database lookup — checks
+ * structural well-formedness and the checksum. This confirms the ID
+ * wasn't mistyped/miscopied and tells you whether it's a teacher or
+ * student ID. It CANNOT tell you whether the ID actually exists/was ever
+ * issued — that still requires a database lookup.
  */
 export function parseAndValidateId(id: string): ParsedId {
-  const empty: ParsedId = { version: "", entityType: null, schoolSegment: "", sequence: -1, valid: false };
+  const empty: ParsedId = { version: "", entityType: null, valid: false };
 
-  const minLen = 1 + SCHOOL_SEGMENT_LENGTH + 1 + 1 + 1;
-  if (!id || id.length < minLen) return empty;
+  const expectedLength = 1 + RANDOM_SEGMENT_LENGTH + 1 + 1;
+  if (!id || id.length !== expectedLength) return empty;
 
   const version = id[0];
   const body = id.slice(0, -1);
@@ -293,24 +232,14 @@ export function parseAndValidateId(id: string): ParsedId {
     return { ...empty, version };
   }
 
-  const schoolSegment = id.slice(1, 1 + SCHOOL_SEGMENT_LENGTH);
-  const marker = id[1 + SCHOOL_SEGMENT_LENGTH];
+  const marker = id[1 + RANDOM_SEGMENT_LENGTH];
   const entityType = MARKER_TO_TYPE[marker] ?? null;
-  const seqSegment = id.slice(1 + SCHOOL_SEGMENT_LENGTH + 1, id.length - 1);
-
   if (!entityType) return { ...empty, version };
-
-  let sequence = -1;
-  try {
-    sequence = fromBase32(seqSegment);
-  } catch {
-    return { version, entityType, schoolSegment: "", sequence: -1, valid: false };
-  }
 
   const checksumOk = expectedChecksum === providedChecksum;
   const versionOk = version === SCHEME_VERSION;
 
-  return { version, entityType, schoolSegment, sequence, valid: checksumOk && versionOk };
+  return { version, entityType, valid: checksumOk && versionOk };
 }
 
 export function isValidId(id: string): boolean {
@@ -323,46 +252,11 @@ export function isValidId(id: string): boolean {
 
 /**
  * For anything public-facing (e.g. a future certificate-verification
- * page). Never expose the raw sequential ID on a public lookup endpoint.
+ * page). Deliberately unrelated to the permanent ID — never expose the
+ * permanent Teacher/Student ID on a public, unauthenticated endpoint,
+ * since there's nothing else gating access to a record once you have
+ * its ID.
  */
 export function generateVerificationToken(byteLength = 16): string {
   return randomBytes(byteLength).toString("hex");
-}
-
-// ---------------------------------------------------------------------------
-// SequenceProvider implementation usable TODAY, with zero backend changes
-// ---------------------------------------------------------------------------
-//
-// This counts existing records rather than using a real atomic counter —
-// see the "KNOWN LIMITATION" note at the top of this file. Wire it up in
-// server/index.ts like this:
-//
-//   import { CountBasedSequenceProvider, generateStudentId, generateTeacherId } from './idGenerator';
-//
-//   const sequenceProvider = new CountBasedSequenceProvider(async (schoolId, entityType) => {
-//     if (entityType === 'STUDENT') {
-//       const students = await dbStore.getStudents();
-//       return students.filter(s => s.schoolId === schoolId).length;
-//     } else {
-//       const users = await dbStore.getUsers();
-//       return users.filter(u => u.schoolId === schoolId && u.role === UserRole.TEACHER).length;
-//     }
-//   });
-//
-// Then, in POST /api/students, replace:
-//   id: 'STD_' + Math.floor(10000 + Math.random() * 90000),
-// with:
-//   id: await generateStudentId(school, sequenceProvider),
-// (where `school` is the School record looked up by schoolId — once
-// `school.udiseCode` is populated after UDISE import, this line
-// automatically starts producing UDISE-derived IDs, no other change needed.)
-//
-export class CountBasedSequenceProvider implements SequenceProvider {
-  constructor(
-    private countExisting: (schoolIdentifier: string, entityType: EntityType) => Promise<number>
-  ) {}
-
-  async nextSequence(schoolIdentifier: string, entityType: EntityType): Promise<number> {
-    return this.countExisting(schoolIdentifier, entityType);
-  }
 }
