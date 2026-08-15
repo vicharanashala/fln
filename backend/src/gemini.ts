@@ -1,12 +1,16 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { Question } from "./db";
+import { MAX_LEVEL, SCORE_BAND_STRONG } from "../../shared/constants";
 
-// Valid Gemini model IDs, primary first then fallbacks (used by generateContentWithRetry).
+// Valid Gemini model IDs, primary first then fallbacks (used by callGemini).
 // Centralized here so the call sites below don't drift; these match the IDs the
 // ai-services Python pipeline uses (ai-services/scripts/_api.py). The previous IDs
 // ("gemini-3.5-flash" / "gemini-3.1-*") do not exist and made every AI call 404.
 const GEMINI_MODELS = ["gemini-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-lite-latest"] as const;
-const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
+
+// Same model ai-services/scripts/_api.py already uses as its Groq default —
+// kept identical so both halves of the system behave consistently.
+const GROQ_MODEL = "llama-3.1-8b-instant";
 
 // Helper to get Gemini client or null if key is missing
 let aiClient: GoogleGenAI | null = null;
@@ -30,19 +34,20 @@ function getAiClient(): GoogleGenAI {
   return aiClient;
 }
 
-/**
- * Call Gemini API with retries and exponential backoff, falling back to other models if needed.
- */
-async function generateContentWithRetry(params: {
-  contents: any;
-  config?: any;
-  model?: string;
-}): Promise<any> {
-  const modelsToTry = [
-    params.model || DEFAULT_GEMINI_MODEL,
-    ...GEMINI_MODELS.slice(1),
-  ];
+type LLMParams = {
+  systemInstruction: string;
+  prompt: string;
+  jsonMode?: boolean;
+};
 
+/**
+ * Call Gemini with retries and exponential backoff, falling back across
+ * models if needed. Returns the raw text response (JSON.parse it yourself
+ * when jsonMode is set) — this is the fallback path for callLLM() below,
+ * used when Groq is unavailable or fails.
+ */
+async function callGemini(params: LLMParams): Promise<string> {
+  const modelsToTry = GEMINI_MODELS;
   let lastError: any = null;
 
   for (const model of modelsToTry) {
@@ -54,20 +59,26 @@ async function generateContentWithRetry(params: {
         const ai = getAiClient();
         const response = await ai.models.generateContent({
           model,
-          contents: params.contents,
-          config: params.config,
+          contents: params.prompt,
+          config: {
+            systemInstruction: params.systemInstruction,
+            ...(params.jsonMode ? { responseMimeType: "application/json" } : {}),
+          },
         });
-        return response;
+        if (typeof response.text !== "string") {
+          throw new Error("Gemini response missing text");
+        }
+        return response.text;
       } catch (error: any) {
         lastError = error;
         if (error.message?.includes("NO_API_KEY")) {
           throw error;
         }
         console.warn(`[Gemini Retry] Attempt ${attempt} failed for model ${model}:`, error.message || error);
-        
+
         if (attempt < maxRetries) {
-          const isRateLimitOrUnavailable = error.message?.includes("503") || 
-                                           error.message?.includes("UNAVAILABLE") || 
+          const isRateLimitOrUnavailable = error.message?.includes("503") ||
+                                           error.message?.includes("UNAVAILABLE") ||
                                            error.message?.includes("429") ||
                                            error.message?.includes("RESOURCE_EXHAUSTED");
           const sleepTime = isRateLimitOrUnavailable ? delay * 1.5 : delay;
@@ -79,6 +90,97 @@ async function generateContentWithRetry(params: {
   }
 
   throw lastError || new Error("Failed to generate content after retries and model fallbacks");
+}
+
+/**
+ * Call Groq's OpenAI-compatible chat-completions endpoint, with the same
+ * retry/backoff shape ai-services/scripts/_api.py::groq_api_call already
+ * uses on the Python side. Throws (rather than falling back itself) on any
+ * failure — callLLM() below is what decides to fall through to Gemini.
+ */
+async function callGroq(apiKey: string, params: LLMParams): Promise<string> {
+  const messages = [
+    { role: "system", content: params.systemInstruction },
+    { role: "user", content: params.prompt },
+  ];
+
+  const maxRetries = 3;
+  let delay = 1000;
+  let lastError: any = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: GROQ_MODEL,
+          messages,
+          temperature: 0.1,
+          max_tokens: 2000,
+          ...(params.jsonMode ? { response_format: { type: "json_object" } } : {}),
+        }),
+      });
+    } catch (error: any) {
+      lastError = error;
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= 2;
+        continue;
+      }
+      throw lastError;
+    }
+
+    if (res.ok) {
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content;
+      if (typeof text !== "string") {
+        throw new Error("Groq response missing choices[0].message.content");
+      }
+      return text;
+    }
+
+    // 401 = bad/missing key — not retryable, let callLLM() fall through to Gemini.
+    if (res.status === 401) {
+      throw new Error(`GROQ_AUTH_FAILED: ${res.status}`);
+    }
+
+    lastError = new Error(`Groq API error ${res.status}: ${(await res.text()).slice(0, 200)}`);
+
+    // 429 (rate limit) / 5xx (server error) — retry with backoff, same as _api.py.
+    if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay *= 2;
+      continue;
+    }
+
+    throw lastError;
+  }
+
+  throw lastError || new Error("Groq call failed after retries");
+}
+
+/**
+ * Groq-primary, Gemini-fallback LLM call — mirrors the provider order
+ * ai-services/scripts/_api.py already uses on the Python side, so both
+ * halves of this system behave consistently instead of depending on two
+ * different providers for the same class of work. Returns raw text;
+ * callers JSON.parse it themselves when jsonMode is set.
+ */
+export async function callLLM(params: LLMParams): Promise<string> {
+  const groqKey = process.env.GROQ_API_KEY;
+  if (groqKey) {
+    try {
+      return await callGroq(groqKey, params);
+    } catch (error: any) {
+      console.warn("[Groq] call failed, falling back to Gemini:", error.message || error);
+    }
+  }
+  return await callGemini(params);
 }
 
 function randomInt(min: number, max: number): number {
@@ -393,28 +495,19 @@ Diagnostic Questions: ${JSON.stringify(questions)}
 Student Submitted Answers: ${JSON.stringify(submittedAnswers)}
 
 Grade these answers. Compute total score out of ${questions.length}.
-Implement "Weakest-Level Mapping" (SRS §6.2): Assign the student to the lowest level (from 1 to 93) where they showed weakness or made mistakes, or level 1 if they struggle with everything. If they solved all perfectly, assign level 35.
-Provide a clean narrative feedback summary.`;
+Implement "Weakest-Level Mapping" (SRS §6.2): Assign the student to the lowest level (from 1 to ${MAX_LEVEL}) where they showed weakness or made mistakes, or level 1 if they struggle with everything. If they solved all perfectly, assign level 35.
+Provide a clean, warm and encouraging narrative feedback summary explaining how the student did and what they need to work on.
 
-    const response = await generateContentWithRetry({
-      model: DEFAULT_GEMINI_MODEL,
-      contents: prompt,
-      config: {
-        systemInstruction: "You are an automated math scoring system for Foundational Literacy & Numeracy.",
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            score: { type: Type.INTEGER, description: "Number of correct answers" },
-            recommendedLevel: { type: Type.INTEGER, description: "Level from 1 to 93 based on weakest-level mapping" },
-            narrative: { type: Type.STRING, description: "Warm and encouraging narrative explaining how the student did and what they need to work on." }
-          },
-          required: ["score", "recommendedLevel", "narrative"]
-        }
-      }
+Respond with ONLY a JSON object, no other text, with exactly these fields:
+{"score": <integer, number of correct answers>, "recommendedLevel": <integer, level from 1 to ${MAX_LEVEL} based on weakest-level mapping>, "narrative": "<string>"}`;
+
+    const text = await callLLM({
+      systemInstruction: "You are an automated math scoring system for Foundational Literacy & Numeracy.",
+      prompt,
+      jsonMode: true,
     });
 
-    const parsed = JSON.parse(response.text || "{}");
+    const parsed = JSON.parse(text || "{}");
     if (parsed.recommendedLevel && parsed.narrative) {
       return {
         score: parsed.score ?? 0,
@@ -423,7 +516,7 @@ Provide a clean narrative feedback summary.`;
       };
     }
   } catch (error) {
-    console.error("Gemini Diagnostic Evaluation failed, using deterministic logic:", error);
+    console.error("LLM Diagnostic Evaluation failed (Groq and Gemini both unavailable), using deterministic logic:", error);
   }
 
   // Deterministic fallback grading
@@ -452,9 +545,9 @@ Provide a clean narrative feedback summary.`;
   if (failedLevels.length > 0) {
     recommendedLevel = Math.min(...failedLevels);
   } else {
-    // If they got all questions correct, place them at highest level + 1 (capped at 93)
+    // If they got all questions correct, place them at highest level + 1 (capped at MAX_LEVEL)
     const maxLevel = Math.max(...questions.map(q => q.source_level), 0);
-    recommendedLevel = Math.min(93, maxLevel + 1);
+    recommendedLevel = Math.min(MAX_LEVEL, maxLevel + 1);
   }
 
   return {
@@ -462,99 +555,6 @@ Provide a clean narrative feedback summary.`;
     recommendedLevel,
     narrative: `Determined deterministically: student solved ${score}/${questions.length} questions correctly. Placed at Level ${recommendedLevel} using Weakest-Level Mapping based on incorrect responses.`
   };
-}
-
-/**
- * Stage 3: Generate AI-Personalized Worksheet Questions for a Student based on their Current Level
- */
-export async function generateAIPersonalizedWorksheet(
-  studentName: string,
-  level: number,
-  topicCategories: string[]
-): Promise<Question[]> {
-  try {
-    const category = topicCategories[Math.floor(Math.random() * topicCategories.length)] || "Number Sense";
-    const response = await generateContentWithRetry({
-      model: DEFAULT_GEMINI_MODEL,
-      contents: `Create exactly 3 math assessment questions for a student named ${studentName} who is currently at Level ${level}.
-The main topic area should be around: ${category}.
-Include at least one easy, one medium, and one hard difficulty question.
-Each question should recommend an SVG asset from: fruits, animals, shapes, numbers.`,
-      config: {
-        systemInstruction: "You are an automated school assessment sheet planner.",
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            questions: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  question_id: { type: Type.STRING },
-                  question: { type: Type.STRING },
-                  answer: { type: Type.STRING },
-                  answer_type: { type: Type.STRING, enum: ["number", "text", "choice"] },
-                  choices: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  topic: { type: Type.STRING },
-                  subtopic: { type: Type.STRING },
-                  difficulty: { type: Type.STRING, enum: ["easy", "medium", "hard"] },
-                  source_level: { type: Type.INTEGER },
-                  svgAsset: { type: Type.STRING }
-                },
-                required: ["question_id", "question", "answer", "answer_type", "topic", "subtopic", "difficulty", "source_level", "svgAsset"]
-              }
-            }
-          },
-          required: ["questions"]
-        }
-      }
-    });
-
-    const parsed = JSON.parse(response.text || "{}");
-    if (parsed.questions && parsed.questions.length > 0) {
-      return parsed.questions;
-    }
-  } catch (error) {
-    console.error(`Gemini Worksheet Generation for Level ${level} failed, compiling pre-built questions:`, error);
-  }
-
-  // Fallback questions compiled for the specific level from preseeded pool or logic
-  return [
-    {
-      question_id: `WS_L${level}_Q1`,
-      question: `Calculate: ${level * 10} + ${level * 5} = ?`,
-      answer: String(level * 10 + level * 5),
-      answer_type: 'number',
-      topic: 'Number Operations',
-      subtopic: 'Addition',
-      difficulty: 'easy',
-      source_level: level,
-      svgAsset: 'numbers'
-    },
-    {
-      question_id: `WS_L${level}_Q2`,
-      question: `If you have 4 groups of ${level} circles, how many total circles do you have?`,
-      answer: String(4 * level),
-      answer_type: 'number',
-      topic: 'Shapes',
-      subtopic: 'Grouping Multiplication',
-      difficulty: 'medium',
-      source_level: level,
-      svgAsset: 'shapes'
-    },
-    {
-      question_id: `WS_L${level}_Q3`,
-      question: `Rani has ${level * 12} rupees. She spends half. How many rupees are left?`,
-      answer: String((level * 12) / 2),
-      answer_type: 'number',
-      topic: 'Money',
-      subtopic: 'Fractions of Amount',
-      difficulty: 'hard',
-      source_level: level,
-      svgAsset: 'numbers'
-    }
-  ];
 }
 
 /**
@@ -579,34 +579,21 @@ Answers submitted: ${JSON.stringify(submittedAnswers)}
 
 Grade the student's submission. Evaluate each concept topic.
 Recommended Level progression rules:
-- If score is 80%+ (e.g. 3/3 or near perfect): Recommend Level ${Math.min(93, level + 1)}.
+- If score is ${SCORE_BAND_STRONG}%+ (e.g. 3/3 or near perfect): Recommend Level ${Math.min(MAX_LEVEL, level + 1)}.
 - If score is 50%-80%: Retain at Level ${level}.
 - If score is < 50%: Retain at Level ${level} or suggest review at Level ${Math.max(1, level - 1)}.
-Generate a narrative report summarizing strengths and learning gaps.`;
+Generate a narrative report summarizing strengths and learning gaps.
 
-    const response = await generateContentWithRetry({
-      model: DEFAULT_GEMINI_MODEL,
-      contents: prompt,
-      config: {
-        systemInstruction: "You are a professional teacher grading and narrative-writing engine.",
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            score: { type: Type.INTEGER },
-            conceptMastery: {
-              type: Type.OBJECT,
-              description: "Mapping of topic name to: Strong, Satisfactory, or Needs Practice"
-            },
-            narrative: { type: Type.STRING },
-            recommendedLevel: { type: Type.INTEGER }
-          },
-          required: ["score", "conceptMastery", "narrative", "recommendedLevel"]
-        }
-      }
+Respond with ONLY a JSON object, no other text, with exactly these fields:
+{"score": <integer>, "conceptMastery": {<topic name>: "Strong" | "Satisfactory" | "Needs Practice", ...}, "narrative": "<string>", "recommendedLevel": <integer>}`;
+
+    const text = await callLLM({
+      systemInstruction: "You are a professional teacher grading and narrative-writing engine.",
+      prompt,
+      jsonMode: true,
     });
 
-    const parsed = JSON.parse(response.text || "{}");
+    const parsed = JSON.parse(text || "{}");
     if (parsed.recommendedLevel && parsed.narrative) {
       return {
         score: parsed.score ?? 0,
@@ -617,7 +604,7 @@ Generate a narrative report summarizing strengths and learning gaps.`;
       };
     }
   } catch (error) {
-    console.error("Gemini Evaluation Engine failed, running deterministic evaluation:", error);
+    console.error("LLM Evaluation Engine failed (Groq and Gemini both unavailable), running deterministic evaluation:", error);
   }
 
   // Deterministic evaluation fallback
@@ -640,7 +627,7 @@ Generate a narrative report summarizing strengths and learning gaps.`;
   });
 
   const percent = (score / questions.length) * 100;
-  const recommendedLevel = percent >= 80 ? Math.min(93, level + 1) : level;
+  const recommendedLevel = percent >= SCORE_BAND_STRONG ? Math.min(MAX_LEVEL, level + 1) : level;
 
   return {
     score,

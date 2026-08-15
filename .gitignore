@@ -3,6 +3,9 @@ archive/
 mvp/
 output/
 
+# Mongo export dumps (large generated fixtures, never read by any code path)
+Database/
+
 # Node
 node_modules/
 
