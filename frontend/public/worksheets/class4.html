@@ -178,7 +178,7 @@ const Q={};
 /* SECTION 1 — Place Value Blocks: 5 problems */
 Q.S1=function(){
   const problems=[];
-  for(let i=0;i<5;i++){const h=ri(1,4),t=ri(0,9),o=ri(0,9);problems.push({h,t,o,num:h*100+t*10+o});}
+  for(let i=0;i<1;i++){const h=ri(1,4),t=ri(0,9),o=ri(0,9);problems.push({h,t,o,num:h*100+t*10+o});}
   let html='<div class="ctitle">Section 1 — Place Value Blocks</div>'+
     '<div class="cprompt">Look at the blocks and write the number.</div>';
   problems.forEach((p,i)=>{
@@ -194,8 +194,8 @@ Q.S1=function(){
 /* SECTION 2 — Expanded Form: 5 problems (3-digit) */
 Q.S2=function(){
   const probs=[];
-  for(let i=0;i<5;i++){
-    const digits=[ri(1,9),ri(0,9),ri(0,9)];
+  for(let i=0;i<1;i++){
+      const digits=[ri(1,9),ri(0,9),ri(0,9)];
     const vals=digits.map((d,j)=>d*Math.pow(10,digits.length-1-j));
     const num=digits[0]*100+digits[1]*10+digits[2];
     probs.push({num,vals});
@@ -214,9 +214,9 @@ Q.S2=function(){
 /* SECTION 3 — Compare Numbers: 5 pairs */
 Q.S3=function(){
   const pairs=[];
-  for(let i=0;i<5;i++){
-    let a=ri(100,999),b=ri(100,999);
-    if(i===3) b=a;
+  for(let i=0;i<1;i++){
+      let a=ri(100,999),b=ri(100,999);
+      if(i===3) b=a;
     pairs.push({a,b,sym:a>b?'>':(a<b?'<':'=')});
   }
   let html='<div class="ctitle">Section 3 — Compare Numbers</div>'+
@@ -233,7 +233,7 @@ Q.S3=function(){
 /* SECTION 4 — Addition: 5 vertical problems */
 Q.S4=function(){
   const probs=[];
-  for(let i=0;i<5;i++){const a=ri(100,899),b=ri(100,Math.min(899,999-a+100));probs.push({a,b,res:a+b});}
+  for(let i=0;i<1;i++){const a=ri(100,899),b=ri(100,Math.min(899,999-a+100));probs.push({a,b,res:a+b});}
   let html='<div class="ctitle">Section 4 — Addition</div>'+
     '<div class="cprompt">Find the sum.</div>'+
     '<div style="display:flex;gap:10px;flex-wrap:wrap;">';
@@ -248,7 +248,7 @@ Q.S4=function(){
 /* SECTION 5 — Subtraction: 5 vertical problems */
 Q.S5=function(){
   const probs=[];
-  for(let i=0;i<5;i++){const a=ri(200,999),b=ri(100,a-1);probs.push({a,b,res:a-b});}
+  for(let i=0;i<1;i++){const a=ri(200,999),b=ri(100,a-1);probs.push({a,b,res:a-b});}
   let html='<div class="ctitle">Section 5 — Subtraction</div>'+
     '<div class="cprompt">Find the difference.</div>'+
     '<div style="display:flex;gap:10px;flex-wrap:wrap;">';
@@ -280,7 +280,7 @@ Q.S6=function(){
     return {chosen,total,display};
   }
   const problems=[];
-  for(let i=0;i<5;i++) problems.push(makeCombo());
+  for(let i=0;i<1;i++) problems.push(makeCombo());
   let html='<div class="ctitle">Section 6 — Money</div>'+
     '<div class="cprompt">Circle the notes/coins that add up to the given amount. Each note/coin shown is used only once.</div>';
   problems.forEach((p,ti)=>{
@@ -302,8 +302,8 @@ Q.S6=function(){
 /* SECTION 7 — Order Numbers: 5 sets */
 Q.S7=function(){
   const sets=[];
-  for(let i=0;i<5;i++){
-    const dir=i%2===0?'ascending':'descending';
+  for(let i=0;i<1;i++){
+      const dir=i%2===0?'ascending':'descending';
     const pool=[...Array(900).keys()].map(x=>x+100);
     const nums=sp(pool,5);
     const sorted=[...nums].sort((a,b)=>dir==='ascending'?a-b:b-a);
@@ -337,9 +337,9 @@ Q.S8=function(){
 Q.S9=function(){
   const vb=ri(2,9),vr=ri(11,49),va=vb*vr;
   const simple=[];
-  for(let i=0;i<4;i++){const b=ri(2,9),r=ri(2,12),a=b*r;simple.push({a,b,r});}
+  for(let i=0;i<1;i++){const b=ri(2,9),r=ri(2,12),a=b*r;simple.push({a,b,r});}
   let html='<div class="ctitle">Section 9 — Division</div>'+
-    '<div class="cprompt">Q.1: Solve using vertical long division. Q.2–5: Fill the answer.</div>'+
+    '<div class="cprompt">Q.1: Solve using vertical long division. Q.2: Fill the answer.</div>'+
     '<div style="margin:3px 0;font-size:8.5px;font-weight:bold;">1) Divide: '+va+' ÷ '+vb+' (show all steps below)</div>'+
     V.divisionBox(va,vb)+
     '<div style="font-size:8.5px;margin:2px 0;">Quotient = <span class="ansbox" data-omr="S9-vq" style="min-width:32px;">&nbsp;</span></div>'+
@@ -399,8 +399,8 @@ Q.S11=function(){
 Q.S12=function(){
   const patterns=[];
   const steps=[2,3,4,5,10,15,20,-5,-10,25,50,100];
-  for(let i=0;i<5;i++){
-    const start=ri(1,20)*5,step=pk(steps);
+  for(let i=0;i<1;i++){
+      const start=ri(1,20)*5,step=pk(steps);
     const seq=[start,start+step,start+2*step,start+3*step];
     const next=[start+4*step,start+5*step];
     patterns.push({seq,next,step});
@@ -439,25 +439,17 @@ Q.S13=function(){
 /* SECTION 14 — Multiplication: 5 vertical + fact family */
 Q.S14=function(){
   const probs=[];
-  for(let i=0;i<5;i++){const a=ri(10,99),b=ri(1,9);probs.push({a,b,res:a*b});}
-  const fa=ri(2,9),fb=ri(2,9),fprod=fa*fb;
-  let html='<div class="ctitle">Section 14 — Multiplication &amp; Fact Family</div>'+
-    '<div class="cprompt">(1–5) Find the product. (6) Write 3 related facts.</div>'+
+  for(let i=0;i<1;i++){const a=ri(10,99),b=ri(1,9);probs.push({a,b,res:a*b});}
+  // Fact-family sub-Qs collapsed: keep just 1 multiplication Q per section.
+  let html='<div class="ctitle">Section 14 — Multiplication</div>'+
+    '<div class="cprompt">Find the product.</div>'+
     '<div style="display:flex;gap:10px;flex-wrap:wrap;">';
   probs.forEach((p,i)=>{
     html+='<div class="vcol"><span style="font-size:8px;">'+(i+1)+')</span><br>'+p.a+'<br>&times; '+p.b+
       '<div class="opline"><div class="ansbox lg" data-omr="S14-p'+i+'">&nbsp;</div></div></div>';
   });
-  html+='</div>'+
-    '<div style="margin-top:4px;font-size:8.5px;"><b>6) '+fa+' &times; '+fb+' = '+fprod+'</b> &rarr; 3 related facts:</div>'+
-    '<div style="font-size:8.5px;line-height:1.9;">'+
-    '<span class="blankline" data-omr="S14-ff0a" style="min-width:18px;"></span>&times;<span class="blankline" data-omr="S14-ff0b" style="min-width:18px;"></span>=<span class="blankline" data-omr="S14-ff0c" style="min-width:24px;"></span>&nbsp;'+
-    '<span class="blankline" data-omr="S14-ff1a" style="min-width:24px;"></span>&divide;<span class="blankline" data-omr="S14-ff1b" style="min-width:18px;"></span>=<span class="blankline" data-omr="S14-ff1c" style="min-width:18px;"></span>&nbsp;'+
-    '<span class="blankline" data-omr="S14-ff2a" style="min-width:24px;"></span>&divide;<span class="blankline" data-omr="S14-ff2b" style="min-width:18px;"></span>=<span class="blankline" data-omr="S14-ff2c" style="min-width:18px;"></span></div>';
+  html+='</div>';
   const answers=probs.map((p,i)=>({qid:'S14p'+i,label:p.a+'x'+p.b,type:'fill_blank',answer:String(p.res),icr:{detect:'handwritten_number_ocr',notes:'Product.'},omr:'S14-p'+i}));
-  answers.push({qid:'S14ff0',label:'Commutative',type:'fill_blank',answer:fb+'x'+fa+'='+fprod,icr:{detect:'handwritten_number_ocr',notes:'b x a = prod.'},omr:'S14-ff0'});
-  answers.push({qid:'S14ff1',label:'Div fact 1',type:'fill_blank',answer:fprod+'/'+fa+'='+fb,icr:{detect:'handwritten_number_ocr',notes:'prod / a = b.'},omr:'S14-ff1'});
-  answers.push({qid:'S14ff2',label:'Div fact 2',type:'fill_blank',answer:fprod+'/'+fb+'='+fa,icr:{detect:'handwritten_number_ocr',notes:'prod / b = a.'},omr:'S14-ff2'});
   return {html,answers};
 };
 
@@ -484,20 +476,19 @@ Q.S15=function(){
 /* SECTION 16 — Compose/Decompose */
 Q.S16=function(){
   const problems=[];
-  for(let i=0;i<2;i++){const d=[ri(1,9),ri(0,9),ri(0,9),ri(0,9)];const num=parseInt(d.join(''),10);const vals=d.map((x,j)=>x*Math.pow(10,3-j));problems.push({d,num,vals});}
+  for(let i=0;i<1;i++){const d=[ri(1,9),ri(0,9),ri(0,9),ri(0,9)];const num=parseInt(d.join(''),10);const vals=d.map((x,j)=>x*Math.pow(10,3-j));problems.push({d,num,vals});}
   let html='<div class="ctitle">Section 16 — Compose / Decompose</div>'+
-    '<div class="cprompt">Write the number and expanded form.</div>';
+    '<div class="cprompt">Read the digits and write the number.</div>';
   problems.forEach((p,i)=>{
     html+='<div style="margin:4px 0;">'+
       '<table class="pvb" style="width:auto;display:inline-table;"><tr><th>Th</th><th>H</th><th>T</th><th>O</th></tr>'+
       '<tr>'+p.d.map(x=>'<td style="font-weight:bold;font-size:10px;">'+x+'</td>').join('')+'</tr></table>'+
       '<span style="font-size:8.5px;margin:0 4px;">= </span><span class="ansbox" data-omr="S16-num'+i+'" style="min-width:40px;">&nbsp;</span>'+
-      '<div style="margin-top:2px;font-size:8.5px;">Expanded: '+p.vals.map((v,j)=>'<span class="blankline" data-omr="S16-e'+i+''+j+'" style="min-width:22px;"></span>'+(j<3?' + ':'')).join('')+'</div></div>';
+      '</div>';
   });
   const answers=[];
   problems.forEach((p,i)=>{
     answers.push({qid:'S16num'+i,label:'Number '+(i+1),type:'fill_blank',answer:String(p.num),icr:{detect:'handwritten_number_ocr',notes:'4-digit number.'},omr:'S16-num'+i});
-    p.vals.forEach((v,j)=>answers.push({qid:'S16e'+i+j,label:'Term '+j,type:'fill_blank',answer:String(v),icr:{detect:'handwritten_number_ocr',notes:'Expanded term.'},omr:'S16-e'+i+''+j}));
   });
   return {html,answers};
 };
@@ -550,10 +541,10 @@ function makePageWrapper(setNum,pageNum,totalPages,bodyHtml,pageId,includeHeader
   const studentId = document.getElementById('studentId')?.value.trim();
   const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
   const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
-  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+  const studentDetails = `<div class="student-header-box" style="margin-top:6px;margin-bottom:4px;padding:5px 10px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:6px;font-size:13px;color:#0f172a;display:flex;align-items:center;justify-content:space-between;page-break-inside:avoid;"><div><span style="font-weight:700;color:#334155;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Student Name:</span> <span style="font-weight:800;font-size:15px;color:#0284c7;margin-left:6px;text-transform:uppercase;">${nameText}</span></div><div><span style="font-weight:700;color:#334155;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Student ID:</span> <span style="font-weight:700;font-family:monospace;font-size:13px;color:#475569;margin-left:6px;">${idText}</span></div></div>`;
 
   const hdr=includeHeader?
-    '<div class="ws-header"><div class="ws-title">CLASS 4 — FLN MATHEMATICS PRACTICE WORKSHEET</div>'+
+    '<div class="ws-header"><div class="ws-title">CLASS 4 — FLN DIAGNOSTIC PAPER</div>'+
     '<div class="ws-sub">Set '+setNum+'</div>'+worksheetQRHtml(setNum)+
     studentDetails+
     '</div>':
@@ -562,7 +553,7 @@ function makePageWrapper(setNum,pageNum,totalPages,bodyHtml,pageId,includeHeader
     '<div class="reg-sq tl" data-regsq="tl"></div><div class="reg-sq tr" data-regsq="tr"></div>'+
     '<div class="reg-sq bl" data-regsq="bl"></div><div class="reg-sq br" data-regsq="br"></div>'+
     '<div class="page" data-pagebody="1">'+hdr+bodyHtml+
-    '<div class="ws-footer">Class 4 FLN Math &nbsp;|&nbsp; Set '+setNum+' &nbsp;|&nbsp; Page '+pageNum+' of '+totalPages+'</div>'+
+    '<div class="ws-footer">Class 4 — FLN Diagnostic Paper &nbsp;|&nbsp; Set '+setNum+' &nbsp;|&nbsp; Page '+pageNum+' of '+totalPages+'</div>'+
     '<div class="pageid">'+pageId+'-P'+pageNum+'</div>'+
     '<div class="omr-overlay" data-omroverlay="1"></div>'+
     '</div></div>';

@@ -84,13 +84,131 @@ This project is built on the **MERN stack**:
 
 ## Getting Started
 
-> Setup instructions (installation, environment variables, running locally) will be added here as the codebase matures.
-
 ```bash
 git clone https://github.com/vicharanashala/fln.git
 cd fln
-# setup instructions coming soon
+npm install
 ```
+
+### Run against your own MongoDB (recommended for local dev)
+
+Each contributor should point their local backend at **their own** MongoDB — either
+a free [Atlas](https://www.mongodb.com/cloud/atlas/register) cluster or a local
+`mongod` — instead of hardcoding data or sharing one database. This lets you seed
+your own test data and iterate on features without touching anyone else's.
+
+1. Copy the backend env template: `cp backend/.env.example backend/.env`
+   (the file at the repo root, `.env.example`, is only for the AI scripts in
+   `ai-services/` — it does **not** configure the database).
+2. In `backend/.env`, set `MONGODB_URI` to your own connection string, e.g.
+   `mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/fln` (Atlas) or
+   `mongodb://127.0.0.1:27017/fln` (local mongod).
+3. Populate it with the full demo dataset (states/districts/schools/teachers/
+   volunteers/students — matches the demo login buttons in the UI):
+   ```bash
+   npm run seed --workspace @fln/backend
+   ```
+   Optionally also run `npm run seed:question-bank` and `npm run seed:html`
+   (workspace-scoped) to load the question bank / worksheet HTML collections.
+4. Start the app:
+   ```bash
+   npm run dev:backend    # API on :3000, reads backend/.env
+   npm run dev:frontend   # Vite dev server on :5173
+   ```
+
+Demo login after seeding: `superadmin@fln.org`, password `Fln@2026` (see
+`backend/src/seed.ts` for the full list of generated teacher/volunteer/admin
+emails, which follow a predictable `role.<state>_<district>_<block>_<school>@fln.org`
+pattern).
+
+## Rules
+ Contributor Onboarding — Onboarding Document (Mandatory)
+
+    Every student contributing to the FLN project is required to submit an Onboarding Document (.md) before their first pull request.
+    The document is a record of your understanding of the project and your plan for contributing to it. Submissions that omit any of the sections below will be returned for revision.
+
+    Purpose:
+
+    The Onboarding Document exists to ensure that every contributor:
+
+    1. Has a working understanding of what FLN is and the problem it solves.
+    2. Has read the existing codebase and can describe its current state in their own words.
+    3. Has independently identified weaknesses, gaps, and risks in the current implementation.
+    4. Has formed opinions and proposed ideas for improving the project.
+    5. Has a concrete plan for tackling at least one identified gap.
+    6. Has produced a tangible contribution (code, documentation, tests, or design) that advances the project.
+
+    Reading the code without forming a view is not enough. The document is intended to surface misunderstanding early and to surface good ideas quickly.
+
+    File Naming and Location:
+
+    - File name: ONBOARDING-<your-name>.md 
+    - Location: you have to make the PR in the Ideas folder .
+    - Format: Markdown (.md).( PDF, .docx, or plain .txt will not be accepted.)
+
+    Required Sections:
+
+    The document must contain the following six sections, in this order.
+
+    1. What is FLN?
+
+    Describe, in your own words, what FLN stands for, the domain it operates in (Foundational Literacy and Numeracy / education), the population it
+    serves, and the problem it aims to solve. Do not copy the project description verbatim — paraphrase it. A reader who has never heard of FLN should be
+    able to understand the project's purpose from this section alone.
+
+    2. What do you understand by FLN (as a system)?
+
+    Go beyond the mission statement. Describe FLN as a system: the users (students, teachers, administrators, superadmins), the main entities (schools,
+    classes, assessments, worksheets, certifications), and the high-level flow of data through it. This section is about demonstrating that you
+    understand how the pieces fit together, not just what the project is for.
+
+    3. Current State of the Repository — What Has Been Done So Far:
+
+    Walk through the repository and describe what already exists:
+
+    - Tech stack (frontend, backend, database, auth, deployment).
+    - Implemented features (authentication, role-based access, dashboards, worksheet generation, OMR, analytics, etc.).
+
+    4. Gaps Observed in the Code:
+
+    This is the most important section. List concrete weaknesses, bugs, missing features, or design problems you found while reading the code. You can also pick issues which are stated on FLN git repo and solve them. For each
+    gap, include:
+
+    - Where — file path and line range or component.
+    - What — what is wrong or missing.
+    - Why it matters — the impact on users, maintainability, performance, or correctness.
+
+    5. Ideas for the Project:
+
+    Propose improvements, new features, or refactors that would make FLN better. Each idea should include:
+
+    - What — the proposed change in one or two sentences.
+    - Why — the problem it solves or the value it adds.
+    - How — a sketch of the implementation
+
+
+    6. Your Contribution:
+
+    Describe the actual work you have done as part of this onboarding. A contribution can be any of:
+
+    - A bug fix.
+    - A new feature or endpoint.
+    - A refactor.
+    - Tests (unit, integration, or end-to-end).
+    - Documentation (this onboarding document counts only if it is exceptional; the document itself is mandatory, not the contribution).
+    - A design document or architectural proposal.
+
+    Review Criteria
+
+    A reviewer will check the Onboarding Document against the following:
+
+    - All six sections are present and in order.
+    - Section 4 cites real files and real code, not vague impressions.
+    - Section 5 ideas are grounded in the gaps from Section 4.
+    - The document is written in the contributor's own words, not generated by an AI without understanding.
+
+    A document that reads as if it was written without reading the codebase will be sent back.
+
 
 ## Contribution Guidelines
 

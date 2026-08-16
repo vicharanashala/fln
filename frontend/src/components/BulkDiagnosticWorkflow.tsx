@@ -24,9 +24,46 @@ interface JobStatus {
 export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ user, token, userRole, onBack }) => {
   const [classLevel, setClassLevel] = useState<number>(2); // Default to Class 2
   const [totalStudents, setTotalStudents] = useState<number | ''>(30); // Default to 30 students
+  const [enrolledStudents, setEnrolledStudents] = useState<Array<{ name: string; studentId: string }>>([]);
   const [job, setJob] = useState<JobStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Fetch enrolled students when classLevel changes
+  useEffect(() => {
+    const fetchStudentsForClass = async () => {
+      try {
+        const res = await apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+          const stdData = await res.json();
+          if (Array.isArray(stdData)) {
+                      const targetClassName = `Class ${classLevel}`;
+                      const filtered = stdData.filter(s => {
+                        const cg = (s.classGroup || '').toLowerCase().trim();
+                        const cn = String(s.classNum ?? '').trim();
+                        // Match by classGroup ("Class 2") OR by classNum (2) — seed data in
+                        // constants.ts uses classNum while most consumers expect classGroup.
+                        return cg === targetClassName.toLowerCase() ||
+                               cg === String(classLevel) ||
+                               cg.includes(`class ${classLevel}`) ||
+                               cg.includes(`class_${classLevel}`) ||
+                               cn === String(classLevel);
+                      });
+            const mapped = filtered.map(s => ({ name: s.name, studentId: s.id }));
+            setEnrolledStudents(mapped);
+            if (mapped.length > 0) {
+              setTotalStudents(mapped.length);
+            } else {
+              setTotalStudents('');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load enrolled students for class:', err);
+      }
+    };
+    fetchStudentsForClass();
+  }, [token, classLevel]);
 
   // Polling bulk job progress
   useEffect(() => {
@@ -67,16 +104,25 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
     setJob(null);
 
     try {
+      if (enrolledStudents.length === 0) {
+        setError(`No enrolled students found in MongoDB for Class ${classLevel}. Please enroll students in Class ${classLevel} first.`);
+        setLoading(false);
+        return;
+      }
+
+      const payload: any = {
+        classNumber: classLevel,
+        count: enrolledStudents.length,
+        students: enrolledStudents
+      };
+
       const res = await apiFetch('/api/diagnostic/bulk', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          classNumber: classLevel,
-          count
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (res.ok) {
@@ -158,9 +204,16 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
               placeholder="e.g. 30"
               className="w-full text-base rounded-xl border-zinc-300 dark:border-zinc-600 focus:ring-zinc-950 focus:border-zinc-950 text-zinc-905 px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border font-mono"
             />
-            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 font-mono">
-              Accepts 1 - 1000 sheets per diagnostic batch.
-            </p>
+            {enrolledStudents.length > 0 ? (
+              <p className="text-xs text-green-700 dark:text-green-400 mt-1.5 font-medium flex items-center gap-1.5">
+                <span>👥 Enrolled Students in Class {classLevel}:</span>
+                <span className="font-bold">{enrolledStudents.map(s => s.name).join(', ')} ({enrolledStudents.length} Real Students)</span>
+              </p>
+            ) : (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-medium flex items-center gap-1.5">
+                <span>⚠️ No enrolled students found in MongoDB for Class {classLevel}. Please add students to Class {classLevel} first.</span>
+              </p>
+            )}
           </div>
 
           <button
@@ -222,26 +275,17 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
             </div>
           )}
 
-          {job.status === 'completed' && job.downloadUrl && (
+          {job.status === 'completed' && (
             <div className="flex flex-wrap items-center gap-3">
               <a
-                href={job.downloadUrl}
-                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium text-sm py-2.5 px-5 rounded-xl transition-all shadow-sm cursor-pointer"
+                href={job.pdfUrl || job.downloadUrl || '#'}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm py-3 px-6 rounded-xl transition-all shadow-sm cursor-pointer"
               >
-                <Download className="w-4 h-4" />
-                Download Merged PDF ({job.totalStudents} papers)
+                <FileText className="w-5 h-5" />
+                🖨️ Print / Open PDF ({job.totalStudents} papers)
               </a>
-              {job.pdfUrl && (
-                <a
-                  href={job.pdfUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-5 rounded-xl transition-all shadow-sm cursor-pointer"
-                >
-                  <FileText className="w-4 h-4" />
-                  Print / Open PDF
-                </a>
-              )}
             </div>
           )}
 

@@ -13,68 +13,117 @@ import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCir
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { Input, Select, Textarea } from './Form';
+import { SuperAdminExecutiveDashboard } from './SuperAdminExecutiveDashboard';
+
 
 
 export const FLN_LEVELS_LIST = [
-  { id: 1, class: "Preschool 1", name: "Quantity Comparison", strand: "Number Sense" },
-  { id: 2, class: "Preschool 1", name: "Odd One Out", strand: "Number Sense" },
-  { id: 3, class: "Preschool 1", name: "Matching + Tracing Lines", strand: "Shapes" },
-  { id: 4, class: "Preschool 2", name: "Numbers 1-10", strand: "Number Sense" },
-  { id: 5, class: "Preschool 2", name: "Finger Gesture Counting", strand: "Number Sense" },
-  { id: 6, class: "Preschool 2", name: "After, Between, Before", strand: "Number Sense" },
-  { id: 7, class: "Preschool 3", name: "Addition through objects", strand: "Number Operations" },
-  { id: 8, class: "Preschool 3", name: "Subtraction(1-10)", strand: "Number Operations" },
-  { id: 9, class: "Preschool 3", name: "Pattern Recognition+Draw by Tracing", strand: "Patterns" },
-  { id: 10, class: "Preschool 3", name: "Comparison – Numeral", strand: "Number Sense" },
-  { id: 11, class: "Review", name: "Review Assessment", strand: "Review" },
-  { id: 12, class: "Class 1", name: "Tens and Ones", strand: "Number Sense" },
-  { id: 13, class: "Class 1", name: "Numbers 11–30", strand: "Number Sense" },
-  { id: 14, class: "Class 1", name: "Counting + Fun Trace", strand: "Number Sense" },
-  { id: 15, class: "Class 1", name: "After, Between & Before", strand: "Number Sense" },
-  { id: 16, class: "Class 1", name: "Addition (1-30)", strand: "Number Operations" },
-  { id: 17, class: "Class 1", name: "Subtraction (1-30)", strand: "Number Operations" },
-  { id: 18, class: "Class 1", name: "Ordering (1-30)", strand: "Number Sense" },
-  { id: 19, class: "Class 1", name: "Numering 31-50", strand: "Number Sense" },
-  { id: 20, class: "Class 1", name: "Skip Counting in 2s/3s", strand: "Number Sense" },
-  { id: 21, class: "Class 1", name: "Comparison (1-50)", strand: "Number Sense" },
-  { id: 22, class: "Class 1", name: "Ordering (1-50)", strand: "Number Sense" },
-  { id: 23, class: "Review", name: "Review Assessment", strand: "Review" },
-  { id: 24, class: "Class 2", name: "Numbers 51-100", strand: "Number Sense" },
-  { id: 25, class: "Class 2", name: "Place Value (Tens & Ones)", strand: "Number Sense" },
-  { id: 26, class: "Class 2", name: "Carry Addition", strand: "Number Operations" },
-  { id: 27, class: "Class 2", name: "Borrow Subtraction", strand: "Number Operations" },
-  { id: 28, class: "Class 2", name: "Comparison (Greater Than, Less Than, Equal)", strand: "Number Sense" },
-  { id: 29, class: "Class 2", name: "Ordering (Ascending & Descending)", strand: "Number Sense" },
-  { id: 30, class: "Class 2", name: "Data Handling (Tally Marks)", strand: "Data Handling" },
-  { id: 31, class: "Class 2", name: "Time", strand: "Calendar & Time" },
-  { id: 32, class: "Class 2", name: "Ordinal Positions (1st–10th)", strand: "Number Sense" },
-  { id: 33, class: "Class 2", name: "Multiplication (Repeated Addition)", strand: "Number Operations" },
-  { id: 34, class: "Class 2", name: "Measurement (Non-Standard & Standard)", strand: "Measurement" },
-  { id: 35, class: "Review", name: "Review Assessment", strand: "Review" },
-  { id: 36, class: "Class 3", name: "Numbers 101–1000 (Place Value)", strand: "Number Sense" },
-  { id: 37, class: "Class 3", name: "Comparison (Greater Than, Less Than, Equal)", strand: "Number Sense" },
-  { id: 38, class: "Class 3", name: "Ordering (Ascending & Descending)", strand: "Number Sense" },
-  { id: 39, class: "Class 3", name: "Addition (Up to 1000)", strand: "Number Operations" },
-  { id: 40, class: "Class 3", name: "Subtraction (Up to 1000)", strand: "Number Operations" },
-  { id: 41, class: "Class 3", name: "Multiplication (Tables 2–10)", strand: "Number Operations" },
-  { id: 42, class: "Class 3", name: "Division (Introduction)", strand: "Number Operations" },
-  { id: 43, class: "Class 3", name: "Standard Measurement & Simple Conversions", strand: "Measurement" },
-  { id: 44, class: "Class 3", name: "Time & Calendar", strand: "Calendar & Time" },
-  { id: 45, class: "Class 3", name: "Fractions", strand: "Fractions" },
-  { id: 46, class: "Class 3", name: "Money", strand: "Money" },
-  { id: 47, class: "Class 3", name: "Data Handling", strand: "Data Handling" },
-  { id: 48, class: "Review", name: "Foundation Mastery Assessment", strand: "Review" },
-  { id: 49, class: "Class 4", name: "Numbers up to 10,000", strand: "Number Sense" },
-  { id: 50, class: "Class 4", name: "Advanced Multiplication", strand: "Number Operations" },
-  { id: 51, class: "Class 4", name: "Advanced Division", strand: "Number Operations" },
-  { id: 52, class: "Class 4", name: "Maps & Directions", strand: "Shapes" },
-  { id: 53, class: "Class 4", name: "Factors & Multiples", strand: "Number Operations" },
-  { id: 54, class: "Class 4", name: "Fraction Operations", strand: "Fractions" },
-  { id: 55, class: "Class 4", name: "Decimals (Introduction)", strand: "Number Sense" },
-  { id: 56, class: "Class 4", name: "Area & Perimeter", strand: "Measurement" },
-  { id: 57, class: "Class 4", name: "Angles", strand: "Measurement" },
-  { id: 58, class: "Class 4", name: "Symmetry & Reflection", strand: "Shapes" },
-  { id: 59, class: "Review", name: "Advanced Mastery Assessment", strand: "Review" }
+  // Stage 1: Preschool 1 (Age 3-4)
+  { id: 1, class: "Preschool 1", name: "One-to-One Correspondence", strand: "Pre-Number Foundations" },
+  { id: 2, class: "Preschool 1", name: "Classification (Single Property)", strand: "Pre-Number Foundations" },
+  { id: 3, class: "Preschool 1", name: "Perceptual Same/Different", strand: "Pre-Number Foundations" },
+  { id: 4, class: "Preschool 1", name: "Rote Verbal Counting to 10", strand: "Number Sense" },
+  { id: 5, class: "Preschool 1", name: "Counting Small Sets (1-3)", strand: "Number Sense" },
+  { id: 6, class: "Preschool 1", name: "Shape Matching (Perceptual)", strand: "Shapes & Spatial" },
+  { id: 7, class: "Preschool 1", name: "Perceptual Subitizing", strand: "Number Sense" },
+
+  // Stage 2: Preschool 2 (Age 4-5)
+  { id: 8, class: "Preschool 2", name: "Quantity Comparison", strand: "Pre-Number Foundations" },
+  { id: 9, class: "Preschool 2", name: "Seriation (3 Objects)", strand: "Pre-Number Foundations" },
+  { id: 10, class: "Preschool 2", name: "Classification (Increasing Complexity)", strand: "Pre-Number Foundations" },
+  { id: 11, class: "Preschool 2", name: "Counting to 5 (Cardinality)", strand: "Number Sense" },
+  { id: 12, class: "Preschool 2", name: "Counting 6-10", strand: "Number Sense" },
+  { id: 13, class: "Preschool 2", name: "Shape Identification", strand: "Shapes & Spatial" },
+  { id: 14, class: "Preschool 2", name: "2-Item Patterns", strand: "Patterns" },
+  { id: 15, class: "Preschool 2", name: "Comparative Vocabulary", strand: "Measurement" },
+  { id: 16, class: "Preschool 2", name: "Conceptual Subitizing", strand: "Number Sense" },
+  { id: 17, class: "Preschool 2", name: "Basic Shape Composition", strand: "Shapes & Spatial" },
+
+  // Stage 3: Preschool 3 / Balvatika (Age 5-6)
+  { id: 18, class: "Preschool 3", name: "Numeral Recognition (1-10)", strand: "Number Sense" },
+  { id: 19, class: "Preschool 3", name: "Numeral-Quantity Correspondence", strand: "Number Sense" },
+  { id: 20, class: "Preschool 3", name: "Numeral Comparison (Object-Mediated)", strand: "Pre-Number Foundations" },
+  { id: 21, class: "Preschool 3", name: "Seriation with Transitivity", strand: "Pre-Number Foundations" },
+  { id: 22, class: "Preschool 3", name: "Flexible Classification", strand: "Pre-Number Foundations" },
+  { id: 23, class: "Preschool 3", name: "Numeral Sequencing", strand: "Number Sense" },
+  { id: 24, class: "Preschool 3", name: "Comparative Vocabulary (Formalizing)", strand: "Measurement" },
+  { id: 25, class: "Preschool 3", name: "Patterns (2-Item Indep & 3-Item Intro)", strand: "Patterns" },
+  { id: 26, class: "Preschool 3", name: "Basic Shape Properties", strand: "Shapes & Spatial" },
+  { id: 27, class: "Preschool 3", name: "Shape Composition & Decomposition", strand: "Shapes & Spatial" },
+
+  // Stage 4: Class 1 (Age 6-7)
+  { id: 28, class: "Class 1", name: "Abstract Numeral Comparison", strand: "Number Sense" },
+  { id: 29, class: "Class 1", name: "Close Numeral Comparison", strand: "Number Sense" },
+  { id: 30, class: "Class 1", name: "Counting Objects to 20", strand: "Number Sense" },
+  { id: 31, class: "Class 1", name: "Reading & Writing Numerals to 99", strand: "Number Sense" },
+  { id: 32, class: "Class 1", name: "Tens and Ones", strand: "Number Sense" },
+  { id: 33, class: "Class 1", name: "Single-Digit Addition", strand: "Number Operations" },
+  { id: 34, class: "Class 1", name: "Single-Digit Subtraction", strand: "Number Operations" },
+  { id: 35, class: "Class 1", name: "3D Shape Properties", strand: "Shapes & Spatial" },
+  { id: 36, class: "Class 1", name: "Non-Standard Length Estimation", strand: "Measurement" },
+  { id: 37, class: "Class 1", name: "Non-Standard Capacity Estimation", strand: "Measurement" },
+  { id: 38, class: "Class 1", name: "3-Item Pattern Completion", strand: "Patterns" },
+  { id: 39, class: "Class 1", name: "Concept of Zero", strand: "Number Sense" },
+  { id: 40, class: "Class 1", name: "Ordinal Positions (1st-10th)", strand: "Number Sense" },
+  { id: 41, class: "Class 1", name: "Informal Number Line (0-20)", strand: "Number Sense" },
+  { id: 42, class: "Class 1", name: "Advanced Shape Composition", strand: "Shapes & Spatial" },
+
+  // Stage 5: Class 2 (Age 7-8)
+  { id: 43, class: "Class 2", name: "Reading & Writing 3-Digit Numbers", strand: "Number Sense" },
+  { id: 44, class: "Class 2", name: "Tens as Bundles/Groups", strand: "Number Sense" },
+  { id: 45, class: "Class 2", name: "Flexible 2-Digit Decomposition", strand: "Number Sense" },
+  { id: 46, class: "Class 2", name: "2-Digit Addition with Regrouping", strand: "Number Operations" },
+  { id: 47, class: "Class 2", name: "2-Digit Subtraction with Regrouping", strand: "Number Operations" },
+  { id: 48, class: "Class 2", name: "Multiplication as Repeated Addition", strand: "Number Operations" },
+  { id: 49, class: "Class 2", name: "Division as Equal Sharing", strand: "Number Operations" },
+  { id: 50, class: "Class 2", name: "Multiplication Tables (2,3,4,5,10)", strand: "Number Operations" },
+  { id: 51, class: "Class 2", name: "Currency Recognition", strand: "Money" },
+  { id: 52, class: "Class 2", name: "Informal Fractions (Folding)", strand: "Fractions" },
+  { id: 53, class: "Class 2", name: "Uniform Non-Standard Measurement", strand: "Measurement" },
+  { id: 54, class: "Class 2", name: "2D Shape Set Identification", strand: "Shapes & Spatial" },
+  { id: 55, class: "Class 2", name: "Spatial Vocabulary", strand: "Shapes & Spatial" },
+  { id: 56, class: "Class 2", name: "Calendar Reading", strand: "Calendar & Time" },
+  { id: 57, class: "Class 2", name: "Data Handling (Sorting & Tallies)", strand: "Data Handling" },
+  { id: 58, class: "Class 2", name: "Number Patterns & Sequences", strand: "Patterns" },
+  { id: 59, class: "Class 2", name: "Zero as a Placeholder", strand: "Number Sense" },
+  { id: 60, class: "Class 2", name: "Extended Number Line (0-100)", strand: "Number Sense" },
+  { id: 61, class: "Class 2", name: "Skip Counting (2s, 5s, 10s)", strand: "Patterns" },
+
+  // Stage 6: Class 3 (Age 8-9)
+  { id: 62, class: "Class 3", name: "3-Digit Place Value & Expanded Form", strand: "Number Sense" },
+  { id: 63, class: "Class 3", name: "Flexible 3-Digit Decomposition", strand: "Number Sense" },
+  { id: 64, class: "Class 3", name: "3-Digit Comparison & Ordering", strand: "Number Sense" },
+  { id: 65, class: "Class 3", name: "Reading & Writing 4-Digit Numbers", strand: "Number Sense" },
+  { id: 66, class: "Class 3", name: "3-Digit Addition & Subtraction Problems", strand: "Number Operations" },
+  { id: 67, class: "Class 3", name: "Full Multiplication Tables (2-10)", strand: "Number Operations" },
+  { id: 68, class: "Class 3", name: "Division Facts & Inverse Relation", strand: "Number Operations" },
+  { id: 69, class: "Class 3", name: "Standard Measurement Units", strand: "Measurement" },
+  { id: 70, class: "Class 3", name: "Relating 2D Faces to 3D Solids", strand: "Shapes & Spatial" },
+  { id: 71, class: "Class 3", name: "Telling Time (Hours & Half-Hours)", strand: "Calendar & Time" },
+  { id: 72, class: "Class 3", name: "Money Arithmetic", strand: "Money" },
+  { id: 73, class: "Class 3", name: "Formal Fractions (Half/Quarter)", strand: "Fractions" },
+  { id: 74, class: "Class 3", name: "Pattern Rules & Generalization", strand: "Patterns" },
+  { id: 75, class: "Class 3", name: "Data Handling (Pictographs & Bar Graphs)", strand: "Data Handling" },
+
+  // Stage 7: Class 4 (Age 9-10)
+  { id: 76, class: "Class 4", name: "4-Digit & 5-Digit Place Value", strand: "Number Sense" },
+  { id: 77, class: "Class 4", name: "Large Number Operations & Regrouping", strand: "Number Sense" },
+  { id: 78, class: "Class 4", name: "Complex Multi-Digit Word Problems", strand: "Number Operations" },
+  { id: 79, class: "Class 4", name: "Extended Multiplication", strand: "Number Operations" },
+  { id: 80, class: "Class 4", name: "Formal Long Division", strand: "Number Operations" },
+  { id: 81, class: "Class 4", name: "Fractional Notation & Equivalence", strand: "Fractions" },
+  { id: 82, class: "Class 4", name: "Standard Unit Conversion", strand: "Measurement" },
+  { id: 83, class: "Class 4", name: "Applied Measurement Word Problems", strand: "Measurement" },
+  { id: 84, class: "Class 4", name: "3D Nets & Spatial Perspective", strand: "Shapes & Spatial" },
+  { id: 85, class: "Class 4", name: "Advanced Time Calculation", strand: "Calendar & Time" },
+  { id: 86, class: "Class 4", name: "Complex Money Problems", strand: "Money" },
+  { id: 87, class: "Class 4", name: "Advanced Number Patterns", strand: "Patterns" },
+  { id: 88, class: "Class 4", name: "Bar Graphs & Data Interpretation", strand: "Data Handling" },
+  { id: 89, class: "Class 4", name: "Factors & Multiples", strand: "Number Operations" },
+  { id: 90, class: "Class 4", name: "Decimals (Tenths & Hundredths)", strand: "Number Sense" },
+  { id: 91, class: "Class 4", name: "Angles & Turn", strand: "Shapes & Spatial" },
+  { id: 92, class: "Class 4", name: "Symmetry & Reflection", strand: "Shapes & Spatial" },
+  { id: 93, class: "Class 4", name: "Perimeter & Area", strand: "Measurement" }
 ];
 
 export const FLNLevelReferenceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -97,7 +146,7 @@ export const FLNLevelReferenceModal: React.FC<{ isOpen: boolean; onClose: () => 
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 rounded-t-2xl">
           <div>
             <h2 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">📖 FLN Levels Framework Reference</h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Explore details of the 59 curriculum levels spanning Preschool 1 to Class 4</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Explore details of the 93 curriculum levels spanning Preschool 1 to Class 4</p>
           </div>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-650 text-sm font-semibold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-slate-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 p-2 rounded-lg">Close</button>
         </div>
@@ -768,87 +817,58 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         </button>
       </div>
 
-      {activeTab === 'overview' && (() => {
-        const schoolColumns: Column<School>[] = [
-          { header: 'School ID', accessor: 'id', sortKey: 'id', className: 'font-mono text-xs text-slate-500 dark:text-slate-400' },
-          { header: 'School Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-800 dark:text-slate-200' },
-          { header: 'State', accessor: 'stateCode', sortKey: 'stateCode', className: 'font-mono' },
-          {
-            header: 'Deployment',
-            accessor: (s) => (
-              <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400">{s.teachersCount ? `${s.teachersCount} teachers` : '—'}</span>
-            )
-          },
-          {
-            header: 'Avg Level',
-            accessor: () => <span className="font-mono font-bold text-emerald-600">Level 3.2</span>
-          }
-        ];
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <SuperAdminExecutiveDashboard user={user} token={token} />
 
-        return (
-          <>
-            {/* Analytics Card Deck */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <MetricCard title="Total Schools Tracked" value={schools.length} subtext="● 100% Active" icon={SchoolIcon} />
-              <MetricCard title="Primary FLN Students" value={stats?.totalStudents?.toLocaleString() ?? '—'} subtext="Across all classes" icon={Users} />
-              <MetricCard title="National FLN Score" value={stats?.avgFlnLevel ? `L${stats.avgFlnLevel}` : '—'} subtext="Average student level" icon={BarChart3} />
-              <MetricCard title="FLN Certification Rate" value={stats?.certifiedPercent != null ? `${stats.certifiedPercent}%` : '—'} subtext={stats?.certifiedCount != null ? `${stats.certifiedCount.toLocaleString()} students verified competent` : 'Loading...'} icon={Award} />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* National Schools Mapping */}
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
-                <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">State / School Performance Table</h3>
-                <Table data={schools} columns={schoolColumns} searchPlaceholder="Search schools by name..." searchKey="name" />
+          {/* Global Announcement Drawer */}
+          <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
+              <span>📣 Post Global Announcement & Email Escalate</span>
+            </h3>
+            <form onSubmit={postAnnouncement} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="md:col-span-1">
+                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Title</label>
+                <input
+                  type="text"
+                  value={announcementTitle}
+                  onChange={(e) => setAnnouncementTitle(e.target.value)}
+                  placeholder="Announcement title..."
+                  className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl p-2.5 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white outline-none focus:border-indigo-500"
+                />
               </div>
-
-
-            {/* Create announcement / Broadcast */}
-            <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm h-fit">
-              <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-4">Post Global Announcement</h3>
-              <form onSubmit={postAnnouncement} className="space-y-4">
-                {successMsg && <div className="p-3 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded border border-green-100 dark:border-green-800">{successMsg}</div>}
-                <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={announcementTitle}
-                    onChange={(e) => setAnnouncementTitle(e.target.value)}
-                    placeholder="Announcement title..."
-                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-200 uppercase tracking-wider mb-1">Message Content</label>
-                  <textarea
-                    value={announcementMsg}
-                    onChange={(e) => setAnnouncementMsg(e.target.value)}
-                    rows={3}
-                    placeholder="Details of the broadcast..."
-                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 outline-none focus:border-zinc-500 focus:ring-0 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white"
-                  />
-                </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">Message Content</label>
+                <input
+                  type="text"
+                  value={announcementMsg}
+                  onChange={(e) => setAnnouncementMsg(e.target.value)}
+                  placeholder="Broadcast message details..."
+                  className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl p-2.5 bg-white dark:bg-slate-900 text-zinc-900 dark:text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div className="md:col-span-1 flex flex-col justify-end gap-2">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={isUrgent}
                     onChange={(e) => setIsUrgent(e.target.checked)}
-                    className="rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white focus:ring-zinc-900"
+                    className="rounded border-zinc-300 text-red-600 focus:ring-red-500"
                   />
-                  <span className="text-xs text-red-600 font-medium uppercase font-mono">Flag Urgent & Email Escalate</span>
+                  <span className="text-[11px] text-red-600 font-bold uppercase font-mono">Urgent Email</span>
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-zinc-900 text-white font-medium text-sm py-2 px-4 rounded-lg hover:bg-zinc-800 transition-colors"
+                  className="w-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-xs py-2.5 px-4 rounded-xl hover:bg-zinc-800 transition-colors"
                 >
-                  Broadcast Message
+                  Broadcast
                 </button>
-              </form>
-            </div>
+              </div>
+            </form>
+            {successMsg && <div className="mt-3 p-2 text-xs bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded-xl border border-green-200">{successMsg}</div>}
           </div>
-        </>
-        );
-      })()}
+        </div>
+      )}
 
 
       {activeTab === 'coordinators' && (
@@ -1676,8 +1696,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
-
-  // Modal / workflow triggers
+  const [showAllStudents, setShowAllStudents] = useState(true);
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
   const [showWorksheetPortal, setShowWorksheetPortal] = useState(false);
@@ -1955,7 +1974,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   }
 
   // Filter students under selected active class
-  const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : [];
+  const classStudents = showAllStudents ? students : (activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : []);
 
   if (showWorksheetPortal) {
     const effectiveClass = activeClass || (classes.length > 0 ? classes[0] : null);
@@ -2019,7 +2038,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             onClick={() => setShowLevelRef(true)}
             className="bg-white dark:bg-slate-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
           >
-            📖 59 FLN Framework
+            📖 93 FLN Framework
           </button>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
@@ -2098,12 +2117,20 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
       {/* Class picker tabs */}
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">
+        <button
+          onClick={() => { setShowAllStudents(true); setActiveClass(null); }}
+          className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
+            showAllStudents ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+          }`}
+        >
+          All Students ({students.length})
+        </button>
         {classes.map(c => (
           <button
             key={c.id}
-            onClick={() => setActiveClass(c)}
+            onClick={() => { setShowAllStudents(false); setActiveClass(c); }}
             className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
-              activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+              !showAllStudents && activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
           >
             {c.className} - {c.section}
@@ -2111,8 +2138,10 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         ))}
       </div>
 
-      {activeClass && (
+      {classStudents.length > 0 && (
         <div className="space-y-6">
+          {!showAllStudents && activeClass && (
+            <>
           {/* 💊 Intervention Quick Action */}
           <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950 dark:to-purple-950 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 shadow-sm">
             <div className="flex items-center justify-between">
@@ -2147,9 +2176,9 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                 <button
                   type="button"
                   onClick={async () => {
-                    const unplaced = classStudents.filter(s => s.levelHistory.length === 0);
-                    if (unplaced.length === 0) {
-                      alert('All students in this class already have diagnostic placements.');
+                    const targets = classStudents.length > 0 ? classStudents : [];
+                    if (targets.length === 0) {
+                      alert('No students found in this class.');
                       return;
                     }
                     const classMatch = activeClass?.className.match(/\d+/);
@@ -2164,11 +2193,11 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                           'Content-Type': 'application/json',
                           'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ classNumber, students: unplaced.map(s => ({ name: s.name, studentId: s.id })) })
+                        body: JSON.stringify({ classNumber, students: targets.map(s => ({ name: s.name, studentId: s.id })) })
                       });
                       const data = await res.json();
                       if (res.ok) {
-                        setBulkJob({ ...data, total: unplaced.length, completed: 0, pdfUrl: data.pdfUrl || '', downloadUrl: data.downloadUrl || null, error: '' });
+                        setBulkJob({ ...data, total: targets.length, completed: 0, pdfUrl: data.pdfUrl || '', downloadUrl: data.downloadUrl || null, error: '' });
                       } else {
                         setBulkError(data.error || 'Failed to start bulk generation.');
                       }
@@ -2228,21 +2257,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                       </div>
                       <div className="flex gap-3">
                         <a
-                          href={bulkJob.downloadUrl}
+                          href={bulkJob.pdfUrl || bulkJob.downloadUrl || '#'}
+                          target="_blank"
+                          rel="noreferrer"
                           className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer shadow-sm"
                         >
-                          📥 Download ZIP Package
+                          🖨️ Print / Open PDF ({bulkJob.total} Papers)
                         </a>
-                        {bulkJob.pdfUrl && (
-                          <a
-                            href={bulkJob.pdfUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-mono font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer shadow-sm"
-                          >
-                            👁️ View Generated PDF
-                          </a>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -2339,18 +2360,24 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               </div>
             )}
           </div>
+            </>
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Class roster table */}
           <div className="xl:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b border-zinc-150 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
-              <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">Classroom Student Roster ({classStudents.length})</h3>
+              <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">
+                {showAllStudents ? `All Students — School Roster (${classStudents.length})` : `Classroom Student Roster (${classStudents.length})`}
+              </h3>
+              {!showAllStudents && activeClass && (
               <button
-                onClick={() => setShowWorksheetPortal(true)} // Open worksheets flow
+                onClick={() => setShowWorksheetPortal(true)}
                 className="bg-white dark:bg-slate-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-mono text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer hover:border-zinc-400 transition-colors"
               >
                 Trigger Worksheets Flow
               </button>
+              )}
             </div>
             <div className="p-4">
               {(() => {
@@ -2735,7 +2762,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
             onClick={() => setShowLevelRef(true)}
             className="bg-white dark:bg-slate-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
           >
-            📖 59 FLN Framework
+            📖 93 FLN Framework
           </button>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
@@ -2841,9 +2868,9 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                 <button
                   type="button"
                   onClick={async () => {
-                    const unplaced = classStudents.filter(s => s.levelHistory.length === 0);
-                    if (unplaced.length === 0) {
-                      alert('All students in this class already have diagnostic placements.');
+                    const targets = classStudents.length > 0 ? classStudents : [];
+                    if (targets.length === 0) {
+                      alert('No students found in this class.');
                       return;
                     }
                     const classMatch = activeClass?.className.match(/\d+/);
@@ -2858,11 +2885,11 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                           'Content-Type': 'application/json',
                           'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ classNumber, students: unplaced.map(s => ({ name: s.name, studentId: s.id })) })
+                        body: JSON.stringify({ classNumber, students: targets.map(s => ({ name: s.name, studentId: s.id })) })
                       });
                       const data = await res.json();
                       if (res.ok) {
-                        setBulkJob({ ...data, total: unplaced.length, completed: 0, pdfUrl: data.pdfUrl || '', downloadUrl: data.downloadUrl || null, error: '' });
+                        setBulkJob({ ...data, total: targets.length, completed: 0, pdfUrl: data.pdfUrl || '', downloadUrl: data.downloadUrl || null, error: '' });
                       } else {
                         setBulkError(data.error || 'Failed to start bulk generation.');
                       }
@@ -2904,16 +2931,16 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                       <div className={`h-full rounded-full transition-all duration-500 ${bulkJob.status === 'completed' ? 'bg-green-500' : bulkJob.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'}`}
                         style={{ width: `${bulkJob.total > 0 ? Math.round((bulkJob.completed / bulkJob.total) * 100) : 0}%` }} />
                     </div>
-                    {bulkJob.status === 'completed' && bulkJob.downloadUrl && (
+                    {bulkJob.status === 'completed' && (
                       <div className="flex gap-2 pt-1">
-                        <a href={bulkJob.downloadUrl} className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer">
-                          📥 Download ZIP Package ({bulkJob.total} sets)
+                        <a
+                          href={bulkJob.pdfUrl || bulkJob.downloadUrl || '#'}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer"
+                        >
+                          🖨️ Print / Open PDF ({bulkJob.total} Papers)
                         </a>
-                        {bulkJob.pdfUrl && (
-                          <a href={bulkJob.pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-mono font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer">
-                            📄 Open PDF
-                          </a>
-                        )}
                       </div>
                     )}
                     {bulkJob.status === 'failed' && (

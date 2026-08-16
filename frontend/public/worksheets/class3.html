@@ -516,7 +516,7 @@ function section4(secObj){
 
 /* ===== EXAMPLE: SECTION 5 (q5, Addition) ===== */
 function section5(secObj){
-  const probs=[];for(let i=0;i<3;i++){const a=ri(10,79),b=ri(10,99-a);probs.push([a,b]);}
+  const probs=[];for(let i=0;i<1;i++){const a=ri(10,79),b=ri(10,99-a);probs.push([a,b]);}
   const boxes=probs.map(([a,b],i)=>{
     const id=`q5-ans-${i+1}`;
     secObj.items.push(mkItem(i+1,{question:i+1,addend1:a,addend2:b,answer:a+b,expression:`${a} + ${b} = ${a+b}`},
@@ -526,7 +526,7 @@ function section5(secObj){
 }
 
 function section6(secObj){
-  const probs=[];for(let i=0;i<3;i++){const a=ri(30,99),b=ri(10,a-10);probs.push([a,b]);}
+  const probs=[];for(let i=0;i<1;i++){const a=ri(30,99),b=ri(10,a-10);probs.push([a,b]);}
   const boxes=probs.map(([a,b],i)=>{
     const id=`q6-ans-${i+1}`;
     secObj.items.push(mkItem(i+1,{question:i+1,minuend:a,subtrahend:b,answer:a-b,expression:`${a} - ${b} = ${a-b}`},{detect:'handwritten_digit',expected:a-b}));
@@ -589,8 +589,8 @@ function section10(secObj){
   const coinMap={1:'coin1',2:'coin2',5:'coin5',10:'coin10'};
   const allDenoms=[{v:1,type:'coin'},{v:2,type:'coin'},{v:5,type:'coin'},{v:10,type:'coin'},{v:10,type:'note'},{v:20,type:'note'},{v:50,type:'note'},{v:100,type:'note'},{v:200,type:'note'},{v:500,type:'note'}];
   let rows='';
-  for(let i=0;i<3;i++){
-    const d1=pick(allDenoms), d2=pick(allDenoms);
+  for(let i=0;i<1;i++){
+      const d1=pick(allDenoms), d2=pick(allDenoms);
     const key1=d1.type==='coin'?coinMap[d1.v]:noteMap[d1.v];
     const key2=d2.type==='coin'?coinMap[d2.v]:noteMap[d2.v];
     const sz=d1.type==='coin'?50:64; const sz2=d2.type==='coin'?50:64;
@@ -603,9 +603,9 @@ function section10(secObj){
 
 function section11(secObj){
   let rows='';
-  for(let i=0;i<2;i++){
-    const pool=[...Array(20).keys()].map(x=>x+1+i*20);
-    const nums=sample(pool,5);
+  for(let i=0;i<1;i++){
+      const pool=[...Array(20).keys()].map(x=>x+1+i*20);
+      const nums=sample(pool,5);
     const id=`q11-ans-${i+1}`;
     const sorted=[...nums].sort((a,b)=>a-b);
     rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:12.5px;">Arrange in ascending order: <b>${nums.join(', ')}</b></td><td><span data-omr="${id}" class="blankline lg"></span></td></tr>`;
@@ -616,9 +616,9 @@ function section11(secObj){
 
 function section12(secObj){
   let rows='';
-  for(let i=0;i<2;i++){
-    const pool=[...Array(20).keys()].map(x=>x+1+i*20);
-    const nums=sample(pool,5);
+  for(let i=0;i<1;i++){
+      const pool=[...Array(20).keys()].map(x=>x+1+i*20);
+      const nums=sample(pool,5);
     const id=`q12-ans-${i+1}`;
     const sorted=[...nums].sort((a,b)=>b-a);
     rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:12.5px;">Arrange in descending order: <b>${nums.join(', ')}</b></td><td><span data-omr="${id}" class="blankline lg"></span></td></tr>`;
@@ -680,9 +680,9 @@ function section14(secObj){
     secObj.items.push(mkItem(i+1,{question:i+1,part:1,number:n,tens:Math.floor(n/10),ones:n%10},{detect:'handwritten_digit_multi',fields:['tens','ones'],expected:{tens:Math.floor(n/10),ones:n%10}}));
   });
   let rows2='';
-  for(let i=0;i<3;i++){
-    const t=ri(1,9),o=ri(0,9);
-    const id=`q14-p2-${i+1}-number`;
+  for(let i=0;i<1;i++){
+      const t=ri(1,9),o=ri(0,9);
+      const id=`q14-p2-${i+1}-number`;
     rows2+=`<tr><td class="rn">${i+1}</td><td style="font-size:13px;"><b>${t}</b> tens and <b>${o}</b> ${o===1?'one':'ones'} = </td><td><span data-omr="${id}" class="blankline sm"></span></td></tr>`;
     secObj.items.push(mkItem(i+4,{question:i+4,part:2,tens:t,ones:o,number:t*10+o},{detect:'handwritten_digit',expected:t*10+o}));
   }
@@ -711,7 +711,7 @@ function section16(secObj){
 
 
 function section18(secObj){
-  const probs=[];for(let i=0;i<3;i++){const a=ri(2,9),b=ri(2,9);probs.push([a,b]);}
+  const probs=[];for(let i=0;i<1;i++){const a=ri(2,9),b=ri(2,9);probs.push([a,b]);}
   const boxes=probs.map(([a,b],i)=>{
     const id=`q16-ans-${i+1}`;
     secObj.items.push(mkItem(i+1,{question:i+1,factor1:a,factor2:b,answer:a*b},{detect:'handwritten_digit',expected:a*b}));
@@ -722,7 +722,7 @@ function section18(secObj){
 function section19(secObj){
   const divs=[2,3,4,5,6];
   const probs=[];
-  for(let i=0;i<3;i++){const d=pick(divs),q=ri(2,9);probs.push([d,d*q]);}
+  for(let i=0;i<1;i++){const d=pick(divs),q=ri(2,9);probs.push([d,d*q]);}
   const boxes=probs.map(([d,n],i)=>{
     const id=`q17-ans-${i+1}`;
     secObj.items.push(mkItem(i+1,{question:i+1,dividend:n,divisor:d,answer:n/d},{detect:'handwritten_digit',expected:n/d}));
@@ -862,7 +862,7 @@ function buildWorksheet(n,totalSets){
   const studentId = document.getElementById('studentId')?.value.trim();
   const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
   const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
-  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+  const studentDetails = `<div class="student-header-box" style="margin-top:6px;margin-bottom:4px;padding:5px 10px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:6px;font-size:13px;color:#0f172a;display:flex;align-items:center;justify-content:space-between;page-break-inside:avoid;"><div><span style="font-weight:700;color:#334155;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Student Name:</span> <span style="font-weight:800;font-size:15px;color:#0284c7;margin-left:6px;text-transform:uppercase;">${nameText}</span></div><div><span style="font-weight:700;color:#334155;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Student ID:</span> <span style="font-weight:700;font-family:monospace;font-size:13px;color:#475569;margin-left:6px;">${idText}</span></div></div>`;
 
   const html=`<div class="page-wrapper">
     <div class="reg-sq tl"></div>
@@ -871,12 +871,12 @@ function buildWorksheet(n,totalSets){
     <div class="reg-sq br"></div>
     <div class="page">
       <div class="ws-header">
-        <div class="ws-title">CLASS 3 — MATHEMATICS PRACTICE WORKSHEET</div>
+        <div class="ws-title">CLASS 3 — FLN DIAGNOSTIC PAPER</div>
         ${worksheetQRHtml(n)}
         <div class="ws-sub">Set ${n}</div>
         ${studentDetails}
       </div>${secs}
-      <div class="ws-footer">Class 3 — Math Practice &nbsp;|&nbsp; Set ${n}</div>
+      <div class="ws-footer">Class 3 — FLN Diagnostic Paper &nbsp;|&nbsp; Set ${n}</div>
       ${stamp}
     </div>
   </div>`;

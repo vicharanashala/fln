@@ -9,24 +9,44 @@ const DB_FILE = path.resolve(DB_DIR, 'db.json');
 // Every seeded demo account shares one password, stored ONLY as a bcrypt hash
 // (never as plaintext). Defaults to the well-known demo password shown on the login
 // screen; override with SEED_DEMO_PASSWORD for a private deployment.
-const SEED_DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD || 'Fln@2026';
-const SEED_DEMO_PASSWORD_HASH = bcrypt.hashSync(SEED_DEMO_PASSWORD, 10);
+export const SEED_DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD || 'Fln@2026';
+export const SEED_DEMO_PASSWORD_HASH = bcrypt.hashSync(SEED_DEMO_PASSWORD, 10);
 
 export let mongoClient: MongoClient | null = null;
 
 export const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
+  let uri = process.env.MONGODB_URI;
   if (!uri) {
-    console.error("MONGODB_URI not set — cannot start server");
-    process.exit(1);
+    console.log("MONGODB_URI not set — using local DB");
+    return;
   }
-  try {
-    mongoClient = new MongoClient(uri);
-    await mongoClient.connect();
-    console.log("MongoDB Connected");
-  } catch (err) {
-    console.error("MongoDB connection failed:", err.message);
-    process.exit(1);
+  let connected = false;
+  let attempt = 1;
+  const maxAttempts = 3;
+  while (!connected && attempt <= maxAttempts) {
+    try {
+      mongoClient = new MongoClient(uri, {
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 8000,
+      });
+      await mongoClient.connect();
+      // Test ping to verify active MongoDB connection
+      await mongoClient.db().command({ ping: 1 });
+      console.log("MongoDB Connected");
+      dbStore.useMongo = true;
+      connected = true;
+    } catch (err: any) {
+      console.error(`MongoDB connection attempt ${attempt}/${maxAttempts} failed: ${err.message}`);
+      attempt++;
+      if (attempt <= maxAttempts) {
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+  }
+
+  if (!connected) {
+    console.warn("Could not connect to remote MongoDB — falling back to local file DB so server runs reliably.");
+    mongoClient = null;
   }
 };
 
@@ -90,6 +110,7 @@ export interface Student {
   aadharMasked: string; // Mandatory, unique identifier masked (§13.2 R-6)
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
+  assignedDiagnosticQuestions?: Question[];
   // Extended profile — optional, filled in by the student's own school/teacher.
   // guardianContact and address are PII and are redacted for roles beyond
   // superadmin/school/teacher (same treatment as aadharMasked, §13.2 R-6).
@@ -117,6 +138,7 @@ export interface Question {
   subtopic: string;
   difficulty: 'easy' | 'medium' | 'hard';
   source_level: number; // Mapping to mathematical level
+  conceptId?: string; // Concept ID from 93-node framework (e.g. S1.1, S3.3)
   svgAsset?: string; // Standard pre-built SVG asset category
 }
 
@@ -140,6 +162,41 @@ export interface LevelWorksheet {
   answerKey: any;
   coords: any;
   generatedAt: string;
+}
+
+export interface DiagnosticAnswerKey {
+  id: string;
+  jobId: string;
+  studentId: string;
+  studentName: string;
+  classNumber: number;
+  setNumber: number;
+  masterJson: any;
+  coords: any;
+  questionPaperJson: any;
+  questions: Question[];
+  answerKey?: any;
+  createdAt: string;
+}
+
+export interface LevelHtmlTemplate {
+  levelNumber: number;
+  title: string;
+  fileName: string;
+  htmlContent: string;
+  createdAt: string;
+}
+
+export interface QuestionBankEntry {
+  level: number;
+  conceptId?: string; // Immutable concept tag (S1.1 - S7.18)
+  levelTitle: string;
+  section: string;
+  sectionType: string;
+  questionNumber: number;
+  questionText: string;
+  answer: string;
+  svgHtml: string;
 }
 
 export interface Worksheet {
@@ -292,6 +349,8 @@ interface DatabaseSchema {
   questions: Question[];
   worksheets: Worksheet[];
   levelWorksheets: LevelWorksheet[];
+  levelHtmlTemplates: LevelHtmlTemplate[];
+  questionBank: QuestionBankEntry[];
   answerSubmissions: AnswerSubmission[];
   evaluationReports: EvaluationReport[];
   tickets: Ticket[];
@@ -299,6 +358,7 @@ interface DatabaseSchema {
   announcements: Announcement[];
   interventions: Intervention[];
   bestPractices: BestPractice[];
+  diagnosticAnswerKeys: DiagnosticAnswerKey[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -309,6 +369,8 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   questions: 'questions',
   worksheets: 'worksheets',
   levelWorksheets: 'levelWorksheets',
+  levelHtmlTemplates: 'levelHtmlTemplates',
+  questionBank: 'questionBank',
   answerSubmissions: 'answer_submissions',
   evaluationReports: 'evaluation_reports',
   tickets: 'tickets',
@@ -316,6 +378,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   announcements: 'announcements',
   interventions: 'interventions',
   bestPractices: 'best_practices',
+  diagnosticAnswerKeys: 'diagnostic_answer_keys',
 };
 
 export class DBStore {
@@ -323,27 +386,83 @@ export class DBStore {
   public useMongo: boolean = false;
   private mongoDb: Db | null = null;
 
-  getDb() {
-    if (!mongoClient) throw new Error('MongoDB not connected');
-    return mongoClient.db();
+  getDb(): Db | null {
+    if (this.mongoDb) return this.mongoDb;
+    if (mongoClient) {
+      const dbName = process.env.MONGODB_DB_NAME;
+      this.mongoDb = dbName ? mongoClient.db(dbName) : mongoClient.db();
+      return this.mongoDb;
+    }
+    return null;
+  }
+
+  // Generic key-value config store. Keys are arbitrary strings; values
+  // are arbitrary JSON-serializable blobs. Stored in MongoDB collection
+  // `appConfig` ({_id: key, value}). Used for runtime config like
+  // ICR_CLOUD_API_KEY_GOOGLE etc that admins set via the API instead
+  // of environment variables.
+  async getConfig(key: string): Promise<any> {
+    const db = this.getDb();
+    if (!db) return null;
+    const doc = await db.collection('appConfig').findOne({ _id: key } as any);
+    return doc?.value ?? null;
+  }
+
+  async setConfig(key: string, value: any): Promise<void> {
+    const db = this.getDb();
+    if (!db) throw new Error('MongoDB not connected');
+    await db.collection('appConfig').updateOne(
+      { _id: key } as any,
+      { $set: { value, updatedAt: new Date() } },
+      { upsert: true }
+    );
   }
 
   async init() {
     if (mongoClient) {
-      console.log('Loading data from MongoDB...');
-      this.mongoDb = mongoClient.db();
-      const db = this.mongoDb;
-      this.data = {} as DatabaseSchema;
-      for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
-        const docs = await db.collection(collName).find().toArray();
-        (this.data as any)[key] = docs.map(({ _id, ...rest }) => rest);
+      try {
+        const dbName = process.env.MONGODB_DB_NAME;
+        this.mongoDb = dbName ? mongoClient.db(dbName) : mongoClient.db();
+        this.data = {} as DatabaseSchema;
+        const db = this.mongoDb;
+
+        // Ensure diagnostic_answer_keys collection is explicitly created in MongoDB
+        try {
+          const collections = await db.listCollections({ name: 'diagnostic_answer_keys' }).toArray();
+          if (collections.length === 0) {
+            await db.createCollection('diagnostic_answer_keys');
+            console.log('Explicitly created MongoDB collection "diagnostic_answer_keys"');
+          }
+        } catch (e: any) {
+          console.warn('Collection check info:', e.message);
+        }
+
+        for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
+          (this.data as any)[key] = [];
+        }
+        // Load users into memory for sync auth lookups (getUserSync)
+        this.data.users = await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
+        const userCount = this.data.users.length;
+        const schoolCount = await db.collection('schools').countDocuments();
+        const studentCount = await db.collection('students').countDocuments();
+
+        // If MongoDB Atlas users collection is empty, merge local seed users into memory without modifying MongoDB
+        if (userCount === 0) {
+          const seed = this.getSeedData();
+          this.data.users = seed.users;
+        }
+        console.log(`MongoDB ready: ${userCount} users in Atlas (${this.data.users.length} active), ${schoolCount} schools, ${studentCount} students`);
+        return;
+      } catch (err: any) {
+        console.warn(`MongoDB initialization failed (${err.message}) — falling back to local file DB.`);
+        this.mongoDb = null;
+        mongoClient = null;
       }
-      console.log(`MongoDB loaded: ${this.data.users?.length || 0} users, ${this.data.schools?.length || 0} schools, ${this.data.students?.length || 0} students`);
     } else {
       console.log('No MongoDB — falling back to file-based DB');
       try {
         await fs.mkdir(DB_DIR, { recursive: true });
-      } catch (_) {}
+      } catch (_) { }
       try {
         const content = await fs.readFile(DB_FILE, 'utf-8');
         this.data = JSON.parse(content);
@@ -395,41 +514,350 @@ export class DBStore {
     return this.data.users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
   }
 
+  async getUserByEmail(email: string): Promise<User | null> {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (this.mongoDb) {
+      try {
+        // Anchored regex with the email field. The `email` field has a regular
+        // index from init(); a fully-anchored regex on an indexed field still
+        // scans the index, but the index is keyed on the value so it's bounded.
+        const u = await this.mongoDb.collection<User>('users').findOne({
+          email: { $regex: new RegExp(`^${cleanEmail.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') }
+        });
+        if (u) {
+          if (this.data && this.data.users) {
+            const idx = this.data.users.findIndex(x => x.email.toLowerCase() === cleanEmail || x.id === u.id);
+            if (idx >= 0) this.data.users[idx] = u;
+            else this.data.users.push(u);
+          }
+          return u;
+        }
+      } catch (_) {}
+    }
+    return this.getUserSync(cleanEmail);
+  }
+
   async getUsers() {
-    return await this.mongoDb!.collection<User>('users').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<User>('users').find({}).toArray();
+    return this.data?.users || [];
   }
   async getSchools() {
-    return await this.mongoDb!.collection<School>('schools').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<School>('schools').find({}).toArray();
+    return this.data?.schools || [];
   }
   async getClasses() {
-    return await this.mongoDb!.collection<ClassGroup>('classes').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<ClassGroup>('classes').find({}).toArray();
+    return this.data?.classes || [];
   }
-  async getStudents() {
-    return await this.mongoDb!.collection<Student>('students').find({}).toArray();
+  async getStudents(opts?: { limit?: number; offset?: number; schoolId?: string; teacherId?: string }) {
+      if (this.mongoDb) {
+        const filter: any = {};
+        if (opts?.schoolId) filter.schoolId = opts.schoolId;
+        if (opts?.teacherId) filter.teacherId = opts.teacherId;
+        const skip = opts?.offset || 0;
+        const limit = opts?.limit || 0;
+        const cursor = this.mongoDb.collection<Student>('students').find(filter);
+        if (skip) cursor.skip(skip);
+        if (limit) cursor.limit(limit);
+        return await cursor.toArray();
+      }
+      let result = this.data?.students || [];
+      if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
+      if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
+      if (opts?.offset) result = result.slice(opts.offset);
+      if (opts?.limit) result = result.slice(0, opts.limit);
+      return result;
+    }
+    async countStudents(opts?: { schoolId?: string; teacherId?: string }) {
+      if (this.mongoDb) {
+        const filter: any = {};
+        if (opts?.schoolId) filter.schoolId = opts.schoolId;
+        if (opts?.teacherId) filter.teacherId = opts.teacherId;
+        return await this.mongoDb.collection('students').countDocuments(filter);
+      }
+      let result = this.data?.students || [];
+      if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
+      if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
+      return result.length;
+    }
+
+
+  /**
+   * Fast aggregation: count of students, optionally filtered.
+   * Uses MongoDB countDocuments (uses index, no docs loaded).
+   */
+  async countStudentsFast(opts?: { schoolId?: string; currentLevelMin?: number }): Promise<number> {
+    if (this.mongoDb) {
+      const filter: any = {};
+      if (opts?.schoolId) filter.schoolId = opts.schoolId;
+      if (opts?.currentLevelMin != null) filter.currentLevel = { $gte: opts.currentLevelMin };
+      return await this.mongoDb.collection('students').countDocuments(filter);
+    }
+    let result = this.data?.students || [];
+    if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
+    if (opts?.currentLevelMin != null) result = result.filter(s => (s.currentLevel || 0) >= opts.currentLevelMin!);
+    return result.length;
+  }
+
+  /** Fast count of schools with optional filters. */
+  async countSchoolsFast(opts?: { stateCode?: string; schoolType?: string; accessLocked?: boolean }): Promise<number> {
+    if (this.mongoDb) {
+      const filter: any = {};
+      if (opts?.stateCode) filter.stateCode = opts.stateCode;
+      if (opts?.schoolType) filter.schoolType = opts.schoolType;
+      if (opts?.accessLocked != null) filter.accessLocked = opts.accessLocked;
+      return await this.mongoDb.collection('schools').countDocuments(filter);
+    }
+    let result = (this.data?.schools || []) as any[];
+    if (opts?.stateCode) result = result.filter((s: any) => s.stateCode === opts!.stateCode);
+    if (opts?.schoolType) result = result.filter((s: any) => s.schoolType === opts!.schoolType);
+    if (opts?.accessLocked != null) result = result.filter((s: any) => s.accessLocked === opts!.accessLocked);
+    return result.length;
+  }
+
+  /** Fast count of users by role. Returns { role: count }. */
+  async countUsersByRole(): Promise<Record<string, number>> {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection('users').aggregate([
+        { $group: { _id: '$role', count: { $sum: 1 } } }
+      ]).toArray();
+      const counts: Record<string, number> = {};
+      result.forEach(r => { counts[r._id] = r.count; });
+      return counts;
+    }
+    const counts: Record<string, number> = {};
+    (this.data?.users || []).forEach(u => {
+      const r = u.role || 'unknown';
+      counts[r] = (counts[r] || 0) + 1;
+    });
+    return counts;
+  }
+
+  /**
+   * Fast aggregation: school counts grouped by stateCode.
+   * Returns [{ stateCode, count }] sorted by count desc.
+   */
+  async countSchoolsByState(): Promise<Array<{ stateCode: string; count: number }>> {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection('schools').aggregate([
+        { $group: { _id: '$stateCode', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]).toArray();
+      return result.map(r => ({ stateCode: r._id || 'UNKNOWN', count: r.count }));
+    }
+    const counts: Record<string, number> = {};
+    (this.data?.schools || []).forEach(s => {
+      const sc = s.stateCode || 'UNKNOWN';
+      counts[sc] = (counts[sc] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([stateCode, count]) => ({ stateCode, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  /** Fast aggregation: school counts grouped by schoolType. */
+  async countSchoolsByType(): Promise<Array<{ schoolType: string; count: number }>> {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection('schools').aggregate([
+        { $group: { _id: '$schoolType', count: { $sum: 1 } } }
+      ]).toArray();
+      return result.map(r => ({ schoolType: r._id || 'Unknown', count: r.count }));
+    }
+    const counts: Record<string, number> = {};
+    ((this.data?.schools || []) as any[]).forEach(s => {
+      const t = s.schoolType || 'Unknown';
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    return Object.entries(counts).map(([schoolType, count]) => ({ schoolType, count }));
+  }
+
+  /** Fast aggregation: student count per school (for ranking). Returns top N. */
+  async getSchoolStudentCounts(): Promise<Map<string, number>> {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection('students').aggregate([
+        { $group: { _id: '$schoolId', count: { $sum: 1 }, avgLevel: { $avg: '$currentLevel' } } }
+      ]).toArray();
+      const map = new Map<string, number>();
+      result.forEach(r => { map.set(r._id, r.count); });
+      return map;
+    }
+    const counts = new Map<string, number>();
+    (this.data?.students || []).forEach(s => {
+      counts.set(s.schoolId, (counts.get(s.schoolId) || 0) + 1);
+    });
+    return counts;
+  }
+
+  /** Fast aggregation: count of evaluation reports. */
+  async countReports(): Promise<number> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection('evaluation_reports').countDocuments({});
+    }
+    return (this.data?.evaluationReports || []).length;
+  }
+
+  /** Fast aggregation: count reports grouped by pass/fail (score >= 50). */
+  async countReportsByOutcome(): Promise<{ pass: number; fail: number; total: number; avgScore: number }> {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection('evaluation_reports').aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            pass: { $sum: { $cond: [{ $gte: ['$score', 50] }, 1, 0] } },
+            avgScore: { $avg: '$score' }
+          }
+        }
+      ]).toArray();
+      if (result.length === 0) return { pass: 0, fail: 0, total: 0, avgScore: 0 };
+      const r = result[0];
+      return { pass: r.pass, fail: r.total - r.pass, total: r.total, avgScore: Math.round(r.avgScore || 0) };
+    }
+    const all = this.data?.evaluationReports || [];
+    const pass = all.filter(r => (r.score ?? 0) >= 50).length;
+    const avg = all.length > 0 ? all.reduce((s, r) => s + (r.score ?? 0), 0) / all.length : 0;
+    return { pass, fail: all.length - pass, total: all.length, avgScore: Math.round(avg) };
   }
   async getQuestions() {
-    return await this.mongoDb!.collection<Question>('questions').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Question>('questions').find({}).toArray();
+    return this.data?.questions || [];
   }
   async getWorksheets() {
-    return await this.mongoDb!.collection<Worksheet>('worksheets').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray();
+    return this.data?.worksheets || [];
   }
   async getLevelWorksheets() {
-    return await this.mongoDb!.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
+    return this.data?.levelWorksheets || [];
+  }
+  async getLevelHtmlTemplates() {
+    if (this.mongoDb) return await this.mongoDb.collection<LevelHtmlTemplate>('levelHtmlTemplates').find({}).sort({ levelNumber: 1 }).toArray();
+    return this.data?.levelHtmlTemplates || [];
+  }
+  async getLevelHtmlTemplate(levelNumber: number) {
+    if (this.mongoDb) return await this.mongoDb.collection<LevelHtmlTemplate>('levelHtmlTemplates').findOne({ levelNumber });
+    return this.data?.levelHtmlTemplates?.find(t => t.levelNumber === levelNumber) || null;
+  }
+  async getQuestionBankByLevel(level: number) {
+    if (this.mongoDb) return await this.mongoDb.collection<QuestionBankEntry>('questionBank').find({ level }).toArray();
+    return [];
+  }
+  async getQuestionBankRandom(level: number, count: number) {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<QuestionBankEntry>('questionBank').aggregate([
+        { $match: { level } },
+        { $sample: { size: count } }
+      ]).toArray();
+    }
+    return [];
+  }
+
+  /**
+   * Generate a 10-question FLN paper for Class 2 using real MongoDB Atlas questionBank documents (Level 22 to Level 31)
+   */
+  async generateClass2PaperFromAtlas(studentId?: string): Promise<Question[]> {
+    const questions: Question[] = [];
+    const minLevel = 22;
+    const maxLevel = 31;
+
+    for (let lvl = minLevel; lvl <= maxLevel; lvl++) {
+      let qDoc: any = null;
+      if (this.mongoDb) {
+        try {
+          const docs = await this.mongoDb.collection('questionBank').aggregate([
+            { $match: { level: lvl } },
+            { $sample: { size: 1 } }
+          ]).toArray();
+          if (docs && docs.length > 0) qDoc = docs[0];
+        } catch (_) {}
+      }
+
+      if (qDoc) {
+        questions.push({
+          question_id: `Q_L${lvl}_${qDoc.questionNumber || (lvl - minLevel + 1)}`,
+          question: qDoc.questionText || qDoc.question || `Level ${lvl} Problem`,
+          answer: String(qDoc.answer || '').trim(),
+          answer_type: 'number',
+          topic: qDoc.levelTitle || `Level ${lvl}`,
+          subtopic: qDoc.section || `Section ${lvl}.0`,
+          difficulty: 'medium',
+          source_level: lvl
+        });
+      } else {
+        const a = lvl * 2;
+        const b = lvl;
+        questions.push({
+          question_id: `Q_L${lvl}_1`,
+          question: `Level ${lvl}: Calculate ${a} + ${b} = ?`,
+          answer: String(a + b),
+          answer_type: 'number',
+          topic: `Level ${lvl} Number Operations`,
+          subtopic: `Addition`,
+          difficulty: 'medium',
+          source_level: lvl
+        });
+      }
+    }
+
+    if (studentId) {
+      await this.assignDiagnosticPaperToStudent(studentId, questions);
+    }
+
+    return questions;
+  }
+
+  async assignDiagnosticPaperToStudent(studentId: string, questions: Question[]) {
+    if (this.mongoDb) {
+      try {
+        await this.mongoDb.collection('students').updateOne(
+          { id: studentId },
+          { $set: { assignedDiagnosticQuestions: questions } }
+        );
+      } catch (e) {
+        console.warn('Failed to persist assigned paper to MongoDB student:', e);
+      }
+    }
+    if (this.data && this.data.students) {
+      const st = this.data.students.find(s => s.id === studentId);
+      if (st) st.assignedDiagnosticQuestions = questions;
+    }
+  }
+
+  async getStudentAssignedQuestions(studentId: string, classNumber: number = 2): Promise<Question[]> {
+    let student: Student | null = null;
+    if (this.mongoDb) {
+      student = await this.mongoDb.collection<Student>('students').findOne({ id: studentId });
+    }
+    if (!student && this.data && this.data.students) {
+      student = this.data.students.find(s => s.id === studentId) || null;
+    }
+
+    if (student && student.assignedDiagnosticQuestions && student.assignedDiagnosticQuestions.length > 0) {
+      return student.assignedDiagnosticQuestions;
+    }
+
+    // Generate paper from MongoDB Atlas (Levels 22 to 31 for Class 2)
+    return await this.generateClass2PaperFromAtlas(studentId);
   }
   async getAnswerSubmissions() {
-    return await this.mongoDb!.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
+    return this.data?.answerSubmissions || [];
   }
   async getEvaluationReports() {
-    return await this.mongoDb!.collection<EvaluationReport>('evaluationReports').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({}).toArray();
+    return this.data?.evaluationReports || [];
   }
   async getTickets() {
-    return await this.mongoDb!.collection<Ticket>('tickets').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Ticket>('tickets').find({}).toArray();
+    return this.data?.tickets || [];
   }
   async getLogbook() {
-    return await this.mongoDb!.collection<LogEntry>('logbook').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<LogEntry>('logbook').find({}).toArray();
+    return this.data?.logbook || [];
   }
   async getAnnouncements() {
-    return await this.mongoDb!.collection<Announcement>('announcements').find({}).toArray();
+    if (this.mongoDb) return await this.mongoDb.collection<Announcement>('announcements').find({}).toArray();
+    return this.data?.announcements || [];
   }
 
   // --- Write / Update Helpers ---
@@ -438,6 +866,10 @@ export class DBStore {
     await this.mongoDb!.collection('users').insertOne(user);
     if (this.data) this.data.users.push(user);
     return user;
+  }
+
+  async updateUserPasswordHash(userId: string, passwordHash: string) {
+    await this.mongoDb!.collection('users').updateOne({ id: userId }, { $set: { passwordHash } });
   }
 
   async addStudent(student: Student) {
@@ -584,6 +1016,36 @@ export class DBStore {
       if (idx !== -1) this.data.bestPractices[idx] = bp;
     }
     return bp || undefined;
+  }
+
+  // --- Diagnostic Answer Key Methods ---
+
+  async addDiagnosticAnswerKey(key: DiagnosticAnswerKey) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('diagnostic_answer_keys').insertOne(key);
+    }
+    if (this.data) {
+      if (!this.data.diagnosticAnswerKeys) this.data.diagnosticAnswerKeys = [];
+      this.data.diagnosticAnswerKeys.push(key);
+    }
+    return key;
+  }
+
+  async getDiagnosticAnswerKeys(jobId: string): Promise<DiagnosticAnswerKey[]> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<DiagnosticAnswerKey>('diagnostic_answer_keys').find({ jobId }).toArray();
+    }
+    return (this.data?.diagnosticAnswerKeys || []).filter(k => k.jobId === jobId);
+  }
+
+  async getStudentDiagnosticAnswerKey(studentId: string, jobId?: string): Promise<DiagnosticAnswerKey | null> {
+    if (this.mongoDb) {
+      const query: any = { studentId };
+      if (jobId) query.jobId = jobId;
+      return await this.mongoDb.collection<DiagnosticAnswerKey>('diagnostic_answer_keys').findOne(query, { sort: { createdAt: -1 } });
+    }
+    const keys = (this.data?.diagnosticAnswerKeys || []).filter(k => k.studentId === studentId && (!jobId || k.jobId === jobId));
+    return keys[keys.length - 1] || null;
   }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
@@ -2506,13 +2968,16 @@ export class DBStore {
       questions: seedQuestions,
       worksheets,
       levelWorksheets: [],
+      levelHtmlTemplates: [],
+      questionBank: [],
       answerSubmissions,
       evaluationReports,
       tickets,
       logbook,
       announcements,
       interventions,
-      bestPractices
+      bestPractices,
+      diagnosticAnswerKeys: []
     };
   }
 }

@@ -1,12 +1,19 @@
 import { Question } from './db';
+import { QuestionService } from './services/questionService';
+import { CURRICULUM_MAPPING } from './config/curriculumMap';
 
 // Helper to generate a random integer
 function randomVal(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Programmatic math builder for all 59 levels and 3 sub-levels
+// Programmatic math builder for all 93 levels and 3 sub-levels
 export function generateQuestionsForLevel(level: number, subLevel: number): Question[] {
+  // If the level is mapped in our concept registry, use concept-driven generation
+  if (CURRICULUM_MAPPING[level]) {
+    return QuestionService.getQuestionsByLevel(level, subLevel);
+  }
+
   const questions: Question[] = [];
   const levelStr = `L${level}.${subLevel}`;
 
@@ -458,6 +465,7 @@ export function generateQuestionsForLevel(level: number, subLevel: number): Ques
       case 35:
       case 48:
       case 59:
+      case 93:
       default:
         topic = 'Number Sense';
         const reviewAddA = adjust(12, 8, 4);
