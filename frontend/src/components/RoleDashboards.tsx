@@ -126,6 +126,22 @@ export const FLN_LEVELS_LIST = [
   { id: 93, class: "Class 4", name: "Perimeter & Area", strand: "Measurement" }
 ];
 
+// Certification is grade-relative: each class has its own top level in the
+// 93-level framework, not a flat "level 5" bar. Mirrors
+// backend/src/certification.ts CLASS_CERTIFICATION_LEVEL — keep both in sync
+// if FLN_LEVELS_LIST's class boundaries ever change. Only Class 2-4 are
+// enrolled today (see backend/src/seed.ts CLASSES).
+export const CLASS_CERTIFICATION_LEVEL: Record<string, number> = {
+  'Class 2': 61,
+  'Class 3': 75,
+  'Class 4': 93,
+};
+
+export function isCertified(classGroup: string, currentLevel: number): boolean {
+  const ceiling = CLASS_CERTIFICATION_LEVEL[classGroup];
+  return ceiling != null && currentLevel >= ceiling;
+}
+
 export const FLNLevelReferenceModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const [search, setSearch] = useState('');
   const [selectedClass, setSelectedClass] = useState('All');
@@ -1255,7 +1271,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
   // Calculate dynamic pipeline metrics
   const studentsCount = scopedStudents.length;
-  const certifiedCount = scopedStudents.filter(s => s.currentLevel >= 5).length;
+  const certifiedCount = scopedStudents.filter(s => isCertified(s.classGroup, s.currentLevel)).length;
   const conductedExams = scopedSchools.length * 3 || 0;
   const ingestedSheets = studentsCount * 2 || 0;
 
@@ -1263,7 +1279,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const schoolPerformance = scopedSchools.map(sch => {
     const schStudents = students.filter(s => s.schoolId === sch.id);
     const total = schStudents.length;
-    const certified = schStudents.filter(s => s.currentLevel >= 5).length;
+    const certified = schStudents.filter(s => isCertified(s.classGroup, s.currentLevel)).length;
     const rate = total > 0 ? Math.round((certified / total) * 100) : 0;
     
     let statusText = '';
