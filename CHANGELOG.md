@@ -4,6 +4,34 @@ All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
 routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
+## 2026-08-17 — Backend route split (Phase 4) + landing/dashboard honesty pass
+
+- **`backend/src/index.ts` split from 3566 → 126 lines** across 4 sequential PR batches (#211–#215), extracting all route groups into `backend/src/routes/*.ts` (`auth`, `tickets`, `logbook`, `geo`, `classes`, `admin`, `teachers`, `schools`, `interventions`, `bestPractices`, `students`, `worksheets`, `evaluation`, `analytics`, `diagnosticBulk`) plus a shared `backend/src/config.ts`. Zero intended behavior change — each batch verified via `tsc --noEmit` and live curl testing against a scratch MongoDB seed.
+  - Caught and fixed mid-split: a single overly-broad `sed` delete during batch D accidentally dropped the worksheets routes along with the evaluation/ICR block. Caught before commit via a systematic route-inventory check (grep every original route path against the split files, confirm exactly one match each); recovered the file from the already-verified batch-C branch.
+  - PR #214 was based on `chore/split-backend-routes-batch-c` and merged there before #213 reached `main`, so its changes never landed on `main` until a follow-up fast-forward PR (#215).
+- **fix: authorization gaps on `/api/logbook` and `/api/admin/coordinators`** (#210, carried forward through the route split) — `/api/logbook` is now role-scoped via a schools lookup for Admin/District/Block roles instead of returning all logs; `/api/admin/coordinators` now scopes results to `stateCode` for State Admins instead of returning every coordinator nationally.
+- **fix: reset `activePanel` on every session start/end** (#203) — stale panel state no longer survives login/logout.
+- **fix: add Home button to dashboard** (#204) — previously the only way back to the landing page was logging out; `Layout.tsx` now has a Home icon that navigates without clearing the session.
+- **fix: remove hardcoded fake trend badges, fake school leaderboard, mislabeled AI-interviews KPI** (#205) — `SuperAdminExecutiveDashboard.tsx` no longer shows invented `+X%` badges or a `SCH-MOCK-1..5` fallback ranking; added an honest empty state, renamed the KPI to "Total Evaluations Completed" with accurate subtext.
+- **fix: reduce repetitive FLN Portal branding text on landing page** (#206) — varied copy across the top strip, header subtitle, and hero badge instead of repeating the same full expansion four times.
+- **feat: add hover context to landing page stat cards** (#207) — each of the 5 landing stat cards now shows a real derived detail on hover, sourced from `/api/stats` (`certifiedCount`, `certifiedPercent`).
+- **fix: comment out (not delete) non-English language options** (#201, follow-up to a stopgap) — Hindi/Punjabi `<option>`s are commented out pending real i18n, replacing a broken `alert()` onChange handler.
+
+## 2026-08-13 — Ideas folder for onboarding contributions
+
+- **Add `Ideas/` folder** (PR #161) — new repo-root location for contributor Onboarding Documents (`ONBOARDING-<name>.md`) to land as PRs, per the onboarding rule already documented in README. No code change; repo structure only.
+
+## 2026-08-11 — README contribution rules
+
+- **README rewritten with mandatory Onboarding Document rules** (PR #160) — added the six-section Onboarding Document requirement (What is FLN, system understanding, current repo state, gaps observed, ideas, contribution) that every new contributor must submit before their first PR, plus review criteria for maintainers checking submissions.
+
+## 2026-08-07 — Cloud OCR provider integration
+
+- **feat(icr): cloud OCR provider toggle + branded UI** (PR #157) — before this, the ICR scanner only ran the local PaddleOCR/EasyOCR pipeline. Added a provider toggle in [frontend/src/components/IcrTwoStageScan.tsx](frontend/src/components/IcrTwoStageScan.tsx) so a scan can run against a cloud OCR API instead, with a dedicated branded button and error panel separate from the local-scan error path.
+  - **feat(icr): restore cloud OCR backend endpoint** — backend support for Google Cloud Vision, MiniMax vision, and OCR.space as selectable cloud providers (AWS Textract/Azure stubbed 501, not yet wired). Builds on the provider-key security model introduced 2026-08-06 (keys stay server-side, never sent to the browser).
+  - **feat(icr): PDF upload support in the blue-ink filter pipeline** — the blue-pen HSV filter (introduced 2026-08-04) previously only accepted JPEG/PNG; it now accepts PDF uploads directly instead of requiring the user to screenshot a page first.
+  - **feat(icr): filter/OCR quality improvements** — further tuning on top of the 2026-08-06 blue-pen filter work.
+
 ## 2026-08-06 — ICR scanner quality + cloud OCR providers
 
 - **Blue-pen filter iterated to handle very faint handwriting** ([ai-services/scripts/bluepen_filter.py](ai-services/scripts/bluepen_filter.py))
@@ -206,6 +234,38 @@ routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
   - **Accessibility accommodations:** oral reading of questions allowed, manipulatives (counters, abacus, number line) permitted, enlarged fonts, extra time, color-coded visual aids, simplified language.
   - Files updated: `backend/src/index.ts` (diagnostic generation endpoints), `backend/src/paperGenerator.ts` (15-question template), `backend/src/levelGenerator.ts` (per-level question counts matching the 4/5/3/1/2 distribution), `frontend/src/components/DiagnosticWorkflow.tsx`, `frontend/src/components/BulkDiagnosticWorkflow.tsx`.
 
+## 2026-08-01 — Real data wiring for remaining mock panels + first backend-split proof of concept
+
+- **Wire Districts/Blocks/Analytics panels to real aggregated data** — these panels were still reading from mock/hardcoded arrays after the earlier `fix/flnc-real-data-wiring` pass; now backed by real MongoDB aggregation queries.
+- **Add `GET /api/teachers`, wire Teacher Roster panel to real data** — the roster panel previously showed nothing real; new endpoint plus frontend wiring.
+- **Add `GET /api/evaluation/reports`, wire Reports panel to real data** — same pattern for the Reports panel.
+- **Add opt-in pagination to `GET /api/students`** — panels that don't need the full 86k-student list now skip the fetch entirely; panels that do use `?limit`/`?offset` instead of loading everything into memory.
+- **Remove dead Question Bank nav item and unused `LogbookPanel` component** — before: a Question Bank nav entry pointed at a page with no real backing data. The 10 mock questions it showed were preserved as a seed file and loaded into MongoDB (`Seed the preserved Question Bank questions into MongoDB`) rather than deleted outright, then the dead nav item and unused component were removed.
+- **Require auth on `GET /api/schools`** — was previously reachable with no token.
+- **Start splitting `backend/src/index.ts` into route modules (proof of concept)** — the first extraction (`routes/announcements.ts`, `GET /api/stats` → `routes/stats.ts`) establishing the `registerXRoutes(app)` pattern that the full Phase 4 split (2026-08-17) later applied to the rest of the file.
+
+## 2026-07-31 — Security/PII fixes + orphaned backend removal
+
+- **Remove hardcoded student PII from the frontend bundle** — real student data had been baked into frontend constants/seed files, shipping to every browser regardless of role. Removed.
+- **Remove orphaned second backend** (`server.ts`/`app.ts` + a separate layered-routes structure) — a leftover duplicate backend implementation that wasn't the one actually running; deleted to stop it from being mistaken for the real API surface (see the CLAUDE.md warning about "two parallel backends" — this removed one of them at the source level, though the frontend mock-interceptor issue described there is separate and still open).
+- **Add extended guardian/medical profile fields to Student model**, mirrored in the frontend type, with `PATCH /api/students/:id/profile` to update them and an editable UI in the student Personal Details tab.
+- **Redact guardian contact/address in `GET /api/students`** for roles not scoped to that student's school — previously every role could see every student's guardian contact info regardless of assignment.
+- **Fix missing `token` prop breaking login for every role** — a prop was dropped somewhere in the dashboard wiring, breaking login universally until fixed.
+- **Fix stale demo-account emails on the login page** — the quick-login buttons pointed at emails that no longer matched the seed data.
+- **Implement coordinator registration backend**, remove unused axios client (the app already had a fetch-based API client; the axios one was dead code).
+
+## 2026-07-30 — Auth hardening + IDOR/authorization fixes
+
+- **Hash seeded demo passwords with bcrypt instead of plaintext** — demo accounts had been seeded with plaintext passwords in the database; now hashed like real accounts.
+- **Add rate limiting to the login endpoint** — no throttling previously existed on `/api/auth/login`, leaving it open to brute-force attempts.
+- **Remove password complexity check from login** (the check belongs at registration/password-set time, not on every login attempt — was incorrectly blocking valid existing passwords that predated the complexity rule).
+- **Enforce authorization on student mutation endpoints (IDOR fix)** — student update/delete endpoints were not checking that the caller's role/school actually had rights to that specific student record, allowing cross-school edits by ID.
+- **Restrict admin data scope by geography** — Admin-role queries were not filtering by `stateCode`, returning national data to a state-level account (the same class of bug fixed again later for `/api/admin/coordinators` on 2026-08-17).
+- **Make diagnostic and evaluation submissions idempotent** — a double-submit (e.g. network retry) could previously double-count a student's evaluation.
+- **Improve frontend API client resilience** — better handling of failed/retried requests.
+- **Fix `build:backend` crash** — `import.meta.url` isn't valid in the esbuild CJS output target; added the banner/define workaround that the production build script still uses today.
+- **Resolve baseline TypeScript errors** — cleared the accumulated `tsc --noEmit` error baseline.
+
 ## 2026-07-29
 
 - **93-Level Framework Integration Across Platform**
@@ -231,6 +291,12 @@ routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
   - Updated `ai-services/scripts/easyocr_evaluator.py`: Guaranteed EasyOCR scans embedded canvas page images for all PDF document uploads regardless of text in headers, downsampled images to 640px max dimension, and filtered out tiny icons (< 5KB), delivering **sub-second execution (~300ms on CPU)**.
   - Robustified `POST /api/icr/evaluate-pdf` in `backend/src/index.ts` to lookup target students across all students in MongoDB Atlas and extract `evaluation.detectedNumbers` and `evaluation.extractedTokens` from the EasyOCR response.
 
+## 2026-07-24 — Superadmin dashboard redesign + OCR model exploration
+
+- **feat(super-admin): redesign National Oversight into analytics dashboard** — the Superadmin landing view moved from a plain oversight page toward the KPI/analytics-dashboard layout that later gets its data-honesty pass on 2026-08-05 and 2026-08-17.
+- **Explore OCR models** — early evaluation work ahead of the blue-pen filter + EasyOCR pipeline that lands 2026-07-23/08-04; no runtime change yet, exploratory only.
+- **Worked on ICR** — continued groundwork on the scanning pipeline (precedes the fast EasyOCR engine landing the next day, 2026-07-23).
+
 ## 2026-07-23
 
 - **Concept-Decoupled Question Architecture (93-Node Framework Integration)**
@@ -250,6 +316,60 @@ routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
   - Updated `ai-services/scripts/easyocr_evaluator.py`: Implemented ultra-fast EasyOCR PyTorch reader with model caching, quantization, and digit allowlist (`0123456789+-><=`), speeding up OCR extraction by **5x–10x**.
   - Updated `backend/src/index.ts`: Executed Python process single-pass outside student loop to achieve sub-second execution (< 140ms). Added image file upload support (PNG, JPG, WEBP, PDF).
   - Updated `frontend/src/components/IcrScanner.tsx`: Streamlined into a dedicated 3-step **OCR Answer Sheet Scanner Engine** with direct image/PDF upload, class auto-derivation, and pre-verification Raw OCR Inspection Panel.
+
+## 2026-07-22 — Security hardening pass + backend cleanup (PRs #77–#83)
+
+- **fix: use valid Gemini model IDs so AI scoring actually runs** (PR #77) — the configured model ID was invalid/deprecated, so every AI-evaluation call was silently falling through to the deterministic non-AI fallback instead of actually calling Gemini.
+- **fix: real password auth with signed JWTs; remove role-synthesis bypass** (PR #78) — this is the fix for the "any `@fln.org` email is auto-promoted to a role inferred from its prefix" hole described in CLAUDE.md; replaced with actual password verification and signed JWT issuance. (Per CLAUDE.md this area needs re-verification before being trusted for write-path cutover — the doc's warning may predate this fix or describe a regression; check current `backend/src/auth.ts` before assuming either way.)
+- **fix: require superadmin auth for DB reset; remove unauthenticated GET reset** (PR #79) — the reset-database endpoint had no auth check at all and was reachable via a plain `GET`.
+- **fix: make Python evaluation pipeline actually runnable and injection-safe** (PR #80) — the `execFileSync` call into the AI evaluation pipeline was not safe against argument injection; hardened alongside making the pipeline invocation actually work.
+- **fix: reliable headless-Chrome launch for PDF generation** (PR #81) — Puppeteer's Chrome launch was flaky; fixed for consistent worksheet PDF rendering.
+- **refactor: remove unused duplicate frontend `levelGenerator`** (PR #82) — `frontend/src/utils/levelGenerator.ts` was a byte-identical duplicate of `backend/src/levelGenerator.ts`; removed the frontend copy.
+- **fix: base-path-aware API/asset URLs** (PR #83) — supports serving the app under the `/fln` subpath (as it's deployed on tenali.fun today) without needing to patch URLs per-deployment.
+
+## 2026-07-20 — Numeracy framework research merged (PR #73)
+
+- **Merge: research-grounded numeracy framework and level-network diagnostic methodology** — brings in the research work from 2026-07-19 (below) as the accepted basis for the level system going forward.
+
+## 2026-07-19 — Research basis for the 93-level framework
+
+- **Add research-grounded numeracy framework and level-network diagnostic methodology** — the research document establishing how student diagnostic placement should work as a network of levels rather than a flat list.
+- **Add framework evolution log tracking repo-comparison findings** — a running log comparing this framework against other reference implementations/literature.
+- **Add proposed level structure; grow framework 85 → 93 nodes from research** — this is the direct origin of the "93 levels" the platform uses today; the count grew from an earlier 85-node draft based on this research pass, not an arbitrary number.
+
+## 2026-07-18 — Level content fixes + early class/student module
+
+- **class and student module** — early version of class/student data handling (student-sejal-singh).
+- **Content library of levels through Mongo** — level content started moving into MongoDB rather than living only as static files.
+- **Make JSON-type question bank from HTML files** — question bank content derived from the existing worksheet HTML templates instead of authored separately.
+- **Level content data-quality fixes** (pavaniasn): removed 6 duplicate level folders (a mangled en-dash naming artifact), fixed Level 15's folder name (had a trailing `.md`), fixed 4 wrong level numbers inside level content, fixed a leftover template placeholder in Level 12's description.
+- **Some teacher dashboard fixes** — incremental dashboard corrections alongside the Mongo migration work.
+
+## 2026-07-17 — Dark mode reverted
+
+- **revert: dark mode feature** — dark mode had been added and was reverted the same window; not present in the platform as of this date.
+
+## 2026-07-16 — MongoDB backend integration merged (PR #47, #45, #56)
+
+- **Merge: fln-backend, levels-backend client, QR codes, PDF merge, worksheet updates** — a large merge resolving conflicts across `db.ts` (moved to direct MongoDB writes instead of the file-based store), `index.ts` (dotenv config + `LevelWorksheet` import), `package.json` (added `mongodb`, `mongoose`, `jszip` dependencies), and `LandingView.tsx` (landing stats switched from static to API-fetched).
+- **Setting up backend database** — MongoDB collections seeded/configured for the first time (JSON-format seed data).
+- Bug fixes following the merge (lakshya-aran).
+
+## 2026-07-15 — Levels backend integration + bulk diagnostic ZIP packaging
+
+- **feat: integrate levels backend under `fln-main/backend/fln-backend`** — a separate Levels API service (question generation) wired in as its own backend, ahead of the MongoDB migration merge the next day. (Note: per CLAUDE.md, remnants of a separate Levels backend/proxy routing have historically caused confusion — e.g. the 2026-08-04 fix that removed dead `localhost:5000` proxy routes shadowing the real API. If touching backend routing, confirm which backend is actually being hit.)
+- **feat: bulk class diagnostics compiled into a single ZIP** containing the merged PDF plus individual worksheets, answer keys, coordinate maps, and question-paper JSON — the origin of the bulk-diagnostic download package later hardened for answer-key security on 2026-07-29.
+- **feat: show student name and ID at the top of worksheets** — worksheets previously had no per-student identification printed on the page.
+- **Add research documentation and FLN levels structure files** — early groundwork docs for the level framework later expanded by the 2026-07-19 research pass.
+
+## 2026-07-14 — MongoDB database integration begins; mock-to-real backend wiring starts
+
+- **feat: add MongoDB database integration** — the first MongoDB wiring in the repo, alongside a parallel JSON-file "database" design (`add db design`, `add database to add teacher`).
+- **feat: remove frontend mock and wire to real backend** — an early attempt at moving the frontend off the mock fetch interceptor onto the real API (see CLAUDE.md's "two parallel backends" warning — this effort and the mock interceptor described there have coexisted/regressed at various points; check `frontend/src/main.tsx` for the currently-active state, don't assume this commit means the mock is gone for good).
+- **refactor(frontend): clean up Superadmin UI, improve dashboard visuals.**
+- **feat: update `SuperadminDashboard`, await `fetchCoordinators`** — fixed a missing await causing a race condition on coordinator data load.
+- **docs: add curated CHANGELOG.md** — this file's original creation.
+- Repo restructure + intervention feature merged in from a parallel branch; `.gitignore` fixed to include `.env` and `.DS_Store` (previously committed by mistake).
 
 ## 2026-07-13
 
@@ -274,6 +394,10 @@ routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 - Add frontend Co-authored-by: Aman Kumar Mehta <181144207+AmanMehta22@users.noreply.github.com>, Arnab Acharya <258060752+ASpiderA-bot@users.noreply.github.com>  _(76d7bcd, Prajakta Sarode)_
 - Add question generation Co-authored-by: Tripti Kachhap <181962321+Tripti334@users.noreply.github.com>  _(dd3b4ac, Prajakta Sarode)_
 - Add ai services Co-authoured-by: Shreya Chakrabarti <197927618+23f2000103@users.noreply.github.com  _(198f4b2, Prajakta Sarode)_
+
+## 2026-07-10 — Collapsible sidebar
+
+- **Add collapsible sidebar** — the dashboard sidebar navigation gained a collapse/expand toggle (lakshya-aran).
 
 ## 2026-07-09
 

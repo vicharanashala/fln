@@ -12,7 +12,7 @@ dotenv.config({ path: path.resolve(__dotenv_dir, '..', '.env'), override: true }
 
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, CYCLE_NAMES } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
@@ -21,32 +21,32 @@ import { STATES_UTS, getGeoLookup } from './geoData';
 import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN, SEED_DEMO_PASSWORD_HASH } from './auth';
 import { registerAnnouncementRoutes } from './routes/announcements';
 import { registerStatsRoutes } from './routes/stats';
+import { registerAuthRoutes } from './routes/auth';
+import { registerTicketRoutes } from './routes/tickets';
+import { registerLogbookRoutes } from './routes/logbook';
+import { registerGeoRoutes } from './routes/geo';
+import { registerClassRoutes } from './routes/classes';
+import { registerAdminRoutes } from './routes/admin';
+import { registerTeacherRoutes } from './routes/teachers';
+import { registerSchoolRoutes } from './routes/schools';
+import { registerInterventionRoutes } from './routes/interventions';
+import { registerBestPracticeRoutes } from './routes/bestPractices';
+import { registerStudentRoutes } from './routes/students';
+import { registerWorksheetRoutes } from './routes/worksheets';
+import { registerEvaluationRoutes } from './routes/evaluation';
+import { registerAnalyticsRoutes } from './routes/analytics';
+import { registerDiagnosticBulkRoutes } from './routes/diagnosticBulk';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import nodemailer from 'nodemailer';
+import { ROOT_DIR, PYTHON_BIN, AI_SERVICES_DIR } from './config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-
-// Python evaluation pipeline: interpreter + location (the pipeline lives in ai-services/,
-// a sibling of backend/). Both overridable by env for non-standard deployments.
-const VENV_PYTHON = path.resolve(ROOT_DIR, '..', 'ai-services', '.venv', 'Scripts', 'python.exe');
-const PYTHON_BIN = process.env.PYTHON_BIN || (fs.existsSync(VENV_PYTHON) ? VENV_PYTHON : (process.platform === 'win32' ? 'python' : 'python3'));
-const AI_SERVICES_DIR = process.env.AI_SERVICES_DIR || path.resolve(ROOT_DIR, '..', 'ai-services');
-
-// Throttle auth endpoints to slow down brute-force / credential-stuffing attempts.
-const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 50,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many login attempts. Please try again later.' },
-});
 
 async function startServer() {
   // Connect to MongoDB
@@ -275,7 +275,10 @@ async function startServer() {
     return res.json({ user: sanitizeUser(user) });
   });
 
+  registerAuthRoutes(app);
   registerAnnouncementRoutes(app);
+  registerTicketRoutes(app);
+  registerLogbookRoutes(app);
 
   // Tickets (In-App Feedback)
   app.get('/api/tickets', async (req, res) => {
@@ -516,124 +519,9 @@ async function startServer() {
       dbStore.getStudents(),
     ]);
     const schoolById = new Map(schools.map(s => [s.id, s]));
+  registerAdminRoutes(app);
 
-    let teachers = users.filter(u => u.role === UserRole.TEACHER);
-    if (user.role === UserRole.SCHOOL) {
-      teachers = teachers.filter(t => t.schoolId === user.schoolId);
-    } else if (user.role === UserRole.BLOCK_ADMIN) {
-      teachers = teachers.filter(t => schoolById.get(t.schoolId || '')?.blockCode === user.blockCode);
-    }
-
-    const enriched = teachers.map(t => {
-      const teacherClasses = classes.filter(c => c.teacherId === t.id);
-      const studentsCount = students.filter(s => s.teacherId === t.id).length;
-      return {
-        ...sanitizeUser(t),
-        classes: teacherClasses.map(c => `${c.className} ${c.section}`),
-        studentsCount,
-        status: t.isBanned ? 'Inactive' : 'Active',
-      };
-    });
-
-    res.json(enriched);
-  });
-
-  app.post('/api/teachers', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user || !COORDINATOR_ROLES.includes(user.role)) {
-      return res.status(403).json({ error: 'Forbidden. Coordinator role required.' });
-    }
-
-    const { firstName, lastName, email, phoneNumber, password, school } = req.body;
-    if (!firstName || !lastName || !email || !password || !school) {
-      return res.status(400).json({ error: 'Missing required fields.' });
-    }
-
-    const hasUppercase = /[A-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    if (password.length < 8 || !hasUppercase || !hasNumber || !hasSpecial) {
-      return res.status(400).json({ error: 'Password does not meet complexity requirements. Must be >= 8 chars and contain uppercase, digit, and special char.' });
-    }
-
-    const schools = await dbStore.getSchools();
-    const targetSchool = schools.find(s => s.id.toLowerCase() === String(school).toLowerCase());
-    if (!targetSchool) return res.status(400).json({ error: 'Unknown school.' });
-
-    const users = await dbStore.getUsers();
-    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-      return res.status(400).json({ error: 'User with this email already exists.' });
-    }
-
-    const teacherId = 'u_' + Math.random().toString(36).substr(2, 9);
-    const newTeacher: User = {
-      id: teacherId,
-      name: `${firstName} ${lastName}`,
-      email: email.toLowerCase(),
-      role: UserRole.TEACHER,
-      passwordHash: await bcrypt.hash(password, 10),
-      phoneNumber: phoneNumber || undefined,
-      stateCode: targetSchool.stateCode,
-      districtCode: targetSchool.districtCode,
-      blockCode: targetSchool.blockCode,
-      schoolId: targetSchool.id,
-    };
-
-    await dbStore.addUser(newTeacher);
-
-    await dbStore.addLog({
-      id: 'log_' + Date.now(),
-      timestamp: new Date().toISOString(),
-      schoolId: targetSchool.id,
-      schoolName: targetSchool.name,
-      userId: user.id,
-      userEmail: user.email,
-      userRole: user.role,
-      activityType: 'verify',
-      status: 'Success',
-      details: `Coordinator registered teacher: ${newTeacher.name} at ${targetSchool.name}`,
-    });
-
-    res.json({
-      success: true,
-      message: 'Teacher registered successfully.',
-      data: { teacherId, firstName, lastName, email: newTeacher.email },
-    });
-  });
-
-  // Schools
-  app.get('/api/schools', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    const schools = await dbStore.getSchools();
-    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
-      return res.json(schools);
-    }
-    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
-      return res.json(schools.filter(s => s.id === user.schoolId));
-    }
-    if (user.role === UserRole.VOLUNTEER) {
-      return res.json(schools.filter(s => user.assignedSchools?.includes(s.id)));
-    }
-    if (user.role === UserRole.DISTRICT_ADMIN) {
-      return res.json(schools.filter(s => s.districtCode === user.districtCode));
-    }
-    if (user.role === UserRole.BLOCK_ADMIN) {
-      return res.json(schools.filter(s => s.blockCode === user.blockCode));
-    }
-    res.json(schools);
-  });
-
-  app.post('/api/schools', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user || user.role !== UserRole.SUPERADMIN) {
-      return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
-    }
-
-    const { id, name, stateCode, districtCode, blockCode, strength } = req.body;
-    if (!id || !name || !stateCode || !districtCode || !blockCode) {
-      return res.status(400).json({ error: 'Missing required school fields.' });
-    }
+  registerGeoRoutes(app);
 
     if (!/^[a-zA-Z]{2,5}-[a-zA-Z0-9]{1,5}-\d{3}$/.test(id)) {
       return res.status(400).json({ error: 'School ID format must be strictly like gps-vl-002 (3-part format ending in 3 digits)' });
@@ -1109,20 +997,18 @@ async function startServer() {
         cwd: pipelineDir,
         env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
       });
+  registerTeacherRoutes(app);
+  registerSchoolRoutes(app);
 
-      // If failed, run the personalized exam pipeline too
-      try {
-        execFileSync(PYTHON_BIN, ['personalized_evaluation_pipeline.py', student.id, String(classNumber), 'phrase_1'], {
-          cwd: pipelineDir,
-          env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-        });
-      } catch (pexErr) {
-        console.warn('Personalized exam generation skipped or failed:', pexErr);
-      }
+  // Classes
+  registerClassRoutes(app);
 
-      // Read evaluation result JSON and report text
-      const evalReportPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'evaluation', `${student.id}_evaluation_${dateStr}.json`);
-      const reportTxtPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'reports', `${student.id}_report_${dateStr}.txt`);
+  registerStudentRoutes(app);
+
+  registerEvaluationRoutes(app);
+  registerWorksheetRoutes(app);
+  registerAnalyticsRoutes(app);
+  registerDiagnosticBulkRoutes(app);
 
       if (fs.existsSync(evalReportPath)) {
         const evalData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
@@ -3353,188 +3239,8 @@ async function startServer() {
   // --- Intervention Tracking & Best Practices Repository ---
 
   // Create a new intervention
-  app.post('/api/interventions', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user || user.role !== UserRole.TEACHER) {
-      return res.status(403).json({ error: 'Only teachers can record interventions.' });
-    }
-    const { studentId, weakCompetencies, strategyType, strategyDescription, duration, startDate } = req.body;
-    if (!studentId || !weakCompetencies?.length || !strategyType || !strategyDescription) {
-      return res.status(400).json({ error: 'Missing required fields.' });
-    }
-    const students = await dbStore.getStudents();
-    const student = students.find(s => s.id === studentId);
-    if (!student) return res.status(404).json({ error: 'Student not found.' });
-
-    const intervention: Intervention = {
-      id: 'int_' + randomUUID().slice(0, 8),
-      studentId,
-      studentName: student.name,
-      teacherId: user.id,
-      teacherName: user.name,
-      schoolId: user.schoolId || student.schoolId,
-      classId: student.classGroup,
-      className: student.classGroup,
-      section: student.section,
-      weakCompetencies,
-      currentLevel: student.currentLevel,
-      strategyType,
-      strategyDescription,
-      duration: duration || '2 weeks',
-      startDate: startDate || new Date().toISOString().split('T')[0],
-      status: 'active',
-      isPromoted: false,
-      createdAt: new Date().toISOString()
-    };
-    await dbStore.addIntervention(intervention);
-    await dbStore.addLog({
-      id: 'log_' + randomUUID().slice(0, 8),
-      timestamp: new Date().toISOString(),
-      schoolId: user.schoolId || '',
-      schoolName: '',
-      userId: user.id,
-      userEmail: user.email,
-      userRole: user.role,
-      activityType: 'verify',
-      status: 'Success',
-      details: `INTERVENTION: Recorded remedial intervention for ${student.name} — Strategy: ${strategyType}`
-    });
-    res.json(intervention);
-  });
-
-  // List interventions (role-scoped)
-  app.get('/api/interventions', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-
-    let interventions = await dbStore.getInterventions();
-
-    if (user.role === UserRole.TEACHER) {
-      interventions = interventions.filter(i => i.teacherId === user.id);
-    } else if (user.role === UserRole.SCHOOL) {
-      interventions = interventions.filter(i => i.schoolId === user.schoolId);
-    } else if (user.role === UserRole.VOLUNTEER) {
-      const assignedSchools = user.assignedSchools || [];
-      interventions = interventions.filter(i => assignedSchools.includes(i.schoolId));
-    } else if (user.role === UserRole.BLOCK_ADMIN) {
-      const schools = await dbStore.getSchools();
-      const blockSchools = schools.filter(s => s.blockCode === user.blockCode).map(s => s.id);
-      interventions = interventions.filter(i => blockSchools.includes(i.schoolId));
-    }
-    // District Admin, Admin, Superadmin see all
-    res.json(interventions);
-  });
-
-  // Get single intervention
-  app.get('/api/interventions/:id', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    const interventions = await dbStore.getInterventions();
-    const intervention = interventions.find(i => i.id === req.params.id);
-    if (!intervention) return res.status(404).json({ error: 'Intervention not found.' });
-    res.json(intervention);
-  });
-
-  // Promote intervention to Best Practice (teacher only)
-  app.post('/api/interventions/:id/promote', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user || user.role !== UserRole.TEACHER) {
-      return res.status(403).json({ error: 'Only teachers can promote interventions.' });
-    }
-    const interventions = await dbStore.getInterventions();
-    const intervention = interventions.find(i => i.id === req.params.id);
-    if (!intervention) return res.status(404).json({ error: 'Intervention not found.' });
-    if (intervention.teacherId !== user.id) {
-      return res.status(403).json({ error: 'You can only promote your own interventions.' });
-    }
-    if (!intervention.outcome?.improved) {
-      return res.status(400).json({ error: 'Only interventions with confirmed improvement can be promoted.' });
-    }
-    if (intervention.isPromoted) {
-      return res.status(400).json({ error: 'This intervention is already promoted.' });
-    }
-
-    const bp: BestPractice = {
-      id: 'bp_' + randomUUID().slice(0, 8),
-      interventionId: intervention.id,
-      teacherId: intervention.teacherId,
-      teacherName: intervention.teacherName,
-      schoolId: intervention.schoolId,
-      weakCompetencies: intervention.weakCompetencies,
-      strategyType: intervention.strategyType,
-      strategyDescription: intervention.strategyDescription,
-      levelBefore: intervention.outcome.previousLevel,
-      levelAfter: intervention.outcome.newLevel || intervention.outcome.previousLevel,
-      levelJump: (intervention.outcome.newLevel || 0) - intervention.outcome.previousLevel,
-      duration: intervention.duration,
-      tags: [
-        ...intervention.weakCompetencies,
-        intervention.strategyType.replace('_', ' '),
-        intervention.className
-      ],
-      viewCount: 0,
-      createdAt: new Date().toISOString()
-    };
-
-    await dbStore.addBestPractice(bp);
-    await dbStore.updateIntervention(intervention.id, { isPromoted: true, promotedAt: new Date().toISOString() });
-
-    await dbStore.addLog({
-      id: 'log_' + randomUUID().slice(0, 8),
-      timestamp: new Date().toISOString(),
-      schoolId: user.schoolId || '',
-      schoolName: '',
-      userId: user.id,
-      userEmail: user.email,
-      userRole: user.role,
-      activityType: 'verify',
-      status: 'Success',
-      details: `BEST PRACTICE: Teacher ${user.name} promoted intervention for ${intervention.studentName} to Best Practices Repository`
-    });
-    res.json(bp);
-  });
-
-  // Search/list Best Practices Repository (all roles)
-  app.get('/api/best-practices', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-
-    let bestPractices = await dbStore.getBestPractices();
-    const { search, competency, strategy, sort } = req.query;
-
-    if (search && typeof search === 'string') {
-      const q = search.toLowerCase();
-      bestPractices = bestPractices.filter(bp =>
-        bp.strategyDescription.toLowerCase().includes(q) ||
-        bp.teacherName.toLowerCase().includes(q) ||
-        bp.weakCompetencies.some(c => c.toLowerCase().includes(q)) ||
-        bp.tags.some(t => t.toLowerCase().includes(q))
-      );
-    }
-    if (competency && typeof competency === 'string') {
-      bestPractices = bestPractices.filter(bp => bp.weakCompetencies.includes(competency));
-    }
-    if (strategy && typeof strategy === 'string') {
-      bestPractices = bestPractices.filter(bp => bp.strategyType === strategy);
-    }
-    if (sort === 'level_jump') {
-      bestPractices.sort((a, b) => b.levelJump - a.levelJump);
-    } else {
-      bestPractices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }
-    res.json(bestPractices);
-  });
-
-  // Get single Best Practice (increment view count)
-  app.get('/api/best-practices/:id', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    const bestPractices = await dbStore.getBestPractices();
-    const bp = bestPractices.find(b => b.id === req.params.id);
-    if (!bp) return res.status(404).json({ error: 'Best practice not found.' });
-    await dbStore.updateBestPractice(bp.id, { viewCount: (bp.viewCount || 0) + 1 });
-    res.json({ ...bp, viewCount: (bp.viewCount || 0) + 1 });
-  });
+  registerInterventionRoutes(app);
+  registerBestPracticeRoutes(app);
 
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).

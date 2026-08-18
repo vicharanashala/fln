@@ -9,6 +9,7 @@ import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin 
 
 interface LandingViewProps {
   onNavigateToLogin: () => void;
+  isLoggedIn?: boolean;
 }
 
 interface Stats {
@@ -19,9 +20,11 @@ interface Stats {
   totalAssessments: number;
   avgFlnLevel: number;
   totalUsers: number;
+  certifiedCount?: number;
+  certifiedPercent?: number;
 }
 
-export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) => {
+export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isLoggedIn }) => {
   const [fontSize, setFontSize] = useState(100);
   const [stats, setStats] = useState<Stats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -62,11 +65,33 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
   }, []);
 
   const statCards = [
-    { label: 'States & Districts', value: stats ? `${stats.totalStates} States / ${stats.totalDistricts} Districts` : null, desc: 'Across India', icon: MapPin, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
-    { label: 'Registered Schools', value: stats?.totalSchools?.toLocaleString() ?? null, desc: 'Active institutions', icon: BookOpen, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
-    { label: 'Students Tracked', value: stats?.totalStudents?.toLocaleString() ?? null, desc: 'Enrolled learners', icon: Users, color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' },
-    { label: 'Assessments Conducted', value: stats?.totalAssessments?.toLocaleString() ?? null, desc: 'Worksheets generated', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40' },
-    { label: 'National Avg FLN Level', value: stats ? `L${stats.avgFlnLevel}` : null, desc: 'Average student level', icon: Award, color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' },
+    {
+      label: 'States & Districts', value: stats ? `${stats.totalStates} States / ${stats.totalDistricts} Districts` : null, desc: 'Across India', icon: MapPin,
+      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40',
+      hoverDetail: stats ? `Spanning ${stats.totalStates} states/UTs and ${stats.totalDistricts} districts nationwide.` : null,
+    },
+    {
+      label: 'Registered Schools', value: stats?.totalSchools?.toLocaleString() ?? null, desc: 'Active institutions', icon: BookOpen,
+      color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40',
+      hoverDetail: stats && stats.totalStates > 0 ? `~${Math.round(stats.totalSchools / stats.totalStates)} schools per state on average.` : null,
+    },
+    {
+      label: 'Students Tracked', value: stats?.totalStudents?.toLocaleString() ?? null, desc: 'Enrolled learners', icon: Users,
+      color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40',
+      hoverDetail: stats?.certifiedCount != null && stats?.certifiedPercent != null
+        ? `${stats.certifiedCount.toLocaleString()} certified at FLN level 5+ (${stats.certifiedPercent}%).`
+        : null,
+    },
+    {
+      label: 'Assessments Conducted', value: stats?.totalAssessments?.toLocaleString() ?? null, desc: 'Worksheets generated', icon: BarChart3,
+      color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40',
+      hoverDetail: stats && stats.totalStudents > 0 ? `~${(stats.totalAssessments / stats.totalStudents).toFixed(1)} assessments per enrolled student.` : null,
+    },
+    {
+      label: 'National Avg FLN Level', value: stats ? `L${stats.avgFlnLevel}` : null, desc: 'Average student level', icon: Award,
+      color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40',
+      hoverDetail: stats?.certifiedPercent != null ? `${stats.certifiedPercent}% of tracked students are certified (level 5+).` : null,
+    },
   ];
 
   return (
@@ -77,7 +102,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
         <div className="flex items-center gap-3">
           <span className="font-bold">FLN Portal</span>
           <span className="text-gray-500">|</span>
-          <span className="text-gray-300 hidden sm:inline">Foundational Literacy & Numeracy</span>
+          <span className="text-gray-300 hidden sm:inline">National Numeracy Initiative</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold">
@@ -86,15 +111,16 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
             <button onClick={() => adjustFontSize(10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Increase font size">A+</button>
           </div>
           <span className="text-gray-700 dark:text-gray-400">|</span>
+          {/* Hindi commented out as a stopgap - selecting it used to just show
+              an alert() and never actually translated anything. Real i18n is
+              being built in PR #146 (frontend/src/i18n/); restore this
+              option once that lands instead of the old no-op. */}
           <select
             defaultValue="en"
-            onChange={(e) => {
-              if (e.target.value === 'hi') alert("हिन्दी भाषा में बदलें");
-            }}
             className="bg-gray-800 text-gray-300 text-[10px] md:text-xs font-bold border border-gray-700 rounded px-2 py-1 outline-none hover:border-gray-500 cursor-pointer"
           >
             <option value="en">English</option>
-            <option value="hi">हिन्दी</option>
+            {/* <option value="hi">हिन्दी</option> */}
           </select>
         </div>
       </div>
@@ -119,7 +145,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">
-                Foundational Literacy & Numeracy initiative
+                National Assessment & Diagnostics Platform
               </p>
             </div>
           </div>
@@ -128,7 +154,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
               onClick={onNavigateToLogin}
               className="rounded-lg bg-indigo-700 dark:bg-indigo-800 px-6 py-2.5 text-xs font-extrabold text-white shadow-md dark:shadow-slate-950/50 transition-all duration-150 hover:bg-indigo-600 dark:hover:bg-indigo-700 border border-indigo-300 dark:border-indigo-700 active:scale-[0.98] uppercase tracking-wider"
             >
-              Sign In to Dashboard
+              {isLoggedIn ? 'Go to Dashboard' : 'Sign In to Dashboard'}
             </button>
           </div>
         </div>
@@ -143,7 +169,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
           
           <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 dark:bg-amber-950/40 px-4 py-1.5 text-xs font-bold text-slate-900 dark:text-white mb-6 border border-amber-200 dark:border-amber-800">
             <span className="h-2 w-2 rounded-full bg-amber-600 dark:bg-amber-500" />
-            <span>Foundational Literacy and Numeracy (FLN) National Assessment Scheme</span>
+            <span>FLN National Assessment Scheme</span>
           </div>
 
           <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl max-w-4xl mx-auto leading-tight">
@@ -162,7 +188,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
             return (
               <div
                 key={index}
-                className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm dark:shadow-slate-950/50 transition hover:shadow-md dark:hover:shadow-slate-950/50"
+                className="group relative flex items-center gap-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm dark:shadow-slate-950/50 transition hover:shadow-md dark:hover:shadow-slate-950/50"
               >
                 <div className={`rounded-xl p-3 ${stat.color}`}>
                   <Icon className="h-6 w-6" />
@@ -182,6 +208,11 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin }) =
                     {stat.desc}
                   </p>
                 </div>
+                {stat.hoverDetail && (
+                  <div className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-64 -translate-x-1/2 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-xs text-gray-600 dark:text-slate-300 shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                    {stat.hoverDetail}
+                  </div>
+                )}
               </div>
             );
           })}

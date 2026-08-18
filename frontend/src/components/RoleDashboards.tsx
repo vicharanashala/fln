@@ -2306,24 +2306,6 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         <div className="space-y-6">
           {!showAllStudents && activeClass && (
             <>
-          {/* 💊 Intervention Quick Action */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950 dark:to-purple-950 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-lg">
-                  💊
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Intervention Tracking</h3>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400">Record remedial actions for struggling students</p>
-                </div>
-              </div>
-              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-white dark:bg-zinc-800 px-3 py-1.5 rounded-full border border-slate-200 dark:border-zinc-600">
-                Use sidebar → Interventions
-              </div>
-            </div>
-          </div>
-
           {/* 📋 Diagnostic Paper Generator */}
           <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -2548,7 +2530,6 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                 const studentColumns: Column<Student>[] = [
                   { header: 'ID', accessor: 'id', sortKey: 'id', className: 'font-mono text-xs text-slate-400 dark:text-slate-500' },
                   { header: 'Student Name', accessor: 'name', sortKey: 'name', className: 'font-medium text-slate-900 dark:text-slate-100' },
-                  { header: 'Aadhar / ID No.', accessor: 'aadharMasked', className: 'font-mono text-xs text-slate-500 dark:text-slate-400' },
                   {
                     header: 'Current Level',
                     accessor: (s) => (
@@ -2560,10 +2541,6 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                   {
                     header: 'Target Level',
                     accessor: (s) => <span className="font-mono text-slate-500 dark:text-slate-400 text-xs">Level {s.targetLevel}</span>
-                  },
-                  {
-                    header: 'Streak',
-                    accessor: (s) => <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{s.streak} 🔥</span>
                   },
                   {
                     header: 'Diagnostic Status',
@@ -3211,7 +3188,6 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                 const studentColumns: Column<Student>[] = [
                   { header: 'ID', accessor: 'id', sortKey: 'id', className: 'font-mono text-xs text-slate-400 dark:text-slate-500' },
                   { header: 'Student Name', accessor: 'name', sortKey: 'name', className: 'font-medium text-slate-900 dark:text-slate-100' },
-                  { header: 'Aadhar / ID No.', accessor: 'aadharMasked', className: 'font-mono text-xs text-slate-500 dark:text-slate-400' },
                   {
                     header: 'Current Level',
                     accessor: (s) => (
@@ -3223,10 +3199,6 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                   {
                     header: 'Target Level',
                     accessor: (s) => <span className="font-mono text-slate-500 dark:text-slate-400 text-xs">Level {s.targetLevel}</span>
-                  },
-                  {
-                    header: 'Streak',
-                    accessor: (s) => <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{s.streak} 🔥</span>
                   },
                   {
                     header: 'Diagnostic Status',
