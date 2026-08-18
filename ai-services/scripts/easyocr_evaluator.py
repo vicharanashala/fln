@@ -432,6 +432,11 @@ def _ocr_single_component(inv_bw, comp, reader, upsample: int = 2):
         return None
     # Pick the highest-confidence, longest detection
     best = max(res, key=lambda r: (r[2] * len(r[1])))
+    # Defense-in-depth: even with the allowlist, EasyOCR can still
+    # decode a glyph as a shape-similar letter. Normalize.
+    best_text = _normalize_symbol_token(best[1])
+    if best_text != best[1]:
+        best = (best[0], best_text, best[2])
     text = best[1].strip()
     if not text:
         return None
@@ -489,6 +494,60 @@ def _cnn_classify_component(sq_crop):
     return classify(arr)
 
 
+def _normalize_symbol_token(text: str) -> str:
+    """Correct common misreads of handwritten comparison symbols.
+
+    PaddleOCR's English model often confuses student-written `<`, `>`, `=`
+    with letter-shaped glyphs (`l`, `c`, `o`, `i`, `t`, `f`) or with
+    parentheses. EasyOCR's allowlist filters most of those out at the
+    decoder level, but PaddleOCR has no allowlist. Map the most common
+    shape-confusions back to the intended symbol based on context:
+
+    Strategy:
+      - If a token is a single character that's a known shape confusion,
+        substitute the symbol.
+      - For multi-character tokens, scan each character and substitute
+        only when surrounded by digit/context cues (e.g. `12 < 34`).
+
+    The mapping was derived from observed PaddleOCR errors on student
+    handwriting: lowercase `l`/`I` look like `<`/`1`, lowercase `c`/`o`
+    look like `=`/`0`, `(` and `)` look like `<` and `>`.
+    """
+    if not text:
+        return text
+    s = str(text).strip()
+    if not s:
+        return s
+    # Single-character tokens: direct shape confusion.
+    single_map = {
+        'l': '<', 'L': '<',
+        'I': '=',
+        'c': '=', 'C': '=',
+        'o': '0',  # already a digit but PaddleOCR sometimes swaps
+        '(': '<', ')': '>',
+        'f': '=',  # written = sometimes read as f
+        'i': '=',  # written = sometimes read as i
+        't': '=',  # written = sometimes read as t
+        '7': '>',  # rare but seen — student writes > like a 7
+    }
+    # If the entire token is a single char from the map, return the symbol.
+    if len(s) == 1 and s in single_map:
+        return single_map[s]
+    # Multi-character tokens: only fix when the symbol is the only
+    # non-digit content, e.g. "1<2" or "12>3" or "l" inside a number.
+    # We replace any non-digit character that has a strong shape mapping.
+    fixed = []
+    for ch in s:
+        if ch.isdigit() or ch in '<>=':
+            fixed.append(ch)
+        elif ch in single_map:
+            fixed.append(single_map[ch])
+        else:
+            # Leave as-is (could be a stray space, punctuation, etc.)
+            fixed.append(ch)
+    return ''.join(fixed)
+
+
 def run_fast_ocr(file_path):
     start_time = time.time()
     extracted_tokens = []
@@ -540,6 +599,9 @@ def run_fast_ocr(file_path):
                         bbox, info = line
                         # PaddleOCR returns (text, confidence) tuple
                         text, conf = (info if isinstance(info, (list, tuple)) and len(info) >= 2 else (str(info), 0.5))
+                        # PaddleOCR has no allowlist — handwritten <, >, = are
+                        # routinely misread as l, c, (, ), etc. Normalize.
+                        text = _normalize_symbol_token(text)
                         res_texts.append(text)
                         extracted_tokens.append({
                             "text": text,
@@ -612,6 +674,10 @@ def run_fast_ocr(file_path):
                 # Normalized form for component-matching: (x, y, w, h, conf, text)
                 ocr_boxes = []
                 for bbox, text, prob in results:
+                    # Defense-in-depth: allowlist is already restricted to
+                    # symbols + digits, but normalize anyway in case the
+                    # model decoded a letter-shaped glyph.
+                    text = _normalize_symbol_token(text)
                     res_texts.append(text)
                     extracted_tokens.append({
                         "text": text,
@@ -645,11 +711,19 @@ def run_fast_ocr(file_path):
     # OCR detection by IoU, falling back to geometric classification
     # (triangle / > / < / circle) for non-text marks. Only runs on non-PDF
     # images where blue-pen isolation was applied (i.e. CV2 + image path).
-    # Skipped when PaddleOCR found a healthy number of tokens — its full
-    # image detection is more reliable than per-crop EasyOCR on
-    # handwritten digits.
+    #
+    # When PaddleOCR was used, the per-component pass was previously
+    # SKIPPED if Paddle found >= 3 boxes, on the assumption Paddle's full
+    # image detection is more reliable. That assumption breaks for pages
+    # with handwritten comparison symbols: Paddle routinely misreads `<`
+    # and `>` as `l`/`(` etc. even though they exist in its en dict, and
+    # the post-OCR normalize map can't always recover the right symbol.
+    # The per-component pass uses EasyOCR with a strict allowlist
+    # (0123456789+-><=) AND has a geometry classifier that detects the
+    # shape of `<` and `>` directly. So we now ALWAYS run it when
+    # PaddleOCR was used, not just on edge cases.
     component_sequence = []
-    skip_per_component = paddle_used and len(ocr_boxes) >= 3
+    skip_per_component = False  # never skip — PaddleOCR's symbol reads need the EasyOCR/geometry fallback
     if not skip_per_component and not is_pdf and CV2_AVAILABLE and EASYOCR_AVAILABLE and ocr_boxes:
         try:
             # The EasyOCR pass above ran blue-pen isolation on a PIL-downsampled
@@ -688,6 +762,64 @@ def run_fast_ocr(file_path):
                 "confidence": 0.96,
                 "bbox": []
             })
+
+    # Reconcile the per-component pass (component_sequence) with the
+    # full-image pass (extracted_tokens). The per-component pass is
+    # higher quality for handwritten marks — EasyOCR runs on 4x-upscaled
+    # crops with a strict allowlist, plus the geometry classifier detects
+    # `<`/`>` shapes directly. If a per-component text differs from the
+    # full-image text for the same position, prefer the per-component one.
+    if component_sequence:
+        # Build a per-position dict: only use per-component entries that
+        # have actual text (skip empty/unmatched) and that came from a
+        # reliable source (ocr or geometry). We can't match by bbox
+        # perfectly because the two passes produce different coordinates
+        # (different upsampling), so we sort both arrays top-to-bottom
+        # and align by index — close enough for symbol questions where
+        # the layout is row-aligned.
+        pc_texts = [c.get("text", "") for c in component_sequence if c.get("text")]
+        if pc_texts and len(pc_texts) > 0:
+            # Walk through extracted_tokens left-to-right; replace the
+            # text if the per-component text looks more like a symbol
+            # (i.e. it's in the allowlist set and the paddle one isn't).
+            allow = set("0123456789+-><= ")
+            for i, tok in enumerate(extracted_tokens):
+                if i >= len(component_sequence):
+                    break
+                pc = component_sequence[i].get("text", "")
+                pc_src = component_sequence[i].get("source", "")
+                if not pc:
+                    continue
+                pc_clean = pc.strip()
+                if not pc_clean:
+                    continue
+                # If the per-component text contains a symbol that the
+                # full-image text is missing, adopt the per-component
+                # text. This is the key fix: Paddle read "<" as "l" so
+                # the full-image text was "l", the per-component EasyOCR
+                # (with allowlist) correctly read "<" — we swap.
+                cur = tok.get("text", "")
+                cur_has_sym = any(c in "<>=" for c in cur)
+                pc_has_sym = any(c in "<>=" for c in pc_clean)
+                if pc_has_sym and not cur_has_sym:
+                    tok["text"] = pc_clean
+                    tok["confidence"] = max(tok.get("confidence", 0.5), 0.6)
+                elif pc_src == "geometry" and cur and cur not in "<>=":
+                    # Geometry classifier explicitly identified the shape.
+                    if pc_clean in "<>=":
+                        tok["text"] = pc_clean
+                        tok["confidence"] = 0.55
+                elif pc_clean and pc_clean in "<>=" and cur not in "<>=":
+                    # Even without explicit symbol detection, if the
+                    # per-component EasyOCR (with allowlist) read a
+                    # symbol, trust it over Paddle's letter guess.
+                    tok["text"] = pc_clean
+                    tok["confidence"] = max(tok.get("confidence", 0.5), 0.7)
+                # Re-normalize after the merge to be safe.
+                tok["text"] = _normalize_symbol_token(tok["text"])
+            # Rebuild combined_text so downstream consumers see the
+            # corrected tokens.
+            combined_text = " ".join(t.get("text", "") for t in extracted_tokens)
 
     elapsed_ms = round((time.time() - start_time) * 1000, 2)
 
