@@ -4,7 +4,7 @@ import { apiFetch } from '../services/apiClient';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home
+  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home, Award
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -202,6 +202,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Districts', view: 'districts', icon: MapPin });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Certification Reviews', view: 'certification_reviews', icon: Award });
         break;
 
       case UserRole.SUPERADMIN:
@@ -213,6 +214,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });
         list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
+        list.push({ name: 'Certification Reviews', view: 'certification_reviews', icon: Award });
         break;
     }
 

@@ -42,3 +42,7 @@ backend/data/
 backend/dist/
 frontend/dist/
 *.log
+# AI-services pipeline output (regenerates per-run; not source)
+ai-services/personalized_evaluation/class_*/
+backend/npm
+

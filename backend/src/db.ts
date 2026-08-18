@@ -6,6 +6,19 @@ import { MongoClient, Db } from 'mongodb';
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
 
+// Load seed competency requirements (SRS R-7). Falls back to [] if the file
+// is missing — server still boots, but eligibility decisions will be empty
+// (cert rows never transition to 'active' until seed data is restored).
+function getSeedCompetencyRequirements(): CompetencyRequirement[] {
+  try {
+    const seedPath = path.resolve(__dirname, 'data', 'competencyRequirements.seed.json');
+    const raw = require('fs').readFileSync(seedPath, 'utf-8');
+    return JSON.parse(raw) as CompetencyRequirement[];
+  } catch {
+    return [];
+  }
+}
+
 // Every seeded demo account shares one password, stored ONLY as a bcrypt hash
 // (never as plaintext). Defaults to the well-known demo password shown on the login
 // screen; override with SEED_DEMO_PASSWORD for a private deployment.
@@ -260,6 +273,45 @@ export interface EvaluationReport {
   timestamp: string;
 }
 
+// --- SRS R-7: Certification Engine ---
+
+export type MasteryLevel = 'Strong' | 'Satisfactory' | 'Needs Practice';
+
+export interface CompetencyRequirement {
+  classNumber: number;        // 2-4 (per SRS §3)
+  level: number;              // typically 5
+  topic: string;              // e.g. 'Number Operations'
+  meetsThreshold: MasteryLevel;
+  isMandatory: boolean;
+}
+
+export type CertificationStatus = 'active' | 'review_needed' | 'revoked';
+
+export interface Certification {
+  id: string;
+  studentId: string;
+  classNumber: number;
+  level: number;
+  decisionSnapshot: {
+    outcome: 'eligible' | 'not_eligible' | 'insufficient_evidence';
+    evaluatedAt: string;
+    classNumber: number;
+    level: number;
+    metTopics: string[];
+    missingTopics: string[];
+    unassessedTopics: string[];
+  };
+  status: CertificationStatus;
+  version: number;            // monotonic per (studentId, classNumber, level)
+  certificateId?: string;
+  issuedAt?: string;
+  reviewReason?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Ticket {
   id: string;
   userId: string;
@@ -364,6 +416,8 @@ interface DatabaseSchema {
   interventions: Intervention[];
   bestPractices: BestPractice[];
   diagnosticAnswerKeys: DiagnosticAnswerKey[];
+  certifications: Certification[];
+  competencyRequirements: CompetencyRequirement[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -384,6 +438,8 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   interventions: 'interventions',
   bestPractices: 'best_practices',
   diagnosticAnswerKeys: 'diagnostic_answer_keys',
+  certifications: 'certifications',
+  competencyRequirements: 'competency_requirements',
 };
 
 export class DBStore {
@@ -985,6 +1041,80 @@ export class DBStore {
     await this.mongoDb!.collection('evaluationReports').insertOne(rep);
     if (this.data) this.data.evaluationReports.push(rep);
     return rep;
+  }
+
+  // --- Certification (SRS R-7) ---
+
+  async getCertifications(): Promise<Certification[]> {
+    if (this.mongoDb) return await this.mongoDb.collection<Certification>('certifications').find({}).toArray();
+    return this.data?.certifications || [];
+  }
+
+  async getCertificationById(certId: string): Promise<Certification | null> {
+    if (this.mongoDb) return await this.mongoDb.collection<Certification>('certifications').findOne({ id: certId });
+    return this.data?.certifications.find(c => c.id === certId) || null;
+  }
+
+  async getCertificationByStudentClassLevel(studentId: string, classNumber: number, level: number): Promise<Certification | null> {
+    const list = this.mongoDb
+      ? await this.mongoDb.collection<Certification>('certifications').find({ studentId, classNumber, level }).toArray()
+      : (this.data?.certifications || []).filter(c => c.studentId === studentId && c.classNumber === classNumber && c.level === level);
+    // Prefer active > review_needed > revoked (most-recent verdict wins for orchestrator)
+    const priority: Record<CertificationStatus, number> = { active: 0, review_needed: 1, revoked: 2 };
+    return list.sort((a, b) => priority[a.status] - priority[b.status])[0] || null;
+  }
+
+  async addCertification(cert: Certification) {
+    await this.mongoDb!.collection('certifications').insertOne(cert);
+    if (this.data) this.data.certifications.push(cert);
+    return cert;
+  }
+
+  async updateCertification(certId: string, updates: Partial<Certification>) {
+    await this.mongoDb!.collection('certifications').updateOne({ id: certId }, { $set: updates });
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<Certification>('certifications').findOne({ id: certId });
+    }
+    const idx = this.data?.certifications.findIndex(c => c.id === certId);
+    if (idx !== undefined && idx !== -1 && this.data) {
+      this.data.certifications[idx] = { ...this.data.certifications[idx], ...updates };
+      return this.data.certifications[idx];
+    }
+    return null;
+  }
+
+  /** Optimistic concurrency: only update if version still matches. Returns null if no match. */
+  async updateCertificationIfVersion(certId: string, expectedVersion: number, updates: Partial<Certification>) {
+    if (this.mongoDb) {
+      const result = await this.mongoDb.collection<Certification>('certifications').findOneAndUpdate(
+        { id: certId, version: expectedVersion },
+        { $set: updates },
+        { returnDocument: 'after' }
+      );
+      return result || null;
+    }
+    if (this.data) {
+      const idx = this.data.certifications.findIndex(c => c.id === certId && c.version === expectedVersion);
+      if (idx === -1) return null;
+      this.data.certifications[idx] = { ...this.data.certifications[idx], ...updates };
+      await this.save();
+      return this.data.certifications[idx];
+    }
+    return null;
+  }
+
+  async getCompetencyRequirements(): Promise<CompetencyRequirement[]> {
+    if (this.mongoDb) return await this.mongoDb.collection<CompetencyRequirement>('competencyRequirements').find({}).toArray();
+    return this.data?.competencyRequirements || [];
+  }
+
+  /** Most recent conceptMastery for a student, from their latest EvaluationReport. */
+  async getLatestConceptMastery(studentId: string): Promise<Record<string, MasteryLevel> | null> {
+    const reports = this.mongoDb
+      ? await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({ studentId }).sort({ timestamp: -1 }).limit(1).toArray()
+      : (this.data?.evaluationReports || []).filter(r => r.studentId === studentId).sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 1);
+    if (reports.length === 0) return null;
+    return reports[0].conceptMastery;
   }
 
   async addTicket(t: Ticket) {
@@ -2981,7 +3111,9 @@ export class DBStore {
       announcements,
       interventions,
       bestPractices,
-      diagnosticAnswerKeys: []
+      diagnosticAnswerKeys: [],
+      certifications: [],
+      competencyRequirements: getSeedCompetencyRequirements(),
     };
   }
 }
