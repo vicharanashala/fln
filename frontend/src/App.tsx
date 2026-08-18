@@ -27,6 +27,26 @@ import { Bell, Settings, ShieldCheck } from 'lucide-react';
 export default function App() {
   const navigate = useNavigate();
   const [token, setToken] = useState<string | null>(localStorage.getItem('fln_token'));
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fln_theme');
+      if (saved) return saved === 'dark';
+      return document.documentElement.classList.contains('dark') || 
+             window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('fln_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('fln_theme', 'light');
+    }
+  }, [isDark]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'home' | 'login' | 'dashboard'>('home');
   const [activePanel, setActivePanel] = useState<string>('workspace');
@@ -39,13 +59,14 @@ export default function App() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const checkSession = async () => {
       if (!token) return;
 
       try {
-        const res = await apiFetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch('/api/auth/me');
+        if (cancelled) return;
 
         if (!res.ok) {
           setToken(null);
@@ -55,9 +76,11 @@ export default function App() {
         }
 
         const data = await res.json();
+        if (cancelled) return;
         setCurrentUser(data.user);
         setCurrentView('dashboard');
       } catch {
+        if (cancelled) return;
         setToken(null);
         localStorage.removeItem('fln_token');
         setCurrentView('home');
@@ -65,12 +88,30 @@ export default function App() {
     };
 
     checkSession();
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setToken(null);
+      setCurrentUser(null);
+      setActivePanel('workspace');
+      localStorage.removeItem('fln_token');
+      setCurrentView('home');
+      navigate('/');
+    };
+
+    window.addEventListener('fln_unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('fln_unauthorized', handleUnauthorized);
+  }, [navigate]);
 
   const handleLoginSuccess = (newToken: string, user: User) => {
     setToken(newToken);
     localStorage.setItem('fln_token', newToken);
     setCurrentUser(user);
+    setActivePanel('workspace');
     setCurrentView('dashboard');
     navigate('/');
   };
@@ -87,28 +128,36 @@ export default function App() {
 
   const handleClearNotifications = () => setAnnouncements([]);
 
+  const handleNavigateHome = () => {
+    setCurrentView('home');
+    navigate('/');
+  };
+
   const handleLogout = () => {
     setToken(null);
     setCurrentUser(null);
+    setActivePanel('workspace');
     localStorage.removeItem('fln_token');
     setCurrentView('home');
     navigate('/');
   };
 
   const renderRoleWorkspace = () => {
-    if (!currentUser) return null;
+    if (!currentUser || !token) return null;
 
     switch (currentUser.role) {
       case 'superadmin':
-        return <SuperadminDashboard user={currentUser} />;
+return <SuperadminDashboard user={currentUser} token={token!} />;
       case 'admin':
-        return <AdminDashboard user={currentUser} />;
+      case 'district_admin':
+      case 'block_admin':
+        return <AdminDashboard user={currentUser} token={token!} />;
       case 'school':
-        return <SchoolDashboard user={currentUser} />;
+        return <SchoolDashboard user={currentUser} token={token!} />;
       case 'teacher':
-        return <TeacherDashboard user={currentUser} />;
+        return <TeacherDashboard user={currentUser} token={token!} />;
       case 'volunteer':
-        return <VolunteerDashboard user={currentUser} />;
+        return <VolunteerDashboard user={currentUser} token={token!} />;
       default:
         return <div />;
     }
@@ -123,7 +172,12 @@ export default function App() {
         path="*"
         element={
           <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
-            {currentView === 'home' && <LandingView onNavigateToLogin={() => setCurrentView('login')} />}
+            {currentView === 'home' && (
+              <LandingView
+                isLoggedIn={!!(token && currentUser)}
+                onNavigateToLogin={() => setCurrentView(token && currentUser ? 'dashboard' : 'login')}
+              />
+            )}
             {currentView === 'login' && <LoginView onLoginSuccess={handleLoginSuccess} onBackToHome={() => setCurrentView('home')} />}
 
             {currentView === 'dashboard' && currentUser && token && (
@@ -136,6 +190,9 @@ export default function App() {
                 onMarkNotificationRead={handleMarkNotificationRead}
                 onClearNotifications={handleClearNotifications}
                 onLogout={handleLogout}
+                onNavigateHome={handleNavigateHome}
+                isDark={isDark}
+                onThemeToggle={() => setIsDark(!isDark)}
               >
                 {activeUrgentAnnouncements.length > 0 && (
                   <div className="mb-6 flex items-center justify-between rounded-xl border border-amber-700 bg-amber-600 px-6 py-2.5 text-xs font-medium text-white shadow-sm">
@@ -190,32 +247,41 @@ export default function App() {
                 {activePanel === 'calendar' && <AssessmentCalendar />}
 
                 {activePanel === 'settings' && (
-                  <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                      <Settings className="h-6 w-6 text-slate-500" />
+                  <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
+                      <Settings className="h-6 w-6 text-slate-500 dark:text-slate-450" />
                       <div>
-                        <h2 className="font-sans text-lg font-bold text-slate-900">Portal Preferences & Account Settings</h2>
-                        <p className="text-xs text-slate-505">Configure user settings, localization preferences, and SSO authorization status.</p>
+                        <h2 className="font-sans text-lg font-bold text-slate-900 dark:text-white">Portal Preferences & Account Settings</h2>
+                        <p className="text-xs text-slate-505 dark:text-slate-400">Configure user settings, localization preferences, and SSO authorization status.</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 gap-6 text-sm font-sans md:grid-cols-2">
                       <div className="space-y-4">
-                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800">User Profile Details</h3>
-                        <div className="space-y-2 rounded-lg border border-slate-150 bg-slate-50 p-4">
-                          <div><span className="text-xs font-semibold text-slate-450">Full Name:</span> <strong className="text-slate-800">{currentUser.name}</strong></div>
-                          <div><span className="text-xs font-semibold text-slate-450">Email ID:</span> <strong className="font-mono text-slate-850">{currentUser.email}</strong></div>
-                          <div><span className="text-xs font-semibold text-slate-450">Assigned Scope:</span> <strong className="font-mono text-slate-800">{currentUser.schoolId || currentUser.districtCode || currentUser.stateCode || 'National Oversight'}</strong></div>
+                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800 dark:text-slate-300">User Profile Details</h3>
+                        <div className="space-y-2 rounded-lg border border-slate-150 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                          <div><span className="text-xs font-semibold text-slate-450 dark:text-slate-400">Full Name:</span> <strong className="text-slate-800 dark:text-slate-200">{currentUser.name}</strong></div>
+                          <div><span className="text-xs font-semibold text-slate-450 dark:text-slate-400">Email ID:</span> <strong className="font-mono text-slate-850 dark:text-slate-300">{currentUser.email}</strong></div>
+                          <div><span className="text-xs font-semibold text-slate-450 dark:text-slate-400">Assigned Scope:</span> <strong className="font-mono text-slate-800 dark:text-slate-200">{currentUser.schoolId || currentUser.districtCode || currentUser.stateCode || 'National Oversight'}</strong></div>
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800">Accessibility Configuration</h3>
-                        <div className="space-y-3 rounded-lg border border-slate-150 bg-slate-50 p-4">
-                          <label className="flex items-center gap-2 font-medium">
-                            <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-650" />
+                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800 dark:text-slate-300">Accessibility Configuration</h3>
+                        <div className="space-y-3 rounded-lg border border-slate-150 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                          <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isDark}
+                              onChange={() => setIsDark(!isDark)}
+                              className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900"
+                            />
+                            <span>Use Dark Theme Preference</span>
+                          </label>
+                          <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
+                            <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900" />
                             <span>Enable High-Contrast Border Outlines</span>
                           </label>
-                          <label className="flex items-center gap-2 font-medium">
-                            <input type="checkbox" className="rounded border-slate-300 text-indigo-650" />
+                          <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
+                            <input type="checkbox" className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900" />
                             <span>Audio voice narration on hover (SLA §2.3)</span>
                           </label>
                         </div>

@@ -2,10 +2,11 @@ import 'dotenv/config';
 import { MongoClient } from 'mongodb';
 import bcrypt from 'bcrypt';
 import { UserRole } from './db';
+import { STATES_UTS } from './geoData';
+import questionBankSeed from './data/question_bank_seed.json';
 
-// All seeded demo accounts share this password; store only its bcrypt hash
-// (never plaintext) so `passwordHash` matches what login (index.ts) verifies.
 const SEED_PASSWORD_HASH = bcrypt.hashSync('Fln@2026', 10);
+
 
 // ============================================================
 // NAME POOLS — 250+ realistic Indian names
@@ -70,277 +71,7 @@ const LAST_NAMES: string[] = [
   'Hembram', 'Soren', 'Besra', 'Tudu', 'Murmu', 'Devi', 'Poddar', 'Sinha',
 ];
 
-// ============================================================
-// STATE & UT DATA — 28 States + 8 Union Territories
-// ============================================================
-
-interface DistrictInfo {
-  code: string;
-  name: string;
-}
-
-interface StateInfo {
-  code: string;
-  name: string;
-  districts: DistrictInfo[];
-}
-
-const STATES_UTS: StateInfo[] = [
-  // ── 28 STATES ──
-  {
-    code: 'AP', name: 'Andhra Pradesh',
-    districts: [
-      { code: 'GNT', name: 'Guntur' },
-      { code: 'VSK', name: 'Visakhapatnam' },
-    ],
-  },
-  {
-    code: 'AR', name: 'Arunachal Pradesh',
-    districts: [
-      { code: 'TWG', name: 'Tawang' },
-      { code: 'PPR', name: 'Papum Pare' },
-    ],
-  },
-  {
-    code: 'AS', name: 'Assam',
-    districts: [
-      { code: 'KMR', name: 'Kamrup' },
-      { code: 'NGN', name: 'Nagaon' },
-    ],
-  },
-  {
-    code: 'BR', name: 'Bihar',
-    districts: [
-      { code: 'PTN', name: 'Patna' },
-      { code: 'GYA', name: 'Gaya' },
-    ],
-  },
-  {
-    code: 'CG', name: 'Chhattisgarh',
-    districts: [
-      { code: 'RPR', name: 'Raipur' },
-      { code: 'BSP', name: 'Bilaspur' },
-    ],
-  },
-  {
-    code: 'GA', name: 'Goa',
-    districts: [
-      { code: 'NGO', name: 'North Goa' },
-      { code: 'SGO', name: 'South Goa' },
-    ],
-  },
-  {
-    code: 'GJ', name: 'Gujarat',
-    districts: [
-      { code: 'AMD', name: 'Ahmedabad' },
-      { code: 'SRT', name: 'Surat' },
-    ],
-  },
-  {
-    code: 'HR', name: 'Haryana',
-    districts: [
-      { code: 'AMB', name: 'Ambala' },
-      { code: 'PKL', name: 'Panchkula' },
-    ],
-  },
-  {
-    code: 'HP', name: 'Himachal Pradesh',
-    districts: [
-      { code: 'SHL', name: 'Shimla' },
-      { code: 'KNG', name: 'Kangra' },
-    ],
-  },
-  {
-    code: 'JH', name: 'Jharkhand',
-    districts: [
-      { code: 'RNC', name: 'Ranchi' },
-      { code: 'DHD', name: 'Dhanbad' },
-    ],
-  },
-  {
-    code: 'KA', name: 'Karnataka',
-    districts: [
-      { code: 'BNG', name: 'Bangalore' },
-      { code: 'MYS', name: 'Mysore' },
-    ],
-  },
-  {
-    code: 'KL', name: 'Kerala',
-    districts: [
-      { code: 'TVM', name: 'Thiruvananthapuram' },
-      { code: 'EKM', name: 'Ernakulam' },
-    ],
-  },
-  {
-    code: 'MP', name: 'Madhya Pradesh',
-    districts: [
-      { code: 'BPL', name: 'Bhopal' },
-      { code: 'IND', name: 'Indore' },
-    ],
-  },
-  {
-    code: 'MH', name: 'Maharashtra',
-    districts: [
-      { code: 'MUM', name: 'Mumbai' },
-      { code: 'PUN', name: 'Pune' },
-    ],
-  },
-  {
-    code: 'MN', name: 'Manipur',
-    districts: [
-      { code: 'IMW', name: 'Imphal West' },
-      { code: 'IME', name: 'Imphal East' },
-    ],
-  },
-  {
-    code: 'ML', name: 'Meghalaya',
-    districts: [
-      { code: 'EKH', name: 'East Khasi Hills' },
-      { code: 'WJH', name: 'West Jaintia Hills' },
-    ],
-  },
-  {
-    code: 'MZ', name: 'Mizoram',
-    districts: [
-      { code: 'AIZ', name: 'Aizawl' },
-      { code: 'CMP', name: 'Champhai' },
-    ],
-  },
-  {
-    code: 'NL', name: 'Nagaland',
-    districts: [
-      { code: 'KOH', name: 'Kohima' },
-      { code: 'DIM', name: 'Dimapur' },
-    ],
-  },
-  {
-    code: 'OD', name: 'Odisha',
-    districts: [
-      { code: 'BBS', name: 'Bhubaneswar' },
-      { code: 'CTC', name: 'Cuttack' },
-    ],
-  },
-  {
-    code: 'PB', name: 'Punjab',
-    districts: [
-      { code: 'LDH', name: 'Ludhiana' },
-      { code: 'ASR', name: 'Amritsar' },
-    ],
-  },
-  {
-    code: 'RJ', name: 'Rajasthan',
-    districts: [
-      { code: 'JAI', name: 'Jaipur' },
-      { code: 'JDP', name: 'Jodhpur' },
-    ],
-  },
-  {
-    code: 'SK', name: 'Sikkim',
-    districts: [
-      { code: 'ESK', name: 'East Sikkim' },
-      { code: 'WSK', name: 'West Sikkim' },
-    ],
-  },
-  {
-    code: 'TN', name: 'Tamil Nadu',
-    districts: [
-      { code: 'CHN', name: 'Chennai' },
-      { code: 'CBE', name: 'Coimbatore' },
-    ],
-  },
-  {
-    code: 'TS', name: 'Telangana',
-    districts: [
-      { code: 'HYD', name: 'Hyderabad' },
-      { code: 'WGL', name: 'Warangal' },
-    ],
-  },
-  {
-    code: 'TR', name: 'Tripura',
-    districts: [
-      { code: 'WTR', name: 'West Tripura' },
-      { code: 'SPJ', name: 'Sepahijala' },
-    ],
-  },
-  {
-    code: 'UK', name: 'Uttarakhand',
-    districts: [
-      { code: 'DDN', name: 'Dehradun' },
-      { code: 'HRW', name: 'Haridwar' },
-    ],
-  },
-  {
-    code: 'UP', name: 'Uttar Pradesh',
-    districts: [
-      { code: 'LKO', name: 'Lucknow' },
-      { code: 'KNP', name: 'Kanpur' },
-    ],
-  },
-  {
-    code: 'WB', name: 'West Bengal',
-    districts: [
-      { code: 'KOL', name: 'Kolkata' },
-      { code: 'HWR', name: 'Howrah' },
-    ],
-  },
-  // ── 8 UNION TERRITORIES ──
-  {
-    code: 'AN', name: 'Andaman and Nicobar Islands',
-    districts: [
-      { code: 'SAN', name: 'South Andaman' },
-      { code: 'NMA', name: 'North and Middle Andaman' },
-    ],
-  },
-  {
-    code: 'CH', name: 'Chandigarh',
-    districts: [
-      { code: 'CHU', name: 'Chandigarh Urban' },
-      { code: 'CHR', name: 'Chandigarh Rural' },
-    ],
-  },
-  {
-    code: 'DN', name: 'Dadra and Nagar Haveli',
-    districts: [
-      { code: 'SLS', name: 'Silvassa' },
-      { code: 'DDR', name: 'Dadra' },
-    ],
-  },
-  {
-    code: 'DD', name: 'Daman and Diu',
-    districts: [
-      { code: 'DMA', name: 'Daman' },
-      { code: 'DIU', name: 'Diu' },
-    ],
-  },
-  {
-    code: 'DL', name: 'Delhi',
-    districts: [
-      { code: 'NDL', name: 'North Delhi' },
-      { code: 'SDL', name: 'South Delhi' },
-    ],
-  },
-  {
-    code: 'JK', name: 'Jammu and Kashmir',
-    districts: [
-      { code: 'SRN', name: 'Srinagar' },
-      { code: 'JMU', name: 'Jammu' },
-    ],
-  },
-  {
-    code: 'LA', name: 'Ladakh',
-    districts: [
-      { code: 'LEH', name: 'Leh' },
-      { code: 'KGL', name: 'Kargil' },
-    ],
-  },
-  {
-    code: 'PY', name: 'Puducherry',
-    districts: [
-      { code: 'PUD', name: 'Puducherry' },
-      { code: 'KAL', name: 'Karaikal' },
-    ],
-  },
-];
+// STATE_UTS data now lives in geoData.ts (shared with index.ts's coordinator-registration routes)
 
 // ============================================================
 // SCHOOL AREA NAMES — used in "GPS <Area> <City>" format
@@ -523,10 +254,6 @@ function randomSubLevel(): number {
 function randomAge(classIndex: number): number {
   const base = 7 + classIndex;
   return base + Math.floor(Math.random() * 2);
-}
-
-function randomStreak(): number {
-  return Math.floor(Math.random() * 20);
 }
 
 function generateAadhaar(): string {
@@ -719,16 +446,15 @@ async function main() {
                 teacherId: teacherIds[cIdx],
                 currentLevel: currentLevel,
                 currentSubLevel: randomSubLevel(),
-                targetLevel: Math.min(currentLevel + 1, 59),
+                targetLevel: Math.min(currentLevel + 1, 93),
                 aadharMasked: generateAadhaar(),
                 levelHistory: [
                   {
                     level: currentLevel,
                     date: '2026-04-10',
-                    reason: 'Onboarding Diagnostic Placement',
+                    reason: 'Baseline',
                   },
                 ],
-                streak: randomStreak(),
               });
             }
           }
@@ -742,7 +468,13 @@ async function main() {
   // ════════════════════════════════════════════
   console.log('\nInserting data into collections...');
 
-  const usersResult = await db.collection('users').insertMany(allUsers);
+  const hashedUsers = allUsers.map(u => ({
+    ...u,
+    passwordHash: u.password === 'Fln@2026' || !u.password
+      ? SEED_PASSWORD_HASH
+      : bcrypt.hashSync(u.password, 10)
+  }));
+  const usersResult = await db.collection('users').insertMany(hashedUsers);
   console.log(`  users:          ${usersResult.insertedCount} inserted`);
 
   const schoolsResult = await db.collection('schools').insertMany(allSchools);
@@ -754,7 +486,7 @@ async function main() {
   const studentsResult = await db.collection('students').insertMany(allStudents);
   console.log(`  students:       ${studentsResult.insertedCount} inserted`);
 
-  const questionsResult = await db.collection('questions').insertMany(SEED_QUESTIONS);
+  const questionsResult = await db.collection('questions').insertMany([...SEED_QUESTIONS, ...questionBankSeed]);
   console.log(`  questions:      ${questionsResult.insertedCount} inserted`);
 
   // ════════════════════════════════════════════
@@ -777,7 +509,7 @@ async function main() {
   console.log(`    Principals:   ${allSchools.length}`);
   console.log(`    Teachers:     ${allClasses.length}`);
   console.log(`    Volunteers:   ${allUsers.filter((u) => u.role === UserRole.VOLUNTEER).length}`);
-  console.log(`  Questions:      ${SEED_QUESTIONS.length}`);
+  console.log(`  Questions:      ${SEED_QUESTIONS.length + questionBankSeed.length}`);
   console.log('========================================\n');
 
   await client.close();

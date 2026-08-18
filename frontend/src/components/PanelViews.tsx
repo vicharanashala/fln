@@ -1,16 +1,22 @@
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
-import { Users, ShieldAlert, BookOpen, UserCheck, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { Users, ShieldAlert, BookOpen, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
+import { FLN_LEVELS_LIST } from './RoleDashboards';
 
 interface PanelViewsProps {
   activePanel: string;
   currentUser: User;
   token: string;
 }
+
+// Panels that render without ever reading the `students` variable — skipping
+// the fetch on these avoids an up-to-86,400-record national payload on
+// screens that don't display any student data.
+const STUDENTS_NOT_NEEDED_PANELS = new Set(['users', 'worksheet_templates', 'content', 'system_settings']);
 
 const STUDENTS_FALLBACK: Student[] = [
   { id: 's1', name: 'Amanpreet Singh', age: 8, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 12, currentSubLevel: 0, targetLevel: 13, aadharMasked: 'XXXX-XXXX-1234', levelHistory: [{ level: 12, subLevel: 0, date: '2026-03-15', reason: 'Diagnostic' }], streak: 3 },
@@ -20,13 +26,6 @@ const STUDENTS_FALLBACK: Student[] = [
   { id: 's5', name: 'Arjun Verma', age: 7, classGroup: 'Class 2', section: 'A', schoolId: 'gps-mt-001', currentLevel: 6, currentSubLevel: 0, targetLevel: 11, aadharMasked: 'XXXX-XXXX-7890', levelHistory: [{ level: 6, date: '2026-04-01', reason: 'Diagnostic' }], streak: 2 },
   { id: 's6', name: 'Neha Gupta', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'gps-mt-001', currentLevel: 38, currentSubLevel: 1, targetLevel: 40, aadharMasked: 'XXXX-XXXX-2345', levelHistory: [{ level: 38, date: '2026-03-01', reason: 'Mid-year' }], streak: 4 },
   { id: 's7', name: 'Simran Kaur', age: 6, classGroup: 'Class 1', section: 'A', schoolId: 'gps-mt-001', currentLevel: 4, currentSubLevel: 0, targetLevel: 8, aadharMasked: 'XXXX-XXXX-6789', levelHistory: [], streak: 0 },
-];
-
-const REPORTS_MOCK: EvaluationReport[] = [
-  { id: 'r1', studentId: 's1', worksheetId: 'ws1', score: 8, totalQuestions: 10, conceptMastery: { 'Number Sense': 'Strong', 'Addition': 'Satisfactory', 'Subtraction': 'Needs Practice' }, narrative: 'Shows good number sense but needs practice with borrowing in subtraction.', recommendedLevel: 12, timestamp: '2026-03-15T10:00:00Z' },
-  { id: 'r2', studentId: 's2', worksheetId: 'ws2', score: 5, totalQuestions: 10, conceptMastery: { 'Number Sense': 'Satisfactory', 'Shapes': 'Needs Practice', 'Patterns': 'Needs Practice' }, narrative: 'Struggling with pattern recognition. Recommend additional tracing and matching exercises.', recommendedLevel: 8, recommendedSubLevel: 1, timestamp: '2026-02-20T11:30:00Z' },
-  { id: 'r3', studentId: 's3', worksheetId: 'ws3', score: 9, totalQuestions: 10, conceptMastery: { 'Place Value': 'Strong', 'Comparison': 'Strong', 'Addition': 'Strong' }, narrative: 'Excellent understanding of place value up to 1000. Ready to progress to multiplication.', recommendedLevel: 36, timestamp: '2026-01-10T09:15:00Z' },
-  { id: 'r4', studentId: 's6', worksheetId: 'ws4', score: 7, totalQuestions: 10, conceptMastery: { 'Multiplication': 'Strong', 'Division': 'Satisfactory', 'Measurement': 'Satisfactory' }, narrative: 'Multiplication skills are strong. Division concepts are developing well with occasional errors.', recommendedLevel: 38, recommendedSubLevel: 1, timestamp: '2026-03-01T14:00:00Z' },
 ];
 
 const TEACHERS_MOCK = [
@@ -65,26 +64,13 @@ const USERS_FALLBACK = [
   { name: 'Rahul Kumar', email: 'vol.rahul@fln.org', role: 'Volunteer', scope: 'Moga Villages', status: 'Active' },
 ];
 
-const QUESTION_BANK = [
-  { id: 'QB-001', topic: 'Number Sense', level: 4, question: 'Count the number of apples: 🍎🍎🍎🍎', type: 'MCQ', difficulty: 'Easy' },
-  { id: 'QB-002', topic: 'Number Sense', level: 8, question: 'What comes after 15?', type: 'Text', difficulty: 'Easy' },
-  { id: 'QB-003', topic: 'Addition', level: 12, question: 'What is 7 + 5?', type: 'Number', difficulty: 'Easy' },
-  { id: 'QB-004', topic: 'Subtraction', level: 16, question: 'What is 23 - 8?', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-005', topic: 'Multiplication', level: 41, question: 'What is 6 × 7?', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-006', topic: 'Division', level: 42, question: 'Divide 24 by 6', type: 'Number', difficulty: 'Medium' },
-  { id: 'QB-007', topic: 'Fractions', level: 45, question: 'Which is larger: 1/2 or 1/4?', type: 'MCQ', difficulty: 'Hard' },
-  { id: 'QB-008', topic: 'Place Value', level: 36, question: 'What is the value of 7 in 372?', type: 'Text', difficulty: 'Medium' },
-  { id: 'QB-009', topic: 'Measurement', level: 43, question: 'How many cm in 1 meter?', type: 'Number', difficulty: 'Easy' },
-  { id: 'QB-010', topic: 'Money', level: 46, question: 'You have ₹50. You buy a toy for ₹35. How much change?', type: 'Number', difficulty: 'Hard' },
-];
-
 const WS_TEMPLATES = [
   { id: 'WST-001', name: 'Baseline Assessment L1-L5', grade: 'Preschool 1-2', questions: 8, duration: '30 min', status: 'Published' },
   { id: 'WST-002', name: 'Number Sense L6-L11', grade: 'Class 1', questions: 10, duration: '45 min', status: 'Published' },
   { id: 'WST-003', name: 'Operations L12-L23', grade: 'Class 2', questions: 12, duration: '45 min', status: 'Draft' },
   { id: 'WST-004', name: 'Adv. Operations L24-L35', grade: 'Class 2 Review', questions: 10, duration: '60 min', status: 'Published' },
   { id: 'WST-005', name: 'Multiplication & Division L36-L48', grade: 'Class 3-4', questions: 15, duration: '60 min', status: 'Draft' },
-  { id: 'WST-006', name: 'Fractions & Decimals L49-L59', grade: 'Class 4+', questions: 12, duration: '60 min', status: 'Review' },
+  { id: 'WST-006', name: 'Fractions & Decimals L76-L93', grade: 'Class 4+', questions: 12, duration: '60 min', status: 'Review' },
 ];
 
 const DIAGNOSTIC_HISTORY = [
@@ -102,46 +88,6 @@ const WORKSHEETS_MOCK = [
   { id: 'ws4', cycle: 'Mid-year', class: 'Class 3-A', date: '2026-03-01', questions: 10, status: 'Evaluated', avgScore: '72%' },
   { id: 'ws5', cycle: 'End-of-year', class: 'Class 2-A', date: '2026-05-15', questions: 12, status: 'Pending', avgScore: '-' },
   { id: 'ws6', cycle: 'End-of-year', class: 'Class 3-A', date: '2026-05-20', questions: 12, status: 'Pending', avgScore: '-' },
-];
-
-const ATTENDANCE_MOCK = [
-  { student: 'Amanpreet Singh', class: 'Class 2-A', present: 42, total: 45, percentage: 93 },
-  { student: 'Jasmine Kaur', class: 'Class 2-A', present: 38, total: 45, percentage: 84 },
-  { student: 'Rohit Kumar', class: 'Class 3-A', present: 44, total: 45, percentage: 98 },
-  { student: 'Priya Sharma', class: 'Class 2-A', present: 35, total: 45, percentage: 78 },
-  { student: 'Arjun Verma', class: 'Class 2-A', present: 40, total: 45, percentage: 89 },
-  { student: 'Neha Gupta', class: 'Class 3-A', present: 43, total: 45, percentage: 96 },
-  { student: 'Simran Kaur', class: 'Class 1-A', present: 41, total: 45, percentage: 91 },
-];
-
-const DISTRICTS = [
-  { code: 'LDH', name: 'Ludhiana', state: 'PB', schools: 3, students: 120, certifiedRate: 68 },
-  { code: 'MOG', name: 'Moga', state: 'PB', schools: 1, students: 28, certifiedRate: 45 },
-  { code: 'BTH', name: 'Bathinda', state: 'PB', schools: 1, students: 35, certifiedRate: 72 },
-  { code: 'ASR', name: 'Amritsar', state: 'PB', schools: 1, students: 30, certifiedRate: 60 },
-  { code: 'AMB', name: 'Ambala', state: 'HR', schools: 2, students: 65, certifiedRate: 55 },
-  { code: 'PKL', name: 'Panchkula', state: 'HR', schools: 1, students: 30, certifiedRate: 80 },
-  { code: 'JAI', name: 'Jaipur', state: 'RJ', schools: 2, students: 55, certifiedRate: 50 },
-  { code: 'UDA', name: 'Udaipur', state: 'RJ', schools: 1, students: 25, certifiedRate: 40 },
-  { code: 'LKO', name: 'Lucknow', state: 'UP', schools: 2, students: 48, certifiedRate: 62 },
-  { code: 'KNP', name: 'Kanpur', state: 'UP', schools: 1, students: 32, certifiedRate: 56 },
-];
-
-const BLOCKS = [
-  { code: 'LDH-01', district: 'LDH', schools: 2, students: 70, certifiedRate: 71 },
-  { code: 'LDH-02', district: 'LDH', schools: 1, students: 22, certifiedRate: 45 },
-  { code: 'MOG-01', district: 'MOG', schools: 1, students: 28, certifiedRate: 45 },
-  { code: 'BTH-01', district: 'BTH', schools: 1, students: 35, certifiedRate: 72 },
-  { code: 'ASR-01', district: 'ASR', schools: 1, students: 30, certifiedRate: 60 },
-  { code: 'AMB-01', district: 'AMB', schools: 1, students: 35, certifiedRate: 60 },
-  { code: 'AMB-02', district: 'AMB', schools: 1, students: 30, certifiedRate: 50 },
-  { code: 'PKL-01', district: 'PKL', schools: 1, students: 30, certifiedRate: 80 },
-  { code: 'JAI-01', district: 'JAI', schools: 1, students: 30, certifiedRate: 55 },
-  { code: 'JAI-02', district: 'JAI', schools: 1, students: 25, certifiedRate: 45 },
-  { code: 'UDA-01', district: 'UDA', schools: 1, students: 25, certifiedRate: 40 },
-  { code: 'LKO-01', district: 'LKO', schools: 1, students: 28, certifiedRate: 65 },
-  { code: 'LKO-02', district: 'LKO', schools: 1, students: 20, certifiedRate: 58 },
-  { code: 'KNP-01', district: 'KNP', schools: 1, students: 32, certifiedRate: 56 },
 ];
 
 const CONTENT_ITEMS = [
@@ -180,7 +126,6 @@ function EmptyStudents({ students }: { students: Student[] }) {
     { header: 'Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-800 dark:text-slate-100' },
     { header: 'Class', accessor: 'classGroup', className: '' },
     { header: 'Level', accessor: (s) => `L${s.currentLevel}.${s.currentSubLevel ?? 0}`, className: 'font-mono' },
-    { header: 'Streak', accessor: (s) => `${s.streak} 🔥`, className: '' },
   ];
   return <Table data={students} columns={cols} searchPlaceholder="Search students..." searchKey="name" />;
 }
@@ -190,9 +135,11 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [stateFilter, setStateFilter] = useState('all');
   const [distFilter, setDistFilter] = useState('all');
   const [blockFilter, setBlockFilter] = useState('all');
-  const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
   const [sel, setSel] = useState('');
   const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileDraft, setProfileDraft] = useState<Partial<Student>>({});
+  const [savingProfile, setSavingProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [activityFilter, setActivityFilter] = useState<'all' | 'assessment' | 'level_change'>('all');
@@ -204,17 +151,77 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [apiStudents, setApiStudents] = useState<Student[]>([]);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
+  const [apiReports, setApiReports] = useState<EvaluationReport[]>([]);
+  const [apiTeachers, setApiTeachers] = useState<any[]>([]);
 
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${token}` };
-    apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
     apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
     apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
-  }, [token]);
+    apiFetch('/api/evaluation/reports', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiReports(d); }).catch(() => {});
+    if (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN) {
+      apiFetch('/api/teachers', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiTeachers(d); }).catch(() => {});
+    }
+  }, [token, currentUser.role]);
 
-  const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
+  // GET /api/students returns the caller's whole role-scoped list — up to
+  // 86,400 records nationally for Superadmin — so skip it entirely on the
+  // handful of Superadmin-only panels that never read `students` at all
+  // (verified by grepping for the identifier in each branch below).
+  useEffect(() => {
+    if (apiStudents.length > 0) return;
+    if (STUDENTS_NOT_NEEDED_PANELS.has(activePanel)) return;
+    const headers = { 'Authorization': `Bearer ${token}` };
+    apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => {});
+  }, [token, activePanel, apiStudents.length]);
+
+const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
   const usersList = apiUsers.length > 0 ? apiUsers : USERS_FALLBACK;
+  // No mock fallback here (unlike students/schools/users): a fake report's
+  // studentId (e.g. 's1') will never match a real student in `students`,
+  // which rendered as a literal "Unknown" name - showing an empty list on
+  // fetch failure is honest, a mismatched fake report is not.
+  const reportsList: EvaluationReport[] = apiReports;
+  const teachersList = apiTeachers.length > 0 ? apiTeachers : TEACHERS_MOCK;
+
+  // Real per-district / per-block rollups, derived from the already-fetched
+  // schools + students (no dedicated aggregation endpoint exists).
+  const getDistrictStats = (stateCode: string) => {
+    const stateSchools = schools.filter(s => s.stateCode === stateCode);
+    const codes: string[] = Array.from(new Set(stateSchools.map(s => s.districtCode)));
+    return codes.map(code => {
+      const distSchools = stateSchools.filter(s => s.districtCode === code);
+      const distStudents = students.filter(st => distSchools.some(s => s.id === st.schoolId));
+      const certified = distStudents.filter(st => st.currentLevel >= 5).length;
+      return {
+        code,
+        name: DISTRICT_NAMES[code] || code,
+        state: stateCode,
+        schools: distSchools.length,
+        students: distStudents.length,
+        certifiedRate: distStudents.length > 0 ? Math.round((certified / distStudents.length) * 100) : 0,
+      };
+    });
+  };
+
+  const getBlockStats = (districtCode: string) => {
+    const distSchools = schools.filter(s => s.districtCode === districtCode);
+    const codes: string[] = Array.from(new Set(distSchools.map(s => s.blockCode)));
+    return codes.map(code => {
+      const blockSchools = distSchools.filter(s => s.blockCode === code);
+      const blockStudents = students.filter(st => blockSchools.some(s => s.id === st.schoolId));
+      const certified = blockStudents.filter(st => st.currentLevel >= 5).length;
+      return {
+        code,
+        name: BLOCK_NAMES[code] || code,
+        district: districtCode,
+        schools: blockSchools.length,
+        students: blockStudents.length,
+        certifiedRate: blockStudents.length > 0 ? Math.round((certified / blockStudents.length) * 100) : 0,
+      };
+    });
+  };
 
   useEffect(() => {
     if (students.length > 0 && !sel) {
@@ -231,7 +238,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   const panel = activePanel;
 
-  const handleDownloadPDF = (student: Student, r: EvaluationReport, examResponses: any[]) => {
+  const handleDownloadPDF = (student: Student, r: EvaluationReport) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Please allow popups to download/print the PDF report card.');
@@ -241,19 +248,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     const conceptBadges = Object.entries(r.conceptMastery)
       .map(([t, m]) => `<span class="badge ${m === 'Strong' ? 'badge-pass' : 'badge-fail'}">${t}: ${m}</span>`)
       .join(' ');
-
-    const tableRows = examResponses.map(item => `
-      <tr>
-        <td style="font-weight: 500;">${item.question}</td>
-        <td style="color: ${item.status === 'Correct' ? '#065f46' : '#991b1b'}; font-weight: 600;">${item.studentAnswer}</td>
-        <td>${item.correctAnswer}</td>
-        <td>
-          <span class="badge ${item.status === 'Correct' ? 'badge-pass' : 'badge-fail'}">
-            ${item.status === 'Correct' ? 'PASS' : 'FAIL'}
-          </span>
-        </td>
-      </tr>
-    `).join('');
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -326,21 +320,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           ${r.narrative}
         </div>
 
-        <div class="section-title">Question Grader Matrix</div>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 45%;">Question Detail</th>
-              <th style="width: 20%;">Student Response</th>
-              <th style="width: 20%;">Correct Answer Key</th>
-              <th style="width: 15%;">Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRows}
-          </tbody>
-        </table>
-
         <div class="footer">
           Generated automatically by the FLN Portal. Confidential Student Academic Record.
         </div>
@@ -379,21 +358,60 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
       x.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const EXTENDED_PROFILES: Record<string, any> = {
-      s1: { gender: 'Male', dob: '2018-04-12', guardian: 'Gurpreet Singh', relation: 'Father', contact: '+91-98765-43210', address: 'House #42, Model Town, Ludhiana, PB-141001', enrollmentDate: '2025-04-01', lastMedical: '2026-01-15', bloodGroup: 'B+', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 7 - Model Town Stop', notes: 'Consistent performer. Shows strong number sense. Encourage peer tutoring.', sibblings: 'Elder sister in Class 5' },
-      s2: { gender: 'Female', dob: '2019-01-25', guardian: 'Harjeet Kaur', relation: 'Mother', contact: '+91-98123-45678', address: 'Village Dhandra, PO Box 23, Ludhiana', enrollmentDate: '2025-07-15', lastMedical: '2026-03-10', bloodGroup: 'O+', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 12 - Village Dhandra', notes: 'Struggles with pattern recognition. Needs visual learning aids. Regular attendance.', sibblings: 'Younger brother in Class 1' },
-      s3: { gender: 'Male', dob: '2017-08-30', guardian: 'Suresh Kumar', relation: 'Father', contact: '+91-99887-76655', address: '456, Green Avenue, Ludhiana, PB-141002', enrollmentDate: '2025-04-01', lastMedical: '2026-02-20', bloodGroup: 'A+', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 3 - Green Ave Stop', notes: 'Top performer in class. Ready for advanced multiplication. Consider skipping to Level 41.', sibblings: 'None' },
-      s4: { gender: 'Female', dob: '2018-11-05', guardian: 'Rajesh Sharma', relation: 'Father', contact: '+91-97654-32100', address: 'Flat 12B, Krishna Apartments, Civil Lines, Ludhiana', enrollmentDate: '2026-01-10', lastMedical: '2026-04-05', bloodGroup: 'AB+', disability: 'None', midDayMeal: 'No', busRoute: 'Route 7 - Civil Lines', notes: 'Newly enrolled. Baseline diagnostic pending. Parents report confidence in basic counting.', sibblings: 'Elder brother in Class 5' },
-      s5: { gender: 'Male', dob: '2019-05-18', guardian: 'Mandeep Verma', relation: 'Mother', contact: '+91-95432-10987', address: 'Ward 3, Basti Jodhewal, Ludhiana', enrollmentDate: '2025-07-15', lastMedical: '2025-12-01', bloodGroup: 'B-', disability: 'Mild visual impairment (corrected)', midDayMeal: 'Yes', busRoute: 'Route 7 - Basti Stop', notes: 'Diagnosed with mild myopia, wears glasses. Performing well in number sense.', sibblings: 'Younger sister (not in school yet)' },
-      s6: { gender: 'Female', dob: '2017-12-22', guardian: 'Vikram Gupta', relation: 'Father', contact: '+91-93210-87654', address: 'H.No. 88, Sarabha Nagar, Ludhiana', enrollmentDate: '2025-04-01', lastMedical: '2026-05-15', bloodGroup: 'O-', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 3 - Sarabha Nagar', notes: 'Exemplary in multiplication. Should be challenged with word problems.', sibblings: 'None' },
-      s7: { gender: 'Female', dob: '2020-03-10', guardian: 'Balwinder Kaur', relation: 'Mother', contact: '+91-98765-01234', address: 'Street 5, Daresi Market Area, Ludhiana', enrollmentDate: '2026-01-10', lastMedical: '2026-02-28', bloodGroup: 'A-', disability: 'None', midDayMeal: 'Yes', busRoute: 'Route 12 - Daresi Stop', notes: 'Youngest in class. Recently enrolled. Shows enthusiasm for tracing activities.', sibblings: 'Two elder siblings in school' },
-    };
-
-    const profile = EXTENDED_PROFILES[s.id] || {};
-    const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
+    const reports = reportsList.filter(r => r.studentId === s.id);
     const studentSchool = schools.find(sch => sch.id === s.schoolId);
-    const att = ATTENDANCE_MOCK.find(a => a.student === s.name);
-    const daysSinceEnroll = Math.floor((Date.now() - new Date(profile.enrollmentDate || s.id).getTime()) / 86400000);
+    // No attendance data model exists on the backend yet (no dedicated
+    // collection or endpoint) - showing `null` here surfaces the existing
+    // 'N/A'/'-' fallbacks honestly instead of matching real students against
+    // a fabricated 7-name list.
+    const att: { percentage: number; present: number; total: number } | null = null;
+    const enrollmentDate = s.levelHistory[0]?.date;
+    const daysSinceEnroll = enrollmentDate ? Math.floor((Date.now() - new Date(enrollmentDate).getTime()) / 86400000) : null;
+    const canEditProfile = (() => {
+      switch (currentUser.role) {
+        case UserRole.SUPERADMIN:
+        case UserRole.ADMIN:
+        case UserRole.DISTRICT_ADMIN:
+        case UserRole.BLOCK_ADMIN:
+          return true;
+        case UserRole.SCHOOL:
+        case UserRole.TEACHER:
+          return s.schoolId === currentUser.schoolId;
+        case UserRole.VOLUNTEER:
+          return currentUser.assignedSchools?.includes(s.schoolId) ?? false;
+        default:
+          return false;
+      }
+    })();
+    // Mirrors the backend's redaction in GET /api/students — admins/volunteers
+    // never receive guardianContact/address at all, so those fields are
+    // indistinguishable from "not set" unless we check role here too.
+    const canSeeGuardianPII = currentUser.role === UserRole.SUPERADMIN || currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.TEACHER;
+    const startEditingProfile = () => {
+      setProfileDraft({
+        gender: s.gender, dob: s.dob, guardianName: s.guardianName, guardianRelation: s.guardianRelation,
+        guardianContact: s.guardianContact, address: s.address, bloodGroup: s.bloodGroup,
+        disabilityStatus: s.disabilityStatus, midDayMealBeneficiary: s.midDayMealBeneficiary,
+        busRoute: s.busRoute, siblingsInSchool: s.siblingsInSchool, teacherNotes: s.teacherNotes,
+      });
+      setEditingProfile(true);
+    };
+    const saveProfile = async () => {
+      setSavingProfile(true);
+      try {
+        const res = await apiFetch(`/api/students/${s.id}/profile`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(profileDraft),
+        });
+        if (res.ok) {
+          setApiStudents(prev => prev.map(st => st.id === s.id ? { ...st, ...profileDraft } : st));
+          setEditingProfile(false);
+        }
+      } finally {
+        setSavingProfile(false);
+      }
+    };
     const classStudents = students.filter(st => st.classGroup === s.classGroup);
     const classAvg = Math.round(classStudents.reduce((a, st) => a + st.currentLevel, 0) / Math.max(1, classStudents.length));
     const avgScore = reports.length > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reports.length) : 0;
@@ -429,7 +447,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                 <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">ID: {s.id}</span>
                 <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.levelHistory.length > 0 ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.levelHistory.length > 0 ? 'Active' : 'Pending Diagnostic'}</span>
               </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate"><strong>{studentSchool?.name || 'N/A'}</strong> · {s.classGroup} - {s.section} · Enrolled {daysSinceEnroll} days ago</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate"><strong>{studentSchool?.name || 'N/A'}</strong> · {s.classGroup} - {s.section}{daysSinceEnroll !== null && ` · Enrolled ${daysSinceEnroll} days ago`}</p>
             </div>
             {/* Searchable student selector */}
             <div className="relative shrink-0">
@@ -450,7 +468,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                         <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-4">No students found</p>
                       ) : filteredStudents.map(x => {
                         const isSelected = x.id === sel;
-                        const xAtt = ATTENDANCE_MOCK.find(a => a.student === x.name);
                         return (
                           <button key={x.id} onClick={() => { setSel(x.id); setProfileTab('overview'); setShowDropdown(false); setSearchQuery(''); }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-950' : ''}`}>
@@ -460,7 +477,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                               <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500">
                                 <span>{x.classGroup}-{x.section}</span>
                                 <span className="font-mono font-bold">L{x.currentLevel}</span>
-                                {xAtt && <span className={xAtt.percentage >= 85 ? 'text-emerald-500' : 'text-amber-500'}>{xAtt.percentage}%</span>}
                               </div>
                             </div>
                             {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0" />}
@@ -474,12 +490,11 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             </div>
           </div>
           {/* Quick Stats Bar */}
-          <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
             <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{reports.length}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Assessments</div></div>
             <div className="text-center"><div className={`text-lg font-bold ${avgScore >= 70 ? 'text-emerald-600' : avgScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{avgScore > 0 ? `${avgScore}%` : '—'}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Avg Score</div></div>
             <div className="text-center"><div className="text-lg font-bold text-amber-600">L{s.currentLevel}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Current Level</div></div>
-            <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{s.streak}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Day Streak</div></div>
-            <div className="text-center hidden sm:block"><div className={`text-lg font-bold ${att ? (att.percentage >= 85 ? 'text-emerald-600' : 'text-amber-600') : 'text-slate-400'}`}>{att ? `${att.percentage}%` : '—'}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Attendance</div></div>
+            <div className="text-center"><div className={`text-lg font-bold ${att ? (att.percentage >= 85 ? 'text-emerald-600' : 'text-amber-600') : 'text-slate-400'}`}>{att ? `${att.percentage}%` : '—'}</div><div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 uppercase">Attendance</div></div>
           </div>
         </div>
 
@@ -502,9 +517,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                   <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-2xl font-bold">{s.name.charAt(0)}</div>
                   <div><div className="font-bold text-lg">{s.name}</div><div className="text-xs text-slate-400">{s.classGroup} - {s.section}</div></div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/10">
+                <div className="grid grid-cols-1 gap-3 pt-2 border-t border-white/10">
                   <div className="text-center"><div className="text-2xl font-bold text-emerald-400">L{s.currentLevel}</div><div className="text-[9px] text-slate-400 uppercase font-mono">Current Level</div></div>
-                  <div className="text-center"><div className="text-2xl font-bold text-amber-400">{s.streak}</div><div className="text-[9px] text-slate-400 uppercase font-mono">Day Streak</div></div>
                 </div>
                 <div className="pt-1"><div className="flex justify-between text-xs text-slate-400 mb-1"><span>Progress to L{s.targetLevel}</span><span>{Math.round((s.currentLevel / s.targetLevel) * 100)}%</span></div><div className="h-2 bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${Math.min(100, (s.currentLevel / s.targetLevel) * 100)}%` }} /></div></div>
               </div>
@@ -513,8 +527,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Class Comparison</h3>
                 <div className="space-y-3">
-                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500 dark:text-slate-400">This Student</span><span className="font-bold text-indigo-600">L{s.currentLevel}</span></div><div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${(s.currentLevel / 59) * 100}%` }} /></div></div>
-                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500 dark:text-slate-400">Class Average ({classStudents.length} students)</span><span className="font-bold text-slate-700 dark:text-slate-200">L{classAvg}</span></div><div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-slate-500 rounded-full transition-all" style={{ width: `${(classAvg / 59) * 100}%` }} /></div></div>
+                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500 dark:text-slate-400">This Student</span><span className="font-bold text-indigo-600">L{s.currentLevel}</span></div><div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${(s.currentLevel / 93) * 100}%` }} /></div></div>
+                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500 dark:text-slate-400">Class Average ({classStudents.length} students)</span><span className="font-bold text-slate-700 dark:text-slate-200">L{classAvg}</span></div><div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-slate-500 rounded-full transition-all" style={{ width: `${(classAvg / 93) * 100}%` }} /></div></div>
                   <div className={`p-2 rounded-lg text-xs font-medium text-center ${s.currentLevel > classAvg ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : s.currentLevel === classAvg ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300'}`}>
                     {s.currentLevel > classAvg ? `↑ ${s.currentLevel - classAvg} levels above class average` : s.currentLevel === classAvg ? 'At class average' : `↓ ${classAvg - s.currentLevel} levels below class average`}
                   </div>
@@ -528,7 +542,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
               {/* Quick Info */}
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-2.5 text-sm">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Quick Info</h3>
-                {[['Age', `${s.age} yrs`], ['Gender', profile.gender], ['Blood Group', profile.bloodGroup], ['Guardian', profile.guardian], ['Contact', profile.contact], ['Attendance', att ? `${att.present}/${att.total} (${att.percentage}%)` : 'N/A']].map(([l, v]) => (
+                {[['Age', `${s.age} yrs`], ['Class & Section', `${s.classGroup} - ${s.section}`], ['Current Level', `L${s.currentLevel}`], ['Attendance', att ? `${att.present}/${att.total} (${att.percentage}%)` : 'N/A']].map(([l, v]) => (
                   <div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v || 'N/A'}</span></div>
                 ))}
               </div>
@@ -637,12 +651,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                 ) : <div className="text-center py-6"><p className="text-xs text-slate-400 dark:text-slate-500">No skill data yet.</p></div>}
               </div>
 
-              {/* Teacher Notes */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Teacher Notes</h3>
-                <div className="text-sm text-slate-700 dark:text-slate-200 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 leading-relaxed">{profile.notes || 'No notes recorded.'}</div>
-              </div>
-
               {/* Recommended Focus */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border border-blue-200 dark:border-blue-800 rounded-xl p-5 shadow-sm">
                 <h3 className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Recommended Focus Areas</h3>
@@ -650,7 +658,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                   {weakAreas.length > 0 ? weakAreas.map(topic => (
                     <div key={topic} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />Additional practice recommended for <strong>{topic}</strong></div>
                   )) : reports.length > 0 ? <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />All skills at expected level — no focus areas needed</div> : <div className="text-sm text-slate-500 dark:text-slate-400">Complete a diagnostic assessment to generate recommendations.</div>}
-                  {s.currentLevel < 59 && <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Next milestone: <strong>Level {Math.min(59, s.currentLevel + 1)}</strong></div>}
+                  {s.currentLevel < 93 && <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Next milestone: <strong>Level {Math.min(93, s.currentLevel + 1)}</strong></div>}
                 </div>
               </div>
             </div>
@@ -664,7 +672,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Academic Summary</h3>
                 <div className="space-y-2.5 text-sm">
-                  {[['Total Assessments', String(reports.length)], ['Avg Score', reports.length > 0 ? `${avgScore}%` : 'N/A'], ['Current Level', `L${s.currentLevel}.${s.currentSubLevel ?? 0}`], ['Target Level', `L${s.targetLevel}`], ['Sub-Level Status', s.currentSubLevel === 0 ? 'Mastery' : s.currentSubLevel === 1 ? 'Easier' : 'Remedial'], ['Day Streak', `${s.streak}`], ['Attendance', att ? `${att.percentage}% (${att.present}/${att.total} days)` : 'N/A']].map(([l, v]) => (
+                  {[['Total Assessments', String(reports.length)], ['Avg Score', reports.length > 0 ? `${avgScore}%` : 'N/A'], ['Current Level', `L${s.currentLevel}.${s.currentSubLevel ?? 0}`], ['Target Level', `L${s.targetLevel}`], ['Sub-Level Status', s.currentSubLevel === 0 ? 'Mastery' : s.currentSubLevel === 1 ? 'Easier' : 'Remedial'], ['Attendance', att ? `${att.percentage}% (${att.present}/${att.total} days)` : 'N/A']].map(([l, v]) => (
                     <div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v}</span></div>
                   ))}
                 </div>
@@ -719,74 +727,11 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                       ))}</div>
                       
                       <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                        <button onClick={() => setExpandedReportId(expandedReportId === r.id ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                          {expandedReportId === r.id ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
-                        </button>
-                        <button onClick={() => {
-                          const examResponses = s.id === 's1' ? [
-                            { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
-                            { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
-                            { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
-                            { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
-                            { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
-                          ] : s.id === 's2' ? [
-                            { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
-                            { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
-                            { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
-                            { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                          ] : [
-                            { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
-                            { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
-                            { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
-                            { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                          ];
-                          handleDownloadPDF(s, r, examResponses);
-                        }} className="text-xs font-semibold text-emerald-650 hover:text-emerald-800 flex items-center gap-1">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Per-question answer detail not yet available</span>
+                        <button onClick={() => handleDownloadPDF(s, r)} className="text-xs font-semibold text-emerald-650 hover:text-emerald-800 flex items-center gap-1">
                           📥 Download PDF Report
                         </button>
                       </div>
-
-                      {expandedReportId === r.id && (
-                        <div className="mt-3 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 text-xs">
-                          <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">Side-by-Side Exam Grader Report</div>
-                          <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {(s.id === 's1' ? [
-                              { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
-                              { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
-                              { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
-                              { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
-                              { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
-                            ] : s.id === 's2' ? [
-                              { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
-                              { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
-                              { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
-                              { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                            ] : [
-                              { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
-                              { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
-                              { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
-                              { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                            ]).map((item: any, idx: number) => (
-                              <div key={idx} className="p-3 space-y-1">
-                                <div className="font-semibold text-slate-800 dark:text-slate-100">{item.question}</div>
-                                <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-dotted border-slate-200 dark:border-slate-700">
-                                  <div>
-                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Student Response</span>
-                                    <span className={`font-medium ${item.status === 'Correct' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>{item.studentAnswer}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Correct Keys</span>
-                                    <span className="font-medium text-slate-800 dark:text-slate-100">{item.correctAnswer}</span>
-                                  </div>
-                                </div>
-                                <div className="pt-1">
-                                  <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}</div> : <div className="text-center py-8"><p className="text-xs text-slate-400 dark:text-slate-500">No assessment reports yet.</p></div>}
@@ -797,48 +742,118 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
         {/* ===== PERSONAL TAB ===== */}
         {profileTab === 'personal' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
-              <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Personal Information</h3>
-              <div className="space-y-2.5 text-sm">{[
-                ['Full Name', s.name], ['Date of Birth', profile.dob || 'N/A'], ['Age', `${s.age} years`], ['Gender', profile.gender || 'N/A'], ['Blood Group', profile.bloodGroup || 'N/A'], ['Disability Status', profile.disability || 'None'], ['Aadhar Number', s.aadharMasked], ['Enrollment Date', profile.enrollmentDate || 'N/A'], ['Class & Section', `${s.classGroup} - ${s.section}`], ['School', studentSchool?.name || 'N/A'], ['School ID', s.schoolId],
-              ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
-            </div>
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><UserCheck className="w-3.5 h-3.5" /> Guardian & Contact</h3>
-                <div className="space-y-2.5 text-sm">{[
-                  ['Guardian Name', profile.guardian || 'N/A'], ['Relation', profile.relation || 'N/A'], ['Contact Number', profile.contact || 'N/A'], ['Residential Address', profile.address || 'N/A'], ['Mid-Day Meal', profile.midDayMeal || 'N/A'], ['Bus Route', profile.busRoute || 'N/A'],
-                ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Additional Information</h3>
-                <div className="text-sm space-y-2">{[
-                  ['Siblings in School', profile.sibblings || 'N/A'], ['Last Medical Check-up', profile.lastMedical || 'N/A'], ['Mid-Day Meal Beneficiary', profile.midDayMeal || 'N/A'],
-                ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v}</span></div>))}</div>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Teacher Notes</h3>
-                <div className="text-sm text-slate-700 dark:text-slate-200 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 leading-relaxed">{profile.notes || 'No notes recorded.'}</div>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Attendance Record</h3>
-                {att ? (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-500 dark:text-slate-400">Overall Attendance</span>
-                      <span className={`text-lg font-bold ${att.percentage >= 85 ? 'text-emerald-600' : att.percentage >= 75 ? 'text-amber-600' : 'text-red-600'}`}>{att.percentage}%</span>
-                    </div>
-                    <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${att.percentage >= 85 ? 'bg-emerald-500' : att.percentage >= 75 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${att.percentage}%` }} />
-                    </div>
-                    <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                      <span>Present: {att.present} days</span>
-                      <span>Total: {att.total} days</span>
-                      <span>Absent: {att.total - att.present} days</span>
-                    </div>
+          <div className="space-y-6">
+            {canEditProfile && (
+              <div className="flex justify-end">
+                {editingProfile ? (
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditingProfile(false)} disabled={savingProfile} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Cancel</button>
+                    <button onClick={saveProfile} disabled={savingProfile} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">{savingProfile ? 'Saving…' : 'Save Changes'}</button>
                   </div>
-                ) : <p className="text-xs text-slate-400 dark:text-slate-500">No attendance data available.</p>}
+                ) : (
+                  <button onClick={startEditingProfile} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Edit Profile</button>
+                )}
+              </div>
+            )}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
+                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Personal Information</h3>
+                <div className="space-y-2.5 text-sm">{[
+                  ['Full Name', s.name], ['Age', `${s.age} years`], ['Aadhar Number', s.aadharMasked], ['Class & Section', `${s.classGroup} - ${s.section}`], ['School', studentSchool?.name || 'N/A'], ['School ID', s.schoolId], ['Current Level', `L${s.currentLevel}`],
+                ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
+                {editingProfile ? (
+                  <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <label className="block text-xs text-slate-500 dark:text-slate-400">Gender
+                      <select value={profileDraft.gender || ''} onChange={e => setProfileDraft(d => ({ ...d, gender: e.target.value as Student['gender'] }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950">
+                        <option value="">Not set</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
+                      </select>
+                    </label>
+                    <label className="block text-xs text-slate-500 dark:text-slate-400">Date of Birth
+                      <input type="date" value={profileDraft.dob || ''} onChange={e => setProfileDraft(d => ({ ...d, dob: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
+                    </label>
+                    <label className="block text-xs text-slate-500 dark:text-slate-400">Blood Group
+                      <input type="text" placeholder="e.g. B+" value={profileDraft.bloodGroup || ''} onChange={e => setProfileDraft(d => ({ ...d, bloodGroup: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
+                    </label>
+                    <label className="block text-xs text-slate-500 dark:text-slate-400">Disability Status
+                      <input type="text" placeholder="e.g. None" value={profileDraft.disabilityStatus || ''} onChange={e => setProfileDraft(d => ({ ...d, disabilityStatus: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 text-sm pt-2 border-t border-slate-100 dark:border-slate-800">{[
+                    ['Gender', s.gender || 'N/A'], ['Date of Birth', s.dob || 'N/A'], ['Blood Group', s.bloodGroup || 'N/A'], ['Disability Status', s.disabilityStatus || 'None recorded'],
+                  ].map(([l, v]) => (<div key={l as string} className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
+                )}
+              </div>
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
+                  <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Guardian & Contact</h3>
+                  {editingProfile ? (
+                    <div className="space-y-2.5">
+                      <label className="block text-xs text-slate-500 dark:text-slate-400">Guardian Name
+                        <input type="text" value={profileDraft.guardianName || ''} onChange={e => setProfileDraft(d => ({ ...d, guardianName: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
+                      </label>
+                      <label className="block text-xs text-slate-500 dark:text-slate-400">Relation
+                        <input type="text" placeholder="e.g. Father, Mother" value={profileDraft.guardianRelation || ''} onChange={e => setProfileDraft(d => ({ ...d, guardianRelation: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
+                      </label>
+                      <label className="block text-xs text-slate-500 dark:text-slate-400">Contact Number
+                        <input type="tel" value={profileDraft.guardianContact || ''} onChange={e => setProfileDraft(d => ({ ...d, guardianContact: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
+                      </label>
+                      <label className="block text-xs text-slate-500 dark:text-slate-400">Residential Address
+                        <textarea value={profileDraft.address || ''} onChange={e => setProfileDraft(d => ({ ...d, address: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" rows={2} />
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 text-sm">{[
+                      ['Guardian Name', s.guardianName || 'N/A'], ['Relation', s.guardianRelation || 'N/A'],
+                      ['Contact Number', s.guardianContact || (canSeeGuardianPII ? 'N/A' : 'Not visible to your role')],
+                      ['Residential Address', s.address || (canSeeGuardianPII ? 'N/A' : 'Not visible to your role')],
+                    ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
+                  )}
+                </div>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
+                  <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Logistics & Notes</h3>
+                  {editingProfile ? (
+                    <div className="space-y-2.5">
+                      <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <input type="checkbox" checked={!!profileDraft.midDayMealBeneficiary} onChange={e => setProfileDraft(d => ({ ...d, midDayMealBeneficiary: e.target.checked }))} /> Mid-Day Meal Beneficiary
+                      </label>
+                      <label className="block text-xs text-slate-500 dark:text-slate-400">Bus Route
+                        <input type="text" value={profileDraft.busRoute || ''} onChange={e => setProfileDraft(d => ({ ...d, busRoute: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
+                      </label>
+                      <label className="block text-xs text-slate-500 dark:text-slate-400">Siblings in School
+                        <input type="text" value={profileDraft.siblingsInSchool || ''} onChange={e => setProfileDraft(d => ({ ...d, siblingsInSchool: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
+                      </label>
+                      <label className="block text-xs text-slate-500 dark:text-slate-400">Teacher Notes
+                        <textarea value={profileDraft.teacherNotes || ''} onChange={e => setProfileDraft(d => ({ ...d, teacherNotes: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" rows={3} />
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 text-sm">
+                      {[['Mid-Day Meal', s.midDayMealBeneficiary === undefined ? 'N/A' : s.midDayMealBeneficiary ? 'Yes' : 'No'], ['Bus Route', s.busRoute || 'N/A'], ['Siblings in School', s.siblingsInSchool || 'N/A']]
+                        .map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v}</span></div>))}
+                      <div className="pt-1"><span className="text-slate-500 dark:text-slate-400 block mb-1">Teacher Notes</span><p className="text-slate-800 dark:text-slate-100 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3 leading-relaxed">{s.teacherNotes || 'No notes recorded.'}</p></div>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                  <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Attendance Record</h3>
+                  {att ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-500 dark:text-slate-400">Overall Attendance</span>
+                        <span className={`text-lg font-bold ${att.percentage >= 85 ? 'text-emerald-600' : att.percentage >= 75 ? 'text-amber-600' : 'text-red-600'}`}>{att.percentage}%</span>
+                      </div>
+                      <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${att.percentage >= 85 ? 'bg-emerald-500' : att.percentage >= 75 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${att.percentage}%` }} />
+                      </div>
+                      <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span>Present: {att.present} days</span>
+                        <span>Total: {att.total} days</span>
+                        <span>Absent: {att.total - att.present} days</span>
+                      </div>
+                    </div>
+                  ) : <p className="text-xs text-slate-400 dark:text-slate-500">No attendance data available.</p>}
+                </div>
               </div>
             </div>
           </div>
@@ -978,7 +993,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
             <div className="space-y-2">{topStudents.map(s => (
               <div key={s.id} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
                 <div className="flex items-center gap-3"><span className="text-sm font-semibold">{s.name}</span><span className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup}</span></div>
-                <div className="flex items-center gap-4"><div className="w-32 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / 59) * 100}%` }} /></div><span className="font-mono font-bold text-sm">L{s.currentLevel}</span></div>
+                <div className="flex items-center gap-4"><div className="w-32 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / 93) * 100}%` }} /></div><span className="font-mono font-bold text-sm">L{s.currentLevel}</span></div>
               </div>
             ))}</div>
           </div>
@@ -992,12 +1007,12 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     if (isStateAdmin) {
       const userState = currentUser.stateCode || 'PB';
       const stateSchools = schools.filter(s => s.stateCode === userState);
-      const stateDistricts = [...new Set(stateSchools.map(s => s.districtCode))];
+      const stateDistricts = Array.from(new Set(stateSchools.map(s => s.districtCode))) as string[];
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <MetricCard title="Total Reports" value={REPORTS_MOCK.length} subtext="All evaluations" icon={FileText} />
-            <MetricCard title="Avg Score" value={`${Math.round(REPORTS_MOCK.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / REPORTS_MOCK.length)}%`} subtext="Across reports" icon={BarChart3} />
+            <MetricCard title="Total Reports" value={reportsList.length} subtext="All evaluations" icon={FileText} />
+            <MetricCard title="Avg Score" value={reportsList.length > 0 ? `${Math.round(reportsList.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reportsList.length)}%` : '—'} subtext="Across reports" icon={BarChart3} />
             <MetricCard title="Schools" value={stateSchools.length} subtext={`In ${userState}`} icon={SchoolIcon} />
             <MetricCard title="Districts" value={stateDistricts.length} subtext="Active jurisdictions" icon={MapPin} />
           </div>
@@ -1010,7 +1025,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                 <div key={dc}>
                   <button onClick={() => setExpandedDistRpt(isExpanded ? null : dc)} className={`w-full flex items-center gap-3 p-3 border rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${isExpanded ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950' : 'border-slate-100 dark:border-slate-700'}`}>
                     <span className="font-bold text-sm w-16">{dc}</span>
-                    <span className="text-sm flex-1">{DISTRICTS.find(d => d.code === dc)?.name || dc}</span>
+                    <span className="text-sm flex-1">{DISTRICT_NAMES[dc] || dc}</span>
                     <span className="text-xs text-slate-500 dark:text-slate-400">{distSchools.length} schools</span>
                     <ChevronDown className={`w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </button>
@@ -1018,7 +1033,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                     <div className="ml-6 mt-2 space-y-4 pl-4 border-l-2 border-indigo-200 dark:border-indigo-800">
                       {distSchools.map(sch => {
                         const schStudents = students.filter(st => st.schoolId === sch.id);
-                        const schReports = REPORTS_MOCK.filter(r => schStudents.some(st => st.id === r.studentId));
+                        const schReports = reportsList.filter(r => schStudents.some(st => st.id === r.studentId));
                         const avgScore = schReports.length > 0 ? Math.round(schReports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / schReports.length) : 0;
                         return (
                           <div key={sch.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
@@ -1058,36 +1073,14 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard title="Total Reports" value={REPORTS_MOCK.length} subtext="All evaluations" icon={FileText} />
-          <MetricCard title="Avg Score" value={`${Math.round(REPORTS_MOCK.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / REPORTS_MOCK.length)}%`} subtext="Across reports" icon={BarChart3} />
-          <MetricCard title="Strong Concepts" value={REPORTS_MOCK.reduce((a, r) => a + Object.values(r.conceptMastery).filter(v => v === 'Strong').length, 0)} subtext="Mastered topics" icon={Award} />
+          <MetricCard title="Total Reports" value={reportsList.length} subtext="All evaluations" icon={FileText} />
+          <MetricCard title="Avg Score" value={reportsList.length > 0 ? `${Math.round(reportsList.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / reportsList.length)}%` : '—'} subtext="Across reports" icon={BarChart3} />
+          <MetricCard title="Strong Concepts" value={reportsList.reduce((a, r) => a + Object.values(r.conceptMastery).filter(v => v === 'Strong').length, 0)} subtext="Mastered topics" icon={Award} />
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
           <PageHeader title="Evaluation Reports" desc="Detailed assessment narratives and concept mastery breakdowns" />
-          {REPORTS_MOCK.map(r => {
+          {reportsList.map(r => {
             const student = students.find(s => s.id === r.studentId);
-            const isExpanded = expandedReportId === r.id;
-            
-            // Mock exam questions and student responses for side-by-side preview
-            const examResponses = student ? (
-              student.id === 's1' ? [
-                { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
-                { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
-                { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
-                { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
-                { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
-              ] : student.id === 's2' ? [
-                { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
-                { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
-                { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
-                { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-              ] : [
-                { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
-                { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
-                { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
-                { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-              ]
-            ) : [];
 
             return (
               <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-600 transition-all">
@@ -1104,44 +1097,13 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
                 ))}</div>
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                  <div className="flex gap-3">
-                    <button onClick={() => setExpandedReportId(isExpanded ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                      {isExpanded ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Per-question answer detail not yet available</span>
+                  {student && (
+                    <button onClick={() => handleDownloadPDF(student, r)} className="text-xs font-semibold text-emerald-650 hover:text-emerald-800 flex items-center gap-1">
+                      📥 Download PDF Report
                     </button>
-                    {student && (
-                      <button onClick={() => handleDownloadPDF(student, r, examResponses)} className="text-xs font-semibold text-emerald-650 hover:text-emerald-800 flex items-center gap-1">
-                        📥 Download PDF Report
-                      </button>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Assigned from Diagnostic Pipeline</span>
+                  )}
                 </div>
-
-                {isExpanded && (
-                  <div className="mt-3 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 text-xs">
-                    <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">Side-by-Side Exam Grader Report</div>
-                    <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                      {examResponses.map((item, idx) => (
-                        <div key={idx} className="p-3 space-y-1">
-                          <div className="font-semibold text-slate-800 dark:text-slate-100">{item.question}</div>
-                          <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-dotted border-slate-200 dark:border-slate-700">
-                            <div>
-                              <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Student Response</span>
-                              <span className={`font-medium ${item.status === 'Correct' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>{item.studentAnswer}</span>
-                            </div>
-                            <div>
-                              <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Correct Keys</span>
-                              <span className="font-medium text-slate-800 dark:text-slate-100">{item.correctAnswer}</span>
-                            </div>
-                          </div>
-                          <div className="pt-1">
-                            <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -1177,7 +1139,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         <PageHeader title="Student Progress Tracking" desc="Monitor FLN level advancement across assigned schools" icon={<GraduationCap className="h-5 w-5" />} />
         <div className="space-y-3">{students.sort((a, b) => b.currentLevel - a.currentLevel).map(s => (
           <div key={s.id} className="flex items-center gap-4 p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
-            <div className="flex-1"><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup} · Streak: {s.streak}</div></div>
+            <div className="flex-1"><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup}</div></div>
             <div className="w-40"><div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1"><span>L{s.currentLevel}</span><span>Target L{s.targetLevel}</span></div><div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / s.targetLevel) * 100}%` }} /></div></div>
             <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.levelHistory.length > 0 ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.levelHistory.length > 0 ? 'Placed' : 'Pending'}</span>
           </div>
@@ -1188,7 +1150,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'attendance') {
     const examAttendance = students.map(s => {
-      const reports = REPORTS_MOCK.filter(r => r.studentId === s.id);
+      const reports = reportsList.filter(r => r.studentId === s.id);
       const examsGiven = reports.length;
       const lastExam = examsGiven > 0 ? new Date(Math.max(...reports.map(r => new Date(r.timestamp).getTime()))).toLocaleDateString() : 'N/A';
       const avgScore = examsGiven > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / examsGiven) : 0;
@@ -1223,13 +1185,21 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
-  if (panel === 'teachers' && currentUser.role === UserRole.SCHOOL) {
+  if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) {
+    const isBlockAdmin = currentUser.role === UserRole.BLOCK_ADMIN;
+    const schoolById = new Map<string, School>(schools.map(s => [s.id, s]));
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Teacher Roster" desc="Manage teaching staff at your school" icon={<Users className="h-5 w-5" />} />
-        <div className="space-y-3">{TEACHERS_MOCK.filter(t => t.schoolId === currentUser.schoolId).map(t => (
+        <PageHeader title="Teacher Roster" desc={isBlockAdmin ? 'Teaching staff across your block' : 'Manage teaching staff at your school'} icon={<Users className="h-5 w-5" />} />
+        <div className="space-y-3">{teachersList.map((t: any) => (
           <div key={t.id} className="flex justify-between items-center p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
-            <div><div className="font-semibold text-sm">{t.name}</div><div className="text-xs text-slate-400 dark:text-slate-500">{t.email} · {t.classes.join(', ')}</div></div>
+            <div>
+              <div className="font-semibold text-sm">{t.name}</div>
+              <div className="text-xs text-slate-400 dark:text-slate-500">
+                {t.email}{t.classes?.length ? ` · ${t.classes.join(', ')}` : ''}
+                {isBlockAdmin && t.schoolId && ` · ${schoolById.get(t.schoolId)?.name || t.schoolId}`}
+              </div>
+            </div>
             <div className="text-right"><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${t.status === 'Active' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'}`}>{t.status}</span><div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t.studentsCount} students</div></div>
           </div>
         ))}</div>
@@ -1268,7 +1238,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'districts') {
     const userState = currentUser.stateCode || 'PB';
-    const stateDistricts = DISTRICTS.filter(d => d.state === userState);
+    const stateDistricts = getDistrictStats(userState);
     const distSchools = expandedDist ? schools.filter(s => s.districtCode === expandedDist) : [];
     return (
       <div className="space-y-6">
@@ -1276,7 +1246,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
           <MetricCard title="State Districts" value={stateDistricts.length} subtext={`${userState} jurisdiction`} icon={MapPin} />
           <MetricCard title="Total Schools" value={stateDistricts.reduce((a, d) => a + d.schools, 0)} subtext="Registered facilities" icon={SchoolIcon} />
           <MetricCard title="Total Students" value={stateDistricts.reduce((a, d) => a + d.students, 0)} subtext="Across all districts" icon={Users} />
-          <MetricCard title="Avg Certification" value={`${Math.round(stateDistricts.reduce((a, d) => a + d.certifiedRate, 0) / stateDistricts.length)}%`} subtext="State weighted average" icon={Award} />
+          <MetricCard title="Avg Certification" value={stateDistricts.length > 0 ? `${Math.round(stateDistricts.reduce((a, d) => a + d.certifiedRate, 0) / stateDistricts.length)}%` : '—'} subtext="State weighted average" icon={Award} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1350,12 +1320,14 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'blocks') {
+    const userDistrict = currentUser.districtCode || '';
+    const districtBlocks = getBlockStats(userDistrict);
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Block Administration" desc="All blocks under your district jurisdiction" icon={<MapPin className="h-5 w-5" />} />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{BLOCKS.map(b => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{districtBlocks.map(b => (
           <div key={b.code} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between"><span className="font-bold text-sm">{b.code}</span><span className="text-xs text-slate-400 dark:text-slate-500">Dist: {b.district}</span></div>
+            <div className="flex justify-between"><span className="font-bold text-sm">{b.name}</span><span className="text-xs text-slate-400 dark:text-slate-500">Dist: {DISTRICT_NAMES[b.district] || b.district}</span></div>
             <div className="flex gap-4 text-xs"><span>🏫 {b.schools} schools</span><span>👨‍🎓 {b.students} students</span></div>
             <div><div className="flex justify-between text-[10px] mb-0.5"><span>Certification</span><span>{b.certifiedRate}%</span></div><div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${b.certifiedRate}%` }} /></div></div>
           </div>
@@ -1451,23 +1423,130 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   }
 
   if (panel === 'content') {
+    // Render the full 93-level FLN framework as cards, grouped by class
+    // (Preschool 1/2/3 + Class 1/2/3/4). All data comes from
+    // FLN_LEVELS_LIST in RoleDashboards — no backend fetch needed since
+    // the worksheet HTML is generated on demand by the worksheet engine
+    // when the user clicks "Open" / "Print".
+    const [search, setSearch] = useState('');
+    const [classFilter, setClassFilter] = useState<string>('ALL');
+
+    const classOrder = ['Preschool 1', 'Preschool 2', 'Preschool 3', 'Class 1', 'Class 2', 'Class 3', 'Class 4'];
+    const classesPresent = Array.from(new Set(FLN_LEVELS_LIST.map(l => l.class)))
+      .sort((a, b) => classOrder.indexOf(a) - classOrder.indexOf(b));
+
+    const filtered = FLN_LEVELS_LIST.filter(l => {
+      if (classFilter !== 'ALL' && l.class !== classFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return l.name.toLowerCase().includes(q) ||
+               l.strand.toLowerCase().includes(q) ||
+               String(l.id).includes(q);
+      }
+      return true;
+    });
+
     return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Content Library" desc="Educational resources, lesson plans, and teaching aids" icon={<BookMarked className="h-5 w-5" />} />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{CONTENT_ITEMS.map(c => (
-          <div key={c.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2 hover:border-slate-400 dark:hover:border-slate-600 transition-all">
-            <div className="flex justify-between"><span className="font-bold text-sm">{c.title}</span><span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${c.status === 'Approved' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : c.status === 'Draft' ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800' : 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800'}`}>{c.status}</span></div>
-            <div className="text-xs text-slate-400 dark:text-slate-500">{c.type} · Level {c.level}</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Languages: {c.language}</div>
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <BookMarked className="h-5 w-5" />
+                FLN Level Content Library
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                All {FLN_LEVELS_LIST.length} FLN levels across {classesPresent.length} class groups.
+                Click a card to open the level's worksheet template.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search level name or strand..."
+                className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-2 text-xs w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <select
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="ALL">All Classes ({FLN_LEVELS_LIST.length})</option>
+                {classesPresent.map(c => (
+                  <option key={c} value={c}>
+                    {c} ({FLN_LEVELS_LIST.filter(l => l.class === c).length})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        ))}</div>
+
+          <div className="mt-4 flex flex-wrap gap-1 text-[10px] font-mono">
+            {classOrder.filter(c => classesPresent.includes(c)).map(c => (
+              <button
+                key={c}
+                onClick={() => setClassFilter(c)}
+                className={`px-2.5 py-1 rounded-full border transition-colors ${
+                  classFilter === c
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400'
+                }`}
+              >
+                {c} · {FLN_LEVELS_LIST.filter(l => l.class === c).length}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-6">
+            {filtered.map(level => (
+              <div
+                key={level.id}
+                className="text-left border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="inline-block text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                    Level {level.id}
+                  </span>
+                  <span className="text-[9px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                    {level.class}
+                  </span>
+                </div>
+                <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug min-h-[2.5rem]">
+                  {level.name}
+                </div>
+                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                  <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">
+                    {level.strand}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {filtered.length === 0 && (
+            <div className="text-center text-xs text-slate-400 dark:text-slate-500 py-12">
+              No levels match your search.
+            </div>
+          )}
+
+          {filtered.length > 0 && (
+            <div className="mt-4 text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right">
+              Showing {filtered.length} of {FLN_LEVELS_LIST.length} levels
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   if (panel === 'analytics') {
     const isAdmin = [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(currentUser.role);
-    const data = isAdmin ? DISTRICTS : schools;
+    let data: any[] = schools;
+    if (currentUser.role === UserRole.ADMIN) data = getDistrictStats(currentUser.stateCode || '');
+    else if (currentUser.role === UserRole.DISTRICT_ADMIN) data = getBlockStats(currentUser.districtCode || '');
+    else if (currentUser.role === UserRole.BLOCK_ADMIN) data = schools.filter(s => s.blockCode === currentUser.blockCode);
     const title = isAdmin ? 'Geographical Analytics' : 'Performance Analytics';
     const desc = isAdmin ? 'Cross-regional performance metrics and benchmarking' : 'School-level performance data and trends';
     return (
