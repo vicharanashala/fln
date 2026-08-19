@@ -741,18 +741,33 @@ const DISTRICT_LOOKUP: Record<string, { code: string; name: string; stateCode: s
   bastar: { code: 'BST_CG', name: 'Bastar', stateCode: 'CG', stateName: 'Chhattisgarh' },
   balod: { code: 'BLD_CG', name: 'Balod', stateCode: 'CG', stateName: 'Chhattisgarh' },
   kondagaon: { code: 'KDG_CG', name: 'Kondagaon', stateCode: 'CG', stateName: 'Chhattisgarh' },
-  // Assam Aliases
-  guwahati: { code: 'KRM', name: 'Kamrup Metropolitan', stateCode: 'AS', stateName: 'Assam' },
-  gauwahati: { code: 'KRM', name: 'Kamrup Metropolitan', stateCode: 'AS', stateName: 'Assam' },
-  silchar: { code: 'CCH', name: 'Cachar', stateCode: 'AS', stateName: 'Assam' },
-  tezpur: { code: 'SNT', name: 'Sonitpur', stateCode: 'AS', stateName: 'Assam' },
-  haflong: { code: 'DMH_AS', name: 'Dima Hasao', stateCode: 'AS', stateName: 'Assam' },
-  bongaigaon: { code: 'BNG_AS', name: 'Bongaigaon', stateCode: 'AS', stateName: 'Assam' },
-  biswanath: { code: 'BSW_AS', name: 'Biswanath', stateCode: 'AS', stateName: 'Assam' },
-  darrang: { code: 'DRG_AS', name: 'Darrang', stateCode: 'AS', stateName: 'Assam' },
-  kokrajhar: { code: 'KKR_AS', name: 'Kokrajhar', stateCode: 'AS', stateName: 'Assam' },
-  lakhimpur: { code: 'LKP_AS', name: 'Lakhimpur', stateCode: 'AS', stateName: 'Assam' },
+  // Phonetic, Misspelling & Historical Aliases
+  ludiana: { code: 'LDH', name: 'Ludhiana', stateCode: 'PB', stateName: 'Punjab' },
+  ahmadabad: { code: 'AHM', name: 'Ahmedabad', stateCode: 'GJ', stateName: 'Gujarat' },
+  ahmedabad: { code: 'AHM', name: 'Ahmedabad', stateCode: 'GJ', stateName: 'Gujarat' },
+  gurgaon: { code: 'GGM', name: 'Gurugram', stateCode: 'HR', stateName: 'Haryana' },
+  gurugram: { code: 'GGM', name: 'Gurugram', stateCode: 'HR', stateName: 'Haryana' },
+  baroda: { code: 'VDR', name: 'Vadodara', stateCode: 'GJ', stateName: 'Gujarat' },
+  vadodara: { code: 'VDR', name: 'Vadodara', stateCode: 'GJ', stateName: 'Gujarat' },
+  calcutta: { code: 'KOL', name: 'Kolkata', stateCode: 'WB', stateName: 'West Bengal' },
+  kolkata: { code: 'KOL', name: 'Kolkata', stateCode: 'WB', stateName: 'West Bengal' },
+  bombay: { code: 'MMC', name: 'Mumbai City', stateCode: 'MH', stateName: 'Maharashtra' },
+  benaras: { code: 'VNS', name: 'Varanasi', stateCode: 'UP', stateName: 'Uttar Pradesh' },
+  banaras: { code: 'VNS', name: 'Varanasi', stateCode: 'UP', stateName: 'Uttar Pradesh' },
+  varanasi: { code: 'VNS', name: 'Varanasi', stateCode: 'UP', stateName: 'Uttar Pradesh' },
+  simla: { code: 'SML', name: 'Shimla', stateCode: 'HP', stateName: 'Himachal Pradesh' },
+  shimla: { code: 'SML', name: 'Shimla', stateCode: 'HP', stateName: 'Himachal Pradesh' },
+  poona: { code: 'PUN', name: 'Pune', stateCode: 'MH', stateName: 'Maharashtra' },
+  vizag: { code: 'VSP', name: 'Visakhapatnam', stateCode: 'AP', stateName: 'Andhra Pradesh' },
+  visakhapatnam: { code: 'VSP', name: 'Visakhapatnam', stateCode: 'AP', stateName: 'Andhra Pradesh' },
+  waltair: { code: 'VSP', name: 'Visakhapatnam', stateCode: 'AP', stateName: 'Andhra Pradesh' },
+  cawnpore: { code: 'KPN', name: 'Kanpur Nagar', stateCode: 'UP', stateName: 'Uttar Pradesh' },
+  kanpur: { code: 'KPN', name: 'Kanpur Nagar', stateCode: 'UP', stateName: 'Uttar Pradesh' },
 };
+
+// Fast O(1) Indexed Maps
+export const DISTRICTS_BY_STATE = new Map<string, typeof MASTER_GEO_DATA>();
+export const BLOCKS_BY_DISTRICT = new Map<string, { code: string; name: string }[]>();
 
 // Populate state lookup from STATE_NAMES and MASTER_GEO_DATA
 Object.entries(STATE_NAMES).forEach(([code, name]) => {
@@ -761,7 +776,15 @@ Object.entries(STATE_NAMES).forEach(([code, name]) => {
   STATE_LOOKUP[name.toLowerCase()] = val;
 });
 
+STATE_LOOKUP['orissa'] = { code: 'OD', name: 'Odisha' };
+STATE_LOOKUP['pondicherry'] = { code: 'PY', name: 'Puducherry' };
+STATE_LOOKUP['uttaranchal'] = { code: 'UK', name: 'Uttarakhand' };
+
 MASTER_GEO_DATA.forEach((item) => {
+  const stateList = DISTRICTS_BY_STATE.get(item.stateCode) || [];
+  stateList.push(item);
+  DISTRICTS_BY_STATE.set(item.stateCode, stateList);
+
   const stateVal = { code: item.stateCode, name: item.stateName };
   STATE_LOOKUP[item.stateCode.toLowerCase()] = stateVal;
   STATE_LOOKUP[item.stateName.toLowerCase()] = stateVal;
@@ -792,6 +815,40 @@ Object.entries(DISTRICT_NAMES).forEach(([code, name]) => {
     if (!DISTRICT_LOOKUP[nameKey]) DISTRICT_LOOKUP[nameKey] = distVal;
   }
 });
+
+// Pre-index blocks by district prefix
+Object.entries(BLOCK_NAMES).forEach(([k, name]) => {
+  const prefix = k.split('_')[0]; // e.g. "HWH" from "HWH_01"
+  const codeStr = k.replace(/_/g, '-');
+  const distList = BLOCKS_BY_DISTRICT.get(prefix) || [];
+  distList.push({ code: codeStr, name });
+  BLOCKS_BY_DISTRICT.set(prefix, distList);
+});
+
+/**
+ * Compute Levenshtein distance between two strings for fuzzy auto-suggest fallback.
+ */
+export function levenshteinDistance(a: string, b: string): number {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
 
 /**
  * Fetch state code and canonical name from state input (name or code).
@@ -843,7 +900,7 @@ export function fetchDistrictCode(input?: string, parentState?: string): { code:
     const num = parseInt(clean, 10);
     const targetStateCode = parentState ? fetchStateCode(parentState).code : null;
     const stateDistricts = targetStateCode 
-      ? MASTER_GEO_DATA.filter((m) => m.stateCode === targetStateCode)
+      ? (DISTRICTS_BY_STATE.get(targetStateCode) || MASTER_GEO_DATA)
       : MASTER_GEO_DATA;
 
     if (num >= 1 && num <= stateDistricts.length) {
@@ -1036,7 +1093,7 @@ export function fetchGeoDetails(stateInput?: string, districtInput?: string, blo
 
 /**
  * Auto-suggest districts matching search query for the specified state.
- * Example: parentState="PB", query="a" -> [{ code: 'ASR', name: 'Amritsar', ... }]
+ * Fast O(1) Map filtering with Levenshtein fuzzy match fallback.
  */
 export function getDistrictSuggestions(
   query: string,
@@ -1046,10 +1103,9 @@ export function getDistrictSuggestions(
   const stateRes = parentState ? fetchStateCode(parentState) : null;
   const targetStateCode = stateRes?.code || (parentState?.trim().toUpperCase() ?? null);
 
-  let pool = MASTER_GEO_DATA;
-  if (targetStateCode) {
-    pool = pool.filter((m) => m.stateCode === targetStateCode);
-  }
+  let pool = targetStateCode
+    ? (DISTRICTS_BY_STATE.get(targetStateCode) || [])
+    : MASTER_GEO_DATA;
 
   if (!cleanQ) {
     return pool.map((item) => ({
@@ -1074,9 +1130,26 @@ export function getDistrictSuggestions(
     }
   }
 
-  const combined = [...startsWithMatches, ...containsMatches];
-  const seen = new Set<string>();
+  let combined = [...startsWithMatches, ...containsMatches];
 
+  // Fuzzy match fallback if exact/starts/contains returns empty and query is at least 3 characters
+  if (combined.length === 0 && cleanQ.length >= 3) {
+    const maxDist = cleanQ.length <= 4 ? 1 : 2;
+    const fuzzyMatches: typeof MASTER_GEO_DATA = [];
+
+    for (const item of pool) {
+      const nameLower = item.districtName.toLowerCase();
+      // Check distance against whole name or name words
+      const distWhole = levenshteinDistance(cleanQ, nameLower);
+      const distWord = Math.min(...nameLower.split(/\s+/).map((w) => levenshteinDistance(cleanQ, w)));
+      if (distWhole <= maxDist || distWord <= maxDist) {
+        fuzzyMatches.push(item);
+      }
+    }
+    combined = fuzzyMatches;
+  }
+
+  const seen = new Set<string>();
   return combined
     .filter((item) => {
       if (seen.has(item.districtCode)) return false;
@@ -1093,10 +1166,7 @@ export function getDistrictSuggestions(
 
 /**
  * Auto-suggest blocks matching search query for the specified district & state.
- * Example: parentDistrict="ASR", query="1" -> [
- *   { code: 'ASR-01', name: 'Amritsar Block 1', districtCode: 'ASR', districtName: 'Amritsar', stateCode: 'PB', stateName: 'Punjab' },
- *   { code: 'ASR-10', name: 'Tarsikka Block', districtCode: 'ASR', districtName: 'Amritsar', stateCode: 'PB', stateName: 'Punjab' }
- * ]
+ * Uses O(1) BLOCKS_BY_DISTRICT index for instant retrieval.
  */
 export function getBlockSuggestions(
   query: string,
@@ -1118,15 +1188,13 @@ export function getBlockSuggestions(
   }
 
   const candidateBlocks: { code: string; name: string; districtCode: string; districtName: string; stateCode: string; stateName: string }[] = [];
-  const prefixKey = `${targetDistCode}_`;
-  const customEntries = Object.entries(BLOCK_NAMES).filter(([k]) => k.startsWith(prefixKey));
+  const preIndexed = BLOCKS_BY_DISTRICT.get(targetDistCode);
 
-  if (customEntries.length > 0) {
-    for (const [k, name] of customEntries) {
-      const codeStr = k.replace(/_/g, '-');
+  if (preIndexed && preIndexed.length > 0) {
+    for (const b of preIndexed) {
       candidateBlocks.push({
-        code: codeStr,
-        name: name,
+        code: b.code,
+        name: b.name,
         districtCode: targetDistCode,
         districtName: targetDistName,
         stateCode: targetStateCode,
@@ -1174,7 +1242,19 @@ export function getBlockSuggestions(
     }
   }
 
-  const combined = [...startsWithMatches, ...containsMatches];
+  let combined = [...startsWithMatches, ...containsMatches];
+
+  if (combined.length === 0 && cleanQ.length >= 3) {
+    const maxDist = cleanQ.length <= 4 ? 1 : 2;
+    for (const block of candidateBlocks) {
+      const nameLower = block.name.toLowerCase();
+      const dist = levenshteinDistance(cleanQ, nameLower);
+      if (dist <= maxDist) {
+        combined.push(block);
+      }
+    }
+  }
+
   const seen = new Set<string>();
   return combined.filter((b) => {
     if (seen.has(b.code)) return false;
@@ -1182,4 +1262,5 @@ export function getBlockSuggestions(
     return true;
   });
 }
+
 
