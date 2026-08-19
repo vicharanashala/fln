@@ -36,12 +36,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
   ];
 
   const handleLogin = async (e?: React.FormEvent, customEmail?: string, customPass?: string) => {
-    if (e) e.preventDefault();
-    setError(null);
-    setLoading(true);
+  if (e) e.preventDefault();
+  setError(null);
+  setLoading(true);
 
-    const loginEmail = customEmail || email;
-    const loginPass = customPass || password;
+  const loginEmail = customEmail || email;
+  const loginPass = customPass || password;
 
     try {
       const res = await apiFetch('/api/auth/login', {
@@ -52,11 +52,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
       const data = await res.json();
       if (res.ok) {
         onLoginSuccess(data.token, data.user);
+        return;
       } else {
         setError(data.error || 'Invalid email or password');
       }
-    } catch (err) {
-      setError('Connection failed. Verify server state.');
+    } catch (error) {
+      console.error("Authentication Error:", error);
+      setError("Failed connecting to the backend server.");
     } finally {
       setLoading(false);
     }
@@ -156,7 +158,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
             {mockUsersList.map(u => (
               <button
                 key={u.email}
-                onClick={() => handleLogin(undefined, u.email, u.pass)}
+                onClick={(e) => handleLogin(e, u.email, u.pass)}
                 className="rounded-lg bg-slate-50 dark:bg-slate-800 p-2 text-left border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition hover:bg-amber-50/70 dark:hover:bg-amber-950/40 hover:border-amber-300 dark:hover:border-amber-800 hover:text-indigo-700 dark:hover:text-amber-400 cursor-pointer"
               >
                 <div className="font-extrabold truncate text-slate-900 dark:text-white">

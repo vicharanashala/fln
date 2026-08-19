@@ -5,6 +5,7 @@ import { apiFetch } from '../services/apiClient';
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin } from 'lucide-react';
 
 interface LandingViewProps {
@@ -25,6 +26,7 @@ interface Stats {
 }
 
 export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isLoggedIn }) => {
+  const navigate = useNavigate();
   const [fontSize, setFontSize] = useState(100);
   const [stats, setStats] = useState<Stats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -40,6 +42,14 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
   const resetFontSize = () => {
     setFontSize(100);
     document.documentElement.style.fontSize = '100%';
+  };
+
+  const handleOpenLogin = () => {
+    if (onNavigateToLogin) {
+      onNavigateToLogin();
+      return;
+    }
+    navigate('/login');
   };
 
   useEffect(() => {
@@ -151,7 +161,8 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={onNavigateToLogin}
+              type="button"
+              onClick={handleOpenLogin}
               className="rounded-lg bg-indigo-700 dark:bg-indigo-800 px-6 py-2.5 text-xs font-extrabold text-white shadow-md dark:shadow-slate-950/50 transition-all duration-150 hover:bg-indigo-600 dark:hover:bg-indigo-700 border border-indigo-300 dark:border-indigo-700 active:scale-[0.98] uppercase tracking-wider"
             >
               {isLoggedIn ? 'Go to Dashboard' : 'Sign In to Dashboard'}

@@ -21,6 +21,9 @@ interface LayoutProps {
   activeView: string;
   onSelectView: (view: string) => void;
   notifications: Announcement[];
+  // Live unread count sourced from /api/notifications/unread-count so the
+  // bell + sidebar badges stay in sync without re-deriving from the list.
+  unreadCount: number;
   onMarkNotificationRead: (id: string) => void;
   onClearNotifications: () => void;
   onLogout: () => void;
@@ -36,6 +39,7 @@ export const Layout: React.FC<LayoutProps> = ({
   activeView,
   onSelectView,
   notifications,
+  unreadCount,
   onMarkNotificationRead,
   onClearNotifications,
   onLogout,
@@ -123,6 +127,7 @@ export const Layout: React.FC<LayoutProps> = ({
     const list: NavigationItem[] = [];
 
     list.push({ name: 'Dashboard', view: 'workspace', icon: LayoutDashboard });
+    list.push({ name: 'Announcement Tracking', view: 'announcement-tracking', icon: ShieldCheck });
 
     switch (currentUser.role) {
       case UserRole.TEACHER:
@@ -216,11 +221,11 @@ export const Layout: React.FC<LayoutProps> = ({
         break;
     }
 
-    list.push({ name: 'Notifications', view: 'notifications', icon: Bell, badge: notifications.length > 0 ? String(notifications.length) : undefined });
+    list.push({ name: 'Notifications', view: 'notifications', icon: Bell, badge: unreadCount > 0 ? String(unreadCount) : undefined });
     list.push({ name: 'Settings', view: 'settings', icon: Settings });
 
     return list;
-  }, [currentUser.role, notifications.length]);
+  }, [currentUser.role, notifications.length, unreadCount]);
 
   const filteredNavItems = useMemo(() => {
     if (!searchQuery) return navigationItems;
@@ -267,6 +272,13 @@ export const Layout: React.FC<LayoutProps> = ({
           <span className="text-gray-300 dark:text-gray-400 hidden sm:inline font-mono">Foundational Literacy & Numeracy</span>
         </div>
         <div className="flex items-center gap-4">
+          <button 
+            onClick={() => alert("Screen Reader Access enabled. Screen reader voice instructions active.")}
+            className="hover:text-white transition hover:underline"
+          >
+            Screen Reader Access
+          </button>
+          <span className="text-gray-700 dark:text-gray-500">|</span>
           <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold">
             <button onClick={() => adjustFontSize(-10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Decrease font size">A-</button>
             <button onClick={resetFontSize} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Reset font size">A</button>
@@ -368,10 +380,10 @@ export const Layout: React.FC<LayoutProps> = ({
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative rounded-lg p-2 text-slate-505 hover:bg-slate-100 transition dark:text-slate-400 dark:hover:bg-slate-800"
             >
-              <Bell className="h-4.5 w-4.5" />
-              {notifications.length > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white dark:bg-rose-600">
-                  {notifications.length}
+            <Bell className="h-4.5 w-4.5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white dark:bg-rose-600">
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </button>
@@ -394,10 +406,12 @@ export const Layout: React.FC<LayoutProps> = ({
                       <div
                         key={n.id}
                         onClick={() => onMarkNotificationRead(n.id)}
-                        className="p-3 rounded-lg border border-transparent transition hover:bg-slate-50 cursor-pointer dark:hover:bg-slate-800"
+                        className={`p-3 rounded-lg border border-transparent transition hover:bg-slate-50 cursor-pointer dark:hover:bg-slate-800 ${n.readByMe ? 'opacity-60' : ''}`}
                       >
                         <div className="flex items-start justify-between">
-                          <span className="text-xs font-bold text-slate-900 dark:text-white">{n.title}</span>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">
+                            {n.readByMe ? '✓ ' : '● '}{n.title}
+                          </span>
                           <span className="text-[10px] text-slate-400 dark:text-slate-500">{new Date(n.createdAt).toLocaleDateString()}</span>
                         </div>
                         <p className="mt-1 text-[11px] text-slate-600 leading-relaxed dark:text-slate-300">{n.message}</p>
@@ -417,7 +431,7 @@ export const Layout: React.FC<LayoutProps> = ({
             <div className="hidden flex-col sm:flex">
               <span className="text-xs font-bold text-slate-900 dark:text-white">{currentUser.name}</span>
               <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wide dark:text-slate-500">
-                {currentUser.role.replace('_', ' ')}
+              {currentUser?.name?.toLowerCase().includes('volunteer') ? 'Volunteer' : currentUser?.role?.replace('_', ' ')}
               </span>
             </div>
             <button

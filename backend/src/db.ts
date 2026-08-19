@@ -298,8 +298,28 @@ export interface Announcement {
   isUrgent: boolean;
   authorEmail: string;
   createdAt: string;
+  // Optional targeting fields. If ALL three arrays are missing/empty on
+  // a stored document, the GET handler treats it as a GLOBAL broadcast
+  // (returned to every authenticated user) so legacy rows remain visible.
+  // 'ALL' as a literal entry is a wildcard that matches every role/state/
+  // district (case-insensitive comparison).
+  targetRoles?: string[];
+  targetStates?: string[];
+  targetDistricts?: string[];
 }
 
+export interface AnnouncementRead {
+  id: string;
+  announcementId: string;
+  userId: string;
+  userEmail: string;
+  readAt: string;
+  // Captured at read-time so the compliance dashboard can break down
+  // receipts by role and district without joining the users collection.
+  // Optional for backward compatibility with pre-existing rows.
+  userRole?: UserRole;
+  userDistrict?: string | null;
+}
 export type InterventionStrategyType = 'small_group' | 'one_on_one' | 'peer_tutoring' | 'visual_aids' | 'manipulatives' | 'worksheets' | 'game_based' | 'other';
 
 export interface Intervention {
@@ -366,6 +386,7 @@ interface DatabaseSchema {
   tickets: Ticket[];
   logbook: LogEntry[];
   announcements: Announcement[];
+  announcementReads: AnnouncementRead[];
   interventions: Intervention[];
   bestPractices: BestPractice[];
   diagnosticAnswerKeys: DiagnosticAnswerKey[];
@@ -386,6 +407,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   tickets: 'tickets',
   logbook: 'logbook',
   announcements: 'announcements',
+  announcementReads: 'announcementReads',
   interventions: 'interventions',
   bestPractices: 'best_practices',
   diagnosticAnswerKeys: 'diagnostic_answer_keys',
@@ -482,6 +504,7 @@ export class DBStore {
       }
     }
   }
+  
 
   private async save() {
     if (!this.data) return;
@@ -489,11 +512,10 @@ export class DBStore {
   }
 
   private async persistCollection(key: keyof DatabaseSchema) {
-    if (!this.data || !mongoClient) return;
-    const db = this.getDb();
+    if (!this.data || !this.mongoDb) return;
     const collName = COLLECTION_NAMES[key];
     const items = (this.data as any)[key] || [];
-    const coll = db.collection(collName);
+    const coll = this.mongoDb.collection(collName);
     await coll.deleteMany({});
     if (items.length > 0) {
       await coll.insertMany(items);
@@ -512,14 +534,13 @@ export class DBStore {
           await coll.insertMany(items);
         }
       }
+      console.log('[Database] MongoDB reset and re-seeded successfully.');
     } else {
       await this.save();
     }
   }
-
   // --- Collection Accessors ---
-
-  getUserSync(email: string): User | null {
+getUserSync(email: string): User | null {
     if (!this.data || !this.data.users) return null;
     return this.data.users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
   }
@@ -929,6 +950,9 @@ export class DBStore {
     if (this.mongoDb) return await this.mongoDb.collection<Announcement>('announcements').find({}).toArray();
     return this.data?.announcements || [];
   }
+  async getAnnouncementReads() {
+    return await this.mongoDb!.collection<AnnouncementRead>('announcementReads').find({}).toArray();
+  }
 
   // --- Write / Update Helpers ---
 
@@ -1044,6 +1068,13 @@ export class DBStore {
     await this.mongoDb!.collection('announcements').insertOne(ann);
     if (this.data) this.data.announcements.unshift(ann);
     return ann;
+  }
+  async addAnnouncementRead(read: AnnouncementRead) {
+    const existing = await this.mongoDb!.collection<AnnouncementRead>('announcementReads').findOne({ announcementId: read.announcementId, userId: read.userId });
+    if (existing) return existing;
+    await this.mongoDb!.collection('announcementReads').insertOne(read);
+    if (this.data) this.data.announcementReads.push(read);
+    return read;
   }
 
   // --- Intervention & Best Practice Methods ---
@@ -2984,6 +3015,7 @@ export class DBStore {
       tickets,
       logbook,
       announcements,
+      announcementReads: [],
       interventions,
       bestPractices,
       diagnosticAnswerKeys: []

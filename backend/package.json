@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
     "dev:old": "tsx src/index.ts",
     "dev:new": "tsx src/server.ts",
+    "dev": "tsx src/index.ts",
     "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs --banner:js=\"const __im_url = require('url').pathToFileURL(__filename).href;\" --define:import.meta.url=__im_url",
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
@@ -14,7 +14,8 @@
     "seed:html": "tsx src/seedLevelHtml.ts",
     "seed:question-bank": "tsx src/seedQuestionBank.ts",
     "seed:geo": "tsx src/utils/seedGeo.ts",
-    "reseed": "tsx src/reseed.ts"
+    "reseed": "tsx src/reseed.ts",
+      "PROBE_MARKER": "DO_NOT_KEEP"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
