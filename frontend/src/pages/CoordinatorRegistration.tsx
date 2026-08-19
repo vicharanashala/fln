@@ -80,11 +80,29 @@ export default function CoordinatorRegistration() {
     setSelectedBlock('');
     setValue('blockId', '');
     setValue('schoolId', '');
+    if (!selectedState && districtId) {
+      const geo = fetchGeoDetails(undefined, districtId);
+      if (geo.stateCode) {
+        setSelectedState(geo.stateCode);
+        setValue('stateId', geo.stateCode);
+      }
+    }
   };
 
   const onBlockChange = (blockId: string) => {
     setSelectedBlock(blockId);
     setValue('schoolId', '');
+    if (blockId) {
+      const geo = fetchGeoDetails(selectedState || undefined, selectedDistrict || undefined, blockId);
+      if (!selectedState && geo.stateCode) {
+        setSelectedState(geo.stateCode);
+        setValue('stateId', geo.stateCode);
+      }
+      if (!selectedDistrict && geo.districtCode) {
+        setSelectedDistrict(geo.districtCode);
+        setValue('districtId', geo.districtCode);
+      }
+    }
   };
 
   const onSubmit = async (formData: FormValues) => {
