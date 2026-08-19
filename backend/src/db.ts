@@ -44,6 +44,9 @@ export const connectDB = async () => {
       dbStore.useMongo = true;
       connected = true;
     } catch (err: any) {
+      if (err.message && err.message.includes('SSL alert number 80')) {
+        console.error(`⚠️ MongoDB TLS Handshake Warning (SSL Alert 80): Please check that your current public IP is whitelisted in MongoDB Atlas Network Access.`);
+      }
       console.error(`MongoDB connection attempt ${attempt}/${maxAttempts} failed: ${err.message}`);
       attempt++;
       if (attempt <= maxAttempts) {
@@ -119,6 +122,7 @@ export interface Student {
   targetLevel: number;
   aadharMasked: string; // Mandatory, unique identifier masked (§13.2 R-6)
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
+  streak?: number;
   assignedDiagnosticQuestions?: Question[];
   // Extended profile — optional, filled in by the student's own school/teacher.
   // guardianContact and address are PII and are redacted for roles beyond
@@ -451,6 +455,15 @@ export class DBStore {
         } catch (e: any) {
           console.warn('Collection check info:', e.message);
         }
+
+        // Ensure essential MongoDB indexes for high-frequency queries
+        try {
+          await Promise.all([
+            db.collection('users').createIndex({ email: 1 }),
+            db.collection('students').createIndex({ schoolId: 1, currentLevel: 1 }),
+            db.collection('schools').createIndex({ stateCode: 1, districtCode: 1 }),
+          ]);
+        } catch (_) {}
 
         for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
           (this.data as any)[key] = [];

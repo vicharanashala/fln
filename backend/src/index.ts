@@ -42,7 +42,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import nodemailer from 'nodemailer';
-import { ROOT_DIR, PYTHON_BIN, AI_SERVICES_DIR } from './config';
+import { ROOT_DIR, PYTHON_BIN, AI_SERVICES_DIR, authRateLimiter } from './config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -519,47 +519,25 @@ async function startServer() {
       dbStore.getStudents(),
     ]);
     const schoolById = new Map(schools.map(s => [s.id, s]));
-  registerAdminRoutes(app);
-
-  registerGeoRoutes(app);
-
-    if (!/^[a-zA-Z]{2,5}-[a-zA-Z0-9]{1,5}-\d{3}$/.test(id)) {
-      return res.status(400).json({ error: 'School ID format must be strictly like gps-vl-002 (3-part format ending in 3 digits)' });
+    let teachers = users.filter(u => u.role === UserRole.TEACHER);
+    if (user.role === UserRole.SCHOOL) {
+      teachers = teachers.filter(t => t.schoolId === user.schoolId);
+    } else if (user.role === UserRole.BLOCK_ADMIN) {
+      teachers = teachers.filter(t => schoolById.get(t.schoolId || '')?.blockCode === user.blockCode);
     }
 
-    const schools = await dbStore.getSchools();
-    if (schools.some(s => s.id.toLowerCase() === id.toLowerCase())) {
-      return res.status(400).json({ error: 'School ID already exists.' });
-    }
-
-    const newSch: School = {
-      id: id.toLowerCase(),
-      name,
-      stateCode: stateCode.toUpperCase(),
-      districtCode: districtCode.toUpperCase(),
-      blockCode: blockCode.toUpperCase(),
-      strength: strength || 'low',
-      teachersCount: 0,
-      isAccessLocked: false
-    };
-
-    await dbStore.addSchool(newSch);
-
-    // Add Log entry
-    await dbStore.addLog({
-      id: 'log_' + Date.now(),
-      timestamp: new Date().toISOString(),
-      schoolId: newSch.id,
-      schoolName: newSch.name,
-      userId: user.id,
-      userEmail: user.email,
-      userRole: user.role,
-      activityType: 'verify',
-      status: 'Success',
-      details: `Superadmin onboarded a new school: ${newSch.name} (ID: ${newSch.id})`
+    const enriched = teachers.map(t => {
+      const teacherClasses = classes.filter(c => c.teacherId === t.id);
+      const studentsCount = students.filter(s => s.teacherId === t.id).length;
+      return {
+        ...sanitizeUser(t),
+        classes: teacherClasses.map(c => `${c.className} ${c.section}`),
+        studentsCount,
+        status: t.isBanned ? 'Inactive' : 'Active',
+      };
     });
 
-    res.json(newSch);
+    res.json(enriched);
   });
 
   // Classes
@@ -917,86 +895,7 @@ async function startServer() {
     }
   });
 
-  // Submit and evaluate Diagnostic responses
-  app.post('/api/students/:id/diagnostic/submit', async (req, res) => {
-    const user = getAuthUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { questions, answers } = req.body;
-    const students = await dbStore.getStudents();
-    const student = students.find(s => s.id === req.params.id);
-    if (!student) return res.status(404).json({ error: 'Student not found.' });
-    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
-
-    // Parse class number from classGroup (e.g. "Class 2" -> 2)
-    const classMatch = student.classGroup.match(/\d+/);
-    const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
-
-    const dateStr = new Date().toISOString().split('T')[0];
-
-    // Idempotency: if this student's diagnostic was already submitted and
-    // evaluated today (e.g. a client retry after a timeout), return that
-    // existing report instead of re-running the pipeline and re-appending to
-    // level history. A genuinely new diagnostic on a later date still runs
-    // normally (legitimate re-assessment, not a duplicate retry).
-    const existingReports = await dbStore.getEvaluationReports();
-    const existingReport = existingReports.find(r =>
-      r.worksheetId === 'diagnostic' && r.studentId === student.id && r.timestamp.startsWith(dateStr)
-    );
-    if (existingReport) {
-      return res.json({
-        student,
-        evaluation: { score: existingReport.score, recommendedLevel: existingReport.recommendedLevel, narrative: existingReport.narrative },
-        report: existingReport,
-        alreadySubmitted: true
-      });
-    }
-
-    // Connect to Python Evaluation Metrics Pipeline
-    const pipelineDir = AI_SERVICES_DIR;
-    const responseDir = path.join(pipelineDir, 'student_responses', `class_${classNumber}`, 'phrase_1');
-    fs.mkdirSync(responseDir, { recursive: true });
-
-    // Map answers sequentially (diag_q_X_Y to Q1, Q2, Q3...)
-    const pipelineAnswers: { [qId: string]: { answer: string, confidence: number } } = {};
-    questions.forEach((q, idx) => {
-      const qNum = idx + 1;
-      const pipelineQId = `Q${qNum}`;
-      const submitted = (answers[q.question_id] || '').trim();
-      pipelineAnswers[pipelineQId] = {
-        answer: String(submitted),
-        confidence: 0.95
-      };
-    });
-
-    const studentResponse = {
-      student_id: student.id,
-      student_name: student.name,
-      enrolled_class: classNumber,
-      test_date: dateStr,
-      phrase: 'phrase_1',
-      exam_id: `C${classNumber}_WORKSHEET_PHRASE_1`,
-      answers: pipelineAnswers
-    };
-
-    const responsePath = path.join(responseDir, `${student.id}.json`);
-    fs.writeFileSync(responsePath, JSON.stringify(studentResponse, null, 2));
-
-    let score = 0;
-    let recommendedLevel = 1;
-    let narrative = '';
-
-    try {
-      const { execFileSync } = await import('child_process');
-      console.log(`Running evaluation pipeline for student ${student.id}...`);
-
-      // Run the comparison, evaluation, and report card generation pipeline.
-      // execFile (no shell) with array args means classNumber/student.id are passed
-      // literally and can never be interpreted as shell syntax.
-      execFileSync(PYTHON_BIN, ['run_pipeline.py', String(classNumber), 'phrase_1', student.id], {
-        cwd: pipelineDir,
-        env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-      });
   registerTeacherRoutes(app);
   registerSchoolRoutes(app);
 
@@ -1010,125 +909,7 @@ async function startServer() {
   registerAnalyticsRoutes(app);
   registerDiagnosticBulkRoutes(app);
 
-      if (fs.existsSync(evalReportPath)) {
-        const evalData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
-        score = evalData.total_questions - (evalData.wrong_count || 0);
 
-        const levelStr = String(evalData.demonstrated_level || '1');
-        const lvlMatch = levelStr.match(/\d+/);
-        if (lvlMatch) {
-          const matchedNum = parseInt(lvlMatch[0], 10);
-          if (levelStr.toLowerCase().includes('class')) {
-            recommendedLevel = (matchedNum - 1) * 10 + 1;
-          } else {
-            recommendedLevel = matchedNum;
-          }
-        } else {
-          recommendedLevel = 1;
-        }
-      }
-
-      if (fs.existsSync(reportTxtPath)) {
-        narrative = fs.readFileSync(reportTxtPath, 'utf-8');
-      }
-    } catch (pipelineErr) {
-      console.error('Python evaluation pipeline failed, falling back to Gemini AI:', pipelineErr);
-      // Fallback to Gemini AI if Python pipeline fails
-      const evaluation = await evaluateAIDiagnostic(student.name, questions, answers);
-      score = evaluation.score;
-      recommendedLevel = evaluation.recommendedLevel;
-      narrative = evaluation.narrative;
-    }
-
-    // Determine the subLevel based on weakest-level mapping questions
-    let subLevel = 0; // default Mastery
-    const levelQuestions = questions.filter(q => q.source_level === recommendedLevel);
-    if (levelQuestions.length > 0) {
-      let failedCount = 0;
-      levelQuestions.forEach(q => {
-        const submitted = (answers[q.question_id] || '').trim().toLowerCase();
-        const correct = q.answer.trim().toLowerCase();
-        if (submitted !== correct) {
-          failedCount++;
-        }
-      });
-
-      if (failedCount === levelQuestions.length) {
-        subLevel = 2; // Remedial (failed all)
-      } else if (failedCount > 0) {
-        subLevel = 1; // Easier (failed some)
-      } else {
-        subLevel = 0; // Mastery
-      }
-    }
-
-    // Update Student placing levels
-    const levelHistory = [...student.levelHistory, {
-      level: recommendedLevel,
-      subLevel,
-      date: new Date().toISOString().split('T')[0],
-      reason: 'Onboarding Diagnostic Evaluation Placement'
-    }];
-
-    await dbStore.updateStudent(student.id, {
-      currentLevel: recommendedLevel,
-      currentSubLevel: subLevel,
-      targetLevel: Math.min(93, recommendedLevel + 1),
-      levelHistory
-    });
-
-    // Create a special Evaluation Report with dynamic mock concept mastery
-    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {
-      'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
-      'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
-      'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
-      'Operations': recommendedLevel >= 12 ? 'Strong' : 'Needs Practice'
-    };
-
-    try {
-      const evalReportPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'evaluation', `${student.id}_evaluation_${dateStr}.json`);
-      if (fs.existsSync(evalReportPath)) {
-        const evalData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
-        if (evalData.topics_to_focus && Array.isArray(evalData.topics_to_focus)) {
-          evalData.topics_to_focus.forEach((t: string) => {
-            conceptMastery[t] = 'Needs Practice';
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to parse dynamic concept mastery:', e);
-    }
-
-    const report: EvaluationReport = {
-      id: 'rep_diag_' + Date.now(),
-      studentId: student.id,
-      worksheetId: 'diagnostic',
-      score,
-      totalQuestions: questions.length,
-      conceptMastery,
-      narrative,
-      recommendedLevel,
-      recommendedSubLevel: subLevel,
-      timestamp: new Date().toISOString()
-    };
-
-    await dbStore.addEvaluationReport(report);
-
-    await dbStore.addLog({
-      id: 'log_' + Date.now(),
-      timestamp: new Date().toISOString(),
-      schoolId: student.schoolId,
-      schoolName: 'GPS',
-      userId: user.id,
-      userEmail: user.email,
-      userRole: user.role,
-      activityType: 'scan',
-      status: 'Success',
-      details: `Submitted and scored diagnostic for ${student.name}. Placed at Level ${recommendedLevel}`
-    });
-
-    res.json({ student, evaluation: { score, recommendedLevel, narrative }, report });
-  });
 
   // ICR Blue-Pen Filter Stage (standalone — runs only the cv2 blue-pen
   // isolation, no OCR). Returns the filtered image as a data URL so the
