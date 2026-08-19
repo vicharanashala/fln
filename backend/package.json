@@ -1,0 +1,40 @@
+{
+  "name": "@fln/backend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "dev:old": "tsx src/index.ts",
+    "dev:new": "tsx src/server.ts",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs --banner:js=\"const __im_url = require('url').pathToFileURL(__filename).href;\" --define:import.meta.url=__im_url",
+    "start": "node dist/server.cjs",
+    "lint": "tsc --noEmit",
+    "seed": "tsx src/seed.ts",
+    "seed:html": "tsx src/seedLevelHtml.ts",
+    "seed:question-bank": "tsx src/seedQuestionBank.ts",
+    "seed:geo": "tsx src/utils/seedGeo.ts",
+    "reseed": "tsx src/reseed.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.6.1",
+    "jsonwebtoken": "^9.0.2",
+    "jszip": "^3.10.1",
+    "mongodb": "^6.12.0",
+    "pdf-lib": "^1.17.1",
+    "puppeteer": "^25.3.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.14.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2"
+  }
+}
