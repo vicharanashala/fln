@@ -1,5 +1,12 @@
 node_modules
 dist
 output
-# Runtime data written by the AI pipeline / server
 *.local
+
+# Environment & Secret files (STRICTLY IGNORED)
+.env
+.env.*
+*.env
+.env.local
+.env.*.local
+

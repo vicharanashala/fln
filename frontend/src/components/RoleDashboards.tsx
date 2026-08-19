@@ -15,6 +15,9 @@ import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { Input, Select, Textarea } from './Form';
 import { SuperAdminExecutiveDashboard } from './SuperAdminExecutiveDashboard';
+import { fetchStateCode, fetchDistrictCode, fetchBlockCode, fetchGeoDetails } from '../utils/geoLookup';
+import { DistrictAutocomplete } from './DistrictAutocomplete';
+import { BlockAutocomplete } from './BlockAutocomplete';
 
 
 
@@ -293,40 +296,59 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
       {user.role === UserRole.SUPERADMIN && (
         <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-end text-xs font-sans">
           <div className="flex-grow">
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter State</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Filter State</label>
+              {fetchStateCode(stateCode).name && (
+                <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchStateCode(stateCode).code}</span>
+              )}
+            </div>
             <input 
               type="text" 
               value={stateCode} 
               onChange={e => {
-                setStateCode(e.target.value.toUpperCase());
+                const val = e.target.value;
+                const res = fetchStateCode(val);
+                setStateCode(res.code || val.toUpperCase());
                 setDistrictCode('');
                 setBlockCode('');
               }}
-              placeholder="e.g. PB"
+              onBlur={e => {
+                const res = fetchStateCode(e.target.value);
+                if (res.code) setStateCode(res.code);
+              }}
+              placeholder="e.g. Punjab, PB"
               className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
           <div className="flex-grow">
-            <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter District</label>
-            <input 
-              type="text" 
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Filter District</label>
+              {fetchDistrictCode(districtCode, stateCode).name && (
+                <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchDistrictCode(districtCode, stateCode).code}</span>
+              )}
+            </div>
+            <DistrictAutocomplete 
               value={districtCode} 
-              onChange={e => {
-                setDistrictCode(e.target.value.toUpperCase());
+              stateInput={stateCode}
+              onChange={(val, selectedItem) => {
+                const targetVal = selectedItem ? selectedItem.code : val;
+                const res = fetchDistrictCode(targetVal, stateCode);
+                setDistrictCode(res.code || targetVal.toUpperCase());
                 setBlockCode('');
               }}
-              placeholder="e.g. LDH"
+              placeholder="e.g. Ludhiana, LDH, Amritsar..."
               className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
             />
           </div>
           <div className="flex-grow">
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Filter Block</label>
-            <input 
-              type="text" 
+            <BlockAutocomplete 
               value={blockCode} 
-              onChange={e => setBlockCode(e.target.value.toUpperCase())}
-              placeholder="e.g. LDH-01"
-              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
+              parentDistrict={districtCode}
+              parentState={stateCode}
+              onChange={val => setBlockCode(val.toUpperCase())}
+              placeholder="e.g. 01, ASR-01"
+              className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-900 outline-none font-medium text-zinc-800 dark:text-zinc-100 focus:border-zinc-400 font-mono"
             />
           </div>
           <button 
@@ -565,30 +587,31 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [schoolFilter, setSchoolFilter] = useState('');
 
   const stateFilterOptions = useMemo(() => {
-    return Array.from(new Set(coordinatorsList.map(c => c.stateCode).filter(Boolean)))
+    return Array.from(new Set((coordinatorsList || []).map(c => c?.stateCode).filter(Boolean)))
       .sort();
   }, [coordinatorsList]);
 
   const districtFilterOptions = useMemo(() => {
     return Array.from(new Set(
-      coordinatorsList
-        .filter(c => !stateFilter || c.stateCode === stateFilter)
-        .map(c => c.districtCode)
+      (coordinatorsList || [])
+        .filter(c => c && (!stateFilter || c.stateCode === stateFilter))
+        .map(c => c?.districtCode)
         .filter(Boolean)
     )).sort();
   }, [coordinatorsList, stateFilter]);
 
   const schoolFilterOptions = useMemo(() => {
     return Array.from(new Set(
-      coordinatorsList
-        .filter(c => (!stateFilter || c.stateCode === stateFilter) && (!districtFilter || c.districtCode === districtFilter))
-        .map(c => c.schoolId)
+      (coordinatorsList || [])
+        .filter(c => c && (!stateFilter || c.stateCode === stateFilter) && (!districtFilter || c.districtCode === districtFilter))
+        .map(c => c?.schoolId)
         .filter(Boolean)
     )).sort();
   }, [coordinatorsList, stateFilter, districtFilter]);
 
   const filteredCoordinators = useMemo(() => {
-    return coordinatorsList.filter(c => {
+    return (coordinatorsList || []).filter(c => {
+      if (!c) return false;
       if (stateFilter && c.stateCode !== stateFilter) return false;
       if (districtFilter && c.districtCode !== districtFilter) return false;
       if (schoolFilter && c.schoolId !== schoolFilter) return false;
@@ -670,6 +693,61 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
       ? coordAssignedSchoolsStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
       : undefined;
 
+    const geo = fetchGeoDetails(coordState, coordDistrict);
+    const effectiveState = geo.stateCode || coordState.trim().toUpperCase();
+    const effectiveDistrict = geo.districtCode || coordDistrict.trim().toUpperCase();
+    const blockRes = fetchBlockCode(coordBlock, effectiveDistrict, effectiveState);
+    const effectiveBlock = blockRes.code || coordBlock.trim().toUpperCase();
+
+    if (effectiveState && !/^[A-Z]{2}$/.test(effectiveState)) {
+      setCoordError('State Code must be 2 uppercase letters or valid State/District name (e.g. PB, Punjab, Howrah)');
+      setLoading(false);
+      return;
+    }
+
+    if (effectiveDistrict && !/^[A-Z]{3}$/.test(effectiveDistrict)) {
+      setCoordError('District Code must be 3 uppercase letters or valid District name (e.g. LDH or Howrah)');
+      setLoading(false);
+      return;
+    }
+
+    if (coordBlock && !/^[A-Z]{3}-\d{2}$/.test(effectiveBlock)) {
+      setCoordError('Block Code must be in the format XXX-00 (e.g. LDH-01 or 01)');
+      setLoading(false);
+      return;
+    }
+
+    if (coordRole === UserRole.BLOCK_ADMIN && effectiveBlock) {
+      const normBlock = effectiveBlock;
+      const existingBlockAdmin = (coordinatorsList || []).find(c => 
+        c &&
+        c.role === UserRole.BLOCK_ADMIN && 
+        c.blockCode && 
+        c.blockCode.trim().toUpperCase() === normBlock
+      );
+      if (existingBlockAdmin) {
+        setCoordError(`A Block Coordinator already exists for Block Code '${normBlock}' (${existingBlockAdmin.name}). Each Block can only have one assigned Block Coordinator.`);
+        setLoading(false);
+        return;
+      }
+    }
+
+    if ([UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole)) {
+      if (!coordSchoolId || !/^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$/.test(coordSchoolId.trim().toLowerCase())) {
+        setCoordError('Assigned School ID must be strictly formatted like gps-vl-002 (3-part format ending in 3 digits)');
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (coordRole === UserRole.VOLUNTEER) {
+      if (!assignedSchools || assignedSchools.length === 0 || assignedSchools.some(s => !/^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$/.test(s))) {
+        setCoordError('Assigned School IDs must be strictly formatted like gps-vl-002 (e.g. gps-vl-002, gps-jai-004)');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const res = await apiFetch('/api/admin/create', {
         method: 'POST',
@@ -682,9 +760,9 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           email: coordEmail,
           password: coordPass,
           role: coordRole,
-          stateCode: coordState,
-          districtCode: coordDistrict,
-          blockCode: coordBlock,
+          stateCode: effectiveState,
+          districtCode: effectiveDistrict,
+          blockCode: effectiveBlock,
           schoolId: [UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) ? coordSchoolId : undefined,
           assignedSchools: coordRole === UserRole.VOLUNTEER ? assignedSchools : undefined
         })
@@ -970,79 +1048,165 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               </div>
 
               {/* Scope nodes triggers dynamically depending on role */}
-              {![UserRole.SCHOOL, UserRole.TEACHER, UserRole.VOLUNTEER].includes(coordRole) && (
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">State Code</label>
-                    <input
-                       type="text"
-                       value={coordState}
-                       onChange={e => setCoordState(e.target.value.toUpperCase())}
-                       placeholder="e.g. PB"
-                       required
-                       className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
-                     />
-                   </div>
-                   
-                   {coordRole !== UserRole.ADMIN && (
-                     <div>
-                       <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">District Code</label>
-                       <input
-                         type="text"
-                         value={coordDistrict}
-                         onChange={e => setCoordDistrict(e.target.value.toUpperCase())}
-                         placeholder="e.g. LDH"
-                         required
-                         className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
-                       />
-                     </div>
-                   )}
-
-                   {coordRole === UserRole.BLOCK_ADMIN && (
-                     <div>
-                       <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Block Code</label>
-                       <input
-                         type="text"
-                         value={coordBlock}
-                         onChange={e => setCoordBlock(e.target.value.toUpperCase())}
-                         placeholder="e.g. LDH-01"
-                         required
-                         className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200"
-                      />
-                    </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider">State Code / Name</label>
+                    {fetchStateCode(coordState).name && (
+                      <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchStateCode(coordState).code}</span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={coordState}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const res = fetchStateCode(val);
+                      if (res.code) {
+                        setCoordState(res.code);
+                        // If auto-detected from a district (e.g. Howrah), also set district code automatically!
+                        const distRes = fetchDistrictCode(val, coordState);
+                        if (distRes.code && !coordDistrict) {
+                          setCoordDistrict(distRes.code);
+                        }
+                      } else {
+                        setCoordState(val.toUpperCase());
+                      }
+                    }}
+                    onBlur={e => {
+                      const res = fetchStateCode(e.target.value);
+                      if (res.code) {
+                        setCoordState(res.code);
+                        const distRes = fetchDistrictCode(e.target.value, coordState);
+                        if (distRes.code && !coordDistrict) {
+                          setCoordDistrict(distRes.code);
+                        }
+                      }
+                    }}
+                    placeholder="e.g. Punjab, PB, Ludhiana..."
+                    required
+                    title="Type State Name (e.g. Punjab) or District Name (e.g. Ludhiana) or State Code (e.g. PB)"
+                    className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200 focus:border-indigo-500"
+                  />
+                  {fetchStateCode(coordState).name && (
+                    <span className="text-[10px] text-emerald-600 font-medium block mt-0.5">
+                      Fetched: {fetchStateCode(coordState).name} ({fetchStateCode(coordState).code})
+                      {fetchStateCode(coordState).detectedFromDistrict && ` · Auto-detected from ${fetchStateCode(coordState).detectedFromDistrict}`}
+                    </span>
                   )}
                 </div>
-              )}
+                
+                {![UserRole.ADMIN, UserRole.SCHOOL, UserRole.TEACHER, UserRole.VOLUNTEER].includes(coordRole) && (
+                  <div>
+                    <div className="flex justify-between items-center mb-0.5">
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider">District Code / Name</label>
+                      {fetchDistrictCode(coordDistrict, coordState).name && (
+                        <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchDistrictCode(coordDistrict, coordState).code}</span>
+                      )}
+                    </div>
+                    <DistrictAutocomplete
+                      value={coordDistrict}
+                      stateInput={coordState}
+                      onChange={(val, selectedItem) => {
+                        const targetVal = selectedItem ? selectedItem.code : val;
+                        const res = fetchDistrictCode(targetVal, coordState);
+                        if (res.code) {
+                          setCoordDistrict(res.code);
+                          if (res.stateCode && coordState !== res.stateCode) {
+                            setCoordState(res.stateCode);
+                          }
+                        } else {
+                          setCoordDistrict(targetVal.toUpperCase());
+                        }
+                      }}
+                      placeholder="e.g. Ludhiana, LDH, Amritsar..."
+                      required
+                      title="Type District Name (e.g. Ludhiana) or District Code (e.g. LDH)"
+                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200 focus:border-indigo-500"
+                    />
+                    {fetchDistrictCode(coordDistrict, coordState).name && (
+                      <span className="text-[10px] text-emerald-600 font-medium block mt-0.5">
+                        Fetched: {fetchDistrictCode(coordDistrict, coordState).name} ({fetchDistrictCode(coordDistrict, coordState).code})
+                        {fetchDistrictCode(coordDistrict, coordState).stateName && ` · State: ${fetchDistrictCode(coordDistrict, coordState).stateName} (${fetchDistrictCode(coordDistrict, coordState).stateCode})`}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {coordRole === UserRole.BLOCK_ADMIN && (
+                  <div>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <label className="block text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-wider">Block Code</label>
+                      {coordBlock.trim() && fetchBlockCode(coordBlock, coordDistrict, coordState).code && (
+                        <span className="text-[9px] text-emerald-600 font-bold font-sans">✓ {fetchBlockCode(coordBlock, coordDistrict, coordState).code}</span>
+                      )}
+                    </div>
+                    <BlockAutocomplete
+                      value={coordBlock}
+                      parentDistrict={coordDistrict}
+                      parentState={coordState}
+                      onChange={(val, selectedItem) => {
+                        const targetVal = selectedItem ? selectedItem.code : val.toUpperCase();
+                        setCoordBlock(targetVal);
+                        if (targetVal.trim()) {
+                          const res = fetchBlockCode(targetVal, coordDistrict, coordState);
+                          if (res.code && res.districtCode && res.isExplicitDistrict && (!coordDistrict || coordDistrict !== res.districtCode)) {
+                            setCoordDistrict(res.districtCode);
+                            if (res.stateCode && (!coordState || coordState !== res.stateCode)) {
+                              setCoordState(res.stateCode);
+                            }
+                          }
+                        }
+                      }}
+                      placeholder="e.g. 01, ASR-01..."
+                      required
+                      title="Type or select Block Code (e.g. 01 or ASR-01)"
+                      className="w-full text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-200 focus:border-indigo-500 font-mono"
+                    />
+                    {coordBlock.trim() && fetchBlockCode(coordBlock, coordDistrict, coordState).name && (
+                      <span className="text-[10px] text-emerald-600 font-medium block mt-0.5">
+                        Fetched: {fetchBlockCode(coordBlock, coordDistrict, coordState).name} ({fetchBlockCode(coordBlock, coordDistrict, coordState).code})
+                        {fetchBlockCode(coordBlock, coordDistrict, coordState).districtName && ` · District: ${fetchBlockCode(coordBlock, coordDistrict, coordState).districtName} (${fetchBlockCode(coordBlock, coordDistrict, coordState).districtCode})`}
+                        {fetchBlockCode(coordBlock, coordDistrict, coordState).stateName && ` · State: ${fetchBlockCode(coordBlock, coordDistrict, coordState).stateName} (${fetchBlockCode(coordBlock, coordDistrict, coordState).stateCode})`}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* School scope text input for School and Teacher roles */}
               {[UserRole.SCHOOL, UserRole.TEACHER].includes(coordRole) && (
                 <div>
-                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School ID</label>
-                   <input
-                     type="text"
-                     value={coordSchoolId}
-                     onChange={e => setCoordSchoolId(e.target.value)}
-                     placeholder="e.g. gps-vl-002"
-                     required
-                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
-                   />
-                 </div>
-               )}
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School ID</label>
+                  <input
+                    type="text"
+                    value={coordSchoolId}
+                    onChange={e => setCoordSchoolId(e.target.value.toLowerCase())}
+                    placeholder="e.g. gps-vl-002"
+                    required
+                    pattern="^[a-z]{2,5}-[a-z0-9]{1,5}-\d{3}$"
+                    title="School ID must be strictly formatted like gps-vl-002 (3-part format ending in 3 digits, e.g. gps-vl-002)"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+              )}
 
-               {/* Comma-separated school IDs for Volunteers */}
-               {coordRole === UserRole.VOLUNTEER && (
-                 <div>
-                   <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School IDs (Comma Separated)</label>
-                   <input
-                     type="text"
-                     value={coordAssignedSchoolsStr}
-                     onChange={e => setCoordAssignedSchoolsStr(e.target.value)}
-                     placeholder="e.g. gps-vl-002, gps-jai-004"
-                     required
-                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
-                   />
-                 </div>
-               )}
+              {/* Comma-separated school IDs for Volunteers */}
+              {coordRole === UserRole.VOLUNTEER && (
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Assigned School IDs (Comma Separated)</label>
+                  <input
+                    type="text"
+                    value={coordAssignedSchoolsStr}
+                    onChange={e => setCoordAssignedSchoolsStr(e.target.value.toLowerCase())}
+                    placeholder="e.g. gps-vl-002, gps-jai-004"
+                    required
+                    pattern="^([a-z]{2,5}-[a-z0-9]{1,5}-\d{3})(,\s*[a-z]{2,5}-[a-z0-9]{1,5}-\d{3})*$"
+                    title="School IDs must be comma-separated in 3-part format ending in 3 digits (e.g. gps-vl-002, gps-jai-004)"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"
