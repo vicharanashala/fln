@@ -7,6 +7,7 @@ import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import { evaluateAIDiagnostic } from '../gemini';
 import { AI_SERVICES_DIR, PYTHON_BIN } from '../config';
+import { runCertificationEligibility } from '../certificationRecords';
 
 export function registerStudentRoutes(app: express.Express) {
   // Students
@@ -544,6 +545,9 @@ export function registerStudentRoutes(app: express.Express) {
     };
 
     await dbStore.addEvaluationReport(report);
+
+    // Fire-and-forget: re-evaluate certification eligibility.
+    runCertificationEligibility(student);
 
     await dbStore.addLog({
       id: 'log_' + Date.now(),

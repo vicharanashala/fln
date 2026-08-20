@@ -36,6 +36,7 @@ import { registerWorksheetRoutes } from './routes/worksheets';
 import { registerEvaluationRoutes } from './routes/evaluation';
 import { registerAnalyticsRoutes } from './routes/analytics';
 import { registerDiagnosticBulkRoutes } from './routes/diagnosticBulk';
+import { registerCertificationRoutes } from './routes/certification';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
@@ -106,6 +107,7 @@ registerStatsRoutes(app);
   registerWorksheetRoutes(app);
   registerAnalyticsRoutes(app);
   registerDiagnosticBulkRoutes(app);
+  registerCertificationRoutes(app);
 
   // --- Intervention Tracking & Best Practices Repository ---
 

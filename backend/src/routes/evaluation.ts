@@ -6,6 +6,7 @@ import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_N
 import { getAuthUser } from '../auth';
 import { evaluateAIWorksheet } from '../gemini';
 import { PYTHON_BIN, AI_SERVICES_DIR } from '../config';
+import { runCertificationEligibility } from '../certificationRecords';
 
 export function registerEvaluationRoutes(app: express.Express) {
   // ICR Blue-Pen Filter Stage (standalone — runs only the cv2 blue-pen
@@ -451,6 +452,9 @@ export function registerEvaluationRoutes(app: express.Express) {
         };
 
         await dbStore.addEvaluationReport(report);
+
+        // Fire-and-forget: re-evaluate certification eligibility.
+        runCertificationEligibility(student);
 
         results.push({
           studentId: student.id,
@@ -1139,6 +1143,9 @@ export function registerEvaluationRoutes(app: express.Express) {
     };
 
     await dbStore.addEvaluationReport(report);
+
+    // Fire-and-forget: re-evaluate certification eligibility.
+    runCertificationEligibility(student);
 
     // If correct, update student levels
     const levelHistory = [...student.levelHistory];

@@ -6,6 +6,7 @@ import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
 import { FLN_LEVELS_LIST } from './RoleDashboards';
+import { CertificationReviewPanel } from './CertificationReviewPanel';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -1639,6 +1640,19 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
           ))}</div>
           <button className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mt-2"><RefreshCw className="w-3 h-3" /> Refresh Status</button>
         </div>
+      </div>
+    );
+  }
+
+  if (panel === 'certification_reviews') {
+    return (
+      <div className="space-y-4 animate-fade-in" id="certification-reviews-panel">
+        <PageHeader
+          title="Certification Reviews"
+          desc="Review student certifications flagged for admin attention. Decisions are audit-logged."
+          icon={<Award className="h-5 w-5" />}
+        />
+        <CertificationReviewPanel currentUser={currentUser} token={token} />
       </div>
     );
   }
