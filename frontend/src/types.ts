@@ -93,6 +93,7 @@ export interface Worksheet {
   cycle: 'Baseline' | 'Mid-year' | 'End-of-year';
   date: string;
   questions: Question[];
+  studentIds?: string[];
   locks: {
     locked: boolean;
     lockedByRole: UserRole | null;

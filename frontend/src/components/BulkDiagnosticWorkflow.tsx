@@ -1,4 +1,4 @@
-import { apiFetch } from '../services/apiClient';
+import { apiFetch, withBase } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { UserRole } from '../types';
 import { FileText, Download, Clock, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
@@ -278,7 +278,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
           {job.status === 'completed' && (
             <div className="flex flex-wrap items-center gap-3">
               <a
-                href={job.pdfUrl || job.downloadUrl || '#'}
+                href={job.pdfUrl ? withBase(job.pdfUrl) : job.downloadUrl ? withBase(job.downloadUrl) : '#'}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm py-3 px-6 rounded-xl transition-all shadow-sm cursor-pointer"

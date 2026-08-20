@@ -1,7 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
-import { dbStore, UserRole, Question } from '../db';
+import { dbStore, UserRole, Question, Worksheet } from '../db';
 import { getAuthUser } from '../auth';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
@@ -155,6 +155,46 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
             }
           }
         }
+
+        // Persist a real Worksheet record so this generation shows up as
+        // "Pending" on the teacher's Worksheets page until evaluation
+        // reports come in — previously this bulk-generation job only lived
+        // in the in-memory `bulkJobs` map, invisible to that page entirely.
+        // Scope by the requesting user's own school first — className alone
+        // matches nationally (e.g. every "Class 2" in every school), which
+        // would attach this worksheet to a same-named class in a different
+        // school entirely.
+        const matchedClass = classes.find(c => c.className === `Class ${classNumber}` && c.schoolId === user.schoolId)
+          || classes.find(c => c.className === `Class ${classNumber}`);
+        const nowIso = new Date().toISOString();
+        const thirtyDaysOut = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const realStudentIds = paperStudents
+          .map(s => s.studentId)
+          .filter(id => id && !id.startsWith('PLACEHOLDER_'));
+        const worksheet: Worksheet = {
+          id: 'ws_' + randomUUID(),
+          classId: matchedClass?.id || `class_${classNumber}`,
+          className: `Class ${classNumber}`,
+          section: matchedClass?.section || 'A',
+          schoolId: user.schoolId || matchedClass?.schoolId || '',
+          generatedByRole: user.role,
+          generatedByEmail: user.email,
+          cycle: 'Baseline',
+          date: nowIso,
+          questions: [],
+          studentIds: realStudentIds,
+          locks: { locked: false, lockedByRole: null, lockedByEmail: null, timestamp: null },
+          timing: {
+            examDate: nowIso.slice(0, 10),
+            printWindowStart: nowIso,
+            printWindowEnd: thirtyDaysOut,
+            examWindowStart: nowIso,
+            examWindowEnd: thirtyDaysOut,
+            submissionWindowEnd: thirtyDaysOut,
+          },
+          delayLogs: { delayedAttemptsCount: 0, submittingTeachers: [] },
+        };
+        await dbStore.addWorksheet(worksheet);
 
         await dbStore.addLog({
           id: 'log_' + Date.now(),

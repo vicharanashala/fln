@@ -1,6 +1,6 @@
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, Student, ClassGroup, School, EvaluationReport, LogEntry, Ticket } from '../types';
+import { User, UserRole, Student, ClassGroup, School, EvaluationReport, Worksheet, LogEntry, Ticket } from '../types';
 import { Users, ShieldAlert, BookOpen, Calendar, ArrowRight, CheckCircle2, XCircle, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, ClipboardList, Building2, GraduationCap, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
@@ -82,15 +82,6 @@ const DIAGNOSTIC_HISTORY = [
   { id: 'dh5', student: 'Jasmine Kaur', date: '2026-02-20', score: 5, total: 10, placedLevel: 8, evaluator: 'Amit Kumar' },
 ];
 
-const WORKSHEETS_MOCK = [
-  { id: 'ws1', cycle: 'Baseline', class: 'Class 2-A', date: '2026-01-10', questions: 10, status: 'Evaluated', avgScore: '78%' },
-  { id: 'ws2', cycle: 'Mid-year', class: 'Class 2-A', date: '2026-02-20', questions: 10, status: 'Evaluated', avgScore: '65%' },
-  { id: 'ws3', cycle: 'Baseline', class: 'Class 3-A', date: '2026-01-10', questions: 10, status: 'Evaluated', avgScore: '85%' },
-  { id: 'ws4', cycle: 'Mid-year', class: 'Class 3-A', date: '2026-03-01', questions: 10, status: 'Evaluated', avgScore: '72%' },
-  { id: 'ws5', cycle: 'End-of-year', class: 'Class 2-A', date: '2026-05-15', questions: 12, status: 'Pending', avgScore: '-' },
-  { id: 'ws6', cycle: 'End-of-year', class: 'Class 3-A', date: '2026-05-20', questions: 12, status: 'Pending', avgScore: '-' },
-];
-
 const CONTENT_ITEMS = [
   { id: 'c1', title: 'Number Line 1-10', type: 'Visual Aid', level: 'L1-L4', language: 'English, Punjabi', status: 'Approved' },
   { id: 'c2', title: 'Addition with Objects', type: 'Lesson Plan', level: 'L7-L12', language: 'English, Hindi', status: 'Approved' },
@@ -153,6 +144,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const [apiSchools, setApiSchools] = useState<School[]>([]);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
   const [apiReports, setApiReports] = useState<EvaluationReport[]>([]);
+  const [apiWorksheets, setApiWorksheets] = useState<Worksheet[]>([]);
   const [apiTeachers, setApiTeachers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -160,6 +152,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => {});
     apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => {});
     apiFetch('/api/evaluation/reports', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiReports(d); }).catch(() => {});
+    apiFetch('/api/worksheets', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiWorksheets(d); }).catch(() => {});
     if (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN) {
       apiFetch('/api/teachers', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiTeachers(d); }).catch(() => {});
     }
@@ -184,6 +177,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   // which rendered as a literal "Unknown" name - showing an empty list on
   // fetch failure is honest, a mismatched fake report is not.
   const reportsList: EvaluationReport[] = apiReports;
+  const worksheetsList: Worksheet[] = apiWorksheets;
   const teachersList = apiTeachers.length > 0 ? apiTeachers : TEACHERS_MOCK;
 
   // Real per-district / per-block rollups, derived from the already-fetched
@@ -956,21 +950,64 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   }
 
   if (panel === 'worksheets') {
+    // Real data: each row is a real Worksheet generation record (created
+    // when a teacher runs the Bulk Diagnostic Generator — see
+    // backend/src/routes/diagnosticBulk.ts), not the old WORKSHEETS_MOCK
+    // fixture (which never made an API call at all). A worksheet is
+    // "Pending" until a matching EvaluationReport.worksheetId shows up for
+    // each of its studentIds — a paper takes hours (print, exam, scan)
+    // between generation and results, so this reflects real turnaround
+    // time instead of only ever showing "Evaluated" or nothing at all.
+    const reportsByWorksheet = new Map<string, EvaluationReport[]>();
+    reportsList.forEach(r => {
+      if (!r.worksheetId) return;
+      if (!reportsByWorksheet.has(r.worksheetId)) reportsByWorksheet.set(r.worksheetId, []);
+      reportsByWorksheet.get(r.worksheetId)!.push(r);
+    });
+    const rows = worksheetsList.map(w => {
+      const total = w.studentIds?.length ?? 0;
+      const evaluated = reportsByWorksheet.get(w.id) ?? [];
+      const evaluatedStudentIds = new Set(evaluated.map(r => r.studentId));
+      const evaluatedCount = evaluatedStudentIds.size;
+      const pendingCount = Math.max(0, total - evaluatedCount);
+      const status: 'Evaluated' | 'Partial' | 'Pending' =
+        pendingCount === 0 && total > 0 ? 'Evaluated' : evaluatedCount > 0 ? 'Partial' : 'Pending';
+      const avgPct = evaluated.length > 0
+        ? Math.round(evaluated.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / evaluated.length)
+        : null;
+      return { worksheet: w, total, evaluatedCount, pendingCount, status, avgPct };
+    }).sort((a, b) => new Date(b.worksheet.date).getTime() - new Date(a.worksheet.date).getTime());
+
+    const totalWorksheets = rows.length;
+    const evaluatedCount = rows.filter(r => r.status === 'Evaluated').length;
+    const pendingCount = rows.filter(r => r.status !== 'Evaluated').length;
+
+    const statusStyle: Record<string, string> = {
+      Evaluated: 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800',
+      Partial: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800',
+      Pending: 'text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700',
+    };
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard title="Total Worksheets" value={WORKSHEETS_MOCK.length} subtext="Across all cycles" icon={ClipboardList} />
-          <MetricCard title="Evaluated" value={WORKSHEETS_MOCK.filter(w => w.status === 'Evaluated').length} subtext="Graded and scored" icon={CheckCircle2} />
-          <MetricCard title="Pending" value={WORKSHEETS_MOCK.filter(w => w.status === 'Pending').length} subtext="Awaiting evaluation" icon={FileText} />
+          <MetricCard title="Total Worksheets" value={totalWorksheets} subtext="Across all cycles" icon={ClipboardList} />
+          <MetricCard title="Evaluated" value={evaluatedCount} subtext="All students graded" icon={CheckCircle2} />
+          <MetricCard title="Pending" value={pendingCount} subtext="Awaiting scan/evaluation" icon={FileText} />
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <PageHeader title="Worksheet Cycles" desc="Baseline, Mid-year, and End-of-year assessments" />
-          <div className="space-y-3 mt-4">{WORKSHEETS_MOCK.map(w => (
-            <div key={w.id} className="flex justify-between items-center p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
-              <div><div className="font-semibold text-sm">{w.cycle} — {w.class}</div><div className="text-xs text-slate-400 dark:text-slate-500">{w.date} · {w.questions} questions</div></div>
-              <div className="text-right"><span className={`text-xs font-mono font-bold px-2 py-1 rounded ${w.status === 'Evaluated' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{w.status}</span><div className="text-xs text-slate-400 dark:text-slate-500 mt-1">Avg: {w.avgScore}</div></div>
-            </div>
-          ))}</div>
+          <div className="space-y-3 mt-4">
+            {rows.length === 0 && (
+              <div className="text-sm text-slate-400 dark:text-slate-500 py-4 text-center">No worksheets generated yet.</div>
+            )}
+            {rows.map(({ worksheet: w, total, evaluatedCount: ec, status, avgPct }) => (
+              <div key={w.id} className="flex justify-between items-center p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+                <div><div className="font-semibold text-sm">{w.cycle} — {w.className}{w.section ? ` ${w.section}` : ''}</div><div className="text-xs text-slate-400 dark:text-slate-500">{new Date(w.date).toLocaleDateString()} · {ec}/{total} evaluated</div></div>
+                <div className="text-right"><span className={`text-xs font-mono font-bold px-2 py-1 rounded ${statusStyle[status]}`}>{status}</span><div className="text-xs text-slate-400 dark:text-slate-500 mt-1">Avg: {avgPct !== null ? `${avgPct}%` : '—'}</div></div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

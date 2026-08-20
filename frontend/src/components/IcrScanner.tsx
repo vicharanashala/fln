@@ -337,6 +337,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     answers?: Record<string, { value: string; confidence: number; blue_pixels: number }>;
     debug?: { image_size?: [number, number]; blue_pixel_ratio?: number };
     processingTimeMs?: number;
+    ocrAnalysis?: { ocrEngine?: string };
   }) => {
     console.log('[OCR Result] received from two-stage scan:', data);
     if (!data.success || !data.answers) {
@@ -403,6 +404,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     const matched = ocrValues.filter(v => v && v.trim()).length;
     const total = loadedQuestions.length;
     const pct = Math.round((matched / Math.max(1, total)) * 100);
+    // Use whichever engine/provider actually produced this result (set by
+    // IcrTwoStageScan — 'EasyOCR (PyTorch Fast Reader)' for the local path,
+    // 'Cloud OCR (<model>)' for the cloud path) instead of assuming local.
+    const actualEngine = data.ocrAnalysis?.ocrEngine || 'EasyOCR (PyTorch Fast Reader)';
 
     const firstRes = {
       studentId: selectedStudentId || 'SCAN',
@@ -415,7 +420,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
       newLevel: 1,
       subLevel: 0,
       extractedAnswers: extracted,
-      ocrEngine: 'EasyOCR (PyTorch Fast Reader)',
+      ocrEngine: actualEngine,
       ocrAnalysis: {
         rawOcrText: Object.entries(answers).map(([k, v]) => `${k}: ${v.value}`).join(' | '),
         extractedTokens: Object.entries(answers).map(([k, v]) => ({
@@ -423,7 +428,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
           confidence: v.confidence,
         })),
         processingTimeMs: data.processingTimeMs ?? 0,
-        ocrEngine: 'EasyOCR (PyTorch Fast Reader)',
+        ocrEngine: actualEngine,
       },
       status: 'completed',
     };
@@ -772,8 +777,12 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                   </svg>
                 </div>
                 <div>
-                  <h4 className="text-sm font-display font-semibold text-zinc-900">EasyOCR Scan Complete</h4>
-                  <p className="text-xs text-zinc-500">Sub-second PyTorch character extraction</p>
+                  <h4 className="text-sm font-display font-semibold text-zinc-900">
+                    {ocrPreviewData?.ocrEngine?.startsWith('Cloud OCR') ? 'Cloud Scan Complete' : 'EasyOCR Scan Complete'}
+                  </h4>
+                  <p className="text-xs text-zinc-500">
+                    {ocrPreviewData?.ocrEngine || 'Sub-second PyTorch character extraction'}
+                  </p>
                 </div>
               </div>
               <p className="text-xs text-zinc-600 leading-relaxed bg-white/60 p-3 rounded-lg border border-emerald-100">

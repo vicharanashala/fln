@@ -124,6 +124,39 @@ async function generateLevelWorksheetsViaLevelsBackend(
 }
 
 export function registerWorksheetRoutes(app: express.Express) {
+  // List worksheets (class-level generation records), scoped by role the
+  // same way /api/evaluation/reports is. Used by the frontend's Worksheets
+  // page to compute real Pending vs Evaluated counts, instead of the old
+  // hardcoded WORKSHEETS_MOCK fixture.
+  app.get('/api/worksheets', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const worksheets = await dbStore.getWorksheets();
+
+    if (user.role === UserRole.SUPERADMIN) {
+      return res.json(worksheets);
+    }
+    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+      return res.json(worksheets.filter(w => w.schoolId === user.schoolId));
+    }
+    if (user.role === UserRole.VOLUNTEER) {
+      return res.json(worksheets.filter(w => user.assignedSchools?.includes(w.schoolId)));
+    }
+    if (user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
+      const schools = await dbStore.getSchools();
+      const schoolById = new Map(schools.map(sc => [sc.id, sc]));
+      return res.json(worksheets.filter(w => {
+        const school = schoolById.get(w.schoolId);
+        if (!school) return false;
+        if (user.role === UserRole.ADMIN) return school.stateCode === user.stateCode;
+        if (user.role === UserRole.DISTRICT_ADMIN) return school.districtCode === user.districtCode;
+        return school.blockCode === user.blockCode; // BLOCK_ADMIN
+      }));
+    }
+    return res.json(worksheets);
+  });
+
   app.post('/api/worksheets/generate', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });

@@ -228,6 +228,11 @@ export interface Worksheet {
   cycle: CycleName;
   date: string;
   questions: Question[];
+  // Which students this worksheet was actually generated for — needed to
+  // compute how many are still pending evaluation (studentIds.length minus
+  // the number with a matching EvaluationReport.worksheetId). Optional so
+  // older/other worksheet-creation paths that don't set it still validate.
+  studentIds?: string[];
   locks: {
     locked: boolean;
     lockedByRole: UserRole | null;

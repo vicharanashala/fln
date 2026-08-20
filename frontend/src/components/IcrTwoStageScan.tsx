@@ -454,24 +454,31 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
         );
         return;
       }
-      const imageToSend = filteredImageDataUrl
-        ? await Promise.resolve(filteredImageDataUrl)
-        : await fileToDataUrl(uploadedFile);
       setOcrState('running');
       setCloudError(null);
       const t0 = performance.now();
       try {
-        // Send only {imageDataUrl, provider} — NO apiKey from the frontend.
+        // Prefer the pages[] shape (same as the local OCR path) so the
+        // backend runs Cloud OCR on every filtered page, not just the
+        // first — a multi-page scan (e.g. several students' sheets in one
+        // PDF) shouldn't silently drop pages 2+. Falls back to a single
+        // imageDataUrl if the user skipped the filter stage.
+        // NO apiKey is ever sent from the frontend.
+        const body: Record<string, unknown> = { provider: cloudProvider };
+        if (filteredPages.length > 0) {
+          body.pages = filteredPages.map((p) => ({ pageNumber: p.pageNumber, imageDataUrl: p.imageDataUrl }));
+        } else {
+          body.imageDataUrl = filteredImageDataUrl
+            ? filteredImageDataUrl
+            : await fileToDataUrl(uploadedFile);
+        }
         const res = await apiFetch('/api/icr/evaluate-cloud', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            imageDataUrl: imageToSend,
-            provider: cloudProvider,
-          }),
+          body: JSON.stringify(body),
         });
         const clientMs = Math.round(performance.now() - t0);
         const data = await res.json();
@@ -493,8 +500,12 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
         }
         // Prefer the structured `studentResponses` from Ollama's JSON-output mode
         // (question_number → response, with status: answered|blank|unclear).
-        // Fall back to the legacy `extractedTokens` (whitespace-split) when
-        // the model returned prose or the JSON parse failed.
+        // Next, prefer the backend's already-parsed `answers` array (present
+        // whenever `structured: true` — see /api/icr/evaluate-cloud) — this
+        // is the model's real per-question answers, not raw OCR text.
+        // Only fall back to `extractedTokens` (the raw token stream, which
+        // can include JSON punctuation from the model's own response text)
+        // when neither structured shape is available.
         const answers: Record<string, { value: string; confidence: number; blue_pixels: number }> = {};
         if (data.studentResponses && Array.isArray(data.studentResponses)) {
           for (const r of data.studentResponses) {
@@ -511,6 +522,14 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
               blue_pixels: 0,
             };
           }
+        } else if (data.answers && Array.isArray(data.answers) && data.answers.length > 0) {
+          data.answers.forEach((v: any, i: number) => {
+            answers[`q_${i + 1}`] = {
+              value: String(v ?? ''),
+              confidence: 0.8,
+              blue_pixels: 0,
+            };
+          });
         } else if (data.extractedTokens && data.extractedTokens.length > 0) {
           data.extractedTokens.forEach((t: any, i: number) => {
             const v = String(t?.text ?? '').trim();
@@ -536,7 +555,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
                       bbox: t.bbox,
                     })),
                     processingTimeMs: data.processingTimeMs ?? clientMs,
-                    ocrEngine: data.ocrEngine || 'Cloud OCR',
+                    ocrEngine: data.ocrEngine || (data.model ? `Cloud OCR (${data.model})` : `Cloud OCR (${cloudProvider})`),
                   },
                   processingTimeMs: data.processingTimeMs ?? clientMs,
                 };
