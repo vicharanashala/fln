@@ -5,7 +5,7 @@ import { Users, ShieldAlert, BookOpen, Calendar, ArrowRight, CheckCircle2, XCirc
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
-import { FLN_LEVELS_LIST } from './RoleDashboards';
+import { FLN_LEVELS_LIST, isCertified } from './RoleDashboards';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -187,7 +187,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
     return codes.map(code => {
       const distSchools = stateSchools.filter(s => s.districtCode === code);
       const distStudents = students.filter(st => distSchools.some(s => s.id === st.schoolId));
-      const certified = distStudents.filter(st => st.currentLevel >= 5).length;
+      const certified = distStudents.filter(st => isCertified(st.classGroup, st.currentLevel)).length;
       return {
         code,
         name: DISTRICT_NAMES[code] || code,
@@ -205,7 +205,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
     return codes.map(code => {
       const blockSchools = distSchools.filter(s => s.blockCode === code);
       const blockStudents = students.filter(st => blockSchools.some(s => s.id === st.schoolId));
-      const certified = blockStudents.filter(st => st.currentLevel >= 5).length;
+      const certified = blockStudents.filter(st => isCertified(st.classGroup, st.currentLevel)).length;
       return {
         code,
         name: BLOCK_NAMES[code] || code,
@@ -1020,7 +1020,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <MetricCard title="Total Students" value={students.length} subtext="Active roster" icon={Users} />
           <MetricCard title="Avg Level" value={`L${Math.round(students.reduce((a, s) => a + s.currentLevel, 0) / students.length)}`} subtext="Class average" icon={BarChart3} />
-          <MetricCard title="Certified" value={`${students.filter(s => s.currentLevel >= 5).length}`} subtext="Level 5+ achieved" icon={Award} />
+          <MetricCard title="Certified" value={`${students.filter(s => isCertified(s.classGroup, s.currentLevel)).length}`} subtext="Grade-level FLN ceiling reached" icon={Award} />
           <MetricCard title="Pending Diagnostic" value={students.filter(s => s.levelHistory.length === 0).length} subtext="Need placement" icon={ShieldAlert} />
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
@@ -1321,7 +1321,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                 </div>
                 <div className="grid grid-cols-1 gap-4">{distSchools.map(sch => {
                   const schStudents = students.filter(st => st.schoolId === sch.id);
-                  const certified = schStudents.filter(st => st.currentLevel >= 5).length;
+                  const certified = schStudents.filter(st => isCertified(st.classGroup, st.currentLevel)).length;
                   const avgLevel = schStudents.length > 0 ? Math.round(schStudents.reduce((a, st) => a + st.currentLevel, 0) / schStudents.length) : 0;
                   return (
                     <div key={sch.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-slate-400 dark:hover:border-slate-600 transition-all">
@@ -1592,7 +1592,7 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
           <MetricCard title="Total Schools" value={schools.length} subtext="All facilities" icon={SchoolIcon} />
           <MetricCard title="Total Students" value={students.length} subtext="Active roster" icon={Users} />
           <MetricCard title="Avg FLN Level" value={students.length > 0 ? `L${Math.round(students.reduce((a, s) => a + s.currentLevel, 0) / students.length)}` : 'L0'} subtext="System average" icon={BarChart3} />
-          <MetricCard title="Certification Rate" value={students.length > 0 ? `${Math.round(students.filter(s => s.currentLevel >= 5).length / students.length * 100)}%` : '0%'} subtext="Level 5+ benchmark" icon={Award} />
+          <MetricCard title="Certification Rate" value={students.length > 0 ? `${Math.round(students.filter(s => isCertified(s.classGroup, s.currentLevel)).length / students.length * 100)}%` : '0%'} subtext="Grade-level FLN ceiling reached" icon={Award} />
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
           <PageHeader title={title} desc={desc} icon={<BarChart3 className="h-5 w-5" />} />

@@ -1,6 +1,7 @@
 import express from 'express';
 import { dbStore, UserRole } from '../db';
 import { getAuthUser } from '../auth';
+import { isCertified } from '../certification';
 
 export function registerAnalyticsRoutes(app: express.Express) {
   app.get('/api/analytics', async (req, res) => {
@@ -50,7 +51,7 @@ export function registerAnalyticsRoutes(app: express.Express) {
       }
       const sumLevel = filteredStudents.reduce((acc, s) => acc + s.currentLevel, 0);
       const avgLevel = Math.round((sumLevel / count) * 10) / 10;
-      const certified = filteredStudents.filter(s => s.currentLevel >= 5).length;
+      const certified = filteredStudents.filter(s => isCertified(s.classGroup, s.currentLevel)).length;
       const certificationRate = Math.round((certified / count) * 100);
 
       // Create stable topic mastery values that reflect the current average level
@@ -88,7 +89,7 @@ export function registerAnalyticsRoutes(app: express.Express) {
     const totalStudents = students.length;
     const totalSchools = schools.length;
     const totalWorksheets = worksheets.length;
-    const certifiedCount = students.filter(s => s.currentLevel >= 5).length;
+    const certifiedCount = students.filter(s => isCertified(s.classGroup, s.currentLevel)).length;
     const certificationPercent = totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0;
 
     const pipeline = {

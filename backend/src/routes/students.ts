@@ -7,6 +7,7 @@ import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import { evaluateAIDiagnostic } from '../gemini';
 import { AI_SERVICES_DIR, PYTHON_BIN } from '../config';
+import { getDistanceToCertification } from '../certification';
 
 export function registerStudentRoutes(app: express.Express) {
   // Students
@@ -42,12 +43,15 @@ export function registerStudentRoutes(app: express.Express) {
       ? students.filter(s => user.assignedSchools?.includes(s.schoolId))
       : students;
 
-    // Mask Aadhar for non-Superadmins (§13.2 R-6)
+    // Mask Aadhar for non-Superadmins (§13.2 R-6); attach how many levels remain
+    // to certification for the student's current grade (null if classGroup isn't
+    // a recognized enrolled grade).
     const masked = filtered.map(s => {
+      const withDistance = { ...s, certificationDistance: getDistanceToCertification(s.classGroup, s.currentLevel) };
       if (user.role !== UserRole.SUPERADMIN) {
-        return { ...s, aadharMasked: 'XXXX-XXXX-' + String(s.aadharMasked || '').slice(-4) };
+        return { ...withDistance, aadharMasked: 'XXXX-XXXX-' + String(s.aadharMasked || '').slice(-4) };
       }
-      return s;
+      return withDistance;
     });
 
     // total count (for client-side pagination headers)

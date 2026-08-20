@@ -1,5 +1,17 @@
 import express from 'express';
 import { dbStore } from '../db';
+import { CLASS_CERTIFICATION_LEVEL } from '../certification';
+
+// A student is certified once currentLevel reaches their grade's ceiling in
+// the 93-level framework — not a flat "level 5" for every grade. Class 2's
+// ceiling (61) is much higher than Class 4's remaining distance would suggest
+// if measured on a flat scale, since each grade covers a different level range.
+const CERTIFIED_MATCH = {
+  $or: Object.entries(CLASS_CERTIFICATION_LEVEL).map(([classGroup, ceiling]) => ({
+    classGroup,
+    currentLevel: { $gte: ceiling },
+  })),
+};
 
 export function registerStatsRoutes(app: express.Express) {
   // DB connection status (used by the header status indicator).
@@ -25,7 +37,7 @@ export function registerStatsRoutes(app: express.Express) {
       db.collection('schools').distinct('stateCode'),
       db.collection('schools').distinct('districtCode'),
       db.collection('students').aggregate([{ $group: { _id: null, avg: { $avg: '$currentLevel' } } }]).toArray(),
-      db.collection('students').aggregate([{ $match: { currentLevel: { $gte: 5 } } }, { $count: 'count' }]).toArray(),
+      db.collection('students').aggregate([{ $match: CERTIFIED_MATCH }, { $count: 'count' }]).toArray(),
     ]);
 
     const certifiedCount = certifiedResult[0]?.count ?? 0;
