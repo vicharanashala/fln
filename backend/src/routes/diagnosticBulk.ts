@@ -147,6 +147,7 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
               questionPaperJson: keyItem.questionPaperJson,
               questions: studentQuestions,
               answerKey: keyItem.answerKey || [],
+              answerRegions: keyItem.answerRegions || [],
               createdAt: new Date().toISOString()
             });
 
@@ -346,10 +347,19 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
             }
           }]
         });
-        questions = result.questions;
-        pdfUrl = `/output/${result.fileName}`;
-        if (Array.isArray(result.answerKeyData) && result.answerKeyData.length > 0) {
-          const keyItem = result.answerKeyData[0];
+        pdfUrl = `/output/${result.pdfFileName || result.fileName}`;
+        const singleKey = Array.isArray(result.answerKeyData) ? result.answerKeyData[0] : undefined;
+        // The paper is rendered per student, and `answerKeyData[].questions` is
+        // the set that was actually printed — the same numbering the answer
+        // regions are keyed by. `result.questions` is the generator's own list
+        // and can differ; storing it leaves the regions pointing at question
+        // ids the grader never looks up, so a scan reads every box and matches
+        // none of them. The bulk path already prefers the per-student set.
+        questions = (singleKey?.questions && singleKey.questions.length > 0)
+          ? singleKey.questions as Question[]
+          : result.questions;
+        if (singleKey) {
+          const keyItem = singleKey;
           await dbStore.addDiagnosticAnswerKey({
             id: 'dak_' + randomUUID(),
             jobId: 'single_' + student.id,
@@ -360,9 +370,20 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
             masterJson: keyItem.masterJson,
             coords: keyItem.coords,
             questionPaperJson: keyItem.questionPaperJson,
-            questions: result.questions,
+            questions,
+            answerKey: keyItem.answerKey || [],
+            answerRegions: keyItem.answerRegions || [],
             createdAt: new Date().toISOString()
           });
+          // Point the student at the paper that was just printed for them.
+          //
+          // Grading resolves questions through students.assignedDiagnosticQuestions
+          // (db.ts tier 2) whenever no jobId is supplied — which is the case for
+          // every scan upload. Without this the student keeps whatever paper was
+          // assigned before, the stored answer regions key off the new paper's
+          // question ids, the two share no ids at all, and a perfectly legible
+          // scan yields zero answers. The bulk path has always done this.
+          await dbStore.assignDiagnosticPaperToStudent(student.id, questions);
         }
       } catch (err: any) {
         console.error("Puppeteer paper generation failed, using generateQuestionsForLevel mock:", err);

@@ -4,7 +4,8 @@ import { apiFetch } from '../services/apiClient';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home
+  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home,
+  Fingerprint
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -146,6 +147,7 @@ export const Layout: React.FC<LayoutProps> = ({
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
+        list.push({ name: 'Misconceptions', view: 'misconceptions', icon: Fingerprint });
         list.push({ name: 'Reports', view: 'reports', icon: FileText });
         break;
 

@@ -35,6 +35,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkError, setBulkError] = useState('');
 
+  // Single-paper generation state. The bulk job covers the whole class, which
+  // is the wrong unit when you only want one paper to print and check by hand.
+  const [singleStudentId, setSingleStudentId] = useState('');
+  const [singleLoading, setSingleLoading] = useState(false);
+  const [singleError, setSingleError] = useState('');
+  const [singleResult, setSingleResult] = useState<{ studentName: string; pdfUrl: string; mockMode: boolean } | null>(null);
+
   // Level-wise bulk generation state
   const [levelBulkProgress, setLevelBulkProgress] = useState<{ total: number; completed: number; errors: string[] } | null>(null);
   const [levelBulkLoading, setLevelBulkLoading] = useState(false);
@@ -407,6 +414,96 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
                   )}
                 </button>
               ) : null}
+            </div>
+
+            {/* One paper for one student. Same generator as the bulk job, so the
+                answer regions the scanner reads back are stored either way. */}
+            <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Single student</label>
+                  <select
+                    value={singleStudentId}
+                    onChange={e => { setSingleStudentId(e.target.value); setSingleResult(null); setSingleError(''); }}
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
+                  >
+                    <option value="">Select a student...</option>
+                    {classStudents.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const target = classStudents.find(s => s.id === singleStudentId);
+                    if (!target || !activeClass) return;
+                    setSingleLoading(true);
+                    setSingleError('');
+                    setSingleResult(null);
+                    try {
+                      const res = await apiFetch('/api/diagnostic/single', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ studentId: target.id, className: activeClass.className })
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        setSingleResult({
+                          studentName: data.student?.name || target.name,
+                          pdfUrl: data.diagnosticPaper?.pdfUrl || '',
+                          mockMode: !!data.mockMode
+                        });
+                      } else {
+                        setSingleError(data.error || 'Failed to generate the paper.');
+                      }
+                    } catch {
+                      setSingleError('Network error generating the paper.');
+                    } finally {
+                      setSingleLoading(false);
+                    }
+                  }}
+                  disabled={!singleStudentId || singleLoading}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs font-mono px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed sm:self-end"
+                >
+                  {singleLoading ? (
+                    <><span className="animate-spin text-sm">&#8987;</span> Generating...</>
+                  ) : (
+                    <>Generate 1 Paper</>
+                  )}
+                </button>
+              </div>
+
+              {singleResult && singleResult.pdfUrl && (
+                <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg space-y-3">
+                  <span className="block text-green-700 dark:text-green-300 font-bold text-sm">&#9989; Diagnostic paper ready for {singleResult.studentName}</span>
+                  <a
+                    href={singleResult.pdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-mono font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer shadow-sm"
+                  >
+                    &#128424; Print / Open PDF (1 Paper)
+                  </a>
+                </div>
+              )}
+
+              {/* The generator falls back to a question list when Puppeteer fails.
+                  There is no PDF and no answer regions in that case, so the sheet
+                  cannot be printed or scanned back in — say so rather than
+                  showing a success state with a dead link. */}
+              {singleResult && !singleResult.pdfUrl && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+                  &#9888; Questions were generated for {singleResult.studentName}, but PDF rendering failed, so there is no printable paper and no answer regions were stored. Check the backend log for the Puppeteer error.
+                </div>
+              )}
+
+              {singleError && (
+                <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-700 dark:text-red-300">&#9888; {singleError}</div>
+              )}
             </div>
 
             {/* Generating state */}

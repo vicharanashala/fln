@@ -887,3 +887,215 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ======================================================================
+# Region-targeted answer extraction
+# ======================================================================
+
+def _page_images(file_path, dpi=200):
+    """
+    Render each page to a PIL image plus its size in millimetres.
+
+    PDFs go through PyMuPDF so the mm size comes from the page box itself
+    rather than being assumed. A photo or scan has no intrinsic physical
+    size, so it is treated as a single A4 page — the same assumption the
+    printed worksheet is laid out under.
+    """
+    from PIL import Image
+    pages = []
+    if file_path.lower().endswith('.pdf'):
+        import pymupdf as fitz   # `import fitz` prints a deprecation warning to stdout,
+                                 # and this script's stdout must stay parseable JSON.
+        doc = fitz.open(file_path)
+        for page in doc:
+            rect = page.rect                      # points, 72 per inch
+            pix = page.get_pixmap(matrix=fitz.Matrix(dpi / 72.0, dpi / 72.0))
+            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+            pages.append((img, rect.width / 72.0 * 25.4, rect.height / 72.0 * 25.4))
+        doc.close()
+    else:
+        img = Image.open(file_path).convert("RGB")
+        pages.append((img, 210.0, 297.0))
+    return pages
+
+
+def _locate_anchors(file_path, anchor_texts):
+    """
+    Find each section heading in the document's text layer.
+
+    Returns {heading_text: (page_number, x_mm, y_mm)} using the top-left of the
+    heading. Only works on a generated PDF that still carries its text layer; a
+    photograph of a printed sheet has none, which is reported by the caller as
+    every region being unreadable rather than by reading the wrong place.
+    """
+    found = {}
+    if not anchor_texts:
+        return found
+
+    # A heading is identified by its "Section N" prefix. The full heading is
+    # one element in the DOM but the recognizer returns it as two items
+    # ("Section 1", then the title), and the offsets were measured from the
+    # start of the heading, which is where the prefix sits.
+    wanted = {}
+    for text in anchor_texts:
+        if not text:
+            continue
+        m = re.search(r"Section\s*(\d+)", text)
+        if m:
+            wanted[text] = "section " + m.group(1)
+
+    if not wanted:
+        return found
+
+    # The worksheet PDF is rendered as graphics and carries no usable text
+    # layer — only the stamped student header — so the headings have to be
+    # found by looking at the page rather than by reading its text.
+    try:
+        pages = _page_images(file_path, dpi=150)
+    except Exception:
+        return found
+
+    reader = get_fast_easyocr_reader()
+    if reader is None:
+        return found
+
+    import numpy as np
+    for page_index, (img, page_w_mm, page_h_mm) in enumerate(pages):
+        if len(found) == len(wanted):
+            break
+        try:
+            items = reader.readtext(np.array(img), detail=1, paragraph=False)
+        except Exception:
+            continue
+        mm_x = page_w_mm / img.width
+        mm_y = page_h_mm / img.height
+        for box, text, conf in items:
+            norm = " ".join(str(text).lower().split())
+            for anchor_text, prefix in wanted.items():
+                if anchor_text in found:
+                    continue
+                if norm == prefix or norm.startswith(prefix + " "):
+                    xs = [pt[0] for pt in box]
+                    ys = [pt[1] for pt in box]
+                    found[anchor_text] = (
+                        page_index + 1,
+                        min(xs) * mm_x,
+                        min(ys) * mm_y,
+                    )
+    return found
+
+
+MIN_REGION_CONFIDENCE = 0.45
+
+
+def read_answer_regions(file_path, regions, dpi=300, pad_mm=0.2):
+    """
+    Read one answer per stored region.
+
+    `regions` is the list the worksheet generator produced: each entry carries
+    the real `question_id` and the millimetre rectangle where that question is
+    answered. The question a reading belongs to therefore comes from the
+    metadata, never from the order the OCR happened to return things in — a
+    stray number printed elsewhere on the page cannot become an answer, because
+    nothing outside a region is read at all.
+
+    A region that yields no legible text is reported unreadable. It is never
+    filled in from the answer key, and never inferred from a neighbour.
+    """
+    out = {"regionAnswers": {}, "unreadable": [], "pagesRendered": 0}
+    if not regions:
+        return out
+
+    try:
+        pages = _page_images(file_path, dpi=dpi)
+    except Exception as e:
+        out["error"] = f"Could not rasterize document: {e}"
+        return out
+    out["pagesRendered"] = len(pages)
+
+    # Where each section heading actually landed once the document was
+    # paginated. The generator recorded every answer as an offset from its
+    # section heading precisely because that survives pagination; this is the
+    # lookup that turns those offsets back into absolute positions.
+    anchors = _locate_anchors(file_path, {r.get("anchor") for r in regions if r.get("anchor")})
+    out["anchorsFound"] = sorted(anchors.keys())
+
+    reader = get_fast_easyocr_reader()
+    if reader is None:
+        out["error"] = "EasyOCR reader unavailable"
+        return out
+
+    import numpy as np
+    for region in regions:
+        qid = region.get("question_id")
+        if not qid:
+            continue
+        anchor = anchors.get(region.get("anchor"))
+        if anchor is None:
+            # The section this question belongs to could not be located on any
+            # page. Guessing at an absolute position would read some other part
+            # of the sheet, so the question is reported unreadable instead.
+            out["unreadable"].append(qid)
+            continue
+        page_no, anchor_x_mm, anchor_y_mm = anchor
+        if page_no < 1 or page_no > len(pages):
+            out["unreadable"].append(qid)
+            continue
+        img, page_w_mm, page_h_mm = pages[page_no - 1]
+        px_per_mm_x = img.width / page_w_mm
+        px_per_mm_y = img.height / page_h_mm
+
+        x_mm = anchor_x_mm + float(region.get("dx_mm", 0.0))
+        y_mm = anchor_y_mm + float(region.get("dy_mm", 0.0))
+        left = (x_mm - pad_mm) * px_per_mm_x
+        top = (y_mm - pad_mm) * px_per_mm_y
+        right = (x_mm + float(region["w_mm"]) + pad_mm) * px_per_mm_x
+        bottom = (y_mm + float(region["h_mm"]) + pad_mm) * px_per_mm_y
+        box = (
+            max(0, int(left)), max(0, int(top)),
+            min(img.width, int(right)), min(img.height, int(bottom)),
+        )
+        if box[2] - box[0] < 4 or box[3] - box[1] < 4:
+            out["unreadable"].append(qid)
+            continue
+
+        crop = img.crop(box)
+        # Upscale small crops: an answer box is a few millimetres tall and the
+        # recognizer is trained on far larger glyphs.
+        if crop.height < 64:
+            scale = max(2, int(64 / max(crop.height, 1)))
+            crop = crop.resize((crop.width * scale, crop.height * scale))
+
+        try:
+            found = reader.readtext(
+                np.array(crop),
+                allowlist='0123456789<>=',
+                detail=1,
+                paragraph=False,
+            )
+        except Exception:
+            out["unreadable"].append(qid)
+            continue
+
+        best_text, best_conf = "", 0.0
+        for item in found:
+            text = str(item[1]).strip()
+            conf = float(item[2]) if len(item) > 2 else 0.0
+            if text and conf > best_conf:
+                best_text, best_conf = text, conf
+
+        # A low-confidence reading is a guess, and a guess recorded as a
+        # child's answer is indistinguishable downstream from something they
+        # actually wrote. Below the floor the region is reported unreadable and
+        # the teacher keys it in, which is honest about what was seen.
+        if best_text and best_conf >= MIN_REGION_CONFIDENCE:
+            out["regionAnswers"][qid] = {"text": best_text, "confidence": round(best_conf, 3)}
+        else:
+            out["unreadable"].append(qid)
+            if best_text:
+                out.setdefault("lowConfidence", {})[qid] = {
+                    "text": best_text, "confidence": round(best_conf, 3)
+                }
+
+    return out

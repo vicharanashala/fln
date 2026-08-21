@@ -37,6 +37,7 @@ import { registerWorksheetRoutes } from './routes/worksheets';
 import { registerEvaluationRoutes } from './routes/evaluation';
 import { registerAnalyticsRoutes } from './routes/analytics';
 import { registerDiagnosticBulkRoutes } from './routes/diagnosticBulk';
+import { registerMisconceptionRoutes } from './routes/misconceptions';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
@@ -127,6 +128,10 @@ registerStatsRoutes(app);
   registerWorksheetRoutes(app);
   registerAnalyticsRoutes(app);
   registerDiagnosticBulkRoutes(app);
+
+  // Read-only analysis over already-graded submissions: clusters a cohort on
+  // HOW its children fail rather than how much they score.
+  registerMisconceptionRoutes(app);
 
   // --- Intervention Tracking & Best Practices Repository ---
 

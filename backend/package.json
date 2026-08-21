@@ -10,6 +10,7 @@
     "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs --banner:js=\"const __im_url = require('url').pathToFileURL(__filename).href;\" --define:import.meta.url=__im_url",
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
+    "test:fingerprint": "tsx src/misconceptionFingerprint.test.ts",
     "seed": "tsx src/seed.ts",
     "seed:html": "tsx src/seedLevelHtml.ts",
     "seed:question-bank": "tsx src/seedQuestionBank.ts",

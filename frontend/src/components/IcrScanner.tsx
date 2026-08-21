@@ -1,6 +1,7 @@
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { Student, ClassGroup, EvaluationReport, User } from '../types';
+import { ChildErrorSignature } from './MisconceptionFingerprint';
 import { IcrTwoStageScan } from './IcrTwoStageScan';
 
 interface IcrScannerProps {
@@ -544,43 +545,66 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     setExtractedAnswers(prev => ({ ...prev, [qId]: value }));
   };
 
+  /**
+   * Commit the answers the teacher has just verified.
+   *
+   * This used to score in the browser and stop there: it built a report object
+   * in React state, showed it, and never called the server. The teacher's
+   * corrections — the only answers on this screen anyone has actually checked
+   * against the paper — were discarded when the component unmounted, so no
+   * submission was recorded and nothing reached the misconception analysis.
+   *
+   * It now posts them to the diagnostic submit endpoint, the same one the
+   * typed diagnostic workflow uses, which grades the paper, records the
+   * submission and runs the archetype assignment. Only the answers are sent;
+   * the answer key stays on the server.
+   */
   const confirmEvaluation = async () => {
-    let score = 0;
-    let graded = 0;
-    const mastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' } = {};
-    for (const q of questions) {
-      if (!q) continue;
-      const userVal = (extractedAnswers[q.id] || '').trim();
-      const expected = (q.correctAnswer || '').trim();
-      if (expected.length === 0) continue;
-      graded++;
-      if (userVal === expected) score++;
-      const topic = q.topic || 'Number Sense';
-      if (!mastery[topic]) {
-        mastery[topic] = userVal === expected ? 'Strong' : 'Needs Practice';
-      }
+    if (!selectedStudentId || selectedStudentId === 'ALL_STUDENTS') {
+      setError('Select a specific student before confirming — a placement is recorded against one child.');
+      return;
     }
 
-    const percentage = graded > 0 ? Math.round((score / graded) * 100) : 0;
-    const baseLevel = 2;
-    let sub = 1;
-    if (percentage >= 80) sub = Math.min(5, sub + 1);
-    else if (percentage < 60) sub = Math.max(0, sub - 1);
+    // Blank entries are questions nobody could read and nobody keyed in. They
+    // are left out rather than sent as empty strings, which the grader would
+    // read as "the child left it blank" — a different and real finding.
+    const verified: { [qId: string]: string } = {};
+    for (const [qId, value] of Object.entries(extractedAnswers)) {
+      if (String(value ?? '').trim() !== '') verified[qId] = String(value).trim();
+    }
 
-    setReport({
-      id: 'rep_' + Date.now(),
-      studentId: selectedStudentId && selectedStudentId !== 'ALL_STUDENTS' ? selectedStudentId : 'manual_entry',
-      worksheetId: 'icr_manual_pass',
-      score,
-      totalQuestions: graded > 0 ? graded : questions.length,
-      conceptMastery: mastery,
-      narrative: `Manual-entry ICR verification: ${score}/${graded} correct (${percentage}%). Recommended level L${baseLevel}.${sub}.`,
-      recommendedLevel: baseLevel,
-      recommendedSubLevel: sub,
-      timestamp: new Date().toISOString(),
-    });
-    setStep('result');
-    setSuccess(`Verification confirmed — ${score}/${graded} correct (${percentage}%). Diagnostic placement: L${baseLevel}.${sub}.`);
+    if (Object.keys(verified).length === 0) {
+      setError('No answers to submit — enter what the child wrote before confirming.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const res = await apiFetch(`/api/students/${selectedStudentId}/diagnostic/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ answers: verified })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.error || 'Could not record this placement.');
+        return;
+      }
+
+      setReport(data.report);
+      setStep('result');
+      const unread = questions.length - Object.keys(verified).length;
+      setSuccess(
+        `Placement recorded — ${data.report.score}/${data.report.totalQuestions} correct. ` +
+        `Level L${data.report.recommendedLevel}.${data.report.recommendedSubLevel ?? 0}.` +
+        (unread > 0 ? ` ${unread} question(s) left unanswered were not graded.` : '')
+      );
+    } catch {
+      setError('Network error recording the placement.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetScanner = () => {
@@ -1301,6 +1325,9 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                   </div>
                 </div>
               )}
+
+              {/* The same submission read for HOW the child failed, not just how much. */}
+              {selectedStudent && <ChildErrorSignature studentId={selectedStudent.id} token={token} />}
 
               <div className="flex gap-3 pt-2">
                 <button

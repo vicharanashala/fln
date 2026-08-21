@@ -51,7 +51,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
       });
       const data = await res.json();
       if (res.ok) {
-        onLoginSuccess(data.token, data.user);
+        const payload = data?.data || data;
+        const token = payload?.token;
+        const user = payload?.user || payload?.teacher || payload;
+        onLoginSuccess(token, user);
       } else {
         setError(data.error || 'Invalid email or password');
       }

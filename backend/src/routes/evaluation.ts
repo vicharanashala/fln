@@ -1,11 +1,14 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { randomUUID } from 'crypto';
 import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_NAMES } from '../db';
 import { getAuthUser, canAccessStudent } from '../auth';
 import { evaluateAIWorksheet } from '../gemini';
 import { PYTHON_BIN, AI_SERVICES_DIR } from '../config';
+import { invalidateFingerprintCache } from './misconceptions';
+import { assignStudentToArchetype } from '../studentArchetypeService';
 
 export function registerEvaluationRoutes(app: express.Express) {
   // ICR Blue-Pen Filter Stage (standalone — runs only the cv2 blue-pen
@@ -345,20 +348,58 @@ export function registerEvaluationRoutes(app: express.Express) {
         ];
       }
 
-      // Execute Python EasyOCR ONCE for the uploaded document (Sub-second execution)
+      // Execute Python EasyOCR ONCE for the uploaded document.
+      //
+      // The budget matches the region-targeted read below rather than the
+      // minute this used to allow. EasyOCR loads its models on first use, and
+      // that cold start alone can outlast 60s on CPU — measured at 20s warm
+      // against the same file that had just been killed at the boundary. The
+      // timeout then failed the whole request with "the OCR step did not run",
+      // before the region read that produces the actual answers ever started.
       let sharedOcrResult: any = null;
+      let ocrFailure: string | null = null;
       try {
         const { execFileSync } = await import('child_process');
         const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'ocr.py');
         const output = execFileSync(PYTHON_BIN, [scriptPath, tempFilePath, studentId || 'ALL_STUDENTS', String(classNumber)], {
           cwd: AI_SERVICES_DIR,
           env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
-          timeout: 60000,
+          timeout: 600000,
           maxBuffer: 10 * 1024 * 1024
         });
         sharedOcrResult = JSON.parse(output.toString());
       } catch (e: any) {
-        console.warn(`EasyOCR execution info:`, e.message);
+        // Node's execFileSync puts only "Command failed: <cmd>" in `message`;
+        // the reason the child died is in `stderr`/`status`, which used to be
+        // dropped here. A failure then reached the teacher as "the OCR step did
+        // not run" with nothing behind it, and nothing in the log either.
+        const stderr = e?.stderr ? String(e.stderr).trim().slice(-1500) : '';
+        const status = e?.status !== undefined ? ` (exit ${e.status})` : '';
+        const signal = e?.signal ? ` (signal ${e.signal})` : '';
+        ocrFailure = `${e?.message || String(e)}${status}${signal}${stderr ? `
+--- python stderr ---
+${stderr}` : ''}`;
+        console.error('[ICR] OCR step failed:', ocrFailure);
+      }
+
+      // A failed OCR step is reported, not absorbed.
+      //
+      // This used to be a console.warn and nothing else: the handler carried on
+      // with no OCR output at all, every question fell through the unread
+      // branch, and the scan was persisted as a placement. With the answer key
+      // standing in for unread answers (fixed above) that produced a silent
+      // full-marks result from a document nobody could read.
+      if (ocrFailure || !sharedOcrResult) {
+        return res.status(422).json({
+          success: false,
+          error:
+            'Answer sheet could not be processed — the OCR step did not run. ' +
+            'No answers were extracted and nothing has been saved.',
+          detail: ocrFailure || 'OCR returned no result.',
+          hint:
+            'Check that the Python OCR dependencies are installed ' +
+            '(pip install -r ai-services/requirements.txt).'
+        });
       }
 
       const results = [];
@@ -380,6 +421,38 @@ export function registerEvaluationRoutes(app: express.Express) {
       for (let sIdx = 0; sIdx < evalStudents.length; sIdx++) {
         const student = evalStudents[sIdx];
         const diagQuestions = await dbStore.getStudentAssignedQuestions(student.id, classNumber);
+
+        // Preferred path: read each answer out of the region the generator
+        // recorded for that question. The question a reading belongs to comes
+        // from the stored metadata, so nothing outside an answer box is read
+        // and a stray number printed elsewhere cannot become an answer.
+        let regionAnswers: Record<string, { text: string; confidence: number }> | null = null;
+        let regionUnreadable: string[] = [];
+        try {
+          const answerKeyDoc = await dbStore.getStudentDiagnosticAnswerKey(student.id);
+          const storedRegions = (answerKeyDoc as any)?.answerRegions;
+          if (Array.isArray(storedRegions) && storedRegions.length > 0) {
+            const regionsFile = path.join(os.tmpdir(), `fln_regions_${randomUUID().slice(0, 8)}.json`);
+            fs.writeFileSync(regionsFile, JSON.stringify(storedRegions), 'utf-8');
+            try {
+              const { execFileSync } = await import('child_process');
+              const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'ocr.py');
+              const out = execFileSync(
+                PYTHON_BIN,
+                [scriptPath, tempFilePath, student.id, String(classNumber), '--regions', regionsFile],
+                { cwd: AI_SERVICES_DIR, env: { ...process.env, PYTHONIOENCODING: 'utf-8' }, timeout: 600000, maxBuffer: 20 * 1024 * 1024 }
+              );
+              const parsed = JSON.parse(out.toString());
+              regionAnswers = parsed.regionAnswers || {};
+              regionUnreadable = Array.isArray(parsed.unreadable) ? parsed.unreadable : [];
+            } finally {
+              try { fs.unlinkSync(regionsFile); } catch { /* temp file */ }
+            }
+          }
+        } catch (regionErr: any) {
+          console.error('[ICR] region-targeted read failed, falling back:', regionErr?.message || regionErr);
+          regionAnswers = null;
+        }
         const totalQ = (diagQuestions && diagQuestions.length > 0) ? diagQuestions.length : 10;
         const extractedAnswers: Record<string, string> = {};
         const extractedCorrectness: Record<string, boolean> = {};
@@ -395,11 +468,43 @@ export function registerEvaluationRoutes(app: express.Express) {
             extractedCorrectness[qId] = true;
             score++;
           }
+        } else if (regionAnswers) {
+          // Every reading is already attributed to a question id by the
+          // metadata; all that remains is to grade it.
+          diagQuestions.forEach(q => {
+            const hit = regionAnswers![q.question_id];
+            if (!hit || !String(hit.text).trim()) return;   // unreadable stays unrecorded
+            const written = String(hit.text).trim();
+            extractedAnswers[q.question_id] = written;
+            if (written === String(q.answer).trim()) score++;
+          });
         } else {
+          // Positional attribution is only defensible on a clean, complete read.
+          //
+          // `realDigits` is every number the OCR found anywhere on the page —
+          // question numbers, dates, roll numbers and printed values included —
+          // and `realDigits[sIdx * n + idx]` simply assumes the k-th number is
+          // the k-th answer. Measured on a real upload, one stray digit from
+          // unrelated body text was attributed as the child's answer to Q1 and
+          // persisted.
+          //
+          // The count is the only evidence available here that the reader saw
+          // the answer column and nothing else: exactly one number per question
+          // on the sheet. Short of that the page is not being read in
+          // question order, so no answer is attributed at all and every
+          // question is left for the teacher to key in on the verification
+          // screen — which is what that screen exists for.
+          //
+          // Genuine per-question attribution needs the answer regions the
+          // worksheet already carries; see the note in the final report on why
+          // the stored coords cannot currently supply them.
+          const expectedDigits = diagQuestions.length * evalStudents.length;
+          const cleanRead = realDigits.length === expectedDigits;
+
           diagQuestions.forEach((q, idx) => {
             // Attempt to match extracted digit token for this question index
             const digitIndex = (sIdx * diagQuestions.length) + idx;
-            const extractedDigit = (realDigits && realDigits[digitIndex] !== undefined)
+            const extractedDigit = (cleanRead && realDigits && realDigits[digitIndex] !== undefined)
               ? String(realDigits[digitIndex]).trim()
               : null;
 
@@ -409,13 +514,65 @@ export function registerEvaluationRoutes(app: express.Express) {
               extractedCorrectness[q.question_id] = isCorrect;
               if (isCorrect) score++;
             } else {
-              // Fallback match check against raw OCR text
+              // OCR produced no token for this question.
+              //
+              // This branch used to write `String(q.answer)` — the CORRECT
+              // answer — into `extractedAnswers` regardless of what the child
+              // wrote (both arms of its ternary were identical). While the map
+              // was only echoed back to the client that was merely misleading;
+              // now that the answers are persisted it would put a fabricated
+              // answer into the child's permanent record and feed the
+              // misconception layer a correct attempt that never happened.
+              //
+              // An unread question is recorded as unread: no entry. That is
+              // distinct from a blank, which is a real finding ("the child left
+              // it empty") and is what an empty string would mean downstream.
+              //
+              // The score line below is left exactly as it was: it is
+              // pre-existing placement behaviour, and changing what a scan
+              // scores is a bigger decision than fixing what it stores.
               const textMatch = rawOcrText.includes(String(q.answer).trim());
-              extractedAnswers[q.question_id] = textMatch ? String(q.answer).trim() : String(q.answer).trim();
               extractedCorrectness[q.question_id] = textMatch;
               if (textMatch) score++;
             }
           });
+        }
+
+        // Nothing legible on this child's sheet: report it and change nothing.
+        //
+        // A scan that yielded no answers is a processing failure, not a score of
+        // zero. Persisting it would re-place the child at the bottom of the
+        // scale on the strength of a document the reader could not see, and
+        // rewrite their level history to say so. The teacher can still key the
+        // answers in on the verification screen, which is what actually commits
+        // a placement.
+        if (Object.keys(extractedAnswers).length === 0) {
+          results.push({
+            studentId: student.id,
+            studentName: student.name,
+            rollNumber: student.id.slice(-4),
+            unreadable: true,
+            score: 0,
+            totalQuestions: totalQ,
+            percentage: 0,
+            questions: diagQuestions.map(q => ({
+              id: q.question_id,
+              question: q.question,
+              correctAnswer: q.answer,
+              topic: q.topic || 'General'
+            })),
+            extractedAnswers: {},
+            message:
+              'No answers could be read from this sheet. Nothing was saved — ' +
+              'enter the answers on the verification screen to record a placement.',
+            ocrEngine: 'EasyOCR (PyTorch CRAFT Neural Net)',
+            ocrAnalysis: {
+              rawOcrText: rawOcrText || '',
+              extractedTokens: ocrTokens,
+              processingTimeMs: sharedOcrResult?.processingTimeMs || 0
+            }
+          });
+          continue;
         }
 
         const percentage = Math.round((score / totalQ) * 100);
@@ -435,6 +592,33 @@ export function registerEvaluationRoutes(app: express.Express) {
           targetLevel: Math.min(93, recommendedLevel + 1),
           levelHistory
         });
+
+        // Persist the scanned answers, not just the score they produced.
+        //
+        // `extractedAnswers` above is already the exact shape a submission
+        // needs — it was built to grade against, returned to the client, and
+        // then dropped. Keeping it means a scanned paper can be re-read later:
+        // by a teacher querying a surprising placement, and by the misconception
+        // layer, which can say nothing about HOW a child failed without the
+        // answers they actually wrote.
+        // Only when the scan actually yielded answers. With the OCR step
+        // unavailable every question falls through unread, and an empty
+        // submission would assert that a child sat a paper and wrote nothing.
+        if (diagQuestions.length > 0 && Object.keys(extractedAnswers).length > 0) {
+          const submission: AnswerSubmission = {
+            id: 'sub_icr_' + student.id + '_' + randomUUID().slice(0, 8),
+            worksheetId: 'icr_file_scan',
+            studentId: student.id,
+            studentName: student.name,
+            schoolId: student.schoolId,
+            classId: student.classGroup,
+            submittedAt: new Date().toISOString(),
+            isDelayed: false,
+            answers: extractedAnswers,
+            questions: diagQuestions
+          };
+          await dbStore.addAnswerSubmission(submission);
+        }
 
         const report: EvaluationReport = {
           id: 'rep_icr_file_' + randomUUID().slice(0, 8),
@@ -465,6 +649,13 @@ export function registerEvaluationRoutes(app: express.Express) {
         };
 
         await dbStore.addEvaluationReport(report);
+        invalidateFingerprintCache();
+
+        try {
+          await assignStudentToArchetype(student.id);
+        } catch (error) {
+          console.error('[archetype] Failed to assign student to misconception archetype:', error);
+        }
 
         results.push({
           studentId: student.id,
@@ -476,10 +667,11 @@ export function registerEvaluationRoutes(app: express.Express) {
           reportId: report.id,
           // Real per-question correctness as actually scored server-side
           // (extractedCorrectness) — NOT re-derivable from extractedAnswers
-          // vs correctAnswer client-side, because the OCR-fallback branch
-          // above always stores the *correct* answer text in extractedAnswers
-          // regardless of whether textMatch was true. Sending this directly
-          // avoids the review screen defaulting every question to "Correct".
+          // vs correctAnswer client-side: an unread question now has NO entry
+          // in extractedAnswers (it used to be filled with the correct answer),
+          // so the review screen cannot tell "read and right" from "not read"
+          // without this. Sending it directly keeps the screen from defaulting
+          // every question to "Correct".
           questionResults: report.questionResults,
           score,
           totalQuestions: diagQuestions.length,
@@ -1164,6 +1356,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     };
 
     await dbStore.addAnswerSubmission(submission);
+    invalidateFingerprintCache();
 
     // Save Evaluation Report
     const report: EvaluationReport = {
@@ -1189,6 +1382,12 @@ export function registerEvaluationRoutes(app: express.Express) {
     };
 
     await dbStore.addEvaluationReport(report);
+
+    try {
+      await assignStudentToArchetype(studentId);
+    } catch (error) {
+      console.error('[archetype] Failed to assign student to misconception archetype:', error);
+    }
 
     // If correct, update student levels
     const levelHistory = [...student.levelHistory];

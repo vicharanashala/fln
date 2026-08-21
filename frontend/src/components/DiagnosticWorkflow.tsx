@@ -2,6 +2,8 @@ import { apiFetch, withBase } from '../services/apiClient';
 import React, { useState } from 'react';
 import { Student, Question, EvaluationReport } from '../types';
 import { SvgLibraryResolver } from './SvgLibraryResolver';
+import { ChildErrorSignature } from './MisconceptionFingerprint';
+import { simulateWrongAnswer } from '../services/simulatedAnswers';
 import { ReasoningSection } from './EducationalReasoning';
 
 interface DiagnosticWorkflowProps {
@@ -50,7 +52,19 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
   const handleAnswerChange = (qId: string, value: string) => {
     setAnswers({ ...answers, [qId]: value });
   };
+  const formatAnswer = (answer: any): string => {
+  if (answer === null || answer === undefined) return "";
 
+  if (typeof answer === "object") {
+    if ("number" in answer) {
+      return String(answer.number);
+    }
+
+    return JSON.stringify(answer);
+  }
+
+  return String(answer);
+};
   const submitDiagnostic = async () => {
     setLoading(true);
     setError('');
@@ -190,9 +204,9 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
                   type="button"
                   onClick={() => {
                     const filled: { [key: string]: string } = {};
-                    paper.questions.forEach((q) => {
-                      filled[q.question_id] = q.answer;
-                    });
+                   paper.questions.forEach((q) => {
+                    filled[q.question_id] = formatAnswer(q.answer);
+                  });
                     setAnswers(filled);
                   }}
                   className="bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-100/50 dark:hover:bg-amber-900/50 text-[11px] font-semibold py-1.5 px-2 rounded transition-colors"
@@ -205,7 +219,8 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
                     const filled: { [key: string]: string } = {};
                     // Fail the first question, which has level q.source_level
                     paper.questions.forEach((q, idx) => {
-                      filled[q.question_id] = idx === 0 ? 'FAIL' : q.answer;
+                      filled[q.question_id] =
+                      idx === 0 ? simulateWrongAnswer(q.answer, student.id) : formatAnswer(q.answer);
                     });
                     setAnswers(filled);
                   }}
@@ -218,7 +233,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
                   onClick={() => {
                     const filled: { [key: string]: string } = {};
                     paper.questions.forEach((q) => {
-                      filled[q.question_id] = 'WRONG';
+                      filled[q.question_id] = simulateWrongAnswer(q.answer, student.id);
                     });
                     setAnswers(filled);
                   }}
@@ -260,7 +275,7 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
                       className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
                     />
                   )}
-                  <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">Correct: {q.answer}</p>
+                  <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">Correct: {formatAnswer(q.answer)}</p>
                 </div>
               ))}
             </div>
@@ -309,6 +324,13 @@ export const DiagnosticWorkflow: React.FC<DiagnosticWorkflowProps> = ({ student,
               /api/students/:id/diagnostic/submit already returned — no second
               request and no prerequisite computation in the browser. */}
           {report.reasoning && <ReasoningSection report={report} />}
+
+          {/*
+            The other half of the same submission: the narrative above says what
+            level this child is on, this says how they got the answers wrong and
+            who else in the class fails the same way.
+          */}
+          <ChildErrorSignature studentId={student.id} token={token} />
 
           <button
             onClick={onComplete}

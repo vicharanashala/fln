@@ -10,6 +10,8 @@ interface BaselineUploadProps {
   onPlaced?: () => void;
 }
 
+const SCAN_FILE_RE = /[.](pdf|png|jpe?g|webp|tiff?)$/i;
+
 interface PlacementResult {
   assignedLevel: number;
   classNumber: number;
@@ -26,6 +28,9 @@ interface PlacementResult {
  */
 export const BaselineUpload: React.FC<BaselineUploadProps> = ({ student, token, onBack, onPlaced }) => {
   const [fileName, setFileName] = useState<string>('');
+  // Set when the chosen file is paper rather than an answer map; the two take
+  // different routes on submit.
+  const [scanFile, setScanFile] = useState<File | null>(null);
   const [answers, setAnswers] = useState<Record<string, string> | null>(null);
   const [parseError, setParseError] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
@@ -42,6 +47,18 @@ export const BaselineUpload: React.FC<BaselineUploadProps> = ({ student, token, 
     const file = e.target.files?.[0];
     if (!file) return;
     setFileName(file.name);
+
+    // Two kinds of answer sheet arrive here. A scan carries the answers as ink
+    // and has to be read before it can be graded; a JSON map is already the
+    // graded form. Route on the file rather than making the teacher pick the
+    // right screen for the file they happen to be holding.
+    if (SCAN_FILE_RE.test(file.name)) {
+      setScanFile(file);
+      setAnswers(null);
+      return;
+    }
+    setScanFile(null);
+
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -61,7 +78,73 @@ export const BaselineUpload: React.FC<BaselineUploadProps> = ({ student, token, 
     reader.readAsText(file);
   };
 
+  // A scan is graded by the ICR endpoint, which reads the answers out of the
+  // regions the paper was generated with and places the child itself. It is a
+  // complete path on its own — chaining it into baseline/submit afterwards
+  // would place the same child a second time off the same sheet.
+  const submitScan = async () => {
+    if (!scanFile) return;
+    setSubmitting(true);
+    setError('');
+    setResult(null);
+    try {
+      const fileBase64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Could not read that file.'));
+        reader.readAsDataURL(scanFile);
+      });
+      const res = await apiFetch('/api/icr/evaluate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          classId: student.classGroup,
+          studentId: student.id,
+          fileBase64,
+          filename: scanFile.name
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.error || 'The scan could not be read.');
+        return;
+      }
+      const hit = Array.isArray(data.results)
+        ? data.results.find((r: any) => r.studentId === student.id) || data.results[0]
+        : null;
+      if (!hit) {
+        setError('The scan was read, but no result came back for this student.');
+        return;
+      }
+      const read = Object.values(hit.extractedAnswers || {}).filter(v => String(v).trim()).length;
+      // Nothing legible on the page means no placement was made — the endpoint
+      // returns no level in that case. Say so, rather than rendering an empty
+      // level as though the child had been assessed.
+      if (read === 0 || hit.newLevel === undefined || hit.newLevel === null) {
+        setError(
+          'No answers could be read from that scan, so no placement was made. ' +
+          'Check that the sheet is the one generated for this student, is filled in, and is scanned clearly.'
+        );
+        return;
+      }
+      setResult({
+        assignedLevel: hit.newLevel,
+        classNumber,
+        recommendedAction: read < hit.totalQuestions
+          ? `${hit.totalQuestions - read} of ${hit.totalQuestions} answers could not be read from the paper and were not graded. Check the placement before relying on it.`
+          : null,
+        narrative: `Scanned answer sheet read for ${student.name}. Score: ${hit.score}/${hit.totalQuestions} (${hit.percentage}%). Placed at Level ${hit.newLevel}.${hit.subLevel ?? 0}.`
+      });
+      onPlaced?.();
+    } catch {
+      setError('Network error reading the scan.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async () => {
+    if (scanFile) return submitScan();
     if (!answers) return;
     setSubmitting(true);
     setError('');
@@ -107,21 +190,28 @@ export const BaselineUpload: React.FC<BaselineUploadProps> = ({ student, token, 
       {!result && (
         <>
           <label className="block">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Answer sheet (.json)</span>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Answer sheet (scan or .json)</span>
             <div className="mt-2 flex items-center gap-3">
               <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-400">
                 <Upload className="h-4 w-4" />
                 Choose file
-                <input type="file" accept="application/json,.json" className="hidden" onChange={handleFile} />
+                <input type="file" accept="application/json,.json,application/pdf,image/png,image/jpeg,image/jpg,image/webp,image/tiff" className="hidden" onChange={handleFile} />
               </label>
               {fileName && <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{fileName}</span>}
             </div>
-            <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500 font-mono">Format: {'{'}"Q1":"A", "Q2":"5", ...{'}'}</p>
+            <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500 font-mono">Answer map: {'{'}"Q1":"A", "Q2":"5", ...{'}'} — or a scanned sheet (PDF/PNG/JPG).</p>
           </label>
 
           {parseError && (
             <div className="flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-3 text-xs font-semibold text-red-700 dark:text-red-300">
               <AlertCircle className="h-4 w-4 flex-shrink-0" /> {parseError}
+            </div>
+          )}
+
+          {scanFile && !parseError && (
+            <div className="flex items-center gap-2 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 p-3 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+              Scanned sheet ready. It will be read by OCR — answers it cannot read are left ungraded.
             </div>
           )}
 
@@ -139,7 +229,7 @@ export const BaselineUpload: React.FC<BaselineUploadProps> = ({ student, token, 
 
           <button
             onClick={handleSubmit}
-            disabled={!answers || submitting}
+            disabled={(!answers && !scanFile) || submitting}
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
           >
             {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Evaluating…</> : 'Evaluate & Place'}
