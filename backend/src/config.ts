@@ -15,6 +15,7 @@ export const ROOT_DIR = path.resolve(__dirname, '..');
 const VENV_PYTHON = path.resolve(ROOT_DIR, '..', 'ai-services', '.venv', 'Scripts', 'python.exe');
 export const PYTHON_BIN = process.env.PYTHON_BIN || (fs.existsSync(VENV_PYTHON) ? VENV_PYTHON : (process.platform === 'win32' ? 'python' : 'python3'));
 export const AI_SERVICES_DIR = process.env.AI_SERVICES_DIR || path.resolve(ROOT_DIR, '..', 'ai-services');
+export const OCR_SERVICE_URL = process.env.OCR_SERVICE_URL || 'http://127.0.0.1:8001';
 
 // Throttle auth endpoints to slow down brute-force / credential-stuffing attempts.
 export const authRateLimiter = rateLimit({

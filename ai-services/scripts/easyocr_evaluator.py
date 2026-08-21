@@ -51,7 +51,7 @@ PADDLE_AVAILABLE = False
 try:
     from paddleocr import PaddleOCR as _PaddleOCR
     PADDLE_AVAILABLE = True
-except ImportError:
+except Exception:
     pass
 
 _CACHED_PADDLE = None

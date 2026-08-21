@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_NAMES } from '../db';
 import { getAuthUser, canAccessStudent } from '../auth';
 import { evaluateAIWorksheet } from '../gemini';
-import { PYTHON_BIN, AI_SERVICES_DIR } from '../config';
+import { PYTHON_BIN, AI_SERVICES_DIR, OCR_SERVICE_URL } from '../config';
 
 export function registerEvaluationRoutes(app: express.Express) {
   // ICR Blue-Pen Filter Stage (standalone — runs only the cv2 blue-pen
@@ -177,41 +177,26 @@ export function registerEvaluationRoutes(app: express.Express) {
     // IcrTwoStageScan component) which doesn't have a class context at
     // scan time.
     if (!classId) {
-      const tempDir = path.join(AI_SERVICES_DIR, 'scratch');
-      fs.mkdirSync(tempDir, { recursive: true });
-      const ext = path.extname(filename || 'worksheet.jpg') || '.jpg';
-      const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'ocr.py');
-
-      // Run EasyOCR on a single already-decoded image, return its raw
-      // per-item detections (does not itself renumber into q_N — the
-      // caller does that once across all pages).
-      const runOcrOnPage = async (dataUrl: string, tag: string) => {
-        const tempFilePath = path.join(tempDir, `scan_noclass_${Date.now()}_${tag}${ext}`);
+      // Run OCR via the warm microservice — no subprocess spawn, no model cold-start.
+      const runOcrOnPage = async (dataUrl: string, _tag: string) => {
         const cleanBase64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-        fs.writeFileSync(tempFilePath, Buffer.from(cleanBase64, 'base64'));
-        try {
-          const { execFileSync } = await import('child_process');
-          const output = execFileSync(PYTHON_BIN, [scriptPath, tempFilePath, 'SCAN', '1'], {
-            cwd: AI_SERVICES_DIR,
-            env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
-            timeout: 60000,
-            maxBuffer: 10 * 1024 * 1024,
-          });
-          const ocrResult = JSON.parse(output.toString());
-          const tokens = ocrResult?.evaluation?.extractedTokens || ocrResult?.extracted_tokens || [];
-          const rawText = ocrResult?.evaluation?.rawOcrText || ocrResult?.raw_text || '';
-          const detectedNumbers = ocrResult?.evaluation?.detectedNumbers || ocrResult?.digits_found || [];
-          const sourceItems = detectedNumbers.length > 0 ? detectedNumbers : tokens.map((t: any) => t.text);
-          return {
-            sourceItems,
-            tokens,
-            rawText,
-            processingTimeMs: ocrResult?.processingTimeMs || 0,
-            ocrEngine: ocrResult?.evaluation?.ocrEngine || 'EasyOCR (PyTorch Fast Reader)',
-          };
-        } finally {
-          try { fs.unlinkSync(tempFilePath); } catch { /* noop */ }
-        }
+        const res = await fetch(`${OCR_SERVICE_URL}/ocr`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: cleanBase64 }),
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!res.ok) throw new Error(`OCR service: ${res.status} ${await res.text()}`);
+        const data = await res.json();
+        const tokens: any[] = data.tokens || [];
+        const sourceItems = tokens.map((t: any) => (typeof t === 'string' ? t : t.text)).filter(Boolean);
+        return {
+          sourceItems,
+          tokens,
+          rawText: data.raw_text || '',
+          processingTimeMs: data.processing_ms || 0,
+          ocrEngine: data.ocr_engine || 'EasyOCR (microservice)',
+        };
       };
 
       try {
@@ -256,10 +241,12 @@ export function registerEvaluationRoutes(app: express.Express) {
         // Make the error message useful for the frontend's common-cause hints.
         // ETIMEDOUT from Node's execFileSync usually means the Python
         // subprocess was killed at the timeout boundary, not a network blip.
-        const friendly = raw.includes('ETIMEDOUT')
-          ? 'OCR took too long (>60s) and was timed out. The image may be very large or the EasyOCR model is still warming up. Try again.'
+        const friendly = raw.includes('TimeoutError') || raw.includes('ETIMEDOUT')
+          ? 'OCR service did not respond within 15s. Check that fln-ocr is running (pm2 status).'
+          : raw.includes('ECONNREFUSED')
+          ? 'OCR service is not running. Start it with: pm2 start ecosystem.config.js'
           : raw;
-        return res.status(500).json({ success: false, error: `EasyOCR failed: ${friendly}` });
+        return res.status(500).json({ success: false, error: `OCR failed: ${friendly}` });
       }
     }
 
@@ -345,20 +332,31 @@ export function registerEvaluationRoutes(app: express.Express) {
         ];
       }
 
-      // Execute Python EasyOCR ONCE for the uploaded document (Sub-second execution)
+      // Run OCR via the warm microservice (file already on disk from the upload step above).
       let sharedOcrResult: any = null;
       try {
-        const { execFileSync } = await import('child_process');
-        const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'ocr.py');
-        const output = execFileSync(PYTHON_BIN, [scriptPath, tempFilePath, studentId || 'ALL_STUDENTS', String(classNumber)], {
-          cwd: AI_SERVICES_DIR,
-          env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
-          timeout: 60000,
-          maxBuffer: 10 * 1024 * 1024
+        const fileB64 = fs.readFileSync(tempFilePath).toString('base64');
+        const ocrRes = await fetch(`${OCR_SERVICE_URL}/ocr`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: fileB64 }),
+          signal: AbortSignal.timeout(15000),
         });
-        sharedOcrResult = JSON.parse(output.toString());
+        if (ocrRes.ok) {
+          const data = await ocrRes.json();
+          // Shape into the same envelope downstream code already reads from.
+          sharedOcrResult = {
+            evaluation: {
+              extractedTokens: data.tokens || [],
+              rawOcrText: data.raw_text || '',
+              detectedNumbers: (data.tokens || []).map((t: any) => t.text).filter((t: string) => /^\d+$/.test(t)),
+              processingTimeMs: data.processing_ms || 0,
+              ocrEngine: data.ocr_engine || 'EasyOCR (microservice)',
+            },
+          };
+        }
       } catch (e: any) {
-        console.warn(`EasyOCR execution info:`, e.message);
+        console.warn('OCR service call failed:', e.message);
       }
 
       const results = [];
