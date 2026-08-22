@@ -14,7 +14,9 @@
     "seed:html": "tsx src/seedLevelHtml.ts",
     "seed:question-bank": "tsx src/seedQuestionBank.ts",
     "seed:geo": "tsx src/utils/seedGeo.ts",
-    "reseed": "tsx src/reseed.ts"
+    "reseed": "tsx src/reseed.ts",
+    "test": "esbuild tests/aadhaar-hardening.test.ts --bundle --platform=node --format=esm --packages=external --outfile=tests/dist/aadhaar-hardening.test.mjs --log-level=warning && node tests/dist/aadhaar-hardening.test.mjs",
+    "audit:aadhaar": "tsx scripts/audit-aadhaar-at-rest.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

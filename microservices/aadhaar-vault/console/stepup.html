@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aadhaar Vault · Step-Up Console</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="av-shell">
+  <header class="av-header">
+    <h1>Step-Up Authentication Wizard</h1>
+    <p class="av-subtitle">
+      Guided end-to-end flow: <strong>Select Token → Enroll MFA → Request Step-Up → Approve Challenge → Detokenize</strong>.
+      The console remembers every intermediate value automatically and computes the current TOTP in-browser.
+    </p>
+    <div class="av-header-actions">
+      <button id="reset-workflow" class="av-btn av-btn-ghost" type="button">Reset Workflow</button>
+      <button id="toggle-dev-mode" class="av-btn av-btn-ghost" type="button" aria-pressed="false">Developer Mode: Off</button>
+      <button id="btn-copy-bundle" class="av-btn av-btn-ghost" type="button">Copy Debug Bundle</button>
+    </div>
+  </header>
+
+  <div id="token-warn" class="av-token-warn" hidden role="status" aria-live="polite"></div>
+
+  <main class="av-wizard" id="step-up-root">
+
+    <!-- ============================================================ -->
+    <!-- Developer Information (collapsible)                           -->
+    <!-- ============================================================ -->
+    <details class="av-collapsible" id="dev-info-panel">
+      <summary>Developer Information</summary>
+      <div class="av-dev-info-grid">
+        <div>
+          <span class="av-label">Factor ID</span>
+          <span id="dev-factor-id" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">OTP URI</span>
+          <span id="dev-otpauth" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">Current TOTP</span>
+          <span id="dev-current-totp" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">Remaining Seconds</span>
+          <span id="dev-remaining" class="av-readonly">—</span>
+        </div>
+        <div>
+          <span class="av-label">Challenge ID</span>
+          <span id="dev-challenge-id" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">Challenge Status</span>
+          <span id="dev-challenge-status" class="av-readonly">—</span>
+        </div>
+        <div>
+          <span class="av-label">Challenge Expires</span>
+          <span id="dev-challenge-expires" class="av-readonly">—</span>
+        </div>
+        <div>
+          <span class="av-label">Verified Factor</span>
+          <span id="dev-verified-factor" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">Approved At</span>
+          <span id="dev-approved-at" class="av-readonly">—</span>
+        </div>
+        <div>
+          <span class="av-label">Detokenized</span>
+          <span id="dev-detokenized" class="av-readonly">—</span>
+        </div>
+        <div>
+          <span class="av-label">Browser UTC Clock</span>
+          <span id="dev-browser-utc" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">Actor ID</span>
+          <span id="dev-actor-id" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">API Base</span>
+          <span id="dev-api-base" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">Dev Mode</span>
+          <span id="dev-mode" class="av-readonly">—</span>
+        </div>
+        <div>
+          <span class="av-label">Last API Call</span>
+          <span id="dev-last-api" class="av-readonly mono">—</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- Bearer Token Claims (decode ONLY — not verified)              -->
+    <!-- Source-of-truth lives in the backend auth plugin.            -->
+    <!-- ============================================================ -->
+    <details class="av-collapsible" id="bearer-panel">
+      <summary>Bearer Token Claims <span id="bearer-status-badge" class="av-pill state-pill state-idle" data-state="unknown">unknown</span></summary>
+      <p class="av-hint av-hint-muted">
+        The console decodes the JWT body locally for inspection only.
+        Authentication success or failure is always determined by the
+        backend (<code>auth/plugin.ts</code>).
+      </p>
+      <div class="av-dev-info-grid">
+        <div>
+          <span class="av-label">Subject (sub)</span>
+          <span id="bearer-sub" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">Issuer (iss)</span>
+          <span id="bearer-iss" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">Audience (aud)</span>
+          <span id="bearer-aud" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">Issued At (iat)</span>
+          <span id="bearer-iat" class="av-readonly">—</span>
+        </div>
+        <div>
+          <span class="av-label">Expires At (exp)</span>
+          <span id="bearer-exp" class="av-readonly">—</span>
+        </div>
+        <div>
+          <span class="av-label">Time Until Expiry</span>
+          <span id="bearer-ttl" class="av-readonly">—</span>
+        </div>
+        <div>
+          <span class="av-label">Scopes</span>
+          <span id="bearer-scope" class="av-readonly mono">—</span>
+        </div>
+        <div>
+          <span class="av-label">Decode Status</span>
+          <span id="bearer-decode-status" class="av-readonly">—</span>
+        </div>
+        <div>
+          <span class="av-label">Browser UTC Clock</span>
+          <span id="bearer-browser-utc" class="av-readonly mono">—</span>
+        </div>
+      </div>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- Session Inspector (collapsible, full JSON)                    -->
+    <!-- ============================================================ -->
+    <details class="av-collapsible" id="session-panel">
+      <summary>Session State (debug)</summary>
+      <pre id="session-inspector" class="av-pre" aria-live="polite"></pre>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- Card 1 — Select Token                                        -->
+    <!-- ============================================================ -->
+    <section class="av-card" id="card-select" data-step="1">
+      <header class="av-card-header">
+        <span class="step-pill step-pill-1">1</span>
+        <h2>Select Token</h2>
+        <span class="step-state" id="state-select" data-state="idle">⏳ Pending</span>
+        <span class="av-pill state-pill state-idle" id="pill-select">Idle</span>
+      </header>
+      <div class="av-card-body">
+        <p class="av-hint">
+          Persistent configuration is saved to <code>localStorage</code>. Workflow state resets on reload.
+        </p>
+        <form id="form-select" class="av-form" autocomplete="off">
+          <label>
+            <span>API Base</span>
+            <input id="sel-api" type="text" placeholder="https://vault.example.com" />
+          </label>
+          <label>
+            <span>Bearer Token</span>
+            <input id="sel-bearer" type="text" placeholder="paste Bearer JWT" />
+          </label>
+          <label>
+            <span>Actor ID</span>
+            <input id="sel-actor" type="text" placeholder="principal-123" />
+          </label>
+          <label>
+            <span>Actor Role</span>
+            <select id="sel-role">
+              <option value="">— select —</option>
+              <option value="TEACHER">TEACHER</option>
+              <option value="SCHOOL_ADMIN">SCHOOL_ADMIN</option>
+              <option value="STATE_ADMIN">STATE_ADMIN</option>
+              <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+              <option value="SERVICE">SERVICE</option>
+            </select>
+          </label>
+          <label>
+            <span>Token ID</span>
+            <input id="sel-token" type="text" placeholder="opaque token id" />
+          </label>
+          <div class="av-card-actions">
+            <button id="btn-save-session" type="button" class="av-btn av-btn-primary">Save Session</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Card 2 — Enroll MFA                                          -->
+    <!-- ============================================================ -->
+    <section class="av-card is-disabled" id="card-enroll" data-step="2">
+      <header class="av-card-header">
+        <span class="step-pill step-pill-2">2</span>
+        <h2>Enroll MFA</h2>
+        <span class="step-state" id="state-enroll" data-state="idle">⏳ Pending</span>
+        <span class="av-pill state-pill state-idle" id="pill-enroll">Idle</span>
+      </header>
+      <div class="av-card-body">
+        <p class="av-hint">
+          Enrolls a TOTP factor for the current actor. The <strong>Factor ID</strong> and <strong>OTP URI</strong> are
+          stored in the session. The browser computes the current TOTP from the OTP URI — no external authenticator
+          required.
+        </p>
+        <div class="av-card-actions">
+          <button id="btn-enroll" type="button" class="av-btn av-btn-primary" disabled>Enroll MFA</button>
+        </div>
+        <div class="av-readonly-grid">
+          <div>
+            <span class="av-label">Factor ID</span>
+            <span id="enroll-factor-id" class="av-readonly mono">—</span>
+            <button class="copy-btn" data-target="#enroll-factor-id" type="button">Copy</button>
+          </div>
+          <div>
+            <span class="av-label">OTP URI</span>
+            <span id="enroll-otpauth" class="av-readonly mono">—</span>
+            <button class="copy-btn" data-target="#enroll-otpauth" type="button">Copy</button>
+          </div>
+          <div>
+            <span class="av-label">Created At</span>
+            <span id="enroll-created" class="av-readonly">—</span>
+          </div>
+        </div>
+        <div class="av-totp-block" id="totp-display" hidden>
+          <div class="av-totp-grid">
+            <div class="av-totp-main">
+              <span class="av-label">Current TOTP</span>
+              <span id="totp-code" class="av-totp-code">——————</span>
+              <span class="av-totp-meta">Refreshes in <span id="totp-remaining">—</span>s</span>
+            </div>
+            <div class="av-totp-side">
+              <div id="totp-countdown" class="av-totp-countdown" data-remaining="—"></div>
+              <button id="btn-refresh-totp" type="button" class="av-btn av-btn-ghost av-btn-small">Refresh TOTP</button>
+            </div>
+          </div>
+          <div class="av-totp-progress">
+            <div id="totp-progress-bar" class="av-totp-progress-bar"></div>
+          </div>
+        </div>
+        <div id="card-error-enroll" class="av-card-error" hidden role="alert"></div>
+        <div class="av-api-inspector" id="api-inspector-enroll" hidden>
+          <div class="av-api-inspector-head">
+            <span class="av-label">Last API call (enroll)</span>
+            <button class="copy-btn" data-target="#api-inspector-enroll pre" type="button">Copy</button>
+          </div>
+          <pre class="av-pre">—</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Card 3 — Request Step-Up                                     -->
+    <!-- ============================================================ -->
+    <section class="av-card is-disabled" id="card-request" data-step="3">
+      <header class="av-card-header">
+        <span class="step-pill step-pill-3">3</span>
+        <h2>Request Step-Up</h2>
+        <span class="step-state" id="state-request" data-state="idle">⏳ Pending</span>
+        <span class="av-pill state-pill state-idle" id="pill-request">Idle</span>
+      </header>
+      <div class="av-card-body">
+        <p class="av-hint">
+          Submits a step-up challenge for the active token. <strong>Token ID</strong> and <strong>Factor ID</strong> are
+          taken from the session — no copy/paste required.
+        </p>
+        <div class="av-card-actions">
+          <button id="btn-request" type="button" class="av-btn av-btn-primary" disabled>Request Step-Up</button>
+        </div>
+        <div class="av-readonly-grid">
+          <div>
+            <span class="av-label">Token ID (auto)</span>
+            <span id="request-token" class="av-readonly mono">—</span>
+          </div>
+          <div>
+            <span class="av-label">Factor ID (auto)</span>
+            <span id="request-factor" class="av-readonly mono">—</span>
+          </div>
+          <div>
+            <span class="av-label">Challenge ID</span>
+            <span id="request-challenge-id" class="av-readonly mono">—</span>
+            <button class="copy-btn" data-target="#request-challenge-id" type="button">Copy</button>
+          </div>
+          <div>
+            <span class="av-label">Expires At</span>
+            <span id="request-expires" class="av-readonly">—</span>
+          </div>
+        </div>
+        <div id="card-error-request" class="av-card-error" hidden role="alert"></div>
+        <div class="av-api-inspector" id="api-inspector-request" hidden>
+          <div class="av-api-inspector-head">
+            <span class="av-label">Last API call (request)</span>
+            <button class="copy-btn" data-target="#api-inspector-request pre" type="button">Copy</button>
+          </div>
+          <pre class="av-pre">—</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Card 4 — Approve Challenge                                   -->
+    <!-- ============================================================ -->
+    <section class="av-card is-disabled" id="card-approve" data-step="4">
+      <header class="av-card-header">
+        <span class="step-pill step-pill-4">4</span>
+        <h2>Approve Challenge</h2>
+        <span class="step-state" id="state-approve" data-state="idle">⏳ Pending</span>
+        <span class="av-pill state-pill state-idle" id="pill-approve">Idle</span>
+      </header>
+      <div class="av-card-body">
+        <p class="av-hint">
+          Proves possession of the TOTP factor bound to the challenge. The <strong>Challenge ID</strong> and the
+          <strong>current TOTP</strong> can be entered manually or left as the browser-generated code.
+        </p>
+        <div class="av-readonly-grid">
+          <div>
+            <span class="av-label">Challenge ID (auto)</span>
+            <span id="approve-challenge-id" class="av-readonly mono">—</span>
+          </div>
+          <div>
+            <span class="av-label">Current TOTP (auto)</span>
+            <input id="approve-totp" class="av-readonly mono" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="enter TOTP" />
+          </div>
+          <div>
+            <span class="av-label">Status</span>
+            <span id="approve-status" class="av-readonly">—</span>
+          </div>
+          <div>
+            <span class="av-label">Verified Factor</span>
+            <span id="approve-verify-factor" class="av-readonly mono">—</span>
+          </div>
+          <div>
+            <span class="av-label">Approved At</span>
+            <span id="approve-approved-at" class="av-readonly">—</span>
+          </div>
+        </div>
+        <div class="av-card-actions">
+          <button id="btn-approve" type="button" class="av-btn av-btn-primary" disabled>Approve Challenge</button>
+        </div>
+        <div id="card-error-approve" class="av-card-error" hidden role="alert"></div>
+        <div class="av-api-inspector" id="api-inspector-approve" hidden>
+          <div class="av-api-inspector-head">
+            <span class="av-label">Last API call (approve)</span>
+            <button class="copy-btn" data-target="#api-inspector-approve pre" type="button">Copy</button>
+          </div>
+          <pre class="av-pre">—</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Card 5 — Detokenize                                          -->
+    <!-- ============================================================ -->
+    <section class="av-card is-disabled" id="card-detokenize" data-step="5">
+      <header class="av-card-header">
+        <span class="step-pill step-pill-5">5</span>
+        <h2>Detokenize</h2>
+        <span class="step-state" id="state-detokenize" data-state="idle">⏳ Pending</span>
+        <span class="av-pill state-pill state-idle" id="pill-detokenize">Idle</span>
+      </header>
+      <div class="av-card-body">
+        <p class="av-hint">
+          Releases the Aadhaar plaintext using the approved challenge. <strong>Challenge ID</strong> and
+          <strong>Actor</strong> are taken from the session.
+        </p>
+        <div class="av-readonly-grid">
+          <div>
+            <span class="av-label">Challenge (auto)</span>
+            <span id="detach-challenge" class="av-readonly mono">—</span>
+          </div>
+          <div>
+            <span class="av-label">Actor (auto)</span>
+            <span id="detach-actor" class="av-readonly">—</span>
+          </div>
+          <div>
+            <span class="av-label">Token (context)</span>
+            <span id="detach-token" class="av-readonly mono">—</span>
+          </div>
+        </div>
+        <div class="av-card-actions">
+          <button id="btn-detach" type="button" class="av-btn av-btn-primary" disabled>Detokenize</button>
+        </div>
+        <div class="av-readonly-grid">
+          <div>
+            <span class="av-label">Aadhaar (plaintext)</span>
+            <span id="detach-aadhaar" class="av-readonly mono">—</span>
+            <button class="copy-btn" data-target="#detach-aadhaar" type="button">Copy</button>
+          </div>
+          <div>
+            <span class="av-label">Last4</span>
+            <span id="detach-last4" class="av-readonly">—</span>
+          </div>
+          <div>
+            <span class="av-label">Identity ID</span>
+            <span id="detach-identity" class="av-readonly mono">—</span>
+          </div>
+          <div>
+            <span class="av-label">Audit ID</span>
+            <span id="detach-audit" class="av-readonly mono">—</span>
+          </div>
+        </div>
+        <div id="card-error-detokenize" class="av-card-error" hidden role="alert"></div>
+        <div class="av-api-inspector" id="api-inspector-detokenize" hidden>
+          <div class="av-api-inspector-head">
+            <span class="av-label">Last API call (detokenize)</span>
+            <button class="copy-btn" data-target="#api-inspector-detokenize pre" type="button">Copy</button>
+          </div>
+          <pre class="av-pre">—</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Activity Log                                                 -->
+    <!-- ============================================================ -->
+    <details class="av-collapsible" open id="log-panel">
+      <summary>Activity Log</summary>
+      <div id="log-tbody" class="av-log"></div>
+    </details>
+
+  </main>
+
+  <script src="config.js"></script>
+  <script src="storage.js"></script>
+  <script src="logger.js"></script>
+  <script src="ui.js"></script>
+  <script src="api.js"></script>
+  <script src="stepup.js"></script>
+</body>
+</html>
