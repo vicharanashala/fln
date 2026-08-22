@@ -1,0 +1,16 @@
+[Unit]
+Description=FLN OCR microservice (EasyOCR via FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/srv/fln/ai-services
+ExecStart=/usr/local/bin/uvicorn ocr_server:app --host 127.0.0.1 --port 8001 --workers 1
+Restart=on-failure
+RestartSec=3
+StandardOutput=append:/var/log/tenali/fln-ocr.log
+StandardError=append:/var/log/tenali/fln-ocr.log
+
+[Install]
+WantedBy=multi-user.target
