@@ -10,6 +10,7 @@ import { AI_SERVICES_DIR, PYTHON_BIN } from '../config';
 import { resolvePrerequisites, describeConcept } from '../competencyPrerequisites';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
+import { ensurePracticeSchedulesForWeakCompetencies, reconcilePracticeSchedulesWithDiagnostic } from '../services/practiceScheduleService';
 
 export function registerStudentRoutes(app: express.Express) {
   // Students
@@ -693,6 +694,10 @@ export function registerStudentRoutes(app: express.Express) {
       recommendedLevel = (classNumber - 1) * 10 + 1;
     }
 
+    // Captured before updateStudent below overwrites currentLevel in the DB —
+    // reconcilePracticeSchedulesWithDiagnostic needs the pre-diagnostic value.
+    const previousCurrentLevel = student.currentLevel;
+
     // Update Student placing levels
     const levelHistory = [...student.levelHistory, {
       level: recommendedLevel,
@@ -983,6 +988,17 @@ export function registerStudentRoutes(app: express.Express) {
     };
 
     await dbStore.addEvaluationReport(report);
+
+    await ensurePracticeSchedulesForWeakCompetencies(student.id, student.name, user.id, conceptMastery);
+
+    await reconcilePracticeSchedulesWithDiagnostic(
+      student.id,
+      student.name,
+      user.id,
+      conceptMastery,
+      previousCurrentLevel,
+      recommendedLevel
+    );
 
     await dbStore.addLog({
       id: 'log_' + Date.now(),

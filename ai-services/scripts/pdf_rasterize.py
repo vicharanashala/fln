@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Rasterize a PDF to PNG using PyMuPDF.
+Rasterize page(s) of a PDF to PNG using PyMuPDF.
 
-Used by the /api/icr/filter endpoint to accept PDFs (the blue-ink filter
-only operates on raster pixels). Renders at 300 DPI so downstream OCR
-sees enough detail to read student handwriting.
+Used by the /api/icr/filter and /api/icr/rasterize-pdf endpoints to accept
+PDFs (the blue-ink filter and jsQR both only operate on raster pixels).
+Renders at 300 DPI so downstream OCR/QR-detection sees enough detail.
 
 Stdout format (single JSON line):
   Single-page mode: {"success": true, "output_path": "...", "page_size": [w, h]}

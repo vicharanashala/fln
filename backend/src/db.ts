@@ -139,7 +139,7 @@ export interface Question {
   question_id: string;
   question: string;
   answer: string;
-  answer_type: 'text' | 'number' | 'choice';
+  answer_type: 'text' | 'number' | 'choice' | 'visual-confirm';
   choices?: string[];
   topic: string;
   subtopic: string;
@@ -147,6 +147,11 @@ export interface Question {
   source_level: number; // Mapping to mathematical level
   conceptId?: string; // Concept ID from 93-node framework (e.g. S1.1, S3.3)
   svgAsset?: string; // Standard pre-built SVG asset category
+  // For 'visual-confirm' questions: the deterministically-rendered SVG
+  // showing what the correct drawing should look like (e.g. tally marks for
+  // the stored correctAnswer count), shown next to the student's uploaded
+  // photo so the teacher can judge match/no-match instead of typing a value.
+  referenceImageSvg?: string;
 }
 
 /**
@@ -386,6 +391,116 @@ export interface EvaluationReport {
   reviewedAt?: string;
 }
 
+export interface PracticeSchedule {
+  id: string;
+  studentId: string;
+  studentName: string;
+  teacherId: string;
+  competency: string;
+  intervalDays: number;
+  // The student's exact real-content position for this competency, in the
+  // 59-level micro-practice system (levels_main.html's LEVELS array — see
+  // flnLevels.ts). Optional because schedules written before this field
+  // existed won't have it; getOrInitPracticeSchedule (index.ts) backfills
+  // any schedule missing it back to the strand's easiest level, subIdx 0,
+  // rather than trust a currentSubLevel value that was never validated
+  // against a specific level.
+  currentLevelId?: number;
+  currentSubIdx?: number;  // subIdx within currentLevelId — defaults to 0 for new schedules; range depends on the level (see getSubsCountForLevel), no longer a fixed 0-2 cap
+  resolved?: boolean;      // true once the student clears the last subIdx of the last level in the competency's strand with a good score — no further real content exists
+  nextDueDate: string;
+  lastCompletedAt?: string;
+  createdAt: string;
+}
+
+export interface MicroAssignment {
+  id: string;
+  scheduleId: string;
+  studentId: string;
+  studentName: string;
+  competency: string;
+  questions: Question[];
+  assignedAt: string;
+  completedAt?: string;
+  correctCount?: number;
+  totalCount: number;
+}
+
+/**
+ * One printed micro-practice paper's real, generation-time answer key.
+ * generateMicroSet's generators are randomized (Math.random(), no seeding),
+ * so the questions/answers actually printed on the paper can't be safely
+ * reconstructed by calling generateMicroSet again later — this record is
+ * what the manual answer-entry flow reads from instead. id is embedded in
+ * the paper's QR code so an uploaded photo can be matched back to the
+ * exact paper it came from (not just "a" paper matching the same
+ * student/level/section, which spaced repetition can regenerate more than
+ * once).
+ */
+/**
+ * One "Part N: <competency>" section within a multi-competency
+ * micro-practice paper (see generateMultiCompetencyMicroPaper).
+ */
+export interface MicroPracticePart {
+  competency: string;
+  levelId: number;
+  subIdx: number;
+  sectionIndex: number;
+  questionCount: number;
+  questions: Question[];
+}
+
+export interface MicroPracticePaper {
+  id: string;
+  studentId: string;
+  studentName: string;
+  pdfUrl: string;
+  createdAt: string;
+
+  // Multi-competency papers (generateMultiCompetencyMicroPaper): one entry
+  // per printed "Part N: <competency>" section.
+  parts?: MicroPracticePart[];
+
+  // Legacy single-competency shape (generateMicroPracticePaper /
+  // POST /api/students/:id/micro-practice/generate-pdf). Populated only
+  // when `parts` is absent — kept exactly as before so the existing GET
+  // /api/practice/paper/:paperId route and MicroPracticeAnswerEntry.tsx
+  // continue to work unchanged. Migrating those to read `parts` uniformly
+  // for both cases is a follow-up, not part of this change.
+  competency?: string | null;
+  levelId?: number;
+  subIdx?: number;
+  sectionIndex?: number;
+  questionCount?: number;
+  questions?: Question[];
+}
+
+/**
+ * Tracks a photographed/scanned completed micro-practice paper from the
+ * moment it's uploaded until it's fully graded. POST /api/practice/upload-paper
+ * used to just save the image and echo the QR payload back with no persisted
+ * record — this is that missing record, so teachers can leave an uploaded
+ * paper ungraded and come back to it later (GET /api/practice/pending-papers).
+ * totalParts/gradedCompetencies track multi-competency papers so the record
+ * only flips to 'graded' once every part has been submitted, not after the
+ * first one.
+ */
+export interface UploadedPaper {
+  id: string;
+  paperId: string;
+  studentId: string;
+  studentName: string;
+  imageUrl: string;
+  teacherId: string;
+  uploadedAt: string;
+  uploadBatchId?: string;
+  gradingStatus: 'pending' | 'graded';
+  gradedAt?: string;
+  totalParts: number;
+  gradedCompetencies: string[];
+  draftAnswers?: Record<number, Record<string, string>>;
+}
+
 export interface Ticket {
   id: string;
   userId: string;
@@ -490,6 +605,10 @@ interface DatabaseSchema {
   interventions: Intervention[];
   bestPractices: BestPractice[];
   diagnosticAnswerKeys: DiagnosticAnswerKey[];
+  practiceSchedules: PracticeSchedule[];
+  microAssignments: MicroAssignment[];
+  microPracticePapers: MicroPracticePaper[];
+  uploadedPapers: UploadedPaper[];
   testHistory: TestHistoryEntry[];
 }
 
@@ -511,6 +630,10 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   interventions: 'interventions',
   bestPractices: 'best_practices',
   diagnosticAnswerKeys: 'diagnostic_answer_keys',
+  practiceSchedules: 'practice_schedules',
+  microAssignments: 'micro_assignments',
+  microPracticePapers: 'micro_practice_papers',
+  uploadedPapers: 'uploaded_papers',
   testHistory: 'testHistory',
 };
 
@@ -1489,6 +1612,133 @@ export class DBStore {
       if (idx !== -1) this.data.bestPractices[idx] = bp;
     }
     return bp || undefined;
+  }
+
+  // NOTE: these three methods previously called this.mongoDb! unconditionally
+  // (no file-based fallback), which throws when running without MONGODB_URI —
+  // the project's default local dev mode (npm run dev:backend). Fixed here to
+  // match the if(this.mongoDb){...}else{...} pattern used elsewhere in this
+  // file (e.g. getStudents), since the adaptive scheduling feature needs
+  // these to actually work locally.
+  async getPracticeSchedules() {
+    if (this.mongoDb) return await this.mongoDb.collection<PracticeSchedule>('practiceSchedules').find({}).toArray();
+    return this.data?.practiceSchedules || [];
+  }
+
+  async addPracticeSchedule(schedule: PracticeSchedule) {
+    if (this.mongoDb) await this.mongoDb.collection('practiceSchedules').insertOne(schedule);
+    if (this.data) {
+      if (!this.data.practiceSchedules) this.data.practiceSchedules = [];
+      this.data.practiceSchedules.push(schedule);
+      if (!this.mongoDb) await this.save();
+    }
+    return schedule;
+  }
+
+  async updatePracticeSchedule(id: string, updates: Partial<PracticeSchedule>) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('practiceSchedules').updateOne({ id }, { $set: updates });
+      const s = await this.mongoDb.collection<PracticeSchedule>('practiceSchedules').findOne({ id });
+      if (s && this.data) {
+        const idx = this.data.practiceSchedules.findIndex(x => x.id === id);
+        if (idx !== -1) this.data.practiceSchedules[idx] = s;
+      }
+      return s || undefined;
+    }
+    if (!this.data) return undefined;
+    const idx = this.data.practiceSchedules.findIndex(x => x.id === id);
+    if (idx === -1) return undefined;
+    this.data.practiceSchedules[idx] = { ...this.data.practiceSchedules[idx], ...updates };
+    await this.save();
+    return this.data.practiceSchedules[idx];
+  }
+
+  async getMicroAssignments() {
+    return await this.mongoDb!.collection<MicroAssignment>('microAssignments').find({}).toArray();
+  }
+
+  async addMicroAssignment(assignment: MicroAssignment) {
+    await this.mongoDb!.collection('microAssignments').insertOne(assignment);
+    if (this.data) this.data.microAssignments.push(assignment);
+    return assignment;
+  }
+
+  async updateMicroAssignment(id: string, updates: Partial<MicroAssignment>) {
+    await this.mongoDb!.collection('microAssignments').updateOne({ id }, { $set: updates });
+    const a = await this.mongoDb!.collection<MicroAssignment>('microAssignments').findOne({ id });
+    if (a && this.data) {
+      const idx = this.data.microAssignments.findIndex(x => x.id === id);
+      if (idx !== -1) this.data.microAssignments[idx] = a;
+    }
+    return a || undefined;
+  }
+
+  async addMicroPracticePaper(paper: MicroPracticePaper) {
+    await this.mongoDb!.collection('microPracticePapers').insertOne(paper);
+    if (this.data) this.data.microPracticePapers.push(paper);
+    return paper;
+  }
+
+  async getMicroPracticePaperById(id: string) {
+    const p = await this.mongoDb!.collection<MicroPracticePaper>('microPracticePapers').findOne({ id });
+    return p || undefined;
+  }
+
+  // Batched version of getMicroPracticePaperById — used by the Due Today
+  // filter (see GET /api/practice/due) to resolve every pending uploaded
+  // paper's covered competencies in one round trip instead of N.
+  async getMicroPracticePapersByIds(ids: string[]) {
+    return await this.mongoDb!.collection<MicroPracticePaper>('microPracticePapers').find({ id: { $in: ids } }).toArray();
+  }
+
+  async getUploadedPapers() {
+    return await this.mongoDb!.collection<UploadedPaper>('uploadedPapers').find({}).toArray();
+  }
+
+  async addUploadedPaper(paper: UploadedPaper) {
+    await this.mongoDb!.collection('uploadedPapers').insertOne(paper);
+    if (this.data) this.data.uploadedPapers.push(paper);
+    return paper;
+  }
+
+  async getUploadedPaperById(id: string) {
+    const p = await this.mongoDb!.collection<UploadedPaper>('uploadedPapers').findOne({ id });
+    return p || undefined;
+  }
+
+  // Sorted by uploadedAt desc so that if duplicate records for the same
+  // paperId ever exist (e.g. legacy rows written before duplicate-upload
+  // handling existed), this deterministically returns the most recent one
+  // instead of an arbitrary Mongo-natural-order match.
+  async getUploadedPaperByPaperId(paperId: string) {
+    const p = await this.mongoDb!.collection<UploadedPaper>('uploadedPapers').findOne({ paperId }, { sort: { uploadedAt: -1 } });
+    return p || undefined;
+  }
+
+  // Batched version of getUploadedPaperByPaperId for the duplicate-upload
+  // pre-flight check — one round trip for N paperIds instead of N. Returns
+  // at most one record per paperId (the most recent), same tie-break as
+  // above.
+  async getUploadedPapersByPaperIds(paperIds: string[]) {
+    const all = await this.mongoDb!.collection<UploadedPaper>('uploadedPapers')
+      .find({ paperId: { $in: paperIds } })
+      .sort({ uploadedAt: -1 })
+      .toArray();
+    const byPaperId = new Map<string, UploadedPaper>();
+    for (const p of all) {
+      if (!byPaperId.has(p.paperId)) byPaperId.set(p.paperId, p);
+    }
+    return Array.from(byPaperId.values());
+  }
+
+  async updateUploadedPaper(id: string, updates: Partial<UploadedPaper>) {
+    await this.mongoDb!.collection('uploadedPapers').updateOne({ id }, { $set: updates });
+    const p = await this.mongoDb!.collection<UploadedPaper>('uploadedPapers').findOne({ id });
+    if (p && this.data) {
+      const idx = this.data.uploadedPapers.findIndex(x => x.id === id);
+      if (idx !== -1) this.data.uploadedPapers[idx] = p;
+    }
+    return p || undefined;
   }
 
   // --- Diagnostic Answer Key Methods ---
@@ -3390,6 +3640,10 @@ export class DBStore {
       interventions,
       bestPractices,
       diagnosticAnswerKeys: [],
+      practiceSchedules: [],
+      microAssignments: [],
+      microPracticePapers: [],
+      uploadedPapers: [],
       testHistory: []
     };
   }

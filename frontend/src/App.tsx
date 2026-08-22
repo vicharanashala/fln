@@ -23,6 +23,7 @@ import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
+import { MicroPractice } from './components/MicroPractice';
 
 export default function App() {
   const navigate = useNavigate();
@@ -31,8 +32,8 @@ export default function App() {
     try {
       const saved = localStorage.getItem('fln_theme');
       if (saved) return saved === 'dark';
-      return document.documentElement.classList.contains('dark') || 
-             window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return document.documentElement.classList.contains('dark') ||
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
     } catch {
       return false;
     }
@@ -147,7 +148,7 @@ export default function App() {
 
     switch (currentUser.role) {
       case 'superadmin':
-return <SuperadminDashboard user={currentUser} token={token!} />;
+        return <SuperadminDashboard user={currentUser} token={token!} />;
       case 'admin':
       case 'district_admin':
       case 'block_admin':
@@ -222,11 +223,10 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                         announcements.map(notif => (
                           <div
                             key={notif.id}
-                            className={`space-y-2 rounded-xl border p-4 ${
-                              notif.isUrgent
+                            className={`space-y-2 rounded-xl border p-4 ${notif.isUrgent
                                 ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30'
                                 : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-bold text-slate-900 dark:text-white">{notif.title}</h4>
@@ -245,6 +245,7 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                 {activePanel === 'logbook' && <LogbookView token={token} user={currentUser} />}
                 {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role} />}
                 {activePanel === 'calendar' && <AssessmentCalendar />}
+                {activePanel === 'micro-practice' && <MicroPractice token={token} userRole={currentUser.role} />}
 
                 {activePanel === 'settings' && (
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
