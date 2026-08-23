@@ -435,7 +435,7 @@ async function startServer() {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const students = await dbStore.getStudents();
+    const students = await dbStore.getStudents((req.query.search as string | undefined)?.trim());
 
     // Roles with a direct, day-to-day relationship to the child (and superadmin)
     // see full contact/address PII; aggregate-scope admins and volunteers get it
@@ -475,6 +475,12 @@ async function startServer() {
       });
     } else {
       scoped = maskedStudents;
+    }
+    const searchParam = (req.query.search as string | undefined)?.trim().toLowerCase();
+    if (searchParam) {
+      scoped = scoped.filter(s =>
+        s.name.toLowerCase().includes(searchParam) || s.id.toLowerCase().includes(searchParam)
+      );
     }
 
     // Pagination is opt-in via ?page & ?limit — omitting them returns the full
@@ -1614,6 +1620,29 @@ async function startServer() {
     const reps = await dbStore.getEvaluationReports();
     const filtered = reps.filter(r => r.studentId === req.params.studentId);
     res.json(filtered);
+  });
+
+  // Weak Topic Detector — aggregate concept mastery across all reports for a student
+  app.get('/api/evaluation/:studentId/weak-topics', async (req, res) => {
+    const weakTopics = await dbStore.getWeakTopicsForStudent(req.params.studentId);
+    res.json(weakTopics);
+  });
+  
+  // Get specific mistakes for a student, optionally filtered by topics
+  app.get('/api/evaluation/:studentId/mistakes', async (req, res) => {
+    const topicsParam = req.query.topics as string | undefined;
+    const topics = topicsParam ? topicsParam.split(',') : undefined;
+    const mistakes = await dbStore.getMistakesForStudent(req.params.studentId, topics);
+    res.json(mistakes);
+  });
+
+  // Get practice questions for a specific topic
+  app.get('/api/practice-questions', async (req, res) => {
+    const topic = req.query.topic as string;
+    const count = Number(req.query.count) || 8;
+    if (!topic) return res.status(400).json({ error: 'topic query param is required.' });
+    const questions = await dbStore.getPracticeQuestions(topic, count);
+    res.json(questions);
   });
 
   // Roll up Analytics for Dashboards scoped by Role (§14)

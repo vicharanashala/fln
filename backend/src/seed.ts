@@ -468,6 +468,79 @@ async function main() {
       }
     }
   }
+  // ════════════════════════════════════════════
+  // 2b. EVALUATION REPORTS + REAL ANSWER SUBMISSIONS (for Weak-Topic Detector + Mistakes)
+  // ════════════════════════════════════════════
+  const ALL_QUESTIONS = [...SEED_QUESTIONS, ...questionBankSeed] as any[];
+  const questionsByTopic: Record<string, any[]> = {};
+  for (const q of ALL_QUESTIONS) {
+    if (!questionsByTopic[q.topic]) questionsByTopic[q.topic] = [];
+    questionsByTopic[q.topic].push(q);
+  }
+  const TOPICS = Object.keys(questionsByTopic);
+  const MASTERY_LEVELS: ('Strong' | 'Needs Practice' | 'Satisfactory')[] = ['Strong', 'Needs Practice', 'Satisfactory'];
+
+  function makeWrongAnswer(q: any): string {
+    if (q.answer_type === 'number') {
+      const correct = Number(q.answer);
+      const delta = Math.random() < 0.5 ? 1 : -1;
+      return String(correct + delta * (1 + Math.floor(Math.random() * 3)));
+    }
+    if (q.answer_type === 'choice' && q.choices?.length > 1) {
+      const others = q.choices.filter((c: string) => c !== q.answer);
+      return others[Math.floor(Math.random() * others.length)];
+    }
+    return q.answer + ' (incorrect)';
+  }
+
+  const allEvaluationReports: Record<string, any>[] = [];
+  const allAnswerSubmissions: Record<string, any>[] = [];
+
+  for (const student of allStudents) {
+    const numReports = 2 + Math.floor(Math.random() * 3); // 2-4 reports per student
+    for (let r = 0; r < numReports; r++) {
+      const conceptMastery: Record<string, string> = {};
+      const numTopics = 3 + Math.floor(Math.random() * 3);
+      const shuffledTopics = [...TOPICS].sort(() => Math.random() - 0.5).slice(0, numTopics);
+      const worksheetId = `ws_seed_${student.id}_${r}`;
+      const answers: Record<string, string> = {};
+
+      for (const topic of shuffledTopics) {
+        const mastery = MASTERY_LEVELS[Math.floor(Math.random() * MASTERY_LEVELS.length)];
+        conceptMastery[topic] = mastery;
+
+        const pool = questionsByTopic[topic];
+        if (pool && pool.length > 0) {
+          const q = pool[Math.floor(Math.random() * pool.length)];
+          answers[q.question_id] = mastery === 'Needs Practice' ? makeWrongAnswer(q) : q.answer;
+        }
+      }
+
+      allEvaluationReports.push({
+        id: `eval_${student.id}_${r}`,
+        studentId: student.id,
+        worksheetId,
+        score: Math.floor(Math.random() * 10) + 1,
+        totalQuestions: 10,
+        conceptMastery,
+        narrative: 'Auto-generated seed evaluation for testing.',
+        recommendedLevel: student.currentLevel,
+        timestamp: new Date(Date.now() - r * 7 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+      allAnswerSubmissions.push({
+        id: `sub_${student.id}_${r}`,
+        worksheetId,
+        studentId: student.id,
+        studentName: student.name,
+        schoolId: student.schoolId,
+        classId: student.classId || '',
+        submittedAt: new Date(Date.now() - r * 7 * 24 * 60 * 60 * 1000).toISOString(),
+        isDelayed: false,
+        answers,
+      });
+    }
+  }
 
   // ════════════════════════════════════════════
   // 3. INSERT INTO MONGODB
@@ -488,6 +561,12 @@ async function main() {
 
   const questionsResult = await db.collection('questions').insertMany([...SEED_QUESTIONS, ...questionBankSeed]);
   console.log(`  questions:      ${questionsResult.insertedCount} inserted`);
+
+  const evalReportsResult = await db.collection('evaluationReports').insertMany(allEvaluationReports);
+  console.log(`  evaluationReports: ${evalReportsResult.insertedCount} inserted`);
+
+  const answerSubsResult = await db.collection('answerSubmissions').insertMany(allAnswerSubmissions);
+  console.log(`  answerSubmissions: ${answerSubsResult.insertedCount} inserted`);
 
   // ════════════════════════════════════════════
   // 4. SUMMARY
@@ -510,6 +589,7 @@ async function main() {
   console.log(`    Teachers:     ${allClasses.length}`);
   console.log(`    Volunteers:   ${allUsers.filter((u) => u.role === UserRole.VOLUNTEER).length}`);
   console.log(`  Questions:      ${SEED_QUESTIONS.length + questionBankSeed.length}`);
+  console.log(`  Evaluation Reports: ${allEvaluationReports.length}`);
   console.log('========================================\n');
 
   await client.close();

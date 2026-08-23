@@ -1,4 +1,5 @@
 import { apiFetch, UNAUTHORIZED_EVENT } from './services/apiClient';
+import WeakTopicsPanel from './components/WeakTopicsPanel';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -203,6 +204,7 @@ export default function App() {
                 {activePanel === 'logbook' && <LogbookView token={token} user={currentUser} />}
                 {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role} />}
                 {activePanel === 'calendar' && <AssessmentCalendar />}
+                {activePanel === 'weaktopics' && <WeakTopicsPanel/>}
 
                 {activePanel === 'settings' && (
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

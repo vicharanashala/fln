@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { User, UserRole, Announcement } from '../types';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
-  LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
+  LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,TrendingDown,
   School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound,   Clock
 } from 'lucide-react';
 
@@ -119,6 +119,7 @@ export const Layout: React.FC<LayoutProps> = ({
     const list: NavigationItem[] = [];
 
     list.push({ name: 'Dashboard', view: 'workspace', icon: LayoutDashboard });
+    list.push({ name: 'Weak Topics', view: 'weaktopics', icon: TrendingDown });
 
     switch (currentUser.role) {
       case UserRole.TEACHER:

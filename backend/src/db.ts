@@ -404,8 +404,14 @@ export class DBStore {
   async getClasses() {
     return await this.mongoDb!.collection<ClassGroup>('classes').find({}).toArray();
   }
-  async getStudents() {
-    return await this.mongoDb!.collection<Student>('students').find({}).toArray();
+  async getStudents(search?: string) {
+  const filter = search
+    ? { $or: [
+        { name: { $regex: search, $options: 'i' } },
+        { id: { $regex: search, $options: 'i' } },
+      ] }
+    : {};
+  return await this.mongoDb!.collection<Student>('students').find(filter).toArray();
   }
   async getQuestions() {
     return await this.mongoDb!.collection<Question>('questions').find({}).toArray();
@@ -421,6 +427,63 @@ export class DBStore {
   }
   async getEvaluationReports() {
     return await this.mongoDb!.collection<EvaluationReport>('evaluationReports').find({}).toArray();
+  }
+  async getWeakTopicsForStudent(studentId: string) {
+    const reports = await this.mongoDb!.collection<EvaluationReport>('evaluationReports')
+      .find({ studentId }).toArray();
+
+    const topicStats: { [topic: string]: { needsPractice: number; total: number } } = {};
+
+    for (const report of reports) {
+      for (const [topic, mastery] of Object.entries(report.conceptMastery)) {
+        if (!topicStats[topic]) topicStats[topic] = { needsPractice: 0, total: 0 };
+        topicStats[topic].total++;
+        if (mastery === 'Needs Practice') topicStats[topic].needsPractice++;
+      }
+    }
+
+    return Object.entries(topicStats)
+      .map(([topic, stats]) => ({
+        topic,
+        needsPracticeCount: stats.needsPractice,
+        totalAttempts: stats.total,
+        weaknessRate: stats.needsPractice / stats.total,
+      }))
+      .sort((a, b) => b.weaknessRate - a.weaknessRate);
+  }
+  async getMistakesForStudent(studentId: string, topics?: string[]) {
+    const submissions = await this.mongoDb!.collection<AnswerSubmission>('answerSubmissions')
+      .find({ studentId }).toArray();
+
+    const allQuestions = await this.mongoDb!.collection<any>('questions').find({}).toArray();
+    const questionMap: Record<string, any> = {};
+    for (const q of allQuestions) questionMap[q.question_id] = q;
+
+    const mistakes: { topic: string; question: string; studentAnswer: string; correctAnswer: string }[] = [];
+
+    for (const sub of submissions) {
+      for (const [questionId, givenAnswer] of Object.entries(sub.answers)) {
+        const q = questionMap[questionId];
+        if (!q) continue;
+        if (topics && !topics.includes(q.topic)) continue;
+        if (String(givenAnswer).trim() !== String(q.answer).trim()) {
+          mistakes.push({
+            topic: q.topic,
+            question: q.question,
+            studentAnswer: String(givenAnswer),
+            correctAnswer: q.answer,
+          });
+        }
+      }
+    }
+    return mistakes;
+  }
+
+  async getPracticeQuestions(topic: string, count: number) {
+    const questions = await this.mongoDb!.collection<any>('questions')
+      .find({ topic }).toArray();
+    const shuffled = questions.sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
   }
   async getTickets() {
     return await this.mongoDb!.collection<Ticket>('tickets').find({}).toArray();
