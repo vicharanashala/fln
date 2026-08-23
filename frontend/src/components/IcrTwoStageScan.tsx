@@ -32,6 +32,14 @@ interface ExtractedAnswer {
   blue_pixels: number;
 }
 
+interface FilteredPage {
+  pageNumber: number;
+  imageDataUrl: string;
+  bluePixelRatio?: number;
+  bluePixelCount?: number;
+  imageSize?: number[];
+}
+
 interface ScanResponse {
   success: boolean;
   answers?: Record<string, ExtractedAnswer>;
@@ -53,6 +61,9 @@ interface ScanResponse {
   };
   processingTimeMs?: number;
   error?: string;
+  // Multi-page filter response (PDFs): one entry per rasterized page.
+  pageCount?: number;
+  pages?: FilteredPage[];
 }
 
 interface IcrTwoStageScanProps {
@@ -84,7 +95,7 @@ const MAX_UPLOAD_LABEL = '8 MB';
 // source scan. The PROVider_CLASSES map below uses pre-built class strings
 // for each provider — that way Tailwind sees every class as a literal.
 const PROVIDER_COLORS: Record<
-  'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace',
+  'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4',
   'violet'
 > = {
   google: 'violet',
@@ -92,6 +103,7 @@ const PROVIDER_COLORS: Record<
   azure: 'violet',
   minimax: 'violet',
   ocrspace: 'violet',
+  'ollama-gemma4': 'violet',
 };
 
 // Pre-built Tailwind class strings for each provider. Two sets: the
@@ -104,36 +116,40 @@ const PROVIDER_COLORS: Record<
 // pills also look the same — the user wants one uniform violet row, with
 // the active model indicated by the "Run via Cloud API" button subtitle
 // ("Using GOOGLE — admin-configured on server"), NOT by pill color.
-const PROVIDER_PILL_CLASS: Record<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace', string> = {
+const PROVIDER_PILL_CLASS: Record<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4', string> = {
   google:   'bg-violet-600 hover:bg-violet-700 text-white border border-violet-700 dark:border-violet-800',
   aws:      'bg-violet-600 hover:bg-violet-700 text-white border border-violet-700 dark:border-violet-800',
   azure:    'bg-violet-600 hover:bg-violet-700 text-white border border-violet-700 dark:border-violet-800',
   minimax:  'bg-violet-600 hover:bg-violet-700 text-white border border-violet-700 dark:border-violet-800',
   ocrspace: 'bg-violet-600 hover:bg-violet-700 text-white border border-violet-700 dark:border-violet-800',
+  'ollama-gemma4': 'bg-violet-600 hover:bg-violet-700 text-white border border-violet-700 dark:border-violet-800',
 };
 
 // Pre-built BigButton bg class strings per provider. Same JIT-safety
 // reason as the pill maps above.
-const PROVIDER_BUTTON_BG: Record<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace', string> = {
+const PROVIDER_BUTTON_BG: Record<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4', string> = {
   google:   'bg-violet-600 hover:bg-violet-700',
   aws:      'bg-violet-600 hover:bg-violet-700',
   azure:    'bg-violet-600 hover:bg-violet-700',
   minimax:  'bg-violet-600 hover:bg-violet-700',
   ocrspace: 'bg-violet-600 hover:bg-violet-700',
+  'ollama-gemma4': 'bg-violet-600 hover:bg-violet-700',
 };
-const PROVIDER_BUTTON_BG_RUNNING: Record<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace', string> = {
+const PROVIDER_BUTTON_BG_RUNNING: Record<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4', string> = {
   google:   'bg-violet-500 cursor-wait',
   aws:      'bg-violet-500 cursor-wait',
   azure:    'bg-violet-500 cursor-wait',
   minimax:  'bg-violet-500 cursor-wait',
   ocrspace: 'bg-violet-500 cursor-wait',
+  'ollama-gemma4': 'bg-violet-500 cursor-wait',
 };
-const PROVIDER_BUTTON_BG_DONE: Record<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace', string> = {
+const PROVIDER_BUTTON_BG_DONE: Record<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4', string> = {
   google:   'bg-violet-700',
   aws:      'bg-violet-700',
   azure:    'bg-violet-700',
   minimax:  'bg-violet-700',
   ocrspace: 'bg-violet-700',
+  'ollama-gemma4': 'bg-violet-700',
 };
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -153,6 +169,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
   // Filter stage state
   const [filterState, setFilterState] = useState<FilterState>('idle');
   const [filteredImageDataUrl, setFilteredImageDataUrl] = useState<string | null>(null);
+  const [filteredPages, setFilteredPages] = useState<FilteredPage[]>([]);
   const [filterTiming, setFilterTiming] = useState<ScanTiming | null>(null);
   const [filterError, setFilterError] = useState<string | null>(null);
   const [bluePixelRatio, setBluePixelRatio] = useState<number | null>(null);
@@ -202,6 +219,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
       // confuse them.
       setFilterState('idle');
       setFilteredImageDataUrl(null);
+      setFilteredPages([]);
       setFilterTiming(null);
       setFilterError(null);
       setBluePixelRatio(null);
@@ -261,7 +279,24 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
             setFilterState('error');
             return;
           }
-          setFilteredImageDataUrl((data as ScanResponse & { imageDataUrl?: string }).imageDataUrl ?? null);
+          // Multi-page: build pages[] first (server returns either a pages[]
+          // array for PDFs, or a single imageDataUrl for plain image uploads).
+          // Then derive the legacy `filteredImageDataUrl` from pages[0] so the
+          // OCR stage (which only reads one image) and the gallery gate both
+          // work without further changes.
+          const legacySingle = (data as ScanResponse & { imageDataUrl?: string }).imageDataUrl;
+          const pages = (data.pages && data.pages.length > 0)
+            ? data.pages
+            : legacySingle
+              ? [{
+                  pageNumber: 1,
+                  imageDataUrl: legacySingle,
+                  bluePixelRatio: data.debug?.blue_pixel_ratio ?? undefined,
+                  imageSize: data.debug?.image_size,
+                }]
+              : [];
+          setFilteredPages(pages);
+          setFilteredImageDataUrl(pages[0]?.imageDataUrl ?? null);
           setBluePixelRatio(data.debug?.blue_pixel_ratio ?? null);
           setFilterTiming({
             clientMs,
@@ -291,26 +326,32 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
       setOcrState('error');
       return;
     }
-    // If user skipped filter stage, send the raw file. Backend re-applies
-    // the filter internally (idempotent for already-filtered input), so
-    // behavior is consistent regardless of which path the user took.
-    const imageToSend = filteredImageDataUrl
-      ? await Promise.resolve(filteredImageDataUrl)
-      : await fileToDataUrl(uploadedFile);
     setOcrState('running');
     setOcrError(null);
     const t0 = performance.now();
     try {
+      // Prefer the new pages[] shape so the backend runs OCR on every
+      // filtered page (one OCR call per page, per-page timeout 180s).
+      // Falls back to the legacy single-image path if the user skipped
+      // the filter stage.
+      const body: Record<string, unknown> = { filename: uploadedFile.name };
+      if (filteredPages.length > 0) {
+        body.pages = filteredPages.map((p) => ({ pageNumber: p.pageNumber, imageDataUrl: p.imageDataUrl }));
+      } else {
+        // No filter done — send the raw uploaded file (backend re-applies
+        // the filter internally, idempotent for already-filtered input).
+        const imageToSend = filteredImageDataUrl
+          ? filteredImageDataUrl
+          : await fileToDataUrl(uploadedFile);
+        body.fileBase64 = imageToSend;
+      }
       const res = await apiFetch('/api/icr/evaluate-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          fileBase64: imageToSend,
-          filename: uploadedFile.name,
-        }),
+        body: JSON.stringify(body),
       });
       const clientMs = Math.round(performance.now() - t0);
       const data: ScanResponse = await res.json();
@@ -339,6 +380,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
   const clearFilter = () => {
     setFilterState('idle');
     setFilteredImageDataUrl(null);
+    setFilteredPages([]);
     setFilterTiming(null);
     setFilterError(null);
     setBluePixelRatio(null);
@@ -348,39 +390,60 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
   // admin-configured via /api/icr/cloud-config). Frontend NEVER sees
   // the key — it just picks a provider and asks the backend to OCR.
   // The button is disabled until the backend confirms at least one
-  // provider is configured.
-  const [cloudProvider, setCloudProviderState] = useState<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace'>(
-      () => (localStorage.getItem('icrCloudProvider') as 'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace') || 'google'
-    );
-    const setCloudProvider = (p: 'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace') => {
-      setCloudProviderState(p);
-      localStorage.setItem('icrCloudProvider', p);
-    };
-    const [cloudProvidersConfigured, setCloudProvidersConfigured] = useState<Record<string, boolean>>({});
-    const [cloudError, setCloudError] = useState<string | null>(null);
-
-  // On mount, fetch which providers the server has configured. The ICR
-  // UI uses this to enable/disable the cloud button.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await apiFetch('/api/icr/cloud-config', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        if (!cancelled && data.providers) {
-          setCloudProvidersConfigured(data.providers);
+    // provider is configured.
+    // Default order: a stored choice from a previous session; otherwise
+    // 'ollama-gemma4' if it's the lone configured provider (we'll correct on
+    // the providersConfigured effect); finally 'google' as the historical
+    // fallback.
+    const [cloudProvider, setCloudProviderState] = useState<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4'>(
+        () => {
+          const stored = localStorage.getItem('icrCloudProvider');
+          if (stored === 'google' || stored === 'aws' || stored === 'azure' ||
+              stored === 'minimax' || stored === 'ocrspace' || stored === 'ollama-gemma4') {
+            return stored;
+          }
+          return 'google';
         }
-      } catch {
-        // Ignore — button stays disabled
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+      );
+      const setCloudProvider = (p: 'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4') => {
+        setCloudProviderState(p);
+        localStorage.setItem('icrCloudProvider', p);
+      };
+      const [cloudProvidersConfigured, setCloudProvidersConfigured] = useState<Record<string, boolean>>({});
+      const [cloudError, setCloudError] = useState<string | null>(null);
+
+    // On mount, fetch which providers the server has configured. The ICR
+    // UI uses this to enable/disable the cloud button.
+    useEffect(() => {
+      let cancelled = false;
+      (async () => {
+        try {
+          const res = await apiFetch('/api/icr/cloud-config', {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (!res.ok || cancelled) return;
+          const data = await res.json();
+          if (!cancelled && data.providers) {
+            setCloudProvidersConfigured(data.providers);
+            // If the persisted or default provider isn't actually configured
+            // AND exactly one provider IS configured, auto-pick that one.
+            // This avoids the "google is not configured" surprise for new
+            // Ollama-only or single-provider setups.
+            const configured = Object.keys(data.providers).filter(k => data.providers[k]);
+            if (configured.length === 1 && !data.providers[cloudProvider as string]) {
+              const only = configured[0] as 'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4';
+              setCloudProviderState(only);
+              localStorage.setItem('icrCloudProvider', only);
+            }
+          }
+        } catch {
+          // Ignore — button stays disabled
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [token, cloudProvider]);
 
   const runCloudOcr = async () => {
       if (!uploadedFile) return;
@@ -391,24 +454,31 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
         );
         return;
       }
-      const imageToSend = filteredImageDataUrl
-        ? await Promise.resolve(filteredImageDataUrl)
-        : await fileToDataUrl(uploadedFile);
       setOcrState('running');
       setCloudError(null);
       const t0 = performance.now();
       try {
-        // Send only {imageDataUrl, provider} — NO apiKey from the frontend.
+        // Prefer the pages[] shape (same as the local OCR path) so the
+        // backend runs Cloud OCR on every filtered page, not just the
+        // first — a multi-page scan (e.g. several students' sheets in one
+        // PDF) shouldn't silently drop pages 2+. Falls back to a single
+        // imageDataUrl if the user skipped the filter stage.
+        // NO apiKey is ever sent from the frontend.
+        const body: Record<string, unknown> = { provider: cloudProvider };
+        if (filteredPages.length > 0) {
+          body.pages = filteredPages.map((p) => ({ pageNumber: p.pageNumber, imageDataUrl: p.imageDataUrl }));
+        } else {
+          body.imageDataUrl = filteredImageDataUrl
+            ? filteredImageDataUrl
+            : await fileToDataUrl(uploadedFile);
+        }
         const res = await apiFetch('/api/icr/evaluate-cloud', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            imageDataUrl: imageToSend,
-            provider: cloudProvider,
-          }),
+          body: JSON.stringify(body),
         });
         const clientMs = Math.round(performance.now() - t0);
         const data = await res.json();
@@ -428,20 +498,67 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
           setOcrState('error');
           return;
         }
-        const normalized: ScanResponse = {
-          success: true,
-          ocrAnalysis: {
-            rawOcrText: data.rawOcrText || '',
-            extractedTokens: (data.extractedTokens || []).map((t: any) => ({
-              text: t.text,
-              confidence: t.confidence ?? 0.9,
-              bbox: t.bbox,
-            })),
-            processingTimeMs: data.processingTimeMs ?? clientMs,
-            ocrEngine: data.ocrEngine || 'Cloud OCR',
-          },
-          processingTimeMs: data.processingTimeMs ?? clientMs,
-        };
+        // Prefer the structured `studentResponses` from Ollama's JSON-output mode
+        // (question_number → response, with status: answered|blank|unclear).
+        // Next, prefer the backend's already-parsed `answers` array (present
+        // whenever `structured: true` — see /api/icr/evaluate-cloud) — this
+        // is the model's real per-question answers, not raw OCR text.
+        // Only fall back to `extractedTokens` (the raw token stream, which
+        // can include JSON punctuation from the model's own response text)
+        // when neither structured shape is available.
+        const answers: Record<string, { value: string; confidence: number; blue_pixels: number }> = {};
+        if (data.studentResponses && Array.isArray(data.studentResponses)) {
+          for (const r of data.studentResponses) {
+            const qKey = `q_${r.question_number}`;
+            const status = r.status || 'answered';
+            let value = String(r.response || '');
+            // [BLANK] / [UNCLEAR] pass through unchanged so the verify table
+            // can show them as non-answers.
+            if (status === 'blank') value = '[BLANK]';
+            else if (status === 'unclear') value = '[UNCLEAR]';
+            answers[qKey] = {
+              value,
+              confidence: status === 'answered' ? 0.85 : 0.5,
+              blue_pixels: 0,
+            };
+          }
+        } else if (data.answers && Array.isArray(data.answers) && data.answers.length > 0) {
+          data.answers.forEach((v: any, i: number) => {
+            answers[`q_${i + 1}`] = {
+              value: String(v ?? ''),
+              confidence: 0.8,
+              blue_pixels: 0,
+            };
+          });
+        } else if (data.extractedTokens && data.extractedTokens.length > 0) {
+          data.extractedTokens.forEach((t: any, i: number) => {
+            const v = String(t?.text ?? '').trim();
+            if (!v) return;
+            answers[`q_${i + 1}`] = {
+              value: v,
+              confidence: Number(t?.confidence ?? 0.7),
+              blue_pixels: 0,
+            };
+          });
+        }
+
+                  // tokens exist, that's already handled above; if neither is present
+                  // (shouldn't happen for a successful call) the consumer will warn.
+                const normalized: ScanResponse = {
+                  success: true,
+                  answers,
+                  ocrAnalysis: {
+                    rawOcrText: data.rawOcrText || '',
+                    extractedTokens: (data.extractedTokens || []).map((t: any) => ({
+                      text: t.text,
+                      confidence: t.confidence ?? 0.9,
+                      bbox: t.bbox,
+                    })),
+                    processingTimeMs: data.processingTimeMs ?? clientMs,
+                    ocrEngine: data.ocrEngine || (data.model ? `Cloud OCR (${data.model})` : `Cloud OCR (${cloudProvider})`),
+                  },
+                  processingTimeMs: data.processingTimeMs ?? clientMs,
+                };
         setOcrResult(normalized);
         setOcrTiming({
           clientMs,
@@ -528,33 +645,33 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
           // that's confusing. Just allow OCR anytime; the backend is idempotent.
           // (Re-enabling.)
         />
-        {/* Provider toggle — only shows providers the server has keys for.
-                    Each provider gets a brand-ish color so the cloud button below
-                    visually echoes the active pick. If exactly one provider is
-                    configured, we hide the row (no choice to make). */}
-                {(() => {
-                  const configuredProviders = (['google', 'minimax', 'ocrspace', 'aws', 'azure'] as const)
-                    .filter((p) => cloudProvidersConfigured[p]);
-                  if (configuredProviders.length < 2) return null;
-                                    return (
-                              <div className="flex flex-wrap items-center gap-1.5 px-1">
-                                                              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mr-1">
-                                                                Model:
-                                                              </span>
-                                                              {configuredProviders.map((p) => (
-                                                                <button
-                                                                  key={p}
-                                                                  type="button"
-                                                                  onClick={() => setCloudProvider(p)}
-                                                                  className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold shadow-sm transition-all ${PROVIDER_PILL_CLASS[p]}`}
-                                                                  title={p.toUpperCase()}
-                                                                >
-                                                                  {p.toUpperCase()}
-                                                                </button>
-                                                              ))}
-                                                            </div>
-                                                          );
-                })()}
+        {/* Provider toggle — shows providers the server has keys for.
+                            With 2+ configured, user picks. With exactly 1, show that
+                            one as a single informational pill (auto-selected) so a
+                            single Ollama-only setup still surfaces the provider. */}
+                        {(() => {
+                          const configuredProviders = (['google', 'minimax', 'ocrspace', 'aws', 'azure', 'ollama-gemma4'] as const)
+                            .filter((p) => cloudProvidersConfigured[p]);
+                          if (configuredProviders.length === 0) return null;
+                                            return (
+                                      <div className="flex flex-wrap items-center gap-1.5 px-1">
+                                                                      <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mr-1">
+                                                                        Model:
+                                                                      </span>
+                                                                      {configuredProviders.map((p) => (
+                                                                        <button
+                                                                          key={p}
+                                                                          type="button"
+                                                                          onClick={() => setCloudProvider(p)}
+                                                                          className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold shadow-sm transition-all ${configuredProviders.length === 1 ? 'cursor-default opacity-90' : ''} ${PROVIDER_PILL_CLASS[p]}`}
+                                                                          title={p.toUpperCase()}
+                                                                        >
+                                                                          {p.toUpperCase()}
+                                                                        </button>
+                                                                      ))}
+                                                                    </div>
+                                                                  );
+                        })()}
 
                 <BigButton
                                   providerKey={cloudProvider}
@@ -575,50 +692,12 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
 
       {/* Filtered preview + stats panel */}
       {filterState === 'done' && filteredImageDataUrl && (
-        <div className="p-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-950/40 border-2 border-indigo-300 dark:border-indigo-700 rounded-2xl shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <CheckIcon />
-              <h4 className="text-sm font-semibold text-indigo-900 dark:text-indigo-100">
-                Filter applied successfully
-              </h4>
-            </div>
-            <button
-              onClick={clearFilter}
-              className="text-xs font-mono text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-100 px-2 py-1 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
-            >
-              Clear filter
-            </button>
-          </div>
-
-          {/* Stats grid */}
-          <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-            <StatBox
-              label="Blue ink"
-              value={bluePixelRatio !== null ? `${(bluePixelRatio * 100).toFixed(2)}%` : '—'}
-              sub={bluePixelRatio !== null ? `${Math.round(bluePixelRatio * 1920000)} px` : ''}
-            />
-            <StatBox
-              label="Filter time"
-              value={filterTiming ? formatMs(filterTiming.clientMs) : '—'}
-              sub={filterTiming?.serverMs != null ? `server: ${formatMs(filterTiming.serverMs)}` : ''}
-            />
-            <StatBox
-              label="Image"
-              value="1200×1600"
-              sub="JPEG"
-            />
-          </div>
-
-          <img
-            src={filteredImageDataUrl}
-            alt="Blue-pen filtered preview"
-            className="w-full h-auto max-h-64 object-contain border border-indigo-200 dark:border-indigo-700 rounded-xl bg-white shadow-inner"
-          />
-          <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-2 italic text-center">
-            Black marks = blue ink kept. OCR will read only these.
-          </p>
-        </div>
+        <FilteredPagesGallery
+          pages={filteredPages}
+          onClearFilter={clearFilter}
+          filterTiming={filterTiming}
+          primaryBlueRatio={bluePixelRatio}
+        />
       )}
 
       {/* Filter error panel */}
@@ -770,13 +849,13 @@ interface BigButtonProps {
   // BigButton can render any provider's brand color. We split them into
   // two props to avoid a discriminated-union ceremony at every call site.
   variant?: 'indigo' | 'blue' | 'purple' | 'violet' | 'teal' | 'orange' | 'sky';
-  providerKey?: 'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace';
+  providerKey?: 'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4';
   icon: React.ReactNode;
   title: string;
   subtitle: string;
   timeTaken: ScanTiming | null;
   liveElapsed: number | null;
-  state: 'idle' | 'running' | 'done' | 'error' | 'pending';
+  state: 'idle' | 'running' | 'filtering' | 'done' | 'error' | 'pending';
   onClick: () => void;
   disabled: boolean;
 }
@@ -811,7 +890,7 @@ const BigButton: React.FC<BigButtonProps> = ({
   onClick,
   disabled,
 }) => {
-  const isRunning = state === 'running';
+  const isRunning = state === 'running' || state === 'filtering';
   const isDone = state === 'done';
   // Pick the bg class from a literal lookup so Tailwind's JIT sees every
   // class as a literal. providerKey (preferred for cloud buttons) wins
@@ -968,3 +1047,117 @@ const ClockIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 );
+/**
+ * Multi-page filter preview gallery.
+ *
+ * Shows one large preview + a thumbnail strip for PDFs that have multiple
+ * pages. Click a thumbnail to swap it into the main preview. Stats are
+ * shown for the active page; the overall filter timing is constant.
+ */
+const FilteredPagesGallery: React.FC<{
+  pages: FilteredPage[];
+  onClearFilter: () => void;
+  filterTiming: ScanTiming | null;
+  primaryBlueRatio: number | null;
+}> = ({ pages, onClearFilter, filterTiming, primaryBlueRatio }) => {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const active = pages[Math.max(0, Math.min(activeIdx, pages.length - 1))] || pages[0];
+  if (!active) return null;
+
+  const ratio = active.bluePixelRatio ?? primaryBlueRatio;
+  const isMulti = pages.length > 1;
+
+  return (
+    <div className="p-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-950/40 border-2 border-indigo-300 dark:border-indigo-700 rounded-2xl shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <CheckIcon />
+          <h4 className="text-sm font-semibold text-indigo-900 dark:text-indigo-100">
+            Filter applied successfully
+            {isMulti && (
+              <span className="ml-2 text-xs font-normal text-indigo-700 dark:text-indigo-300">
+                — {pages.length} pages
+              </span>
+            )}
+          </h4>
+        </div>
+        <button
+          onClick={onClearFilter}
+          className="text-xs font-mono text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-100 px-2 py-1 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
+        >
+          Clear filter
+        </button>
+      </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+        <StatBox
+          label="Blue ink"
+          value={ratio != null ? `${(ratio * 100).toFixed(2)}%` : '—'}
+          sub=""
+        />
+        <StatBox
+          label="Filter time"
+          value={filterTiming ? formatMs(filterTiming.clientMs) : '—'}
+          sub={filterTiming?.serverMs != null ? `server: ${formatMs(filterTiming.serverMs)}` : ''}
+        />
+        <StatBox
+          label={isMulti ? 'Pages' : 'Page'}
+          value={isMulti ? `${active.pageNumber} / ${pages.length}` : '1 / 1'}
+          sub="JPEG"
+        />
+      </div>
+
+      {/* Large preview of the active page */}
+      <div className="relative">
+        <img
+          src={active.imageDataUrl}
+          alt={`Filtered preview — page ${active.pageNumber}`}
+          className="w-full h-auto max-h-[28rem] object-contain border border-indigo-200 dark:border-indigo-700 rounded-xl bg-white shadow-inner"
+        />
+        {isMulti && (
+          <span className="absolute top-2 left-2 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-indigo-600 text-white rounded-md shadow">
+            Page {active.pageNumber}
+          </span>
+        )}
+      </div>
+
+      {/* Thumbnail strip — only for multi-page PDFs */}
+      {isMulti && (
+        <div className="mt-3">
+          <p className="text-[10px] font-mono uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-1.5">
+            All pages — click to preview
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {pages.map((p, i) => (
+              <button
+                key={p.pageNumber}
+                onClick={() => setActiveIdx(i)}
+                className={
+                  'shrink-0 w-20 h-24 rounded-lg overflow-hidden border-2 transition-all bg-white ' +
+                  (i === activeIdx
+                    ? 'border-indigo-600 ring-2 ring-indigo-400 dark:border-indigo-400 dark:ring-indigo-500'
+                    : 'border-indigo-200 dark:border-indigo-700 hover:border-indigo-400')
+                }
+                title={`Page ${p.pageNumber}`}
+              >
+                <img
+                  src={p.imageDataUrl}
+                  alt={`Page ${p.pageNumber}`}
+                  className="w-full h-full object-contain"
+                />
+                <span className="block text-[9px] font-mono font-bold text-indigo-900 dark:text-indigo-100 bg-indigo-100 dark:bg-indigo-900/60 -mt-4 relative">
+                  p{p.pageNumber}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-2 italic text-center">
+        Black marks = blue ink kept. OCR will read only these.
+      </p>
+    </div>
+  );
+};

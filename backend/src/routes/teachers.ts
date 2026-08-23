@@ -41,6 +41,21 @@ export function registerTeacherRoutes(app: express.Express) {
       };
     });
 
+    // Opt-in pagination (same pattern as GET /api/students, PR #115).
+    // Omitting ?page & ?limit returns the full scoped list — no existing caller breaks.
+    const pageParam = req.query.page as string | undefined;
+    const limitParam = req.query.limit as string | undefined;
+    if (pageParam || limitParam) {
+      const page  = Math.max(1, parseInt(pageParam || '1', 10) || 1);
+      const limit = Math.max(1, Math.min(500, parseInt(limitParam || '50', 10) || 50));
+      const total = enriched.length;
+      const start = (page - 1) * limit;
+      res.set('X-Total-Count', String(total));
+      res.set('X-Page',        String(page));
+      res.set('X-Pages',       String(Math.max(1, Math.ceil(total / limit))));
+      return res.json(enriched.slice(start, start + limit));
+    }
+
     res.json(enriched);
   });
 
@@ -105,5 +120,27 @@ export function registerTeacherRoutes(app: express.Express) {
       message: 'Teacher registered successfully.',
       data: { teacherId, firstName, lastName, email: newTeacher.email },
     });
+  });
+
+  // Issue #182: a teacher's own bulk-request history — what type of test/
+  // worksheet she's requested, when, and for how many students. A teacher
+  // can always see her own history; admin-tier roles can look up any
+  // teacher's for oversight.
+  app.get('/api/teachers/:id/test-history', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const targetId = req.params.id;
+    const isSelf = user.id === targetId;
+    const isOversight = [
+      UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DISTRICT_ADMIN,
+      UserRole.BLOCK_ADMIN, UserRole.SCHOOL,
+    ].includes(user.role);
+    if (!isSelf && !isOversight) {
+      return res.status(403).json({ error: 'Forbidden.' });
+    }
+
+    const history = await dbStore.getTestHistory(targetId);
+    res.json(history);
   });
 }

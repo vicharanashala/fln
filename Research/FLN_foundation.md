@@ -30,7 +30,18 @@ Foundational Literacy and Numeracy (FLN) is the ability of a child to read with 
 
 ## 3. Foundational Numeracy — Definition (NIPUN Bharat, pg. 84)
 
-Foundational Numeracy = the ability to reason and apply simple numerical concepts to daily-life problem solving, built on **number sense** and **spatial understanding**. It includes the ability to:
+Foundational Numeracy = the ability to reason and apply simple numerical concepts to daily-life problem solving.
+
+> **⚠ Corrected 2026-08-21 — see `fln_source_verification_2026-08-21.md` §2.** This definition previously read "built on **number sense** and **spatial understanding**." The primary source names **four** major components of early mathematics, not two:
+>
+> 1. **Numbers and operations on numbers**
+> 2. **Shapes and Spatial Understanding**
+> 3. **Measurement**
+> 4. **Data Handling**
+>
+> Measurement and Data Handling are first-class components of foundational numeracy, not peripheral topics. The framework's Measurement (Chain E) and Data Handling (Chain J) chains should be weighted accordingly — Data Handling currently begins only at Class 2 with three nodes.
+
+It includes the ability to:
 
 1. Understand quantities
 2. Grasp concepts like more/less, larger/smaller

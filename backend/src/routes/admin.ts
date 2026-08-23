@@ -1,4 +1,5 @@
 import express from 'express';
+import bcrypt from 'bcrypt';
 import { dbStore, UserRole, User } from '../db';
 import { getAuthUser, sanitizeUser } from '../auth';
 
@@ -33,6 +34,7 @@ export function registerAdminRoutes(app: express.Express) {
       name,
       email: email.toLowerCase(),
       role: role as UserRole,
+      passwordHash: await bcrypt.hash(password, 10),
       stateCode: stateCode ? stateCode.toUpperCase() : undefined,
       districtCode: districtCode ? districtCode.toUpperCase() : undefined,
       blockCode: blockCode ? blockCode.toUpperCase() : undefined,

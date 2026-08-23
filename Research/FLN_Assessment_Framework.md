@@ -64,7 +64,10 @@
 | Meets (M) | Sufficient knowledge; successfully completes basic grade-level tasks |
 | Exceeds (E) | Superior knowledge; completes complex grade-level tasks |
 
-**FLS 2022 National Numeracy Results:** Meets global MPL: 42% | Partially meets: 37% | Below/exceeds: 21%.
+**FLS 2022 National Numeracy Results:** Meets global MPL: 42% | Partially meets: 37% | Below/exceeds: 21%. *(**Verified 2026-08-21** — reconciles exactly with the official finding that 48% of Grade 3 learners fell below global proficiency in numeracy.)*
+
+> **⚠ The state-level sentences below are unverified and should not be repeated (2026-08-21).** They could not be confirmed against the FLS report and read as internally inconsistent. In **PARAKH 2024**, Lakshadweep, Jharkhand and Tripura rank at the *bottom* in Grade 3 mathematics — a different study, so not a direct contradiction, but a reason to check before citing.
+
 Only **Lakshadweep** met global minimum proficiency at state level. Top performers: Jharkhand (55% Meets), Daman & Diu/DNH (52%), Tripura (50%). Bihar had the highest share exceeding proficiency (18%). Girls generally score lower than boys in numeracy across most states.
 
 ## 5. Class-wise Comparison — GPF (UNESCO) vs India (NIPUN Bharat/NAS), Numeracy
@@ -77,6 +80,8 @@ Only **Lakshadweep** met global minimum proficiency at state level. Top performe
 | **Grade 3 ★ MPL** | 3-digit operations; standard algorithms; fractions; measurement; data reading | 3-digit operations (own way & standard algorithm); shapes/spatial; measurement; data handling | ✓ Aligned (NIPUN Lakshya = GPF MPL) |
 | Grade 4 | Multiply/divide 3-digit; compare fractions; perimeter; bar charts; shape properties | NAS tests similar skills; not GPF cut-score linked | ~ Partial |
 | Grade 5 ★ SDG 4.1.1(b) | Multi-step problems; unlike-denominator fractions; area/perimeter; graphs; mean/mode | NAS 2017 data only; GPF field-tested 2019-20 but not linked | ✗ Gap |
+
+> **⚠ Stale as of 2026-08-21 — see `fln_source_verification_2026-08-21.md` §2.** The "critical data gap" argument below (last Grade 5 data from 2017; no SDG 4.1.1 reporting in 4+ years) predates **PARAKH 2024**, released July 2025 — India's first post-pandemic large-scale national learning assessment, with a Grade 3 mathematics national average of 60%. Do not use this framing in a proposal or paper without updating it.
 
 **Key findings from the comparison:**
 - Strong alignment Grades 1–3 (NIPUN's mission grades) — India's national mission is well-grounded in global standards at the foundational stage.

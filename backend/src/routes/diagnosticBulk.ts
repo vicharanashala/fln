@@ -1,7 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
-import { dbStore, UserRole, Question } from '../db';
+import { dbStore, UserRole, Question, Worksheet, TestHistoryEntry } from '../db';
 import { getAuthUser } from '../auth';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
@@ -44,8 +44,33 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
       paperStudents = reqStudents;
       paperCount = reqStudents.length;
     } else {
-      // Automatically fetch real enrolled students for this class from MongoDB
-      const allDbStudents = await dbStore.getStudents();
+      // Automatically fetch real enrolled students for this class — scoped
+      // to the requesting user's own school(s), same as every other
+      // role-scoped route in this app. The real frontend
+      // (BulkDiagnosticWorkflow.tsx) always sends an explicit `students`
+      // array pre-fetched from the scoped /api/students, so this branch is
+      // only reachable via a direct API call that omits it — caught while
+      // testing #304's fix, where an unscoped fetch here returned every
+      // Class-N student nationwide (28,813 for one real class number)
+      // instead of the caller's own roster. A 5000-set ceiling downstream
+      // stopped it from actually generating anything, but the query itself
+      // had no business reading outside the caller's scope in the first
+      // place — not otherwise reachable by a real user today, but
+      // defense-in-depth against a future caller of this branch.
+      let scopedSchoolIds: string[] | undefined;
+      if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
+        scopedSchoolIds = user.schoolId ? [user.schoolId] : [];
+      } else if (user.role === UserRole.VOLUNTEER) {
+        scopedSchoolIds = user.assignedSchools || [];
+      } else if (user.role === UserRole.BLOCK_ADMIN) {
+        const schools = await dbStore.getSchools();
+        scopedSchoolIds = schools.filter(s => s.blockCode === user.blockCode).map(s => s.id);
+      }
+      // SUPERADMIN/ADMIN/DISTRICT_ADMIN: no scope restriction here — they
+      // already receive unrestricted authorization below (line ~93-ish),
+      // same as the rest of this route's role tiering.
+
+      const allDbStudents = await dbStore.getStudents(scopedSchoolIds ? { schoolId: scopedSchoolIds } : undefined);
       const targetClassName = `Class ${classNumber}`;
       const enrolled = allDbStudents.filter(s => {
         const cg = (s.classGroup || '').toLowerCase().trim();
@@ -155,6 +180,62 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
             }
           }
         }
+
+        // Persist a real Worksheet record so this generation shows up as
+        // "Pending" on the teacher's Worksheets page until evaluation
+        // reports come in — previously this bulk-generation job only lived
+        // in the in-memory `bulkJobs` map, invisible to that page entirely.
+        // Scope by the requesting user's own school first — className alone
+        // matches nationally (e.g. every "Class 2" in every school), which
+        // would attach this worksheet to a same-named class in a different
+        // school entirely.
+        const matchedClass = classes.find(c => c.className === `Class ${classNumber}` && c.schoolId === user.schoolId)
+          || classes.find(c => c.className === `Class ${classNumber}`);
+        const nowIso = new Date().toISOString();
+        const thirtyDaysOut = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const realStudentIds = paperStudents
+          .map(s => s.studentId)
+          .filter(id => id && !id.startsWith('PLACEHOLDER_'));
+        const worksheet: Worksheet = {
+          id: 'ws_' + randomUUID(),
+          classId: matchedClass?.id || `class_${classNumber}`,
+          className: `Class ${classNumber}`,
+          section: matchedClass?.section || 'A',
+          schoolId: user.schoolId || matchedClass?.schoolId || '',
+          generatedByRole: user.role,
+          generatedByEmail: user.email,
+          cycle: 'Baseline',
+          date: nowIso,
+          questions: [],
+          studentIds: realStudentIds,
+          locks: { locked: false, lockedByRole: null, lockedByEmail: null, timestamp: null },
+          timing: {
+            examDate: nowIso.slice(0, 10),
+            printWindowStart: nowIso,
+            printWindowEnd: thirtyDaysOut,
+            examWindowStart: nowIso,
+            examWindowEnd: thirtyDaysOut,
+            submissionWindowEnd: thirtyDaysOut,
+          },
+          delayLogs: { delayedAttemptsCount: 0, submittingTeachers: [] },
+        };
+        await dbStore.addWorksheet(worksheet);
+
+        // Issue #182: log this bulk request to Test History. Only the
+        // diagnostic bulk route exists today — practice/remedial equivalents
+        // (issue #183) will call the same dbStore method once they exist.
+        const testHistoryEntry: TestHistoryEntry = {
+          id: 'th_' + randomUUID(),
+          teacherId: user.id,
+          teacherEmail: user.email,
+          requestType: 'diagnostic',
+          timestamp: nowIso,
+          studentCount: realStudentIds.length,
+          classId: matchedClass?.id,
+          className: `Class ${classNumber}`,
+          schoolId: user.schoolId || matchedClass?.schoolId,
+        };
+        await dbStore.addTestHistoryEntry(testHistoryEntry);
 
         await dbStore.addLog({
           id: 'log_' + Date.now(),

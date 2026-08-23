@@ -18,6 +18,7 @@ import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS, getGeoLookup } from './geoData';
+import { validateConceptPrerequisites } from './competencyPrerequisites';
 import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN, SEED_DEMO_PASSWORD_HASH } from './auth';
 import { registerAnnouncementRoutes } from './routes/announcements';
 import { registerStatsRoutes } from './routes/stats';
@@ -44,16 +45,56 @@ import rateLimit from 'express-rate-limit';
 import nodemailer from 'nodemailer';
 import { ROOT_DIR, PYTHON_BIN, AI_SERVICES_DIR, authRateLimiter } from './config';
 
+// Safety net: the MongoDB driver occasionally rejects a connection AFTER
+// connectDB() has returned (the client class keeps background pools
+// alive). In ESM, an unhandled promise rejection exits the process by
+// default. Swallow these so a transient Atlas outage doesn't kill the
+// ICR/Ollama server, which can keep serving from the local file DB
+// until the driver recovers.
+process.on('unhandledRejection', (reason) => {
+  console.warn('Unhandled promise rejection (likely MongoDB driver):', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.warn('Uncaught exception (likely MongoDB driver):', err);
+});
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 async function startServer() {
-  // Connect to MongoDB
-  await connectDB();
+  // Connect to MongoDB — connectDB() has its own internal 3-attempt
+  // retry and falls back to a local file DB if all attempts fail. Wrap
+  // the call in try/catch too so that any unhandledRejection from the
+  // background driver doesn't exit the process.
+  try {
+    await connectDB();
+  } catch (err: any) {
+    console.warn('connectDB threw despite its fallback path: ' + (err?.message || err));
+  }
 
   // Initialize file-based DB
   await dbStore.init();
+
+  // Validate the prerequisite graph once at startup. The graph is a static,
+  // compiled-in table, so any unknown conceptId or cycle in it is a build
+  // error — fail loudly rather than silently emit malformed reasoning later.
+  // Runs synchronously here so a bad graph prevents the server from
+  // accepting requests, not just from rendering them correctly.
+  const prereqReport = validateConceptPrerequisites();
+  if (!prereqReport.isValid) {
+    console.error('[competencyPrerequisites] prerequisite graph is INVALID at startup; refusing to start');
+    console.error(`[competencyPrerequisites]   totalConceptsWithPrerequisites: ${prereqReport.totalConceptsWithPrerequisites}`);
+    console.error(`[competencyPrerequisites]   totalEdges: ${prereqReport.totalEdges}`);
+    if (prereqReport.unknownConceptIds.length > 0) {
+      console.error(`[competencyPrerequisites]   unknownConceptIds (${prereqReport.unknownConceptIds.length}): ${prereqReport.unknownConceptIds.join(', ')}`);
+    }
+    for (const cycle of prereqReport.cycles) {
+      console.error(`[competencyPrerequisites]   cycle: ${cycle.join(' -> ')}`);
+    }
+    process.exit(1);
+  }
+  console.log(`[competencyPrerequisites] prerequisite graph OK — ${prereqReport.totalConceptsWithPrerequisites} concepts, ${prereqReport.totalEdges} edges, 0 unknown ids, 0 cycles`);
 
   const app = express();
   app.use(express.json({ limit: '100mb' }));
