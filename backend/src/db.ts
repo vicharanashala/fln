@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import bcrypt from 'bcrypt';
+import dns from 'dns';
 import { MongoClient, Db } from 'mongodb';
 import { CURRICULUM_MAPPING } from './config/curriculumMap';
 
@@ -26,6 +27,13 @@ export const connectDB = async () => {
   const maxAttempts = 3;
   while (!connected && attempt <= maxAttempts) {
     try {
+      if (uri.startsWith('mongodb+srv://')) {
+        try {
+          dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+        } catch {
+          // Ignore if custom DNS servers can't be set
+        }
+      }
       mongoClient = new MongoClient(uri, {
         serverSelectionTimeoutMS: 5000,
         connectTimeoutMS: 8000,
@@ -37,6 +45,9 @@ export const connectDB = async () => {
       dbStore.useMongo = true;
       connected = true;
     } catch (err: any) {
+      if (err.message && err.message.includes('SSL alert number 80')) {
+        console.error(`⚠️ MongoDB TLS Handshake Warning (SSL Alert 80): Please check that your current public IP is whitelisted in MongoDB Atlas Network Access.`);
+      }
       console.error(`MongoDB connection attempt ${attempt}/${maxAttempts} failed: ${err.message}`);
       attempt++;
       if (attempt <= maxAttempts) {
@@ -76,6 +87,8 @@ export interface User {
   assignedSchools?: string[]; // for Volunteers
   delayedAttemptsCount?: number;
   isBanned?: boolean;
+  resetToken?: string;
+  resetTokenExpiry?: number;
 }
 
 export interface School {
@@ -116,6 +129,7 @@ export interface Student {
   // Never used as a lookup key — `id` remains the only internal identifier.
   displayId?: string;
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
+  streak?: number;
   assignedDiagnosticQuestions?: Question[];
   // Extended profile — optional, filled in by the student's own school/teacher.
   // guardianContact and address are PII and are redacted for roles beyond
@@ -132,7 +146,6 @@ export interface Student {
   busRoute?: string;
   siblingsInSchool?: string;
   teacherNotes?: string;
-  streak?: number;
 }
 
 export interface Question {
@@ -574,7 +587,7 @@ export class DBStore {
         try {
           const studentsColl = db.collection('students');
           await studentsColl.createIndex({ id: 1 }, { unique: true });
-          await studentsColl.createIndex({ schoolId: 1 });
+          await studentsColl.createIndex({ schoolId: 1, currentLevel: 1 });
           await studentsColl.createIndex({ teacherId: 1 });
           await studentsColl.createIndex({ aadharMasked: 1 });
           console.log('Successfully ensured indexes on "students" collection');
@@ -592,13 +605,14 @@ export class DBStore {
           console.warn('Failed to ensure indexes on "users" collection:', e.message);
         }
 
-        // Ensure indexes on evaluationReports collection for performance
+        // Ensure indexes on schools and evaluationReports collection for performance
         try {
+          await db.collection('schools').createIndex({ stateCode: 1, districtCode: 1 });
           const reportsColl = db.collection('evaluationReports');
           await reportsColl.createIndex({ studentId: 1 });
-          console.log('Successfully ensured indexes on "evaluationReports" collection');
+          console.log('Successfully ensured indexes on "schools" and "evaluationReports" collections');
         } catch (e: any) {
-          console.warn('Failed to ensure indexes on "evaluationReports" collection:', e.message);
+          console.warn('Failed to ensure indexes on collections:', e.message);
         }
 
         for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
@@ -1240,8 +1254,25 @@ export class DBStore {
   // --- Write / Update Helpers ---
 
   async addUser(user: User) {
-    await this.mongoDb!.collection('users').insertOne(user);
-    if (this.data) this.data.users.push(user);
+    if (user.role === UserRole.BLOCK_ADMIN && user.blockCode) {
+      const users = await this.getUsers();
+      const normBlock = user.blockCode.trim().toUpperCase();
+      const existing = users.find(u => 
+        u.role === UserRole.BLOCK_ADMIN && 
+        u.blockCode && 
+        u.blockCode.trim().toUpperCase() === normBlock
+      );
+      if (existing) {
+        throw new Error(`A Block Coordinator already exists for Block Code '${normBlock}' (${existing.name} - ${existing.email}). Each Block can only have one assigned Block Coordinator.`);
+      }
+    }
+    if (this.useMongo && this.mongoDb) {
+      await this.mongoDb.collection('users').insertOne(user);
+    } else {
+      if (!this.data) this.data = { users: [], schools: [], classes: [], students: [], questions: [], worksheets: [], levelWorksheets: [], levelHtmlTemplates: [], answerSubmissions: [], evaluationReports: [], tickets: [], logbook: [], announcements: [] } as any;
+      if (!this.data.users) this.data.users = [];
+      this.data.users.push(user);
+    }
     return user;
   }
 
