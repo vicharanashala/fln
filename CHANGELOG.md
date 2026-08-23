@@ -4,6 +4,12 @@ All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
 routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
+## 2026-08-23 — Geo-administrative auto-resolution & contributor onboarding document
+
+- **docs: add onboarding document for Sampurna Chakrabarty** — added mandatory contributor onboarding document in `Ideas/ONBOARDING-Sampurna-Chakrabarty.md`.
+- **feat(geo): add cascading auto-fill for coordinator registration and permanent geoLookup unit tests** — added Map-based O(1) indexing, historical aliases, and Levenshtein fuzzy matching across all 36 States & UTs.
+- **fix(lint): resolve TypeScript compilation errors in `backend/src/index.ts` and `db.ts`** — fixed compilation errors to ensure clean repo build.
+
 ## 2026-08-17 — Backend route split (Phase 4) + landing/dashboard honesty pass
 
 - **`backend/src/index.ts` split from 3566 → 126 lines** across 4 sequential PR batches (#211–#215), extracting all route groups into `backend/src/routes/*.ts` (`auth`, `tickets`, `logbook`, `geo`, `classes`, `admin`, `teachers`, `schools`, `interventions`, `bestPractices`, `students`, `worksheets`, `evaluation`, `analytics`, `diagnosticBulk`) plus a shared `backend/src/config.ts`. Zero intended behavior change — each batch verified via `tsc --noEmit` and live curl testing against a scratch MongoDB seed.
