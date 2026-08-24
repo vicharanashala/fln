@@ -282,7 +282,7 @@
 
 **Citation:** Clements, Sarama, Baroody, Joswick & Wolfe (2019) shape-composition learning trajectory — "Piece Assembler" level.
 
-**Not yet cross-referenced:** new node, added after the repo comparison found this skill (as distinct from shape identification) missing from the framework entirely. Not yet checked against the repo — the repo's Shapes & Spatial gap (see `fln_framework_evolution_log.md`) suggests this is unlikely to have a match, but that hasn't been directly verified for this specific concept.
+**Verified against the repo (2026-07-20):** confirmed zero repo coverage. Checked via `rg -il "shape"` (hits only Levels 2/3/9/14, all identification/matching/tracing, no composition) plus a broadened keyword search (`tangram|pattern block|combine.*picture|assemble|puzzle|composing|decompos`, no genuine hits). No level anywhere tests combining shapes into a picture. See `fln_framework_evolution_log.md`, 2026-07-20 entry.
 
 ---
 
@@ -448,7 +448,7 @@
 
 **Citation:** Clements, Sarama, Baroody, Joswick & Wolfe (2019) shape-composition learning trajectory — "Picture Maker" level.
 
-**Not yet cross-referenced:** new node, same status as S2.10.
+**Verified against the repo (2026-07-20):** confirmed zero repo coverage, same as S2.10 — see `fln_framework_evolution_log.md`, 2026-07-20 entry.
 
 ---
 
@@ -717,7 +717,7 @@
 
 **Citation:** Clements, Sarama, Baroody, Joswick & Wolfe (2019) shape-composition learning trajectory — "Shape Composer/Decomposer" level.
 
-**Not yet cross-referenced:** new node, same status as S2.10/S3.10.
+**Verified against the repo (2026-07-20):** confirmed zero repo coverage, same as S2.10/S3.10 — see `fln_framework_evolution_log.md`, 2026-07-20 entry.
 
 ---
 
@@ -1536,7 +1536,7 @@
 
 **Citation:** Confirmed standard CBSE Class 4 topic (2026 syllabus) — this framework's synthesis document simply hadn't captured it; not previously ungrounded content, just uncited here.
 
-**Sourced, and matches the repo well:** the existing repo's Level 53 (Factors & Multiples) lands almost exactly here.
+**Sourced, and mostly matches the repo — one confirmed gap:** the existing repo's Level 53 (Factors & Multiples) covers factors, multiples, factor pairs, and common factors/multiples well (checked all 3 sub-levels, 2026-07-20), matching this node's factor/multiple content and misconception target closely. But prime/composite — listed in this node's Topics Covered — does not appear anywhere in L53's main file or its 3 sub-levels. Repo doesn't yet test that half of this node. See `fln_framework_evolution_log.md`, 2026-07-20 entry.
 
 ---
 

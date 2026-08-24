@@ -55,7 +55,7 @@ Getting this typing right matters: running the inference logic over a sequence-o
 
 *Terminal hand-off:* S3.4/S3.5 don't get Class-1+ successors of their own — Class 1 onward absorbs comparison/classification into Chain B and Chain J rather than continuing as a standalone strand. Worth checking during the repo comparison whether the repo's levels make this same hand-off.
 
-### Chain B — Number Sense (the backbone; 28 nodes)
+### Chain B — Number Sense (the backbone; 29 nodes — grown from 28, see S7.15 below)
 
 The number-line nodes (S4.14, S5.18) are sequence-typed side branches with no prereq edge into or out of the main trunk — the number line supports and reinforces the surrounding counting/place-value work, but isn't itself a gate on it.
 
@@ -63,7 +63,7 @@ The number-line nodes (S4.14, S5.18) are sequence-typed side branches with no pr
 |---|---|---|---|
 | S1.4 (Rote counting to 10) | S1.5 (Counting 1–3, support) | ⇢ | Co-occur; rote recitation doesn't gate small-set counting |
 | S1.5 | S2.4 (Counting to 5, cardinality) | → | |
-| S2.4 | S2.5 (Counting 6–10, support) | → | |
+| S2.4 | S2.5 (Counting 6–10, support) | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
 | S1.7 (Perceptual subitizing) | — | ∥ | Runs alongside S1.4/S1.5, not chained in — C&S treat subitizing as its own trajectory |
 | S1.7 | S2.9 (Conceptual subitizing) | → | The Clements & Sarama-documented prereq — perceptual subitizing precedes conceptual subitizing |
 | S2.9 | — | ∥ | Runs alongside S2.4/S2.5, not chained in |
@@ -92,7 +92,7 @@ The number-line nodes (S4.14, S5.18) are sequence-typed side branches with no pr
 | S6.3 | S6.4 (Read/write to 9999) | → | |
 | S6.4 | S7.1 (Place value, thousands) | → | |
 | S7.1 | S7.2 (Large numbers/regrouping) | → | |
-| S4.1 (Numeral comparison, abstract) | S4.2 | → | |
+| S4.1 (Numeral comparison, abstract) | S4.2 | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
 | S7.1 | S7.15 (Decimals, introduction) *(added 2026-07-19)* | → | Decimal place value (tenths, hundredths) genuinely extends the same tens-grouping logic as whole-number place value — a child who doesn't yet grasp thousands-place grouping isn't ready to reinterpret that grouping running in the other direction (tenths, hundredths) |
 
 *Compact summary string (for readability only — the table above is authoritative):* `S1.4⇢S1.5→S2.4→S2.5→S3.1→S3.2→S3.6→[S4.3→S4.4→S4.5→S5.1→S5.2→S5.3→S6.1→S6.2→S6.3→S6.4→S7.1→S7.2 (trunk)]`, with `S1.7→S2.9` (∥ to trunk), `S4.1→S4.2` (∥, long-range → S6.3), `S3.6→S4.13`, `{S2.4,S3.2}→S4.12→S5.17`, and `S4.14`/`S5.18` as non-gating side branches.
@@ -174,12 +174,12 @@ Backward inference within this chain works across every stage boundary — a sam
 
 | Source | Target | Type | Note |
 |---|---|---|---|
-| S2.8 (Comparative vocab, informal) | S3.7 (Comparative vocab, formalizing) | → | |
-| S3.7 | S4.9 (Length estimation) | → | |
+| S2.8 (Comparative vocab, informal) | S3.7 (Comparative vocab, formalizing) | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
+| S3.7 | S4.9 (Length estimation) | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
 | S3.7 | S4.10 (Capacity estimation) | → | |
 | S4.9 | S4.10 | ∥ | Co-equal Class 1 targets, no dependency |
-| S4.9 | S5.11 (Length/capacity, uniform non-standard) | → | |
-| S4.10 | S5.11 | → | |
+| S4.9 | S5.11 (Length/capacity, uniform non-standard) | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
+| S4.10 | S5.11 | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
 | S5.11 | S6.8 (Standard units) | → | |
 | S6.8 | S7.7 (Unit conversion) | → | |
 | S6.8 | S7.8 (Measurement word problems) | → | Standard units are genuinely required for word problems |
@@ -193,13 +193,13 @@ Backward inference within this chain works across every stage boundary — a sam
 
 | Source | Target | Type | Note |
 |---|---|---|---|
-| S2.7 (2-item pattern) | S3.8 (2-item indep. + 3-item intro) | → | |
-| S3.8 | S4.11 (3-item independent) | → | |
+| S2.7 (2-item pattern) | S3.8 (2-item indep. + 3-item intro) | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
+| S3.8 | S4.11 (3-item independent) | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
 | S4.11 | S5.16 (Number-sequence patterns) | ⇢ | Different modality (shape vs. number) — S5.16's real prereq is Chain B's numeral fluency, not shape-pattern independence |
 | S4.4 (Chain B) | S5.16 | → | Numeral fluency genuinely required to read a *number*-sequence pattern |
 | S5.16 | S5.19 (Skip counting 2s/5s) | → | Skip-counting is itself a constant-interval number pattern — general pattern recognition supports it |
 | S5.19 | S6.13 (Pattern rules + skip-count by 10) | → | Direct extension |
-| S6.13 | S7.12 (Number patterns/rule ID) | → | |
+| S6.13 | S7.12 (Number patterns/rule ID) | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
 
 ### Chain G — Money (3 nodes)
 
@@ -207,7 +207,7 @@ Backward inference within this chain works across every stage boundary — a sam
 |---|---|---|---|
 | S5.9 (Currency recognition) | S6.11 (Money arithmetic) | → | Recognition is a genuine prereq for arithmetic with the recognized objects |
 | Chain C (add/sub to 999) | S6.11 | → | Rupee/paise regrouping is place-value regrouping wearing a currency costume |
-| S6.11 | S7.11 (Complex money word problems) | → | |
+| S6.11 | S7.11 (Complex money word problems) | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
 
 ### Chain H — Calendar & Time (3 nodes)
 
@@ -234,7 +234,7 @@ Backward inference within this chain works across every stage boundary — a sam
 | S5.15 (Object/picture sorting) | S6.14 (Tally/pictograph/bar, 4 categories) | → | |
 | Chain B (counting, matching stage) | S6.14 | → | Needed to read a tally/bar value |
 | Chain A (classification) | S6.14 | → | Needed to sort into categories in the first place |
-| S6.14 | S7.13 (Bar graphs, reading/interpreting) | → | |
+| S6.14 | S7.13 (Bar graphs, reading/interpreting) | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
 
 ---
 
@@ -307,6 +307,77 @@ This cuts against the intuitive assumption that a stage with more levels (like S
 2. Build the placement core first: 1 item per non-backbone node, 2 items per backbone-chain (Chain B) node at that stage.
 3. If backward/forward checks and the difficulty-mix pass fit within the ceiling after the placement core, add them in this priority order — **backward checks on Chain B are cut last; forward checks are cut first** (missing a genuinely advanced child is lower-stakes than missing the ASER-documented reality that most children are behind, and the platform can catch acceleration at the *next* cycle instead): forward checks → difficulty-mix/misconception items → non-backbone backward checks → Chain-B backward checks.
 4. **Structural relief for the tight later-stage budget:** SRS's own 3-cycle design (Baseline = previous class's full syllabus, Mid-Year = previous + partial current, End-Year = previous + full current — SRS §1.4) already performs a full-coverage backward check once a year, at whatever stage a class's Baseline targets. A within-cycle diagnostic doesn't need to re-derive backward coverage from a handful of sampled items — Stage 6's own Baseline exam already **is** a complete backward check on Stage 5. This is what actually resolves the tight Class 3–4 budget: those stages' diagnostics can spend nearly their whole item ceiling on at-level anchors and forward checks, leaning on the Baseline cycle itself for backward coverage instead of squeezing it into the same sitting.
+
+---
+
+## Part 4b — Edge Reconciliation Against the Code Graph (2026-08-21)
+
+The code carries an independent typing of these edges (`frontend/src/data/skillProgressionMap.ts`); the two disagreed on 28 edges. See `fln_L_to_S_crosswalk.md` for the full comparison. **Resolution adopted:**
+
+- **14 edges keep the hard (→) typing in this document.** Each has a recorded rationale, six of them citing a named source (Piaget on seriation/transitivity; Clements & Sarama on subitizing; Clements et al. 2019 on the shape-composition trajectory, twice; Van Hiele on 2D–3D reasoning, twice). **The code should be changed to match on these.**
+- **11 edges were demoted from → to ⇢.** These were typed as hard prerequisites **with no recorded rationale** — the Note column was empty. Where this document gave no reason, the code's softer typing has equal claim, and softer is the safer default: a wrong hard edge makes the diagnostic *skip* a question it should have asked. Each demoted row is annotated inline.
+- **3 edges are typed harder in the code than here** (`S1.4→S1.5`, `S4.6→S4.7`, `S5.14→S6.10`) — still open, not yet resolved either way.
+
+**Edge types after reconciliation: 67 prereq (→), 31 sequence (⇢), 6 parallel (∥) = 104.**
+
+### Consequence: the diagnostic gets longer
+
+Apex selection uses only → edges, so demoting 11 removes inference paths and more levels must be tested directly:
+
+| Grade | Levels | Apex before | Apex now | Change |
+|---|---|---|---|---|
+| Bal Vatika | 27 | 12 | **15** | +3 |
+| Class 1 | 42 | 18 | **22** | +4 |
+| Class 2 | 61 | 25 | **31** | +6 |
+| Class 3 | 75 | 26 | **32** | +6 |
+| Class 4 | 93 | 33 | **42** | +9 |
+
+The reduction against testing every level is still substantial (Class 1: 22 questions instead of 42), but the papers are now **17–27% longer** than the earlier figures. Those earlier numbers assumed 11 prerequisites this document could not justify.
+
+**A standing rule this establishes: an edge with no recorded rationale should not be typed `→`.** 28 of the current 67 hard edges still carry no note — see Part 4.
+
+---
+
+## Part 5 — Building the Sub-Skill Layer (method, added 2026-08-21)
+
+The 104 edges in Part 2 connect **levels**. The 179 sub-skills beneath them currently carry no edges at all. This was previously listed as a "gap"; it is not one. It is unstarted work with a known method, and **most of it needs no literature whatsoever.**
+
+Sub-skill edges fall into three kinds, and they should be built in this order.
+
+### Type 1 — Entailment edges (no literature, no judgement)
+
+Where one sub-skill's task set is a **strict subset** of another's, the edge is deductive. A child who reads four-digit numerals can read two-digit ones; passing the larger proves the smaller. These are not empirical claims and require no source:
+
+- `SK05.03 → SK05.04 → SK05.05 → SK05.06 → SK05.07` (count to 5 / 10 / 20 / 50 / 100)
+- `SK08.01 → SK08.06 → SK08.07 → SK08.08` (numerals 1–10 → to 99 → three-digit → four-digit)
+- `SK09.06 → SK09.07` (compare two-digit → three-digit)
+- `SK13.03 → SK13.06 → SK13.08 → SK13.09` (single-digit → two-digit → three-digit → multi-digit addition), and the parallel `SK14` subtraction ladder
+- `SK15.04 → SK15.05` (tables 2,3,4,5,10 → tables 2–10 — a literal superset)
+
+**These are also the strongest possible surmise relations**, which is exactly what apex selection needs. Magnitude and range ladders of this kind run through SK05, SK08–SK16, SK20 and SK21 and account for the majority of the 179.
+
+### Type 2 — Inherited edges (mechanical, no new research)
+
+Where two sub-skills map to **levels already joined by a verified edge in Part 2**, that edge projects downward. The justification has already been done at level granularity; nothing new is being claimed.
+
+This needs exactly one piece of work: a **sub-skill → level mapping table**. That is authoring, not research.
+
+### Type 3 — Genuinely empirical (needs evidence — from literature *or* from response data)
+
+The residue: orderings where neither entailment nor inheritance applies. Typically same-tier or cross-strand questions, e.g. does subitizing (SK07) precede cardinality (SK06)? Is "identify the odd object" (SK02.03) harder than "classify by multiple properties" (SK02.04)?
+
+Two routes, and **the second is the important one**:
+
+1. Existing literature — Clements & Sarama's trajectories already settle a number of the early-number cases.
+2. **The platform's own response data.** If children who pass X reliably also pass Y, but not the reverse, that *is* a surmise relation, discovered empirically. This is precisely what Knowledge Space Theory's own empirical validation does (the Basic Local Independence Model, `fln_source_verification_2026-08-21.md` §1).
+
+So Type 3 edges should be recorded as **hypotheses with a confidence flag**, and adjudicated by the level-revision feedback loop rather than argued about in advance.
+
+### Why this matters, and to what
+
+The **diagnostic does not need the sub-skill layer** — apex selection works on the 93-node graph as it stands.
+
+The **worksheet bundle does.** Without sub-skill edges, an evaluation can say "addition is weak" but not "regrouping is weak, two-digit addition is fine." Under a *teacher-absent* design the bundle has to start at the right rung and climb in steps a child can cross unaided, and that needs the finer resolution. The sub-skill layer is what blocks the teaching ladder, not the assessment ladder.
 
 ---
 

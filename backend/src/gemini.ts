@@ -8,6 +8,46 @@ import { Question } from "./db";
 const GEMINI_MODELS = ["gemini-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-lite-latest"] as const;
 const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
 
+// Issue #181: forgive small, meaningless formatting/OCR differences in the
+// deterministic answer comparison (extra internal spaces, mixed case, a
+// single OCR-typical misread character) without starting to accept answers
+// that are genuinely wrong.
+function levenshteinDistance(a: string, b: string): number {
+  const dp: number[][] = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+const NUMERIC_ANSWER = /^-?\d+(\.\d+)?$/;
+
+// `submitted`/`correct` should already be trim()'d + toLowerCase()'d by the
+// caller — this just adds internal-whitespace collapsing and, for non-numeric
+// answers only, a small length-scaled edit-distance tolerance. Numeric
+// answers are deliberately excluded from fuzzy matching: a 1-character edit
+// distance there is a different number (e.g. "5" vs "6", "12" vs "13"), not
+// an OCR near-miss of the same answer.
+function answersMatch(submitted: string, correct: string): boolean {
+  const collapse = (s: string) => s.replace(/\s+/g, ' ').trim();
+  const a = collapse(submitted);
+  const b = collapse(correct);
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (NUMERIC_ANSWER.test(a) || NUMERIC_ANSWER.test(b)) return false;
+
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen < 3) return false; // too short to safely tolerate any edit
+  const tolerance = maxLen <= 6 ? 1 : 2;
+  return levenshteinDistance(a, b) <= tolerance;
+}
+
 // Helper to get Gemini client or null if key is missing
 let aiClient: GoogleGenAI | null = null;
 
@@ -434,7 +474,7 @@ Provide a clean narrative feedback summary.`;
   questions.forEach((q) => {
     const submitted = (submittedAnswers[q.question_id] || '').trim().toLowerCase();
     const correct = q.answer.trim().toLowerCase();
-    if (submitted === correct) {
+    if (answersMatch(submitted, correct)) {
       score++;
     }
   });
@@ -444,7 +484,7 @@ Provide a clean narrative feedback summary.`;
   questions.forEach((q) => {
     const submitted = (submittedAnswers[q.question_id] || '').trim().toLowerCase();
     const correct = q.answer.trim().toLowerCase();
-    if (submitted !== correct) {
+    if (!answersMatch(submitted, correct)) {
       failedLevels.push(q.source_level);
     }
   });
@@ -627,7 +667,7 @@ Generate a narrative report summarizing strengths and learning gaps.`;
   questions.forEach((q) => {
     const submitted = (submittedAnswers[q.question_id] || '').trim().toLowerCase();
     const correct = q.answer.trim().toLowerCase();
-    const isCorrect = submitted === correct;
+    const isCorrect = answersMatch(submitted, correct);
 
     if (isCorrect) score++;
 

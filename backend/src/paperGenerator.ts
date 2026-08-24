@@ -18,6 +18,81 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
+/**
+ * Convert an answer (scalar, array, or object) to the string the
+ * Diagnostic Placement UI shows next to "Correct: ".
+ *
+ * Many question types have structured answers (matching pairs, cluster
+ * loops, dual-mark groups, fill-in-the-blank sequences). The naive
+ * `String(value)` returns "[object Object]" or "" for these, leaving
+ * the placement grader with no answer to compare against. This helper
+ * detects the known shapes and emits a compact, human-readable form
+ * (e.g. "Left: 5, Right: 2" for more/less groups), and falls back to
+ * JSON for anything unknown.
+ */
+function stringifyAnswer(value: any, item: any): string {
+  if (value === null || value === undefined) return '';
+  // Scalars (string, number, boolean) stringify directly.
+  if (typeof value !== 'object') return String(value).trim();
+
+  const detect = item?.icr?.detect;
+  const data = item?.data || {};
+
+  // Matching (class 3 shape): array of {lPos, rPos, shape?, obj?}
+  // Matching (class 2 line-draw): each item has data.lPos, data.rPos, data.matchesTo
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && ('lPos' in value[0] || 'l' in value[0])) {
+    return value.map((m: any) => `${m.lPos ?? m.l}→${m.rPos ?? m.r}`).join(', ');
+  }
+  // Single matching-pair item (class 2 section 8 / Match Shapes): per-item
+  // lPos/rPos. Format as "3→5 (Oval→Hand Mirror)" if matchesTo is also set.
+  if ('lPos' in value && 'rPos' in value) {
+    const pair = `${value.lPos}→${value.rPos}`;
+    const label = value.matchesTo ? ` (${value.shape ?? '?'}→${value.matchesTo})` : '';
+    return pair + label;
+  }
+  // group_circle (more/less): {cells: [{cell, task, lCount, rCount, ans}]}
+  if (data && Array.isArray(data.cells)) {
+    return data.cells.map((c: any) => `${c.cell}: ${c.ans} (${c.lCount} vs ${c.rCount})`).join('; ');
+  }
+  // fill-in-blank sequence: array of numbers/strings
+  if (Array.isArray(value)) {
+    return value.map((v: any) => (v && typeof v === 'object' && 'value' in v ? v.value : v)).join(', ');
+  }
+  // cluster_loop: {r1, r2, total, circle}
+  if ('circle' in value && ('r1' in value || 'r2' in value || 'total' in value)) {
+    return `circle ${value.circle} of ${value.total} (r1=${value.r1 ?? '?'}, r2=${value.r2 ?? '?'})`;
+  }
+  // dual_mark: {circle, tick, groups}
+  if ('circle' in value && 'tick' in value) {
+    return `circle ${value.circle}, tick ${value.tick}`;
+  }
+  // path_trace: {path} or string
+  if ('path' in value) {
+    return String(value.path);
+  }
+  // mcq with options: {ans, opts}
+  if ('ans' in value && 'opts' in value) {
+    return String(value.ans);
+  }
+  // matching_lCol_rCol (alt): {lCol, rCol, ...}
+  if ('lCol' in value && 'rCol' in value) {
+    return `match (${value.lCol} ↔ ${value.rCol})`;
+  }
+  // handwritten_digit_multi: {tens, ones} or {weeks, extraDays}
+  if ('tens' in value && 'ones' in value) {
+    return `${value.tens} tens + ${value.ones} ones`;
+  }
+  if ('weeks' in value && 'extraDays' in value) {
+    return `${value.weeks} weeks + ${value.extraDays} days`;
+  }
+  // Final fallback: JSON. Avoids the useless "[object Object]".
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '[unserializable]';
+  }
+}
+
 export interface PaperGenerationResult {
   fileName: string;
   filePath: string;
@@ -163,16 +238,23 @@ export async function generateDiagnosticPaper({
             // Resolve the answer from multiple possible locations:
             //   1. icr.expected       — scalar/symbol/array/object answers (most sections)
             //   2. data.answer        — alternate scalar
-            //   3. data.blanks[].value — fill-in-the-blank sections (answers live per-blank,
-            //                             not on the item). Emit one answer entry per blank.
+            //   3. data.blanks[].value — fill-in-the-blank sections where the
+            //                            "answer" is a list of values per blank
+            //                            (e.g. missing-number sequences). The
+            //                            per-blank values are the correct fills.
             let ans: string = '';
             const icrExp = item.icr?.expected;
             const dataAns = item.data?.answer;
             const blanks: Array<{position: number; value: any}> = item.data?.blanks || [];
             if (icrExp !== undefined && icrExp !== null) {
-              ans = String(icrExp).trim();
+              ans = stringifyAnswer(icrExp, item);
             } else if (dataAns !== undefined && dataAns !== null) {
-              ans = String(dataAns).trim();
+              ans = stringifyAnswer(dataAns, item);
+            } else if (blanks.length > 0) {
+              // Synthesize an answer from the blank fills, sorted by
+              // position so it's stable across regenerations.
+              const sortedBlanks = [...blanks].sort((a, b) => (a.position || 0) - (b.position || 0));
+              ans = sortedBlanks.map((b) => String(b.value ?? '').trim()).join(', ');
             }
             const qid = `Q_L${classNumber * 10}_${secIdx + 1}_${itemIdx + 1}`;
             const questionNum = item.question || itemIdx + 1;

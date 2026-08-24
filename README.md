@@ -209,6 +209,14 @@ pattern).
 
     A document that reads as if it was written without reading the codebase will be sent back.
 
+### Explainer Video Gate (Mandatory, before Onboarding Document)
+
+Before submitting the Onboarding Document, every new contributor must watch the FLN project explainer video (linked on Vibe) in full and pass the attention-check questions at the end. This is required *before* your first PR, not just before onboarding review — the video explains why the project is scoped the way it is (Math-only for now, no new features until Version 1 is clean, why the 93-level framework isn't a fixed lookup table) so you don't spend your first PR re-litigating decisions that are already settled.
+
+### Working Only From Predefined Issues
+
+Until Version 1 is clean end-to-end, contributors should pick up work only from issues labeled [`intern-ready`](https://github.com/vicharanashala/fln/issues?q=is%3Aissue+is%3Aopen+label%3Aintern-ready) — these are mechanical, well-scoped tasks (e.g. splitting a god-file, rolling out pagination) that don't require a judgment call about platform behavior. Issues without that label may touch pedagogical logic (the level framework, certification distance, diagnostic scoring) or unbuilt backend features, and need core-team review before and during the work — don't self-assign those without checking with a maintainer first. If you think something is missing from the issue list, raise it as a new issue; don't build it unscoped.
+
 
 ## Contribution Guidelines
 

@@ -49,10 +49,15 @@ export interface Student {
   section: string;
   schoolId: string;
   teacherId?: string;
-  currentLevel: number;
-  currentSubLevel?: number;
-  targetLevel: number;
+  currentLevel: number | null;
+  currentSubLevel?: number | null;
+  targetLevel: number | null;
   aadharMasked: string;
+  // Clean numeric ID for teacher-facing display — use this instead of `id`
+  // anywhere a teacher/principal/admin sees a student ID (roster, profile,
+  // printed worksheets). Falls back to `id` only for older records that
+  // predate this field.
+  displayId?: string;
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
   gender?: 'Male' | 'Female' | 'Other';
@@ -93,6 +98,7 @@ export interface Worksheet {
   cycle: 'Baseline' | 'Mid-year' | 'End-of-year';
   date: string;
   questions: Question[];
+  studentIds?: string[];
   locks: {
     locked: boolean;
     lockedByRole: UserRole | null;
@@ -125,17 +131,108 @@ export interface AnswerSubmission {
   answers: { [questionId: string]: string };
 }
 
+export type ConfidenceLevel = 'Very High' | 'High' | 'Moderate' | 'Low';
+
+export interface TeacherActionPlanStep {
+  week: number;
+  title: string;
+  topics: string[];
+}
+
+export interface PrerequisitePath {
+  weakConcepts: string[];
+  highPriorityFoundations: string[];
+  supportingSkills: string[];
+  actionPlan: TeacherActionPlanStep[];
+}
+
+export interface EvaluationReasoning {
+  explanation: {
+    headline: string;
+    narrative: string;
+  };
+  conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' };
+  confidence?: {
+    score: number;
+    level: ConfidenceLevel;
+    explanation: string;
+  };
+  learningProgression: {
+    currentLevel: number;
+    currentLevelName: string;
+    currentStrand: string;
+    nextMilestone: { level: number; name: string; strand: string } | null;
+    blockers: { topic: string; questionId?: string; errorType?: string }[];
+    recommendations: string[];
+  };
+  prerequisitePath?: PrerequisitePath;
+  prerequisiteLearningPath?: {
+    highPriorityFoundations: string[];
+    supportingSkills: string[];
+    affectedCompetencies: string[];
+    remediationSequence: string[];
+  };
+  evidence?: {
+    assessedTopics: string[];
+    strongestConcepts: string[];
+    weakestConcepts: string[];
+    failedQuestionSummary: {
+      total: number;
+      byLevel: { level: number; name: string | null; count: number; pipelineReported?: boolean }[];
+      byTopic: { topic: string; count: number }[];
+    };
+    difficultyBreakdown?: {
+      easy: { correct: number; attempted: number };
+      medium: { correct: number; attempted: number };
+      hard: { correct: number; attempted: number };
+    };
+    conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' };
+  };
+  remediation?: {
+    reusedFailedQuestions: number;
+    newlyIntroducedCurriculum: number;
+    remediationReason: string;
+    targetClass: number | null;
+    targetPhrase: string | null;
+  };
+  curriculumSummary?: {
+    currentLevelName: string;
+    currentObjective: string;
+    currentLearningOutcome: string[];
+    currentTopics: string[];
+    nextLevelName: string | null;
+    nextObjective: string | null;
+    transitionReason: string;
+  };
+  personalized?: {
+    failedQuestionsReused: number;
+    newLevelQuestionsAdded: number;
+    targetPhrase: string | null;
+    targetClass: number | null;
+    rationale: string;
+  };
+}
+
 export interface EvaluationReport {
   id: string;
   studentId: string;
   worksheetId: string;
   score: number;
   totalQuestions: number;
+  totalCorrect?: number;
+  wrongCount?: number;
   conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' };
   narrative: string;
   recommendedLevel: number;
   recommendedSubLevel?: number;
   timestamp: string;
+  reasoning?: EvaluationReasoning;
+  // Issue #180: per-question breakdown, present on reports created after
+  // that feature landed. Optional — older reports predate it.
+  questionResults?: { questionId: string; question?: string; correctAnswer?: string; submittedAnswer: string; isCorrect: boolean }[];
+  teacherReviewed?: boolean;
+  reviewedBy?: string;
+  reviewedAt?: string;
 }
 
 export interface Ticket {
@@ -223,3 +320,9 @@ export interface BestPractice {
   viewCount: number;
   createdAt: string;
 }
+
+export interface DashboardProps {
+  user: User;
+  token: string;
+}
+

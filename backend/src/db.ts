@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import bcrypt from 'bcrypt';
 import { MongoClient, Db } from 'mongodb';
+import { CURRICULUM_MAPPING } from './config/curriculumMap';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
@@ -104,12 +105,17 @@ export interface Student {
   section: string;
   schoolId: string;
   teacherId?: string;
-  currentLevel: number;
-  currentSubLevel?: number;
-  targetLevel: number;
+  currentLevel: number | null;
+  currentSubLevel?: number | null;
+  targetLevel: number | null;
   aadharMasked: string; // Mandatory, unique identifier masked (§13.2 R-6)
+  // Clean numeric ID for teacher-facing display (roster, profile, printed
+  // worksheets) — see backend/src/displayId.ts. Derived from the same
+  // non-sensitive state/district/block/school/class/sequence hierarchy
+  // already encoded in `id`, just reformatted to be readable/printable.
+  // Never used as a lookup key — `id` remains the only internal identifier.
+  displayId?: string;
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
-  streak: number;
   assignedDiagnosticQuestions?: Question[];
   // Extended profile — optional, filled in by the student's own school/teacher.
   // guardianContact and address are PII and are redacted for roles beyond
@@ -126,6 +132,7 @@ export interface Student {
   busRoute?: string;
   siblingsInSchool?: string;
   teacherNotes?: string;
+  streak?: number;
 }
 
 export interface Question {
@@ -199,6 +206,12 @@ export interface QuestionBankEntry {
   svgHtml: string;
 }
 
+// Canonical set of assessment cycle names, used everywhere a cycle name is
+// displayed or written (levelHistory.reason, Worksheet.cycle) so there is
+// exactly one naming scheme across the whole app.
+export const CYCLE_NAMES = ['Baseline', 'Mid-year', 'End-of-year'] as const;
+export type CycleName = typeof CYCLE_NAMES[number];
+
 export interface Worksheet {
   id: string; // Exam ID
   classId: string;
@@ -207,9 +220,14 @@ export interface Worksheet {
   schoolId: string;
   generatedByRole: UserRole;
   generatedByEmail: string;
-  cycle: 'Baseline' | 'Mid-year' | 'End-of-year';
+  cycle: CycleName;
   date: string;
   questions: Question[];
+  // Which students this worksheet was actually generated for — needed to
+  // compute how many are still pending evaluation (studentIds.length minus
+  // the number with a matching EvaluationReport.worksheetId). Optional so
+  // older/other worksheet-creation paths that don't set it still validate.
+  studentIds?: string[];
   locks: {
     locked: boolean;
     lockedByRole: UserRole | null;
@@ -230,6 +248,21 @@ export interface Worksheet {
   };
 }
 
+// Issue #182: one entry per bulk-generation request (diagnostic/practice/
+// remedial/midline/endline), written only from the existing bulk routes at
+// the point they already run — not a new trigger point of its own.
+export interface TestHistoryEntry {
+  id: string;
+  teacherId: string;
+  teacherEmail: string;
+  requestType: 'diagnostic' | 'practice' | 'remedial' | 'midline' | 'endline';
+  timestamp: string;
+  studentCount: number;
+  classId?: string;
+  className?: string;
+  schoolId?: string;
+}
+
 export interface AnswerSubmission {
   id: string;
   worksheetId: string;
@@ -242,17 +275,115 @@ export interface AnswerSubmission {
   answers: { [questionId: string]: string }; // Q1 -> A, Q2 -> 5, etc.
 }
 
+export type ConfidenceLevel = 'Very High' | 'High' | 'Moderate' | 'Low';
+
+export interface TeacherActionPlanStep {
+  week: number;
+  title: string;
+  topics: string[];
+}
+
+export interface PrerequisitePath {
+  weakConcepts: string[];
+  highPriorityFoundations: string[];
+  supportingSkills: string[];
+  actionPlan: TeacherActionPlanStep[];
+}
+
+export interface EvaluationReasoning {
+  explanation: {
+    headline: string;
+    narrative: string;
+  };
+  conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' };
+  confidence?: {
+    score: number;
+    level: ConfidenceLevel;
+    explanation: string;
+  };
+  learningProgression: {
+    currentLevel: number;
+    currentLevelName: string;
+    currentStrand: string;
+    nextMilestone: { level: number; name: string; strand: string } | null;
+    blockers: { topic: string; questionId?: string; errorType?: string }[];
+    recommendations: string[];
+  };
+  // Phase 5: Prerequisite Learning Path. Built from the same questionResults
+  // array that powers the rest of the reasoning payload, so the only source
+  // of truth is the submitted paper's correctness.
+  prerequisitePath?: PrerequisitePath;
+  prerequisiteLearningPath?: {
+    highPriorityFoundations: string[];
+    supportingSkills: string[];
+    affectedCompetencies: string[];
+    remediationSequence: string[];
+  };
+  evidence?: {
+    assessedTopics: string[];
+    strongestConcepts: string[];
+    weakestConcepts: string[];
+    failedQuestionSummary: {
+      total: number;
+      byLevel: { level: number; name: string | null; count: number; pipelineReported?: boolean }[];
+      byTopic: { topic: string; count: number }[];
+    };
+    difficultyBreakdown?: {
+      easy: { correct: number; attempted: number };
+      medium: { correct: number; attempted: number };
+      hard: { correct: number; attempted: number };
+    };
+    conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' };
+  };
+  remediation?: {
+    reusedFailedQuestions: number;
+    newlyIntroducedCurriculum: number;
+    remediationReason: string;
+    targetClass: number | null;
+    targetPhrase: string | null;
+  };
+  curriculumSummary?: {
+    currentLevelName: string;
+    currentObjective: string;
+    currentLearningOutcome: string[];
+    currentTopics: string[];
+    nextLevelName: string | null;
+    nextObjective: string | null;
+    transitionReason: string;
+  };
+  personalized?: {
+    failedQuestionsReused: number;
+    newLevelQuestionsAdded: number;
+    targetPhrase: string | null;
+    targetClass: number | null;
+    rationale: string;
+  };
+}
+
 export interface EvaluationReport {
   id: string;
   studentId: string;
   worksheetId: string;
   score: number;
   totalQuestions: number;
+  totalCorrect?: number;
+  wrongCount?: number;
   conceptMastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' };
   narrative: string; // Narrative summary for parent/teacher
   recommendedLevel: number;
   recommendedSubLevel?: number;
   timestamp: string;
+  reasoning?: EvaluationReasoning;
+  // Issue #180: per-question breakdown, populated at creation time wherever
+  // the grading logic already has this data. Optional because older reports
+  // (and any evaluation path that doesn't yet populate it) predate this —
+  // the teacher-override endpoint requires it to exist on the report it's
+  // correcting, since a correction is meaningless without knowing which
+  // question is being corrected.
+  questionResults?: { questionId: string; question?: string; correctAnswer?: string; submittedAnswer: string; isCorrect: boolean }[];
+  teacherReviewed?: boolean;
+  reviewedBy?: string; // reviewing teacher's email
+  reviewedAt?: string;
 }
 
 export interface Ticket {
@@ -359,6 +490,7 @@ interface DatabaseSchema {
   interventions: Intervention[];
   bestPractices: BestPractice[];
   diagnosticAnswerKeys: DiagnosticAnswerKey[];
+  testHistory: TestHistoryEntry[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -379,6 +511,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   interventions: 'interventions',
   bestPractices: 'best_practices',
   diagnosticAnswerKeys: 'diagnostic_answer_keys',
+  testHistory: 'testHistory',
 };
 
 export class DBStore {
@@ -437,6 +570,37 @@ export class DBStore {
           console.warn('Collection check info:', e.message);
         }
 
+        // Ensure indexes on students collection for performance
+        try {
+          const studentsColl = db.collection('students');
+          await studentsColl.createIndex({ id: 1 }, { unique: true });
+          await studentsColl.createIndex({ schoolId: 1 });
+          await studentsColl.createIndex({ teacherId: 1 });
+          await studentsColl.createIndex({ aadharMasked: 1 });
+          console.log('Successfully ensured indexes on "students" collection');
+        } catch (e: any) {
+          console.warn('Failed to ensure indexes on "students" collection:', e.message);
+        }
+
+        // Ensure indexes on users collection for performance
+        try {
+          const usersColl = db.collection('users');
+          await usersColl.createIndex({ id: 1 }, { unique: true });
+          await usersColl.createIndex({ email: 1 }, { unique: true });
+          console.log('Successfully ensured indexes on "users" collection');
+        } catch (e: any) {
+          console.warn('Failed to ensure indexes on "users" collection:', e.message);
+        }
+
+        // Ensure indexes on evaluationReports collection for performance
+        try {
+          const reportsColl = db.collection('evaluationReports');
+          await reportsColl.createIndex({ studentId: 1 });
+          console.log('Successfully ensured indexes on "evaluationReports" collection');
+        } catch (e: any) {
+          console.warn('Failed to ensure indexes on "evaluationReports" collection:', e.message);
+        }
+
         for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
           (this.data as any)[key] = [];
         }
@@ -481,6 +645,7 @@ export class DBStore {
   private async persistCollection(key: keyof DatabaseSchema) {
     if (!this.data || !mongoClient) return;
     const db = this.getDb();
+    if (!db) return;
     const collName = COLLECTION_NAMES[key];
     const items = (this.data as any)[key] || [];
     const coll = db.collection(collName);
@@ -494,6 +659,7 @@ export class DBStore {
     this.data = this.getSeedData();
     if (mongoClient) {
       const db = this.getDb();
+      if (!db) return;
       for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
         const items = (this.data as any)[key] || [];
         const coll = db.collection(collName);
@@ -532,7 +698,7 @@ export class DBStore {
           }
           return u;
         }
-      } catch (_) {}
+      } catch (_) { }
     }
     return this.getUserSync(cleanEmail);
   }
@@ -549,37 +715,43 @@ export class DBStore {
     if (this.mongoDb) return await this.mongoDb.collection<ClassGroup>('classes').find({}).toArray();
     return this.data?.classes || [];
   }
-  async getStudents(opts?: { limit?: number; offset?: number; schoolId?: string; teacherId?: string }) {
-      if (this.mongoDb) {
-        const filter: any = {};
-        if (opts?.schoolId) filter.schoolId = opts.schoolId;
-        if (opts?.teacherId) filter.teacherId = opts.teacherId;
-        const skip = opts?.offset || 0;
-        const limit = opts?.limit || 0;
-        const cursor = this.mongoDb.collection<Student>('students').find(filter);
-        if (skip) cursor.skip(skip);
-        if (limit) cursor.limit(limit);
-        return await cursor.toArray();
+  async getStudents(opts?: { limit?: number; offset?: number; schoolId?: string | string[]; teacherId?: string }) {
+    if (this.mongoDb) {
+      const filter: any = {};
+      if (opts?.schoolId) {
+        if (Array.isArray(opts.schoolId)) {
+          filter.schoolId = { $in: opts.schoolId };
+        } else {
+          filter.schoolId = opts.schoolId;
+        }
       }
-      let result = this.data?.students || [];
-      if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
-      if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
-      if (opts?.offset) result = result.slice(opts.offset);
-      if (opts?.limit) result = result.slice(0, opts.limit);
-      return result;
+      if (opts?.teacherId) filter.teacherId = opts.teacherId;
+      const skip = opts?.offset || 0;
+      const limit = opts?.limit || 0;
+      const cursor = this.mongoDb.collection<Student>('students').find(filter);
+      if (skip) cursor.skip(skip);
+      if (limit) cursor.limit(limit);
+      return await cursor.toArray();
     }
-    async countStudents(opts?: { schoolId?: string; teacherId?: string }) {
-      if (this.mongoDb) {
-        const filter: any = {};
-        if (opts?.schoolId) filter.schoolId = opts.schoolId;
-        if (opts?.teacherId) filter.teacherId = opts.teacherId;
-        return await this.mongoDb.collection('students').countDocuments(filter);
-      }
-      let result = this.data?.students || [];
-      if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
-      if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
-      return result.length;
+    let result = this.data?.students || [];
+    if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
+    if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
+    if (opts?.offset) result = result.slice(opts.offset);
+    if (opts?.limit) result = result.slice(0, opts.limit);
+    return result;
+  }
+  async countStudents(opts?: { schoolId?: string; teacherId?: string }) {
+    if (this.mongoDb) {
+      const filter: any = {};
+      if (opts?.schoolId) filter.schoolId = opts.schoolId;
+      if (opts?.teacherId) filter.teacherId = opts.teacherId;
+      return await this.mongoDb.collection('students').countDocuments(filter);
     }
+    let result = this.data?.students || [];
+    if (opts?.schoolId) result = result.filter(s => s.schoolId === opts.schoolId);
+    if (opts?.teacherId) result = result.filter(s => s.teacherId === opts.teacherId);
+    return result.length;
+  }
 
 
   /**
@@ -726,6 +898,15 @@ export class DBStore {
     if (this.mongoDb) return await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray();
     return this.data?.worksheets || [];
   }
+  async getTestHistory(teacherId?: string) {
+    if (this.mongoDb) {
+      const filter = teacherId ? { teacherId } : {};
+      return await this.mongoDb.collection<TestHistoryEntry>('testHistory').find(filter).sort({ timestamp: -1 }).toArray();
+    }
+    const all = this.data?.testHistory || [];
+    const filtered = teacherId ? all.filter(t => t.teacherId === teacherId) : all;
+    return [...filtered].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  }
   async getLevelWorksheets() {
     if (this.mongoDb) return await this.mongoDb.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
     return this.data?.levelWorksheets || [];
@@ -753,14 +934,34 @@ export class DBStore {
   }
 
   /**
-   * Generate a 10-question FLN paper for Class 2 using real MongoDB Atlas questionBank documents (Level 22 to Level 31)
-   */
-  async generateClass2PaperFromAtlas(studentId?: string): Promise<Question[]> {
-    const questions: Question[] = [];
-    const minLevel = 22;
-    const maxLevel = 31;
+     * Level range for a given class, per the 93-level FLN registry
+     * (see backend/src/config/curriculumMap.ts).
+     *
+     *   Pre-school 1:  1-7
+     *   Pre-school 2:  8-17
+     *   Pre-school 3: 18-27
+     *   Class 1:      28-42
+     *   Class 2:      43-61
+     *   Class 3:      62-75
+     *   Class 4:      76-93
+     */
+  static classLevelRange(classNumber: number): { min: number; max: number } {
+    if (classNumber <= 1) return { min: 28, max: 42 }; // class 1
+    if (classNumber === 2) return { min: 43, max: 61 };
+    if (classNumber === 3) return { min: 62, max: 75 };
+    return { min: 76, max: 93 }; // class 4 (and any >4 default)
+  }
 
-    for (let lvl = minLevel; lvl <= maxLevel; lvl++) {
+  /**
+   * Generate a 10-question FLN paper for the given class using real MongoDB Atlas
+   * `questionBank` documents. Each question is sourced from one level in the class's band.
+   *
+   * Default for class 2 was 22-31 (legacy); now correctly 43-61.
+   */
+  async generateClassPaperFromAtlas(studentId: string | undefined, classNumber: number): Promise<Question[]> {
+    const { min: minLevel, max: maxLevel } = DBStore.classLevelRange(classNumber);
+    const questions: Question[] = [];
+    for (let lvl = minLevel; lvl <= maxLevel && questions.length < 10; lvl++) {
       let qDoc: any = null;
       if (this.mongoDb) {
         try {
@@ -769,43 +970,61 @@ export class DBStore {
             { $sample: { size: 1 } }
           ]).toArray();
           if (docs && docs.length > 0) qDoc = docs[0];
-        } catch (_) {}
+        } catch (_) { }
       }
-
       if (qDoc) {
         questions.push({
-          question_id: `Q_L${lvl}_${qDoc.questionNumber || (lvl - minLevel + 1)}`,
+          question_id: `Q_L${lvl}_${qDoc.questionNumber || (questions.length + 1)}`,
           question: qDoc.questionText || qDoc.question || `Level ${lvl} Problem`,
           answer: String(qDoc.answer || '').trim(),
           answer_type: 'number',
           topic: qDoc.levelTitle || `Level ${lvl}`,
           subtopic: qDoc.section || `Section ${lvl}.0`,
           difficulty: 'medium',
-          source_level: lvl
+          source_level: lvl,
+          // Authoritative concept identity for this curriculum level. Metadata
+          // only — it does not affect the question, its answer or its level.
+          conceptId: CURRICULUM_MAPPING[lvl]?.conceptId
         });
       } else {
-        const a = lvl * 2;
-        const b = lvl;
+        // Deterministic fallback so the generated paper still has a valid answer key
+        // even when questionBank has no docs for this level.
+        const a = lvl;
+        const b = (lvl % 7) + 2;
         questions.push({
-          question_id: `Q_L${lvl}_1`,
+          question_id: `Q_L${lvl}_${questions.length + 1}`,
           question: `Level ${lvl}: Calculate ${a} + ${b} = ?`,
           answer: String(a + b),
           answer_type: 'number',
-          topic: `Level ${lvl} Number Operations`,
-          subtopic: `Addition`,
+          // Mirror the qDoc branch above: derive the topic string from the
+          // canonical CURRICULUM_MAPPING entry (e.g. "Flexible
+          // Classification" for level 22). Without this, the offline
+          // fallback produced a misleading placeholder ("Level 22 Number
+          // Operations") that the Python pipeline rendered verbatim,
+          // making the narrative disagree with the paper's conceptId.
+          topic: CURRICULUM_MAPPING[lvl]?.levelTitle || `Level ${lvl}`,
+          subtopic: 'Addition',
           difficulty: 'medium',
-          source_level: lvl
+          source_level: lvl,
+          // Same authoritative concept identity on the offline fallback item.
+          conceptId: CURRICULUM_MAPPING[lvl]?.conceptId
         });
       }
     }
 
-    if (studentId) {
+    if (studentId && questions.length > 0) {
       await this.assignDiagnosticPaperToStudent(studentId, questions);
     }
-
     return questions;
   }
 
+  /**
+   * Back-compat: legacy callers (paperGenerator.ts line ~147) pass classNumber=2.
+   * Routes through the new class-aware generator.
+   */
+  async generateClass2PaperFromAtlas(studentId?: string): Promise<Question[]> {
+    return await this.generateClassPaperFromAtlas(studentId, 2);
+  }
   async assignDiagnosticPaperToStudent(studentId: string, questions: Question[]) {
     if (this.mongoDb) {
       try {
@@ -831,22 +1050,180 @@ export class DBStore {
     if (!student && this.data && this.data.students) {
       student = this.data.students.find(s => s.id === studentId) || null;
     }
-
-    if (student && student.assignedDiagnosticQuestions && student.assignedDiagnosticQuestions.length > 0) {
-      return student.assignedDiagnosticQuestions;
+    // Only reuse a cached paper that still carries the curriculum identity
+    // (conceptId on every question). A paper cached before questions were
+    // tagged, or written by a code path that produced conceptId-less
+    // questions (e.g. bulk diagnostic masterJson items), cannot be matched
+    // back to the 93-level framework, so the prerequisite resolver would
+    // silently emit nothing. Treating such a paper as absent makes
+    // generateClassPaperFromAtlas regenerate it on demand.
+    const cached = student?.assignedDiagnosticQuestions;
+    if (cached && cached.length > 0 && cached.every(q => q.conceptId)) {
+      return cached;
     }
-
-    // Generate paper from MongoDB Atlas (Levels 22 to 31 for Class 2)
-    return await this.generateClass2PaperFromAtlas(studentId);
+    // Fall back to a class-correct generator (legacy = always L22-L31, wrong for all classes).
+    return await this.generateClassPaperFromAtlas(studentId, classNumber);
   }
+
   async getAnswerSubmissions() {
     if (this.mongoDb) return await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
     return this.data?.answerSubmissions || [];
   }
-  async getEvaluationReports() {
-    if (this.mongoDb) return await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({}).toArray();
-    return this.data?.evaluationReports || [];
+  async getEvaluationReports(opts?: { studentIds?: string[] }) {
+    if (this.mongoDb) {
+      const filter: any = {};
+      if (opts?.studentIds) filter.studentId = { $in: opts.studentIds };
+      return await this.mongoDb.collection<EvaluationReport>('evaluationReports').find(filter).toArray();
+    }
+    let result = this.data?.evaluationReports || [];
+    if (opts?.studentIds) result = result.filter(r => opts.studentIds!.includes(r.studentId));
+    return result;
   }
+
+  async getStudentsByIds(ids: string[]): Promise<Student[]> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<Student>('students').find({ id: { $in: ids } }).toArray();
+    }
+    return (this.data?.students || []).filter(s => ids.includes(s.id));
+  }
+
+  async getAnalyticsForScope(schoolFilter?: any) {
+    if (this.mongoDb) {
+      let schoolIds: string[] | null = null;
+      if (schoolFilter && Object.keys(schoolFilter).length > 0) {
+        const schools = await this.mongoDb.collection('schools')
+          .find(schoolFilter, { projection: { id: 1 } })
+          .toArray();
+        schoolIds = schools.map(s => s.id);
+      }
+
+      const studentFilter: any = {};
+      if (schoolIds) {
+        studentFilter.schoolId = { $in: schoolIds };
+      }
+
+      const statsPromise = this.mongoDb.collection('students').aggregate([
+        { $match: studentFilter },
+        {
+          $group: {
+            _id: null,
+            count: { $sum: 1 },
+            sumLevel: { $sum: '$currentLevel' },
+            certified: {
+              $sum: {
+                $cond: [{ $gte: ['$currentLevel', 5] }, 1, 0]
+              }
+            }
+          }
+        }
+      ]).toArray();
+
+      const distPromise = this.mongoDb.collection('students').aggregate([
+        { $match: studentFilter },
+        {
+          $group: {
+            _id: '$currentLevel',
+            count: { $sum: 1 }
+          }
+        }
+      ]).toArray();
+
+      const [statsResult, distResult] = await Promise.all([statsPromise, distPromise]);
+
+      const stats = statsResult[0] || { count: 0, sumLevel: 0, certified: 0 };
+      const count = stats.count;
+      const sumLevel = stats.sumLevel;
+      const certified = stats.certified;
+
+      const avgLevel = count > 0 ? Math.round((sumLevel / count) * 10) / 10 : 0;
+      const certificationRate = count > 0 ? Math.round((certified / count) * 100) : 0;
+
+      const topicMastery = {
+        "Number Sense": Math.min(100, Math.round(55 + avgLevel * 8)),
+        "Number Operations": Math.min(100, Math.round(45 + avgLevel * 9)),
+        "Shapes": Math.min(100, Math.round(58 + avgLevel * 7)),
+        "Fractions": Math.min(100, Math.round(20 + avgLevel * 11)),
+        "Patterns": Math.min(100, Math.round(38 + avgLevel * 10)),
+        "Measurement": Math.min(100, Math.round(32 + avgLevel * 10))
+      };
+
+      const levelDistribution: Record<string, number> = {};
+      for (let i = 1; i <= 15; i++) {
+        levelDistribution[`Level ${i}`] = 0;
+      }
+      levelDistribution["Level 16+"] = 0;
+
+      distResult.forEach(r => {
+        const lvl = r._id;
+        if (lvl >= 16) {
+          levelDistribution["Level 16+"] += r.count;
+        } else if (lvl >= 1 && lvl <= 15) {
+          levelDistribution[`Level ${lvl}`] = r.count;
+        }
+      });
+
+      return {
+        avgLevel,
+        certificationRate,
+        topicMastery,
+        levelDistribution,
+        count
+      };
+    }
+
+    const schools = this.data?.schools || [];
+    let schoolIds: string[] | null = null;
+    if (schoolFilter && Object.keys(schoolFilter).length > 0) {
+      schoolIds = schools.filter(s => {
+        return Object.entries(schoolFilter).every(([k, v]) => (s as any)[k] === v);
+      }).map(s => s.id);
+    }
+
+    let filteredStudents = this.data?.students || [];
+    if (schoolIds) {
+      filteredStudents = filteredStudents.filter(s => schoolIds!.includes(s.schoolId));
+    }
+
+    const count = filteredStudents.length;
+    if (count === 0) {
+      return {
+        avgLevel: 0,
+        certificationRate: 0,
+        topicMastery: { "Number Sense": 0, "Number Operations": 0, "Shapes": 0, "Fractions": 0, "Patterns": 0, "Measurement": 0 },
+        levelDistribution: Object.fromEntries(Array.from({ length: 15 }, (_, i) => [`Level ${i + 1}`, 0]).concat([["Level 16+", 0]])),
+        count: 0
+      };
+    }
+
+    const sumLevel = filteredStudents.reduce((acc, s) => acc + s.currentLevel, 0);
+    const avgLevel = Math.round((sumLevel / count) * 10) / 10;
+    const certified = filteredStudents.filter(s => s.currentLevel >= 5).length;
+    const certificationRate = Math.round((certified / count) * 100);
+
+    const topicMastery = {
+      "Number Sense": Math.min(100, Math.round(55 + avgLevel * 8)),
+      "Number Operations": Math.min(100, Math.round(45 + avgLevel * 9)),
+      "Shapes": Math.min(100, Math.round(58 + avgLevel * 7)),
+      "Fractions": Math.min(100, Math.round(20 + avgLevel * 11)),
+      "Patterns": Math.min(100, Math.round(38 + avgLevel * 10)),
+      "Measurement": Math.min(100, Math.round(32 + avgLevel * 10))
+    };
+
+    const levelDistribution: Record<string, number> = {};
+    for (let i = 1; i <= 15; i++) {
+      levelDistribution[`Level ${i}`] = filteredStudents.filter(s => s.currentLevel === i).length;
+    }
+    levelDistribution["Level 16+"] = filteredStudents.filter(s => s.currentLevel >= 16).length;
+
+    return {
+      avgLevel,
+      certificationRate,
+      topicMastery,
+      levelDistribution,
+      count
+    };
+  }
+
   async getTickets() {
     if (this.mongoDb) return await this.mongoDb.collection<Ticket>('tickets').find({}).toArray();
     return this.data?.tickets || [];
@@ -872,10 +1249,78 @@ export class DBStore {
     await this.mongoDb!.collection('users').updateOne({ id: userId }, { $set: { passwordHash } });
   }
 
+  async getStudentById(id: string): Promise<Student | null> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<Student>('students').findOne({ id });
+    }
+    return this.data?.students.find(s => s.id === id) || null;
+  }
+
+  async getExistingAadhars(aadhars: string[]): Promise<Set<string>> {
+    if (this.mongoDb) {
+      const docs = await this.mongoDb.collection('students')
+        .find({ aadharMasked: { $in: aadhars } }, { projection: { aadharMasked: 1 } })
+        .toArray();
+      return new Set(docs.map(d => d.aadharMasked));
+    }
+    const set = new Set<string>();
+    (this.data?.students || []).forEach(s => {
+      if (aadhars.includes(s.aadharMasked)) set.add(s.aadharMasked);
+    });
+    return set;
+  }
+
   async addStudent(student: Student) {
-    await this.mongoDb!.collection('students').insertOne(student);
-    if (this.data) this.data.students.push(student);
+    if (this.mongoDb) {
+      await this.mongoDb.collection('students').insertOne(student);
+    }
+    if (this.data) {
+      this.data.students.push(student);
+      if (!this.mongoDb) await this.save();
+    }
     return student;
+  }
+
+  // Only the original seed data ever populated the `classes` collection —
+  // registering a student (single or bulk-import) creates a Student record
+  // tagged with a classGroup/section, but nothing was ever creating the
+  // matching ClassGroup document those classGroup/section strings imply.
+  // Several features key off ClassGroup existing for a teacher/school (the
+  // Teacher Dashboard's class-tab bar, and — the bug this was found from —
+  // bulk diagnostic generation's authorization check), so a teacher whose
+  // whole roster was registered live (not seeded) could end up "not
+  // authorized" for a class she demonstrably has real students in.
+  // Called after every successful student creation; idempotent — does
+  // nothing if a ClassGroup already exists for this school+class+section.
+  async ensureClassExists(schoolId: string, className: string, section: string, teacherId: string) {
+    const existing = await this.getClasses();
+    if (existing.some(c => c.schoolId === schoolId && c.className === className && c.section === section)) {
+      return;
+    }
+    const newClass: ClassGroup = {
+      id: 'c_' + schoolId + '_' + className.replace(/\s+/g, '') + '_' + section,
+      schoolId,
+      className,
+      section,
+      teacherId,
+    };
+    if (this.mongoDb) {
+      // Race-safe: two near-simultaneous registrations into a brand-new
+      // class both pass the `existing.some(...)` check above before either
+      // has inserted. upsert on the same deterministic `id` means the
+      // second one updates rather than duplicate-inserts.
+      await this.mongoDb.collection('classes').updateOne(
+        { id: newClass.id },
+        { $setOnInsert: newClass },
+        { upsert: true }
+      );
+    }
+    if (this.data) {
+      if (!this.data.classes.some(c => c.id === newClass.id)) {
+        this.data.classes.push(newClass);
+      }
+      if (!this.mongoDb) await this.save();
+    }
   }
 
   async updateStudent(studentId: string, updates: Partial<Student>) {
@@ -892,6 +1337,14 @@ export class DBStore {
     await this.mongoDb!.collection('worksheets').insertOne(ws);
     if (this.data) this.data.worksheets.push(ws);
     return ws;
+  }
+
+  async addTestHistoryEntry(entry: TestHistoryEntry) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('testHistory').insertOne(entry);
+    }
+    if (this.data) this.data.testHistory.push(entry);
+    return entry;
   }
 
   async updateWorksheet(worksheetId: string, updates: Partial<Worksheet>) {
@@ -920,6 +1373,26 @@ export class DBStore {
     await this.mongoDb!.collection('evaluationReports').insertOne(rep);
     if (this.data) this.data.evaluationReports.push(rep);
     return rep;
+  }
+
+  async getEvaluationReportById(id: string) {
+    if (this.mongoDb) return await this.mongoDb.collection<EvaluationReport>('evaluationReports').findOne({ id });
+    return (this.data?.evaluationReports || []).find(r => r.id === id);
+  }
+
+  async updateEvaluationReport(id: string, updates: Partial<EvaluationReport>) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('evaluationReports').updateOne({ id }, { $set: updates });
+      return await this.mongoDb.collection<EvaluationReport>('evaluationReports').findOne({ id });
+    }
+    if (this.data) {
+      const idx = this.data.evaluationReports.findIndex(r => r.id === id);
+      if (idx !== -1) {
+        this.data.evaluationReports[idx] = { ...this.data.evaluationReports[idx], ...updates };
+        return this.data.evaluationReports[idx];
+      }
+    }
+    return undefined;
   }
 
   async addTicket(t: Ticket) {
@@ -1322,8 +1795,7 @@ export class DBStore {
         currentLevel: 2,
         targetLevel: 3,
         aadharMasked: 'XXXX-XXXX-4521',
-        levelHistory: [{ level: 1, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 5
+        levelHistory: [{ level: 1, date: '2026-04-10', reason: 'Baseline' }],
       },
       {
         id: 's2',
@@ -1336,8 +1808,7 @@ export class DBStore {
         currentLevel: 3,
         targetLevel: 4,
         aadharMasked: 'XXXX-XXXX-9874',
-        levelHistory: [{ level: 2, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 3
+        levelHistory: [{ level: 2, date: '2026-04-10', reason: 'Baseline' }],
       },
       {
         id: 's3',
@@ -1350,8 +1821,7 @@ export class DBStore {
         currentLevel: 4,
         targetLevel: 5,
         aadharMasked: 'XXXX-XXXX-1122',
-        levelHistory: [{ level: 3, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 7
+        levelHistory: [{ level: 3, date: '2026-04-10', reason: 'Baseline' }],
       },
       {
         id: 's4',
@@ -1363,8 +1833,7 @@ export class DBStore {
         currentLevel: 1,
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-5566',
-        levelHistory: [{ level: 1, date: '2026-05-15', reason: 'Volunteer Diagnostic Placement' }],
-        streak: 1
+        levelHistory: [{ level: 1, date: '2026-05-15', reason: 'Baseline' }],
       },
       {
         id: 's5',
@@ -1376,8 +1845,7 @@ export class DBStore {
         currentLevel: 2,
         targetLevel: 3,
         aadharMasked: 'XXXX-XXXX-8811',
-        levelHistory: [{ level: 1, date: '2026-05-20', reason: 'Volunteer Diagnostic Placement' }],
-        streak: 2
+        levelHistory: [{ level: 1, date: '2026-05-20', reason: 'Baseline' }],
       },
       {
         id: 's6',
@@ -1390,8 +1858,7 @@ export class DBStore {
         currentLevel: 3,
         targetLevel: 4,
         aadharMasked: 'XXXX-XXXX-7231',
-        levelHistory: [{ level: 2, date: '2026-06-01', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 4
+        levelHistory: [{ level: 2, date: '2026-06-01', reason: 'Baseline' }],
       },
       {
         id: 's7',
@@ -1404,8 +1871,7 @@ export class DBStore {
         currentLevel: 5,
         targetLevel: 6,
         aadharMasked: 'XXXX-XXXX-1002',
-        levelHistory: [{ level: 3, date: '2026-06-01', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 9
+        levelHistory: [{ level: 3, date: '2026-06-01', reason: 'Baseline' }],
       },
       {
         id: 's8',
@@ -1418,8 +1884,7 @@ export class DBStore {
         currentLevel: 2,
         targetLevel: 3,
         aadharMasked: 'XXXX-XXXX-3490',
-        levelHistory: [{ level: 2, date: '2026-06-01', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 3
+        levelHistory: [{ level: 2, date: '2026-06-01', reason: 'Baseline' }],
       },
       {
         id: 's9',
@@ -1432,8 +1897,7 @@ export class DBStore {
         currentLevel: 4,
         targetLevel: 5,
         aadharMasked: 'XXXX-XXXX-1992',
-        levelHistory: [{ level: 3, date: '2026-06-15', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 6
+        levelHistory: [{ level: 3, date: '2026-06-15', reason: 'Baseline' }],
       },
       {
         id: 's10',
@@ -1446,8 +1910,7 @@ export class DBStore {
         currentLevel: 5,
         targetLevel: 6,
         aadharMasked: 'XXXX-XXXX-8822',
-        levelHistory: [{ level: 4, date: '2026-06-15', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 11
+        levelHistory: [{ level: 4, date: '2026-06-15', reason: 'Baseline' }],
       },
       {
         id: 's11',
@@ -1460,8 +1923,7 @@ export class DBStore {
         currentLevel: 3,
         targetLevel: 4,
         aadharMasked: 'XXXX-XXXX-3344',
-        levelHistory: [{ level: 2, date: '2026-06-15', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 5
+        levelHistory: [{ level: 2, date: '2026-06-15', reason: 'Baseline' }],
       },
       {
         id: 's12',
@@ -1473,8 +1935,7 @@ export class DBStore {
         currentLevel: 1,
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-4545',
-        levelHistory: [{ level: 1, date: '2026-06-05', reason: 'Volunteer Diagnostic Placement' }],
-        streak: 2
+        levelHistory: [{ level: 1, date: '2026-06-05', reason: 'Baseline' }],
       },
       {
         id: 's13',
@@ -1486,8 +1947,7 @@ export class DBStore {
         currentLevel: 2,
         targetLevel: 3,
         aadharMasked: 'XXXX-XXXX-2121',
-        levelHistory: [{ level: 1, date: '2026-06-05', reason: 'Volunteer Diagnostic Placement' }],
-        streak: 3
+        levelHistory: [{ level: 1, date: '2026-06-05', reason: 'Baseline' }],
       },
       {
         id: 's14',
@@ -1500,8 +1960,7 @@ export class DBStore {
         currentLevel: 3,
         targetLevel: 4,
         aadharMasked: 'XXXX-XXXX-1155',
-        levelHistory: [{ level: 2, date: '2026-06-20', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 6
+        levelHistory: [{ level: 2, date: '2026-06-20', reason: 'Baseline' }],
       },
       {
         id: 's15',
@@ -1514,8 +1973,7 @@ export class DBStore {
         currentLevel: 4,
         targetLevel: 5,
         aadharMasked: 'XXXX-XXXX-2266',
-        levelHistory: [{ level: 3, date: '2026-06-20', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 8
+        levelHistory: [{ level: 3, date: '2026-06-20', reason: 'Baseline' }],
       },
       {
         id: 's16',
@@ -1528,8 +1986,7 @@ export class DBStore {
         currentLevel: 5,
         targetLevel: 6,
         aadharMasked: 'XXXX-XXXX-3377',
-        levelHistory: [{ level: 4, date: '2026-06-20', reason: 'Onboarding Diagnostic Placement' }],
-        streak: 12
+        levelHistory: [{ level: 4, date: '2026-06-20', reason: 'Baseline' }],
       },
       // ── Unplaced students (empty levelHistory) for Pending Diagnostics ──
       {
@@ -1543,7 +2000,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-6677',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_2',
@@ -1556,7 +2012,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-7788',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_3',
@@ -1570,7 +2025,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-8899',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_4',
@@ -1584,7 +2038,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-9900',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_5',
@@ -1598,7 +2051,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1100',
         levelHistory: [],
-        streak: 0
       },
       // ── Additional placed students at Level 8 ──
       {
@@ -1613,8 +2065,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 9,
         aadharMasked: 'XXXX-XXXX-1201',
-        levelHistory: [{ level: 4, date: '2026-04-15', reason: 'Onboarding Diagnostic Placement' }, { level: 6, date: '2026-05-20', reason: 'Mid-year worksheet performance' }, { level: 8, date: '2026-07-01', reason: 'End-of-year worksheet performance' }],
-        streak: 15
+        levelHistory: [{ level: 4, date: '2026-04-15', reason: 'Baseline' }, { level: 6, date: '2026-05-20', reason: 'Mid-year' }, { level: 8, date: '2026-07-01', reason: 'End-of-year' }],
       },
       {
         id: 's18',
@@ -1628,8 +2079,7 @@ export class DBStore {
         currentSubLevel: 1,
         targetLevel: 9,
         aadharMasked: 'XXXX-XXXX-1202',
-        levelHistory: [{ level: 3, date: '2026-05-01', reason: 'Onboarding Diagnostic Placement' }, { level: 5, date: '2026-06-10', reason: 'Baseline worksheet' }, { level: 8, date: '2026-07-03', reason: 'Mid-year worksheet' }],
-        streak: 10
+        levelHistory: [{ level: 3, date: '2026-05-01', reason: 'Baseline' }, { level: 5, date: '2026-06-10', reason: 'Baseline' }, { level: 8, date: '2026-07-03', reason: 'Mid-year' }],
       },
       {
         id: 's19',
@@ -1643,8 +2093,7 @@ export class DBStore {
         currentSubLevel: 2,
         targetLevel: 9,
         aadharMasked: 'XXXX-XXXX-1203',
-        levelHistory: [{ level: 2, date: '2026-04-20', reason: 'Onboarding Diagnostic Placement' }, { level: 8, date: '2026-06-25', reason: 'Remedial intervention' }],
-        streak: 6
+        levelHistory: [{ level: 2, date: '2026-04-20', reason: 'Baseline' }, { level: 8, date: '2026-06-25', reason: 'Remedial intervention' }],
       },
       // ── Students at Level 10 ──
       {
@@ -1659,8 +2108,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 11,
         aadharMasked: 'XXXX-XXXX-1204',
-        levelHistory: [{ level: 5, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }, { level: 7, date: '2026-05-15', reason: 'Baseline worksheet' }, { level: 10, date: '2026-06-30', reason: 'Mid-year worksheet' }],
-        streak: 18
+        levelHistory: [{ level: 5, date: '2026-04-10', reason: 'Baseline' }, { level: 7, date: '2026-05-15', reason: 'Baseline' }, { level: 10, date: '2026-06-30', reason: 'Mid-year' }],
       },
       {
         id: 's21',
@@ -1674,8 +2122,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 11,
         aadharMasked: 'XXXX-XXXX-1205',
-        levelHistory: [{ level: 6, date: '2026-05-05', reason: 'Onboarding Diagnostic Placement' }, { level: 8, date: '2026-06-01', reason: 'Baseline worksheet' }, { level: 10, date: '2026-07-02', reason: 'Mid-year worksheet' }],
-        streak: 14
+        levelHistory: [{ level: 6, date: '2026-05-05', reason: 'Baseline' }, { level: 8, date: '2026-06-01', reason: 'Baseline' }, { level: 10, date: '2026-07-02', reason: 'Mid-year' }],
       },
       // ── Students at Level 12 ──
       {
@@ -1690,8 +2137,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 13,
         aadharMasked: 'XXXX-XXXX-1206',
-        levelHistory: [{ level: 7, date: '2026-04-25', reason: 'Onboarding Diagnostic Placement' }, { level: 10, date: '2026-06-05', reason: 'Baseline worksheet' }, { level: 12, date: '2026-07-04', reason: 'Mid-year worksheet' }],
-        streak: 20
+        levelHistory: [{ level: 7, date: '2026-04-25', reason: 'Baseline' }, { level: 10, date: '2026-06-05', reason: 'Baseline' }, { level: 12, date: '2026-07-04', reason: 'Mid-year' }],
       },
       {
         id: 's23',
@@ -1705,8 +2151,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 13,
         aadharMasked: 'XXXX-XXXX-1207',
-        levelHistory: [{ level: 8, date: '2026-05-10', reason: 'Onboarding Diagnostic Placement' }, { level: 12, date: '2026-06-28', reason: 'Baseline worksheet' }],
-        streak: 11
+        levelHistory: [{ level: 8, date: '2026-05-10', reason: 'Baseline' }, { level: 12, date: '2026-06-28', reason: 'Baseline' }],
       },
       // ── Students at Level 15 ──
       {
@@ -1721,8 +2166,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 16,
         aadharMasked: 'XXXX-XXXX-1208',
-        levelHistory: [{ level: 8, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }, { level: 11, date: '2026-05-20', reason: 'Baseline worksheet' }, { level: 15, date: '2026-07-01', reason: 'Mid-year worksheet' }],
-        streak: 25
+        levelHistory: [{ level: 8, date: '2026-04-10', reason: 'Baseline' }, { level: 11, date: '2026-05-20', reason: 'Baseline' }, { level: 15, date: '2026-07-01', reason: 'Mid-year' }],
       },
       {
         id: 's25',
@@ -1736,8 +2180,7 @@ export class DBStore {
         currentSubLevel: 1,
         targetLevel: 16,
         aadharMasked: 'XXXX-XXXX-1209',
-        levelHistory: [{ level: 10, date: '2026-05-15', reason: 'Onboarding Diagnostic Placement' }, { level: 15, date: '2026-07-02', reason: 'Baseline worksheet' }],
-        streak: 8
+        levelHistory: [{ level: 10, date: '2026-05-15', reason: 'Baseline' }, { level: 15, date: '2026-07-02', reason: 'Baseline' }],
       },
       // ── Students at various other levels ──
       {
@@ -1752,8 +2195,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 6,
         aadharMasked: 'XXXX-XXXX-1210',
-        levelHistory: [{ level: 2, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }, { level: 5, date: '2026-06-20', reason: 'Baseline worksheet' }],
-        streak: 7
+        levelHistory: [{ level: 2, date: '2026-04-10', reason: 'Baseline' }, { level: 5, date: '2026-06-20', reason: 'Baseline' }],
       },
       {
         id: 's27',
@@ -1766,8 +2208,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 4,
         aadharMasked: 'XXXX-XXXX-1211',
-        levelHistory: [{ level: 1, date: '2026-05-15', reason: 'Volunteer Diagnostic Placement' }, { level: 3, date: '2026-06-25', reason: 'Baseline worksheet' }],
-        streak: 4
+        levelHistory: [{ level: 1, date: '2026-05-15', reason: 'Baseline' }, { level: 3, date: '2026-06-25', reason: 'Baseline' }],
       },
       {
         id: 's28',
@@ -1781,8 +2222,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 7,
         aadharMasked: 'XXXX-XXXX-1212',
-        levelHistory: [{ level: 2, date: '2026-05-01', reason: 'Onboarding Diagnostic Placement' }, { level: 4, date: '2026-06-05', reason: 'Baseline worksheet' }, { level: 6, date: '2026-07-01', reason: 'Mid-year worksheet' }],
-        streak: 9
+        levelHistory: [{ level: 2, date: '2026-05-01', reason: 'Baseline' }, { level: 4, date: '2026-06-05', reason: 'Baseline' }, { level: 6, date: '2026-07-01', reason: 'Mid-year' }],
       },
       {
         id: 's29',
@@ -1796,8 +2236,7 @@ export class DBStore {
         currentSubLevel: 1,
         targetLevel: 5,
         aadharMasked: 'XXXX-XXXX-1213',
-        levelHistory: [{ level: 1, date: '2026-05-20', reason: 'Volunteer Diagnostic Placement' }, { level: 4, date: '2026-07-02', reason: 'Baseline worksheet' }],
-        streak: 3
+        levelHistory: [{ level: 1, date: '2026-05-20', reason: 'Baseline' }, { level: 4, date: '2026-07-02', reason: 'Baseline' }],
       },
       {
         id: 's30',
@@ -1811,8 +2250,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 8,
         aadharMasked: 'XXXX-XXXX-1214',
-        levelHistory: [{ level: 3, date: '2026-04-25', reason: 'Onboarding Diagnostic Placement' }, { level: 5, date: '2026-06-01', reason: 'Baseline worksheet' }, { level: 7, date: '2026-07-03', reason: 'Mid-year worksheet' }],
-        streak: 12
+        levelHistory: [{ level: 3, date: '2026-04-25', reason: 'Baseline' }, { level: 5, date: '2026-06-01', reason: 'Baseline' }, { level: 7, date: '2026-07-03', reason: 'Mid-year' }],
       },
       {
         id: 's31',
@@ -1826,8 +2264,7 @@ export class DBStore {
         currentSubLevel: 2,
         targetLevel: 7,
         aadharMasked: 'XXXX-XXXX-1215',
-        levelHistory: [{ level: 2, date: '2026-04-20', reason: 'Onboarding Diagnostic Placement' }, { level: 6, date: '2026-06-18', reason: 'Baseline worksheet' }],
-        streak: 5
+        levelHistory: [{ level: 2, date: '2026-04-20', reason: 'Baseline' }, { level: 6, date: '2026-06-18', reason: 'Baseline' }],
       },
       {
         id: 's32',
@@ -1841,8 +2278,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 10,
         aadharMasked: 'XXXX-XXXX-1216',
-        levelHistory: [{ level: 5, date: '2026-05-05', reason: 'Onboarding Diagnostic Placement' }, { level: 7, date: '2026-06-10', reason: 'Baseline worksheet' }, { level: 9, date: '2026-07-02', reason: 'Mid-year worksheet' }],
-        streak: 13
+        levelHistory: [{ level: 5, date: '2026-05-05', reason: 'Baseline' }, { level: 7, date: '2026-06-10', reason: 'Baseline' }, { level: 9, date: '2026-07-02', reason: 'Mid-year' }],
       },
       {
         id: 's33',
@@ -1856,8 +2292,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 12,
         aadharMasked: 'XXXX-XXXX-1217',
-        levelHistory: [{ level: 6, date: '2026-05-10', reason: 'Onboarding Diagnostic Placement' }, { level: 8, date: '2026-06-15', reason: 'Baseline worksheet' }, { level: 11, date: '2026-07-04', reason: 'Mid-year worksheet' }],
-        streak: 16
+        levelHistory: [{ level: 6, date: '2026-05-10', reason: 'Baseline' }, { level: 8, date: '2026-06-15', reason: 'Baseline' }, { level: 11, date: '2026-07-04', reason: 'Mid-year' }],
       },
       {
         id: 's34',
@@ -1871,8 +2306,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 8,
         aadharMasked: 'XXXX-XXXX-1218',
-        levelHistory: [{ level: 3, date: '2026-05-20', reason: 'Onboarding Diagnostic Placement' }, { level: 7, date: '2026-07-01', reason: 'Baseline worksheet' }],
-        streak: 8
+        levelHistory: [{ level: 3, date: '2026-05-20', reason: 'Baseline' }, { level: 7, date: '2026-07-01', reason: 'Baseline' }],
       },
       {
         id: 's35',
@@ -1886,8 +2320,7 @@ export class DBStore {
         currentSubLevel: 1,
         targetLevel: 12,
         aadharMasked: 'XXXX-XXXX-1219',
-        levelHistory: [{ level: 6, date: '2026-05-15', reason: 'Onboarding Diagnostic Placement' }, { level: 9, date: '2026-06-20', reason: 'Baseline worksheet' }, { level: 11, date: '2026-07-03', reason: 'Mid-year worksheet' }],
-        streak: 9
+        levelHistory: [{ level: 6, date: '2026-05-15', reason: 'Baseline' }, { level: 9, date: '2026-06-20', reason: 'Baseline' }, { level: 11, date: '2026-07-03', reason: 'Mid-year' }],
       },
       {
         id: 's36',
@@ -1901,8 +2334,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 14,
         aadharMasked: 'XXXX-XXXX-1220',
-        levelHistory: [{ level: 8, date: '2026-05-01', reason: 'Onboarding Diagnostic Placement' }, { level: 11, date: '2026-06-10', reason: 'Baseline worksheet' }, { level: 13, date: '2026-07-02', reason: 'Mid-year worksheet' }],
-        streak: 17
+        levelHistory: [{ level: 8, date: '2026-05-01', reason: 'Baseline' }, { level: 11, date: '2026-06-10', reason: 'Baseline' }, { level: 13, date: '2026-07-02', reason: 'Mid-year' }],
       },
       {
         id: 's37',
@@ -1916,8 +2348,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 15,
         aadharMasked: 'XXXX-XXXX-1221',
-        levelHistory: [{ level: 9, date: '2026-05-10', reason: 'Onboarding Diagnostic Placement' }, { level: 12, date: '2026-06-20', reason: 'Baseline worksheet' }, { level: 14, date: '2026-07-04', reason: 'Mid-year worksheet' }],
-        streak: 19
+        levelHistory: [{ level: 9, date: '2026-05-10', reason: 'Baseline' }, { level: 12, date: '2026-06-20', reason: 'Baseline' }, { level: 14, date: '2026-07-04', reason: 'Mid-year' }],
       },
       {
         id: 's38',
@@ -1931,8 +2362,7 @@ export class DBStore {
         currentSubLevel: 2,
         targetLevel: 10,
         aadharMasked: 'XXXX-XXXX-1222',
-        levelHistory: [{ level: 4, date: '2026-04-25', reason: 'Onboarding Diagnostic Placement' }, { level: 9, date: '2026-06-28', reason: 'Baseline worksheet' }],
-        streak: 7
+        levelHistory: [{ level: 4, date: '2026-04-25', reason: 'Baseline' }, { level: 9, date: '2026-06-28', reason: 'Baseline' }],
       },
       {
         id: 's39',
@@ -1946,8 +2376,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 7,
         aadharMasked: 'XXXX-XXXX-1223',
-        levelHistory: [{ level: 2, date: '2026-04-10', reason: 'Onboarding Diagnostic Placement' }, { level: 4, date: '2026-05-25', reason: 'Baseline worksheet' }, { level: 6, date: '2026-07-01', reason: 'Mid-year worksheet' }],
-        streak: 11
+        levelHistory: [{ level: 2, date: '2026-04-10', reason: 'Baseline' }, { level: 4, date: '2026-05-25', reason: 'Baseline' }, { level: 6, date: '2026-07-01', reason: 'Mid-year' }],
       },
       // ── Students in Bathinda (lagging district) ──
       {
@@ -1962,8 +2391,7 @@ export class DBStore {
         currentSubLevel: 2,
         targetLevel: 3,
         aadharMasked: 'XXXX-XXXX-1224',
-        levelHistory: [{ level: 1, date: '2026-05-01', reason: 'Onboarding Diagnostic Placement' }, { level: 2, date: '2026-06-20', reason: 'Baseline worksheet' }],
-        streak: 2
+        levelHistory: [{ level: 1, date: '2026-05-01', reason: 'Baseline' }, { level: 2, date: '2026-06-20', reason: 'Baseline' }],
       },
       {
         id: 's41',
@@ -1977,8 +2405,7 @@ export class DBStore {
         currentSubLevel: 1,
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1225',
-        levelHistory: [{ level: 1, date: '2026-06-01', reason: 'Volunteer Diagnostic Placement' }],
-        streak: 1
+        levelHistory: [{ level: 1, date: '2026-06-01', reason: 'Baseline' }],
       },
       {
         id: 's42',
@@ -1992,8 +2419,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 4,
         aadharMasked: 'XXXX-XXXX-1226',
-        levelHistory: [{ level: 1, date: '2026-05-10', reason: 'Onboarding Diagnostic Placement' }, { level: 3, date: '2026-06-25', reason: 'Baseline worksheet' }],
-        streak: 4
+        levelHistory: [{ level: 1, date: '2026-05-10', reason: 'Baseline' }, { level: 3, date: '2026-06-25', reason: 'Baseline' }],
       },
       // ── Students in Amritsar (low-strength school) ──
       {
@@ -2008,8 +2434,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1227',
-        levelHistory: [{ level: 1, date: '2026-06-10', reason: 'Volunteer Diagnostic Placement' }],
-        streak: 1
+        levelHistory: [{ level: 1, date: '2026-06-10', reason: 'Baseline' }],
       },
       {
         id: 's44',
@@ -2023,8 +2448,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 3,
         aadharMasked: 'XXXX-XXXX-1228',
-        levelHistory: [{ level: 1, date: '2026-06-10', reason: 'Volunteer Diagnostic Placement' }, { level: 2, date: '2026-07-01', reason: 'Baseline worksheet' }],
-        streak: 2
+        levelHistory: [{ level: 1, date: '2026-06-10', reason: 'Baseline' }, { level: 2, date: '2026-07-01', reason: 'Baseline' }],
       },
       // ── Students in Jaipur Rural North ──
       {
@@ -2039,8 +2463,7 @@ export class DBStore {
         currentSubLevel: 0,
         targetLevel: 6,
         aadharMasked: 'XXXX-XXXX-1229',
-        levelHistory: [{ level: 2, date: '2026-05-15', reason: 'Onboarding Diagnostic Placement' }, { level: 5, date: '2026-06-28', reason: 'Baseline worksheet' }],
-        streak: 6
+        levelHistory: [{ level: 2, date: '2026-05-15', reason: 'Baseline' }, { level: 5, date: '2026-06-28', reason: 'Baseline' }],
       },
       {
         id: 's46',
@@ -2054,8 +2477,7 @@ export class DBStore {
         currentSubLevel: 1,
         targetLevel: 4,
         aadharMasked: 'XXXX-XXXX-1230',
-        levelHistory: [{ level: 1, date: '2026-05-20', reason: 'Volunteer Diagnostic Placement' }, { level: 3, date: '2026-07-01', reason: 'Baseline worksheet' }],
-        streak: 3
+        levelHistory: [{ level: 1, date: '2026-05-20', reason: 'Baseline' }, { level: 3, date: '2026-07-01', reason: 'Baseline' }],
       },
       // ── Unplaced students needing diagnostics ──
       {
@@ -2070,7 +2492,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1231',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_7',
@@ -2084,7 +2505,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1232',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_8',
@@ -2098,7 +2518,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1233',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_9',
@@ -2112,7 +2531,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1234',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_10',
@@ -2126,7 +2544,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1235',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_11',
@@ -2140,7 +2557,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1236',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_12',
@@ -2154,7 +2570,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1237',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_13',
@@ -2168,7 +2583,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1238',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_14',
@@ -2182,7 +2596,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1239',
         levelHistory: [],
-        streak: 0
       },
       {
         id: 's_new_15',
@@ -2196,7 +2609,6 @@ export class DBStore {
         targetLevel: 2,
         aadharMasked: 'XXXX-XXXX-1240',
         levelHistory: [],
-        streak: 0
       }
     ];
 
@@ -2977,7 +3389,8 @@ export class DBStore {
       announcements,
       interventions,
       bestPractices,
-      diagnosticAnswerKeys: []
+      diagnosticAnswerKeys: [],
+      testHistory: []
     };
   }
 }
