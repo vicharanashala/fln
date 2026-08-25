@@ -667,23 +667,19 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
   };
 
-  // OCR endpoint: takes {provider, imageDataUrl} for a single image, or
-  // {provider, pages} — one entry per filtered page — for multi-page PDFs
-  // (e.g. several students' sheets scanned into one file). NO apiKey from
-  // frontend.
+  // OCR endpoint: takes {provider, imageDataUrl} or {provider, fileBase64}
+  // for a single image or PDF. NO apiKey from frontend. The frontend
+  // sends the raw file as a single data URL; the backend rasterizes
+  // PDFs to PNG before posting to Ollama (Ollama's vision API only
+  // accepts image MIME types).
   app.post('/api/icr/evaluate-cloud', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    // Accept either field name so the cloud endpoint mirrors the legacy
-    // local-OCR endpoint shape, and accept image OR PDF data URLs since
-    // Ollama's vision API only accepts image MIME types (we rasterize PDFs).
-    const { imageDataUrl, fileBase64, provider, pages } = req.body || {};
-    const pageList: Array<{ pageNumber?: number; imageDataUrl: string }> =
-      Array.isArray(pages) && pages.length > 0 ? pages : [];
+    const { imageDataUrl, fileBase64, provider } = req.body || {};
     const singleDataUrl = imageDataUrl || fileBase64;
-    if (pageList.length === 0 && (!singleDataUrl || typeof singleDataUrl !== 'string')) {
-      return res.status(400).json({ error: 'imageDataUrl, fileBase64, or pages is required (data URL).' });
+    if (!singleDataUrl || typeof singleDataUrl !== 'string') {
+      return res.status(400).json({ error: 'imageDataUrl or fileBase64 is required (data URL).' });
     }
     if (provider !== 'ollama-gemma4') {
       return res.status(400).json({ error: 'provider must be "ollama-gemma4".' });
@@ -696,41 +692,8 @@ export function registerEvaluationRoutes(app: express.Express) {
       });
     }
 
-    const pagesToRun = pageList.length > 0 ? pageList : [{ pageNumber: 1, imageDataUrl: singleDataUrl as string }];
-    const results: any[] = [];
-    for (const page of pagesToRun) {
-      const r = await runCloudOcrOnImage(page.imageDataUrl, provider, apiKey);
-      if (r.status !== 200) {
-        const prefix = pagesToRun.length > 1 ? `Page ${page.pageNumber}: ` : '';
-        return res.status(r.status).json({ ...r.body, error: prefix + (r.body?.error || 'unknown error') });
-      }
-      results.push({ pageNumber: page.pageNumber, ...r.body });
-    }
-
-    if (results.length === 1) {
-      return res.json(results[0]);
-    }
-
-    // Merge multi-page results into the same response shape the frontend
-    // already consumes for a single page. provider/model/ocrEngine/mimeUsed
-    // are identical across pages (same request, same provider) so page 1's
-    // values are used; everything else concatenates across pages.
-    const first = results[0];
-    return res.json({
-      success: true,
-      provider: first.provider,
-      model: first.model,
-      ocrEngine: first.ocrEngine,
-      mimeUsed: first.mimeUsed,
-      pageCount: results.length,
-      answers: results.flatMap(r => r.answers || []),
-      extractedTokens: results.flatMap(r => r.extractedTokens || []),
-      rawOcrText: results.map(r => `[page ${r.pageNumber}] ${r.rawOcrText || ''}`).join(' | '),
-      extractedText: results.map(r => r.extractedText).filter(Boolean).join(' | '),
-      structured: results.every(r => r.structured !== false),
-      structuredError: results.map(r => r.structuredError).filter(Boolean).join('; ') || null,
-      processingTimeMs: results.reduce((a, r) => a + (r.processingTimeMs || 0), 0),
-    });
+    const r = await runCloudOcrOnImage(singleDataUrl, provider, apiKey);
+    return res.status(r.status).json(r.body);
   });
 
   // Generate Personalized Class Worksheets
