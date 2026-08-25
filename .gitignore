@@ -33,12 +33,13 @@ __pycache__/
 # Add any IDE/editor folders you want to ignore
 .vscode/
 .idea/
-archive/
-mvp/
-node_modules/
-.DS_Store
-.env
-backend/data/
-backend/dist/
-frontend/dist/
-*.log
+
+# Test data
+Database/
+
+# Dev scratch files (test scans, debug images)
+ai-services/scratch/
+
+# Developer artifacts
+ChatGPT Image*
+test_ocr_api.py
