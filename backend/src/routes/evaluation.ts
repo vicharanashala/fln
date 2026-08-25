@@ -885,40 +885,82 @@ export function registerEvaluationRoutes(app: express.Express) {
         const apiBase = process.env.OLLAMA_API_URL || 'https://ollama.com/api/chat';
 
         // Ollama's vision API only accepts image MIME types. PDFs must be
-        // rasterized to PNG first — same path /api/icr/filter already uses.
-        let imageBase64 = base64Body;
-        let mimeUsed: string = (dataUrl.indexOf('data:') === 0)
+        // rasterized to PNG first. Multi-page PDFs are rasterized to a
+        // single output directory (one PNG per page) and ALL pages are
+        // passed to Ollama in the `images` array. The previous version
+        // only sent page 1; the OCR prompt explicitly says "process ALL
+        // pages together" so the model expects multiple images.
+        const mimeUsedIn: string = (dataUrl.indexOf('data:') === 0)
           ? dataUrl.slice(5, dataUrl.indexOf(';'))
           : 'image/jpeg';
-        if (mimeUsed === 'application/pdf') {
+        let imageBase64s: string[];
+        let mimeUsed: string;
+        if (mimeUsedIn === 'application/pdf') {
           try {
             const { execFileSync } = await import('child_process');
             const scratchDir = path.join(AI_SERVICES_DIR, 'scratch');
             fs.mkdirSync(scratchDir, { recursive: true });
-            const pdfPath = path.join(scratchDir, `cloud_pdf_${Date.now()}_${Math.random().toString(36).slice(2)}.pdf`);
-            const pngPath = pdfPath.replace(/\.pdf$/, '.png');
+            const stamp = Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+            const pdfPath = path.join(scratchDir, `cloud_pdf_${stamp}.pdf`);
+            // --all-pages rasterizes every page into this directory; the
+            // script returns {"success": true, "pages": [...]}.
+            const pagesDir = path.join(scratchDir, `cloud_pdf_${stamp}_pages`);
             fs.writeFileSync(pdfPath, Buffer.from(base64Body, 'base64'));
             const scriptPath = path.join(AI_SERVICES_DIR, 'scripts', 'pdf_rasterize.py');
-            const childOut = execFileSync(PYTHON_BIN, [scriptPath, pdfPath, pngPath], {
-              cwd: AI_SERVICES_DIR,
-              env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
-              timeout: 30000,
-              maxBuffer: 10 * 1024 * 1024,
-            });
+            const childOut = execFileSync(
+              PYTHON_BIN,
+              [scriptPath, pdfPath, pagesDir, '--all-pages'],
+              {
+                cwd: AI_SERVICES_DIR,
+                env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+                timeout: 60000,
+                maxBuffer: 32 * 1024 * 1024,
+              }
+            );
             const pdfJson = JSON.parse(childOut.toString());
-            if (!pdfJson.success) {
-              try { fs.unlinkSync(pdfPath); } catch { }
-              try { fs.unlinkSync(pngPath); } catch { }
+            if (!pdfJson.success || !Array.isArray(pdfJson.pages) || pdfJson.pages.length === 0) {
+              try { fs.rmSync(pdfPath, { force: true }); } catch { /* noop */ }
+              try { fs.rmSync(pagesDir, { recursive: true, force: true }); } catch { /* noop */ }
               return {
                 status: 500, body: {
                   error: 'Cloud OCR (OLLAMA-GEMMA4) could not rasterize PDF: ' + (pdfJson.error || 'unknown'),
                 }
               };
             }
-            imageBase64 = fs.readFileSync(pngPath).toString('base64');
+            const pagePaths: string[] = pdfJson.pages.map((p: any) => p.output_path).filter(Boolean);
+            // Safety caps: refuse to OCR absurdly long PDFs.
+            const MAX_PAGES = 10;
+            if (pagePaths.length > MAX_PAGES) {
+              try { fs.rmSync(pdfPath, { force: true }); } catch { /* noop */ }
+              try { fs.rmSync(pagesDir, { recursive: true, force: true }); } catch { /* noop */ }
+              return {
+                status: 400, body: {
+                  error: `PDF has ${pagePaths.length} pages; max is ${MAX_PAGES}. Split the file or scan fewer sheets at once.`,
+                }
+              };
+            }
+            // Read each page PNG as base64 and concatenate. Each page is
+            // 300 DPI ~1-3 MB on disk → ~1.5-4 MB base64.
+            imageBase64s = pagePaths.map((p: string) => fs.readFileSync(p).toString('base64'));
+            // Safety cap on cumulative base64 size — Ollama's /api/chat
+            // accepts large request bodies but we shouldn't push 50+ MB.
+            const totalBase64Bytes = imageBase64s.reduce((n, s) => n + s.length, 0);
+            const MAX_TOTAL_BASE64 = 24 * 1024 * 1024; // ~24 MB base64 ≈ 18 MB binary
+            if (totalBase64Bytes > MAX_TOTAL_BASE64) {
+              try { fs.rmSync(pdfPath, { force: true }); } catch { /* noop */ }
+              try { fs.rmSync(pagesDir, { recursive: true, force: true }); } catch { /* noop */ }
+              return {
+                status: 413, body: {
+                  error: `PDF too large to OCR (${(totalBase64Bytes / 1024 / 1024).toFixed(1)} MB base64 across ${pagePaths.length} pages; max ${MAX_TOTAL_BASE64 / 1024 / 1024} MB). Reduce scan resolution or split the file.`,
+                }
+              };
+            }
             mimeUsed = 'image/png';
-            try { fs.unlinkSync(pdfPath); } catch { }
-            try { fs.unlinkSync(pngPath); } catch { }
+            // Cleanup the per-page PNGs and the source PDF now that we
+            // have them in memory. Done before the Ollama POST so we
+            // don't leak disk if the request hangs.
+            try { fs.rmSync(pdfPath, { force: true }); } catch { /* noop */ }
+            try { fs.rmSync(pagesDir, { recursive: true, force: true }); } catch { /* noop */ }
           } catch (e: any) {
             return {
               status: 500, body: {
@@ -926,6 +968,10 @@ export function registerEvaluationRoutes(app: express.Express) {
               }
             };
           }
+        } else {
+          // Image upload (PNG/JPEG/WebP). Pass through unchanged.
+          imageBase64s = [base64Body];
+          mimeUsed = mimeUsedIn;
         }
 
         const ocrPrompt = [
@@ -1055,7 +1101,10 @@ export function registerEvaluationRoutes(app: express.Express) {
               {
                 role: 'user',
                 content: ocrPrompt,
-                images: [imageBase64],
+                // Multiple images = multiple pages of the same student's
+                // answer sheet. The prompt asks for a single unified
+                // JSON object with row numbering continuous across pages.
+                images: imageBase64s,
               },
             ],
             // Force the model to emit valid JSON. Without this, even with
