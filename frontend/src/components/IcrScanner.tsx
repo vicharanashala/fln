@@ -573,10 +573,11 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
         // answer key — the class paper is the same across students up to
         // randomization, so this is a safe proxy for single-sheet scans
         // where no specific student was selected.
-        if (loadedQuestions.length === 0 && cls?.classNumber) {
+        const classNumberFromName = cls?.className ? parseInt(cls.className.match(/\d+/)?.[0] || '', 10) : 0;
+        if (loadedQuestions.length === 0 && Number.isFinite(classNumberFromName) && classNumberFromName > 0) {
           try {
             const res = await apiFetch(
-              `/api/diagnostic/class/${encodeURIComponent(String(cls.classNumber))}/answer-key`,
+              `/api/diagnostic/class/${encodeURIComponent(String(classNumberFromName))}/answer-key`,
               { headers: { 'Authorization': `Bearer ${token}` } }
             );
             if (res.ok) {

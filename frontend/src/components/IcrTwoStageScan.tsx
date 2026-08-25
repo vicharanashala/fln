@@ -399,20 +399,10 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
     // 'ollama-gemma4' if it's the lone configured provider (we'll correct on
     // the providersConfigured effect); finally 'google' as the historical
     // fallback.
-    const [cloudProvider, setCloudProviderState] = useState<'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4'>(
-        () => {
-          const stored = localStorage.getItem('icrCloudProvider');
-          if (stored === 'google' || stored === 'aws' || stored === 'azure' ||
-              stored === 'minimax' || stored === 'ocrspace' || stored === 'ollama-gemma4') {
-            return stored;
-          }
-          return 'google';
-        }
-      );
-      const setCloudProvider = (p: 'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4') => {
-        setCloudProviderState(p);
-        localStorage.setItem('icrCloudProvider', p);
-      };
+    // Single OCR provider: ollama-gemma4. No provider toggle is
+    // rendered; this state is kept as a constant for the few error-path
+    // messages that previously templated on the provider name.
+    const cloudProvider = 'ollama-gemma4';
       const [cloudProvidersConfigured, setCloudProvidersConfigured] = useState<Record<string, boolean>>({});
       const [cloudError, setCloudError] = useState<string | null>(null);
 
@@ -429,16 +419,6 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
           const data = await res.json();
           if (!cancelled && data.providers) {
             setCloudProvidersConfigured(data.providers);
-            // If the persisted or default provider isn't actually configured
-            // AND exactly one provider IS configured, auto-pick that one.
-            // This avoids the "google is not configured" surprise for new
-            // Ollama-only or single-provider setups.
-            const configured = Object.keys(data.providers).filter(k => data.providers[k]);
-            if (configured.length === 1 && !data.providers[cloudProvider as string]) {
-              const only = configured[0] as 'google' | 'aws' | 'azure' | 'minimax' | 'ocrspace' | 'ollama-gemma4';
-              setCloudProviderState(only);
-              localStorage.setItem('icrCloudProvider', only);
-            }
           }
         } catch {
           // Ignore — button stays disabled
@@ -459,16 +439,19 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
         return;
       }
       setCloudOcrState('running');
-            setCloudError(null);
+      setCloudError(null);
       const t0 = performance.now();
       try {
-        // Prefer the pages[] shape (same as the local OCR path) so the
-        // backend runs Cloud OCR on every filtered page, not just the
-        // first — a multi-page scan (e.g. several students' sheets in one
+        // Single OCR provider: ollama-gemma4. The provider field is sent
+        // for backend-validation clarity; the backend also hardcodes the
+        // provider check.
+        // Prefer the pages[] shape when filter pages are available so
+        // multi-page scans OCR every page, not just the first. Otherwise
+        // send the raw uploaded file as a single image.
         // PDF) shouldn't silently drop pages 2+. Falls back to a single
         // imageDataUrl if the user skipped the filter stage.
         // NO apiKey is ever sent from the frontend.
-        const body: Record<string, unknown> = { provider: cloudProvider };
+        const body: Record<string, unknown> = { provider: 'ollama-gemma4' };
         if (filteredPages.length > 0) {
           body.pages = filteredPages.map((p) => ({ pageNumber: p.pageNumber, imageDataUrl: p.imageDataUrl }));
         } else {
@@ -487,16 +470,16 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
         const clientMs = Math.round(performance.now() - t0);
         const data = await res.json();
         if (!res.ok || !data.success) {
-          // Surface the backend's provider-specific message verbatim. The 502
-          // body already says things like "Google Vision: billing not enabled"
-          // or "OCR.space: rate limit" — pass that straight to the user with a
-          // short admin-action hint appended so they know who to ask.
+          // Surface the backend's error message verbatim. With Ollama as
+          // the sole provider, the backend returns messages like "Ollama
+          // Cloud: ..." — pass that straight to the user with a short
+          // admin-action hint appended so they know who to ask.
           const providerMsg = data.error || `Cloud OCR HTTP ${res.status}`;
           const adminHint =
             res.status === 503
-              ? ` Admin must set the ICR_CLOUD_API_KEY_${cloudProvider.toUpperCase()} env var or POST a key to /api/icr/cloud-config.`
+              ? ` Admin must set the OLLAMA_API_KEY (or ICR_CLOUD_API_KEY_OLLAMA_GEMMA4) env var or POST a key to /api/icr/cloud-config.`
               : res.status === 502
-              ? ` The upstream provider rejected the request — likely an invalid/revoked key, billing not enabled, or rate limit. Ask the admin to verify the ICR_CLOUD_API_KEY_${cloudProvider.toUpperCase()} value.`
+              ? ` The upstream Ollama Cloud rejected the request — likely an invalid/revoked key, billing not enabled, or rate limit. Ask the admin to verify the OLLAMA_API_KEY value.`
               : '';
           setCloudError(providerMsg + adminHint);
                     setCloudOcrState('error');
@@ -616,82 +599,29 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
         />
       </div>
 
-      {/* Big action buttons — one per stage. Always visible. */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* Single OCR action — Ollama Gemma 4 only. The filter + local
+          EasyOCR paths were removed when consolidating to a single OCR
+          provider. The button is always rendered; it shows a clear
+          subtitle + error state when the server doesn't have an
+          OLLAMA_API_KEY configured. */}
+      <div className="space-y-2">
         <BigButton
-          variant="indigo"
-          icon={<FilterIcon />}
-          title="1. Filter Blue Ink"
-          subtitle="Isolate blue pen, preview the result"
-          timeTaken={filterTiming}
-          liveElapsed={filterState === 'filtering' ? elapsedMs : null}
-          state={filterState}
-          onClick={runFilter}
-          disabled={disabled}
-        />
-        <BigButton
-          variant="blue"
-          icon={<ScanIcon />}
-          title="2. Run OCR on Filtered Image"
+          providerKey="ollama-gemma4"
+          icon={<CloudIcon />}
+          title="Run OCR with Ollama Gemma 4"
           subtitle={
-            filteredImageDataUrl
-              ? 'OCR will read the filtered image'
-              : 'Will filter + OCR in one pass'
+            cloudProvidersConfigured['ollama-gemma4']
+              ? 'Server has OLLAMA_API_KEY configured.'
+              : cloudProvidersConfigured['ollama-gemma4'] === false
+              ? 'No API key — ask admin to set OLLAMA_API_KEY (or ICR_CLOUD_API_KEY_OLLAMA_GEMMA4).'
+              : 'Checking server configuration…'
           }
-          timeTaken={ocrTiming}
-          liveElapsed={ocrState === 'running' ? elapsedMs : null}
-          state={ocrState}
-          onClick={runOcr}
-          disabled={disabled}
-          // Disable OCR until filter stage has succeeded, so the user always
-          // sees the preview before OCR runs. If they want to skip filter,
-          // they can run OCR first (it'll still filter server-side) — wait,
-          // that's confusing. Just allow OCR anytime; the backend is idempotent.
-          // (Re-enabling.)
+          timeTaken={null}
+          liveElapsed={cloudOcrState === 'running' ? elapsedMs : null}
+          state={cloudOcrState}
+          onClick={runCloudOcr}
+          disabled={disabled || cloudProvidersConfigured['ollama-gemma4'] !== true}
         />
-        {/* Provider toggle — shows providers the server has keys for.
-                            With 2+ configured, user picks. With exactly 1, show that
-                            one as a single informational pill (auto-selected) so a
-                            single Ollama-only setup still surfaces the provider. */}
-                        {(() => {
-                          const configuredProviders = (['google', 'minimax', 'ocrspace', 'aws', 'azure', 'ollama-gemma4'] as const)
-                            .filter((p) => cloudProvidersConfigured[p]);
-                          if (configuredProviders.length === 0) return null;
-                                            return (
-                                      <div className="flex flex-wrap items-center gap-1.5 px-1">
-                                                                      <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mr-1">
-                                                                        Model:
-                                                                      </span>
-                                                                      {configuredProviders.map((p) => (
-                                                                        <button
-                                                                          key={p}
-                                                                          type="button"
-                                                                          onClick={() => setCloudProvider(p)}
-                                                                          className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold shadow-sm transition-all ${configuredProviders.length === 1 ? 'cursor-default opacity-90' : ''} ${PROVIDER_PILL_CLASS[p]}`}
-                                                                          title={p.toUpperCase()}
-                                                                        >
-                                                                          {p.toUpperCase()}
-                                                                        </button>
-                                                                      ))}
-                                                                    </div>
-                                                                  );
-                        })()}
-
-                <BigButton
-                                                                  providerKey={cloudProvider}
-                                                                  icon={<CloudIcon />}
-                                                                  title="3. Run via Cloud API"
-                                                                  subtitle={
-                                                                    cloudProvidersConfigured[cloudProvider]
-                                                                      ? `Using ${cloudProvider.toUpperCase()} — admin-configured on server`
-                                                                      : 'No API key configured — ask admin to set ICR_CLOUD_API_KEY_' + cloudProvider.toUpperCase()
-                                                                  }
-                                                                  timeTaken={null}
-                                                                  liveElapsed={cloudOcrState === 'running' ? elapsedMs : null}
-                                                                  state={cloudOcrState}
-                                                                  onClick={runCloudOcr}
-                                                                  disabled={disabled || !cloudProvidersConfigured[cloudProvider]}
-                                                                />
       </div>
 
       {/* Filtered preview + stats panel */}
