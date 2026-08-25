@@ -730,7 +730,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
                 that state was set if the request never started (e.g. file too large). */}
             {cloudError && (
               <ErrorPanel
-                title={`Cloud OCR failed (${cloudProvider.toUpperCase()})`}
+                title="Ollama Gemma 4 — Cloud OCR failed"
                 error={cloudError}
                 onRetry={runCloudOcr}
                 onDismiss={() => setCloudError(null)}
