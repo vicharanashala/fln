@@ -1,3 +1,4 @@
+import { withBase } from '../services/apiClient';
 import React, { useEffect, useRef } from 'react';
 import { X, ExternalLink } from 'lucide-react';
 
@@ -9,12 +10,18 @@ interface WorksheetIframeModalProps {
 }
 
 const CLASS_FILE_MAP: { [key: string]: string } = {
-  'Class 1': '/worksheets/class1.html',
-  'Class 2': '/worksheets/class2.html',
-  'Class 3': '/worksheets/class3.html',
-  'Class 4': '/worksheets/class4.html',
-  'LEVEL_PERSONALIZED': '/worksheets/levels_main.html',
-  'Level Personalized': '/worksheets/levels_main.html',
+  // The runtime paper for each class is now the deterministic B&W
+  // diagnostic paper from _build/build_class_papers.py (commit e51fe6e),
+  // served out of /worksheets/proposed-levels/. The previous in-folder
+  // classN.html files are superseded — they still exist on disk so we don't
+  // break the file:// load path, but the iframe should preview the new
+  // papers which have the reduced Q-count and 93-level coverage.
+  'Class 1': withBase('/worksheets/proposed-levels/class-1-diagnostic-cognitive.html'),
+  'Class 2': withBase('/worksheets/proposed-levels/class-2-diagnostic-cognitive.html'),
+  'Class 3': withBase('/worksheets/proposed-levels/class-3-diagnostic-cognitive.html'),
+  'Class 4': withBase('/worksheets/proposed-levels/class-4-diagnostic-cognitive.html'),
+  'LEVEL_PERSONALIZED': withBase('/worksheets/levels_main.html'),
+  'Level Personalized': withBase('/worksheets/levels_main.html'),
 };
 
 export const WorksheetIframeModal: React.FC<WorksheetIframeModalProps> = ({

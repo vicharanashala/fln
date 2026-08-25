@@ -100,6 +100,26 @@ export function Table<T extends Record<string, any>>({
     return processedData.slice(start, start + rowsPerPage);
   }, [processedData, currentPage, rowsPerPage]);
 
+  // Build a windowed page list (first, last, current +/- 1) with '...' gaps,
+  // so wide datasets don't render one button per page (was 645 buttons at 6450 rows).
+  const pageItems = useMemo(() => {
+    const delta = 1;
+    const pages: (number | 'ellipsis')[] = [];
+    const range: number[] = [];
+
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+      range.push(i);
+    }
+
+    pages.push(1);
+    if (range[0] > 2) pages.push('ellipsis');
+    pages.push(...range);
+    if (range[range.length - 1] < totalPages - 1) pages.push('ellipsis');
+    if (totalPages > 1) pages.push(totalPages);
+
+    return pages;
+  }, [currentPage, totalPages]);
+
   const handleFilterChange = (key: string, value: string) => {
     setActiveFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
@@ -289,19 +309,28 @@ export function Table<T extends Record<string, any>>({
             >
               Previous
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition cursor-pointer ${
-                  currentPage === page
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+            {pageItems.map((item, idx) =>
+              item === 'ellipsis' ? (
+                <span
+                  key={`ellipsis-${idx}`}
+                  className="px-2 py-1.5 text-xs font-mono text-slate-400 dark:text-slate-600 select-none"
+                >
+                  &hellip;
+                </span>
+              ) : (
+                <button
+                  key={item}
+                  onClick={() => setCurrentPage(item)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition cursor-pointer ${
+                    currentPage === item
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {item}
+                </button>
+              )
+            )}
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}

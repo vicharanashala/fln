@@ -1,0 +1,59 @@
+name: Repo Health Check
+
+on:
+  schedule:
+    - cron: '30 3 * * *'  # daily, ~9:00 AM IST
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history needed for changelog-vs-commit comparison
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: npm install --workspaces --include-workspace-root
+
+      - name: Run health check
+        id: health
+        run: |
+          set +e
+          node scripts/repo-health-check.js > /tmp/health-report.md
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/health-report.md
+
+      - name: Open or update tracking issue
+        if: steps.health.outputs.exit_code != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPORT=$(cat /tmp/health-report.md)
+          EXISTING=$(gh issue list --state open --label repo-health --json number --jq '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$REPORT"
+          else
+            gh issue create --title "Repo Health Check — attention needed" --label repo-health --body "$REPORT"
+          fi
+
+      - name: Close tracking issue if healthy again
+        if: steps.health.outputs.exit_code == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh issue list --state open --label repo-health --json number --jq '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "All checks passed as of $(date -u +%Y-%m-%d) — closing."
+            gh issue close "$EXISTING"
+          fi

@@ -780,11 +780,11 @@ function buildWorksheet(setNum){
   const studentId = document.getElementById('studentId')?.value.trim();
   const nameText = (studentName && studentName !== 'UNASSIGNED') ? studentName : '______________________';
   const idText = (studentId && studentId !== 'UNASSIGNED') ? studentId : '___________';
-  const studentDetails = `<div style="font-size:12px;font-weight:600;margin-top:4px;color:#333;text-align:left;">Name: <span style="font-family: monospace;">${nameText}</span> &nbsp;|&nbsp; ID: <span style="font-family: monospace;">${idText}</span></div>`;
+  const studentDetails = `<div class="student-header-box" style="margin-top:6px;margin-bottom:4px;padding:5px 10px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:6px;font-size:13px;color:#0f172a;display:flex;align-items:center;justify-content:space-between;page-break-inside:avoid;"><div><span style="font-weight:700;color:#334155;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Student Name:</span> <span style="font-weight:800;font-size:15px;color:#0284c7;margin-left:6px;text-transform:uppercase;">${nameText}</span></div><div><span style="font-weight:700;color:#334155;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;">Student ID:</span> <span style="font-weight:700;font-family:monospace;font-size:13px;color:#475569;margin-left:6px;">${idText}</span></div></div>`;
 
   const headerP1=
     '<div class="ws-header">'+
-      '<div style="font-size:16px;font-weight:bold;text-align:left;float:left;margin-top:4px;">CLASS 1 — MATHEMATICS PRACTICE WORKSHEET</div>'+
+      '<div style="font-size:16px;font-weight:bold;text-align:left;float:left;margin-top:4px;">CLASS 1 — FLN DIAGNOSTIC PAPER</div>'+
       worksheetQRHtml(setNum)+
       '<div style="clear:both;"></div>'+
       studentDetails+
@@ -792,13 +792,13 @@ function buildWorksheet(setNum){
 
   const headerP2=
     '<div class="ws-header-cont">'+
-      '<div class="ws-title">CLASS 1 — MATHEMATICS (Continued)</div>'+
+      '<div class="ws-title">CLASS 1 — FLN DIAGNOSTIC PAPER (Continued)</div>'+
       '<div class="ws-sub">Set '+setNum+' &nbsp;·&nbsp; Page 2 of 3</div>'+
     '</div>';
 
   const headerP3=
     '<div class="ws-header-cont">'+
-      '<div class="ws-title">CLASS 1 — MATHEMATICS (Continued)</div>'+
+      '<div class="ws-title">CLASS 1 — FLN DIAGNOSTIC PAPER (Continued)</div>'+
       '<div class="ws-sub">Set '+setNum+' &nbsp;·&nbsp; Page 3 of 3</div>'+
     '</div>';
 
@@ -811,7 +811,7 @@ function buildWorksheet(setNum){
       '<div class="section">'+sections[1]+'</div>'+
       '<div class="section">'+sections[2]+'</div>'+
       '<div class="section">'+sections[3]+'</div>'+
-      '<div class="ws-footer">Class 1 · Math FLN Practice · Set '+setNum+' · Page 1 of 2</div>'+
+      '<div class="ws-footer">Class 1 · FLN Diagnostic Paper · Set '+setNum+' · Page 1 of 2</div>'+
       '<div class="ws-page-id">'+pid+'-P1</div>'+
     '</div></div>';
 
@@ -825,7 +825,7 @@ function buildWorksheet(setNum){
       '<div class="section">'+sections[6]+'</div>'+
       '<div class="section">'+sections[7]+'</div>'+
       '<div class="section">'+sections[8]+'</div>'+
-      '<div class="ws-footer">Class 1 · Math FLN Practice · Set '+setNum+' · Page 2 of 2</div>'+
+      '<div class="ws-footer">Class 1 · FLN Diagnostic Paper · Set '+setNum+' · Page 2 of 2</div>'+
       '<div class="ws-page-id">'+pid+'-P2</div>'+
     '</div></div>';
 

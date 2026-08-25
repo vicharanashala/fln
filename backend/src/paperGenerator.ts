@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { randomUUID } from 'crypto';
-import { Question } from './db';
+import { Question, dbStore } from './db';
 import { renderBatch } from './worksheetRenderer';
 import { mergeAndStamp } from './pdfMerge';
 import { drawQrCode } from './qrCode';
@@ -18,6 +18,81 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
+/**
+ * Convert an answer (scalar, array, or object) to the string the
+ * Diagnostic Placement UI shows next to "Correct: ".
+ *
+ * Many question types have structured answers (matching pairs, cluster
+ * loops, dual-mark groups, fill-in-the-blank sequences). The naive
+ * `String(value)` returns "[object Object]" or "" for these, leaving
+ * the placement grader with no answer to compare against. This helper
+ * detects the known shapes and emits a compact, human-readable form
+ * (e.g. "Left: 5, Right: 2" for more/less groups), and falls back to
+ * JSON for anything unknown.
+ */
+function stringifyAnswer(value: any, item: any): string {
+  if (value === null || value === undefined) return '';
+  // Scalars (string, number, boolean) stringify directly.
+  if (typeof value !== 'object') return String(value).trim();
+
+  const detect = item?.icr?.detect;
+  const data = item?.data || {};
+
+  // Matching (class 3 shape): array of {lPos, rPos, shape?, obj?}
+  // Matching (class 2 line-draw): each item has data.lPos, data.rPos, data.matchesTo
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && ('lPos' in value[0] || 'l' in value[0])) {
+    return value.map((m: any) => `${m.lPos ?? m.l}→${m.rPos ?? m.r}`).join(', ');
+  }
+  // Single matching-pair item (class 2 section 8 / Match Shapes): per-item
+  // lPos/rPos. Format as "3→5 (Oval→Hand Mirror)" if matchesTo is also set.
+  if ('lPos' in value && 'rPos' in value) {
+    const pair = `${value.lPos}→${value.rPos}`;
+    const label = value.matchesTo ? ` (${value.shape ?? '?'}→${value.matchesTo})` : '';
+    return pair + label;
+  }
+  // group_circle (more/less): {cells: [{cell, task, lCount, rCount, ans}]}
+  if (data && Array.isArray(data.cells)) {
+    return data.cells.map((c: any) => `${c.cell}: ${c.ans} (${c.lCount} vs ${c.rCount})`).join('; ');
+  }
+  // fill-in-blank sequence: array of numbers/strings
+  if (Array.isArray(value)) {
+    return value.map((v: any) => (v && typeof v === 'object' && 'value' in v ? v.value : v)).join(', ');
+  }
+  // cluster_loop: {r1, r2, total, circle}
+  if ('circle' in value && ('r1' in value || 'r2' in value || 'total' in value)) {
+    return `circle ${value.circle} of ${value.total} (r1=${value.r1 ?? '?'}, r2=${value.r2 ?? '?'})`;
+  }
+  // dual_mark: {circle, tick, groups}
+  if ('circle' in value && 'tick' in value) {
+    return `circle ${value.circle}, tick ${value.tick}`;
+  }
+  // path_trace: {path} or string
+  if ('path' in value) {
+    return String(value.path);
+  }
+  // mcq with options: {ans, opts}
+  if ('ans' in value && 'opts' in value) {
+    return String(value.ans);
+  }
+  // matching_lCol_rCol (alt): {lCol, rCol, ...}
+  if ('lCol' in value && 'rCol' in value) {
+    return `match (${value.lCol} ↔ ${value.rCol})`;
+  }
+  // handwritten_digit_multi: {tens, ones} or {weeks, extraDays}
+  if ('tens' in value && 'ones' in value) {
+    return `${value.tens} tens + ${value.ones} ones`;
+  }
+  if ('weeks' in value && 'extraDays' in value) {
+    return `${value.weeks} weeks + ${value.extraDays} days`;
+  }
+  // Final fallback: JSON. Avoids the useless "[object Object]".
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '[unserializable]';
+  }
+}
+
 export interface PaperGenerationResult {
   fileName: string;
   filePath: string;
@@ -26,6 +101,16 @@ export interface PaperGenerationResult {
   questions: Question[];
   pdfFileName?: string;
   pdfFilePath?: string;
+  answerKeyData?: Array<{
+      setNum: number;
+      studentId: string;
+      studentName: string;
+      masterJson: any;
+      coords: any;
+      questionPaperJson: any;
+      questions?: any[];
+      answerKey?: any[];
+    }>;
 }
 
 export interface WorksheetPdfResult {
@@ -35,8 +120,9 @@ export interface WorksheetPdfResult {
 }
 
 /**
- * Generate mock diagnostic question papers class-wise.
- * Stamps the student's name on their corresponding mock exam paper.
+ * Generate diagnostic question papers class-wise.
+ * Stamps the student's name on their corresponding exam paper.
+ * Answer keys are NOT included in the downloadable ZIP; they are returned for backend internal DB storage.
  */
 export async function generateDiagnosticPaper({
   classNumber,
@@ -54,9 +140,12 @@ export async function generateDiagnosticPaper({
   const classLevel = `CLASS_${classNumber}`;
   const results = await renderBatch(classLevel, students.length, onProgress, undefined, students);
 
-  // Extract questions from results[0].masterJson
+  // Extract questions from MongoDB Atlas if Class 2, or from masterJson
   let questions: Question[] = [];
-  if (results && results[0] && results[0].masterJson && results[0].masterJson.sections) {
+  if (classNumber === 2 && students[0] && (students[0].studentId || (students[0] as any).id)) {
+    const sId = students[0].studentId || (students[0] as any).id;
+    questions = await dbStore.getStudentAssignedQuestions(sId, 2);
+  } else if (results && results[0] && results[0].masterJson && results[0].masterJson.sections) {
     const sections = results[0].masterJson.sections;
     sections.forEach((sec: any, secIdx: number) => {
       if (Array.isArray(sec.items)) {
@@ -101,7 +190,7 @@ export async function generateDiagnosticPaper({
   const mergedFileName = `class${classNumber}_bulk_diagnostic.pdf`;
   zip.file(mergedFileName, mergedBuffer);
 
-  // Add a manifest.json
+  // Add a manifest.json (contains student list without answer key files)
   const manifestData = {
     classNumber,
     generatedAt: new Date().toISOString(),
@@ -110,12 +199,23 @@ export async function generateDiagnosticPaper({
       name: s.name,
       studentId: s.studentId || s.rollNo || `STUDENT_${idx + 1}`,
       setNum: idx + 1,
-      files: ['worksheet.pdf', 'answer_key.json', 'coords.json', 'question_paper.json']
+      files: ['worksheet.pdf']
     }))
   };
   zip.file('manifest.json', JSON.stringify(manifestData, null, 2));
 
-  // Loop through results and add student directories and flat PDFs
+  const answerKeyData: Array<{
+    setNum: number;
+    studentId: string;
+    studentName: string;
+    masterJson: any;
+    coords: any;
+    questionPaperJson: any;
+    questions?: Question[];
+    answerKey?: any;
+  }> = [];
+
+  // Loop through results and add student directories with ONLY student-facing worksheets
   results.forEach((r, idx) => {
     const student = students[idx];
     const sName = student.name;
@@ -124,52 +224,101 @@ export async function generateDiagnosticPaper({
     // Sanitize names for folder structure
     const folderName = `Set_${String(idx + 1).padStart(3, '0')}_RollNo-${sId.replace(/[^a-zA-Z0-9_\-]+/g, '')}_${sName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]+/g, '')}`;
 
-    // Add individual student files
+    // Add individual student question paper PDF only (No answer_key.json, coords.json, or question_paper.json in ZIP)
     const pdfBuf = Buffer.from(r.pdfBase64, 'base64');
     zip.file(`${folderName}/worksheet.pdf`, pdfBuf);
 
-    if (r.masterJson) {
-      zip.file(`${folderName}/answer_key.json`, JSON.stringify(r.masterJson, null, 2));
-    }
-    if (r.coords) {
-      zip.file(`${folderName}/coords.json`, JSON.stringify(r.coords, null, 2));
-    }
-    if (r.questionPaperJson) {
-      zip.file(`${folderName}/question_paper.json`, JSON.stringify(r.questionPaperJson, null, 2));
+    // Extract exact questions for this student set from masterJson
+    const studentQuestions: Question[] = [];
+    const flatAnswerKey: Array<{ qid: string; question_id: string; answer: string; type: string; pos?: number }> = [];
+    if (r.masterJson && Array.isArray(r.masterJson.sections)) {
+      r.masterJson.sections.forEach((sec: any, secIdx: number) => {
+        if (Array.isArray(sec.items)) {
+          sec.items.forEach((item: any, itemIdx: number) => {
+            // Resolve the answer from multiple possible locations:
+            //   1. icr.expected       — scalar/symbol/array/object answers (most sections)
+            //   2. data.answer        — alternate scalar
+            //   3. data.blanks[].value — fill-in-the-blank sections where the
+            //                            "answer" is a list of values per blank
+            //                            (e.g. missing-number sequences). The
+            //                            per-blank values are the correct fills.
+            let ans: string = '';
+            const icrExp = item.icr?.expected;
+            const dataAns = item.data?.answer;
+            const blanks: Array<{position: number; value: any}> = item.data?.blanks || [];
+            if (icrExp !== undefined && icrExp !== null) {
+              ans = stringifyAnswer(icrExp, item);
+            } else if (dataAns !== undefined && dataAns !== null) {
+              ans = stringifyAnswer(dataAns, item);
+            } else if (blanks.length > 0) {
+              // Synthesize an answer from the blank fills, sorted by
+              // position so it's stable across regenerations.
+              const sortedBlanks = [...blanks].sort((a, b) => (a.position || 0) - (b.position || 0));
+              ans = sortedBlanks.map((b) => String(b.value ?? '').trim()).join(', ');
+            }
+            const qid = `Q_L${classNumber * 10}_${secIdx + 1}_${itemIdx + 1}`;
+            const questionNum = item.question || itemIdx + 1;
+
+            if (blanks.length > 0) {
+              blanks.forEach((b, bi) => {
+                const v = String(b.value ?? '').trim();
+                const fid = `${qid}_b${bi + 1}`;
+                studentQuestions.push({
+                  question_id: fid,
+                  question: `${questionNum} (position ${b.position})`,
+                  answer: v,
+                  answer_type: 'number',
+                  topic: sec.section || `Section ${secIdx + 1}`,
+                  subtopic: sec.section || 'operations',
+                  difficulty: 'medium',
+                  source_level: classNumber * 10
+                });
+                flatAnswerKey.push({ qid: fid, question_id: fid, answer: v, type: 'fill_blank', pos: b.position });
+              });
+            } else {
+              studentQuestions.push({
+                question_id: qid,
+                question: questionNum,
+                answer: ans,
+                answer_type: 'number',
+                topic: sec.section || `Section ${secIdx + 1}`,
+                subtopic: sec.section || 'operations',
+                difficulty: 'medium',
+                source_level: classNumber * 10
+              });
+              flatAnswerKey.push({ qid, question_id: qid, answer: ans, type: 'graded' });
+            }
+          });
+        }
+      });
     }
 
-    // Add flat copies to all_worksheets/ for easy single-folder access
-    zip.file(`all_worksheets/${folderName}.pdf`, pdfBuf);
-    if (r.masterJson) {
-      zip.file(`all_worksheets/${folderName}_answer_key.json`, JSON.stringify(r.masterJson, null, 2));
-    }
-    if (r.coords) {
-      zip.file(`all_worksheets/${folderName}_coords.json`, JSON.stringify(r.coords, null, 2));
-    }
-    if (r.questionPaperJson) {
-      zip.file(`all_worksheets/${folderName}_question_paper.json`, JSON.stringify(r.questionPaperJson, null, 2));
-    }
+    // Collect answer keys internally for Mongo storage
+    answerKeyData.push({
+      setNum: idx + 1,
+      studentId: sId,
+      studentName: sName,
+      masterJson: r.masterJson,
+      coords: r.coords,
+      questionPaperJson: r.questionPaperJson,
+      questions: studentQuestions.length > 0 ? studentQuestions : questions,
+      answerKey: flatAnswerKey
+    });
   });
 
   const pdfFileName = `class${classNumber}_diagnostic_${randomUUID()}.pdf`;
   const pdfFilePath = path.join(OUTPUT_DIR, pdfFileName);
   fs.writeFileSync(pdfFilePath, mergedBuffer);
 
-  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+  const zipBuffer = await zip.generateAsync({
+    type: 'nodebuffer',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 6 }
+  });
 
   const fileName = `class${classNumber}_diagnostic_${randomUUID()}.zip`;
   const filePath = path.join(OUTPUT_DIR, fileName);
   fs.writeFileSync(filePath, zipBuffer);
-
-  // Write corresponding answer keys, coords, and question papers for each set to output/ for logs/verification
-  const baseName = fileName.replace(/\.zip$/, '');
-  const answerKeys = results.map(r => r.masterJson);
-  const coordsList = results.map(r => r.coords);
-  const questionPapers = results.map(r => r.questionPaperJson);
-
-  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_answer_key.json`), JSON.stringify(answerKeys, null, 2));
-  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_coords.json`), JSON.stringify(coordsList, null, 2));
-  fs.writeFileSync(path.join(OUTPUT_DIR, `${baseName}_question_paper.json`), JSON.stringify(questionPapers, null, 2));
 
   return {
     fileName,
@@ -181,7 +330,8 @@ export async function generateDiagnosticPaper({
       setNum: i + 1,
       studentName: s.name,
     })),
-    questions
+    questions,
+    answerKeyData
   };
 }
 
@@ -203,14 +353,8 @@ export async function generateLevelWorksheet({
   levelId: number;
   subIdx: number;
 }): Promise<LevelWorksheetResult> {
-  const puppeteer = await import('puppeteer');
-  const CHROME_EXECUTABLE_PATH = process.env.CHROME_EXECUTABLE_PATH || undefined;
-
-  const browser = await puppeteer.default.launch({
-    headless: true,
-    executablePath: CHROME_EXECUTABLE_PATH,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  const { launchBrowser } = await import('./browser');
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();
@@ -223,8 +367,9 @@ export async function generateLevelWorksheet({
     await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0' as any, timeout: 30000 });
 
     const data = await page.evaluate(({ levelId, subIdx, studentId, studentName }) => {
-      const nameInput = document.getElementById('studentName') as HTMLInputElement | null;
-      const idInput = document.getElementById('studentId') as HTMLInputElement | null;
+      const doc = (globalThis as any).document;
+      const nameInput = doc.getElementById('studentName');
+      const idInput = doc.getElementById('studentId');
       if (nameInput) nameInput.value = studentName;
       if (idInput) idInput.value = studentId;
       // @ts-ignore
@@ -235,7 +380,7 @@ export async function generateLevelWorksheet({
       meta = [];
       
       // Run generation a random number of times to yield different question selections and layouts
-      const iterations = Math.floor(Math.random() * 20) + 1;
+      const iterations = 1;
       for (let i = 0; i < iterations; i++) {
         // @ts-ignore
         generateOneSet(levelId, subIdx);

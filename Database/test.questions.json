@@ -1,0 +1,185 @@
+[{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d482091"
+  },
+  "question_id": "L1_Q1",
+  "question": "Count the apples in the picture. How many apples are there?",
+  "answer": "5",
+  "answer_type": "number",
+  "topic": "Number Sense",
+  "subtopic": "Counting",
+  "difficulty": "easy",
+  "source_level": 1,
+  "svgAsset": "fruits"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d482092"
+  },
+  "question_id": "L1_Q2",
+  "question": "Count the circles and write the total number.",
+  "answer": "3",
+  "answer_type": "number",
+  "topic": "Shapes",
+  "subtopic": "Recognition",
+  "difficulty": "easy",
+  "source_level": 1,
+  "svgAsset": "shapes"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d482093"
+  },
+  "question_id": "L2_Q1",
+  "question": "Calculate: 3 + 4 = ?",
+  "answer": "7",
+  "answer_type": "number",
+  "topic": "Number Operations",
+  "subtopic": "Addition",
+  "difficulty": "easy",
+  "source_level": 2,
+  "svgAsset": "numbers"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d482094"
+  },
+  "question_id": "L2_Q2",
+  "question": "Complete the pattern: Red Circle, Blue Circle, Red Circle, ?",
+  "answer": "Blue Circle",
+  "answer_type": "choice",
+  "choices": [
+    "Red Circle",
+    "Blue Circle",
+    "Green Circle"
+  ],
+  "topic": "Patterns",
+  "subtopic": "Completing Patterns",
+  "difficulty": "medium",
+  "source_level": 2,
+  "svgAsset": "shapes"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d482095"
+  },
+  "question_id": "L3_Q1",
+  "question": "If a pencil is 8 centimeters long and we cut 3 centimeters off, how long is it now?",
+  "answer": "5",
+  "answer_type": "number",
+  "topic": "Measurement",
+  "subtopic": "Length Subtraction",
+  "difficulty": "medium",
+  "source_level": 3,
+  "svgAsset": "tracing"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d482096"
+  },
+  "question_id": "L3_Q2",
+  "question": "Look at the clock. If the short hand points to 3 and the long hand points to 12, what hour is it?",
+  "answer": "3",
+  "answer_type": "number",
+  "topic": "Calendar and Time",
+  "subtopic": "Reading Hours",
+  "difficulty": "easy",
+  "source_level": 3,
+  "svgAsset": "numbers"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d482097"
+  },
+  "question_id": "L4_Q1",
+  "question": "Ramu has a pizza cut into 4 equal slices. He eats 1 slice. What fraction of the pizza is left?",
+  "answer": "3/4",
+  "answer_type": "choice",
+  "choices": [
+    "1/4",
+    "2/4",
+    "3/4",
+    "4/4"
+  ],
+  "topic": "Fractions",
+  "subtopic": "Fraction Representation",
+  "difficulty": "medium",
+  "source_level": 4,
+  "svgAsset": "shapes"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d482098"
+  },
+  "question_id": "L4_Q2",
+  "question": "You buy a toy for 15 rupees and give the shopkeeper a 50-rupee note. How many rupees do you get back?",
+  "answer": "35",
+  "answer_type": "number",
+  "topic": "Money",
+  "subtopic": "Transaction Change",
+  "difficulty": "hard",
+  "source_level": 4,
+  "svgAsset": "numbers"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d482099"
+  },
+  "question_id": "L5_Q1",
+  "question": "Multiply: 12 x 5 = ?",
+  "answer": "60",
+  "answer_type": "number",
+  "topic": "Number Operations",
+  "subtopic": "Multiplication",
+  "difficulty": "easy",
+  "source_level": 5,
+  "svgAsset": "numbers"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d48209a"
+  },
+  "question_id": "L5_Q2",
+  "question": "In a class there are 5 benches. Each bench holds 4 students. How many students can sit in total?",
+  "answer": "20",
+  "answer_type": "number",
+  "topic": "Data Handling",
+  "subtopic": "Simple Arithmetic Multiplication",
+  "difficulty": "medium",
+  "source_level": 5,
+  "svgAsset": "animals"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d48209b"
+  },
+  "question_id": "L6_Q1",
+  "question": "Divide: 48 / 6 = ?",
+  "answer": "8",
+  "answer_type": "number",
+  "topic": "Number Operations",
+  "subtopic": "Division",
+  "difficulty": "medium",
+  "source_level": 6,
+  "svgAsset": "numbers"
+},
+{
+  "_id": {
+    "$oid": "6a586313a1af14ba9d48209c"
+  },
+  "question_id": "L6_Q2",
+  "question": "If July 1st is a Monday, what day of the week is July 8th?",
+  "answer": "Monday",
+  "answer_type": "choice",
+  "choices": [
+    "Monday",
+    "Tuesday",
+    "Sunday",
+    "Wednesday"
+  ],
+  "topic": "Calendar and Time",
+  "subtopic": "Calendar Arithmetic",
+  "difficulty": "hard",
+  "source_level": 6,
+  "svgAsset": "numbers"
+}]

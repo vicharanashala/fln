@@ -1,10 +1,15 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
   return {
+    // Deployment base path. "/" at the domain root (and dev); set VITE_BASE_PATH
+    // (e.g. "/fln/") for a subpath deployment. All API/asset URLs read this via
+    // import.meta.env.BASE_URL (see src/services/apiClient.ts), so no built-file
+    // string rewriting is needed at deploy time.
+    base: process.env.VITE_BASE_PATH || '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
@@ -13,7 +18,7 @@ export default defineConfig(() => {
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+      // Do not modify — file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {
@@ -22,6 +27,11 @@ export default defineConfig(() => {
       // Forward all /api calls to the real backend server (Express, :3000).
       // Override the target with VITE_API_TARGET if the backend runs elsewhere.
       proxy: {
+        // /api catch-all: forward to the main backend. Specific routes
+        // (intro/lessons/etc.) used to point at a Levels API on :5000 that
+        // isn't running in this dev environment — they caused 500s when
+        // the frontend fetched /api/students etc. Let the catch-all route
+        // everything to the main backend to avoid the misrouting.
         '/api': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true },
         '/output': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true },
         '/worksheets': { target: process.env.VITE_API_TARGET || 'http://localhost:3000', changeOrigin: true },

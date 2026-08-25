@@ -8,7 +8,7 @@ This file consolidates the child-development theory (from NISHTHA FLN) with the 
 - [2. Cognitive Development](#2-cognitive-development)
 - [3. Socio-Emotional & Self-Regulation](#3-socio-emotional--self-regulation)
 - [4. Motivation & Learning Approaches](#4-motivation--learning-approaches)
-- [5. Learning Styles](#5-learning-styles)
+- [5. Representation (formerly "Learning Styles")](#5-representation-formerly-learning-styles)
 - [6. Play & Social Learning](#6-play--social-learning)
 - [7. Language & Identity](#7-language--identity)
 - [8. Applied Cognitive-Load Framework for Question Design](#8-applied-cognitive-load-framework-for-question-design)
@@ -26,7 +26,7 @@ This file consolidates the child-development theory (from NISHTHA FLN) with the 
 
 ## 1. Brain Development & Neuroscience
 
-- Over 85% of a child's cumulative brain development occurs before age 6 — the most critical stimulation window.
+- Over 85% of a child's cumulative brain development occurs before age 6 — the most critical stimulation window. *(Verified 2026-08-21: **contested**. Traceable to NEP 2020, but the figure derives from brain-**size** measurement and has a substantial critique literature. Usable as motivation; not as a basis for design decisions.)*
 - The brain is most flexible/adaptable to learning in early childhood.
 - Positive early experiences support lifelong learning; unfilled early learning gaps continue to widen over time.
 
@@ -53,10 +53,17 @@ This file consolidates the child-development theory (from NISHTHA FLN) with the 
 - Confidence matters for fearlessness in learning. Example response pattern to an error: if a child counts "1, 2, 3, 5…", the teacher should say "Very good! You counted carefully till 3. Let's find the next number together" — never treat the miscount as failure.
 - Competency-based education matches instruction to developmental readiness, not age/time — advance only on mastery.
 
-## 5. Learning Styles
+## 5. Representation (formerly "Learning Styles")
 
-- Modality preferences: visual, auditory, kinaesthetic, tactual — **majority of children prefer visual learning**.
-  - Example: "🍎🍎🍎 + 🍎🍎" is easier for a child to process than only "3 + 2".
+> **⚠ Corrected 2026-08-21 — see `fln_source_verification_2026-08-21.md` §2.**
+> This section previously claimed that children have modality preferences (visual / auditory / kinaesthetic / tactual) and that "the majority of children prefer visual learning." **That is the learning-styles myth and it is contradicted by the literature.** Pashler, McDaniel, Rohrer & Bjork (2008), "Learning Styles: Concepts and Evidence," *Psychological Science in the Public Interest*, reviewed 70+ studies and found no credible evidence that matching instruction to a preferred modality improves learning.
+>
+> **Do not build modality classification into the platform.** A system that generates personalised worksheets is exactly the system that would be tempted to label a child a "visual learner" and serve them a different paper. There is no evidential basis for doing so.
+>
+> The *practice* below survives; only the justification changes.
+
+- **Concrete and pictorial representation reduces load for young children** — "🍎🍎🍎 + 🍎🍎" is easier for a child to process than "3 + 2".
+  - The reason is **not** modality preference. It is that concrete representation removes symbolic abstraction and reading load for a child who cannot yet reliably decode numerals — the concrete → representational → abstract principle (DP2 in `fln_framework_from_scratch.md`). This applies to *all* young children, not to a visual subset.
 - Physical/kinaesthetic activities (jumping while counting, arranging blocks, sorting objects) improve mathematical concept formation.
 - Rhymes/songs help children remember number sequences, tables, and counting order.
 
@@ -98,7 +105,11 @@ Cognitive load = the mental effort required to solve a question. A child may fai
 - Hard: abstract comparison — 4 vs 5
 - Very hard: abstract comparison with close values — 8 vs 9
 
-**Balanced assessment sheet composition** (recommended distribution to avoid triggering fear/random guessing):
+**Balanced assessment sheet composition** (recommended distribution to avoid triggering fear/random guessing).
+
+> **⚠ Platform convention, not a research standard (verified 2026-08-21).** No published standard prescribes this ratio; it has no primary source here or elsewhere. It is retained as a reasonable default and must not be presented as evidence-based.
+>
+> **Design note:** a fixed easy/moderate/hard spread is likely the wrong instrument for a *diagnostic*, whose job is to locate a child's threshold precisely and therefore to concentrate items near it. The ratio suits *practice worksheets*, where confidence matters.
 
 | Level | % of Questions |
 |---|---|
@@ -107,7 +118,8 @@ Cognitive load = the mental effort required to solve a question. A child may fai
 | Hard | 15% |
 
 ### 8.3 Counting (11–30) Difficulty Notes
-- Teen numbers (11–20) are irregular in Hindi/English naming and are harder to generalize than 20s/30s.
+- Teen numbers (11–20) are irregular in Hindi/English naming and are harder to generalize than 20s/30s. **Verified** — Miller, Smith, Zhu & Zhang; Miller & Stigler, "Counting in Chinese" (1987): 4–5 year-old Chinese children count to ~40 where English-speaking children barely reach 15, with no difference below 10; the irregular naming is the cause.
+- **Language-dependence, not yet reflected in the framework (2026-08-21):** NIPUN Bharat mandates mother-tongue instruction, and Hindi number names are considerably *more* irregular than English — most numbers to 100 are near-distinct words rather than compositional. The counting difficulty curve therefore differs by language of instruction.
 - 11–30 needs longer sequence retention and stronger working memory.
 - >10 objects + 3-finger tasks build quantity relations and number composition.
 - Common confusions: 11 & 12, 13 & 30, 15 & 50.
@@ -129,7 +141,7 @@ Cognitive load = the mental effort required to solve a question. A child may fai
 - **Tough** (working memory + mental arithmetic + logical reasoning + transfer): 10,8,6,__ (backward) · "A frog jumps 7 spaces each time. It starts at 14. Where will it be after 8 jumps?" (multi-step transfer problem)
 
 ### 8.7 Yes/No Questions — Use with Caution
-Per Piagetian child-development theory, Yes/No questions are **easy** because they:
+Yes/No questions are **easy** because they: *(Corrected 2026-08-21: this was previously attributed to "Piagetian child-development theory." The attribution is wrong — recognition-versus-recall and the 50% guess rate are psychometrics, not Piaget. The reasoning itself is sound.)*
 - Only require recognition, not generation of an answer
 - Need less working memory/cognitive effort
 - Reduce language load
@@ -145,7 +157,7 @@ Per Piagetian child-development theory, Yes/No questions are **easy** because th
 - Hard: borrowing across zero, e.g. 50 − 27
 - Very hard: missing-number format (e.g. __ − 18 = 24) and word problems
 
-**Common error patterns (useful for automated error-tagging):**
+**Common error patterns (useful for automated error-tagging).** **Verified** — these are the classic documented "buggy algorithms": Brown, J. S. & Burton, R. B. (1978), "Diagnostic Models for Procedural Bugs in Basic Mathematical Skills," *Cognitive Science*, 2, 155–192. Cite that paper rather than this file.
 
 | Error Type | Example | Explanation |
 |---|---|---|
@@ -171,7 +183,7 @@ Per Piagetian child-development theory, Yes/No questions are **easy** because th
 
 ## 9. Why Comparison is the Foundation of Numeracy
 
-Jean Piaget (*The Child's Conception of Number*, 1941) showed children's relationship with numbers starts with **comparison** — before a child can count, order, or conserve quantity, they can already tell which pile has more/less, or when two things look the same. Every higher numerical skill (sequencing, counting, conservation of quantity) builds on this basic comparison ability. This is why **comparison-based tasks should be the starting point** for any foundational numeracy intervention or assessment.
+Jean Piaget (*La genèse du nombre chez l'enfant*, 1941; English translation *The Child's Conception of Number*, 1952 — one work, not two) showed children's relationship with numbers starts with **comparison** — before a child can count, order, or conserve quantity, they can already tell which pile has more/less, or when two things look the same. Every higher numerical skill (sequencing, counting, conservation of quantity) builds on this basic comparison ability. This is why **comparison-based tasks should be the starting point** for any foundational numeracy intervention or assessment.
 
 ## 10. Relevance to Our Project
 

@@ -1,3 +1,4 @@
+import { apiFetch, withBase } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { ClassGroup, Worksheet, Student, AnswerSubmission, EvaluationReport } from '../types';
 import { SvgLibraryResolver } from './SvgLibraryResolver';
@@ -29,16 +30,16 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
   // Poll/fetch worksheet for this class
   const fetchWorksheets = async () => {
     try {
-      const res = await fetch('/api/classes', {
+      const res = await apiFetch('/api/classes', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         // Fetch all generated worksheets
-        const wsRes = await fetch('/api/logbook', { // logbook fetches can reveal ws stats, or list directly
+        const wsRes = await apiFetch('/api/logbook', { // logbook fetches can reveal ws stats, or list directly
           headers: { 'Authorization': `Bearer ${token}` }
         });
         // Simply pull directly from DB log details or find general worksheets
-        const activeWsRes = await fetch('/api/students', { // student lists
+        const activeWsRes = await apiFetch('/api/students', { // student lists
           headers: { 'Authorization': `Bearer ${token}` }
         });
       }
@@ -50,7 +51,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
     setError('');
     setSuccess('');
     try {
-      const res = await fetch('/api/worksheets/generate', {
+      const res = await apiFetch('/api/worksheets/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
     setError('');
     setEvaluationResult(null);
     try {
-      const res = await fetch('/api/evaluation/submit', {
+      const res = await apiFetch('/api/evaluation/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +113,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
     setPdfGenerating(true);
     setError('');
     try {
-      const res = await fetch('/api/worksheets/generate-pdf', {
+      const res = await apiFetch('/api/worksheets/generate-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -256,7 +257,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                   </button>
                   {pdfUrl && (
                     <a
-                      href={pdfUrl}
+                      href={withBase(pdfUrl)}
                       target="_blank"
                       rel="noreferrer"
                       className="bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs font-semibold px-3 py-1.5 rounded border border-emerald-500 flex items-center gap-1.5"
@@ -290,11 +291,11 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                       <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-3">
                         <div>
                           <h5 className="font-display font-bold text-zinc-900 dark:text-white uppercase text-sm tracking-tight">{student.name}</h5>
-                          <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">Student ID: {student.id} · Target Level: Level {student.targetLevel}</p>
+                          <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">Student ID: {student.displayId || student.id} · Target Level: Level {student.targetLevel !== null && student.targetLevel !== undefined ? student.targetLevel : 'Not Assessed'}</p>
                         </div>
                         <div className="text-right">
                           <span className="text-xs font-mono font-bold uppercase bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300">
-                            Current Level {student.currentLevel}
+                            Current Level {student.currentLevel !== null && student.currentLevel !== undefined ? student.currentLevel : 'Not Assessed'}
                           </span>
                         </div>
                       </div>
@@ -309,7 +310,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                             <p className="text-zinc-800 dark:text-zinc-100 text-sm font-medium leading-relaxed">{q.question.replace(`[For ${student.name} - Level ${student.currentLevel}] `, '')}</p>
 
                             {q.svgAsset && (
-                              <SvgLibraryResolver category={q.svgAsset} count={student.currentLevel + 1} />
+                              <SvgLibraryResolver category={q.svgAsset} count={(student.currentLevel || 0) + 1} />
                             )}
 
                             {q.answer_type === 'choice' && q.choices && (
@@ -359,7 +360,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
                 >
                   <option value="">Choose Student...</option>
                   {students.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} (Level {s.currentLevel})</option>
+                    <option key={s.id} value={s.id}>{s.name} (Level {s.currentLevel !== null && s.currentLevel !== undefined ? s.currentLevel : 'Not Assessed'})</option>
                   ))}
                 </select>
               </div>
