@@ -28,8 +28,8 @@ Used by the two-stage ICR scanner UI:
   1. Frontend POSTs the original image to /api/icr/filter
   2. This script filters it; response includes the filtered data URL
   3. Frontend displays the filtered preview
-  4. Frontend POSTs the filtered data URL to /api/icr/evaluate-pdf
-  5. Python's easyocr_evaluator runs OCR on the (already-filtered) image
+  4. Frontend POSTs the filtered data URL to /api/icr/evaluate-cloud
+  5. Backend invokes Ollama Gemma 4 to OCR the (already-filtered) image
 
 Stdout format (single JSON line, easy for Node to parse):
   {"success": true, "output_path": "...", "blue_pixel_ratio": 0.012, ...}
@@ -55,9 +55,8 @@ def main():
         print(json.dumps({"success": False, "error": f"Input not found: {input_path}"}))
         sys.exit(2)
 
-    # Lazy import cv2/numpy — match the existing easyocr_evaluator pattern so
-    # environments without opencv fail loudly but the rest of the pipeline
-    # can still be imported.
+    # Lazy import cv2/numpy — fail loudly if opencv isn't installed so
+    # the rest of the pipeline doesn't silently misbehave.
     try:
         import cv2
         import numpy as np

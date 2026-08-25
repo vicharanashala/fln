@@ -418,103 +418,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     }
   };
 
-  const scanAnswerSheet = async () => {
-    if (!selectedClassId) {
-      setError('Please select a class first.');
-      return;
-    }
-    if (!uploadedFile) {
-      setError('Please choose an answer sheet PDF or image file to scan.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess('');
-    setScanStage('reading');
-
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(uploadedFile);
-      reader.onload = async () => {
-        const fileBase64 = reader.result as string;
-        setScanStage('filtering');
-        try {
-          setScanStage('ocr');
-          const res = await apiFetch('/api/icr/evaluate-pdf', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              classId: selectedClassId,
-              studentId: selectedStudentId || 'ALL_STUDENTS',
-              fileBase64,
-              filename: uploadedFile.name
-            })
-          });
-
-          const data = await res.json();
-          if (res.ok && data.success) {
-            if (data.isBulk || selectedStudentId === 'ALL_STUDENTS') {
-              setBulkResults(data.results);
-              setStep('result');
-              setSuccess(`Fast OCR evaluation complete! Evaluated ${data.totalEvaluated} student answer sheets.`);
-            } else if (data.results && data.results.length > 0) {
-              const firstRes: BulkResultItem & { questions?: Array<{ id: string; question: string; correctAnswer: string; topic?: string }> } = data.results[0];
-              setOcrPreviewData(firstRes.ocrAnalysis || {
-                rawOcrText: 'Q1: 42 | Q2: 15 | Q3: 8 | Q4: 100',
-                extractedTokens: [{ text: '42', confidence: 0.98 }],
-                processingTimeMs: 140,
-                ocrEngine: 'EasyOCR (PyTorch Fast Reader)'
-              });
-              setExtractedAnswers(firstRes.extractedAnswers || {});
-              setOriginalOcrAnswers(firstRes.extractedAnswers || {});
-              if (firstRes.questions && firstRes.questions.length > 0) {
-                setQuestions(firstRes.questions);
-              } else {
-                setQuestions(Object.keys(firstRes.extractedAnswers || {}).map((qId, i) => ({
-                  id: qId,
-                  question: `Diagnostic Question #${i + 1}`,
-                  correctAnswer: firstRes.extractedAnswers[qId] || '0'
-                })));
-              }
-              setReport({
-                id: 'rep_' + Date.now(),
-                studentId: firstRes.studentId,
-                worksheetId: 'icr_file_scan',
-                score: firstRes.score,
-                totalQuestions: firstRes.totalQuestions,
-                conceptMastery: {
-                  'Number Sense': firstRes.percentage >= 70 ? 'Strong' : 'Needs Practice',
-                  'Shapes': firstRes.percentage >= 60 ? 'Strong' : 'Needs Practice',
-                  'Operations': firstRes.percentage >= 50 ? 'Strong' : 'Needs Practice'
-                },
-                narrative: `OCR evaluation complete for ${firstRes.studentName}. Score: ${firstRes.score}/${firstRes.totalQuestions} (${firstRes.percentage}%). Placed at Level ${firstRes.newLevel}.${firstRes.subLevel}.`,
-                recommendedLevel: firstRes.newLevel,
-                recommendedSubLevel: firstRes.subLevel,
-                timestamp: new Date().toISOString()
-              });
-              setStep('verify');
-              setSuccess(`OCR scan complete for ${firstRes.studentName}. Review detected text & side-by-side question comparison below. You can edit any OCR mistake before saving!`);
-            }
-          } else {
-            setError(data.error || 'Failed to process answer sheet file.');
-          }
-        } catch (err: any) {
-          setError('Network error processing answer sheet file: ' + (err?.message || 'Server connection failed.'));
-        } finally {
-          setLoading(false);
-          setScanStage('done');
-        }
-      };
-    } catch (e: any) {
-      setError('Error reading uploaded file: ' + e.message);
-      setLoading(false);
-      setScanStage('done');
-    }
-  };
+;
 
   // Handler for IcrTwoStageScan's onOcrSuccess callback. Maps the simple
   // ScanResponse shape (imageDataUrl + answers) into the existing bulk-result
@@ -619,9 +523,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     const total = loadedQuestions.length;
     const pct = Math.round((matched / Math.max(1, total)) * 100);
     // Use whichever engine/provider actually produced this result (set by
-    // IcrTwoStageScan — 'EasyOCR (PyTorch Fast Reader)' for the local path,
-    // 'Cloud OCR (<model>)' for the cloud path) instead of assuming local.
-    const actualEngine = data.ocrAnalysis?.ocrEngine || 'EasyOCR (PyTorch Fast Reader)';
+    // IcrTwoStageScan — 'Ollama Gemma 4' for the cloud OCR path.
+    // No local OCR model is supported anymore; the local PaddleOCR/EasyOCR
+    // pipeline was removed when consolidating to a single OCR provider.
+    const actualEngine = data.ocrAnalysis?.ocrEngine || 'Ollama Gemma 4';
 
     const firstRes = {
       studentId: selectedStudentId || 'SCAN',
@@ -885,56 +790,19 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono leading-relaxed">
                 Use <strong>Pass OCR</strong> to skip the scan and fill the student's answers manually on the next step — useful for verifying question→row mapping against a known answer key.
               </p>
-              {uploadedFile && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-blue-800 dark:text-blue-300 font-mono">
-                      <span className="font-bold">File Attached:</span> {uploadedFile.name} ({(uploadedFile.size / 1024).toFixed(1)} KB)
-                    </div>
-                    <button
-                      onClick={scanAnswerSheet}
-                      disabled={loading}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 px-5 rounded-lg transition-colors shadow-sm"
-                    >
-                      {loading ? 'Running…' : 'Run OCR Scan (Legacy)'}
-                    </button>
-                  </div>
-
-                  {/* Per-stage scan progress for the legacy single-button flow. */}
-                  {scanStage !== 'idle' && scanStage !== 'done' && (
-                    <div className="mt-2 p-3 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span className="text-[10px] font-mono font-bold uppercase text-blue-700 dark:text-blue-300 tracking-wider">
-                          {scanStage === 'reading' && 'Reading file…'}
-                          {scanStage === 'filtering' && 'Filtering blue ink (~50ms)…'}
-                          {scanStage === 'ocr' && 'Running OCR (~2–3s)…'}
-                        </span>
-                      </div>
-                      <div className="flex gap-1">
-                        <div className={`h-1 flex-1 rounded ${scanStage !== 'reading' ? 'bg-blue-600' : 'bg-blue-600 animate-pulse'}`} />
-                        <div className={`h-1 flex-1 rounded ${scanStage === 'ocr' ? 'bg-blue-600' : scanStage === 'filtering' ? 'bg-blue-600 animate-pulse' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
-                        <div className={`h-1 flex-1 rounded ${scanStage === 'ocr' ? 'bg-blue-600 animate-pulse' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Two-stage ICR scan: blue-pen filter with visible preview, then
-                      OCR on the filtered image. The IcrTwoStageScan component owns
-                      its own state (file picker, filter button, preview, OCR
-                      button, timing display, error handling). On OCR success it
-                      calls handleTwoStageResult to push the answers into the
-                      existing verify step. */}
-                  <IcrTwoStageScan
-                    token={token}
-                    uploadedFile={uploadedFile}
-                    onOcrSuccess={handleTwoStageResult}
-                  />
-                </div>
-              )}
             </div>
+
+            {/* Two-stage ICR scan: blue-pen filter with visible preview, then
+                OCR on the filtered image. The IcrTwoStageScan component owns
+                its own state (file picker, filter button, preview, OCR
+                button, timing display, error handling). On OCR success it
+                calls handleTwoStageResult to push the answers into the
+                existing verify step. */}
+            <IcrTwoStageScan
+              token={token}
+              uploadedFile={uploadedFile}
+              onOcrSuccess={handleTwoStageResult}
+            />
           </div>
         </div>
       )}
@@ -1060,7 +928,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               </div>
 
               {/* Prominent extracted-answers panel — shows the actual values
-                  read by EasyOCR right at the top of the verify step so the
+                  read by the OCR engine right at the top of the verify step so the
                   user can see them at a glance (and edit via the table below
                   if any are wrong). Hidden for manual-entry mode (no OCR
                   results to show). */}
