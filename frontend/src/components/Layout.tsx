@@ -134,6 +134,7 @@ export const Layout: React.FC<LayoutProps> = ({
           icon: BookOpen,
           subItems: [
             { name: 'Diagnostic Test', view: 'diagnostic_test' },
+            { name: 'Learning Path', view: 'learning_path' },
             { name: 'Adaptive Test', view: 'adaptive_test' },
             { name: 'Test History', view: 'test_history' }
           ]
@@ -158,6 +159,7 @@ export const Layout: React.FC<LayoutProps> = ({
           icon: BookOpen,
           subItems: [
             { name: 'Diagnostic Test', view: 'diagnostic_test' },
+            { name: 'Learning Path', view: 'learning_path' },
             { name: 'Adaptive Test', view: 'adaptive_test' },
             { name: 'Test History', view: 'test_history' }
           ]

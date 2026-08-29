@@ -26,6 +26,7 @@ import { DistrictsPanel } from './panels/DistrictsPanel';
 import { BlocksPanel } from './panels/BlocksPanel';
 import { AnalyticsPanel } from './panels/AnalyticsPanel';
 import { StudentProfilePanel } from './panels/StudentProfilePanel';
+import { LearningPathPanel } from './panels/LearningPathPanel';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -66,6 +67,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'student_profile') return <StudentProfilePanel students={students} studentsLoading={studentsLoading} schools={schools} reportsList={reportsList} worksheetsList={worksheetsList} currentUser={currentUser} token={token} updateStudentLocally={updateStudentLocally} />;
 
   if (panel === 'diagnostic_test') return <DiagnosticTestPanel students={students} currentUser={currentUser} token={token} refreshStudents={refreshStudents} />;
+
+  if (panel === 'learning_path') return <LearningPathPanel students={students} currentUser={currentUser} token={token} refreshStudents={refreshStudents} />;
 
   if (panel === 'adaptive_test') return <AdaptiveTestPanel />;
 

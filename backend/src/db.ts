@@ -3,6 +3,10 @@ import path from 'path';
 import bcrypt from 'bcrypt';
 import { MongoClient, Db } from 'mongodb';
 import { CURRICULUM_MAPPING } from './config/curriculumMap';
+// Type-only import (erased at compile time — introduces no runtime module
+// edge, so it cannot create an import cycle). Shape lives with the engine
+// that produces it: backend/src/learningPathEngine.ts.
+import type { LearningPath } from './learningPathEngine';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
@@ -133,6 +137,10 @@ export interface Student {
   siblingsInSchool?: string;
   teacherNotes?: string;
   streak?: number;
+  // Teacher-mediated remediation journey derived from this student's latest
+  // diagnostic gaps (backend/src/learningPathEngine.ts). Optional — absent
+  // until a teacher first generates it from the Learning Path panel.
+  learningPath?: LearningPath;
 }
 
 export interface Question {
