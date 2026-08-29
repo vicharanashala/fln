@@ -11,6 +11,7 @@
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
     "test:fingerprint": "tsx src/misconceptionFingerprint.test.ts",
+    "test:learning-path": "tsx src/learningPathEngine.selftest.ts",
     "seed": "tsx src/seed.ts",
     "seed:html": "tsx src/seedLevelHtml.ts",
     "seed:levels": "tsx src/seedCurriculumLevels.ts",

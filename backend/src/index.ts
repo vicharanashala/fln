@@ -35,6 +35,7 @@ import { registerBestPracticeRoutes } from './routes/bestPractices';
 import { registerStudentRoutes } from './routes/students';
 import { registerAadhaarDetokenizeRoutes } from './routes/aadhaarDetokenize';
 import { registerMfaEnrollmentRoutes } from './routes/mfaEnrollment';
+import { registerLearningPathRoutes } from './routes/learningPath';
 import { registerWorksheetRoutes } from './routes/worksheets';
 import { registerEvaluationRoutes } from './routes/evaluation';
 import { registerAnalyticsRoutes } from './routes/analytics';
@@ -247,6 +248,8 @@ registerStatsRoutes(app);
   // the module is built and its routes are mounted unconditionally.
   const { registerVaultRoutes } = await import('./modules/vault');
   await registerVaultRoutes(app);
+
+  registerLearningPathRoutes(app);
 
   registerEvaluationRoutes(app);
   registerWorksheetRoutes(app);
