@@ -4,6 +4,7 @@ import { User, UserRole, Student, ClassGroup, School, Worksheet, LogEntry, Ticke
 import { Users, BookOpen, Calendar, ArrowRight, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, Building2, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
+import InterventionsView from "./InterventionsView";
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
 import { FLN_LEVELS_LIST, parseCSVText, LevelBadge } from './RoleDashboards';
 import { usePanelData } from './panels/usePanelData';
@@ -51,6 +52,9 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const panel = activePanel;
 
   // ===================== TEACHER PANELS =====================
+ if (panel === "interventions") {
+  return <InterventionsView token={token} />;
+}
   if (panel === 'student_list') {
     return (
       <StudentListPanel

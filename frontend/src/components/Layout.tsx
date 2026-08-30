@@ -143,7 +143,9 @@ export const Layout: React.FC<LayoutProps> = ({
           icon: GraduationCap,
           subItems: [
             { name: 'Student List', view: 'student_list' },
-            { name: 'Student Profile', view: 'student_profile' }
+            { name: 'Student Profile', view: 'student_profile' },
+            { name: 'Performance', view: 'performance' },
+            { name: 'Interventions', view: 'interventions' }
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });

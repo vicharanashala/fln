@@ -16,6 +16,8 @@ import { dbStore, connectDB, UserRole, User, Student, School, Question, Workshee
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
+import { buildInterventionDashboard } from './interventionEngine';
+
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS } from './geoData';
 import { validateConceptPrerequisites } from './competencyPrerequisites';
@@ -128,9 +130,6 @@ registerStatsRoutes(app);
   registerAnalyticsRoutes(app);
   registerDiagnosticBulkRoutes(app);
 
-  // --- Intervention Tracking & Best Practices Repository ---
-
-  // Create a new intervention
   registerInterventionRoutes(app);
   registerBestPracticeRoutes(app);
 
