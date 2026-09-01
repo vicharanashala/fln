@@ -21,6 +21,7 @@ import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
+import MisconceptionFingerprint from './components/MisconceptionFingerprint';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
 import { apiFetch, UNAUTHORIZED_EVENT } from './services/apiClient';
 
@@ -108,12 +109,16 @@ export default function App() {
   };
 
   const renderRoleWorkspace = () => {
+    // token is required by DashboardProps — without it the dashboards send
+    // "Bearer undefined" and every data fetch 401s.
     if (!currentUser || !token) return null;
 
     switch (currentUser.role) {
       case 'superadmin':
         return <SuperadminDashboard user={currentUser} token={token} />;
       case 'admin':
+      case 'district_admin':
+      case 'block_admin':
         return <AdminDashboard user={currentUser} token={token} />;
       case 'school':
         return <SchoolDashboard user={currentUser} token={token} />;
@@ -219,6 +224,7 @@ export default function App() {
                 {activePanel === 'logbook' && <LogbookView token={token} user={currentUser} />}
                 {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role} />}
                 {activePanel === 'calendar' && <AssessmentCalendar />}
+                {activePanel === 'misconceptions' && <MisconceptionFingerprint token={token} />}
 
                 {activePanel === 'settings' && (
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -255,7 +261,7 @@ export default function App() {
                   </div>
                 )}
 
-                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(activePanel) && (
+                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'misconceptions'].includes(activePanel) && (
                   <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
                 )}
 

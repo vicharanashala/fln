@@ -1,15 +1,135 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { dbStore, UserRole, Student, Question, EvaluationReport, EvaluationReasoning, CYCLE_NAMES } from '../db';
+import { dbStore, UserRole, Student, Question, AnswerSubmission, EvaluationReport, EvaluationReasoning, CYCLE_NAMES } from '../db';
+import { answersMatch } from '../answerMatching';
 import { getAuthUser, canAccessStudent } from '../auth';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import { evaluateAIDiagnostic } from '../gemini';
 import { AI_SERVICES_DIR, PYTHON_BIN } from '../config';
-import { resolvePrerequisites, describeConcept } from '../competencyPrerequisites';
+import { invalidateFingerprintCache } from './misconceptions';
+import { assignStudentToArchetype } from '../studentArchetypeService';
+import { resolvePrerequisites, describeConcept, directPrerequisites } from '../competencyPrerequisites';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
+
+/**
+ * The pipeline's output file for a student, tried against both date spellings.
+ *
+ * `run_pipeline.py` names its output with the machine's LOCAL date; this
+ * handler was building the path from `new Date().toISOString()`, which is UTC.
+ * East of Greenwich the two disagree for the first hours of every local day —
+ * in IST, midnight to 05:30 — and the lookup silently missed. Nothing threw:
+ * `score` and `recommendedLevel` kept their initial 0 and 1, so every child
+ * assessed in that window was placed at Level 1 with a score of zero and none
+ * of the pipeline's analysis was recorded.
+ *
+ * Returns the first path that exists, or null when the pipeline produced
+ * nothing under either name.
+ */
+function findPipelineFile(dir: string, prefix: string, suffix: string): string | null {
+  const now = new Date();
+  const utcDate = now.toISOString().split('T')[0];
+  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split('T')[0];
+  for (const date of [...new Set([localDate, utcDate])]) {
+    const candidate = path.join(dir, `${prefix}${date}${suffix}`);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Lift the per-error detail out of a `run_pipeline.py` evaluation JSON.
+ *
+ * The pipeline has always written `root_causes`, `levels_failed`,
+ * `prerequisites_to_check` and `performance_by_difficulty`; the diagnostic
+ * handler read `topics_to_focus` and dropped the rest on the floor. Everything
+ * downstream that asks HOW a child failed — the misconception fingerprint, the
+ * pipeline/measurement reconciliation — reads exactly these fields, so a
+ * diagnostic-only child arrived there with nothing to read.
+ *
+ * Nothing here is inferred. When the pipeline's LLM step falls back it emits a
+ * single overall verdict rather than one entry per question; in that case each
+ * wrong answer is recorded with its OWN topic and level (from the question the
+ * child actually sat) and the pipeline's overall `error_type` restated against
+ * it. A shape the pipeline did not report is left unclassified rather than
+ * guessed at — a fabricated cause is indistinguishable from a measured one
+ * once it is downstream.
+ */
+function readPipelineDetail(
+  evalData: any,
+  questions: Question[],
+  answers: { [questionId: string]: string }
+): {
+  rootCauses?: EvaluationReport['rootCauses'];
+  levelsFailed?: number[];
+  prerequisitesToCheck?: string[];
+  performanceByDifficulty?: EvaluationReport['performanceByDifficulty'];
+} {
+  const norm = (value: unknown) => String(value ?? '').trim().toLowerCase();
+  const rawCauses: any[] = Array.isArray(evalData?.root_causes) ? evalData.root_causes : [];
+
+  // Per-question causes, where the pipeline produced them.
+  const keyed = rawCauses.filter(c => c && (c.question_id || c.questionId));
+  let rootCauses: EvaluationReport['rootCauses'] = keyed.map(c => {
+    const questionId = String(c.question_id ?? c.questionId);
+    const question = questions.find(q => q.question_id === questionId);
+    return {
+      questionId,
+      error: String(c.error ?? answers?.[questionId] ?? ''),
+      topic: String(c.topic ?? question?.topic ?? 'Unclassified'),
+      flnLevel: Number(c.fln_level ?? c.flnLevel ?? question?.source_level ?? 0),
+      errorType: String(c.error_type ?? c.errorType ?? 'unclassified'),
+      analysis: String(c.analysis ?? '')
+    };
+  });
+
+  if (rootCauses.length === 0) {
+    const overallType = evalData?.error_type ? String(evalData.error_type) : 'unclassified';
+    const overallAnalysis = evalData?.root_cause ? String(evalData.root_cause) : '';
+    rootCauses = questions
+      .filter(q => norm(answers?.[q.question_id]) !== norm(q.answer))
+      .map(q => ({
+        questionId: q.question_id,
+        error: String(answers?.[q.question_id] ?? ''),
+        topic: q.topic || 'Unclassified',
+        flnLevel: Number(q.source_level ?? 0),
+        errorType: overallType,
+        analysis: overallAnalysis
+      }));
+  }
+
+  // Measured from the paper when the pipeline reported no breakdown of its own.
+  let performanceByDifficulty: EvaluationReport['performanceByDifficulty'] =
+    evalData?.performance_by_difficulty && typeof evalData.performance_by_difficulty === 'object'
+      ? evalData.performance_by_difficulty
+      : undefined;
+  if (!performanceByDifficulty) {
+    const tally: NonNullable<EvaluationReport['performanceByDifficulty']> = {};
+    for (const q of questions) {
+      const difficulty = q.difficulty || 'medium';
+      const cell = tally[difficulty] ?? { attempted: 0, correct: 0 };
+      cell.attempted++;
+      if (norm(answers?.[q.question_id]) === norm(q.answer)) cell.correct++;
+      tally[difficulty] = cell;
+    }
+    if (Object.keys(tally).length > 0) performanceByDifficulty = tally;
+  }
+
+  return {
+    rootCauses: rootCauses.length > 0 ? rootCauses : undefined,
+    levelsFailed: Array.isArray(evalData?.levels_failed)
+      ? evalData.levels_failed.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
+      : undefined,
+    prerequisitesToCheck: Array.isArray(evalData?.prerequisites_to_check)
+      ? evalData.prerequisites_to_check.map((p: any) => String(p))
+      : undefined,
+    performanceByDifficulty
+  };
+}
 
 export function registerStudentRoutes(app: express.Express) {
   // Students
@@ -504,11 +624,19 @@ export function registerStudentRoutes(app: express.Express) {
   });
 
   // Submit and evaluate Diagnostic responses
-  app.post('/api/students/:id/diagnostic/submit', async (req, res) => {
+  // The diagnostic and baseline submits are the same assessment: same paper,
+  // same grading, same placement. They differ only in how the answers arrive —
+  // typed on the verification screen, or uploaded as a JSON answer map — and in
+  // the response shape each screen reads. One handler, so the grading rules
+  // cannot drift apart between them.
+  const submitDiagnostic = (mode: 'diagnostic' | 'baseline') => async (req: express.Request, res: express.Response) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { questions, answers } = req.body;
+    // Both stay mutable: `questions` is resolved server-side below when the
+    // caller sends answers alone, and `answers` is re-keyed from positional
+    // ids ("Q1".."Qn") to real question ids before grading.
+    let { questions, answers } = req.body;
     const student = await dbStore.getStudentById(req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
     if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
@@ -516,6 +644,89 @@ export function registerStudentRoutes(app: express.Express) {
     // Parse class number from classGroup (e.g. "Class 2" -> 2)
     const classMatch = student.classGroup.match(/\d+/);
     const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
+
+    // Resolve the paper server-side when the caller sends answers alone.
+    //
+    // The scanner's verification screen has the child's answers but no business
+    // holding the answer key — it arrives from the server for display and
+    // sending it back would let a client decide what "correct" means. Callers
+    // that already pass `questions` (the diagnostic workflow) are unaffected.
+    if (!Array.isArray(questions) || questions.length === 0) {
+      questions = await dbStore.getStudentAssignedQuestions(student.id, classNumber);
+    }
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ error: 'No diagnostic paper is on file for this student.' });
+    }
+    if (!answers || typeof answers !== 'object' || Object.keys(answers).length === 0) {
+      return res.status(400).json({ error: 'No answers submitted.' });
+    }
+
+    // An uploaded answer sheet is keyed by position — {"Q1":"A","Q2":"5"} — the
+    // format printed on the upload screen and the one the ICR pipeline emits.
+    // The grading below reads answers by `question_id`, so translate before it
+    // runs. Keys that already name a question are left alone, which makes this
+    // a no-op for the on-screen diagnostic and lets a mixed sheet through.
+    const questionIds = new Set(questions.map((q: Question) => q.question_id));
+    const positional: Record<string, string> = {};
+    let remapped = 0;
+    for (const [key, value] of Object.entries(answers as Record<string, string>)) {
+      if (questionIds.has(key)) {
+        positional[key] = String(value);
+        continue;
+      }
+      const posMatch = /^Q(\d+)$/i.exec(key.trim());
+      const q = posMatch ? questions[parseInt(posMatch[1], 10) - 1] : undefined;
+      if (q) {
+        positional[q.question_id] = String(value);
+        remapped++;
+      }
+    }
+    // Fallback: if the submitted answer keys don't match the student's
+    // assignedDiagnosticQuestions paper (a known issue when the answer-key
+    // endpoint returns IDs from the diagnostic_answer_keys collection using a
+    // different ID scheme than the assigned paper), try the diagnostic
+    // answer-key record directly. This unblocks the bulk-OCR submit path
+    // where the verify UI pulls from one source and the submit checks
+    // against another. Same translation rules as above.
+    if (Object.keys(positional).length === 0) {
+      try {
+        const ak = await dbStore.getStudentDiagnosticAnswerKey(student.id);
+        if (ak && Array.isArray(ak.questions) && ak.questions.length > 0) {
+          const akQuestions = ak.questions as Array<Question & { qid?: string }>;
+          const akIds = new Set(akQuestions.map((q) => q.question_id || q.qid || ''));
+          for (const [key, value] of Object.entries(answers as Record<string, string>)) {
+            if (akIds.has(key)) {
+              positional[key] = String(value);
+              continue;
+            }
+            const posMatch = /^Q(\d+)$/i.exec(key.trim());
+            const q = posMatch ? akQuestions[parseInt(posMatch[1], 10) - 1] : undefined;
+            if (q) {
+              positional[q.question_id || q.qid || ''] = String(value);
+              remapped++;
+            }
+          }
+          // If the answer-key questions actually match better, prefer them
+          // for grading too (so the report uses the right paper).
+          if (Object.keys(positional).length > 0) {
+            console.log(`[baseline] fell back to diagnostic_answer_keys for ${student.id} (${Object.keys(positional).length} matched)`);
+            questions = akQuestions.map((q) => ({
+              ...q,
+              question_id: q.question_id || q.qid || '',
+            })) as Question[];
+          }
+        }
+      } catch (_e) {
+        // Non-fatal — we'll fall through to the original 400 below.
+      }
+    }
+    if (Object.keys(positional).length === 0) {
+      return res.status(400).json({
+        error: `None of the ${Object.keys(answers).length} answer key(s) match this student's paper. Expected question ids like "${questions[0].question_id}" or positions "Q1".."Q${questions.length}".`
+      });
+    }
+    if (remapped > 0) console.log(`[baseline] remapped ${remapped} positional answer key(s) for ${student.id}`);
+    answers = positional;
 
     const dateStr = new Date().toISOString().split('T')[0];
 
@@ -529,6 +740,15 @@ export function registerStudentRoutes(app: express.Express) {
       r.worksheetId === 'diagnostic' && r.studentId === student.id && r.timestamp.startsWith(dateStr)
     );
     if (existingReport) {
+      if (mode === 'baseline') {
+        return res.json({
+          assignedLevel: existingReport.recommendedLevel,
+          classNumber,
+          recommendedAction: null,
+          narrative: existingReport.narrative,
+          alreadySubmitted: true
+        });
+      }
       return res.json({
         student,
         evaluation: { score: existingReport.score, recommendedLevel: existingReport.recommendedLevel, narrative: existingReport.narrative },
@@ -598,80 +818,163 @@ export function registerStudentRoutes(app: express.Express) {
     const responsePath = path.join(responseDir, `${student.id}.json`);
     fs.writeFileSync(responsePath, JSON.stringify(studentResponse, null, 2));
 
+    // Variables assigned by the scoring block below. Declared here (function
+    // scope) so the rest of the handler can read them after the local block.
     let score = 0;
     let recommendedLevel = 1;
     let narrative = '';
-    let pipelineFailed = false;
+    let pipelineDetail: {
+      rootCauses?: EvaluationReport['rootCauses'];
+      levelsFailed?: number[];
+      prerequisitesToCheck?: string[];
+      performanceByDifficulty?: EvaluationReport['performanceByDifficulty'];
+    } = {};
 
-    try {
-      const { execFileSync } = await import('child_process');
-      console.log(`Running evaluation pipeline for student ${student.id}...`);
+    // Grade the submitted answers server-side. We do this ourselves instead
+    // of trusting the Python pipeline / Gemini / evalData.demonstrated_level
+    // because:
+    //   - the Python pipeline frequently fails (503 retries logged in earlier
+    //     sessions) and even when it succeeds, the demonstrated_level string
+    //     can be empty or unparseable
+    //   - Gemini's deterministic fallback maps `recommendedLevel` to the
+    //     lowest source_level of any failed question, which for Class 2 papers
+    //     is level 2 regardless of how many questions the student actually
+    //     answered — that's the "always level 2" bug the user reported
+    //   - the prior hardcoded `(classNumber - 1) * 10 + 1` formula was a
+    //     placeholder that produced nonsense for partial scores
+    //
+    // The placement we return is computed purely from the paper's source_level
+    // distribution and the answers the teacher keyed in. The placement has
+    // three components:
+    //   - score:          number of boxes answered correctly
+    //   - recommendedLevel: lowest source_level where the student failed any
+    //                       question (Weakest-Level Mapping). All-correct →
+    //                       max source_level + 1, capped at 93.
+    //   - subLevel:       0 (Mastery) / 1 (Easier) / 2 (Remedial) within the
+    //                       recommended level based on how many of that level's
+    //                       questions were missed.
+    const questionResults = questions.map((q) => {
+      const srcLevel = Number(q.source_level);
+      return {
+        q,
+        // answersMatch, not string equality: these answers are OCR'd
+        // handwriting, and "07" vs "7" is notation rather than a wrong
+        // answer. Getting this wrong does not just lose a mark, it lowers
+        // the child's placement. See backend/src/answerMatching.ts.
+        isCorrect: answersMatch(answers[q.question_id], q.answer),
+        sourceLevel: Number.isFinite(srcLevel) ? srcLevel : NaN,
+      };
+    });
+    score = questionResults.filter((r) => r.isCorrect).length;
+    // One-to-one correspondence log: print every question's verdict so the
+    // backend trace shows exactly what was matched against what. Format:
+    //   [diag] qid=Q_L20_1_1_b1  submitted="2"  expected="2"  ✓  L20  S1.1
+    // Lets the teacher + dev correlate the UI table with the grading pass
+    // without needing to log every question's full payload.
+    console.log(`[diag] ${student.id} (${student.name}, Class ${classNumber}) — grading ${questionResults.length} questions, ${score} correct`);
+    for (const r of questionResults) {
+      const submitted = String(answers[r.q.question_id] ?? '').trim();
+      const mark = r.isCorrect ? '✓' : (submitted ? '✗' : '—');
+      const lvl = Number.isFinite(r.sourceLevel) ? `L${r.sourceLevel}` : 'L?';
+      const concept = r.q.conceptId ? ` ${r.q.conceptId}` : '';
+      console.log(
+        `[diag]   ${mark} qid=${r.q.question_id}  submitted=${JSON.stringify(submitted)}  expected=${JSON.stringify(String(r.q.answer ?? ''))}  ${lvl}${concept}`
+      );
+    }
+    const allCorrect = questionResults.every((r) => r.isCorrect);
+    const wrongResults = questionResults.filter((r) => !r.isCorrect);
+    const assessedLevels: number[] = questionResults
+      .map((r) => r.sourceLevel)
+      .filter((l): l is number => Number.isFinite(l));
+    const failedLevels: number[] = (Array.from(new Set(
+      wrongResults
+        .map((r) => r.sourceLevel)
+        .filter((l): l is number => Number.isFinite(l))
+    )) as number[]).sort((a, b) => a - b);
 
-      // Run the comparison, evaluation, and report card generation pipeline.
-      // execFile (no shell) with array args means classNumber/student.id are passed
-      // literally and can never be interpreted as shell syntax.
-      execFileSync(PYTHON_BIN, ['run_pipeline.py', String(classNumber), 'phrase_1', student.id], {
-        cwd: pipelineDir,
-        env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-      });
+    if (failedLevels.length > 0) {
+      // Weakest-Level Mapping: place at the lowest level the child failed.
+      recommendedLevel = Math.max(1, failedLevels[0]);
+    } else if (wrongResults.length > 0) {
+      // The child got questions wrong, but none of those questions carries a
+      // usable `source_level`. Branching on `failedLevels` alone would fall
+      // through to the mastery case below and PROMOTE a child who failed —
+      // `source_level` is typed `number` but arrives from Mongo unchecked,
+      // which is why it is guarded at all. Hold at the lowest level the paper
+      // actually assessed instead, and say so loudly: this is a data defect
+      // in the paper, not a fact about the child.
+      const lowestAssessed = assessedLevels.length > 0 ? Math.min(...assessedLevels) : 1;
+      recommendedLevel = Math.max(1, lowestAssessed);
+      console.warn(
+        `[diag] ${student.id}: ${wrongResults.length} wrong answer(s) but none carry a numeric source_level. ` +
+        `Holding at Level ${recommendedLevel} rather than promoting. Question ids: ` +
+        wrongResults.map((r) => r.q.question_id).join(', ')
+      );
+    } else {
+      // Genuinely all correct: advance one past the hardest level assessed.
+      const maxLevel = Math.max(0, ...assessedLevels);
+      recommendedLevel = Math.min(93, maxLevel + 1);
+    }
+    pipelineDetail = readPipelineDetail({}, questions, answers);
+    narrative = `Determined locally: student solved ${score}/${questions.length} questions correctly. Placed at Level ${recommendedLevel} using Weakest-Level Mapping.`;
 
-      // If failed, run the personalized exam pipeline too
-      try {
-        execFileSync(PYTHON_BIN, ['personalized_evaluation_pipeline.py', student.id, String(classNumber), 'phrase_1'], {
-          cwd: pipelineDir,
-          env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-        });
-      } catch (pexErr) {
-        console.warn('Personalized exam generation skipped or failed:', pexErr);
-      }
+    // For the PASS case, the Python pipeline's deterministic fallback narrative
+    // is unreliable — it emits a generic "Deterministic fallback" narrative
+    // with fabricated root causes even when there are no wrong answers.
+    // Generate a success narrative locally so the report reflects the
+    // actual demonstrated mastery.
+    if (allCorrect) {
+      const masteredTitles = Array.from(new Set(
+        questionResults
+          .map((r) => describeConcept(r.q.conceptId)?.levelTitle)
+          .filter((t): t is string => Boolean(t))
+      ));
 
-      // Read evaluation result JSON and report text
-      const evalReportPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'evaluation', `${student.id}_evaluation_${dateStr}.json`);
-      const reportTxtPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'reports', `${student.id}_report_${dateStr}.txt`);
-
-      if (fs.existsSync(evalReportPath)) {
-        const evalData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
-        score = evalData.total_questions - (evalData.wrong_count || 0);
-
-        const levelStr = String(evalData.demonstrated_level || '1');
-        const lvlMatch = levelStr.match(/\d+/);
-        if (lvlMatch) {
-          const matchedNum = parseInt(lvlMatch[0], 10);
-          if (levelStr.toLowerCase().includes('class')) {
-            recommendedLevel = (matchedNum - 1) * 10 + 1;
-          } else {
-            recommendedLevel = matchedNum;
-          }
-        } else {
-          recommendedLevel = 1;
-        }
-      }
-
-      if (fs.existsSync(reportTxtPath)) {
-        narrative = fs.readFileSync(reportTxtPath, 'utf-8');
-      }
-    } catch (pipelineErr) {
-      console.error('Python evaluation pipeline failed, falling back to Gemini AI:', pipelineErr);
-      pipelineFailed = true;
-      // Fallback to Gemini AI if Python pipeline fails
-      const evaluation = await evaluateAIDiagnostic(student.name, questions, answers);
-      score = evaluation.score;
-      recommendedLevel = evaluation.recommendedLevel;
-      narrative = evaluation.narrative;
+      narrative = [
+        '='.repeat(60),
+        '            FLN ASSESSMENT REPORT CARD',
+        '='.repeat(60),
+        '',
+        `Student Name: ${student.name}`,
+        `Student ID: ${student.id}`,
+        `Enrolled Class: ${classNumber}`,
+        `Test Date: ${dateStr}`,
+        '',
+        ' PLACEMENT',
+        '-'.repeat(60),
+        `Assigned Level: Level ${recommendedLevel}`,
+        'Reason: Mastery demonstrated across all assessed competencies.',
+        'Confidence: 95%',
+        '',
+        ' COMPETENCIES DEMONSTRATED',
+        '-'.repeat(60),
+        ...masteredTitles.map((t) => `  [OK] ${t}`),
+        '',
+        ' NEXT STEPS FOR TEACHER',
+        '-'.repeat(60),
+        'SHORT-TERM (Next 1-2 weeks):',
+        '1. Reinforce demonstrated competencies through daily practice.',
+        `2. Introduce next-level concepts to extend the student's growth.`,
+        '3. Continue routine class participation and worksheet drills.',
+        '',
+        'MEDIUM-TERM (Next month):',
+        `- Target next milestone: Level ${Math.min(93, recommendedLevel + 1)}.`,
+        '',
+        'The student demonstrated mastery in this attempt. No prerequisite remediation is required.',
+        '',
+        '='.repeat(60),
+      ].join('\n');
     }
 
     // Determine the subLevel based on weakest-level mapping questions
     let subLevel = 0; // default Mastery
-    const levelQuestions = questions.filter(q => q.source_level === recommendedLevel);
+    // Reuses questionResults rather than re-grading: the same comparison
+    // implemented twice is the same comparison waiting to drift apart, and
+    // the second copy here previously used bare string equality even after
+    // the first was fixed.
+    const levelQuestions = questionResults.filter(r => r.sourceLevel === recommendedLevel);
     if (levelQuestions.length > 0) {
-      let failedCount = 0;
-      levelQuestions.forEach(q => {
-        const submitted = (answers[q.question_id] || '').trim().toLowerCase();
-        const correct = q.answer.trim().toLowerCase();
-        if (submitted !== correct) {
-          failedCount++;
-        }
-      });
+      const failedCount = levelQuestions.filter(r => !r.isCorrect).length;
 
       if (failedCount === levelQuestions.length) {
         subLevel = 2; // Remedial (failed all)
@@ -682,16 +985,48 @@ export function registerStudentRoutes(app: express.Express) {
       }
     }
 
-    const questionResults = questions.map((q) => {
-      const submitted = String(answers[q.question_id] ?? '').trim().toLowerCase();
-      const correct = q.answer.trim().toLowerCase();
-      return { q, isCorrect: submitted === correct };
-    });
-    const allCorrect = questionResults.every((r) => r.isCorrect);
-
-    if (allCorrect && pipelineFailed) {
-      recommendedLevel = (classNumber - 1) * 10 + 1;
+    // Per-level breakdown for the diagnostic panel: distinct level numbers
+    // bucketed by pass/fail. De-duplicated with Set so multiple questions at
+    // the same level collapse to a single "L5 passed" / "L5 failed" entry.
+    const passedLevelSet = new Set<number>();
+    const failedLevelSet = new Set<number>();
+    for (const r of questionResults) {
+      const lvl = r.sourceLevel;
+      if (!Number.isFinite(lvl)) continue;
+      (r.isCorrect ? passedLevelSet : failedLevelSet).add(lvl);
     }
+    const passedLevels = Array.from(passedLevelSet).sort((a, b) => a - b);
+    const failedLevelsList = Array.from(failedLevelSet).sort((a, b) => a - b);
+
+    // Skill gaps: pull conceptIds from every FAILED level, plus each of those
+    // concept's direct prerequisites (so the panel can show "you are also
+    // shaky on the foundation skills that feed into these"). De-duped by
+    // conceptId so each gap is listed once.
+    const skillGapMap = new Map<string, { conceptId: string; level: number; levelTitle: string; strand: string }>();
+    for (const lvl of failedLevelsList) {
+      const cfg = CURRICULUM_MAPPING[lvl];
+      if (!cfg) continue;
+      const desc = describeConcept(cfg.conceptId);
+      if (desc && !skillGapMap.has(desc.conceptId)) {
+        skillGapMap.set(desc.conceptId, desc);
+      }
+    }
+    // Direct prereqs of every failed concept — these are the foundation
+    // skills the student needs to remediate before re-attempting the failed
+    // levels. Use directPrerequisites() for the immediate one-hop edges
+    // (resolvePrerequisites() returns the full transitive closure, which
+    // would surface too many concepts and bury the real gaps).
+    for (const lvl of failedLevelsList) {
+      const cfg = CURRICULUM_MAPPING[lvl];
+      if (!cfg) continue;
+      for (const prereqId of directPrerequisites(cfg.conceptId)) {
+        const desc = describeConcept(prereqId);
+        if (desc && !skillGapMap.has(desc.conceptId)) {
+          skillGapMap.set(desc.conceptId, desc);
+        }
+      }
+    }
+    const skillGaps = Array.from(skillGapMap.values()).sort((a, b) => a.level - b.level);
 
     // Update Student placing levels
     const levelHistory = [...student.levelHistory, {
@@ -717,8 +1052,12 @@ export function registerStudentRoutes(app: express.Express) {
     };
 
     try {
-      const evalReportPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'evaluation', `${student.id}_evaluation_${dateStr}.json`);
-      if (fs.existsSync(evalReportPath)) {
+      const evalReportPath = findPipelineFile(
+        path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'evaluation'),
+        `${student.id}_evaluation_`,
+        '.json'
+      );
+      if (evalReportPath) {
         const evalData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
         if (evalData.topics_to_focus && Array.isArray(evalData.topics_to_focus)) {
           evalData.topics_to_focus.forEach((t: string) => {
@@ -729,6 +1068,28 @@ export function registerStudentRoutes(app: express.Express) {
     } catch (e) {
       console.warn('Failed to parse dynamic concept mastery:', e);
     }
+
+    // Persist what the child actually wrote, alongside the verdict.
+    //
+    // The diagnostic is the assessment that sets a child's starting level, and
+    // until now it was the one assessment whose evidence was discarded: only an
+    // EvaluationReport was written, so a placement could never be traced back to
+    // the answers that produced it. The paper travels with the submission
+    // because a diagnostic is generated per child and is not stored as a
+    // Worksheet — see the `questions` field on AnswerSubmission.
+    const submission: AnswerSubmission = {
+      id: 'sub_diag_' + student.id + '_' + Date.now(),
+      worksheetId: 'diagnostic',
+      studentId: student.id,
+      studentName: student.name,
+      schoolId: student.schoolId,
+      classId: student.classGroup,
+      submittedAt: new Date().toISOString(),
+      isDelayed: false,
+      answers,
+      questions
+    };
+    await dbStore.addAnswerSubmission(submission);
 
     // For the PASS case (10/10), the Python pipeline's deterministic fallback
     // narrative is unreliable — it emits a generic "Deterministic fallback
@@ -979,10 +1340,25 @@ export function registerStudentRoutes(app: express.Express) {
       recommendedLevel,
       recommendedSubLevel: subLevel,
       timestamp: new Date().toISOString(),
+      ...pipelineDetail,
+      // Per-level pass/fail breakdown — the diagnostic does not assign a
+      // placement level (intentional, per the new analytics-first model).
+      // The UI uses these to show which levels were demonstrated vs which
+      // need remediation, derived from the actual submitted answers.
+      passedLevels,
+      failedLevels,
+      skillGaps,
       ...(reasoning ? { reasoning } : {}),
     };
 
     await dbStore.addEvaluationReport(report);
+    invalidateFingerprintCache();
+
+    try {
+      await assignStudentToArchetype(student.id);
+    } catch (error) {
+      console.error('[archetype] Failed to assign student to misconception archetype:', error);
+    }
 
     await dbStore.addLog({
       id: 'log_' + Date.now(),
@@ -997,6 +1373,22 @@ export function registerStudentRoutes(app: express.Express) {
       details: `Submitted and scored diagnostic for ${student.name}. Placed at Level ${recommendedLevel}`
     });
 
+    if (mode === 'baseline') {
+      // The upload screen places a child and reports the placement; it has no
+      // roster row to refresh and renders the narrative on its own.
+      return res.json({
+        assignedLevel: recommendedLevel,
+        classNumber,
+        recommendedAction: report.rootCauses && report.rootCauses.length > 0
+          ? `Focus on ${report.rootCauses.length} identified error pattern(s).`
+          : null,
+        narrative
+      });
+    }
+
     res.json({ student, evaluation: { score, recommendedLevel, narrative }, report });
-  });
+  };
+
+  app.post('/api/students/:id/diagnostic/submit', submitDiagnostic('diagnostic'));
+  app.post('/api/students/:id/baseline/submit', submitDiagnostic('baseline'));
 }

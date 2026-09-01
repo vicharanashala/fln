@@ -1,0 +1,73 @@
+{
+  "exam_id": "PERSONALIZED_C3_WORKSHEET_PHRASE_1_s_mf_pv_04",
+  "class": 3,
+  "phrase": "phrase_2",
+  "is_personalized": true,
+  "original_student_id": "s_mf_pv_04",
+  "original_exam": "C3_WORKSHEET_PHRASE_1",
+  "original_phrase": "phrase_1",
+  "generated_date": "2026-07-29",
+  "total_questions": 5,
+  "questions": [
+    {
+      "question_id": "Q1",
+      "question": "Compare and classify: Which is different? A red ball, a red book, a blue pencil (color)",
+      "answer": "blue pencil",
+      "answer_type": "text",
+      "topic": "Number Sense",
+      "subtopic": "Classification (Easy)",
+      "class_level": 3,
+      "difficulty": "e",
+      "source_level": "Preschool 1-3",
+      "reasoning": "Covers subtopic: Classification (Easy) - Compare and classify objects using multiple properties"
+    },
+    {
+      "question_id": "Q36",
+      "question": "Write 345 in expanded form (hundreds + tens + ones).",
+      "answer": "300 + 40 + 5",
+      "answer_type": "text",
+      "topic": "Number Sense",
+      "subtopic": "Expanded Form (3-Digit)",
+      "class_level": 3,
+      "difficulty": "hard",
+      "source_level": "Class 3",
+      "reasoning": "Covers subtopic: Expanded Form (3-Digit) - Decompose 3-digit numbers into hundreds, tens, and ones"
+    },
+    {
+      "question_id": "Q37",
+      "question": "Compare: 567 _ 657. Write >, < or =",
+      "answer": "<",
+      "answer_type": "text",
+      "topic": "Number Sense",
+      "subtopic": "Comparing Numbers (Up to 1000)",
+      "class_level": 3,
+      "difficulty": "hard",
+      "source_level": "Class 3",
+      "reasoning": "Covers subtopic: Comparing Numbers (Up to 1000) - Compare numbers up to 1000 using greater than, less than, equal symbols"
+    },
+    {
+      "question_id": "Q38",
+      "question": "Arrange in ascending order: 345, 234, 567, 123",
+      "answer": "123, 234, 345, 567",
+      "answer_type": "text",
+      "topic": "Number Sense",
+      "subtopic": "Ordering Numbers (Up to 1000)",
+      "class_level": 3,
+      "difficulty": "hard",
+      "source_level": "Class 3",
+      "reasoning": "Covers subtopic: Ordering Numbers (Up to 1000) - Arrange numbers up to 1000 in ascending and descending order"
+    },
+    {
+      "question_id": "Q54",
+      "question": "Add: 456 + 389 = ?",
+      "answer": 845,
+      "answer_type": "numeric",
+      "topic": "Number Operations",
+      "subtopic": "Addition (Up to 999, With Carry)",
+      "class_level": 3,
+      "difficulty": "hard",
+      "source_level": "Class 3",
+      "reasoning": "Covers subtopic: Addition (Up to 999, With Carry) - Add 3-digit numbers with carrying"
+    }
+  ]
+}

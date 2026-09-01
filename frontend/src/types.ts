@@ -230,10 +230,21 @@ export interface EvaluationReport {
   // Issue #180: per-question breakdown, present on reports created after
   // that feature landed. Optional — older reports predate it.
   questionResults?: { questionId: string; question?: string; correctAnswer?: string; submittedAnswer: string; isCorrect: boolean }[];
-  teacherReviewed?: boolean;
-  reviewedBy?: string;
-  reviewedAt?: string;
-}
+    teacherReviewed?: boolean;
+    reviewedBy?: string;
+    reviewedAt?: string;
+    // Per-level pass/fail breakdown — populated by the diagnostic submit handler
+    // (backend/src/routes/students.ts). Diagnostic does NOT assign a placement
+    // level; the UI uses these to show which levels were demonstrated vs which
+    // need remediation.
+    passedLevels?: number[];
+    failedLevels?: number[];
+    // Skills the student is struggling with — conceptIds of the failed levels
+    // plus any direct prerequisites, sourced from the cross-skill graph
+    // (backend/src/competencyPrerequisites.ts). Drives the status text in the
+    // diagnostic panel instead of the old hardcoded "Verified & Certified".
+    skillGaps?: { conceptId: string; level: number; levelTitle: string; strand: string }[];
+  }
 
 export interface Ticket {
   id: string;
@@ -326,3 +337,129 @@ export interface DashboardProps {
   token: string;
 }
 
+/**
+ * A Superadmin-authored instruction describing what to ask at a given level.
+ * Mirrors `QuestionLogic` in `backend/src/db.ts`.
+ */
+export interface QuestionLogic {
+  id: string;
+  level: number;
+  levelName: string;
+  skills: string[];
+  subskills: string[];
+  logicText: string;
+  taxonomy: '3-type' | '4-type';
+  createdBy: string;
+  createdByEmail: string;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy: string;
+  updatedByEmail: string;
+  deletedAt: string | null;
+  deletedBy: string | null;
+}
+
+export interface QuestionLogicStats {
+  totalLogics: number;
+  totalLevels: number;
+  levelsWithLogic: number;
+}
+
+/** Payload of `GET /api/question-logics/level-map` — drives the cascading dropdowns. */
+export interface LevelMapPayload {
+  levelCount: number;
+  levels: Array<{
+    levelId: string;
+    levelNumber: number;
+    capability: string;
+    stage: string;
+    sCode: string;
+    skills: string[];
+  }>;
+  skills: Array<{
+    id: string;
+    name: string;
+    domain: string;
+    subskills: Array<{ id: string; name: string }>;
+  }>;
+}
+
+
+/**
+ * Whether a curriculum level's worksheets can be produced today.
+ * Mirrors LevelContentStatus in backend/src/routes/curriculum.ts — three
+ * states because "not yet mapped to the 59-space worksheet engine" is not the
+ * same claim as "measured, and there is no content".
+ */
+export type LevelContentStatus = 'ready' | 'no-content' | 'unmapped';
+
+/** One row of the 93-level curriculum, as served by /api/curriculum/levels. */
+export interface CurriculumLevel {
+  conceptId: string;
+  levelNumber: number;
+  sCode: string;
+  legacyLevel59: number | null;
+  stage: string;
+  capability: string;
+  strand: string;
+  primarySkills: string[];
+  supportingSkills: string[];
+  subskills: string[];
+  hasStaticHtml: boolean;
+  hasBuilder: boolean;
+  curriculumVersion: string;
+  createdAt: string;
+  updatedAt: string;
+  contentStatus: LevelContentStatus;
+}
+
+/** Summary served by /api/curriculum/coverage. */
+export interface CurriculumCoverage {
+  totalLevels: number;
+  withStaticHtml: number;
+  withBuilder: number;
+  withAnyContent: number;
+  mappedFromLegacy59: number;
+  byStatus: Record<LevelContentStatus, number>;
+  /** False while no level has a legacyLevel59 — i.e. the crosswalk has not landed. */
+  crosswalkLanded: boolean;
+}
+
+/** Review state of one question in the bank. */
+export type QuestionReviewStatus = 'untagged' | 'mapped' | 'retired';
+
+export interface QuestionBankEntry {
+  questionId: string;
+  level: number;
+  levelTitle: string;
+  section: string;
+  sectionType: string;
+  questionNumber: number;
+  questionText: string;
+  answer: string;
+  svgHtml: string;
+  mappedLevel?: number | null;
+  conceptId?: string;
+  reviewStatus?: QuestionReviewStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewNote?: string;
+}
+
+export interface QuestionBankProgress {
+  total: number;
+  mapped: number;
+  retired: number;
+  untagged: number;
+  legacyLevelsInBank: number[];
+  targetLevelsCovered: number[];
+  byLevel: Array<{ level: number; total: number; mapped: number; retired: number }>;
+}
+
+/** A retired-numbering level with no stored questions — mapped whole, not per question. */
+export interface LegacyLevelRow {
+  legacyId: number;
+  hasQuestions: boolean;
+  mappedLevel: number | null;
+  mappedCapability: string | null;
+}

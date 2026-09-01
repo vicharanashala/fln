@@ -329,25 +329,73 @@ export const CORE_SKILLS: CoreSkill[] = [
 export interface LevelSkillMapping {
   levelId: string;
   levelNumber: number;
+  /**
+   * The same level's identifier in the research docs' S-notation
+   * (`Research/fln_level_networks.md`, `Research/fln_proposed_levels.md`),
+   * e.g. "S3.5". Derived, not hand-maintained — see sCodeFor() below.
+   * Issue #280: this is the "make the mapping available to the code" ask.
+   * Which notation is canonical long-term is a separate, deliberate naming
+   * decision (issue #280 ask #3) that hasn't been made — both IDs coexist
+   * here so nothing has to be renamed (and no student-response history
+   * orphaned) before that decision happens.
+   */
+  sCode: string;
   capability: string;
   stage: 'Pre-school 1' | 'Pre-school 2' | 'Pre-school 3'
        | 'Class 1' | 'Class 2' | 'Class 3' | 'Class 4';
   primarySkills: string[];     // SK IDs
   supportingSkills: string[];  // SK IDs
-  prerequisites: string[];     // levelIds (conservative — only set when required_for_procedure)
-  relationshipType: RelationshipType;
+  prerequisites: Prerequisite[];
   questionTypes: string[];
   evidence: string[];
 }
 
+/**
+ * Issue #277: a level's prerequisites can genuinely differ in strength from
+ * each other (e.g. L53 depends on L36 more loosely than it depends on L37) —
+ * the relationship type lives on the edge, not on the whole level, so mixed
+ * strength can actually be expressed. `rationale` gives somewhere to record
+ * *why* an edge is typed the way it is; per the issue, an edge with no
+ * stated rationale shouldn't be typed as a hard prerequisite
+ * (`required_for_procedure`) — the diagnostic paper's apex-selection
+ * inference only holds across genuinely hard edges, so an unjustified one
+ * silently over-claims what testing the apex level actually proves.
+ */
+export interface Prerequisite {
+  levelId: string;
+  relationshipType: RelationshipType;
+  rationale?: string;
+}
+
+// Cumulative level counts per S-notation stage (S1..S7): 7, 10, 10, 15, 19,
+// 14, 18 — sums to 93. Both stageFor() and sCodeFor() derive from this same
+// array so the two notations can't drift relative to each other by
+// construction. Verified to reproduce all 93 rows of
+// Research/fln_L_to_S_crosswalk.json exactly — see
+// scripts/check-level-notation-drift.ts.
+const STAGE_CUMULATIVE_BOUNDARIES = [7, 17, 27, 42, 61, 75, 93] as const;
+
+function stageIndexFor(n: number): number {
+  for (let i = 0; i < STAGE_CUMULATIVE_BOUNDARIES.length; i++) {
+    if (n <= STAGE_CUMULATIVE_BOUNDARIES[i]) return i + 1; // 1-indexed: S1..S7
+  }
+  throw new Error(`Level ${n} is outside the 93-level range (1-93).`);
+}
+
+/** The n-th S-code in stage-then-index order, e.g. sCodeFor(28) === "S4.1". */
+function sCodeFor(n: number): string {
+  const stageIdx = stageIndexFor(n);
+  const prevBoundary = stageIdx === 1 ? 0 : STAGE_CUMULATIVE_BOUNDARIES[stageIdx - 2];
+  const withinStageIdx = n - prevBoundary;
+  return `S${stageIdx}.${withinStageIdx}`;
+}
+
 function stageFor(n: number): LevelSkillMapping['stage'] {
-  if (n <= 7)  return 'Pre-school 1';
-  if (n <= 17) return 'Pre-school 2';
-  if (n <= 27) return 'Pre-school 3';
-  if (n <= 42) return 'Class 1';
-  if (n <= 61) return 'Class 2';
-  if (n <= 75) return 'Class 3';
-  return 'Class 4';
+  const names: LevelSkillMapping['stage'][] = [
+    'Pre-school 1', 'Pre-school 2', 'Pre-school 3',
+    'Class 1', 'Class 2', 'Class 3', 'Class 4',
+  ];
+  return names[stageIndexFor(n) - 1];
 }
 
 // Format helpers for evidence/question types — kept inline so we don't drift
@@ -362,8 +410,26 @@ function qtL(l: number): string[] {
 // (Earlier hand-written L1-L27 mapping has been replaced by spec §4. The shape
 // and the dashboard button location are preserved.)
 
+// Issue #277: every existing call site below sets `prerequisites` as a plain
+// levelId array plus one shared `relationshipType` — because until now that
+// was the only way to say it. That shape stays valid as a shorthand (most
+// levels genuinely do have uniform-strength prerequisites and there's no
+// reason to force verbosity where it isn't needed) but is normalized here
+// into real per-edge Prerequisite objects, so the *data* is per-edge even
+// where the *authoring* isn't. A call site that does need mixed strength
+// (e.g. applying #278's corrections) can pass `Prerequisite[]` directly
+// instead, per-edge, bypassing the shorthand for just that level.
+function normalizePrerequisites(
+  prereqs: (string | Prerequisite)[] | undefined,
+  defaultType: RelationshipType
+): Prerequisite[] {
+  return (prereqs ?? []).map(p =>
+    typeof p === 'string' ? { levelId: p, relationshipType: defaultType } : p
+  );
+}
+
 function makeLevel(n: number, capability: string, primary: string[], supporting: string[], opts: {
-  prerequisites?: string[];
+  prerequisites?: (string | Prerequisite)[];
   relationshipType?: RelationshipType;
   questionTypes?: string[];
   evidence?: string[];
@@ -371,12 +437,12 @@ function makeLevel(n: number, capability: string, primary: string[], supporting:
   return {
     levelId: `L${n}`,
     levelNumber: n,
+    sCode: sCodeFor(n),
     capability,
     stage: stageFor(n),
     primarySkills: primary,
     supportingSkills: supporting,
-    prerequisites: opts.prerequisites ?? [],
-    relationshipType: opts.relationshipType ?? 'often_precedes',
+    prerequisites: normalizePrerequisites(opts.prerequisites, opts.relationshipType ?? 'often_precedes'),
     questionTypes: opts.questionTypes ?? qtL(n),
     evidence: opts.evidence ?? [],
   };
@@ -407,10 +473,12 @@ export const LEVEL_SKILL_MAP: LevelSkillMapping[] = [
 
   // ── Pre-school 2 (L8-L17) ──────────────────────────────────────────────────
   makeLevel(8,  'Quantity Comparison',                  ['SK09'], ['SK01','SK06'],
-    { prerequisites: ['L1'], relationshipType: 'often_precedes',
+    { prerequisites: [{ levelId: 'L1', relationshipType: 'required_for_procedure',
+      rationale: 'Pairwise matching is how a child judges more/less before counting' }],
     evidence: ['more_less_correct','equality_identified'] }),
   makeLevel(9,  'Seriation (3 Objects)',                ['SK03'], ['SK09'],
-    { prerequisites: ['L8'], relationshipType: 'often_precedes',
+    { prerequisites: [{ levelId: 'L8', relationshipType: 'required_for_procedure',
+      rationale: 'Seriation requires repeated pairwise comparison' }],
     evidence: ['seriate_3'] }),
   makeLevel(10, 'Classification (Increasing Complexity)', ['SK02'], ['SK04'],
     { prerequisites: ['L2'], relationshipType: 'supports',
@@ -431,7 +499,10 @@ export const LEVEL_SKILL_MAP: LevelSkillMapping[] = [
     { prerequisites: ['L8'], relationshipType: 'supports',
     evidence: ['compare_vocab_correct'] }),
   makeLevel(16, 'Conceptual Subitizing',                ['SK07'], ['SK06','SK12'],
-    { prerequisites: ['L7','L11'], relationshipType: 'supports',
+    { prerequisites: [
+      { levelId: 'L7', relationshipType: 'required_for_procedure',
+        rationale: 'Clements & Sarama: perceptual subitizing precedes conceptual' },
+      { levelId: 'L11', relationshipType: 'supports' }],
     evidence: ['conceptual_subitize'] }),
   makeLevel(17, 'Basic Shape Composition',              ['SK19'], ['SK12'],
     { prerequisites: ['L13'], relationshipType: 'supports',
@@ -442,19 +513,25 @@ export const LEVEL_SKILL_MAP: LevelSkillMapping[] = [
     { prerequisites: ['L4'], relationshipType: 'often_precedes',
     evidence: ['numeral_id_1_10'] }),
   makeLevel(19, 'Numeral-Quantity Correspondence',      ['SK08','SK06'], ['SK05'],
-    { prerequisites: ['L11','L18'], relationshipType: 'required_for_procedure',
+    { prerequisites: [
+      { levelId: 'L11', relationshipType: 'required_for_procedure',
+        rationale: 'Numeral-quantity correspondence requires the cardinality principle (last count = total), established at counting-to-5' },
+      { levelId: 'L18', relationshipType: 'required_for_procedure' }],
     evidence: ['numeral_quantity_match'] }),
   makeLevel(20, 'Numeral Comparison (Object-Mediated)', ['SK09'], ['SK08'],
     { prerequisites: ['L19'], relationshipType: 'often_precedes',
     evidence: ['numeral_compare_correct'] }),
   makeLevel(21, 'Seriation with Transitivity',          ['SK03'], ['SK09'],
-    { prerequisites: ['L9'], relationshipType: 'supports',
+    { prerequisites: [{ levelId: 'L9', relationshipType: 'required_for_procedure',
+      rationale: "Piaget's own documented refinement of basic seriation" }],
     evidence: ['transitive_seriation'] }),
   makeLevel(22, 'Flexible Classification',              ['SK02'], ['SK04','SK24'],
-    { prerequisites: ['L10'], relationshipType: 'supports',
+    { prerequisites: [{ levelId: 'L10', relationshipType: 'required_for_procedure',
+      rationale: 'Flexible re-sorting refines increasing-complexity classification' }],
     evidence: ['flexible_classify'] }),
   makeLevel(23, 'Numeral Sequencing',                   ['SK10'], ['SK05','SK08'],
-    { prerequisites: ['L18'], relationshipType: 'required_for_procedure',
+    { prerequisites: [{ levelId: 'L18', relationshipType: 'required_for_procedure',
+      rationale: "Cannot sequence numeral symbols that aren't yet recognized" }],
     evidence: ['sequence_complete'] }),
   makeLevel(24, 'Comparative Vocabulary (Formalizing)', ['SK20'], ['SK09'],
     { prerequisites: ['L15'], relationshipType: 'supports',
@@ -466,22 +543,33 @@ export const LEVEL_SKILL_MAP: LevelSkillMapping[] = [
     { prerequisites: ['L13'], relationshipType: 'supports',
     evidence: ['shape_property_id'] }),
   makeLevel(27, 'Shape Composition & Decomposition',    ['SK19'], ['SK12'],
-    { prerequisites: ['L17'], relationshipType: 'supports',
+    { prerequisites: [{ levelId: 'L17', relationshipType: 'required_for_procedure',
+      rationale: 'Clements et al. 2019: Picture Maker builds on Piece Assembler' }],
     evidence: ['shape_compose_decompose'] }),
 
   // ── Class 1 (L28-L42) ─────────────────────────────────────────────────────
   makeLevel(28, 'Abstract Numeral Comparison',          ['SK09'], ['SK08','SK10'],
-    { prerequisites: ['L20'], relationshipType: 'often_precedes' }),
+    { prerequisites: [{ levelId: 'L20', relationshipType: 'required_for_procedure',
+      rationale: 'Object-mediated comparison is the direct predecessor of abstract comparison' }] }),
   makeLevel(29, 'Close Numeral Comparison',             ['SK09'], ['SK11'],
     { prerequisites: ['L28'], relationshipType: 'often_precedes' }),
   makeLevel(30, 'Counting Objects to 20',               ['SK05','SK06'], ['SK01'],
-    { prerequisites: ['L11','L12'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L11', relationshipType: 'required_for_procedure',
+        rationale: 'Counting 20 objects requires the cardinality principle already established by counting to 5' },
+      { levelId: 'L12', relationshipType: 'required_for_procedure',
+        rationale: 'Counting to 20 is a direct fluency extension of counting 6-10' }] }),
   makeLevel(31, 'Reading & Writing Numerals to 99',     ['SK08'], ['SK05','SK11'],
-    { prerequisites: ['L18','L23'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L18', relationshipType: 'required_for_procedure',
+        rationale: 'Cannot read/write 2-digit numerals without recognizing the constituent digits' },
+      { levelId: 'L23', relationshipType: 'required_for_procedure',
+        rationale: 'Ordering single-digit numerals is the direct precursor to ordering/writing 2-digit ones' }] }),
   makeLevel(32, 'Tens and Ones',                        ['SK11'], ['SK12'],
     { prerequisites: ['L31'], relationshipType: 'required_for_procedure' }),
   makeLevel(33, 'Single-Digit Addition',                ['SK13'], ['SK05','SK06','SK12'],
-    { prerequisites: ['L32'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [{ levelId: 'L32', relationshipType: 'often_precedes',
+      rationale: "Demoted from required_for_procedure (issue #279): single-digit addition doesn't require place-value (tens/ones) understanding at all — it's typically taught with counting/manipulatives before place value. Curricular ordering only, no hard dependency." }] }),
   makeLevel(34, 'Single-Digit Subtraction',             ['SK14'], ['SK05','SK06'],
     { prerequisites: ['L33'], relationshipType: 'required_for_procedure' }),
   makeLevel(35, '3D Shape Properties',                  ['SK19'], ['SK04'],
@@ -495,23 +583,35 @@ export const LEVEL_SKILL_MAP: LevelSkillMapping[] = [
   makeLevel(39, 'Concept of Zero',                      ['SK08'], ['SK05','SK11'],
     { prerequisites: ['L18'], relationshipType: 'often_precedes' }),
   makeLevel(40, 'Ordinal Positions (1st-10th)',         ['SK10'], ['SK05'],
-    { prerequisites: ['L23'], relationshipType: 'often_precedes' }),
+    { prerequisites: [{ levelId: 'L23', relationshipType: 'required_for_procedure',
+      rationale: 'Ordinal position builds on the general ability to order things' }] }),
   makeLevel(41, 'Informal Number Line (0-20)',          ['SK10'], ['SK09'],
     { prerequisites: ['L30'], relationshipType: 'often_precedes' }),
   makeLevel(42, 'Advanced Shape Composition',           ['SK19'], ['SK12'],
-    { prerequisites: ['L27'], relationshipType: 'supports' }),
+    { prerequisites: [{ levelId: 'L27', relationshipType: 'required_for_procedure',
+      rationale: 'Same trajectory: Shape Composer follows Picture Maker' }] }),
 
   // ── Class 2 (L43-L61) ─────────────────────────────────────────────────────
   makeLevel(43, 'Reading & Writing 3-Digit Numbers',    ['SK08'], ['SK11'],
-    { prerequisites: ['L31'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [{ levelId: 'L31', relationshipType: 'required_for_procedure',
+      rationale: 'Direct range extension of reading/writing to 99 — same underlying skill' }] }),
   makeLevel(44, 'Tens as Bundles/Groups',               ['SK11'], ['SK12'],
     { prerequisites: ['L32'], relationshipType: 'often_precedes' }),
   makeLevel(45, 'Flexible 2-Digit Decomposition',       ['SK12'], ['SK11'],
-    { prerequisites: ['L32','L44'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L32', relationshipType: 'required_for_procedure',
+        rationale: 'Flexible 2-digit decomposition directly builds on the tens/ones grouping concept' },
+      { levelId: 'L44', relationshipType: 'required_for_procedure' }] }),
   makeLevel(46, '2-Digit Addition with Regrouping',     ['SK13','SK11'], ['SK12'],
-    { prerequisites: ['L33','L45'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L33', relationshipType: 'required_for_procedure' },
+      { levelId: 'L45', relationshipType: 'required_for_procedure',
+        rationale: "Can't regroup without decomposition" }] }),
   makeLevel(47, '2-Digit Subtraction with Regrouping',  ['SK14','SK11'], ['SK12'],
-    { prerequisites: ['L34','L45'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L34', relationshipType: 'required_for_procedure' },
+      { levelId: 'L45', relationshipType: 'required_for_procedure',
+        rationale: "Can't regroup without decomposition (same as the addition case)" }] }),
   makeLevel(48, 'Multiplication as Repeated Addition',  ['SK15'], ['SK13','SK18'],
     { prerequisites: ['L33','L61'], relationshipType: 'often_precedes' }),
   makeLevel(49, 'Division as Equal Sharing',            ['SK16'], ['SK01','SK06'],
@@ -535,35 +635,61 @@ export const LEVEL_SKILL_MAP: LevelSkillMapping[] = [
   makeLevel(58, 'Number Patterns & Sequences',          ['SK18'], ['SK10'],
     { prerequisites: ['L23','L41'], relationshipType: 'often_precedes' }),
   makeLevel(59, 'Zero as a Placeholder',                ['SK11'], ['SK08'],
-    { prerequisites: ['L43'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [{ levelId: 'L43', relationshipType: 'required_for_procedure',
+      rationale: "Recognizing zero's placeholding role (e.g. in 205) presupposes being able to read/write 3-digit numbers generally" }] }),
   makeLevel(60, 'Extended Number Line (0-100)',         ['SK10'], ['SK09','SK11'],
     { prerequisites: ['L41','L44'], relationshipType: 'often_precedes' }),
   makeLevel(61, 'Skip Counting (2s, 5s, 10s)',          ['SK18','SK15'], ['SK05'],
-    { prerequisites: ['L12','L58'], relationshipType: 'often_precedes' }),
+    { prerequisites: [
+      { levelId: 'L12', relationshipType: 'often_precedes' },
+      { levelId: 'L58', relationshipType: 'required_for_procedure',
+        rationale: 'Skip-counting is a constant-interval number pattern' }] }),
 
   // ── Class 3 (L62-L75) ─────────────────────────────────────────────────────
   makeLevel(62, '3-Digit Place Value & Expanded Form',  ['SK11'], ['SK12'],
-    { prerequisites: ['L45','L59'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L45', relationshipType: 'required_for_procedure' },
+      { levelId: 'L59', relationshipType: 'required_for_procedure',
+        rationale: 'Expanded form (e.g. 305 = 300+0+5) requires zero-as-placeholder already in place' }] }),
   makeLevel(63, 'Flexible 3-Digit Decomposition',       ['SK12'], ['SK11'],
-    { prerequisites: ['L45','L62'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L45', relationshipType: 'required_for_procedure',
+        rationale: '3-digit decomposition is the range extension of 2-digit decomposition' },
+      { levelId: 'L62', relationshipType: 'required_for_procedure' }] }),
   makeLevel(64, '3-Digit Comparison & Ordering',        ['SK09','SK03'], ['SK11'],
-    { prerequisites: ['L29','L62'], relationshipType: 'often_precedes' }),
+    { prerequisites: [
+      { levelId: 'L29', relationshipType: 'required_for_procedure',
+        rationale: 'Class-1 abstract comparison is prerequisite for Class-3 3-digit comparison' },
+      { levelId: 'L62', relationshipType: 'often_precedes' }] }),
   makeLevel(65, 'Reading & Writing 4-Digit Numbers',    ['SK08'], ['SK11'],
-    { prerequisites: ['L59','L62'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L59', relationshipType: 'required_for_procedure',
+        rationale: '4-digit numbers with internal zeros (e.g. 4008) need the same placeholder concept established at 3 digits' },
+      { levelId: 'L62', relationshipType: 'required_for_procedure',
+        rationale: 'Place-value range extension from 3 to 4 digits' }] }),
   makeLevel(66, '3-Digit Addition & Subtraction Problems', ['SK13','SK14'], ['SK11','SK12'],
     { prerequisites: ['L46','L47','L62'], relationshipType: 'required_for_procedure' }),
   makeLevel(67, 'Full Multiplication Tables (2-10)',   ['SK15'], ['SK18'],
-    { prerequisites: ['L50','L61'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L50', relationshipType: 'required_for_procedure' },
+      { levelId: 'L61', relationshipType: 'required_for_procedure',
+        rationale: 'Skip-counting is the standard precursor to multiplication-table fluency (same logic as the L58→L61 edge in #278)' }] }),
   makeLevel(68, 'Division Facts & Inverse Relation',    ['SK16'], ['SK15'],
     { prerequisites: ['L67'], relationshipType: 'required_for_procedure' }),
   makeLevel(69, 'Standard Measurement Units',           ['SK20'], ['SK24'],
     { prerequisites: ['L53'], relationshipType: 'required_for_procedure' }),
   makeLevel(70, 'Relating 2D Faces to 3D Solids',       ['SK19'], ['SK04'],
-    { prerequisites: ['L35','L54'], relationshipType: 'supports' }),
+    { prerequisites: [
+      { levelId: 'L35', relationshipType: 'required_for_procedure',
+        rationale: 'Van Hiele L1→L2: composing needs property vocabulary first' },
+      { levelId: 'L54', relationshipType: 'supports' }] }),
   makeLevel(71, 'Telling Time (Hours & Half-Hours)',    ['SK21'], ['SK10'],
     { prerequisites: ['L56'], relationshipType: 'required_for_procedure' }),
   makeLevel(72, 'Money Arithmetic',                     ['SK22'], ['SK13','SK14'],
-    { prerequisites: ['L51','L66'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L51', relationshipType: 'required_for_procedure' },
+      { levelId: 'L66', relationshipType: 'often_precedes',
+        rationale: 'Demoted from required_for_procedure (issue #279): money arithmetic can stay within 2-digit amounts — 3-digit add/sub fluency is common but not a hard gate on it.' }] }),
   makeLevel(73, 'Formal Fractions (Half/Quarter)',      ['SK17'], ['SK12'],
     { prerequisites: ['L52'], relationshipType: 'required_for_procedure' }),
   makeLevel(74, 'Pattern Rules & Generalization',       ['SK18'], ['SK24'],
@@ -573,15 +699,31 @@ export const LEVEL_SKILL_MAP: LevelSkillMapping[] = [
 
   // ── Class 4 (L76-L93) ─────────────────────────────────────────────────────
   makeLevel(76, '4-Digit & 5-Digit Place Value',        ['SK11'], ['SK12'],
-    { prerequisites: ['L62','L65'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L62', relationshipType: 'required_for_procedure',
+        rationale: 'Place-value range extension from 3 digits to 4/5 digits' },
+      { levelId: 'L65', relationshipType: 'required_for_procedure' }] }),
   makeLevel(77, 'Large Number Operations & Regrouping', ['SK13','SK14','SK11'], ['SK12'],
-    { prerequisites: ['L66','L76'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L66', relationshipType: 'required_for_procedure',
+        rationale: '3-digit regrouping is foundational to large-number regrouping' },
+      { levelId: 'L76', relationshipType: 'required_for_procedure' }] }),
   makeLevel(78, 'Complex Multi-Digit Word Problems',     ['SK24','SK13','SK14'], ['SK11','SK12'],
     { prerequisites: ['L77'], relationshipType: 'often_precedes' }),
   makeLevel(79, 'Extended Multiplication',              ['SK15'], ['SK11','SK12'],
-    { prerequisites: ['L50','L67','L76'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L50', relationshipType: 'required_for_procedure',
+        rationale: 'Extended multiplication requires basic multiplication-table fluency' },
+      { levelId: 'L67', relationshipType: 'required_for_procedure',
+        rationale: 'Same as L50 — parallel prerequisite via the fuller table set' },
+      { levelId: 'L76', relationshipType: 'required_for_procedure',
+        rationale: 'Multi-digit multiplication requires place-value alignment for partial products' }] }),
   makeLevel(80, 'Formal Long Division',                 ['SK16'], ['SK15','SK11'],
-    { prerequisites: ['L68','L76'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L68', relationshipType: 'required_for_procedure',
+        rationale: 'Long division requires division-fact fluency' },
+      { levelId: 'L76', relationshipType: 'required_for_procedure',
+        rationale: 'Long division of large numbers needs the same place-value grounding' }] }),
   makeLevel(81, 'Fractional Notation & Equivalence',    ['SK17'], ['SK12'],
     { prerequisites: ['L73'], relationshipType: 'required_for_procedure' }),
   makeLevel(82, 'Standard Unit Conversion',             ['SK20'], ['SK12'],
@@ -589,7 +731,8 @@ export const LEVEL_SKILL_MAP: LevelSkillMapping[] = [
   makeLevel(83, 'Applied Measurement Word Problems',    ['SK20','SK24'], ['SK13','SK14'],
     { prerequisites: ['L78','L82'], relationshipType: 'often_precedes' }),
   makeLevel(84, '3D Nets & Spatial Perspective',        ['SK19'], ['SK12','SK24'],
-    { prerequisites: ['L70'], relationshipType: 'supports' }),
+    { prerequisites: [{ levelId: 'L70', relationshipType: 'required_for_procedure',
+      rationale: 'Van Hiele L2 extended: nets need the same part-whole reasoning' }] }),
   makeLevel(85, 'Advanced Time Calculation',            ['SK21'], ['SK13','SK14'],
     { prerequisites: ['L71'], relationshipType: 'required_for_procedure' }),
   makeLevel(86, 'Complex Money Problems',                ['SK22','SK24'], ['SK13','SK14'],
@@ -599,15 +742,23 @@ export const LEVEL_SKILL_MAP: LevelSkillMapping[] = [
   makeLevel(88, 'Bar Graphs & Data Interpretation',     ['SK23'], ['SK09','SK24'],
     { prerequisites: ['L75'], relationshipType: 'often_precedes' }),
   makeLevel(89, 'Factors & Multiples',                  ['SK15','SK18'], ['SK16'],
-    { prerequisites: ['L67','L68'], relationshipType: 'often_precedes' }),
+    { prerequisites: [
+      { levelId: 'L67', relationshipType: 'required_for_procedure',
+        rationale: 'Cannot reliably find factors of 24 without knowing what multiplies to 24' },
+      { levelId: 'L68', relationshipType: 'often_precedes' }] }),
   makeLevel(90, 'Decimals (Tenths & Hundredths)',       ['SK08','SK17'], ['SK11','SK12'],
-    { prerequisites: ['L63','L81'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [
+      { levelId: 'L63', relationshipType: 'supports',
+        rationale: "Demoted from required_for_procedure on review: L90's objective is reading/writing/comparing tenths and hundredths, which does not require flexibly decomposing 3-digit whole numbers. Curricula (Common Core, NCERT) introduce decimals as an extension of fraction notation (L81), not whole-number decomposition. A whole-number place-value link exists but is closer to L62 (3-digit place value/expanded form) than to L63 specifically." },
+      { levelId: 'L81', relationshipType: 'required_for_procedure',
+        rationale: 'Decimals are standardly introduced as an extension of fraction notation' }] }),
   makeLevel(91, 'Angles & Turn',                        ['SK19'], ['SK10'],
     { prerequisites: ['L55'], relationshipType: 'supports' }),
   makeLevel(92, 'Symmetry & Reflection',                ['SK19'], ['SK18'],
     { prerequisites: ['L74'], relationshipType: 'supports' }),
   makeLevel(93, 'Perimeter & Area',                     ['SK20'], ['SK19','SK13'],
-    { prerequisites: ['L82'], relationshipType: 'required_for_procedure' }),
+    { prerequisites: [{ levelId: 'L82', relationshipType: 'often_precedes',
+      rationale: "Demoted from required_for_procedure (issue #279): perimeter/area computation is fundamentally addition/multiplication over given measurements — unit conversion is only needed for the subset of problems with mixed units, not the core skill." }] }),
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -616,6 +767,7 @@ export const LEVEL_SKILL_MAP: LevelSkillMapping[] = [
 
 const SKILL_BY_ID: Record<string, CoreSkill> = Object.fromEntries(CORE_SKILLS.map(s => [s.id, s]));
 const LEVEL_BY_ID: Record<string, LevelSkillMapping> = Object.fromEntries(LEVEL_SKILL_MAP.map(l => [l.levelId, l]));
+const LEVEL_BY_SCODE: Record<string, LevelSkillMapping> = Object.fromEntries(LEVEL_SKILL_MAP.map(l => [l.sCode, l]));
 
 (function sanity(): void {
   for (const lvl of LEVEL_SKILL_MAP) {
@@ -625,8 +777,8 @@ const LEVEL_BY_ID: Record<string, LevelSkillMapping> = Object.fromEntries(LEVEL_
       }
     }
     for (const pre of lvl.prerequisites) {
-      if (!LEVEL_BY_ID[pre]) {
-        throw new Error(`Level ${lvl.levelId} references unknown prereq level ${pre}`);
+      if (!LEVEL_BY_ID[pre.levelId]) {
+        throw new Error(`Level ${lvl.levelId} references unknown prereq level ${pre.levelId}`);
       }
     }
   }
@@ -636,11 +788,20 @@ const LEVEL_BY_ID: Record<string, LevelSkillMapping> = Object.fromEntries(LEVEL_
   if (Object.keys(SKILL_BY_ID).length !== 24) {
     throw new Error(`Expected 24 core skills, got ${Object.keys(SKILL_BY_ID).length}`);
   }
+  if (Object.keys(LEVEL_BY_SCODE).length !== 93) {
+    throw new Error(`Expected 93 unique sCode values, got ${Object.keys(LEVEL_BY_SCODE).length} — a level's sCode collided with another's.`);
+  }
 })();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Derived aggregates
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** Look up a level by its S-notation code (e.g. "S4.1") instead of its
+ * L-number. See LevelSkillMapping.sCode and issue #280. */
+export function getLevelBySCode(sCode: string): LevelSkillMapping | undefined {
+  return LEVEL_BY_SCODE[sCode];
+}
 
 export function getSkillsForLevel(levelId: string): CoreSkill[] {
   const lvl = LEVEL_BY_ID[levelId];
@@ -670,7 +831,7 @@ export function getPrerequisiteEdges(): Array<{ from: string; to: string; type: 
   const edges: Array<{ from: string; to: string; type: RelationshipType }> = [];
   for (const lvl of LEVEL_SKILL_MAP) {
     for (const pre of lvl.prerequisites) {
-      edges.push({ from: pre, to: lvl.levelId, type: lvl.relationshipType });
+      edges.push({ from: pre.levelId, to: lvl.levelId, type: pre.relationshipType });
     }
   }
   return edges;

@@ -1,0 +1,1843 @@
+{
+  "generatedFrom": "frontend/src/data/skillProgressionMap.ts",
+  "levelCount": 93,
+  "levels": {
+    "L1": {
+      "levelNumber": 1,
+      "capability": "One-to-One Correspondence",
+      "stage": "Pre-school 1",
+      "sCode": "S1.1",
+      "skills": [
+        "SK01",
+        "SK06"
+      ]
+    },
+    "L2": {
+      "levelNumber": 2,
+      "capability": "Classification (Single Property)",
+      "stage": "Pre-school 1",
+      "sCode": "S1.2",
+      "skills": [
+        "SK02",
+        "SK04"
+      ]
+    },
+    "L3": {
+      "levelNumber": 3,
+      "capability": "Perceptual Same/Different",
+      "stage": "Pre-school 1",
+      "sCode": "S1.3",
+      "skills": [
+        "SK02",
+        "SK04"
+      ]
+    },
+    "L4": {
+      "levelNumber": 4,
+      "capability": "Rote Verbal Counting to 10",
+      "stage": "Pre-school 1",
+      "sCode": "S1.4",
+      "skills": [
+        "SK05",
+        "SK10"
+      ]
+    },
+    "L5": {
+      "levelNumber": 5,
+      "capability": "Counting Small Sets (1-3)",
+      "stage": "Pre-school 1",
+      "sCode": "S1.5",
+      "skills": [
+        "SK01",
+        "SK05",
+        "SK06"
+      ]
+    },
+    "L6": {
+      "levelNumber": 6,
+      "capability": "Shape Matching (Perceptual)",
+      "stage": "Pre-school 1",
+      "sCode": "S1.6",
+      "skills": [
+        "SK04",
+        "SK19"
+      ]
+    },
+    "L7": {
+      "levelNumber": 7,
+      "capability": "Perceptual Subitizing",
+      "stage": "Pre-school 1",
+      "sCode": "S1.7",
+      "skills": [
+        "SK06",
+        "SK07"
+      ]
+    },
+    "L8": {
+      "levelNumber": 8,
+      "capability": "Quantity Comparison",
+      "stage": "Pre-school 2",
+      "sCode": "S2.1",
+      "skills": [
+        "SK01",
+        "SK06",
+        "SK09"
+      ]
+    },
+    "L9": {
+      "levelNumber": 9,
+      "capability": "Seriation (3 Objects)",
+      "stage": "Pre-school 2",
+      "sCode": "S2.2",
+      "skills": [
+        "SK03",
+        "SK09"
+      ]
+    },
+    "L10": {
+      "levelNumber": 10,
+      "capability": "Classification (Increasing Complexity)",
+      "stage": "Pre-school 2",
+      "sCode": "S2.3",
+      "skills": [
+        "SK02",
+        "SK04"
+      ]
+    },
+    "L11": {
+      "levelNumber": 11,
+      "capability": "Counting to 5 (Cardinality)",
+      "stage": "Pre-school 2",
+      "sCode": "S2.4",
+      "skills": [
+        "SK01",
+        "SK05",
+        "SK06"
+      ]
+    },
+    "L12": {
+      "levelNumber": 12,
+      "capability": "Counting 6-10",
+      "stage": "Pre-school 2",
+      "sCode": "S2.5",
+      "skills": [
+        "SK05",
+        "SK06"
+      ]
+    },
+    "L13": {
+      "levelNumber": 13,
+      "capability": "Shape Identification",
+      "stage": "Pre-school 2",
+      "sCode": "S2.6",
+      "skills": [
+        "SK04",
+        "SK19"
+      ]
+    },
+    "L14": {
+      "levelNumber": 14,
+      "capability": "2-Item Patterns",
+      "stage": "Pre-school 2",
+      "sCode": "S2.7",
+      "skills": [
+        "SK04",
+        "SK18"
+      ]
+    },
+    "L15": {
+      "levelNumber": 15,
+      "capability": "Comparative Vocabulary",
+      "stage": "Pre-school 2",
+      "sCode": "S2.8",
+      "skills": [
+        "SK09",
+        "SK20"
+      ]
+    },
+    "L16": {
+      "levelNumber": 16,
+      "capability": "Conceptual Subitizing",
+      "stage": "Pre-school 2",
+      "sCode": "S2.9",
+      "skills": [
+        "SK06",
+        "SK07",
+        "SK12"
+      ]
+    },
+    "L17": {
+      "levelNumber": 17,
+      "capability": "Basic Shape Composition",
+      "stage": "Pre-school 2",
+      "sCode": "S2.10",
+      "skills": [
+        "SK12",
+        "SK19"
+      ]
+    },
+    "L18": {
+      "levelNumber": 18,
+      "capability": "Numeral Recognition (1-10)",
+      "stage": "Pre-school 3",
+      "sCode": "S3.1",
+      "skills": [
+        "SK05",
+        "SK08"
+      ]
+    },
+    "L19": {
+      "levelNumber": 19,
+      "capability": "Numeral-Quantity Correspondence",
+      "stage": "Pre-school 3",
+      "sCode": "S3.2",
+      "skills": [
+        "SK05",
+        "SK06",
+        "SK08"
+      ]
+    },
+    "L20": {
+      "levelNumber": 20,
+      "capability": "Numeral Comparison (Object-Mediated)",
+      "stage": "Pre-school 3",
+      "sCode": "S3.3",
+      "skills": [
+        "SK08",
+        "SK09"
+      ]
+    },
+    "L21": {
+      "levelNumber": 21,
+      "capability": "Seriation with Transitivity",
+      "stage": "Pre-school 3",
+      "sCode": "S3.4",
+      "skills": [
+        "SK03",
+        "SK09"
+      ]
+    },
+    "L22": {
+      "levelNumber": 22,
+      "capability": "Flexible Classification",
+      "stage": "Pre-school 3",
+      "sCode": "S3.5",
+      "skills": [
+        "SK02",
+        "SK04",
+        "SK24"
+      ]
+    },
+    "L23": {
+      "levelNumber": 23,
+      "capability": "Numeral Sequencing",
+      "stage": "Pre-school 3",
+      "sCode": "S3.6",
+      "skills": [
+        "SK05",
+        "SK08",
+        "SK10"
+      ]
+    },
+    "L24": {
+      "levelNumber": 24,
+      "capability": "Comparative Vocabulary (Formalizing)",
+      "stage": "Pre-school 3",
+      "sCode": "S3.7",
+      "skills": [
+        "SK09",
+        "SK20"
+      ]
+    },
+    "L25": {
+      "levelNumber": 25,
+      "capability": "Patterns (2-Item Indep & 3-Item Intro)",
+      "stage": "Pre-school 3",
+      "sCode": "S3.8",
+      "skills": [
+        "SK04",
+        "SK18"
+      ]
+    },
+    "L26": {
+      "levelNumber": 26,
+      "capability": "Basic Shape Properties",
+      "stage": "Pre-school 3",
+      "sCode": "S3.9",
+      "skills": [
+        "SK04",
+        "SK19"
+      ]
+    },
+    "L27": {
+      "levelNumber": 27,
+      "capability": "Shape Composition & Decomposition",
+      "stage": "Pre-school 3",
+      "sCode": "S3.10",
+      "skills": [
+        "SK12",
+        "SK19"
+      ]
+    },
+    "L28": {
+      "levelNumber": 28,
+      "capability": "Abstract Numeral Comparison",
+      "stage": "Class 1",
+      "sCode": "S4.1",
+      "skills": [
+        "SK08",
+        "SK09",
+        "SK10"
+      ]
+    },
+    "L29": {
+      "levelNumber": 29,
+      "capability": "Close Numeral Comparison",
+      "stage": "Class 1",
+      "sCode": "S4.2",
+      "skills": [
+        "SK09",
+        "SK11"
+      ]
+    },
+    "L30": {
+      "levelNumber": 30,
+      "capability": "Counting Objects to 20",
+      "stage": "Class 1",
+      "sCode": "S4.3",
+      "skills": [
+        "SK01",
+        "SK05",
+        "SK06"
+      ]
+    },
+    "L31": {
+      "levelNumber": 31,
+      "capability": "Reading & Writing Numerals to 99",
+      "stage": "Class 1",
+      "sCode": "S4.4",
+      "skills": [
+        "SK05",
+        "SK08",
+        "SK11"
+      ]
+    },
+    "L32": {
+      "levelNumber": 32,
+      "capability": "Tens and Ones",
+      "stage": "Class 1",
+      "sCode": "S4.5",
+      "skills": [
+        "SK11",
+        "SK12"
+      ]
+    },
+    "L33": {
+      "levelNumber": 33,
+      "capability": "Single-Digit Addition",
+      "stage": "Class 1",
+      "sCode": "S4.6",
+      "skills": [
+        "SK05",
+        "SK06",
+        "SK12",
+        "SK13"
+      ]
+    },
+    "L34": {
+      "levelNumber": 34,
+      "capability": "Single-Digit Subtraction",
+      "stage": "Class 1",
+      "sCode": "S4.7",
+      "skills": [
+        "SK05",
+        "SK06",
+        "SK14"
+      ]
+    },
+    "L35": {
+      "levelNumber": 35,
+      "capability": "3D Shape Properties",
+      "stage": "Class 1",
+      "sCode": "S4.8",
+      "skills": [
+        "SK04",
+        "SK19"
+      ]
+    },
+    "L36": {
+      "levelNumber": 36,
+      "capability": "Non-Standard Length Estimation",
+      "stage": "Class 1",
+      "sCode": "S4.9",
+      "skills": [
+        "SK20",
+        "SK24"
+      ]
+    },
+    "L37": {
+      "levelNumber": 37,
+      "capability": "Non-Standard Capacity Estimation",
+      "stage": "Class 1",
+      "sCode": "S4.10",
+      "skills": [
+        "SK20",
+        "SK24"
+      ]
+    },
+    "L38": {
+      "levelNumber": 38,
+      "capability": "3-Item Pattern Completion",
+      "stage": "Class 1",
+      "sCode": "S4.11",
+      "skills": [
+        "SK04",
+        "SK18"
+      ]
+    },
+    "L39": {
+      "levelNumber": 39,
+      "capability": "Concept of Zero",
+      "stage": "Class 1",
+      "sCode": "S4.12",
+      "skills": [
+        "SK05",
+        "SK08",
+        "SK11"
+      ]
+    },
+    "L40": {
+      "levelNumber": 40,
+      "capability": "Ordinal Positions (1st-10th)",
+      "stage": "Class 1",
+      "sCode": "S4.13",
+      "skills": [
+        "SK05",
+        "SK10"
+      ]
+    },
+    "L41": {
+      "levelNumber": 41,
+      "capability": "Informal Number Line (0-20)",
+      "stage": "Class 1",
+      "sCode": "S4.14",
+      "skills": [
+        "SK09",
+        "SK10"
+      ]
+    },
+    "L42": {
+      "levelNumber": 42,
+      "capability": "Advanced Shape Composition",
+      "stage": "Class 1",
+      "sCode": "S4.15",
+      "skills": [
+        "SK12",
+        "SK19"
+      ]
+    },
+    "L43": {
+      "levelNumber": 43,
+      "capability": "Reading & Writing 3-Digit Numbers",
+      "stage": "Class 2",
+      "sCode": "S5.1",
+      "skills": [
+        "SK08",
+        "SK11"
+      ]
+    },
+    "L44": {
+      "levelNumber": 44,
+      "capability": "Tens as Bundles/Groups",
+      "stage": "Class 2",
+      "sCode": "S5.2",
+      "skills": [
+        "SK11",
+        "SK12"
+      ]
+    },
+    "L45": {
+      "levelNumber": 45,
+      "capability": "Flexible 2-Digit Decomposition",
+      "stage": "Class 2",
+      "sCode": "S5.3",
+      "skills": [
+        "SK11",
+        "SK12"
+      ]
+    },
+    "L46": {
+      "levelNumber": 46,
+      "capability": "2-Digit Addition with Regrouping",
+      "stage": "Class 2",
+      "sCode": "S5.4",
+      "skills": [
+        "SK11",
+        "SK12",
+        "SK13"
+      ]
+    },
+    "L47": {
+      "levelNumber": 47,
+      "capability": "2-Digit Subtraction with Regrouping",
+      "stage": "Class 2",
+      "sCode": "S5.5",
+      "skills": [
+        "SK11",
+        "SK12",
+        "SK14"
+      ]
+    },
+    "L48": {
+      "levelNumber": 48,
+      "capability": "Multiplication as Repeated Addition",
+      "stage": "Class 2",
+      "sCode": "S5.6",
+      "skills": [
+        "SK13",
+        "SK15",
+        "SK18"
+      ]
+    },
+    "L49": {
+      "levelNumber": 49,
+      "capability": "Division as Equal Sharing",
+      "stage": "Class 2",
+      "sCode": "S5.7",
+      "skills": [
+        "SK01",
+        "SK06",
+        "SK16"
+      ]
+    },
+    "L50": {
+      "levelNumber": 50,
+      "capability": "Multiplication Tables (2,3,4,5,10)",
+      "stage": "Class 2",
+      "sCode": "S5.8",
+      "skills": [
+        "SK15",
+        "SK18"
+      ]
+    },
+    "L51": {
+      "levelNumber": 51,
+      "capability": "Currency Recognition",
+      "stage": "Class 2",
+      "sCode": "S5.9",
+      "skills": [
+        "SK08",
+        "SK22"
+      ]
+    },
+    "L52": {
+      "levelNumber": 52,
+      "capability": "Informal Fractions (Folding)",
+      "stage": "Class 2",
+      "sCode": "S5.10",
+      "skills": [
+        "SK17",
+        "SK19"
+      ]
+    },
+    "L53": {
+      "levelNumber": 53,
+      "capability": "Uniform Non-Standard Measurement",
+      "stage": "Class 2",
+      "sCode": "S5.11",
+      "skills": [
+        "SK20",
+        "SK24"
+      ]
+    },
+    "L54": {
+      "levelNumber": 54,
+      "capability": "2D Shape Set Identification",
+      "stage": "Class 2",
+      "sCode": "S5.12",
+      "skills": [
+        "SK02",
+        "SK19"
+      ]
+    },
+    "L55": {
+      "levelNumber": 55,
+      "capability": "Spatial Vocabulary",
+      "stage": "Class 2",
+      "sCode": "S5.13",
+      "skills": [
+        "SK19",
+        "SK24"
+      ]
+    },
+    "L56": {
+      "levelNumber": 56,
+      "capability": "Calendar Reading",
+      "stage": "Class 2",
+      "sCode": "S5.14",
+      "skills": [
+        "SK10",
+        "SK21"
+      ]
+    },
+    "L57": {
+      "levelNumber": 57,
+      "capability": "Data Handling (Sorting & Tallies)",
+      "stage": "Class 2",
+      "sCode": "S5.15",
+      "skills": [
+        "SK02",
+        "SK05",
+        "SK23"
+      ]
+    },
+    "L58": {
+      "levelNumber": 58,
+      "capability": "Number Patterns & Sequences",
+      "stage": "Class 2",
+      "sCode": "S5.16",
+      "skills": [
+        "SK10",
+        "SK18"
+      ]
+    },
+    "L59": {
+      "levelNumber": 59,
+      "capability": "Zero as a Placeholder",
+      "stage": "Class 2",
+      "sCode": "S5.17",
+      "skills": [
+        "SK08",
+        "SK11"
+      ]
+    },
+    "L60": {
+      "levelNumber": 60,
+      "capability": "Extended Number Line (0-100)",
+      "stage": "Class 2",
+      "sCode": "S5.18",
+      "skills": [
+        "SK09",
+        "SK10",
+        "SK11"
+      ]
+    },
+    "L61": {
+      "levelNumber": 61,
+      "capability": "Skip Counting (2s, 5s, 10s)",
+      "stage": "Class 2",
+      "sCode": "S5.19",
+      "skills": [
+        "SK05",
+        "SK15",
+        "SK18"
+      ]
+    },
+    "L62": {
+      "levelNumber": 62,
+      "capability": "3-Digit Place Value & Expanded Form",
+      "stage": "Class 3",
+      "sCode": "S6.1",
+      "skills": [
+        "SK11",
+        "SK12"
+      ]
+    },
+    "L63": {
+      "levelNumber": 63,
+      "capability": "Flexible 3-Digit Decomposition",
+      "stage": "Class 3",
+      "sCode": "S6.2",
+      "skills": [
+        "SK11",
+        "SK12"
+      ]
+    },
+    "L64": {
+      "levelNumber": 64,
+      "capability": "3-Digit Comparison & Ordering",
+      "stage": "Class 3",
+      "sCode": "S6.3",
+      "skills": [
+        "SK03",
+        "SK09",
+        "SK11"
+      ]
+    },
+    "L65": {
+      "levelNumber": 65,
+      "capability": "Reading & Writing 4-Digit Numbers",
+      "stage": "Class 3",
+      "sCode": "S6.4",
+      "skills": [
+        "SK08",
+        "SK11"
+      ]
+    },
+    "L66": {
+      "levelNumber": 66,
+      "capability": "3-Digit Addition & Subtraction Problems",
+      "stage": "Class 3",
+      "sCode": "S6.5",
+      "skills": [
+        "SK11",
+        "SK12",
+        "SK13",
+        "SK14"
+      ]
+    },
+    "L67": {
+      "levelNumber": 67,
+      "capability": "Full Multiplication Tables (2-10)",
+      "stage": "Class 3",
+      "sCode": "S6.6",
+      "skills": [
+        "SK15",
+        "SK18"
+      ]
+    },
+    "L68": {
+      "levelNumber": 68,
+      "capability": "Division Facts & Inverse Relation",
+      "stage": "Class 3",
+      "sCode": "S6.7",
+      "skills": [
+        "SK15",
+        "SK16"
+      ]
+    },
+    "L69": {
+      "levelNumber": 69,
+      "capability": "Standard Measurement Units",
+      "stage": "Class 3",
+      "sCode": "S6.8",
+      "skills": [
+        "SK20",
+        "SK24"
+      ]
+    },
+    "L70": {
+      "levelNumber": 70,
+      "capability": "Relating 2D Faces to 3D Solids",
+      "stage": "Class 3",
+      "sCode": "S6.9",
+      "skills": [
+        "SK04",
+        "SK19"
+      ]
+    },
+    "L71": {
+      "levelNumber": 71,
+      "capability": "Telling Time (Hours & Half-Hours)",
+      "stage": "Class 3",
+      "sCode": "S6.10",
+      "skills": [
+        "SK10",
+        "SK21"
+      ]
+    },
+    "L72": {
+      "levelNumber": 72,
+      "capability": "Money Arithmetic",
+      "stage": "Class 3",
+      "sCode": "S6.11",
+      "skills": [
+        "SK13",
+        "SK14",
+        "SK22"
+      ]
+    },
+    "L73": {
+      "levelNumber": 73,
+      "capability": "Formal Fractions (Half/Quarter)",
+      "stage": "Class 3",
+      "sCode": "S6.12",
+      "skills": [
+        "SK12",
+        "SK17"
+      ]
+    },
+    "L74": {
+      "levelNumber": 74,
+      "capability": "Pattern Rules & Generalization",
+      "stage": "Class 3",
+      "sCode": "S6.13",
+      "skills": [
+        "SK18",
+        "SK24"
+      ]
+    },
+    "L75": {
+      "levelNumber": 75,
+      "capability": "Data Handling (Pictographs & Bar Graphs)",
+      "stage": "Class 3",
+      "sCode": "S6.14",
+      "skills": [
+        "SK05",
+        "SK09",
+        "SK23"
+      ]
+    },
+    "L76": {
+      "levelNumber": 76,
+      "capability": "4-Digit & 5-Digit Place Value",
+      "stage": "Class 4",
+      "sCode": "S7.1",
+      "skills": [
+        "SK11",
+        "SK12"
+      ]
+    },
+    "L77": {
+      "levelNumber": 77,
+      "capability": "Large Number Operations & Regrouping",
+      "stage": "Class 4",
+      "sCode": "S7.2",
+      "skills": [
+        "SK11",
+        "SK12",
+        "SK13",
+        "SK14"
+      ]
+    },
+    "L78": {
+      "levelNumber": 78,
+      "capability": "Complex Multi-Digit Word Problems",
+      "stage": "Class 4",
+      "sCode": "S7.3",
+      "skills": [
+        "SK11",
+        "SK12",
+        "SK13",
+        "SK14",
+        "SK24"
+      ]
+    },
+    "L79": {
+      "levelNumber": 79,
+      "capability": "Extended Multiplication",
+      "stage": "Class 4",
+      "sCode": "S7.4",
+      "skills": [
+        "SK11",
+        "SK12",
+        "SK15"
+      ]
+    },
+    "L80": {
+      "levelNumber": 80,
+      "capability": "Formal Long Division",
+      "stage": "Class 4",
+      "sCode": "S7.5",
+      "skills": [
+        "SK11",
+        "SK15",
+        "SK16"
+      ]
+    },
+    "L81": {
+      "levelNumber": 81,
+      "capability": "Fractional Notation & Equivalence",
+      "stage": "Class 4",
+      "sCode": "S7.6",
+      "skills": [
+        "SK12",
+        "SK17"
+      ]
+    },
+    "L82": {
+      "levelNumber": 82,
+      "capability": "Standard Unit Conversion",
+      "stage": "Class 4",
+      "sCode": "S7.7",
+      "skills": [
+        "SK12",
+        "SK20"
+      ]
+    },
+    "L83": {
+      "levelNumber": 83,
+      "capability": "Applied Measurement Word Problems",
+      "stage": "Class 4",
+      "sCode": "S7.8",
+      "skills": [
+        "SK13",
+        "SK14",
+        "SK20",
+        "SK24"
+      ]
+    },
+    "L84": {
+      "levelNumber": 84,
+      "capability": "3D Nets & Spatial Perspective",
+      "stage": "Class 4",
+      "sCode": "S7.9",
+      "skills": [
+        "SK12",
+        "SK19",
+        "SK24"
+      ]
+    },
+    "L85": {
+      "levelNumber": 85,
+      "capability": "Advanced Time Calculation",
+      "stage": "Class 4",
+      "sCode": "S7.10",
+      "skills": [
+        "SK13",
+        "SK14",
+        "SK21"
+      ]
+    },
+    "L86": {
+      "levelNumber": 86,
+      "capability": "Complex Money Problems",
+      "stage": "Class 4",
+      "sCode": "S7.11",
+      "skills": [
+        "SK13",
+        "SK14",
+        "SK22",
+        "SK24"
+      ]
+    },
+    "L87": {
+      "levelNumber": 87,
+      "capability": "Advanced Number Patterns",
+      "stage": "Class 4",
+      "sCode": "S7.12",
+      "skills": [
+        "SK10",
+        "SK18",
+        "SK24"
+      ]
+    },
+    "L88": {
+      "levelNumber": 88,
+      "capability": "Bar Graphs & Data Interpretation",
+      "stage": "Class 4",
+      "sCode": "S7.13",
+      "skills": [
+        "SK09",
+        "SK23",
+        "SK24"
+      ]
+    },
+    "L89": {
+      "levelNumber": 89,
+      "capability": "Factors & Multiples",
+      "stage": "Class 4",
+      "sCode": "S7.14",
+      "skills": [
+        "SK15",
+        "SK16",
+        "SK18"
+      ]
+    },
+    "L90": {
+      "levelNumber": 90,
+      "capability": "Decimals (Tenths & Hundredths)",
+      "stage": "Class 4",
+      "sCode": "S7.15",
+      "skills": [
+        "SK08",
+        "SK11",
+        "SK12",
+        "SK17"
+      ]
+    },
+    "L91": {
+      "levelNumber": 91,
+      "capability": "Angles & Turn",
+      "stage": "Class 4",
+      "sCode": "S7.16",
+      "skills": [
+        "SK10",
+        "SK19"
+      ]
+    },
+    "L92": {
+      "levelNumber": 92,
+      "capability": "Symmetry & Reflection",
+      "stage": "Class 4",
+      "sCode": "S7.17",
+      "skills": [
+        "SK18",
+        "SK19"
+      ]
+    },
+    "L93": {
+      "levelNumber": 93,
+      "capability": "Perimeter & Area",
+      "stage": "Class 4",
+      "sCode": "S7.18",
+      "skills": [
+        "SK13",
+        "SK19",
+        "SK20"
+      ]
+    }
+  },
+  "skills": {
+    "SK01": {
+      "name": "One-to-One Correspondence",
+      "domain": "Pre-number",
+      "subskills": [
+        {
+          "id": "SK01.01",
+          "name": "Match one object to one object"
+        },
+        {
+          "id": "SK01.02",
+          "name": "Match objects across two groups"
+        },
+        {
+          "id": "SK01.03",
+          "name": "Maintain one-to-one correspondence while counting"
+        },
+        {
+          "id": "SK01.04",
+          "name": "Identify unmatched objects"
+        }
+      ]
+    },
+    "SK02": {
+      "name": "Classification",
+      "domain": "Pre-number",
+      "subskills": [
+        {
+          "id": "SK02.01",
+          "name": "Classify by one property"
+        },
+        {
+          "id": "SK02.02",
+          "name": "Identify common property"
+        },
+        {
+          "id": "SK02.03",
+          "name": "Identify odd object"
+        },
+        {
+          "id": "SK02.04",
+          "name": "Classify by multiple properties"
+        },
+        {
+          "id": "SK02.05",
+          "name": "Flexible reclassification"
+        }
+      ]
+    },
+    "SK03": {
+      "name": "Seriation & Ordering",
+      "domain": "Pre-number",
+      "subskills": [
+        {
+          "id": "SK03.01",
+          "name": "Arrange three objects by size"
+        },
+        {
+          "id": "SK03.02",
+          "name": "Arrange objects by length"
+        },
+        {
+          "id": "SK03.03",
+          "name": "Use comparative relationships"
+        },
+        {
+          "id": "SK03.04",
+          "name": "Apply transitivity"
+        },
+        {
+          "id": "SK03.05",
+          "name": "Order numerals"
+        },
+        {
+          "id": "SK03.06",
+          "name": "Order numbers ascending"
+        },
+        {
+          "id": "SK03.07",
+          "name": "Order numbers descending"
+        }
+      ]
+    },
+    "SK04": {
+      "name": "Same/Different & Attribute Recognition",
+      "domain": "Pre-number",
+      "subskills": [
+        {
+          "id": "SK04.01",
+          "name": "Perceptual same/different"
+        },
+        {
+          "id": "SK04.02",
+          "name": "Identify visual attributes"
+        },
+        {
+          "id": "SK04.03",
+          "name": "Identify shape attributes"
+        },
+        {
+          "id": "SK04.04",
+          "name": "Identify object differences"
+        }
+      ]
+    },
+    "SK05": {
+      "name": "Counting & Counting Sequence",
+      "domain": "Number Sense",
+      "subskills": [
+        {
+          "id": "SK05.01",
+          "name": "Rote counting to 10"
+        },
+        {
+          "id": "SK05.02",
+          "name": "Count objects 1-3"
+        },
+        {
+          "id": "SK05.03",
+          "name": "Count to 5"
+        },
+        {
+          "id": "SK05.04",
+          "name": "Count to 10"
+        },
+        {
+          "id": "SK05.05",
+          "name": "Count to 20"
+        },
+        {
+          "id": "SK05.06",
+          "name": "Count to 50"
+        },
+        {
+          "id": "SK05.07",
+          "name": "Count to 100"
+        },
+        {
+          "id": "SK05.08",
+          "name": "Count forward from a given number"
+        },
+        {
+          "id": "SK05.09",
+          "name": "Count backward"
+        }
+      ]
+    },
+    "SK06": {
+      "name": "Cardinality",
+      "domain": "Number Sense",
+      "subskills": [
+        {
+          "id": "SK06.01",
+          "name": "Understand last number counted as total"
+        },
+        {
+          "id": "SK06.02",
+          "name": "Count small sets"
+        },
+        {
+          "id": "SK06.03",
+          "name": "Count and tell how many"
+        },
+        {
+          "id": "SK06.04",
+          "name": "Relate quantity to numeral"
+        }
+      ]
+    },
+    "SK07": {
+      "name": "Subitizing",
+      "domain": "Number Sense",
+      "subskills": [
+        {
+          "id": "SK07.01",
+          "name": "Perceptual subitizing"
+        },
+        {
+          "id": "SK07.02",
+          "name": "Recognize small quantity without counting"
+        },
+        {
+          "id": "SK07.03",
+          "name": "Conceptual subitizing"
+        },
+        {
+          "id": "SK07.04",
+          "name": "Compose quantity from subgroups"
+        }
+      ]
+    },
+    "SK08": {
+      "name": "Quantity & Numeral Representation",
+      "domain": "Number Sense",
+      "subskills": [
+        {
+          "id": "SK08.01",
+          "name": "Recognize numerals 1-10"
+        },
+        {
+          "id": "SK08.02",
+          "name": "Match numeral to quantity"
+        },
+        {
+          "id": "SK08.03",
+          "name": "Represent quantity with objects"
+        },
+        {
+          "id": "SK08.04",
+          "name": "Read numerals"
+        },
+        {
+          "id": "SK08.05",
+          "name": "Write numerals"
+        },
+        {
+          "id": "SK08.06",
+          "name": "Read/write numbers to 99"
+        },
+        {
+          "id": "SK08.07",
+          "name": "Read/write three-digit numbers"
+        },
+        {
+          "id": "SK08.08",
+          "name": "Read/write four-digit numbers"
+        }
+      ]
+    },
+    "SK09": {
+      "name": "Number Comparison",
+      "domain": "Number Sense",
+      "subskills": [
+        {
+          "id": "SK09.01",
+          "name": "Compare quantities"
+        },
+        {
+          "id": "SK09.02",
+          "name": "More/less/equal"
+        },
+        {
+          "id": "SK09.03",
+          "name": "Compare numerals using objects"
+        },
+        {
+          "id": "SK09.04",
+          "name": "Abstract numeral comparison"
+        },
+        {
+          "id": "SK09.05",
+          "name": "Compare close numbers"
+        },
+        {
+          "id": "SK09.06",
+          "name": "Compare two-digit numbers"
+        },
+        {
+          "id": "SK09.07",
+          "name": "Compare three-digit numbers"
+        }
+      ]
+    },
+    "SK10": {
+      "name": "Number Sequencing & Number Line",
+      "domain": "Number Sense",
+      "subskills": [
+        {
+          "id": "SK10.01",
+          "name": "Numeral sequencing"
+        },
+        {
+          "id": "SK10.02",
+          "name": "Before"
+        },
+        {
+          "id": "SK10.03",
+          "name": "After"
+        },
+        {
+          "id": "SK10.04",
+          "name": "Between"
+        },
+        {
+          "id": "SK10.05",
+          "name": "Missing number"
+        },
+        {
+          "id": "SK10.06",
+          "name": "Ordinal position"
+        },
+        {
+          "id": "SK10.07",
+          "name": "Informal number line 0-20"
+        },
+        {
+          "id": "SK10.08",
+          "name": "Number line 0-100"
+        }
+      ]
+    },
+    "SK11": {
+      "name": "Place Value & Base-Ten Structure",
+      "domain": "Number Sense",
+      "subskills": [
+        {
+          "id": "SK11.01",
+          "name": "Understand groups of ten"
+        },
+        {
+          "id": "SK11.02",
+          "name": "Tens and ones"
+        },
+        {
+          "id": "SK11.03",
+          "name": "Tens as bundles"
+        },
+        {
+          "id": "SK11.04",
+          "name": "Zero as placeholder"
+        },
+        {
+          "id": "SK11.05",
+          "name": "Two-digit place value"
+        },
+        {
+          "id": "SK11.06",
+          "name": "Three-digit place value"
+        },
+        {
+          "id": "SK11.07",
+          "name": "Expanded form"
+        },
+        {
+          "id": "SK11.08",
+          "name": "Four-digit place value"
+        },
+        {
+          "id": "SK11.09",
+          "name": "Five-digit place value"
+        }
+      ]
+    },
+    "SK12": {
+      "name": "Number Composition & Decomposition",
+      "domain": "Number Sense",
+      "subskills": [
+        {
+          "id": "SK12.01",
+          "name": "Compose quantities"
+        },
+        {
+          "id": "SK12.02",
+          "name": "Decompose quantities"
+        },
+        {
+          "id": "SK12.03",
+          "name": "Flexible two-digit decomposition"
+        },
+        {
+          "id": "SK12.04",
+          "name": "Flexible three-digit decomposition"
+        },
+        {
+          "id": "SK12.05",
+          "name": "Expanded form (decomposition)"
+        },
+        {
+          "id": "SK12.06",
+          "name": "Regroup quantities"
+        }
+      ]
+    },
+    "SK13": {
+      "name": "Addition",
+      "domain": "Number Operations",
+      "subskills": [
+        {
+          "id": "SK13.01",
+          "name": "Combine sets"
+        },
+        {
+          "id": "SK13.02",
+          "name": "Concrete addition"
+        },
+        {
+          "id": "SK13.03",
+          "name": "Single-digit addition"
+        },
+        {
+          "id": "SK13.04",
+          "name": "Addition within 20"
+        },
+        {
+          "id": "SK13.05",
+          "name": "Addition within 30"
+        },
+        {
+          "id": "SK13.06",
+          "name": "Two-digit addition"
+        },
+        {
+          "id": "SK13.07",
+          "name": "Addition with regrouping"
+        },
+        {
+          "id": "SK13.08",
+          "name": "Three-digit addition"
+        },
+        {
+          "id": "SK13.09",
+          "name": "Multi-digit addition"
+        },
+        {
+          "id": "SK13.10",
+          "name": "Addition word problems"
+        }
+      ]
+    },
+    "SK14": {
+      "name": "Subtraction",
+      "domain": "Number Operations",
+      "subskills": [
+        {
+          "id": "SK14.01",
+          "name": "Take away"
+        },
+        {
+          "id": "SK14.02",
+          "name": "Concrete subtraction"
+        },
+        {
+          "id": "SK14.03",
+          "name": "Single-digit subtraction"
+        },
+        {
+          "id": "SK14.04",
+          "name": "Subtraction within 20"
+        },
+        {
+          "id": "SK14.05",
+          "name": "Subtraction within 30"
+        },
+        {
+          "id": "SK14.06",
+          "name": "Two-digit subtraction"
+        },
+        {
+          "id": "SK14.07",
+          "name": "Subtraction with regrouping"
+        },
+        {
+          "id": "SK14.08",
+          "name": "Three-digit subtraction"
+        },
+        {
+          "id": "SK14.09",
+          "name": "Multi-digit subtraction"
+        },
+        {
+          "id": "SK14.10",
+          "name": "Subtraction word problems"
+        }
+      ]
+    },
+    "SK15": {
+      "name": "Multiplication",
+      "domain": "Number Operations",
+      "subskills": [
+        {
+          "id": "SK15.01",
+          "name": "Equal groups"
+        },
+        {
+          "id": "SK15.02",
+          "name": "Repeated addition"
+        },
+        {
+          "id": "SK15.03",
+          "name": "Skip-count connection"
+        },
+        {
+          "id": "SK15.04",
+          "name": "Multiplication facts 2,3,4,5,10"
+        },
+        {
+          "id": "SK15.05",
+          "name": "Tables 2-10"
+        },
+        {
+          "id": "SK15.06",
+          "name": "Multi-digit multiplication"
+        },
+        {
+          "id": "SK15.07",
+          "name": "Multiplication word problems"
+        }
+      ]
+    },
+    "SK16": {
+      "name": "Division",
+      "domain": "Number Operations",
+      "subskills": [
+        {
+          "id": "SK16.01",
+          "name": "Equal sharing"
+        },
+        {
+          "id": "SK16.02",
+          "name": "Equal grouping"
+        },
+        {
+          "id": "SK16.03",
+          "name": "Division facts"
+        },
+        {
+          "id": "SK16.04",
+          "name": "Relation to multiplication"
+        },
+        {
+          "id": "SK16.05",
+          "name": "Division procedures"
+        },
+        {
+          "id": "SK16.06",
+          "name": "Long division"
+        },
+        {
+          "id": "SK16.07",
+          "name": "Division word problems"
+        }
+      ]
+    },
+    "SK17": {
+      "name": "Fractions",
+      "domain": "Fractions",
+      "subskills": [
+        {
+          "id": "SK17.01",
+          "name": "Equal parts"
+        },
+        {
+          "id": "SK17.02",
+          "name": "Half"
+        },
+        {
+          "id": "SK17.03",
+          "name": "Quarter"
+        },
+        {
+          "id": "SK17.04",
+          "name": "Fraction notation"
+        },
+        {
+          "id": "SK17.05",
+          "name": "Equivalent fractions"
+        }
+      ]
+    },
+    "SK18": {
+      "name": "Patterns & Generalization",
+      "domain": "Patterns",
+      "subskills": [
+        {
+          "id": "SK18.01",
+          "name": "Identify repeating pattern"
+        },
+        {
+          "id": "SK18.02",
+          "name": "Extend pattern"
+        },
+        {
+          "id": "SK18.03",
+          "name": "Copy pattern"
+        },
+        {
+          "id": "SK18.04",
+          "name": "Two-item pattern"
+        },
+        {
+          "id": "SK18.05",
+          "name": "Three-item pattern"
+        },
+        {
+          "id": "SK18.06",
+          "name": "Number pattern"
+        },
+        {
+          "id": "SK18.07",
+          "name": "Skip-count pattern"
+        },
+        {
+          "id": "SK18.08",
+          "name": "Identify pattern rule"
+        },
+        {
+          "id": "SK18.09",
+          "name": "Generalize pattern"
+        },
+        {
+          "id": "SK18.10",
+          "name": "Advanced number pattern"
+        }
+      ]
+    },
+    "SK19": {
+      "name": "Shapes & Spatial Reasoning",
+      "domain": "Shapes & Spatial",
+      "subskills": [
+        {
+          "id": "SK19.01",
+          "name": "Shape matching"
+        },
+        {
+          "id": "SK19.02",
+          "name": "Identify basic shapes"
+        },
+        {
+          "id": "SK19.03",
+          "name": "Identify shape properties"
+        },
+        {
+          "id": "SK19.04",
+          "name": "Compose shapes"
+        },
+        {
+          "id": "SK19.05",
+          "name": "Decompose shapes"
+        },
+        {
+          "id": "SK19.06",
+          "name": "Identify 2D shapes"
+        },
+        {
+          "id": "SK19.07",
+          "name": "Identify 3D shapes"
+        },
+        {
+          "id": "SK19.08",
+          "name": "Spatial vocabulary"
+        },
+        {
+          "id": "SK19.09",
+          "name": "Relate 2D faces to 3D solids"
+        },
+        {
+          "id": "SK19.10",
+          "name": "Nets"
+        },
+        {
+          "id": "SK19.11",
+          "name": "Perspective"
+        },
+        {
+          "id": "SK19.12",
+          "name": "Angles and turns"
+        },
+        {
+          "id": "SK19.13",
+          "name": "Symmetry"
+        },
+        {
+          "id": "SK19.14",
+          "name": "Reflection"
+        }
+      ]
+    },
+    "SK20": {
+      "name": "Measurement",
+      "domain": "Measurement",
+      "subskills": [
+        {
+          "id": "SK20.01",
+          "name": "Compare length"
+        },
+        {
+          "id": "SK20.02",
+          "name": "Compare size"
+        },
+        {
+          "id": "SK20.03",
+          "name": "Compare capacity"
+        },
+        {
+          "id": "SK20.04",
+          "name": "Estimate length"
+        },
+        {
+          "id": "SK20.05",
+          "name": "Estimate capacity"
+        },
+        {
+          "id": "SK20.06",
+          "name": "Use non-standard units"
+        },
+        {
+          "id": "SK20.07",
+          "name": "Use uniform units"
+        },
+        {
+          "id": "SK20.08",
+          "name": "Standard measurement units"
+        },
+        {
+          "id": "SK20.09",
+          "name": "Unit conversion"
+        },
+        {
+          "id": "SK20.10",
+          "name": "Applied measurement"
+        },
+        {
+          "id": "SK20.11",
+          "name": "Perimeter"
+        },
+        {
+          "id": "SK20.12",
+          "name": "Area"
+        }
+      ]
+    },
+    "SK21": {
+      "name": "Time & Calendar",
+      "domain": "Calendar & Time",
+      "subskills": [
+        {
+          "id": "SK21.01",
+          "name": "Day/night concepts"
+        },
+        {
+          "id": "SK21.02",
+          "name": "Calendar structure"
+        },
+        {
+          "id": "SK21.03",
+          "name": "Days/weeks/months"
+        },
+        {
+          "id": "SK21.04",
+          "name": "Read calendar"
+        },
+        {
+          "id": "SK21.05",
+          "name": "Tell time to hour"
+        },
+        {
+          "id": "SK21.06",
+          "name": "Tell time to half-hour"
+        },
+        {
+          "id": "SK21.07",
+          "name": "Calculate elapsed time"
+        },
+        {
+          "id": "SK21.08",
+          "name": "Advanced time problems"
+        }
+      ]
+    },
+    "SK22": {
+      "name": "Money",
+      "domain": "Money",
+      "subskills": [
+        {
+          "id": "SK22.01",
+          "name": "Recognize currency"
+        },
+        {
+          "id": "SK22.02",
+          "name": "Match currency to value"
+        },
+        {
+          "id": "SK22.03",
+          "name": "Combine amounts"
+        },
+        {
+          "id": "SK22.04",
+          "name": "Calculate total cost"
+        },
+        {
+          "id": "SK22.05",
+          "name": "Calculate change"
+        },
+        {
+          "id": "SK22.06",
+          "name": "Multi-step money problems"
+        }
+      ]
+    },
+    "SK23": {
+      "name": "Data Handling",
+      "domain": "Data",
+      "subskills": [
+        {
+          "id": "SK23.01",
+          "name": "Sort data"
+        },
+        {
+          "id": "SK23.02",
+          "name": "Classify data"
+        },
+        {
+          "id": "SK23.03",
+          "name": "Tally"
+        },
+        {
+          "id": "SK23.04",
+          "name": "Count categories"
+        },
+        {
+          "id": "SK23.05",
+          "name": "Read pictograph"
+        },
+        {
+          "id": "SK23.06",
+          "name": "Read bar graph"
+        },
+        {
+          "id": "SK23.07",
+          "name": "Compare data"
+        },
+        {
+          "id": "SK23.08",
+          "name": "Interpret data"
+        }
+      ]
+    },
+    "SK24": {
+      "name": "Mathematical Reasoning & Problem Solving",
+      "domain": "Cross-cutting",
+      "subskills": [
+        {
+          "id": "SK24.01",
+          "name": "Identify relevant information"
+        },
+        {
+          "id": "SK24.02",
+          "name": "Choose an operation"
+        },
+        {
+          "id": "SK24.03",
+          "name": "Represent a problem"
+        },
+        {
+          "id": "SK24.04",
+          "name": "Explain reasoning"
+        },
+        {
+          "id": "SK24.05",
+          "name": "Check an answer"
+        },
+        {
+          "id": "SK24.06",
+          "name": "Apply mathematics to daily life"
+        },
+        {
+          "id": "SK24.07",
+          "name": "Solve multi-step problems"
+        }
+      ]
+    }
+  }
+}

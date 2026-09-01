@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { FLN_LEVELS_LIST } from './RoleDashboards';
 
 interface LandingViewProps {
   onNavigateToLogin: () => void;
@@ -227,8 +228,8 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
                 {t('landing.curriculum.title')}
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-slate-300">
-                {t('landing.curriculum.body')}
-              </p>
+                              {t('landing.curriculum.body', { levels: FLN_LEVELS_LIST.length })}
+                            </p>
             </div>
           </div>
         </div>
