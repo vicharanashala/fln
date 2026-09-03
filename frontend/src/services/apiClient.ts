@@ -12,6 +12,10 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 // Prefix an absolute app path (/api/x, /worksheets/y.html) with the base, e.g.
 // withBase('/api/stats') returns the base-relative /api/stats path.
 export function withBase(path: string): string {
+  // In development, point /api/ calls directly to the backend port 3000
+  if (import.meta.env.DEV && path.startsWith('/api/')) {
+    return `http://localhost:3000${path}`;
+  }
   return `${BASE}${path}`;
 }
 

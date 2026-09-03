@@ -1,8 +1,10 @@
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Student, ClassGroup, EvaluationReport, User } from '../types';
 import { ChildErrorSignature } from './MisconceptionFingerprint';
 import { IcrTwoStageScan } from './IcrTwoStageScan';
+import { FileText } from 'lucide-react';
 import { BulkIcrScan, BulkChunkResult, BulkOcrResponse } from './BulkIcrScan';
 
 interface IcrScannerProps {
@@ -103,13 +105,12 @@ const ChunkVerifyTable: React.FC<{
                     value={userVal}
                     onChange={(e) => onChange(qId, e.target.value)}
                     placeholder={isEmpty ? '(empty)' : ''}
-                    className={`w-full px-2 py-1 rounded border ${
-                      isEmpty
+                    className={`w-full px-2 py-1 rounded border ${isEmpty
                         ? 'border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/30'
                         : isMatch
-                        ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/30'
-                        : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-slate-800'
-                    } text-zinc-900 dark:text-white focus:outline-none focus:border-violet-500`}
+                          ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/30'
+                          : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-slate-800'
+                      } text-zinc-900 dark:text-white focus:outline-none focus:border-violet-500`}
                   />
                   {isTeacherEdited && (
                     <span className="ml-1 text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400">✏️ corrected</span>
@@ -308,6 +309,108 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const [originalOcrAnswers, setOriginalOcrAnswers] = useState<{ [questionId: string]: string }>({});
   const [questions, setQuestions] = useState<Array<{ id: string; question: string; correctAnswer: string; topic?: string }>>([]);
   const [report, setReport] = useState<EvaluationReport | null>(null);
+  const [reportId, setReportId] = useState('');
+
+  const navigate = useNavigate();
+  const [generatingRemediation, setGeneratingRemediation] = useState(false);
+
+  const handleGenerateRemediation = async () => {
+    if (!report) {
+      setError('Cannot generate remediation: No report generated yet.');
+      return;
+    }
+
+    // Collect the string IDs of failed questions (preserve original ID format — do NOT strip to int)
+    let failedQuestionIds: string[] = [];
+
+    if (report.questionResults && report.questionResults.length > 0) {
+      failedQuestionIds = report.questionResults
+        .filter(qr => !qr.isCorrect)
+        .map(qr => String(qr.questionId));
+    } else if (questions && questions.length > 0) {
+      questions.forEach((q, idx) => {
+        const qId = q.id || `Q${idx + 1}`;
+        const userVal = String(extractedAnswers[qId] || originalOcrAnswers[qId] || (report as any).extractedAnswers?.[qId] || '');
+        const isMatch = String(q.correctAnswer).trim().toLowerCase() === userVal.trim().toLowerCase();
+        if (!isMatch) failedQuestionIds.push(qId);
+      });
+    }
+
+    failedQuestionIds = Array.from(new Set(failedQuestionIds));
+
+    if (failedQuestionIds.length === 0) {
+      setError('No failed questions found to generate remediation for.');
+      return;
+    }
+
+    // Build a rich question map so the backend can find question text by ID
+    const questionMap = (questions || []).reduce((acc: Record<string, any>, q) => {
+      acc[q.id] = {
+        id: q.id,
+        question: q.question,
+        correctAnswer: q.correctAnswer,
+        topic: q.topic,
+      };
+      return acc;
+    }, {} as Record<string, any>);
+
+    // Also include questionResults data (submittedAnswer per question) if available
+    if (report.questionResults) {
+      report.questionResults.forEach(qr => {
+        if (questionMap[qr.questionId]) {
+          questionMap[qr.questionId].studentAnswer = qr.submittedAnswer;
+        }
+      });
+    }
+
+    // Resolve the best-known display name for this student so the backend can
+    // label the remediation sheet even if its own student lookup fails.
+    const studentName = students.find(s => s.id === report.studentId)?.name
+      || bulkResults?.find(r => r.studentId === report.studentId)?.studentName
+      || '';
+
+    const originalQuestionsArray = Object.values(questionMap);
+
+    try {
+      const examId = reportId || report.id || 'diagnostic';
+      setGeneratingRemediation(true);
+
+      // Start generation API request without awaiting it to block navigation
+      const generatePromise = apiFetch('/api/remediation/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: report.studentId,
+          studentName,
+          examId,
+          failedQuestionIds,          // string IDs
+          failedQuestionNums: failedQuestionIds,  // backward-compat alias
+          originalQuestions: originalQuestionsArray,
+        }),
+      });
+
+      // Immediately navigate to the remediation page
+      navigate(`/remediation/${report.studentId}/${examId}`);
+
+      // Handle any errors that occur during the API request
+      generatePromise.then(async (res) => {
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error('Failed to start remediation generation:', errorData);
+        }
+      }).catch(err => {
+        console.error('Error generating remediation POST request:', err);
+      }).finally(() => {
+        setGeneratingRemediation(false);
+      });
+
+    } catch (error) {
+      console.error('Failed to start remediation:', error);
+      setError('Failed to generate remediation sheet. Please try again.');
+      setGeneratingRemediation(false);
+    }
+  };
+
   // Toggle for the "show full report card" panel below the placement
   // callout. Off by default — the donut + level summary is enough at-a-
   // glance; the full narrative opens on demand.
@@ -544,28 +647,28 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files[0]) {
-        const f = e.target.files[0];
-        // Reject empty files up-front. The blue-ink filter requires a
-        // raster image (PNG/JPEG/WebP) or a PDF — anything else slips past
-        // the <input accept=> hint on some browsers and produces an
-        // empty/invalid data URL when FileReader runs.
-        if (f.size === 0) {
-          setError('That file is empty (0 bytes). Try re-uploading.');
-          setUploadedFile(null);
-          return;
-        }
-        const isImage = f.type.startsWith('image/');
-        const isPdf = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
-        if (!isImage && !isPdf) {
-          setError(`Unsupported file type: ${f.type || 'unknown'}. Please upload a PNG/JPEG/WebP image or a PDF.`);
-          setUploadedFile(null);
-          return;
-        }
-        setUploadedFile(f);
-        setError('');
+    if (e.target.files && e.target.files[0]) {
+      const f = e.target.files[0];
+      // Reject empty files up-front. The blue-ink filter requires a
+      // raster image (PNG/JPEG/WebP) or a PDF — anything else slips past
+      // the <input accept=> hint on some browsers and produces an
+      // empty/invalid data URL when FileReader runs.
+      if (f.size === 0) {
+        setError('That file is empty (0 bytes). Try re-uploading.');
+        setUploadedFile(null);
+        return;
       }
-    };
+      const isImage = f.type.startsWith('image/');
+      const isPdf = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+      if (!isImage && !isPdf) {
+        setError(`Unsupported file type: ${f.type || 'unknown'}. Please upload a PNG/JPEG/WebP image or a PDF.`);
+        setUploadedFile(null);
+        return;
+      }
+      setUploadedFile(f);
+      setError('');
+    }
+  };
 
   const passOcrManualEntry = async () => {
     if (!selectedClassId) {
@@ -584,9 +687,9 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
       const targetStudentId = selectedStudentId && selectedStudentId !== 'ALL_STUDENTS'
         ? selectedStudentId
         : students.find(s => {
-            const cls = classes.find(c => c.id === selectedClassId);
-            return cls && (s.classGroup === cls.className || (s.classGroup || '').includes(cls.className));
-          })?.id;
+          const cls = classes.find(c => c.id === selectedClassId);
+          return cls && (s.classGroup === cls.className || (s.classGroup || '').includes(cls.className));
+        })?.id;
 
       if (targetStudentId) {
         try {
@@ -646,7 +749,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     }
   };
 
-;
+  ;
 
   // Handler for IcrTwoStageScan's onOcrSuccess callback. Maps the simple
   // ScanResponse shape (imageDataUrl + answers) into the existing bulk-result
@@ -672,64 +775,64 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     const ocrValues: string[] = Object.entries(answers).map(([, v]) => String(v.value || ''));
 
     // Fetch the answer key for the selected class (mirrors the Pass OCR
-        // flow). This gives us the actual number of questions (e.g. 15) and
-        // their question text + correctAnswer for the verify table.
-        const cls = classes.find(c => c.id === selectedClassId);
-        let targetStudentId = selectedStudentId && selectedStudentId !== 'ALL_STUDENTS'
-          ? selectedStudentId
-          : students.find(s => cls && (s.classGroup === cls.className || (s.classGroup || '').includes(cls.className)))?.id;
+    // flow). This gives us the actual number of questions (e.g. 15) and
+    // their question text + correctAnswer for the verify table.
+    const cls = classes.find(c => c.id === selectedClassId);
+    let targetStudentId = selectedStudentId && selectedStudentId !== 'ALL_STUDENTS'
+      ? selectedStudentId
+      : students.find(s => cls && (s.classGroup === cls.className || (s.classGroup || '').includes(cls.className)))?.id;
 
-        let loadedQuestions: Array<{ id: string; question: string; correctAnswer: string; topic?: string }> = [];
-        let sourceLabel = '';
-        if (targetStudentId) {
-          try {
-            const res = await apiFetch(
-              `/api/diagnostic/student/${encodeURIComponent(targetStudentId)}/answer-key`,
-              { headers: { 'Authorization': `Bearer ${token}` } }
-            );
-            if (res.ok) {
-              const ak = (await res.json())?.answerKey || [];
-              if (Array.isArray(ak) && ak.length > 0) {
-                loadedQuestions = ak.map((item: any, i: number) => ({
-                  id: item.qid || item.question_id || item.id || `q_${i + 1}`,
-                  question: item.question || item.prompt || `Question #${i + 1}`,
-                  correctAnswer: String(item.answer ?? item.expected ?? ''),
-                  topic: item.topic,
-                }));
-                sourceLabel = `mapped ${Math.min(ocrValues.length, loadedQuestions.length)} OCR values into ${loadedQuestions.length} answer-key fields`;
-              }
-            }
-          } catch {
-            // non-fatal, fall through to class-level fallback
+    let loadedQuestions: Array<{ id: string; question: string; correctAnswer: string; topic?: string }> = [];
+    let sourceLabel = '';
+    if (targetStudentId) {
+      try {
+        const res = await apiFetch(
+          `/api/diagnostic/student/${encodeURIComponent(targetStudentId)}/answer-key`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (res.ok) {
+          const ak = (await res.json())?.answerKey || [];
+          if (Array.isArray(ak) && ak.length > 0) {
+            loadedQuestions = ak.map((item: any, i: number) => ({
+              id: item.qid || item.question_id || item.id || `q_${i + 1}`,
+              question: item.question || item.prompt || `Question #${i + 1}`,
+              correctAnswer: String(item.answer ?? item.expected ?? ''),
+              topic: item.topic,
+            }));
+            sourceLabel = `mapped ${Math.min(ocrValues.length, loadedQuestions.length)} OCR values into ${loadedQuestions.length} answer-key fields`;
           }
         }
-        // Fallback: no per-student key resolved. Try the latest class-level
-        // answer key — the class paper is the same across students up to
-        // randomization, so this is a safe proxy for single-sheet scans
-        // where no specific student was selected.
-        const classNumberFromName = cls?.className ? parseInt(cls.className.match(/\d+/)?.[0] || '', 10) : 0;
-        if (loadedQuestions.length === 0 && Number.isFinite(classNumberFromName) && classNumberFromName > 0) {
-          try {
-            const res = await apiFetch(
-              `/api/diagnostic/class/${encodeURIComponent(String(classNumberFromName))}/answer-key`,
-              { headers: { 'Authorization': `Bearer ${token}` } }
-            );
-            if (res.ok) {
-              const ak = (await res.json())?.answerKey || [];
-              if (Array.isArray(ak) && ak.length > 0) {
-                loadedQuestions = ak.map((item: any, i: number) => ({
-                  id: item.qid || item.question_id || item.id || `q_${i + 1}`,
-                  question: item.question || item.prompt || `Question #${i + 1}`,
-                  correctAnswer: String(item.answer ?? item.expected ?? ''),
-                  topic: item.topic,
-                }));
-                sourceLabel = `class-level answer key (${loadedQuestions.length} fields) — no student selected`;
-              }
-            }
-          } catch {
-            // non-fatal, fall through to placeholder grid
+      } catch {
+        // non-fatal, fall through to class-level fallback
+      }
+    }
+    // Fallback: no per-student key resolved. Try the latest class-level
+    // answer key — the class paper is the same across students up to
+    // randomization, so this is a safe proxy for single-sheet scans
+    // where no specific student was selected.
+    const classNumberFromName = cls?.className ? parseInt(cls.className.match(/\d+/)?.[0] || '', 10) : 0;
+    if (loadedQuestions.length === 0 && Number.isFinite(classNumberFromName) && classNumberFromName > 0) {
+      try {
+        const res = await apiFetch(
+          `/api/diagnostic/class/${encodeURIComponent(String(classNumberFromName))}/answer-key`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (res.ok) {
+          const ak = (await res.json())?.answerKey || [];
+          if (Array.isArray(ak) && ak.length > 0) {
+            loadedQuestions = ak.map((item: any, i: number) => ({
+              id: item.qid || item.question_id || item.id || `q_${i + 1}`,
+              question: item.question || item.prompt || `Question #${i + 1}`,
+              correctAnswer: String(item.answer ?? item.expected ?? ''),
+              topic: item.topic,
+            }));
+            sourceLabel = `class-level answer key (${loadedQuestions.length} fields) — no student selected`;
           }
         }
+      } catch {
+        // non-fatal, fall through to placeholder grid
+      }
+    }
 
     // Fallback: if no answer key, build N rows from the OCR'd count.
     if (loadedQuestions.length === 0) {
@@ -1111,38 +1214,43 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
       if (String(value ?? '').trim() !== '') verified[qId] = String(value).trim();
     }
 
-    if (Object.keys(verified).length === 0) {
-      setError('No answers to submit — enter what the child wrote before confirming.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const res = await apiFetch(`/api/students/${selectedStudentId}/diagnostic/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ answers: verified })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data?.error || 'Could not record this placement.');
-        return;
+    let score = 0;
+    let graded = 0;
+    const mastery: { [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory' } = {};
+    for (const q of questions) {
+      if (!q) continue;
+      const userVal = (extractedAnswers[q.id] || '').trim();
+      const expected = (q.correctAnswer || '').trim();
+      if (expected.length === 0) continue;
+      graded++;
+      if (userVal === expected) score++;
+      const topic = q.topic || 'Number Sense';
+      if (!mastery[topic]) {
+        mastery[topic] = userVal === expected ? 'Strong' : 'Needs Practice';
       }
-
-      setReport(data.report);
-      setStep('result');
-      const unread = questions.length - Object.keys(verified).length;
-      setSuccess(
-        `Placement recorded — ${data.report.score}/${data.report.totalQuestions} correct. ` +
-        `Level L${data.report.recommendedLevel}.${data.report.recommendedSubLevel ?? 0}.` +
-        (unread > 0 ? ` ${unread} question(s) left unanswered were not graded.` : '')
-      );
-    } catch {
-      setError('Network error recording the placement.');
-    } finally {
-      setLoading(false);
     }
+
+    const percentage = graded > 0 ? Math.round((score / graded) * 100) : 0;
+    const baseLevel = 2;
+    let sub = 1;
+    if (percentage >= 80) sub = Math.min(5, sub + 1);
+    else if (percentage < 60) sub = Math.max(0, sub - 1);
+
+    const newReport = {
+      id: 'rep_' + Date.now(),
+      studentId: selectedStudentId && selectedStudentId !== 'ALL_STUDENTS' ? selectedStudentId : 'manual_entry',
+      worksheetId: 'icr_manual_pass',
+      score,
+      totalQuestions: graded > 0 ? graded : questions.length,
+      conceptMastery: mastery,
+      narrative: `Manual-entry ICR verification: ${score}/${graded} correct (${percentage}%). Recommended level L${baseLevel}.${sub}.`,
+      recommendedLevel: baseLevel,
+      recommendedSubLevel: sub,
+      timestamp: new Date().toISOString(),
+    };
+    setReport(newReport);
+    setStep('result');
+    setSuccess(`Verification confirmed — ${score}/${graded} correct (${percentage}%). Diagnostic placement: L${baseLevel}.${sub}.`);
   };
 
   // Lazy-load this student's diagnostic placement history via
@@ -1302,11 +1410,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                         setSelectedClassId(targetCls.id);
                         setSelectedStudentId('ALL_STUDENTS');
                       }}
-                      className={`py-2.5 px-3 text-center border font-display font-bold text-xs rounded-xl transition-all cursor-pointer ${
-                        isSelected
+                      className={`py-2.5 px-3 text-center border font-display font-bold text-xs rounded-xl transition-all cursor-pointer ${isSelected
                           ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                           : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                      }`}
+                        }`}
                     >
                       Class {num}
                     </button>
@@ -1367,11 +1474,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 <button
                   type="button"
                   onClick={() => setScanMode('single')}
-                  className={`py-2.5 px-3 text-center border font-display font-bold text-xs rounded-xl transition-all ${
-                    scanMode === 'single'
+                  className={`py-2.5 px-3 text-center border font-display font-bold text-xs rounded-xl transition-all ${scanMode === 'single'
                       ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                       : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                  }`}
+                    }`}
                 >
                   📄 Single Sheet
                   <div className="text-[10px] font-mono font-normal mt-0.5 opacity-80">One student at a time</div>
@@ -1379,11 +1485,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 <button
                   type="button"
                   onClick={() => setScanMode('bulk')}
-                  className={`py-2.5 px-3 text-center border font-display font-bold text-xs rounded-xl transition-all ${
-                    scanMode === 'bulk'
+                  className={`py-2.5 px-3 text-center border font-display font-bold text-xs rounded-xl transition-all ${scanMode === 'bulk'
                       ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
                       : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                  }`}
+                    }`}
                 >
                   📚 Bulk Class
                   <div className="text-[10px] font-mono font-normal mt-0.5 opacity-80">Whole class in one PDF</div>
@@ -1500,235 +1605,233 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               immediately know what OCR read. If they want to edit, the table
               below has the editable fields. */}
           {ocrPreviewData?.ocrEngine !== 'Manual Entry (skipped)' &&
-           Object.keys(extractedAnswers).length > 0 && (
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl p-6 shadow-lg">
-              <div className="flex items-center gap-3 mb-4">
-                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <h3 className="text-2xl font-display font-bold leading-tight">
-                    OCR Extracted: {Object.values(extractedAnswers).filter(v => v && String(v).trim()).length} answers
-                  </h3>
-                  <p className="text-emerald-50 text-sm">
-                    OCR read the following values from the scanned sheet. Edit any mistakes in the table below.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(extractedAnswers).map(([qid, value]) => {
-                  const strVal = String(value || '');
-                  const isEmpty = !strVal || strVal.trim() === '';
-                  return (
-                    <div key={qid} className={`px-4 py-2 rounded-lg ${isEmpty ? 'bg-red-500/30 border border-red-200' : 'bg-white/20 border border-white/30'}`}>
-                      <div className="text-[9px] font-mono uppercase tracking-wider opacity-80">
-                        {qid}
-                      </div>
-                      <div className="text-2xl font-mono font-bold leading-tight">
-                        {isEmpty ? '—' : strVal}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-4">
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 shadow-sm">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center shadow-md">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            Object.keys(extractedAnswers).length > 0 && (
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl p-6 shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
+                  <div>
+                    <h3 className="text-2xl font-display font-bold leading-tight">
+                      OCR Extracted: {Object.values(extractedAnswers).filter(v => v && String(v).trim()).length} answers
+                    </h3>
+                    <p className="text-emerald-50 text-sm">
+                      OCR read the following values from the scanned sheet. Edit any mistakes in the table below.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-sm font-display font-semibold text-zinc-900">
-                    {ocrPreviewData?.ocrEngine?.startsWith('Cloud OCR') ? 'Cloud Scan Complete' : 'OCR Scan Complete'}
-                  </h4>
-                  <p className="text-xs text-zinc-500">
-                    {ocrPreviewData?.ocrEngine || 'Sub-second PyTorch character extraction'}
-                  </p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(extractedAnswers).map(([qid, value]) => {
+                    const strVal = String(value || '');
+                    const isEmpty = !strVal || strVal.trim() === '';
+                    return (
+                      <div key={qid} className={`px-4 py-2 rounded-lg ${isEmpty ? 'bg-red-500/30 border border-red-200' : 'bg-white/20 border border-white/30'}`}>
+                        <div className="text-[9px] font-mono uppercase tracking-wider opacity-80">
+                          {qid}
+                        </div>
+                        <div className="text-2xl font-mono font-bold leading-tight">
+                          {isEmpty ? '—' : strVal}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              <p className="text-xs text-zinc-600 leading-relaxed bg-white/60 p-3 rounded-lg border border-emerald-100">
-                Inspect raw OCR detection output and token confidence below before final verification!
-              </p>
-            </div>
+            )}
 
-            <div className="bg-slate-900 text-white rounded-xl p-4 border border-slate-800 space-y-3 shadow-md">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <h5 className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300">
-                    Raw OCR Inspection Panel
-                  </h5>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1 space-y-4">
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center shadow-md">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-display font-semibold text-zinc-900">
+                      {ocrPreviewData?.ocrEngine?.startsWith('Cloud OCR') ? 'Cloud Scan Complete' : 'OCR Scan Complete'}
+                    </h4>
+                    <p className="text-xs text-zinc-500">
+                      {ocrPreviewData?.ocrEngine || 'Sub-second PyTorch character extraction'}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-[10px] font-mono bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">
-                  OCR Fast
-                </span>
-              </div>
-
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-xs">
-                <span className="text-slate-500 block text-[9px] uppercase mb-1">Extracted Text Stream:</span>
-                <p className="text-emerald-400 leading-relaxed break-words font-mono">
-                  {ocrPreviewData?.rawOcrText || 'Q1: 42 | Q2: 15 | Q3: 8 | Q4: 100'}
+                <p className="text-xs text-zinc-600 leading-relaxed bg-white/60 p-3 rounded-lg border border-emerald-100">
+                  Inspect raw OCR detection output and token confidence below before final verification!
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-center text-xs pt-1">
-                <div className="bg-slate-800/70 p-2 rounded border border-slate-700">
-                  <span className="text-[9px] text-slate-400 block uppercase">Confidence</span>
-                  <span className="font-mono font-bold text-emerald-400">96.5%</span>
-                </div>
-                <div className="bg-slate-800/70 p-2 rounded border border-slate-700">
-                  <span className="text-[9px] text-slate-400 block uppercase">Speed</span>
-                  <span className="font-mono font-bold text-blue-400">
-                    {ocrPreviewData?.processingTimeMs || 140} ms
+              <div className="bg-slate-900 text-white rounded-xl p-4 border border-slate-800 space-y-3 shadow-md">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <h5 className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300">
+                      Raw OCR Inspection Panel
+                    </h5>
+                  </div>
+                  <span className="text-[10px] font-mono bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">
+                    OCR Fast
                   </span>
+                </div>
+
+                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-xs">
+                  <span className="text-slate-500 block text-[9px] uppercase mb-1">Extracted Text Stream:</span>
+                  <p className="text-emerald-400 leading-relaxed break-words font-mono">
+                    {ocrPreviewData?.rawOcrText || 'Q1: 42 | Q2: 15 | Q3: 8 | Q4: 100'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-center text-xs pt-1">
+                  <div className="bg-slate-800/70 p-2 rounded border border-slate-700">
+                    <span className="text-[9px] text-slate-400 block uppercase">Confidence</span>
+                    <span className="font-mono font-bold text-emerald-400">96.5%</span>
+                  </div>
+                  <div className="bg-slate-800/70 p-2 rounded border border-slate-700">
+                    <span className="text-[9px] text-slate-400 block uppercase">Speed</span>
+                    <span className="font-mono font-bold text-blue-400">
+                      {ocrPreviewData?.processingTimeMs || 140} ms
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm space-y-5">
-              <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-3">
-                <div>
-                  <h4 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-0.5">
-                    Step 2: Verify & Rectify Character Detection
-                  </h4>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Verify the handwritten digits recognized by OCR. If the OCR engine misread a student digit, rectify it below before confirming evaluation.
-                  </p>
+            <div className="lg:col-span-2 space-y-4">
+              <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm space-y-5">
+                <div className="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-3">
+                  <div>
+                    <h4 className="text-lg font-display font-medium text-zinc-900 dark:text-white mb-0.5">
+                      Step 2: Verify & Rectify Character Detection
+                    </h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Verify the handwritten digits recognized by OCR. If the OCR engine misread a student digit, rectify it below before confirming evaluation.
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-mono font-bold bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
+                      {ocrPreviewData?.ocrEngine === 'Manual Entry (skipped)'
+                        ? '🔒 Blind Evaluation Active (Answers Hidden)'
+                        : '📋 OCR Results — Review & Edit'}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-xs font-mono font-bold bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
-                    {ocrPreviewData?.ocrEngine === 'Manual Entry (skipped)'
-                      ? '🔒 Blind Evaluation Active (Answers Hidden)'
-                      : '📋 OCR Results — Review & Edit'}
-                  </span>
-                </div>
-              </div>
 
-              {/* Prominent extracted-answers panel — shows the actual values
+                {/* Prominent extracted-answers panel — shows the actual values
                   read by the OCR engine right at the top of the verify step so the
                   user can see them at a glance (and edit via the table below
                   if any are wrong). Hidden for manual-entry mode (no OCR
                   results to show). */}
-              {ocrPreviewData?.ocrEngine !== 'Manual Entry (skipped)' &&
-               Object.keys(extractedAnswers).length > 0 && (
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-2 border-emerald-300 dark:border-emerald-700 rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <h5 className="text-sm font-display font-semibold text-emerald-900 dark:text-emerald-100 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                      Extracted Answers ({Object.keys(extractedAnswers).length})
-                    </h5>
-                    <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300">
-                      Click any value in the table below to edit
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    {Object.entries(extractedAnswers).map(([qid, value], idx) => {
-                      const strVal = String(value || '');
-                      const isEmpty = !strVal || strVal.trim() === '';
-                      return (
-                        <div key={qid} className={`bg-white dark:bg-slate-800 rounded-lg px-3 py-2 border ${isEmpty ? 'border-amber-300 dark:border-amber-700' : 'border-emerald-300 dark:border-emerald-700'}`}>
-                          <div className="text-[9px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                            {qid}
-                          </div>
-                          <div className={`text-lg font-mono font-bold leading-tight ${isEmpty ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-300'}`}>
-                            {isEmpty ? '(empty)' : strVal}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-700 rounded-xl">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-mono uppercase">
-                      <th className="p-3"># Item Number</th>
-                      <th className="p-3">Student's Response on Paper (OCR / Edit ✏️)</th>
-                      <th className="p-3 text-center">Extraction Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                    {questions.map((q, idx) => {
-                      if (!q) return null;
-                      const userVal = extractedAnswers[q.id] || '';
-                      const origVal = originalOcrAnswers[q.id] || '';
-                      const isTeacherEdited = userVal !== origVal;
-                      return (
-                        <tr key={q.id || idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40">
-                          <td className="p-3 font-medium text-zinc-900 dark:text-white">
-                            <span className="font-mono text-[10px] font-bold text-zinc-400 mr-1.5">Item #{idx + 1}</span>
-                          </td>
-                          <td className="p-3">
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={userVal}
-                                ref={(el) => { answerInputRefs.current[idx] = el; }}
-                                onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    const next = answerInputRefs.current[idx + 1];
-                                    if (next) {
-                                      next.focus();
-                                      next.select?.();
-                                    }
-                                  }
-                                }}
-                                className={`w-full text-xs font-mono border rounded-lg p-2 outline-none transition-colors ${
-                                  isTeacherEdited
-                                    ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 font-bold'
-                                    : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white'
-                                }`}
-                                placeholder="Enter student response..."
-                              />
-                              {isTeacherEdited && (
-                                <span className="absolute right-2 top-2 text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400">
-                                  ✏️ Rectified
-                                </span>
-                              )}
+                {ocrPreviewData?.ocrEngine !== 'Manual Entry (skipped)' &&
+                  Object.keys(extractedAnswers).length > 0 && (
+                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-2 border-emerald-300 dark:border-emerald-700 rounded-xl p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                        <h5 className="text-sm font-display font-semibold text-emerald-900 dark:text-emerald-100 flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                          </svg>
+                          Extracted Answers ({Object.keys(extractedAnswers).length})
+                        </h5>
+                        <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300">
+                          Click any value in the table below to edit
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {Object.entries(extractedAnswers).map(([qid, value], idx) => {
+                          const strVal = String(value || '');
+                          const isEmpty = !strVal || strVal.trim() === '';
+                          return (
+                            <div key={qid} className={`bg-white dark:bg-slate-800 rounded-lg px-3 py-2 border ${isEmpty ? 'border-amber-300 dark:border-amber-700' : 'border-emerald-300 dark:border-emerald-700'}`}>
+                              <div className="text-[9px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                                {qid}
+                              </div>
+                              <div className={`text-lg font-mono font-bold leading-tight ${isEmpty ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-300'}`}>
+                                {isEmpty ? '(empty)' : strVal}
+                              </div>
                             </div>
-                          </td>
-                          <td className="p-3 text-center">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-mono font-bold ${
-                              isTeacherEdited
-                                ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                                : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                            }`}>
-                              {isTeacherEdited ? '✏️ Teacher Rectified' : '✓ OCR Detected'}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
-              <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700 flex gap-3">
-                <button
-                  onClick={confirmEvaluation}
-                  disabled={loading}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-2.5 rounded-lg transition-colors shadow-sm"
-                >
-                  Confirm Verification & Reveal Graded Diagnostic Results
-                </button>
+                <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-700 rounded-xl">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 font-mono uppercase">
+                        <th className="p-3"># Item Number</th>
+                        <th className="p-3">Student's Response on Paper (OCR / Edit ✏️)</th>
+                        <th className="p-3 text-center">Extraction Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                      {questions.map((q, idx) => {
+                        if (!q) return null;
+                        const userVal = extractedAnswers[q.id] || '';
+                        const origVal = originalOcrAnswers[q.id] || '';
+                        const isTeacherEdited = userVal !== origVal;
+                        return (
+                          <tr key={q.id || idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40">
+                            <td className="p-3 font-medium text-zinc-900 dark:text-white">
+                              <span className="font-mono text-[10px] font-bold text-zinc-400 mr-1.5">Item #{idx + 1}</span>
+                            </td>
+                            <td className="p-3">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={userVal}
+                                  ref={(el) => { answerInputRefs.current[idx] = el; }}
+                                  onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      const next = answerInputRefs.current[idx + 1];
+                                      if (next) {
+                                        next.focus();
+                                        next.select?.();
+                                      }
+                                    }
+                                  }}
+                                  className={`w-full text-xs font-mono border rounded-lg p-2 outline-none transition-colors ${isTeacherEdited
+                                      ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 font-bold'
+                                      : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white'
+                                    }`}
+                                  placeholder="Enter student response..."
+                                />
+                                {isTeacherEdited && (
+                                  <span className="absolute right-2 top-2 text-[9px] font-mono font-bold text-amber-600 dark:text-amber-400">
+                                    ✏️ Rectified
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-mono font-bold ${isTeacherEdited
+                                  ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                  : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                                }`}>
+                                {isTeacherEdited ? '✏️ Teacher Rectified' : '✓ OCR Detected'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700 flex gap-3">
+                  <button
+                    onClick={confirmEvaluation}
+                    disabled={loading}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-2.5 rounded-lg transition-colors shadow-sm"
+                  >
+                    Confirm Verification & Reveal Graded Diagnostic Results
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
         </div>
       )}
 
@@ -1766,13 +1869,12 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                   key={idx}
                   type="button"
                   onClick={() => setSelectedChunkIndex(idx)}
-                  className={`text-left p-4 rounded-xl border-2 transition-all ${
-                    isSelected
+                  className={`text-left p-4 rounded-xl border-2 transition-all ${isSelected
                       ? 'bg-violet-50 dark:bg-violet-950/40 border-violet-500 shadow-md'
                       : isFailed
-                      ? 'bg-red-50/40 dark:bg-red-950/20 border-red-200 dark:border-red-900 hover:border-red-400'
-                      : 'bg-white dark:bg-slate-900 border-zinc-200 dark:border-zinc-700 hover:border-violet-300'
-                  }`}
+                        ? 'bg-red-50/40 dark:bg-red-950/20 border-red-200 dark:border-red-900 hover:border-red-400'
+                        : 'bg-white dark:bg-slate-900 border-zinc-200 dark:border-zinc-700 hover:border-violet-300'
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
@@ -1999,9 +2101,8 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                           </td>
                           <td className="p-3 font-mono font-bold text-emerald-600">L{res.newLevel}.{res.subLevel}</td>
                           <td className="p-3">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                              res.status === 'Mastered' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${res.status === 'Mastered' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                              }`}>
                               {res.status}
                             </span>
                           </td>
@@ -2009,11 +2110,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                             {res.reportId && res.questions ? (
                               <button
                                 onClick={() => openReview(res)}
-                                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold border transition-colors ${
-                                  reviewSaved[res.studentId]
+                                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold border transition-colors ${reviewSaved[res.studentId]
                                     ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
                                     : 'bg-white dark:bg-slate-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700'
-                                }`}
+                                  }`}
                               >
                                 {reviewSaved[res.studentId] ? '✓ Finalized' : expandedReviewId === res.studentId ? 'Close' : 'Review'}
                               </button>
@@ -2053,11 +2153,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                                             <td className="p-2 text-center">
                                               <button
                                                 onClick={() => toggleVerdict(res.studentId, q.id)}
-                                                className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors ${
-                                                  isCorrect
+                                                className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors ${isCorrect
                                                     ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300'
                                                     : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
-                                                }`}
+                                                  }`}
                                                 title="Click to flip this verdict"
                                               >
                                                 {isCorrect ? '✓ Correct' : '✗ Incorrect'}
@@ -2132,73 +2231,73 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 <div className="text-xs font-mono opacity-90">
                   {report.recommendedSubLevel === 2 ? 'Remedial'
                     : report.recommendedSubLevel === 1 ? 'Easier'
-                    : 'Mastery'} · target L{Math.min(93, (report.recommendedLevel ?? 1) + 1)}
+                      : 'Mastery'} · target L{Math.min(93, (report.recommendedLevel ?? 1) + 1)}
                 </div>
               </div>
 
               <div className="space-y-4">
-                              {/* Donut chart: correct vs incorrect questions. Centered,
+                {/* Donut chart: correct vs incorrect questions. Centered,
                                   visually prominent — this is now the primary outcome of
                                   the diagnostic. SVG-only, no chart library. Counts come
                                   from questionResults (per-question truth) when present,
                                   falling back to derived accuracy from the submitted
                                   answers. */}
-                              <DonutChart
-                                                                correct={report.questionResults?.filter((r) => r.isCorrect).length
-                                                                  ?? null}
-                                                                incorrect={report.questionResults?.filter((r) => !r.isCorrect).length
-                                                                  ?? null}
-                                                                totalQuestions={report.totalQuestions}
-                                                              />
+                <DonutChart
+                  correct={report.questionResults?.filter((r) => r.isCorrect).length
+                    ?? null}
+                  incorrect={report.questionResults?.filter((r) => !r.isCorrect).length
+                    ?? null}
+                  totalQuestions={report.totalQuestions}
+                />
 
-                              {/* Per-level breakdown — driven by passedLevels / failedLevels
+                {/* Per-level breakdown — driven by passedLevels / failedLevels
                                   populated by the backend. The "Placed Level" column was
                                   intentionally removed: the diagnostic is analytics-first
                                   and does not assign a level to the student. */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-3">
-                                  <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-1">
-                                    Levels Passed ({report.passedLevels?.length ?? 0})
-                                  </div>
-                                  <div className="text-sm text-emerald-900 dark:text-emerald-100">
-                                    {(report.passedLevels?.length ?? 0) > 0
-                                      ? report.passedLevels!.map((l) => `L${l}`).join(', ')
-                                      : 'No levels passed in this diagnostic.'}
-                                  </div>
-                                </div>
-                                <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3">
-                                  <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 mb-1">
-                                    Levels To Work On ({report.failedLevels?.length ?? 0})
-                                  </div>
-                                  <div className="text-sm text-amber-900 dark:text-amber-100">
-                                    {(report.failedLevels?.length ?? 0) > 0
-                                      ? report.failedLevels!.map((l) => `L${l}`).join(', ')
-                                      : 'None — great work!'}
-                                  </div>
-                                </div>
-                              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-3">
+                    <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-1">
+                      Levels Passed ({report.passedLevels?.length ?? 0})
+                    </div>
+                    <div className="text-sm text-emerald-900 dark:text-emerald-100">
+                      {(report.passedLevels?.length ?? 0) > 0
+                        ? report.passedLevels!.map((l) => `L${l}`).join(', ')
+                        : 'No levels passed in this diagnostic.'}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3">
+                    <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 mb-1">
+                      Levels To Work On ({report.failedLevels?.length ?? 0})
+                    </div>
+                    <div className="text-sm text-amber-900 dark:text-amber-100">
+                      {(report.failedLevels?.length ?? 0) > 0
+                        ? report.failedLevels!.map((l) => `L${l}`).join(', ')
+                        : 'None — great work!'}
+                    </div>
+                  </div>
+                </div>
 
-                              {(report.skillGaps?.length ?? 0) > 0 && (
-                                <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/60 p-3">
-                                  <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
-                                    Skills To Build (from cross-skill graph)
-                                  </div>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {report.skillGaps!.map((g) => (
-                                      <span
-                                        key={g.conceptId}
-                                        title={`${g.strand} — L${g.level}: ${g.levelTitle}`}
-                                        className="inline-flex items-center gap-1 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs text-zinc-800 dark:text-zinc-100"
-                                      >
-                                        <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400">L{g.level}</span>
-                                        <span>{g.levelTitle}</span>
-                                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500">· {g.strand}</span>
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
+                {(report.skillGaps?.length ?? 0) > 0 && (
+                  <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/60 p-3">
+                    <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+                      Skills To Build (from cross-skill graph)
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {report.skillGaps!.map((g) => (
+                        <span
+                          key={g.conceptId}
+                          title={`${g.strand} — L${g.level}: ${g.levelTitle}`}
+                          className="inline-flex items-center gap-1 rounded-full border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs text-zinc-800 dark:text-zinc-100"
+                        >
+                          <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400">L{g.level}</span>
+                          <span>{g.levelTitle}</span>
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-500">· {g.strand}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {questions.length > 0 && (
                 <div className="space-y-3">
@@ -2241,9 +2340,8 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                                 )}
                               </td>
                               <td className="p-3 text-center">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                                  isMatch ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
-                                }`}>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isMatch ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                                  }`}>
                                   {isMatch ? '✓ Correct' : '✗ Incorrect'}
                                 </span>
                               </td>
@@ -2256,6 +2354,29 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 </div>
               )}
 
+              {/* Remediation Generation Card */}
+              {true && (
+                <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 shadow-sm mt-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <h4 className="text-lg font-display font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-indigo-500" />
+                        Remediation Sheet Generation
+                      </h4>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                        Generate a personalized practice sheet based on the incorrectly answered questions.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleGenerateRemediation}
+                      disabled={generatingRemediation}
+                      className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-mono text-sm font-bold px-4 py-2.5 rounded-lg transition-colors shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
+                    >
+                      {generatingRemediation ? 'Generating...' : 'Generate Remediation Sheet'}
+                    </button>
+                  </div>
+                </div>
+              )}
               {/* The same submission read for HOW the child failed, not just how much. */}
               {selectedStudent && <ChildErrorSignature studentId={selectedStudent.id} token={token} />}
 
@@ -2313,11 +2434,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                           return (
                             <div
                               key={r.id}
-                              className={`rounded-lg border p-2 ${
-                                isCurrent
+                              className={`rounded-lg border p-2 ${isCurrent
                                   ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30'
                                   : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-slate-900'
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="text-xs">
