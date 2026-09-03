@@ -33,6 +33,40 @@ export interface School {
   isAccessLocked?: boolean;
 }
 
+// ─── Learning Path (teacher-mediated remediation loop) ───────────────────────
+// Mirrors backend/src/learningPathEngine.ts. Kept in sync by hand, the same way
+// Student / EvaluationReport are duplicated between the backend db model and
+// this file — the frontend cannot import backend modules.
+
+export type LearningPathStatus = 'not_started' | 'in_progress' | 'mastered';
+
+export interface LearningPathNode {
+  conceptId: string;
+  level: number;
+  levelTitle: string;
+  strand: string;
+  kind: 'foundation' | 'gap';
+  status: LearningPathStatus;
+  blocks: string[];
+  blocksCount: number;
+  updatedAt?: string;
+  masteredAt?: string;
+}
+
+export interface LearningPath {
+  generatedAt: string;
+  sourceReportId: string | null;
+  nodes: LearningPathNode[];
+}
+
+export interface LearningPathSummary {
+  total: number;
+  mastered: number;
+  inProgress: number;
+  notStarted: number;
+  percentMastered: number;
+}
+
 export interface ClassGroup {
   id: string;
   schoolId: string;
@@ -72,6 +106,10 @@ export interface Student {
   busRoute?: string;
   siblingsInSchool?: string;
   teacherNotes?: string;
+  // Durable, teacher-mediated remediation journey derived from the student's
+  // latest diagnostic (see backend/src/learningPathEngine.ts). Persisted on the
+  // student record; surfaced/edited in the Learning Path panel.
+  learningPath?: LearningPath;
 }
 
 export interface Question {

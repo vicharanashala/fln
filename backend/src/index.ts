@@ -33,6 +33,7 @@ import { registerSchoolRoutes } from './routes/schools';
 import { registerInterventionRoutes } from './routes/interventions';
 import { registerBestPracticeRoutes } from './routes/bestPractices';
 import { registerStudentRoutes } from './routes/students';
+import { registerLearningPathRoutes } from './routes/learningPath';
 import { registerWorksheetRoutes } from './routes/worksheets';
 import { registerEvaluationRoutes } from './routes/evaluation';
 import { registerAnalyticsRoutes } from './routes/analytics';
@@ -128,6 +129,7 @@ registerStatsRoutes(app);
   registerClassRoutes(app);
 
   registerStudentRoutes(app);
+  registerLearningPathRoutes(app);
 
   registerEvaluationRoutes(app);
   registerWorksheetRoutes(app);
