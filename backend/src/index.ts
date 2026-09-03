@@ -110,6 +110,14 @@ async function startServer() {
 
   // --- API Endpoints ---
 
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'OK', uptime: process.uptime(), timestamp: new Date().toISOString() });
+  });
+
+  app.get('/api/version', (req, res) => {
+    res.status(200).json({ version: '1.0.0', environment: process.env.NODE_ENV || 'development' });
+  });
+
 registerStatsRoutes(app);
 
   registerAuthRoutes(app);
