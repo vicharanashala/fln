@@ -13,6 +13,7 @@ This directory documents the complete teacher workflow in the FLN Assessment Por
 | `teacher-icr-scanner.md` | Simulated ICR scanner with animated flow |
 | `teacher-api-endpoints.md` | All server API endpoints available to teacher |
 | `teacher-governance-rules.md` | SRS governance rules enforced for teachers |
+| `intern-dashboard-tasks.md` | Scoped specifications for intern dashboard improvement tasks (Issue #342) |
 
 ## Quick Start
 
