@@ -16,12 +16,11 @@ import {
   SchoolDashboard,
   VolunteerDashboard,
 } from './components/RoleDashboards';
-import { TeacherDashboard } from './components/TeacherDashboard';
+import TeacherAnalyticsDashboard from './components/TeacherAnalyticsDashboard';
 import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
-import MisconceptionFingerprint from './components/MisconceptionFingerprint';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
 import { apiFetch, UNAUTHORIZED_EVENT } from './services/apiClient';
 
@@ -33,6 +32,32 @@ export default function App() {
   const [activePanel, setActivePanel] = useState<string>('workspace');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Theme state with local persistence
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    return localStorage.getItem('fln_theme') === 'dark';
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDark]);
+
+  const handleThemeToggle = () => {
+    setIsDark((prev) => {
+      const next = !prev;
+      localStorage.setItem('fln_theme', next ? 'dark' : 'light');
+      return next;
+    });
+  };
+
+  const handleNavigateHome = () => {
+    setCurrentView('home');
+    navigate('/');
+  };
 
   const triggerToast = (msg: string) => {
     setToast(msg);
@@ -95,7 +120,7 @@ export default function App() {
   };
 
   const handleMarkNotificationRead = (id: string) => {
-    setAnnouncements(prev => prev.map(a => (a.id === id ? { ...a, read: true } : a)));
+    setAnnouncements((prev) => prev.map((a) => (a.id === id ? { ...a, read: true } : a)));
   };
 
   const handleClearNotifications = () => setAnnouncements([]);
@@ -109,21 +134,17 @@ export default function App() {
   };
 
   const renderRoleWorkspace = () => {
-    // token is required by DashboardProps — without it the dashboards send
-    // "Bearer undefined" and every data fetch 401s.
     if (!currentUser || !token) return null;
 
     switch (currentUser.role) {
       case 'superadmin':
-        return <SuperadminDashboard user={currentUser} token={token} />;
+        return <SuperadminDashboard token={token} user={currentUser} />
       case 'admin':
-      case 'district_admin':
-      case 'block_admin':
         return <AdminDashboard user={currentUser} token={token} />;
       case 'school':
         return <SchoolDashboard user={currentUser} token={token} />;
       case 'teacher':
-        return <TeacherDashboard />;
+        return <TeacherAnalyticsDashboard />;
       case 'volunteer':
         return <VolunteerDashboard user={currentUser} token={token} />;
       default:
@@ -131,7 +152,7 @@ export default function App() {
     }
   };
 
-  const activeUrgentAnnouncements = announcements.filter(a => a.isUrgent);
+  const activeUrgentAnnouncements = announcements.filter((a) => a.isUrgent);
 
   return (
     <Routes>
@@ -140,28 +161,16 @@ export default function App() {
         path="*"
         element={
           <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
-
-            {/* --- PREVIEW BAR & DIRECT DASHBOARD INJECTION --- */}
-            <div className="bg-indigo-900 text-white text-xs px-4 py-2 flex justify-between items-center shadow-md">
-              <span className="font-semibold">🚀 FLN Dev Preview: Teacher Assessment Dashboard</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentView(currentView === 'home' ? 'dashboard' : 'home')}
-                  className="bg-indigo-700 hover:bg-indigo-600 px-3 py-1 rounded text-white font-medium"
-                >
-                  Toggle Landing View / Dashboard
-                </button>
-              </div>
-            </div>
-
-            {/* Render Teacher Dashboard directly */}
-            <div className="p-4">
-              <TeacherDashboard />
-            </div>
-
             {/* Normal Portal Views */}
-            {currentView === 'home' && <LandingView onNavigateToLogin={() => setCurrentView('login')} />}
-            {currentView === 'login' && <LoginView onLoginSuccess={handleLoginSuccess} onBackToHome={() => setCurrentView('home')} />}
+            {currentView === 'home' && (
+              <LandingView onNavigateToLogin={() => setCurrentView('login')} />
+            )}
+            {currentView === 'login' && (
+              <LoginView
+                onLoginSuccess={handleLoginSuccess}
+                onBackToHome={() => setCurrentView('home')}
+              />
+            )}
 
             {currentView === 'dashboard' && currentUser && token && (
               <Layout
@@ -173,6 +182,9 @@ export default function App() {
                 onMarkNotificationRead={handleMarkNotificationRead}
                 onClearNotifications={handleClearNotifications}
                 onLogout={handleLogout}
+                isDark={isDark}
+                onThemeToggle={handleThemeToggle}
+                onNavigateHome={handleNavigateHome}
               >
                 {activeUrgentAnnouncements.length > 0 && (
                   <div className="mb-6 flex items-center justify-between rounded-xl border border-amber-700 bg-amber-600 px-6 py-2.5 text-xs font-medium text-white shadow-sm">
@@ -180,7 +192,9 @@ export default function App() {
                       <span className="font-mono font-bold">⚠️ CRITICAL ALERT:</span>
                       <span>{activeUrgentAnnouncements[0].message}</span>
                     </div>
-                    <span className="rounded bg-amber-800/40 px-2 py-0.5 text-[10px] font-mono uppercase text-amber-200">Escalated</span>
+                    <span className="rounded bg-amber-800/40 px-2 py-0.5 text-[10px] font-mono uppercase text-amber-200">
+                      Escalated
+                    </span>
                   </div>
                 )}
 
@@ -191,15 +205,21 @@ export default function App() {
                     <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
                       <Bell className="h-6 w-6 text-slate-500 dark:text-slate-400" />
                       <div>
-                        <h2 className="font-sans text-lg font-bold text-slate-900 dark:text-white">Announcements Log</h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Official notifications escalated by state administrative coordinators.</p>
+                        <h2 className="font-sans text-lg font-bold text-slate-900 dark:text-white">
+                          Announcements Log
+                        </h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Official notifications escalated by state administrative coordinators.
+                        </p>
                       </div>
                     </div>
                     <div className="space-y-4">
                       {announcements.length === 0 ? (
-                        <div className="p-8 text-center font-mono text-xs text-slate-400 dark:text-slate-500">No active broadcasts.</div>
+                        <div className="p-8 text-center font-mono text-xs text-slate-400 dark:text-slate-500">
+                          No active broadcasts.
+                        </div>
                       ) : (
-                        announcements.map(notif => (
+                        announcements.map((notif) => (
                           <div
                             key={notif.id}
                             className={`space-y-2 rounded-xl border p-4 ${notif.isUrgent
@@ -208,12 +228,16 @@ export default function App() {
                               }`}
                           >
                             <div className="flex items-center justify-between">
-                              <h4 className="text-sm font-bold text-slate-900 dark:text-white">{notif.title}</h4>
+                              <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                                {notif.title}
+                              </h4>
                               <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500">
                                 {new Date(notif.createdAt).toLocaleString()}
                               </span>
                             </div>
-                            <p className="font-sans text-xs leading-relaxed text-slate-600 dark:text-slate-300">{notif.message}</p>
+                            <p className="font-sans text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                              {notif.message}
+                            </p>
                           </div>
                         ))
                       )}
@@ -222,37 +246,67 @@ export default function App() {
                 )}
 
                 {activePanel === 'logbook' && <LogbookView token={token} user={currentUser} />}
-                {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role} />}
+                {activePanel === 'tickets' && (
+                  <TicketSubmission token={token} userRole={currentUser.role} />
+                )}
                 {activePanel === 'calendar' && <AssessmentCalendar />}
-                {activePanel === 'misconceptions' && <MisconceptionFingerprint token={token} />}
 
                 {activePanel === 'settings' && (
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                     <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
                       <Settings className="h-6 w-6 text-slate-500" />
                       <div>
-                        <h2 className="font-sans text-lg font-bold text-slate-900">Portal Preferences & Account Settings</h2>
-                        <p className="text-xs text-slate-500">Configure user settings, localization preferences, and SSO authorization status.</p>
+                        <h2 className="font-sans text-lg font-bold text-slate-900">
+                          Portal Preferences & Account Settings
+                        </h2>
+                        <p className="text-xs text-slate-500">
+                          Configure user settings, localization preferences, and SSO authorization status.
+                        </p>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 gap-6 text-sm font-sans md:grid-cols-2">
                       <div className="space-y-4">
-                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800">User Profile Details</h3>
+                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800">
+                          User Profile Details
+                        </h3>
                         <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-4">
-                          <div><span className="text-xs font-semibold text-slate-400">Full Name:</span> <strong className="text-slate-800">{currentUser.name}</strong></div>
-                          <div><span className="text-xs font-semibold text-slate-400">Email ID:</span> <strong className="font-mono text-slate-800">{currentUser.email}</strong></div>
-                          <div><span className="text-xs font-semibold text-slate-400">Assigned Scope:</span> <strong className="font-mono text-slate-800">{currentUser.schoolId || currentUser.districtCode || currentUser.stateCode || 'National Oversight'}</strong></div>
+                          <div>
+                            <span className="text-xs font-semibold text-slate-400">Full Name:</span>{' '}
+                            <strong className="text-slate-800">{currentUser.name}</strong>
+                          </div>
+                          <div>
+                            <span className="text-xs font-semibold text-slate-400">Email ID:</span>{' '}
+                            <strong className="font-mono text-slate-800">{currentUser.email}</strong>
+                          </div>
+                          <div>
+                            <span className="text-xs font-semibold text-slate-400">Assigned Scope:</span>{' '}
+                            <strong className="font-mono text-slate-800">
+                              {currentUser.schoolId ||
+                                currentUser.districtCode ||
+                                currentUser.stateCode ||
+                                'National Oversight'}
+                            </strong>
+                          </div>
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800">Accessibility Configuration</h3>
+                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800">
+                          Accessibility Configuration
+                        </h3>
                         <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50 p-4">
                           <label className="flex items-center gap-2 font-medium">
-                            <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-600" />
+                            <input
+                              type="checkbox"
+                              defaultChecked
+                              className="rounded border-slate-300 text-indigo-600"
+                            />
                             <span>Enable High-Contrast Border Outlines</span>
                           </label>
                           <label className="flex items-center gap-2 font-medium">
-                            <input type="checkbox" className="rounded border-slate-300 text-indigo-600" />
+                            <input
+                              type="checkbox"
+                              className="rounded border-slate-300 text-indigo-600"
+                            />
                             <span>Audio voice narration on hover (SLA §2.3)</span>
                           </label>
                         </div>
@@ -261,9 +315,9 @@ export default function App() {
                   </div>
                 )}
 
-                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'misconceptions'].includes(activePanel) && (
-                  <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
-                )}
+                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(
+                  activePanel
+                ) && <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />}
 
                 {toast && (
                   <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-2xl dark:border-slate-600">

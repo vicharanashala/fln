@@ -6,6 +6,9 @@
 // under any deployment without hardcoding the subpath, and removes the need to
 // string-rewrite built files at deploy time.
 
+// 1. Export the event constant so App.tsx can import and listen to it cleanly
+export const UNAUTHORIZED_EVENT = 'fln_unauthorized';
+
 // Base with any trailing slash removed (empty string at the root deployment).
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -27,7 +30,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const res = await fetch(withBase(path), { ...init, headers });
   if (res.status === 401 && !path.includes('/api/auth/login')) {
     localStorage.removeItem('fln_token');
-    window.dispatchEvent(new Event('fln_unauthorized'));
+    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
   }
   return res;
 }
