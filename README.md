@@ -121,6 +121,39 @@ Demo login after seeding: `superadmin@fln.org`, password `Fln@2026` (see
 emails, which follow a predictable `role.<state>_<district>_<block>_<school>@fln.org`
 pattern).
 
+### Aadhaar tokenization (in-process vault)
+
+Student registration tokenizes the 12-digit Aadhaar through the in-process
+vault module at [`backend/src/modules/vault/`](backend/src/modules/vault/) —
+the FLN backend never stores plaintext Aadhaar and never exposes Vault
+service JWTs to the browser (see
+[`backend/src/aadhaarVault.ts`](backend/src/aadhaarVault.ts) and
+[`backend/src/routes/students.ts`](backend/src/routes/students.ts)). The
+module is wired unconditionally at boot; no feature flag, no separate
+process, no service-JWT exchange.
+
+The module needs two env vars (both required for tokenization to succeed):
+
+- `MONGODB_URI` — the FLN backend's existing Mongo connection. The vault
+  reuses the same replica set; the module fails fast with
+  `VAULT_DB_REQUIRES_REPLICA_SET` (503) if pointed at a standalone
+  `mongod` because `session.withTransaction(...)` is unsupported there.
+- `LOCAL_DEV_MASTER_KEY` — base64; ≥ 32 decoded bytes. The
+  per-record DEK wrap subkey is derived from this via
+  `HKDF-SHA-256(master, salt=context, info="aadhaar-vault/dek-wrap")`.
+  Production deployments are expected to swap `LocalDevKeyManager` for a
+  real KMS provider; the port is stable.
+
+Until both are set, `POST /api/students` and `POST /api/students/bulk-import`
+fail with `VaultError NOT_CONFIGURED` (by design — no plaintext fallback).
+
+End-to-end contract is enforced by the integration test suite at
+[`backend/tests/aadhaar-hardening.test.ts`](backend/tests/aadhaar-hardening.test.ts)
+and [`backend/tests/aadhaar-detokenize.test.ts`](backend/tests/aadhaar-detokenize.test.ts)
+(run with `npm test` from `backend/`), and by the read-only at-rest audit
+at [`backend/scripts/audit-aadhaar-at-rest.ts`](backend/scripts/audit-aadhaar-at-rest.ts)
+(`npm run audit:aadhaar`).
+
 ## Rules
  Contributor Onboarding — Onboarding Document (Mandatory)
 

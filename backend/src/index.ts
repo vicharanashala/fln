@@ -33,6 +33,8 @@ import { registerSchoolRoutes } from './routes/schools';
 import { registerInterventionRoutes } from './routes/interventions';
 import { registerBestPracticeRoutes } from './routes/bestPractices';
 import { registerStudentRoutes } from './routes/students';
+import { registerAadhaarDetokenizeRoutes } from './routes/aadhaarDetokenize';
+import { registerMfaEnrollmentRoutes } from './routes/mfaEnrollment';
 import { registerWorksheetRoutes } from './routes/worksheets';
 import { registerEvaluationRoutes } from './routes/evaluation';
 import { registerAnalyticsRoutes } from './routes/analytics';
@@ -61,6 +63,112 @@ process.on('unhandledRejection', (reason) => {
 process.on('uncaughtException', (err) => {
   console.warn('Uncaught exception (likely MongoDB driver):', err);
 });
+
+// ---------------------------------------------------------------------------
+// Phase 6 — Graceful shutdown
+// ---------------------------------------------------------------------------
+// Sequence on SIGTERM / SIGINT (e.g. `kill <pid>`, container stop,
+// dev Ctrl+C in a foreground shell):
+//
+//   1. Log the signal; ignore subsequent signals of the same kind so
+//      a double-tap does not race the in-flight drain.
+//   2. `server.close()` — stop accepting new connections, but allow
+//      in-flight HTTP requests (including any vault tokenize /
+//      step-up transactions) to finish naturally. Express's
+//      `app.listen` returns an `http.Server`; its `close` callback
+//      fires when every active socket has closed.
+//   3. `waitForVaultTransactionsDrain(DRAIN_TIMEOUT_MS)` — defensive
+//      barrier in case a future refactor moves a vault write out of
+//      the HTTP-request scope. With the current architecture this
+//      resolves instantly after step 2, but the explicit barrier
+//      makes the invariant ("Mongo is not closed mid-transaction")
+//      visible in the source.
+//   4. Close the Mongo client (if any). This is the *only* call that
+//      would orphan an in-flight transaction; doing it last means a
+//      SIGTERM never tears down a write that is mid-commit.
+//   5. `process.exit(0)` — explicit so the exit code is 0 even when
+//      the drain timed out (so a stuck transaction reports as a
+//      shutdown timeout in the logs, not as a non-zero exit that
+//      orchestrators like Kubernetes treat as a crash).
+//
+// Hard timeout: if the drain + Mongo close takes longer than
+// `SHUTDOWN_HARD_TIMEOUT_MS`, the process exits with code 1 so a
+// wedged Mongo socket cannot hold the process open forever. The
+// exit code is logged so post-mortems can attribute the cause.
+const DRAIN_TIMEOUT_MS = 30_000;
+const SHUTDOWN_HARD_TIMEOUT_MS = 45_000;
+let shuttingDown = false;
+async function gracefulShutdown(signal: NodeJS.Signals, httpServer: import('http').Server | null) {
+  if (shuttingDown) {
+    console.warn(`[shutdown] received ${signal} again while already shutting down — ignoring`);
+    return;
+  }
+  shuttingDown = true;
+  console.log(`[shutdown] received ${signal}, beginning graceful shutdown`);
+
+  // Hard timeout safety net.
+  const hardTimeout = setTimeout(() => {
+    console.error(
+      `[shutdown] hard timeout (${SHUTDOWN_HARD_TIMEOUT_MS}ms) reached; forcing exit(1).`,
+    );
+    process.exit(1);
+  }, SHUTDOWN_HARD_TIMEOUT_MS);
+  hardTimeout.unref();
+
+  try {
+    // 2. Stop accepting new connections; wait for in-flight HTTP.
+    if (httpServer) {
+      await new Promise<void>((resolve, reject) => {
+        httpServer.close(err => (err ? reject(err) : resolve()));
+      });
+    }
+
+    // 3. Drain in-flight vault transactions (defensive; should be
+    //    a no-op because every vault write is awaited inside an
+    //    HTTP handler that server.close() already waited for).
+    try {
+      const {
+        getActiveVaultTransactionCount,
+        waitForVaultTransactionsDrain,
+      } = await import('./modules/vault');
+      const pending = getActiveVaultTransactionCount();
+      if (pending > 0) {
+        console.log(`[shutdown] waiting for ${pending} in-flight vault transaction(s) to complete`);
+      }
+      const drained = await waitForVaultTransactionsDrain(DRAIN_TIMEOUT_MS);
+      if (!drained) {
+        console.warn(
+          `[shutdown] vault transaction drain timed out after ${DRAIN_TIMEOUT_MS}ms; ` +
+            `${getActiveVaultTransactionCount()} still pending. Mongo will be closed anyway.`,
+        );
+      }
+    } catch (err) {
+      // Module import failed (build corruption?). The legacy HTTP
+      // path had nothing to drain either; the comment is kept so a
+      // post-mortem reading the code sees the same invariant.
+      console.warn('[shutdown] vault drain module not loadable:', err);
+    }
+
+    // 4. Close the Mongo client. Re-imports here so the static
+    //    closure above does not pin a stale client reference.
+    const { mongoClient } = await import('./db');
+    if (mongoClient) {
+      try {
+        await mongoClient.close();
+        console.log('[shutdown] Mongo client closed');
+      } catch (err) {
+        console.warn('[shutdown] Mongo client close failed:', err);
+      }
+    }
+
+    console.log('[shutdown] complete');
+  } catch (err) {
+    console.error('[shutdown] error during shutdown sequence:', err);
+  } finally {
+    clearTimeout(hardTimeout);
+    process.exit(0);
+  }
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -128,6 +236,16 @@ registerStatsRoutes(app);
   registerClassRoutes(app);
 
   registerStudentRoutes(app);
+  // Admin Step-Up detokenization (Aadhaar Vault — see aadhaarDetokenize.ts).
+  registerAadhaarDetokenizeRoutes(app);
+  // Account-level MFA enrollment (Wave 2A — see mfaEnrollment.ts).
+  registerMfaEnrollmentRoutes(app);
+
+  // In-process vault module — the only path (Phase 7 deletion of the
+  // standalone Fastify+Postgres microservice is complete). Always wired;
+  // the module is built and its routes are mounted unconditionally.
+  const { registerVaultRoutes } = await import('./modules/vault');
+  await registerVaultRoutes(app);
 
   registerEvaluationRoutes(app);
   registerWorksheetRoutes(app);
@@ -174,9 +292,18 @@ registerStatsRoutes(app);
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+
+  // Phase 6 — register the graceful-shutdown handlers. The same
+  // `server` handle is passed in so `server.close()` can drain
+  // every in-flight HTTP request. SIGTERM is the orchestrator
+  // signal (Kubernetes, Docker stop, systemd); SIGINT is the dev
+  // signal (Ctrl+C in a foreground shell). Both are wired to the
+  // same handler.
+  process.on('SIGTERM', () => { void gracefulShutdown('SIGTERM', server); });
+  process.on('SIGINT', () => { void gracefulShutdown('SIGINT', server); });
 }
 
 startServer();

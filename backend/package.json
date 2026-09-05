@@ -17,6 +17,11 @@
     "seed:question-bank": "tsx src/seedQuestionBank.ts",
     "seed:geo": "tsx src/utils/seedGeo.ts",
     "reseed": "tsx src/reseed.ts",
+    "test": "esbuild tests/aadhaar-hardening.test.ts --bundle --platform=node --format=esm --packages=external --outfile=tests/dist/aadhaar-hardening.test.mjs --log-level=warning && node tests/dist/aadhaar-hardening.test.mjs && esbuild tests/aadhaar-detokenize.test.ts --bundle --platform=node --format=esm --packages=external --outfile=tests/dist/aadhaar-detokenize.test.mjs --log-level=warning && node tests/dist/aadhaar-detokenize.test.mjs && tsx --test src/modules/vault/tests/transaction-counter.test.ts && tsx --test src/modules/vault/tests/step-up-e2e.test.ts && tsx --test src/modules/vault/tests/audit-in-logbook.test.ts && tsx --test tests/panel-isolation.test.cjs",
+    "test:detokenize": "esbuild tests/aadhaar-detokenize.test.ts --bundle --platform=node --format=esm --packages=external --outfile=tests/dist/aadhaar-detokenize.test.mjs --log-level=warning && node tests/dist/aadhaar-detokenize.test.mjs",
+    "test:search-index": "tsx --test tests/students-search-index.test.ts",
+    "test:panel-isolation": "tsx --test tests/panel-isolation.test.cjs",
+    "audit:aadhaar": "tsx scripts/audit-aadhaar-at-rest.ts",
     "test:answer-matching": "tsx src/answerMatching.test.ts",
     "test:paper-lock": "tsx src/paperLock.test.ts"
   },
@@ -26,9 +31,11 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "express-rate-limit": "^8.6.1",
+    "jose": "5.9.6",
     "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",
     "mongodb": "^6.12.0",
+    "otpauth": "^9.5.1",
     "pdf-lib": "^1.17.1",
     "puppeteer": "^25.3.0"
   },

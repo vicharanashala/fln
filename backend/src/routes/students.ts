@@ -13,6 +13,19 @@ import { assignStudentToArchetype } from '../studentArchetypeService';
 import { resolvePrerequisites, describeConcept, directPrerequisites } from '../competencyPrerequisites';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
+import { tokenizeAadhaar, formatAadhaarMask, AadhaarVaultTokenizeResult } from '../aadhaarVault';
+
+// ─── Response hygiene (Phase 2 hardening) ───────────────────────────────────
+// Vault references are internal-only: MongoDB and the internal Student model
+// keep aadhaarTokenId / aadhaarIdentityId (duplicate detection, future
+// detokenize-by-token flows), but API clients never need them. Every student
+// serialization below goes through this helper so the wire contract carries
+// only what the existing frontend actually consumes.
+export type PublicStudent = Omit<Student, 'aadhaarTokenId' | 'aadhaarIdentityId'>;
+function toPublicStudent(s: Student): PublicStudent {
+  const { aadhaarTokenId: _tokenId, aadhaarIdentityId: _identityId, ...pub } = s;
+  return pub;
+}
 
 /**
  * The pipeline's output file for a student, tried against both date spellings.
@@ -139,12 +152,19 @@ export function registerStudentRoutes(app: express.Express) {
 
     // The students collection has 86400+ docs in Atlas; without a server-side
     // limit a single query takes multi-seconds and the dashboard hangs. Push the
-    // limit/offset into mongo. Default 1000 unless caller opts in to full set.
-    const DEFAULT_LIMIT = 1000;
+    // limit/offset into mongo. Default 10 per page (most-recent-first), caller
+    // can opt in to a larger page via `?limit=…` or to the full set via
+    // `?all=1` for callers that genuinely need the whole roster.
+    const DEFAULT_LIMIT = 10;
+    const DEFAULT_MAX_LIMIT = 1000; // callers may page up to 5x default
     const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
     const requestedOffset = parseInt(String(req.query.offset ?? ''), 10) || 0;
     const wantAll = req.query.all === '1' || req.query.all === 'true';
-    const limit = wantAll ? 0 : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
+    const limit = wantAll
+      ? 0
+      : (Number.isFinite(requestedLimit) && requestedLimit > 0
+          ? Math.min(requestedLimit, DEFAULT_MAX_LIMIT)
+          : DEFAULT_LIMIT);
 
     // server-side role scoping
     let schoolScope: string | undefined;
@@ -152,29 +172,64 @@ export function registerStudentRoutes(app: express.Express) {
       schoolScope = user.schoolId;
     }
 
-    const opts: { limit?: number; offset?: number; schoolId?: string } = {
+    // server-side search: `?q=foo` does a case-insensitive substring
+    // match across the same six fields the Aadhaar Reveal panel
+    // previously filtered in-browser. Without this, the panel
+    // would have to download the full roster to do a client-side
+    // filter, which is what made the panel hang on the 86,400-row
+    // payload. We deliberately allow callers to skip the search by
+    // passing `?q=` (empty) so the same handler powers both the
+    // paged roster and the search.
+    const rawQ = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const search = rawQ.toLowerCase();
+
+    // server-side sort: `?sort=latest` (default) returns the most
+    // recently registered students first. For the file-fallback store
+    // this is the natural array order (students are pushed on insert)
+    // reversed; for Mongo the `_id` ObjectId is time-prefixed, so a
+    // descending sort matches the same intent.
+    const sort = String(req.query.sort ?? 'latest');
+
+    const opts: { limit?: number; offset?: number; schoolId?: string; sort?: 'latest'; q?: string } = {
       offset: requestedOffset,
     };
     if (limit > 0) opts.limit = limit;
     if (schoolScope) opts.schoolId = schoolScope;
+    if (sort === 'latest') opts.sort = 'latest';
+    // Push the search into getStudents so it runs BEFORE the limit/offset
+    // slice. A previous version of this handler applied the search AFTER
+    // the page had been returned, which meant a match at position 500 of
+    // 86,400 students was never visible to the user (the page only held
+    // the 10 most-recent inserts, and the search filtered those 10). On
+    // the user's screen this looked like "nothing happens when I type."
+    if (search) opts.q = rawQ;
 
-    const students = await dbStore.getStudents(opts);
+    let students = await dbStore.getStudents(opts);
 
     // volunteer filter still applied in JS (assignedSchools list, not a single key)
-    const filtered = (user.role === UserRole.VOLUNTEER)
+    let filtered = (user.role === UserRole.VOLUNTEER)
       ? students.filter(s => user.assignedSchools?.includes(s.schoolId))
       : students;
 
-    // Mask Aadhar for non-Superadmins (§13.2 R-6)
+    // Mask Aadhar for non-Superadmins (§13.2 R-6); strip vault references
+    // for everyone (Phase 2 hardening).
     const masked = filtered.map(s => {
+      const pub = toPublicStudent(s);
       if (user.role !== UserRole.SUPERADMIN) {
-        return { ...s, aadharMasked: 'XXXX-XXXX-' + String(s.aadharMasked || '').slice(-4) };
+        pub.aadharMasked = 'XXXX-XXXX-' + String(pub.aadharMasked || '').slice(-4);
       }
-      return s;
+      return pub;
     });
 
-    // total count (for client-side pagination headers)
-    const total = await dbStore.countStudents(schoolScope ? { schoolId: schoolScope } : undefined);
+    // total count (for client-side pagination headers). When a search
+    // is active we count the full match set via the same query, so the
+    // panel can show "Page 1 of N matching 'foo'" with the right N.
+    // Done in the DB (not from `masked.length`) because masked only
+    // holds the current page.
+    const countOpts: { schoolId?: string; q?: string } = {};
+    if (schoolScope) countOpts.schoolId = schoolScope;
+    if (search) countOpts.q = rawQ;
+    const total = await dbStore.countStudents(countOpts);
     res.set('X-Total-Count', String(total));
     res.json(masked);
   });
@@ -220,10 +275,12 @@ export function registerStudentRoutes(app: express.Express) {
       role === UserRole.SUPERADMIN || role === UserRole.SCHOOL || role === UserRole.TEACHER;
 
     // Mask Aadhar for non-Superadmins (§13.2 R-6); redact guardian contact/address similarly.
+    // Vault references are stripped for every role (Phase 2 hardening).
     const maskedStudents = students.map(s => {
-      const masked = user.role !== UserRole.SUPERADMIN
-        ? { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) }
-        : { ...s };
+      const masked = toPublicStudent(s);
+      if (user.role !== UserRole.SUPERADMIN) {
+        masked.aadharMasked = 'XXXX-XXXX-' + String(masked.aadharMasked || '').slice(-4);
+      }
       if (!canSeeGuardianPII(user.role)) {
         delete masked.guardianContact;
         delete masked.address;
@@ -233,7 +290,8 @@ export function registerStudentRoutes(app: express.Express) {
 
     let scoped: typeof maskedStudents;
     if (user.role === UserRole.SUPERADMIN) {
-      scoped = students;
+      // Superadmins keep full mask + guardian PII, but never vault references.
+      scoped = students.map(s => toPublicStudent(s));
     } else if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
       scoped = maskedStudents.filter(s => s.schoolId === user.schoolId);
     } else if (user.role === UserRole.VOLUNTEER) {
@@ -285,17 +343,36 @@ export function registerStudentRoutes(app: express.Express) {
 
   async function createStudentFromData(
     data: Record<string, any>,
-    actingUser: { id: string; email: string; role: UserRole; schoolId?: string },
+    actingUser: { id: string; email: string; role: UserRole; schoolId?: string; assignedSchools?: string[] },
     existingAadhars: Set<string>,
   ): Promise<{ student: Student } | { error: string }> {
     const { name, classGroup, section, aadharNumber, dob, gender,
       guardianName, guardianRelation, guardianContact, address,
       bloodGroup, disabilityStatus, midDayMealBeneficiary, busRoute, siblingsInSchool } = data;
 
-    // Resolve schoolId — use row value for SUPERADMIN, otherwise auth context
-    const schoolId = (actingUser.role === UserRole.SUPERADMIN && data.schoolId)
-      ? String(data.schoolId).trim()
-      : actingUser.schoolId;
+    // Resolve schoolId — use row value for SUPERADMIN, otherwise auth context.
+    // Volunteers carry `assignedSchools[]` (not a single `schoolId`), so the
+    // resolver falls back to the only assigned school when there is exactly
+    // one. A volunteer assigned to multiple schools gets a clear 400 so the
+    // frontend can prompt for a choice (no implicit pick — that would mask
+    // a product question). A volunteer with zero assigned schools is a
+    // configuration error and is rejected explicitly.
+    const isVolunteer = actingUser.role === UserRole.VOLUNTEER;
+    const assigned = Array.isArray(actingUser.assignedSchools) ? actingUser.assignedSchools : [];
+    let schoolId: string | undefined;
+    if (actingUser.role === UserRole.SUPERADMIN && data.schoolId) {
+      schoolId = String(data.schoolId).trim();
+    } else if (actingUser.schoolId) {
+      schoolId = actingUser.schoolId;
+    } else if (isVolunteer) {
+      if (assigned.length === 1) {
+        schoolId = assigned[0];
+      } else if (assigned.length > 1) {
+        return { error: 'Volunteer is assigned to multiple schools; please select one.' };
+      } else {
+        return { error: 'Volunteer has no assigned school.' };
+      }
+    }
 
     // Required field check (mirrors issue.txt: name, class, dob, ID card)
     if (!name || !classGroup || !section || !aadharNumber || !schoolId) {
@@ -327,13 +404,58 @@ export function registerStudentRoutes(app: express.Express) {
       }
     }
 
-    // Aadhar uniqueness — SRS §13.2 R-6 (issue.txt: "ID card is unique")
+    // Aadhaar uniqueness + tokenization — the raw 12-digit Aadhaar is never
+    // stored in MongoDB. We send it to the in-process Aadhaar Vault
+    // (backend/src/modules/vault/) and persist only a mask, an opaque token,
+    // and the vault's deterministic identity id (see ../aadhaarVault.ts).
     const rawAadhar = String(aadharNumber).replace(/[^0-9]/g, '');
-    if (rawAadhar.length < 4) {
-      return { error: 'Invalid identity document — must contain at least 4 digits.' };
+    if (!/^[0-9]{12}$/.test(rawAadhar)) {
+      return { error: 'Invalid Aadhaar number. Expected 12 digits.' };
     }
-    if (existingAadhars.has(rawAadhar)) {
-      return { error: 'A student with this Aadhar / ID number is already registered.' };
+    const aadhaarMask = formatAadhaarMask(rawAadhar);
+    // Intra-batch dedup (caller pre-seeds `existingAadhars` with the
+    // input rows' raw + masked Aadhaars). Cheap Set check, no DB hit.
+    if (existingAadhars.has(rawAadhar) || existingAadhars.has(aadhaarMask)) {
+      return { error: 'A student with this Aadhaar / ID number is already registered.' };
+    }
+    // School-scoped DB check. Scoped to the same school so a volunteer's
+    // submission is rejected only when a same-school student already
+    // carries the mask. Cross-school collisions with the seed are
+    // expected (86,400 seed students over 1,440 schools fully saturate
+    // the 4-digit suffix space ~8.6×) and are NOT rejections; the
+    // vault identity check below is the actual re-registration guard.
+    const schoolAadhars = await dbStore.getExistingAadharsInSchool(
+      schoolId, [rawAadhar, aadhaarMask],
+    );
+    if (schoolAadhars.has(rawAadhar) || schoolAadhars.has(aadhaarMask)) {
+      return { error: 'A student with this Aadhaar / ID number is already registered.' };
+    }
+
+    // Tokenize through the Aadhaar Vault. If the vault is unavailable the
+    // registration fails cleanly rather than persisting a plaintext Aadhaar.
+    let tokenized: AadhaarVaultTokenizeResult;
+    try {
+      tokenized = await tokenizeAadhaar(rawAadhar, {
+        email: actingUser.email,
+        requestId: `fln-student-create-${Date.now()}`,
+      });
+    } catch (err: any) {
+      // Phase 2 hardening: VaultError carries a stable code + HTTP-ish status
+      // for precise diagnosis. Messages never contain raw Aadhaar or tokens.
+      console.error(
+        'Aadhaar vault tokenization error:',
+        `code=${err?.code ?? 'UNKNOWN'}`,
+        `status=${err?.status ?? 'n/a'}`,
+        err?.message || err,
+      );
+      return { error: 'Aadhaar tokenization failed. Please try again later.' };
+    }
+    // Deterministic duplicate check against the vault identity id. This is
+    // what catches a re-registration of the same Aadhaar even after the raw
+    // number has been removed from the collection.
+    const dupByIdentity = ((await dbStore.getExistingAadhaarIdentityIds([tokenized.identityId])).size ?? 0) > 0;
+    if (dupByIdentity) {
+      return { error: 'A student with this Aadhaar / ID number is already registered.' };
     }
 
     // Derive the clean numeric display ID (#184) from the school's geo hierarchy
@@ -370,7 +492,9 @@ export function registerStudentRoutes(app: express.Express) {
       currentLevel: null,
       currentSubLevel: null,
       targetLevel: null,
-      aadharMasked: rawAadhar,
+      aadharMasked: aadhaarMask,
+      aadhaarTokenId: tokenized.token,
+      aadhaarIdentityId: tokenized.identityId,
       levelHistory: [],
       streak: 0,
     };
@@ -391,6 +515,7 @@ export function registerStudentRoutes(app: express.Express) {
     await dbStore.ensureClassExists(schoolId, trimmedClassGroup, trimmedSection, actingUser.id);
     // Track in-memory so bulk operations detect intra-batch duplicates too
     existingAadhars.add(rawAadhar);
+    existingAadhars.add(aadhaarMask);
     return { student: newStudent };
   }
 
@@ -406,9 +531,10 @@ export function registerStudentRoutes(app: express.Express) {
       return res.status(403).json({ error: 'Forbidden.' });
     }
 
-    // Build aadhars set for uniqueness check
-    const rawAadhar = String(req.body.aadharNumber).replace(/[^0-9]/g, '');
-    const existingAadhars = await dbStore.getExistingAadhars([rawAadhar]);
+    // `existingAadhars` here is for INTRA-BATCH dedup only — empty
+    // for a single-row POST. The school-scoped DB check is done
+    // inside `createStudentFromData` after the schoolId is resolved.
+    const existingAadhars = new Set<string>();
 
     const result = await createStudentFromData(
       { ...req.body, schoolId: req.body.schoolId || user.schoolId },
@@ -431,7 +557,9 @@ export function registerStudentRoutes(app: express.Express) {
       details: `Onboarded and verified student: ${result.student.name}`,
     });
 
-    res.json(result.student);
+    // Response hygiene: the creation response carries the same public shape
+    // as GET /api/students — no vault references on the wire.
+    res.json(toPublicStudent(result.student));
   });
 
   // ─── POST /api/students/bulk-import ─────────────────────────────────────────
@@ -456,10 +584,17 @@ export function registerStudentRoutes(app: express.Express) {
       return res.status(400).json({ error: 'Maximum 500 rows per request.' });
     }
 
-    // Pre-load all existing aadhar numbers once; the helper adds new ones as
-    // it inserts, so intra-batch duplicates are caught too.
-    const aadharsInBatch = rows.map(r => String(r.aadharNumber).replace(/[^0-9]/g, '')).filter(Boolean);
-    const existingAadhars = await dbStore.getExistingAadhars(aadharsInBatch);
+    // `existingAadhars` is for INTRA-BATCH dedup — pre-seeded with
+    // every row's raw + mask, but for each iteration the current
+    // row's entry is removed before the helper runs and re-added
+    // after, so the helper's check never self-matches the row being
+    // processed. The school-scoped DB check lives inside
+    // `createStudentFromData` and is per-row.
+    const aadharsInBatch = rows.flatMap(r => {
+      const raw = String(r.aadharNumber).replace(/[^0-9]/g, '');
+      return raw ? [raw, formatAadhaarMask(raw)] : [];
+    });
+    const existingAadhars = new Set<string>(aadharsInBatch);
 
     const results: {
       row: number; status: 'created' | 'failed'; name?: string; id?: string; reason?: string;
@@ -475,7 +610,19 @@ export function registerStudentRoutes(app: express.Express) {
         schoolId: rowData.schoolId || user.schoolId,
       };
 
+      // Stash the current row's Aadhaars out of the batch set so
+      // the helper's intra-batch check doesn't self-match the row
+      // being processed. We re-add after the call so a later row
+      // with the same Aadhaar still gets the batch-dup error.
+      const rowRaw = String(rowData.aadharNumber).replace(/[^0-9]/g, '');
+      const rowMask = rowRaw ? formatAadhaarMask(rowRaw) : '';
+      const wasInSetRaw = existingAadhars.delete(rowRaw);
+      const wasInSetMask = rowMask ? existingAadhars.delete(rowMask) : false;
+
       const outcome = await createStudentFromData(enriched, user, existingAadhars);
+
+      if (wasInSetRaw) existingAadhars.add(rowRaw);
+      if (wasInSetMask) existingAadhars.add(rowMask);
 
       if ('error' in outcome) {
         failed++;

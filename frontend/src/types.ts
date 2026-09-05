@@ -22,6 +22,21 @@ export interface User {
   isBanned?: boolean;
 }
 
+export type MfaFactorLifecycleState = 'PENDING_ENROLLMENT' | 'ENROLLED';
+
+export interface MfaFactor {
+  factorId: string;
+  label: string;
+  algorithm: string;
+  digits: number;
+  period: number;
+  status: 'active' | 'revoked';
+  lifecycleState: MfaFactorLifecycleState;
+  createdAt: string;
+  lastUsedAt: string | null;
+  verifyAttempts: number;
+}
+
 export interface School {
   id: string;
   name: string;
