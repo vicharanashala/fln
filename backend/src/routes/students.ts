@@ -13,6 +13,7 @@ import { assignStudentToArchetype } from '../studentArchetypeService';
 import { resolvePrerequisites, describeConcept, directPrerequisites } from '../competencyPrerequisites';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
+import { ensurePracticeSchedulesForWeakCompetencies, reconcilePracticeSchedulesWithDiagnostic } from '../services/practiceScheduleService';
 
 /**
  * The pipeline's output file for a student, tried against both date spellings.
@@ -1055,6 +1056,10 @@ export function registerStudentRoutes(app: express.Express) {
     }
     const skillGaps = Array.from(skillGapMap.values()).sort((a, b) => a.level - b.level);
 
+    // Captured before updateStudent below overwrites currentLevel in the DB —
+    // reconcilePracticeSchedulesWithDiagnostic needs the pre-diagnostic value.
+    const previousCurrentLevel = student.currentLevel;
+
     // Update Student placing levels
     const levelHistory = [...student.levelHistory, {
       level: recommendedLevel,
@@ -1386,6 +1391,17 @@ export function registerStudentRoutes(app: express.Express) {
     } catch (error) {
       console.error('[archetype] Failed to assign student to misconception archetype:', error);
     }
+
+    await ensurePracticeSchedulesForWeakCompetencies(student.id, student.name, user.id, conceptMastery);
+
+    await reconcilePracticeSchedulesWithDiagnostic(
+      student.id,
+      student.name,
+      user.id,
+      conceptMastery,
+      previousCurrentLevel,
+      recommendedLevel
+    );
 
     await dbStore.addLog({
       id: 'log_' + Date.now(),

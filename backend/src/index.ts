@@ -12,10 +12,10 @@ dotenv.config({ path: path.resolve(__dotenv_dir, '..', '.env') });
 
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, CYCLE_NAMES } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, CYCLE_NAMES } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
-import { generateQuestionsForLevel } from './levelGenerator';
+import { mapCompetencyToLevel, KNOWN_COMPETENCIES } from './flnLevels';
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS } from './geoData';
 import { validateConceptPrerequisites } from './competencyPrerequisites';
@@ -41,6 +41,7 @@ import { registerQuestionTemplateRoutes } from './routes/questionTemplates';
 import { registerQuestionOptionRoutes } from './routes/questionOptions';
 import { registerDiagnosticBulkRoutes } from './routes/diagnosticBulk';
 import { registerMisconceptionRoutes } from './routes/misconceptions';
+import { registerMicroPracticeRoutes } from './routes/microPractice';
 import { registerCurriculumRoutes } from './routes/curriculum';
 import { registerQuestionBankRoutes } from './routes/questionBank';
 import { randomUUID } from 'crypto';
@@ -65,6 +66,23 @@ process.on('uncaughtException', (err) => {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+// execFileSync throws before we can read stdout normally, so pull the real
+// JSON error line our Python scripts print instead of its generic wrapper text.
+function extractPythonScriptError(e: any, fallbackPrefix: string): string {
+  const stdout: string = typeof e?.stdout === 'string' ? e.stdout : (e?.stdout ? String(e.stdout) : '');
+  const lastLine = stdout.trim().split('\n').filter(Boolean).pop();
+  if (lastLine) {
+    try {
+      const parsed = JSON.parse(lastLine);
+      if (parsed && parsed.error) return parsed.error;
+    } catch {
+      // not JSON — fall through to the generic message
+    }
+  }
+  return `${fallbackPrefix}: ${e?.message || e}`;
+}
+
 
 async function startServer() {
   // Connect to MongoDB — connectDB() has its own internal 3-attempt
@@ -110,7 +128,7 @@ async function startServer() {
 
   // --- API Endpoints ---
 
-registerStatsRoutes(app);
+  registerStatsRoutes(app);
 
   registerAuthRoutes(app);
   registerAnnouncementRoutes(app);
@@ -137,6 +155,105 @@ registerStatsRoutes(app);
   registerQuestionOptionRoutes(app);
   registerDiagnosticBulkRoutes(app);
 
+  // Rasterizes an uploaded PDF to PNG so jsQR (pixel-only) can read it;
+  // skips the blue-ink filter, which would destroy a printed QR. allPages renders every page for multi-page scans.
+  app.post('/api/icr/rasterize-pdf', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { fileBase64, allPages } = req.body || {};
+    if (!fileBase64 || typeof fileBase64 !== 'string') {
+      return res.status(400).json({ error: 'fileBase64 is required.' });
+    }
+    const pdfMatch = /^data:application\/pdf;base64,(.+)$/.exec(fileBase64);
+    if (!pdfMatch) {
+      return res.status(400).json({ error: 'fileBase64 must be a base64-encoded PDF data URL.' });
+    }
+    const buf = Buffer.from(pdfMatch[1], 'base64');
+    if (buf.length === 0) {
+      return res.status(400).json({ error: 'fileBase64 decoded to zero bytes.' });
+    }
+    if (buf.length > 8 * 1024 * 1024) {
+      return res.status(413).json({ error: 'File too large (max 8 MB).' });
+    }
+
+    const tempDir = path.join(AI_SERVICES_DIR, 'scratch');
+    fs.mkdirSync(tempDir, { recursive: true });
+    const stamp = Date.now() + '_' + randomUUID().slice(0, 8);
+    const inputPath = path.join(tempDir, `rasterize_${stamp}_in.pdf`);
+    const outputPath = path.join(tempDir, `rasterize_${stamp}_out.png`);
+    // pdf_rasterize.py's --all-pages mode treats its output argument as a
+    // DIRECTORY (writes page_1.png, page_2.png, ... inside it) — a distinct
+    // path from outputPath's single-file usage in the non-allPages case.
+    const pagesDir = path.join(tempDir, `rasterize_${stamp}_pages`);
+    const pageOutputPaths: string[] = [];
+
+    try {
+      fs.writeFileSync(inputPath, buf);
+
+      const rasterScript = path.join(AI_SERVICES_DIR, 'scripts', 'pdf_rasterize.py');
+      const { execFileSync } = await import('child_process');
+      const scriptArgs = [rasterScript, inputPath, allPages ? pagesDir : outputPath];
+      if (allPages) scriptArgs.push('--all-pages');
+      let stdout: string;
+      try {
+        stdout = execFileSync(
+          PYTHON_BIN,
+          scriptArgs,
+          { cwd: AI_SERVICES_DIR, timeout: 30000, encoding: 'utf8' }
+        );
+      } catch (e: any) {
+        return res.status(500).json({ success: false, error: extractPythonScriptError(e, 'PDF rasterization failed') });
+      }
+      const jsonLine = stdout.trim().split('\n').filter(Boolean).pop() || '{}';
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(jsonLine);
+      } catch {
+        return res.status(500).json({ success: false, error: `PDF rasterizer returned non-JSON: ${stdout.slice(0, 300)}` });
+      }
+      if (!parsed.success) {
+        return res.status(500).json({ success: false, error: parsed.error || 'PDF rasterization failed.' });
+      }
+
+      if (allPages) {
+        const pages: Array<{ output_path: string; page_number: number }> = parsed.pages || [];
+        const imageDataUrls = pages.map(p => {
+          pageOutputPaths.push(p.output_path);
+          const imgBuf = fs.readFileSync(p.output_path);
+          // pdf_rasterize.py's --all-pages mode writes JPEG (page_N.jpg); the
+          // declared MIME here must track its actual output extension, not be
+          // assumed, so a future format change on that side can't silently
+          // mislabel bytes again.
+          const ext = path.extname(p.output_path).toLowerCase();
+          const mimeType = ext === '.png' ? 'image/png' : 'image/jpeg';
+          return `data:${mimeType};base64,${imgBuf.toString('base64')}`;
+        });
+        return res.json({
+          success: true,
+          imageDataUrls,
+          pageCount: pages.length
+        });
+      }
+
+      const pngBuf = fs.readFileSync(outputPath);
+      res.json({
+        success: true,
+        imageDataUrl: `data:image/png;base64,${pngBuf.toString('base64')}`,
+        pageSize: parsed.page_size
+      });
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      console.error('[icr-rasterize-pdf] failed:', msg);
+      res.status(500).json({ success: false, error: msg });
+    } finally {
+      try { fs.unlinkSync(inputPath); } catch { /* noop */ }
+      try { fs.unlinkSync(outputPath); } catch { /* noop */ }
+      for (const p of pageOutputPaths) { try { fs.unlinkSync(p); } catch { /* noop */ } }
+      try { fs.rmSync(pagesDir, { recursive: true, force: true }); } catch { /* noop */ }
+    }
+  });
+
   // Read-only analysis over already-graded submissions: clusters a cohort on
   // HOW its children fail rather than how much they score.
   registerMisconceptionRoutes(app);
@@ -148,6 +265,9 @@ registerStatsRoutes(app);
   // Create a new intervention
   registerInterventionRoutes(app);
   registerBestPracticeRoutes(app);
+
+  // --- Adaptive Micro-Practice & Spaced-Repetition ---
+  registerMicroPracticeRoutes(app);
 
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).

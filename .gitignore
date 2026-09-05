@@ -50,3 +50,5 @@ backend/data/
 backend/dist/
 frontend/dist/
 *.log
+ai-services/personalized_evaluation/
+frontend/studentprogressdashboardUI/

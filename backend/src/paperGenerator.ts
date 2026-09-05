@@ -3,10 +3,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { randomUUID } from 'crypto';
-import { Question, dbStore } from './db';
+import { Question, dbStore, MicroPracticePart } from './db';
 import { renderBatch } from './worksheetRenderer';
 import { mergeAndStamp } from './pdfMerge';
-import { drawQrCode } from './qrCode';
+import { createQrDataUrl, drawQrCode } from './qrCode';
 import JSZip from 'jszip';
 
 // Resolve __dirname in ES Modules
@@ -590,6 +590,460 @@ body{font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#fff;color:var(
   } finally {
     await browser.close();
   }
+}
+
+export interface MicroPracticePaperResult {
+  fileName: string;
+  filePath: string;
+  pdfUrl: string;
+  questions: Question[];
+  paperId: string;
+}
+
+// Classifies a micro-practice answer's stored TYPE for the answer-entry form,
+// based on the actual correctAnswer VALUE rather than the generator's answerType
+// label — fill-blank alone can produce numbers, symbols, fractions, or objects.
+function inferAnswerType(item: any): 'text' | 'number' | 'choice' | 'visual-confirm' {
+  if (item.answerType === 'mcq' || item.answerType === 'circle-choice') return 'choice';
+  // draw-count carries a pre-rendered referenceImageSvg instead of a typed
+  // value — graded by visual comparison, not string comparison.
+  if (item.answerType === 'draw-count') return 'visual-confirm';
+  const val = item.correctAnswer;
+  if (typeof val === 'number') return 'number';
+  if (typeof val === 'string' && /^-?\d+(\.\d+)?$/.test(val.trim())) return 'number';
+  return 'text';
+}
+
+// circle-choice/mcq answers carry a friendly label alongside the OMR index —
+// show that label, falling back to "Option N" or JSON.stringify as needed.
+function formatCorrectAnswer(item: any): string {
+  const val = item.correctAnswer;
+  if (val == null) return '';
+  if (typeof val !== 'object' || Array.isArray(val)) {
+    return typeof val === 'object' ? JSON.stringify(val) : String(val);
+  }
+  if ('icon' in val) return String(val.icon);
+  if ('value' in val) return String(val.value);
+  if ('text' in val) return String(val.text);
+  if ('object' in val) return String(val.object);
+  if ('optionIndex' in val) return `Option ${val.optionIndex + 1}`;
+  if ('position' in val) return `Position ${val.position}`;
+  return JSON.stringify(val);
+}
+
+// Puppeteer can't distinguish page 1 from later pages in one header template,
+// so this renders a page-1 header, then a continuation variant for pages 2..N, and splices them.
+async function renderPdfWithContinuationDivider(
+  printPage: any,
+  pdfOptsBase: { format: 'A4'; printBackground: true; margin: { top: string; right: string; bottom: string; left: string }; displayHeaderFooter: true; footerTemplate: string },
+  headerTemplateNoDivider: string,
+  headerTemplateWithDivider: string
+): Promise<Buffer> {
+  const firstBuffer = await printPage.pdf({ ...pdfOptsBase, headerTemplate: headerTemplateNoDivider });
+  const firstDoc = await PDFDocument.load(firstBuffer);
+  const totalPages = firstDoc.getPageCount();
+  if (totalPages <= 1) return Buffer.from(firstBuffer);
+
+  const restBuffer = await printPage.pdf({ ...pdfOptsBase, headerTemplate: headerTemplateWithDivider, pageRanges: `2-${totalPages}` });
+  const restDoc = await PDFDocument.load(restBuffer);
+
+  const merged = await PDFDocument.create();
+  const [p1] = await merged.copyPages(firstDoc, [0]);
+  merged.addPage(p1);
+  const restPages = await merged.copyPages(restDoc, restDoc.getPageIndices());
+  restPages.forEach(p => merged.addPage(p));
+  return Buffer.from(await merged.save());
+}
+
+// Generates a single-section micro-practice PDF via levels_main.html's
+// generateMicroSet (vs. generateOneSet's full multi-section worksheet).
+export async function generateMicroPracticePaper({
+  studentId,
+  studentName,
+  studentClass,
+  levelId,
+  subIdx,
+  sectionIndex,
+  questionCount
+}: {
+  studentId: string;
+  studentName: string;
+  studentClass: string;
+  levelId: number;
+  subIdx: number;
+  sectionIndex: number;
+  questionCount: number;
+}): Promise<MicroPracticePaperResult> {
+  const { launchBrowser } = await import('./browser');
+  const browser = await launchBrowser();
+
+  try {
+    const page = await browser.newPage();
+    const worksheetAssetsDir =
+      process.env.WORKSHEET_ASSETS_DIR ||
+      path.resolve(__dirname, "..", "..", "frontend", "public", "worksheets");
+    const htmlPath = path.join(worksheetAssetsDir, "levels_main.html");
+    await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0' as any, timeout: 30000 });
+
+    const data = await page.evaluate(({ levelId, subIdx, sectionIndex, questionCount, studentId, studentName, studentClass }) => {
+      const doc = (globalThis as any).document;
+      const nameInput = doc.getElementById('studentName');
+      const idInput = doc.getElementById('studentId');
+      const classInput = doc.getElementById('studentClass');
+      if (nameInput) nameInput.value = studentName;
+      if (idInput) idInput.value = studentId;
+      if (classInput) classInput.value = studentClass;
+      // @ts-ignore — generateMicroSet is a global defined in levels_main.html
+      return generateMicroSet(levelId, subIdx, sectionIndex, questionCount);
+    }, { levelId, subIdx, sectionIndex, questionCount, studentId, studentName, studentClass });
+
+    await page.close();
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    const paperId = randomUUID();
+    const qrDataUrl = createQrDataUrl({ paperId, studentId, studentName, levelId, subIdx, sectionIndex, questionCount });
+
+    const printPage = await browser.newPage();
+    const styleBlock = `
+:root{--ink:#1a1a1a;--paper:#ffffff;--accent:#2f6fed;--muted:#666;--line:#c9c9c9;--panel:#f4f6f9;--danger:#d33;--good:#1a8a4a;}
+*{box-sizing:border-box;}
+body{font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#fff;color:var(--ink);}
+.page-wrapper{position:relative;background:var(--paper);width:794px;padding:34px 30px;}
+.page-header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:14px;}
+.page-header h1{font-size:18px;margin:0;}
+.page-header .sub{font-size:12px;color:var(--muted);}
+.section{margin-bottom:20px;}
+.section h3{font-size:14px;background:#eef2fb;padding:6px 8px;border-left:4px solid var(--accent);margin:0 0 8px 0;page-break-after:avoid;}
+.instr{font-size:12.5px;color:#333;margin:0 0 8px 2px;font-style:italic;}
+.q-list{display:flex;flex-direction:column;gap:8px;}
+.q-row{display:flex;align-items:center;gap:10px;font-size:14px;flex-wrap:wrap;page-break-inside:avoid;}
+.q-num{font-weight:700;min-width:20px;}
+.ans-box{border:1.5px solid var(--ink);border-radius:4px;min-width:44px;height:28px;padding:2px 6px;text-align:center;font-size:14px;display:inline-flex;align-items:center;justify-content:center;}
+.ans-box.wide{min-width:90px;}
+.icon-row{display:inline-flex;gap:3px;flex-wrap:wrap;vertical-align:middle;}
+.ic{display:inline-block;vertical-align:middle;}
+.mcq-options{display:flex;gap:12px;flex-wrap:wrap;margin-left:4px;}
+.match-grid{display:grid;grid-template-columns:1fr 90px 1fr;align-items:stretch;}
+.match-item{border:1px dashed var(--line);border-radius:6px;padding:8px;min-height:40px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.match-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);background:#fff;flex-shrink:0;}
+@media print{body{background:#fff;}.page-wrapper{box-shadow:none;margin:0;}}
+    `;
+
+    const wrappedHtml = `<!DOCTYPE html><html><head><style>${styleBlock}</style></head><body>
+      <div class="page-wrapper">
+        ${data.html}
+      </div>
+    </body></html>`;
+
+    await printPage.setContent(wrappedHtml, { waitUntil: 'networkidle0' as any, timeout: 15000 });
+    await printPage.setViewport({ width: 794, height: 1123 });
+
+    // QR + footer via Puppeteer's headerTemplate/footerTemplate so they repeat
+    // on every physical page (see renderPdfWithContinuationDivider for the divider).
+    const headerNoDivider = `<div style="width:100%;font-size:0;position:relative;">
+      <img src="${qrDataUrl}" style="position:absolute;top:1mm;right:8mm;width:26mm;height:26mm;" />
+    </div>`;
+    const headerWithDivider = `<div style="width:100%;font-size:0;position:relative;">
+      <img src="${qrDataUrl}" style="position:absolute;top:1mm;right:8mm;width:26mm;height:26mm;" />
+      <div style="position:absolute;bottom:2mm;left:8mm;right:8mm;border-bottom:1px solid #c9c9c9;"></div>
+    </div>`;
+    const footerTemplate = `<div style="width:100%;font-size:9px;font-family:'Courier New',monospace;color:#888;text-align:right;padding-right:8mm;">
+      Micro-Practice · Student ID: ${studentId} · ${new Date().toLocaleDateString()}
+    </div>`;
+
+    const pdfBuffer = await renderPdfWithContinuationDivider(
+      printPage,
+      {
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '27mm', right: '0mm', bottom: '12mm', left: '0mm' },
+        displayHeaderFooter: true,
+        footerTemplate
+      },
+      headerNoDivider,
+      headerWithDivider
+    );
+
+    await printPage.close();
+
+    const questions: Question[] = [];
+    if (data.answerKey && Array.isArray(data.answerKey.items)) {
+      data.answerKey.items.forEach((item: any, idx: number) => {
+        const answerStr = formatCorrectAnswer(item);
+        questions.push({
+          question_id: `${studentId}_${item.questionId}`,
+          question: item.coordHint || `Question ${idx + 1}: ${item.sectionName || 'Micro-Practice'}`,
+          answer: answerStr,
+          answer_type: inferAnswerType(item),
+          topic: item.sectionName || `Section ${sectionIndex + 1}`,
+          subtopic: item.sectionId || 'subtopic',
+          difficulty: 'medium',
+          source_level: levelId,
+          referenceImageSvg: item.referenceImageSvg
+        });
+      });
+    }
+
+    const fileName = `micro_${levelId}_${subIdx}_sec${sectionIndex}_student_${studentId}_${randomUUID()}.pdf`;
+    const filePath = path.join(OUTPUT_DIR, fileName);
+    fs.writeFileSync(filePath, pdfBuffer);
+
+    return {
+      fileName,
+      filePath,
+      pdfUrl: `/output/${fileName}`,
+      questions,
+      paperId
+    };
+  } finally {
+    await browser.close();
+  }
+}
+
+export interface MultiCompetencyMicroPaperResult {
+  fileName: string;
+  filePath: string;
+  pdfUrl: string;
+  paperId: string;
+  parts: MicroPracticePart[];
+}
+
+// Generates ONE combined PDF covering multiple weak competencies, each as a
+// "Part N: <competency>" section. levelId/subIdx per part are resolved by the caller.
+export async function generateMultiCompetencyMicroPaper({
+  studentId,
+  studentName,
+  studentClass,
+  competencyLevels,
+  questionsPerCompetency
+}: {
+  studentId: string;
+  studentName: string;
+  studentClass: string;
+  competencyLevels: { competency: string; levelId: number; subIdx: number }[];
+  questionsPerCompetency: number;
+}): Promise<MultiCompetencyMicroPaperResult> {
+  if (!Array.isArray(competencyLevels) || competencyLevels.length === 0) {
+    throw new Error('competencyLevels must be a non-empty array.');
+  }
+
+  const { launchBrowser } = await import('./browser');
+  const browser = await launchBrowser();
+
+  try {
+    const page = await browser.newPage();
+    const worksheetAssetsDir =
+      process.env.WORKSHEET_ASSETS_DIR ||
+      path.resolve(__dirname, "..", "..", "frontend", "public", "worksheets");
+    const htmlPath = path.join(worksheetAssetsDir, "levels_main.html");
+    await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0' as any, timeout: 30000 });
+
+    await page.evaluate(({ studentId, studentName, studentClass }) => {
+      const doc = (globalThis as any).document;
+      const nameInput = doc.getElementById('studentName');
+      const idInput = doc.getElementById('studentId');
+      const classInput = doc.getElementById('studentClass');
+      if (nameInput) nameInput.value = studentName;
+      if (idInput) idInput.value = studentId;
+      if (classInput) classInput.value = studentClass;
+    }, { studentId, studentName, studentClass });
+
+    const parts: MicroPracticePart[] = [];
+    const partSectionsHtml: string[] = [];
+
+    for (let i = 0; i < competencyLevels.length; i++) {
+      const { competency, levelId, subIdx } = competencyLevels[i];
+      const sectionIndex = 0;
+
+      const data = await page.evaluate(({ levelId, subIdx, sectionIndex, questionCount }) => {
+        // @ts-ignore — generateMicroSet is a global defined in levels_main.html
+        return generateMicroSet(levelId, subIdx, sectionIndex, questionCount, { skipHeader: true });
+      }, { levelId, subIdx, sectionIndex, questionCount: questionsPerCompetency });
+
+      if (data.error) {
+        throw new Error(`Part ${i + 1} (${competency}): ${data.error}`);
+      }
+
+      const questions: Question[] = [];
+      if (data.answerKey && Array.isArray(data.answerKey.items)) {
+        data.answerKey.items.forEach((item: any, idx: number) => {
+          const answerStr = formatCorrectAnswer(item);
+          questions.push({
+            question_id: `${studentId}_part${i + 1}_${item.questionId}`,
+            question: item.coordHint || `Question ${idx + 1}: ${item.sectionName || competency}`,
+            answer: answerStr,
+            answer_type: inferAnswerType(item),
+            topic: item.sectionName || competency,
+            subtopic: item.sectionId || 'subtopic',
+            difficulty: 'medium',
+            source_level: levelId,
+            referenceImageSvg: item.referenceImageSvg
+          });
+        });
+      }
+
+      parts.push({ competency, levelId, subIdx, sectionIndex, questionCount: questions.length, questions });
+      partSectionsHtml.push(`
+        <div style="font-size:16px;font-weight:800;margin:18px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--ink);">Part ${i + 1}: ${competency} · ${data.meta.title}</div>
+        ${data.html}
+      `);
+    }
+
+    await page.close();
+
+    const paperId = randomUUID();
+    // Just the paperId (+ student identity for the confirm-screen message) —
+    // the full multi-part question list is looked up from the stored
+    // MicroPracticePaper record, not encoded in the QR itself.
+    const qrDataUrl = createQrDataUrl({ paperId, studentId, studentName });
+
+    const printPage = await browser.newPage();
+    const styleBlock = `
+:root{--ink:#1a1a1a;--paper:#ffffff;--accent:#2f6fed;--muted:#666;--line:#c9c9c9;--panel:#f4f6f9;--danger:#d33;--good:#1a8a4a;}
+*{box-sizing:border-box;}
+body{font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#fff;color:var(--ink);}
+.page-wrapper{position:relative;background:var(--paper);width:794px;padding:34px 30px;}
+.page-header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:14px;}
+.page-header h1{font-size:18px;margin:0;}
+.page-header .sub{font-size:12px;color:var(--muted);}
+.section{margin-bottom:20px;}
+.section h3{font-size:14px;background:#eef2fb;padding:6px 8px;border-left:4px solid var(--accent);margin:0 0 8px 0;page-break-after:avoid;}
+.instr{font-size:12.5px;color:#333;margin:0 0 8px 2px;font-style:italic;}
+.q-list{display:flex;flex-direction:column;gap:8px;}
+.q-row{display:flex;align-items:center;gap:10px;font-size:14px;flex-wrap:wrap;page-break-inside:avoid;}
+.q-num{font-weight:700;min-width:20px;}
+.ans-box{border:1.5px solid var(--ink);border-radius:4px;min-width:44px;height:28px;padding:2px 6px;text-align:center;font-size:14px;display:inline-flex;align-items:center;justify-content:center;}
+.ans-box.wide{min-width:90px;}
+.icon-row{display:inline-flex;gap:3px;flex-wrap:wrap;vertical-align:middle;}
+.ic{display:inline-block;vertical-align:middle;}
+.mcq-options{display:flex;gap:12px;flex-wrap:wrap;margin-left:4px;}
+.match-grid{display:grid;grid-template-columns:1fr 90px 1fr;align-items:stretch;}
+.match-item{border:1px dashed var(--line);border-radius:6px;padding:8px;min-height:40px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.match-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);background:#fff;flex-shrink:0;}
+.match-label{font-weight:700;font-size:12px;color:var(--muted);min-width:16px;text-align:center;}
+@media print{body{background:#fff;}.page-wrapper{box-shadow:none;margin:0;}}
+    `;
+
+    // QR/footer use Puppeteer's headerTemplate/footerTemplate, not in-body
+    // position:fixed — a JS margin.top alone is a no-op here (preferCSSPageSize
+    // wins), and compensating position:fixed against a CSS @page margin shift breaks rendering in Chromium.
+    const wrappedHtml = `<!DOCTYPE html><html><head><style>${styleBlock}</style></head><body>
+      <div class="page-wrapper">
+        <div class="page-header">
+          <div><h1>Micro-Practice — Multiple Competencies</h1><span class="sub">${competencyLevels.map(c => c.competency).join(', ')}</span></div>
+          <div style="text-align:right;font-size:12px;"><div><b>${studentName}</b></div><div>${studentId}</div>${studentClass ? `<div>${studentClass}</div>` : ''}</div>
+        </div>
+        ${partSectionsHtml.join('')}
+      </div>
+    </body></html>`;
+
+    await printPage.setContent(wrappedHtml, { waitUntil: 'networkidle0' as any, timeout: 15000 });
+    await printPage.setViewport({ width: 794, height: 1123 });
+
+    // top clears the QR's footprint (1mm + 26mm); two header variants are
+    // needed for the continuation-page divider (see renderPdfWithContinuationDivider).
+    const headerNoDivider = `<div style="width:100%;font-size:0;position:relative;">
+      <img src="${qrDataUrl}" style="position:absolute;top:1mm;right:8mm;width:26mm;height:26mm;" />
+    </div>`;
+    const headerWithDivider = `<div style="width:100%;font-size:0;position:relative;">
+      <img src="${qrDataUrl}" style="position:absolute;top:1mm;right:8mm;width:26mm;height:26mm;" />
+      <div style="position:absolute;bottom:2mm;left:8mm;right:8mm;border-bottom:1px solid #c9c9c9;"></div>
+    </div>`;
+    const footerTemplate = `<div style="width:100%;font-size:9px;font-family:'Courier New',monospace;color:#888;text-align:right;padding-right:8mm;">
+      Micro-Practice · Student ID: ${studentId} · ${new Date().toLocaleDateString()}
+    </div>`;
+
+    const pdfBuffer = await renderPdfWithContinuationDivider(
+      printPage,
+      {
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '27mm', right: '0mm', bottom: '12mm', left: '0mm' },
+        displayHeaderFooter: true,
+        footerTemplate
+      },
+      headerNoDivider,
+      headerWithDivider
+    );
+
+    await printPage.close();
+
+    const fileName = `micro_multi_${competencyLevels.length}parts_student_${studentId}_${randomUUID()}.pdf`;
+    const filePath = path.join(OUTPUT_DIR, fileName);
+    fs.writeFileSync(filePath, pdfBuffer);
+
+    return {
+      fileName,
+      filePath,
+      pdfUrl: `/output/${fileName}`,
+      paperId,
+      parts
+    };
+  } finally {
+    await browser.close();
+  }
+}
+
+// Merges already-generated PDFs back-to-back in order. Used by POST /api/practice/bulk-generate.
+export async function mergeMicroPracticePdfs(pdfFilePaths: string[]): Promise<{ fileName: string; filePath: string; pdfUrl: string }> {
+  const mergedPdf = await PDFDocument.create();
+  for (const srcPath of pdfFilePaths) {
+    const bytes = fs.readFileSync(srcPath);
+    const doc = await PDFDocument.load(bytes);
+    const copiedPages = await mergedPdf.copyPages(doc, doc.getPageIndices());
+    copiedPages.forEach(page => mergedPdf.addPage(page));
+  }
+  const mergedBytes = await mergedPdf.save();
+  const fileName = `bulk_combined_${randomUUID()}.pdf`;
+  const filePath = path.join(OUTPUT_DIR, fileName);
+  fs.writeFileSync(filePath, Buffer.from(mergedBytes));
+  return { fileName, filePath, pdfUrl: `/output/${fileName}` };
+}
+
+// PNG's magic number (89 50 4E 47 ...); anything else from this pipeline is
+// JPEG. Sniffing the actual bytes rather than trusting a data URL's declared
+// MIME type is deliberate — the source of these bytes (the ICR rasterizer)
+// has drifted from PNG to JPEG output before without every caller's MIME
+// label being updated to match.
+function isPngSignature(bytes: Buffer): boolean {
+  return bytes.length >= 8 &&
+    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
+}
+
+// Merges page images into one multi-page PDF, so a scanned paper spanning
+// multiple physical pages keeps every page (not just the first) for grading.
+export async function mergeImagesIntoPdf(imageDataUrls: string[]): Promise<Buffer> {
+  const pdfDoc = await PDFDocument.create();
+  const A4_WIDTH = 595.28;
+  const A4_HEIGHT = 841.89;
+  for (const dataUrl of imageDataUrls) {
+    const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+    const imageBytes = Buffer.from(base64, 'base64');
+    const image = isPngSignature(imageBytes)
+      ? await pdfDoc.embedPng(imageBytes)
+      : await pdfDoc.embedJpg(imageBytes);
+    const page = pdfDoc.addPage([A4_WIDTH, A4_HEIGHT]);
+    page.drawImage(image, { x: 0, y: 0, width: A4_WIDTH, height: A4_HEIGHT });
+  }
+  const bytes = await pdfDoc.save();
+  return Buffer.from(bytes);
+}
+
+// Zips generated PDFs, one entry per student, for individual printing.
+// Used by POST /api/practice/bulk-generate.
+export async function zipMicroPracticePdfs(entries: { fileName: string; filePath: string }[]): Promise<{ fileName: string; filePath: string; zipUrl: string }> {
+  const zip = new JSZip();
+  for (const entry of entries) {
+    zip.file(entry.fileName, fs.readFileSync(entry.filePath));
+  }
+  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const fileName = `bulk_papers_${randomUUID()}.zip`;
+  const filePath = path.join(OUTPUT_DIR, fileName);
+  fs.writeFileSync(filePath, zipBuffer);
+  return { fileName, filePath, zipUrl: `/output/${fileName}` };
 }
 
 /**

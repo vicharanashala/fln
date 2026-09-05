@@ -2,16 +2,18 @@
 """
 Rasterize a PDF to JPEG using PyMuPDF.
 
-Used by the Cloud OCR path (/api/icr/evaluate-cloud) to accept PDFs —
-Ollama's vision API only takes image MIME types. Renders at 200 DPI
-(down from 300 — plenty for handwriting legibility; the extra 300 DPI
-detail is thrown away by the vision model's own internal downsampling
-anyway) and saves as JPEG at quality 85 instead of lossless PNG. A real
-22-page phone-photo scan measured ~4.8 MB/page as 300-DPI PNG (lossless
-deflate compresses photo-like scanned paper poorly) vs. a small fraction
-of that as 200-DPI JPEG — this is what actually made large multi-page
-scans fit under the pipeline's size caps, not just raising the caps
-themselves (see backend/src/routes/evaluation.ts MAX_TOTAL_BASE64).
+Used by /api/icr/rasterize-pdf (Micro-Practice's paper-upload QR decoding)
+and the Cloud OCR path (/api/icr/evaluate-cloud) to accept PDFs — both
+jsQR and Ollama's vision API only take raster/image input. Renders at
+200 DPI (down from 300 — plenty for handwriting legibility; the extra
+300 DPI detail is thrown away by the vision model's own internal
+downsampling anyway) and saves as JPEG at quality 85 instead of lossless
+PNG. A real 22-page phone-photo scan measured ~4.8 MB/page as 300-DPI
+PNG (lossless deflate compresses photo-like scanned paper poorly) vs. a
+small fraction of that as 200-DPI JPEG — this is what actually made
+large multi-page scans fit under the pipeline's size caps, not just
+raising the caps themselves (see backend/src/routes/evaluation.ts
+MAX_TOTAL_BASE64).
 
 Stdout format (single JSON line):
   Single-page mode: {"success": true, "output_path": "...", "page_size": [w, h]}
