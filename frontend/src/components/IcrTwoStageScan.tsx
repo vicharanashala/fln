@@ -73,6 +73,19 @@ function formatMs(ms: number): string {
 const MAX_UPLOAD_BYTES = 18 * 1024 * 1024;
 const MAX_UPLOAD_LABEL = '18 MB';
 
+export interface ScanQualityResult {
+  status: 'pass' | 'warning' | 'reject';
+  checks: {
+    resolution: 'pass' | 'fail';
+    brightness: 'pass' | 'warning';
+    contrast: 'pass' | 'warning';
+    blur: 'pass' | 'warning';
+    orientation: 'pass' | 'warning';
+  };
+  reasons: string[];
+  canOverride: boolean;
+}
+
 export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
   token,
   uploadedFile,
@@ -83,6 +96,11 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
   const [cloudOcrState, setCloudOcrState] = useState<OcrState>('idle');
   const [cloudError, setCloudError] = useState<string | null>(null);
   const [cloudProvidersConfigured, setCloudProvidersConfigured] = useState<Record<string, boolean>>({});
+
+  // Scan quality validation state
+  const [qualityResult, setQualityResult] = useState<ScanQualityResult | null>(null);
+  const [checkingQuality, setCheckingQuality] = useState(false);
+  const [proceedOverride, setProceedOverride] = useState(false);
 
   // On mount, fetch which providers the server has configured. The ICR
   // UI uses this to enable/disable the cloud button.
@@ -133,8 +151,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
     };
   }, [cloudOcrState]);
 
-  // Reset cloud OCR state when the user picks a different file.
-  // Compare by name+size+lastModified.
+  // Reset cloud OCR state and run pre-flight quality check when user picks a different file.
   const fileFingerprint = uploadedFile
     ? `${uploadedFile.name}:${uploadedFile.size}:${uploadedFile.lastModified}`
     : null;
@@ -143,11 +160,50 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
     if (prevFingerprintRef.current !== null && prevFingerprintRef.current !== fileFingerprint) {
       setCloudOcrState('idle');
       setCloudError(null);
+      setQualityResult(null);
+      setProceedOverride(false);
     }
     prevFingerprintRef.current = fileFingerprint;
-  }, [fileFingerprint]);
 
-  const runCloudOcr = async () => {
+    // Run pre-OCR scan quality check for uploaded file
+    if (uploadedFile) {
+      let isCancelled = false;
+      setCheckingQuality(true);
+      (async () => {
+        try {
+          const dataUrl = await fileToDataUrl(uploadedFile);
+          if (isCancelled) return;
+          const res = await apiFetch('/api/icr/check-quality', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              imageDataUrl: dataUrl,
+              mimeType: uploadedFile.type,
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (!isCancelled && data.qualityResult) {
+              setQualityResult(data.qualityResult);
+            }
+          }
+        } catch (_err) {
+          // If check fails silently, qualityResult stays null
+        } finally {
+          if (!isCancelled) setCheckingQuality(false);
+        }
+      })();
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+  }, [fileFingerprint, uploadedFile, token]);
+
+  const runCloudOcr = async (forceOverride = false) => {
     if (!uploadedFile) return;
     const fileToUse = await compressImageIfNeeded(uploadedFile, MAX_UPLOAD_BYTES);
     if (fileToUse.size > MAX_UPLOAD_BYTES) {
@@ -161,12 +217,6 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
     setCloudError(null);
     const t0 = performance.now();
     try {
-      // Single OCR provider: ollama-gemma4. The provider field is sent
-      // for backend-validation clarity; the backend also hardcodes the
-      // provider check. The frontend sends the raw file as a single
-      // data URL; the backend rasterizes PDFs to PNG before posting to
-      // Ollama (Ollama's vision API only accepts image MIME types).
-      // NO apiKey is ever sent from the frontend.
       const dataUrl = await fileToDataUrl(fileToUse);
       const res = await apiFetch('/api/icr/evaluate-cloud', {
         method: 'POST',
@@ -181,6 +231,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
           // actually has, when known, so the model is told an explicit
           // target row count instead of guessing from the image alone.
           ...(typeof expectedCount === 'number' && expectedCount > 0 ? { expectedCount } : {}),
+          proceedDespiteQualityWarning: forceOverride || proceedOverride,
         }),
       });
       const clientMs = Math.round(performance.now() - t0);
@@ -250,10 +301,93 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
     }
   };
 
-  const disabled = !uploadedFile;
+  const isRejected = qualityResult?.status === 'reject';
+  const hasWarning = qualityResult?.status === 'warning' && !proceedOverride;
+  const disabled = !uploadedFile || isRejected || (hasWarning && !proceedOverride);
 
   return (
     <div className="space-y-4">
+      {/* Pre-Flight Scan Quality Card */}
+      {uploadedFile && (
+        <div className="p-4 rounded-2xl border transition-all shadow-sm bg-white dark:bg-slate-900 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+              <span>Pre-Flight Scan Quality Check</span>
+              {checkingQuality && <SpinnerIcon />}
+            </h4>
+            {qualityResult && (
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono ${
+                qualityResult.status === 'pass'
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                  : qualityResult.status === 'warning'
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                  : 'bg-red-100 text-red-800 dark:bg-red-950/80 dark:text-red-300'
+              }`}>
+                {qualityResult.status.toUpperCase()}
+              </span>
+            )}
+          </div>
+
+          {qualityResult && (
+            <div className="space-y-2 text-xs">
+              <div className="grid grid-cols-5 gap-1 font-mono text-[11px] py-1 border-y border-zinc-100 dark:border-slate-800">
+                <span className={qualityResult.checks.resolution === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
+                  Res: {qualityResult.checks.resolution}
+                </span>
+                <span className={qualityResult.checks.brightness === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                  Bri: {qualityResult.checks.brightness}
+                </span>
+                <span className={qualityResult.checks.contrast === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                  Con: {qualityResult.checks.contrast}
+                </span>
+                <span className={qualityResult.checks.blur === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                  Blur: {qualityResult.checks.blur}
+                </span>
+                <span className={qualityResult.checks.orientation === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                  Ori: {qualityResult.checks.orientation}
+                </span>
+              </div>
+
+              {qualityResult.reasons.length > 0 && (
+                <ul className="list-disc pl-4 space-y-0.5 text-zinc-600 dark:text-zinc-300">
+                  {qualityResult.reasons.map((reason, idx) => (
+                    <li key={idx}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+
+              {qualityResult.status === 'reject' && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl text-red-800 dark:text-red-200 mt-2">
+                  <p className="font-bold">Scan Rejected</p>
+                  <p className="text-[11px] mt-0.5">Image resolution is below required 600x600px minimum or file is corrupt. Please upload a higher resolution scan.</p>
+                </div>
+              )}
+
+              {qualityResult.status === 'warning' && !proceedOverride && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-900 dark:text-amber-200 mt-2 flex flex-col gap-2">
+                  <div>
+                    <p className="font-bold">Scan Quality Warning</p>
+                    <p className="text-[11px] mt-0.5">Image issues detected that may reduce OCR accuracy. You can re-scan or override to continue.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProceedOverride(true);
+                        runCloudOcr(true);
+                      }}
+                      className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-mono font-bold rounded-lg text-xs"
+                    >
+                      Continue Anyway (Override)
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Single OCR action — Ollama Gemma 4 only. The button is always
           rendered; it shows a clear subtitle + error state when the
           server doesn't have an OLLAMA_API_KEY configured. */}
@@ -271,7 +405,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
           timeTaken={null}
           liveElapsed={cloudOcrState === 'running' ? elapsedMs : null}
           state={cloudOcrState}
-          onClick={runCloudOcr}
+          onClick={() => runCloudOcr(false)}
           disabled={disabled || cloudProvidersConfigured['ollama-gemma4'] !== true}
         />
       </div>
@@ -284,7 +418,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
         <ErrorPanel
           title="Ollama Gemma 4 — Cloud OCR failed"
           error={cloudError}
-          onRetry={runCloudOcr}
+          onRetry={() => runCloudOcr(proceedOverride)}
           onDismiss={() => {
             setCloudError(null);
             setCloudOcrState('idle');

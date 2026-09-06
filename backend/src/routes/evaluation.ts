@@ -12,6 +12,7 @@ import { invalidateFingerprintCache } from './misconceptions';
 import { assignStudentToArchetype } from '../studentArchetypeService';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { directPrerequisites, describeConcept } from '../competencyPrerequisites';
+import { analyzeScanQuality } from '../scanQuality';
 
 export function registerEvaluationRoutes(app: express.Express) {
 
@@ -703,6 +704,29 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
   };
 
+  // Scan quality endpoint: analyzes scan metrics (resolution, brightness, contrast, blur, orientation)
+  // before starting OCR extraction. Returns ScanQualityResult.
+  app.post('/api/icr/check-quality', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { imageDataUrl, fileBase64, mimeType } = req.body || {};
+    const singleDataUrl = imageDataUrl || fileBase64;
+    if (!singleDataUrl || typeof singleDataUrl !== 'string') {
+      return res.status(400).json({ error: 'imageDataUrl or fileBase64 is required.' });
+    }
+
+    try {
+      const commaIdx = singleDataUrl.indexOf(',');
+      const base64Body = commaIdx >= 0 ? singleDataUrl.slice(commaIdx + 1) : singleDataUrl;
+      const buffer = Buffer.from(base64Body, 'base64');
+      const quality = analyzeScanQuality(buffer, mimeType);
+      return res.json({ success: true, qualityResult: quality });
+    } catch (err: any) {
+      return res.status(400).json({ error: 'Failed to analyze scan quality: ' + (err?.message || err) });
+    }
+  });
+
   // OCR endpoint: takes {provider, imageDataUrl} or {provider, fileBase64}
   // for a single image or PDF. NO apiKey from frontend. The frontend
   // sends the raw file as a single data URL; the backend rasterizes
@@ -712,7 +736,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { imageDataUrl, fileBase64, provider, expectedCount } = req.body || {};
+    const { imageDataUrl, fileBase64, provider, expectedCount, proceedDespiteQualityWarning } = req.body || {};
     const singleDataUrl = imageDataUrl || fileBase64;
     if (!singleDataUrl || typeof singleDataUrl !== 'string') {
       return res.status(400).json({ error: 'imageDataUrl or fileBase64 is required (data URL).' });
@@ -720,6 +744,29 @@ export function registerEvaluationRoutes(app: express.Express) {
     if (provider !== 'ollama-gemma4') {
       return res.status(400).json({ error: 'provider must be "ollama-gemma4".' });
     }
+
+    // Pre-OCR scan quality validation gate
+    const commaIdx = singleDataUrl.indexOf(',');
+    const base64Body = commaIdx >= 0 ? singleDataUrl.slice(commaIdx + 1) : singleDataUrl;
+    const imgBuf = Buffer.from(base64Body, 'base64');
+    const qualityResult = analyzeScanQuality(imgBuf);
+
+    if (qualityResult.status === 'reject') {
+      return res.status(400).json({
+        error: 'Scan quality check failed: ' + qualityResult.reasons.join('; '),
+        qualityResult,
+        canOverride: false,
+      });
+    }
+
+    if (qualityResult.status === 'warning' && proceedDespiteQualityWarning !== true) {
+      return res.status(422).json({
+        error: 'Scan quality warning: ' + qualityResult.reasons.join('; '),
+        qualityResult,
+        canOverride: true,
+      });
+    }
+
     // Optional (issue #234): the caller may already know the real question
     // count for this student's paper (from the diagnostic answer key). When
     // present, it's used to tell the model exactly how many rows to expect
@@ -737,6 +784,9 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
 
     const r = await runCloudOcrOnImage(singleDataUrl, provider, apiKey, expectedCountNum);
+    if (r.body && typeof r.body === 'object') {
+      r.body.scanQuality = qualityResult;
+    }
     return res.status(r.status).json(r.body);
   });
 
