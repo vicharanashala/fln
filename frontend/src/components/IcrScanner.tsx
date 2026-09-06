@@ -661,6 +661,11 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     }
   };
 
+  const handleScanQueued = (scanUuid: string) => {
+    setSuccess(`Scan saved offline and queued for sync (${scanUuid.slice(0, 8)}). Reconnect to process it automatically.`);
+    setError('');
+  };
+
   const handleAnswerChange = (qId: string, value: string) => {
     setExtractedAnswers(prev => ({ ...prev, [qId]: value }));
   };
@@ -888,6 +893,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               token={token}
               uploadedFile={uploadedFile}
               onOcrSuccess={handleTwoStageResult}
+              onScanQueued={handleScanQueued}
               expectedCount={expectedQuestionCount}
             />
           </div>

@@ -37,6 +37,7 @@ import { registerWorksheetRoutes } from './routes/worksheets';
 import { registerEvaluationRoutes } from './routes/evaluation';
 import { registerAnalyticsRoutes } from './routes/analytics';
 import { registerDiagnosticBulkRoutes } from './routes/diagnosticBulk';
+import { registerScanRoutes } from './modules/scans/scan.controller';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
@@ -127,6 +128,7 @@ registerStatsRoutes(app);
   registerWorksheetRoutes(app);
   registerAnalyticsRoutes(app);
   registerDiagnosticBulkRoutes(app);
+  registerScanRoutes(app);
 
   // --- Intervention Tracking & Best Practices Repository ---
 

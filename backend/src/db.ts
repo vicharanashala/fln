@@ -423,6 +423,16 @@ export interface LogEntry {
   details: string;
 }
 
+export interface ScanRecord {
+  id: string;
+  scanUuid: string;
+  status: 'PENDING' | 'SYNCED' | 'FAILED';
+  createdAt: string;
+  metadata: Record<string, any>;
+  imageDataUrl?: string;
+  error?: string;
+}
+
 export interface Announcement {
   id: string;
   title: string;
@@ -497,6 +507,7 @@ interface DatabaseSchema {
   evaluationReports: EvaluationReport[];
   tickets: Ticket[];
   logbook: LogEntry[];
+  scans: ScanRecord[];
   announcements: Announcement[];
   interventions: Intervention[];
   bestPractices: BestPractice[];
@@ -518,12 +529,13 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   evaluationReports: 'evaluation_reports',
   tickets: 'tickets',
   logbook: 'logbook',
+  scans: 'scans',
   announcements: 'announcements',
   interventions: 'interventions',
   bestPractices: 'best_practices',
-    diagnosticAnswerKeys: 'diagnostic_answer_keys',
-    testHistory: 'testHistory',
-  };
+  diagnosticAnswerKeys: 'diagnostic_answer_keys',
+  testHistory: 'testHistory',
+};
 
   /**
    * Collapse multiple `Question` rows that share the same `question_id` into a
@@ -1494,6 +1506,25 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
     await this.mongoDb!.collection('logbook').insertOne(log);
     if (this.data) this.data.logbook.unshift(log);
     return log;
+  }
+
+  async getScanByUuid(scanUuid: string): Promise<ScanRecord | null> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<ScanRecord>('scans').findOne({ scanUuid });
+    }
+    return (this.data?.scans || []).find(scan => scan.scanUuid === scanUuid) || null;
+  }
+
+  async addScan(scan: ScanRecord) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('scans').insertOne(scan);
+    }
+    if (this.data) {
+      if (!this.data.scans) this.data.scans = [];
+      this.data.scans.push(scan);
+      if (!this.mongoDb) await this.save();
+    }
+    return scan;
   }
 
   async addAnnouncement(ann: Announcement) {
@@ -3456,6 +3487,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
       evaluationReports,
       tickets,
       logbook,
+      scans: [],
       announcements,
       interventions,
       bestPractices,

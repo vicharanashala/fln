@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../services/apiClient';
+import { requestBackgroundSync, saveScanOffline } from '../lib/offlineQueue';
 
 /**
  * Single-step ICR scan: click "Run OCR with Ollama Gemma 4" → backend
@@ -49,6 +50,7 @@ interface IcrTwoStageScanProps {
   // Called when OCR succeeds so the parent scanner can switch its UI
   // to the Verify step. Parent owns the result state.
   onOcrSuccess: (data: ScanResponse) => void;
+  onScanQueued?: (scanUuid: string) => void;
   // Issue #234: the real question count for the selected student/class's
   // paper, when known ahead of the scan (resolved by the parent from the
   // diagnostic answer key). Passed to the backend so it can tell the OCR
@@ -77,12 +79,24 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
   token,
   uploadedFile,
   onOcrSuccess,
+  onScanQueued,
   expectedCount,
 }) => {
   // Cloud OCR state — the only OCR state we keep.
   const [cloudOcrState, setCloudOcrState] = useState<OcrState>('idle');
   const [cloudError, setCloudError] = useState<string | null>(null);
   const [cloudProvidersConfigured, setCloudProvidersConfigured] = useState<Record<string, boolean>>({});
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+
+  useEffect(() => {
+    const updateOnlineState = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', updateOnlineState);
+    window.addEventListener('offline', updateOnlineState);
+    return () => {
+      window.removeEventListener('online', updateOnlineState);
+      window.removeEventListener('offline', updateOnlineState);
+    };
+  }, []);
 
   // On mount, fetch which providers the server has configured. The ICR
   // UI uses this to enable/disable the cloud button.
@@ -157,6 +171,32 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
       );
       return;
     }
+
+    const queueScan = async () => {
+      const queued = await saveScanOffline({
+        imageBlob: fileToUse,
+        metadata: {
+          fileName: uploadedFile.name,
+          provider: 'ollama-gemma4',
+          expectedCount: typeof expectedCount === 'number' ? expectedCount : null,
+        },
+      });
+      await requestBackgroundSync();
+      setCloudOcrState('done');
+      setCloudError(null);
+      onScanQueued?.(queued.scanUuid);
+    };
+
+    if (!navigator.onLine) {
+      try {
+        await queueScan();
+      } catch (error: any) {
+        setCloudError(`Could not save this scan offline: ${error?.message || 'storage unavailable'}`);
+        setCloudOcrState('error');
+      }
+      return;
+    }
+
     setCloudOcrState('running');
     setCloudError(null);
     const t0 = performance.now();
@@ -243,6 +283,14 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
       setCloudOcrState('done');
       onOcrSuccess(normalized);
     } catch (err: any) {
+      if (!navigator.onLine || err instanceof TypeError) {
+        try {
+          await queueScan();
+          return;
+        } catch (queueError: any) {
+          setCloudError(`Network unavailable and offline save failed: ${queueError?.message || 'storage unavailable'}`);
+        }
+      }
       setCloudError(
         `Network or client error: ${err?.message || String(err)}`
       );
@@ -262,7 +310,9 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
           icon={<CloudIcon />}
           title="Run OCR with Ollama Gemma 4"
           subtitle={
-            cloudProvidersConfigured['ollama-gemma4'] === true
+            !isOnline
+              ? 'Offline mode — the image will be saved and synced automatically when online.'
+              : cloudProvidersConfigured['ollama-gemma4'] === true
               ? 'Server has OLLAMA_API_KEY configured.'
               : cloudProvidersConfigured['ollama-gemma4'] === false
               ? 'No API key — ask admin to set OLLAMA_API_KEY (or ICR_CLOUD_API_KEY_OLLAMA_GEMMA4).'
@@ -272,7 +322,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
           liveElapsed={cloudOcrState === 'running' ? elapsedMs : null}
           state={cloudOcrState}
           onClick={runCloudOcr}
-          disabled={disabled || cloudProvidersConfigured['ollama-gemma4'] !== true}
+          disabled={disabled || (isOnline && cloudProvidersConfigured['ollama-gemma4'] !== true)}
         />
       </div>
 
