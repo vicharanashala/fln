@@ -26,6 +26,7 @@ import { DistrictsPanel } from './panels/DistrictsPanel';
 import { BlocksPanel } from './panels/BlocksPanel';
 import { AnalyticsPanel } from './panels/AnalyticsPanel';
 import { StudentProfilePanel } from './panels/StudentProfilePanel';
+import { QuestionBankPanel } from './panels/QuestionBankPanel';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -104,6 +105,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'analytics') return <AnalyticsPanel currentUser={currentUser} schools={schools} students={students} getDistrictStats={getDistrictStats} getBlockStats={getBlockStats} />;
 
   if (panel === 'system_settings') return <SystemSettingsPanel />;
+  if (panel === 'question_bank') return <QuestionBankPanel currentUser={currentUser} token={token} />;
 
   // Fallback for any unmatched panel — renders the roles workspace (dashboard) as the content
   return null;
