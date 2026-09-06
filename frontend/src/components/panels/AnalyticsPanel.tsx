@@ -31,10 +31,10 @@ export const AnalyticsPanel: React.FC<{
           <PageHeader title={title} desc={desc} icon={<BarChart3 className="h-5 w-5" />} />
           <div className="space-y-3 mt-4">{data.map((d: any) => (
             <div key={d.code || d.id} className="flex items-center gap-4 p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
-              <span className="font-bold text-sm w-20">{d.code || d.id}</span>
-              <span className="text-sm flex-1">{d.name || d.districtCode}</span>
-              <span className="text-xs text-slate-400 dark:text-slate-500 w-24">{d.schools || '—'} schools</span>
-              <div className="w-32"><div className="flex justify-between text-[10px] mb-0.5"><span>{d.certifiedRate || 0}%</span></div><div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.certifiedRate || 0}%` }} /></div></div>
+              <span className="font-bold text-sm whitespace-nowrap shrink-0">{d.code || d.id}</span>
+              <span className="text-sm flex-1 min-w-0 truncate">{d.name || d.districtCode}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap shrink-0">{d.schools || '—'} schools</span>
+              <div className="w-32 shrink-0"><div className="flex justify-between text-[10px] mb-0.5"><span>{d.certifiedRate || 0}%</span></div><div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.certifiedRate || 0}%` }} /></div></div>
             </div>
           ))}</div>
         </div>

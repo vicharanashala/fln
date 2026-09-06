@@ -8,6 +8,13 @@ export interface RenderedResult {
   csv: string;
   coordsCaptured: boolean;
   coords: any;
+  /**
+   * Answer regions keyed by a question reference ("s0:i2:b1"), emitted by the
+   * template's `captureQuestionRegions`. Distinct from `coords`, which is keyed
+   * by layout name and cannot be joined to a question id — see the note on that
+   * function. Empty for templates that do not define it yet.
+   */
+  questionRegions?: Record<string, { page: number; x_mm: number; y_mm: number; w_mm: number; h_mm: number }>;
   questionPaperJson?: any;
 }
 
@@ -112,8 +119,16 @@ export async function renderBatch(
         }
       }
 
+      let questionRegions = null;
+      if (typeof window.captureQuestionRegions === "function") {
+        const regionTarget = document.querySelector("#ws-" + setIndex + " [data-pageid]") ||
+          document.querySelector("#ws-" + setIndex + " .page-wrapper") ||
+          document.querySelector("#ws-" + setIndex + " .page");
+        if (regionTarget) questionRegions = window.captureQuestionRegions(regionTarget);
+      }
+
       if (coords) masterJson = Object.assign({}, masterJson, { coords });
-      return { pdfBase64, masterJson, csv, coordsCaptured: Boolean(coords), coords, questionPaperJson };
+      return { pdfBase64, masterJson, csv, coordsCaptured: Boolean(coords), coords, questionRegions, questionPaperJson };
     }`;
 
     const results: RenderedResult[] = [];

@@ -9,8 +9,14 @@ export function registerSchoolRoutes(app: express.Express) {
     const schools = await dbStore.getSchools();
 
     let scoped: typeof schools;
-    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
+    if (user.role === UserRole.SUPERADMIN) {
       scoped = schools;
+    } else if (user.role === UserRole.ADMIN) {
+      // State admin, so scoped to their own state. GET /api/logbook and
+      // GET /api/admin/coordinators both already scope ADMIN by stateCode; this
+      // endpoint returned every school nationwide, so a Punjab admin could read
+      // Rajasthan's schools.
+      scoped = schools.filter(s => s.stateCode === user.stateCode);
     } else if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
       scoped = schools.filter(s => s.id === user.schoolId);
     } else if (user.role === UserRole.VOLUNTEER) {
@@ -20,7 +26,10 @@ export function registerSchoolRoutes(app: express.Express) {
     } else if (user.role === UserRole.BLOCK_ADMIN) {
       scoped = schools.filter(s => s.blockCode === user.blockCode);
     } else {
-      scoped = schools;
+      // Fail closed. This branch previously returned every school nationwide, so
+      // any role added later leaked the full list until someone remembered to
+      // come back here.
+      return res.status(403).json({ error: 'Forbidden: role not permitted to list schools.' });
     }
 
     // Opt-in pagination (same pattern as GET /api/students, PR #115).

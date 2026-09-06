@@ -354,8 +354,12 @@ function section1(){
   ranges.forEach((r,idx)=>{
     const nums=[]; for(let n=r[0];n<=r[1];n++) nums.push(n);
     const blankPositions=sample([...Array(nums.length).keys()],3);
-    const display=nums.map((n,i)=>blankPositions.includes(i)?'<span class="blankline" data-omr="q1-r'+(idx+1)+'-b'+(i+1)+'" style="width:34px;"></span>':n).join('&nbsp;&nbsp;');
-    const blanks=blankPositions.sort((a,b)=>a-b).map(p=>({position:p+1,value:nums[p]}));
+    // Ordinal of each blank within its row, ascending — the same order the
+    // `blanks` array below is built in, and therefore the same order the
+    // backend appends _b1.._bN to this row's question id.
+    const blankOrder=[...blankPositions].sort((a,b)=>a-b);
+    const display=nums.map((n,i)=>blankPositions.includes(i)?'<span class="blankline" data-omr="q1-r'+(idx+1)+'-b'+(i+1)+'" data-ans-item="'+idx+'" data-ans-blank="'+blankOrder.indexOf(i)+'" style="width:34px;"></span>':n).join('&nbsp;&nbsp;');
+    const blanks=blankOrder.map(p=>({position:p+1,value:nums[p]}));
     answers.push({question:idx+1,range:r[0]+'-'+r[1],blanks});
     out+='<div class="seqline" data-omr="q1-row-'+(idx+1)+'"><span class="qn">'+(idx+1)+'.</span>'+display+'</div>';
   });
@@ -382,19 +386,19 @@ function section3(){
   let out='<div class="two-column-questions">';
   const answers=[];
   const A=randInt(2,49);
-  out+='<div class="seqline"><span class="qn">1.</span> <span class="blankline" data-omr="q3-ans-1" style="width:40px;"></span> , '+A+' &nbsp;(before)</div>';
+  out+='<div class="seqline"><span class="qn">1.</span> <span class="blankline" data-omr="q3-ans-1" data-ans-item="0" style="width:40px;"></span> , '+A+' &nbsp;(before)</div>';
   answers.push({question:1,type:'before',given:A,answer:A-1});
   const B=randInt(1,49);
-  out+='<div class="seqline"><span class="qn">2.</span> '+B+' , <span class="blankline" data-omr="q3-ans-2" style="width:40px;"></span> &nbsp;(after)</div>';
+  out+='<div class="seqline"><span class="qn">2.</span> '+B+' , <span class="blankline" data-omr="q3-ans-2" data-ans-item="1" style="width:40px;"></span> &nbsp;(after)</div>';
   answers.push({question:2,type:'after',given:B,answer:B+1});
   const C=randInt(1,48);
-  out+='<div class="seqline"><span class="qn">3.</span> '+C+' , <span class="blankline" data-omr="q3-ans-3" style="width:40px;"></span> , '+(C+2)+' &nbsp;(between)</div>';
+  out+='<div class="seqline"><span class="qn">3.</span> '+C+' , <span class="blankline" data-omr="q3-ans-3" data-ans-item="2" style="width:40px;"></span> , '+(C+2)+' &nbsp;(between)</div>';
   answers.push({question:3,type:'between',given:[C,C+2],answer:C+1});
   const D=randInt(2,48);
-  out+='<div class="seqline"><span class="qn">4.</span> <span class="blankline" data-omr="q3-ans-4" style="width:40px;"></span> , '+D+' , '+(D+1)+' &nbsp;(before)</div>';
+  out+='<div class="seqline"><span class="qn">4.</span> <span class="blankline" data-omr="q3-ans-4" data-ans-item="3" style="width:40px;"></span> , '+D+' , '+(D+1)+' &nbsp;(before)</div>';
   answers.push({question:4,type:'before',given:[D,D+1],answer:D-1});
   const E=randInt(1,47);
-  out+='<div class="seqline"><span class="qn">5.</span> '+E+' , '+(E+1)+' , <span class="blankline" data-omr="q3-ans-5" style="width:40px;"></span> &nbsp;(after)</div>';
+  out+='<div class="seqline"><span class="qn">5.</span> '+E+' , '+(E+1)+' , <span class="blankline" data-omr="q3-ans-5" data-ans-item="4" style="width:40px;"></span> &nbsp;(after)</div>';
   answers.push({question:5,type:'after',given:[E,E+1],answer:E+2});
   return {html:out+'</div>', answers:{section:'Before After Between', items:answers}};
 }
@@ -408,7 +412,7 @@ function section4(){
     if(sym==='='){ left=randInt(1,50); right=left; }
     else if(sym==='<'){ left=randInt(1,48); right=randInt(left+1,50); }
     else { left=randInt(2,50); right=randInt(1,left-1); }
-    out+='<div class="seqline"><span class="qn">'+(i+1)+'.</span> '+left+' <span class="compbox" data-omr="q4-ans-'+(i+1)+'" style="vertical-align:middle;"></span> '+right+'</div>';
+    out+='<div class="seqline"><span class="qn">'+(i+1)+'.</span> '+left+' <span class="compbox" data-omr="q4-ans-'+(i+1)+'" data-ans-item="'+i+'" style="vertical-align:middle;"></span> '+right+'</div>';
     answers.push({question:i+1,left,right,answer:sym});
   });
   return {html:out+'</div>', answers:{section:'Compare Numbers', items:answers}};
@@ -453,7 +457,7 @@ function section6(){
     const a=randInt(1,9),b=randInt(1,9);
     let imgsA=''; for(let k=0;k<a;k++) imgsA+=renderIcon(icon,22);
     let imgsB=''; for(let k=0;k<b;k++) imgsB+=renderIcon(icon,22);
-    rows+='<tr><td class="rownum">'+(i+1)+'</td><td><div class="eqcell"><div class="objcell">'+imgsA+'</div><span class="opsym">+</span><div class="objcell">'+imgsB+'</div><span class="opsym">=</span><span class="ansbox" data-omr="q6-ans-'+(i+1)+'"></span></div></td></tr>';
+    rows+='<tr><td class="rownum">'+(i+1)+'</td><td><div class="eqcell"><div class="objcell">'+imgsA+'</div><span class="opsym">+</span><div class="objcell">'+imgsB+'</div><span class="opsym">=</span><span class="ansbox" data-omr="q6-ans-'+(i+1)+'" data-ans-item="'+i+'"></span></div></td></tr>';
     answers.push({question:i+1,object:icon,addend1:a,addend2:b,answer:a+b,expression:a+' + '+b+' = '+(a+b)});
   });
   return {
@@ -472,7 +476,7 @@ function section7(){
     const positions=new Set(sample([...Array(total).keys()],crossCount));
     let imgs='';
     for(let k=0;k<total;k++) imgs+=iconWithCross(icon,24,positions.has(k));
-    rows+='<tr><td class="rownum">'+(i+1)+'</td><td><div class="eqcell"><div class="objcell">'+imgs+'</div><span class="opsym">=</span><span class="ansbox" data-omr="q7-ans-'+(i+1)+'"></span></div></td></tr>';
+    rows+='<tr><td class="rownum">'+(i+1)+'</td><td><div class="eqcell"><div class="objcell">'+imgs+'</div><span class="opsym">=</span><span class="ansbox" data-omr="q7-ans-'+(i+1)+'" data-ans-item="'+i+'"></span></div></td></tr>';
     answers.push({question:i+1,object:icon,total,crossedOut:crossCount,remaining:total-crossCount,expression:total+' - '+crossCount+' = '+(total-crossCount)});
   });
   return {
@@ -497,7 +501,7 @@ function section8(){
       const reveal=i<1;
     const instr=reveal?'Show the number <b>'+number+'</b> using tens and ones.':'Look at the blocks. Write the number.';
     const blocks=tensOnesBlocks(number);
-    const answer='Tens: <span class="blankline" data-omr="q8-r'+(i+1)+'-tens"></span>&nbsp;&nbsp;Ones: <span class="blankline" data-omr="q8-r'+(i+1)+'-ones"></span>&nbsp;&nbsp;Number: <span class="blankline" data-omr="q8-r'+(i+1)+'-number" style="width:64px;"></span>';
+    const answer='Tens: <span class="blankline" data-omr="q8-r'+(i+1)+'-tens"></span>&nbsp;&nbsp;Ones: <span class="blankline" data-omr="q8-r'+(i+1)+'-ones"></span>&nbsp;&nbsp;Number: <span class="blankline" data-omr="q8-r'+(i+1)+'-number" data-ans-item="'+i+'" style="width:64px;"></span>';
     rows+='<tr><td class="rownum">'+(i+1)+'</td><td style="width:24%;">'+instr+'</td><td><div class="objcell">'+blocks+'</div></td><td style="width:30%;font-size:12px;">'+answer+'</td></tr>';
     answers.push({question:i+1,number,tens:Math.floor(number/10),ones:number%10});
   }
@@ -676,7 +680,11 @@ function buildWorksheetAndKey(setNum){
     const result=fn();
     // Section 2 is intentionally omitted; retain the original section labels.
     const titleIndex=idx===0?0:idx+1;
-    sectionsHtml+='<div class="section" data-section="'+titleIndex+'" style="page-break-inside:avoid;"><h2>'+SECTION_TITLES[titleIndex]+'</h2>'+result.html+'</div>';
+    // data-sec-idx is the BUILDER index, which is what the backend numbers
+    // question ids by (Q_L<lvl>_<secIdx+1>_...). data-section above is the
+    // printed label and diverges from it, because section2 is not rendered.
+    // Answer-region capture must join on the builder index, never the label.
+    sectionsHtml+='<div class="section" data-sec-idx="'+idx+'" data-section="'+titleIndex+'" style="page-break-inside:avoid;"><h2>'+SECTION_TITLES[titleIndex]+'</h2>'+result.html+'</div>';
     answerKey.sections.push(result.answers);
   });
 
@@ -817,11 +825,16 @@ function icrForSection(sIdx,item){
 function buildMasterJSON(setNum,liveCoords){
   const ak=worksheetAnswers[setNum-1];
   const sections=ak.sections.map((sec,sIdx)=>{
-    const items=sec.items.map(item=>({
-      question:item.question!==undefined?item.question:null,
-      data:item,
-      icr:icrForSection(sIdx,item)
-    }));
+    console.log("sec =", JSON.stringify(sec, null, 2));
+    const items = sec.items.map(item => {
+      console.log("ITEM:", JSON.stringify(item, null, 2));
+
+      return {
+        question: item.question !== undefined ? item.question : null,
+        data: item,
+        icr: icrForSection(sIdx, item)
+      };
+    });
     return {section:sec.section,note:sec.note||null,items};
   });
   const regCoords=liveCoords?{tl:liveCoords['reg_sq_tl']||null,tr:liveCoords['reg_sq_tr']||null,bl:liveCoords['reg_sq_bl']||null,br:liveCoords['reg_sq_br']||null}:null;
@@ -885,6 +898,70 @@ function captureCoords(pageEl){
     coords['dot:'+key]={x_min:mmV(r.left-pageRect.left),y_min:mmV(r.top-pageRect.top),x_max:mmV(r.right-pageRect.left),y_max:mmV(r.bottom-pageRect.top)};
   });
   return coords;
+}
+
+/**
+ * Answer regions keyed by the question they belong to.
+ *
+ * `captureCoords` above keys every region by its `data-omr` layout name
+ * ("q3-ans-1"), which is numbered after the section FUNCTION. Question ids are
+ * numbered after the position of that function in `builders`, and the two
+ * diverge from the second section onward because section2 is defined but never
+ * rendered. Anything that joined those two numberings — an OCR pass trying to
+ * decide which box holds question 4's answer — silently read the wrong box.
+ *
+ * This emits the association explicitly instead of leaving it to be inferred:
+ * the section wrapper carries the builder index, each answer element carries
+ * its item index (and blank ordinal, where a row has several), and the three
+ * together are exactly the coordinates the backend uses to mint a question id.
+ * The key is a reference, not a question id — the id format belongs to the
+ * backend and is composed there.
+ *
+ * Only elements explicitly marked `data-ans-item` are returned. Layout regions,
+ * matching dots and multi-box answers carry no such mark and are deliberately
+ * absent rather than guessed at; the backend reports any gradable question left
+ * without a region.
+ */
+function captureQuestionRegions(pageEl){
+  if(!pageEl) return {};
+  const pageRect=pageEl.getBoundingClientRect();
+  const regions={};
+  pageEl.querySelectorAll('[data-ans-item]').forEach(el=>{
+    const sec=el.closest('[data-sec-idx]');
+    if(!sec) return;
+    const secIdx=sec.getAttribute('data-sec-idx');
+    const item=el.getAttribute('data-ans-item');
+    const blank=el.getAttribute('data-ans-blank');
+    const ref='s'+secIdx+':i'+item+(blank!==null?':b'+blank:'');
+    // Position is recorded relative to the section's own heading, not to the
+    // page. The worksheet is authored as one long flow and paginated by the
+    // print engine, so a distance from the top of the document does not
+    // survive into the PDF — measured on a real paper, coordinates ran to
+    // 349mm across three A4 sheets. Sections carry page-break-inside:avoid, so
+    // they never split internally: an offset from the section heading is the
+    // same on paper as it is on screen, whichever sheet the section landed on.
+    // The heading text is in the PDF's text layer, so the reader can find it.
+    const heading=sec.querySelector('h2');
+    const anchorRect=heading?heading.getBoundingClientRect():sec.getBoundingClientRect();
+    const r=el.getBoundingClientRect();
+    let x=mmV(r.left-pageRect.left), y=mmV(r.top-pageRect.top);
+    let w=mmV(r.width), h=mmV(r.height);
+    let dx=mmV(r.left-anchorRect.left), dy=mmV(r.top-anchorRect.top);
+    // A `blankline` is a bottom border — a rule about 0.3mm tall. The child
+    // writes ABOVE it, so the element's own box is not the answer area and
+    // cropping it would return a sliver of empty paper. Record the writing
+    // space instead: the line's width, extended upward to a normal digit
+    // height. Boxed fields (ansbox, compbox, numbox) already enclose the
+    // answer and are stored as they are.
+    const WRITE_MM=7;
+    if(h<2){ y=Math.max(0,y-WRITE_MM); dy=dy-WRITE_MM; h=WRITE_MM; }
+    regions[ref]={
+      anchor:(heading?heading.textContent:'').trim(),
+      dx_mm:dx, dy_mm:dy,
+      x_mm:x, y_mm:y, w_mm:w, h_mm:h
+    };
+  });
+  return regions;
 }
 
 function buildOmrOverlay(pageEl,coords){
