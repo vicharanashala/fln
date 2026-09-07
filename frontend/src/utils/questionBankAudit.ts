@@ -234,6 +234,8 @@ export function runQuestionBankAudit(questions: any[]): AuditResult {
     }
 
     // 6. SVG Markup Integrity (only when SVG content is present)
+    // NOTE: This is a shallow structural integrity check that verifies the presence of
+    // opening (<svg) and closing (</svg>) tags. It is NOT full XML/SVG semantic validation.
     const svgContent = extractSvgContent(q);
     if (svgContent) {
       const hasOpenTag = svgContent.includes('<svg');

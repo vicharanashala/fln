@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { User } from '../../types';
 import { apiFetch } from '../../services/apiClient';
-import { MOCK_QUESTIONS_BANK } from '../../constants';
 import {
   runQuestionBankAudit,
   AuditResult,
@@ -33,6 +32,7 @@ interface QuestionBankPanelProps {
 export const QuestionBankPanel: React.FC<QuestionBankPanelProps> = ({ currentUser, token }) => {
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<'ALL' | IssueCategory>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -42,34 +42,31 @@ export const QuestionBankPanel: React.FC<QuestionBankPanelProps> = ({ currentUse
   // Load question data
   const loadQuestions = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await apiFetch('/api/admin/questions');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setQuestions(data);
-          const result = runQuestionBankAudit(data);
-          setAuditResult(result);
-          setLoading(false);
-          return;
-        }
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        throw new Error(errBody?.error || `Failed to fetch Question Bank (${res.status})`);
       }
-    } catch (err) {
-      console.warn('Could not fetch /api/admin/questions, falling back to local questions pool.', err);
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error('Unable to load the Question Bank. Integrity analysis cannot be performed until real question data is available.');
+      }
+      setQuestions(data);
+      const result = runQuestionBankAudit(data);
+      setAuditResult(result);
+    } catch (err: any) {
+      console.error('Failed to load Question Bank from /api/admin/questions:', err);
+      setError(
+        err?.message ||
+          'Unable to load the Question Bank. Integrity analysis cannot be performed until real question data is available.'
+      );
+      setQuestions([]);
+      setAuditResult(null);
+    } finally {
+      setLoading(false);
     }
-
-    // Fallback to local question bank data if backend route returns empty or not present
-    const fallbackData = MOCK_QUESTIONS_BANK.map((q: any, idx: number) => ({
-      ...q,
-      questionText: q.text || q.question,
-      answer: q.expectedAnswer || q.answer,
-      questionNumber: idx + 1,
-    }));
-
-    setQuestions(fallbackData);
-    const result = runQuestionBankAudit(fallbackData);
-    setAuditResult(result);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -77,6 +74,7 @@ export const QuestionBankPanel: React.FC<QuestionBankPanelProps> = ({ currentUse
   }, []);
 
   const handleRunAudit = () => {
+    if (questions.length === 0) return;
     setIsAuditing(true);
     setTimeout(() => {
       const result = runQuestionBankAudit(questions);
@@ -143,7 +141,7 @@ export const QuestionBankPanel: React.FC<QuestionBankPanelProps> = ({ currentUse
           <div className="flex items-center gap-2">
             <button
               onClick={handleRunAudit}
-              disabled={loading || isAuditing}
+              disabled={loading || isAuditing || !!error || !auditResult || questions.length === 0}
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 ${isAuditing ? 'animate-spin' : ''}`} />
@@ -210,8 +208,42 @@ export const QuestionBankPanel: React.FC<QuestionBankPanelProps> = ({ currentUse
         )}
       </div>
 
-      {/* Category Breakdown & Filter Pills */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+      {/* API Failure / Error State */}
+      {error && (
+        <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 rounded-xl p-8 shadow-sm">
+          <div className="flex flex-col items-center max-w-md mx-auto text-center space-y-3">
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/50 rounded-full border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400">
+              <AlertCircle className="h-8 w-8" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Question Bank Unavailable
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              {error}
+            </p>
+            <button
+              onClick={loadQuestions}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors mt-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Retry Loading Question Bank
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && !error && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 shadow-sm text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+          <RefreshCw className="h-6 w-6 animate-spin text-indigo-500" />
+          Loading and auditing Question Bank dataset from server…
+        </div>
+      )}
+
+      {!error && !loading && auditResult && (
+        <>
+          {/* Category Breakdown & Filter Pills */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
@@ -410,6 +442,8 @@ export const QuestionBankPanel: React.FC<QuestionBankPanelProps> = ({ currentUse
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Read-Only Question Inspector Modal */}
       {inspectingIssue && (

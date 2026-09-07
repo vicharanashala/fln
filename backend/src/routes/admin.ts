@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { dbStore, UserRole, User } from '../db';
-import { getAuthUser, sanitizeUser } from '../auth';
+import { getAuthUser, sanitizeUser, requireSuperadmin } from '../auth';
 
 export function registerAdminRoutes(app: express.Express) {
   // Admin Creation (by Superadmin)
@@ -185,5 +185,23 @@ export function registerAdminRoutes(app: express.Express) {
     }
     await dbStore.reset();
     res.json({ success: true, message: 'Database reset to fresh seed data.' });
+  });
+
+  // ══════════════════════════════════════════
+  // QUESTION BANK (Superadmin only, Read-only)
+  // ══════════════════════════════════════════
+  // Serves the full canonical Question Bank dataset for admin integrity audits.
+  // Must return real records; if unavailable returns 503 instead of empty/mock.
+  app.get('/api/admin/questions', requireSuperadmin, async (_req, res) => {
+    try {
+      const questions = await dbStore.getAllQuestionBank();
+      if (!questions || questions.length === 0) {
+        return res.status(503).json({ error: 'Question Bank dataset is currently unavailable.' });
+      }
+      return res.json(questions);
+    } catch (err: any) {
+      console.error('Failed to retrieve Question Bank:', err?.message || err);
+      return res.status(500).json({ error: 'Internal server error retrieving Question Bank.' });
+    }
   });
 }

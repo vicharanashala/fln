@@ -1,8 +1,12 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import bcrypt from 'bcrypt';
 import { MongoClient, Db } from 'mongodb';
 import { CURRICULUM_MAPPING } from './config/curriculumMap';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
@@ -985,6 +989,52 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
     }
     return [];
   }
+
+  /**
+   * Returns all records from the canonical Question Bank (used for admin audit & integrity check).
+   * Queries MongoDB collection `questionBank` if connected; falls back to loading canonical
+   * data/questionBank.json in local file-DB mode or if Atlas is unseeded.
+   */
+  async getAllQuestionBank(): Promise<QuestionBankEntry[]> {
+    if (this.mongoDb) {
+      try {
+        const items = await this.mongoDb.collection<QuestionBankEntry>('questionBank').find({}).sort({ level: 1, questionNumber: 1 }).toArray();
+        if (items && items.length > 0) {
+          return items;
+        }
+      } catch (err: any) {
+        console.warn('Failed to query questionBank from MongoDB, attempting local fallback:', err?.message || err);
+      }
+    }
+    if (this.data?.questionBank && this.data.questionBank.length > 0) {
+      return this.data.questionBank;
+    }
+    // Fallback: load from canonical data/questionBank.json
+    try {
+      const candidates = [
+        path.resolve(__dirname, '../../data/questionBank.json'),
+        path.resolve(__dirname, '../../../data/questionBank.json'),
+        path.resolve(process.cwd(), 'data', 'questionBank.json'),
+        path.resolve(process.cwd(), '..', 'data', 'questionBank.json'),
+      ];
+      for (const p of candidates) {
+        try {
+          const content = await fs.readFile(p, 'utf-8');
+          const parsed = JSON.parse(content);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            if (this.data) this.data.questionBank = parsed;
+            return parsed;
+          }
+        } catch {
+          // continue checking next candidate path
+        }
+      }
+    } catch (err: any) {
+      console.error('Failed to load canonical questionBank.json:', err?.message || err);
+    }
+    return [];
+  }
+
 
   /**
      * Level range for a given class, per the 93-level FLN registry

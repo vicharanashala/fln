@@ -57,3 +57,15 @@ export function sanitizeUser(user: User): Omit<User, 'passwordHash'> {
   const { passwordHash, ...safe } = user;
   return safe;
 }
+
+// Express middleware requiring an authenticated user with SUPERADMIN role.
+export function requireSuperadmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  if (user.role !== UserRole.SUPERADMIN) {
+    return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
+  }
+  next();
+}
