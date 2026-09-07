@@ -20,12 +20,21 @@ export function PageHeader({ title, desc, icon }: { title: string; desc: string;
   );
 }
 
-export function EmptyStudents({ students }: { students: Student[] }) {
+export function EmptyStudents({ students, loading }: { students: Student[]; loading?: boolean }) {
   const cols: Column<Student>[] = [
     { header: 'ID', accessor: (s) => s.displayId || s.id, className: 'font-mono text-xs text-slate-400 dark:text-slate-500' },
     { header: 'Name', accessor: 'name', sortKey: 'name', className: 'font-semibold text-slate-800 dark:text-slate-100' },
     { header: 'Class', accessor: 'classGroup', className: '' },
     { header: 'Level', accessor: (s) => <LevelBadge level={s.currentLevel} subLevel={s.currentSubLevel} />, className: 'font-mono' },
   ];
-  return <Table data={students} columns={cols} searchPlaceholder="Search students..." searchKey="name" />;
+  return (
+    <Table
+      data={students}
+      columns={cols}
+      searchPlaceholder="Search students..."
+      searchKey="name"
+      loading={loading}
+      emptyMessage="No students registered yet."
+    />
+  );
 }

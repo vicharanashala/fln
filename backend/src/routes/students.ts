@@ -1,15 +1,118 @@
 import express from 'express';
-import path from 'path';
-import fs from 'fs';
-import { dbStore, UserRole, Student, Question, EvaluationReport, EvaluationReasoning, CYCLE_NAMES } from '../db';
+import { dbStore, UserRole, Student, Question, AnswerSubmission, EvaluationReport, EvaluationReasoning, CYCLE_NAMES } from '../db';
+import { answersMatch } from '../answerMatching';
+import { classifyErrorType } from '../errorClassification';
 import { getAuthUser, canAccessStudent } from '../auth';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import { evaluateAIDiagnostic } from '../gemini';
-import { AI_SERVICES_DIR, PYTHON_BIN } from '../config';
-import { resolvePrerequisites, describeConcept } from '../competencyPrerequisites';
+import { invalidateFingerprintCache } from './misconceptions';
+import { assignStudentToArchetype } from '../studentArchetypeService';
+import { resolvePrerequisites, describeConcept, directPrerequisites } from '../competencyPrerequisites';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
+import { tokenizeAadhaar, formatAadhaarMask, AadhaarVaultTokenizeResult } from '../aadhaarVault';
+
+// ─── Response hygiene (Phase 2 hardening) ───────────────────────────────────
+// Vault references are internal-only: MongoDB and the internal Student model
+// keep aadhaarTokenId / aadhaarIdentityId (duplicate detection, future
+// detokenize-by-token flows), but API clients never need them. Every student
+// serialization below goes through this helper so the wire contract carries
+// only what the existing frontend actually consumes.
+export type PublicStudent = Omit<Student, 'aadhaarTokenId' | 'aadhaarIdentityId'>;
+function toPublicStudent(s: Student): PublicStudent {
+  const { aadhaarTokenId: _tokenId, aadhaarIdentityId: _identityId, ...pub } = s;
+  return pub;
+}
+
+/**
+ * Lift the per-error detail out of a wrong-answer set.
+ *
+ * `run_pipeline.py` used to write `root_causes` with a real `error_type` per
+ * question; that pipeline is never invoked from this backend (see FLN #458 —
+ * it runs on a legacy class/phrase data model with no connection to the
+ * current MongoDB-backed students), so `evalData` is always `{}` here now.
+ * Rather than leave every diagnostic `unclassified`, high-confidence patterns
+ * are detected directly from the submitted/expected answer pair — see
+ * `classifyErrorType` in `errorClassification.ts`. Nothing here is guessed:
+ * a shape that doesn't match a known pattern stays `unclassified` rather than
+ * having a fabricated cause attached — a fabricated cause is indistinguishable
+ * from a measured one once it is downstream (FLN #459).
+ */
+function readPipelineDetail(
+  evalData: any,
+  questions: Question[],
+  answers: { [questionId: string]: string }
+): {
+  rootCauses?: EvaluationReport['rootCauses'];
+  levelsFailed?: number[];
+  prerequisitesToCheck?: string[];
+  performanceByDifficulty?: EvaluationReport['performanceByDifficulty'];
+} {
+  const norm = (value: unknown) => String(value ?? '').trim().toLowerCase();
+  const rawCauses: any[] = Array.isArray(evalData?.root_causes) ? evalData.root_causes : [];
+
+  // Per-question causes, where the pipeline produced them.
+  const keyed = rawCauses.filter(c => c && (c.question_id || c.questionId));
+  let rootCauses: EvaluationReport['rootCauses'] = keyed.map(c => {
+    const questionId = String(c.question_id ?? c.questionId);
+    const question = questions.find(q => q.question_id === questionId);
+    return {
+      questionId,
+      error: String(c.error ?? answers?.[questionId] ?? ''),
+      topic: String(c.topic ?? question?.topic ?? 'Unclassified'),
+      flnLevel: Number(c.fln_level ?? c.flnLevel ?? question?.source_level ?? 0),
+      errorType: String(c.error_type ?? c.errorType ?? 'unclassified'),
+      analysis: String(c.analysis ?? '')
+    };
+  });
+
+  if (rootCauses.length === 0) {
+    // A real pipeline verdict (when one exists) always wins over the local
+    // classifier — this is the fallback for the case that's true today,
+    // where evalData is always {} because nothing wires it in (FLN #458).
+    const overallType = evalData?.error_type ? String(evalData.error_type) : null;
+    const overallAnalysis = evalData?.root_cause ? String(evalData.root_cause) : '';
+    rootCauses = questions
+      .filter(q => norm(answers?.[q.question_id]) !== norm(q.answer))
+      .map(q => ({
+        questionId: q.question_id,
+        error: String(answers?.[q.question_id] ?? ''),
+        topic: q.topic || 'Unclassified',
+        flnLevel: Number(q.source_level ?? 0),
+        errorType: overallType ?? classifyErrorType(answers?.[q.question_id], q.answer),
+        analysis: overallAnalysis
+      }));
+  }
+
+  // Measured from the paper when the pipeline reported no breakdown of its own.
+  let performanceByDifficulty: EvaluationReport['performanceByDifficulty'] =
+    evalData?.performance_by_difficulty && typeof evalData.performance_by_difficulty === 'object'
+      ? evalData.performance_by_difficulty
+      : undefined;
+  if (!performanceByDifficulty) {
+    const tally: NonNullable<EvaluationReport['performanceByDifficulty']> = {};
+    for (const q of questions) {
+      const difficulty = q.difficulty || 'medium';
+      const cell = tally[difficulty] ?? { attempted: 0, correct: 0 };
+      cell.attempted++;
+      if (norm(answers?.[q.question_id]) === norm(q.answer)) cell.correct++;
+      tally[difficulty] = cell;
+    }
+    if (Object.keys(tally).length > 0) performanceByDifficulty = tally;
+  }
+
+  return {
+    rootCauses: rootCauses.length > 0 ? rootCauses : undefined,
+    levelsFailed: Array.isArray(evalData?.levels_failed)
+      ? evalData.levels_failed.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
+      : undefined,
+    prerequisitesToCheck: Array.isArray(evalData?.prerequisites_to_check)
+      ? evalData.prerequisites_to_check.map((p: any) => String(p))
+      : undefined,
+    performanceByDifficulty
+  };
+}
 
 export function registerStudentRoutes(app: express.Express) {
   // Students
@@ -19,12 +122,19 @@ export function registerStudentRoutes(app: express.Express) {
 
     // The students collection has 86400+ docs in Atlas; without a server-side
     // limit a single query takes multi-seconds and the dashboard hangs. Push the
-    // limit/offset into mongo. Default 1000 unless caller opts in to full set.
-    const DEFAULT_LIMIT = 1000;
+    // limit/offset into mongo. Default 10 per page (most-recent-first), caller
+    // can opt in to a larger page via `?limit=…` or to the full set via
+    // `?all=1` for callers that genuinely need the whole roster.
+    const DEFAULT_LIMIT = 10;
+    const DEFAULT_MAX_LIMIT = 1000; // callers may page up to 5x default
     const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
     const requestedOffset = parseInt(String(req.query.offset ?? ''), 10) || 0;
     const wantAll = req.query.all === '1' || req.query.all === 'true';
-    const limit = wantAll ? 0 : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
+    const limit = wantAll
+      ? 0
+      : (Number.isFinite(requestedLimit) && requestedLimit > 0
+          ? Math.min(requestedLimit, DEFAULT_MAX_LIMIT)
+          : DEFAULT_LIMIT);
 
     // server-side role scoping
     let schoolScope: string | undefined;
@@ -32,31 +142,93 @@ export function registerStudentRoutes(app: express.Express) {
       schoolScope = user.schoolId;
     }
 
-    const opts: { limit?: number; offset?: number; schoolId?: string } = {
+    // server-side search: `?q=foo` does a case-insensitive substring
+    // match across the same six fields the Aadhaar Reveal panel
+    // previously filtered in-browser. Without this, the panel
+    // would have to download the full roster to do a client-side
+    // filter, which is what made the panel hang on the 86,400-row
+    // payload. We deliberately allow callers to skip the search by
+    // passing `?q=` (empty) so the same handler powers both the
+    // paged roster and the search.
+    const rawQ = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const search = rawQ.toLowerCase();
+
+    // server-side sort: `?sort=latest` (default) returns the most
+    // recently registered students first. For the file-fallback store
+    // this is the natural array order (students are pushed on insert)
+    // reversed; for Mongo the `_id` ObjectId is time-prefixed, so a
+    // descending sort matches the same intent.
+    const sort = String(req.query.sort ?? 'latest');
+
+    const opts: { limit?: number; offset?: number; schoolId?: string; sort?: 'latest'; q?: string } = {
       offset: requestedOffset,
     };
     if (limit > 0) opts.limit = limit;
     if (schoolScope) opts.schoolId = schoolScope;
+    if (sort === 'latest') opts.sort = 'latest';
+    // Push the search into getStudents so it runs BEFORE the limit/offset
+    // slice. A previous version of this handler applied the search AFTER
+    // the page had been returned, which meant a match at position 500 of
+    // 86,400 students was never visible to the user (the page only held
+    // the 10 most-recent inserts, and the search filtered those 10). On
+    // the user's screen this looked like "nothing happens when I type."
+    if (search) opts.q = rawQ;
 
-    const students = await dbStore.getStudents(opts);
+    let students = await dbStore.getStudents(opts);
 
     // volunteer filter still applied in JS (assignedSchools list, not a single key)
-    const filtered = (user.role === UserRole.VOLUNTEER)
+    let filtered = (user.role === UserRole.VOLUNTEER)
       ? students.filter(s => user.assignedSchools?.includes(s.schoolId))
       : students;
 
-    // Mask Aadhar for non-Superadmins (§13.2 R-6)
+    // Mask Aadhar for non-Superadmins (§13.2 R-6); strip vault references
+    // for everyone (Phase 2 hardening).
     const masked = filtered.map(s => {
+      const pub = toPublicStudent(s);
       if (user.role !== UserRole.SUPERADMIN) {
-        return { ...s, aadharMasked: 'XXXX-XXXX-' + String(s.aadharMasked || '').slice(-4) };
+        pub.aadharMasked = 'XXXX-XXXX-' + String(pub.aadharMasked || '').slice(-4);
       }
-      return s;
+      return pub;
     });
 
-    // total count (for client-side pagination headers)
-    const total = await dbStore.countStudents(schoolScope ? { schoolId: schoolScope } : undefined);
+    // total count (for client-side pagination headers). When a search
+    // is active we count the full match set via the same query, so the
+    // panel can show "Page 1 of N matching 'foo'" with the right N.
+    // Done in the DB (not from `masked.length`) because masked only
+    // holds the current page.
+    const countOpts: { schoolId?: string; q?: string } = {};
+    if (schoolScope) countOpts.schoolId = schoolScope;
+    if (search) countOpts.q = rawQ;
+    const total = await dbStore.countStudents(countOpts);
     res.set('X-Total-Count', String(total));
     res.json(masked);
+  });
+
+  // Returns a map of studentId -> { generatedByEmail, createdAt } for
+  // every student who currently has a diagnostic paper (locked for
+  // re-generation under the per-student cycle lock). The frontend uses
+  // this to hide already-placed students from the selective-generation
+  // dropdown — currentLevel-based filtering is not enough because a
+  // paper can be generated but not yet graded/scanned, leaving
+  // currentLevel still null.
+  app.get('/api/students/locks', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const locks = await dbStore.getStudentCycleLocks();
+    const map: Record<string, { generatedByEmail: string; createdAt: string; paperType: string; cycle: string }> = {};
+    for (const l of locks) {
+      // Only surface diagnostic-paper locks; remedial/practice/etc. are
+      // not in PAPER_TYPES_THAT_LOCK so this is mostly defensive.
+      if (l.paperType === 'diagnostic') {
+        map[l.studentId] = {
+          generatedByEmail: l.generatedByEmail,
+          createdAt: l.createdAt,
+          paperType: l.paperType,
+          cycle: l.cycle,
+        };
+      }
+    }
+    res.json({ locks: map });
   });
 
   // Get or generate student's assigned 10-question FLN paper from MongoDB Atlas (Class 2: Levels 22 to 31)
@@ -73,10 +245,12 @@ export function registerStudentRoutes(app: express.Express) {
       role === UserRole.SUPERADMIN || role === UserRole.SCHOOL || role === UserRole.TEACHER;
 
     // Mask Aadhar for non-Superadmins (§13.2 R-6); redact guardian contact/address similarly.
+    // Vault references are stripped for every role (Phase 2 hardening).
     const maskedStudents = students.map(s => {
-      const masked = user.role !== UserRole.SUPERADMIN
-        ? { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) }
-        : { ...s };
+      const masked = toPublicStudent(s);
+      if (user.role !== UserRole.SUPERADMIN) {
+        masked.aadharMasked = 'XXXX-XXXX-' + String(masked.aadharMasked || '').slice(-4);
+      }
       if (!canSeeGuardianPII(user.role)) {
         delete masked.guardianContact;
         delete masked.address;
@@ -86,7 +260,8 @@ export function registerStudentRoutes(app: express.Express) {
 
     let scoped: typeof maskedStudents;
     if (user.role === UserRole.SUPERADMIN) {
-      scoped = students;
+      // Superadmins keep full mask + guardian PII, but never vault references.
+      scoped = students.map(s => toPublicStudent(s));
     } else if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
       scoped = maskedStudents.filter(s => s.schoolId === user.schoolId);
     } else if (user.role === UserRole.VOLUNTEER) {
@@ -138,17 +313,36 @@ export function registerStudentRoutes(app: express.Express) {
 
   async function createStudentFromData(
     data: Record<string, any>,
-    actingUser: { id: string; email: string; role: UserRole; schoolId?: string },
+    actingUser: { id: string; email: string; role: UserRole; schoolId?: string; assignedSchools?: string[] },
     existingAadhars: Set<string>,
   ): Promise<{ student: Student } | { error: string }> {
     const { name, classGroup, section, aadharNumber, dob, gender,
       guardianName, guardianRelation, guardianContact, address,
       bloodGroup, disabilityStatus, midDayMealBeneficiary, busRoute, siblingsInSchool } = data;
 
-    // Resolve schoolId — use row value for SUPERADMIN, otherwise auth context
-    const schoolId = (actingUser.role === UserRole.SUPERADMIN && data.schoolId)
-      ? String(data.schoolId).trim()
-      : actingUser.schoolId;
+    // Resolve schoolId — use row value for SUPERADMIN, otherwise auth context.
+    // Volunteers carry `assignedSchools[]` (not a single `schoolId`), so the
+    // resolver falls back to the only assigned school when there is exactly
+    // one. A volunteer assigned to multiple schools gets a clear 400 so the
+    // frontend can prompt for a choice (no implicit pick — that would mask
+    // a product question). A volunteer with zero assigned schools is a
+    // configuration error and is rejected explicitly.
+    const isVolunteer = actingUser.role === UserRole.VOLUNTEER;
+    const assigned = Array.isArray(actingUser.assignedSchools) ? actingUser.assignedSchools : [];
+    let schoolId: string | undefined;
+    if (actingUser.role === UserRole.SUPERADMIN && data.schoolId) {
+      schoolId = String(data.schoolId).trim();
+    } else if (actingUser.schoolId) {
+      schoolId = actingUser.schoolId;
+    } else if (isVolunteer) {
+      if (assigned.length === 1) {
+        schoolId = assigned[0];
+      } else if (assigned.length > 1) {
+        return { error: 'Volunteer is assigned to multiple schools; please select one.' };
+      } else {
+        return { error: 'Volunteer has no assigned school.' };
+      }
+    }
 
     // Required field check (mirrors issue.txt: name, class, dob, ID card)
     if (!name || !classGroup || !section || !aadharNumber || !schoolId) {
@@ -180,13 +374,58 @@ export function registerStudentRoutes(app: express.Express) {
       }
     }
 
-    // Aadhar uniqueness — SRS §13.2 R-6 (issue.txt: "ID card is unique")
+    // Aadhaar uniqueness + tokenization — the raw 12-digit Aadhaar is never
+    // stored in MongoDB. We send it to the in-process Aadhaar Vault
+    // (backend/src/modules/vault/) and persist only a mask, an opaque token,
+    // and the vault's deterministic identity id (see ../aadhaarVault.ts).
     const rawAadhar = String(aadharNumber).replace(/[^0-9]/g, '');
-    if (rawAadhar.length < 4) {
-      return { error: 'Invalid identity document — must contain at least 4 digits.' };
+    if (!/^[0-9]{12}$/.test(rawAadhar)) {
+      return { error: 'Invalid Aadhaar number. Expected 12 digits.' };
     }
-    if (existingAadhars.has(rawAadhar)) {
-      return { error: 'A student with this Aadhar / ID number is already registered.' };
+    const aadhaarMask = formatAadhaarMask(rawAadhar);
+    // Intra-batch dedup (caller pre-seeds `existingAadhars` with the
+    // input rows' raw + masked Aadhaars). Cheap Set check, no DB hit.
+    if (existingAadhars.has(rawAadhar) || existingAadhars.has(aadhaarMask)) {
+      return { error: 'A student with this Aadhaar / ID number is already registered.' };
+    }
+    // School-scoped DB check. Scoped to the same school so a volunteer's
+    // submission is rejected only when a same-school student already
+    // carries the mask. Cross-school collisions with the seed are
+    // expected (86,400 seed students over 1,440 schools fully saturate
+    // the 4-digit suffix space ~8.6×) and are NOT rejections; the
+    // vault identity check below is the actual re-registration guard.
+    const schoolAadhars = await dbStore.getExistingAadharsInSchool(
+      schoolId, [rawAadhar, aadhaarMask],
+    );
+    if (schoolAadhars.has(rawAadhar) || schoolAadhars.has(aadhaarMask)) {
+      return { error: 'A student with this Aadhaar / ID number is already registered.' };
+    }
+
+    // Tokenize through the Aadhaar Vault. If the vault is unavailable the
+    // registration fails cleanly rather than persisting a plaintext Aadhaar.
+    let tokenized: AadhaarVaultTokenizeResult;
+    try {
+      tokenized = await tokenizeAadhaar(rawAadhar, {
+        email: actingUser.email,
+        requestId: `fln-student-create-${Date.now()}`,
+      });
+    } catch (err: any) {
+      // Phase 2 hardening: VaultError carries a stable code + HTTP-ish status
+      // for precise diagnosis. Messages never contain raw Aadhaar or tokens.
+      console.error(
+        'Aadhaar vault tokenization error:',
+        `code=${err?.code ?? 'UNKNOWN'}`,
+        `status=${err?.status ?? 'n/a'}`,
+        err?.message || err,
+      );
+      return { error: 'Aadhaar tokenization failed. Please try again later.' };
+    }
+    // Deterministic duplicate check against the vault identity id. This is
+    // what catches a re-registration of the same Aadhaar even after the raw
+    // number has been removed from the collection.
+    const dupByIdentity = ((await dbStore.getExistingAadhaarIdentityIds([tokenized.identityId])).size ?? 0) > 0;
+    if (dupByIdentity) {
+      return { error: 'A student with this Aadhaar / ID number is already registered.' };
     }
 
     // Derive the clean numeric display ID (#184) from the school's geo hierarchy
@@ -223,7 +462,9 @@ export function registerStudentRoutes(app: express.Express) {
       currentLevel: null,
       currentSubLevel: null,
       targetLevel: null,
-      aadharMasked: rawAadhar,
+      aadharMasked: aadhaarMask,
+      aadhaarTokenId: tokenized.token,
+      aadhaarIdentityId: tokenized.identityId,
       levelHistory: [],
       streak: 0,
     };
@@ -236,8 +477,15 @@ export function registerStudentRoutes(app: express.Express) {
     }
 
     await dbStore.addStudent(newStudent);
+    // Issue: bulk diagnostic generation ("not authorized for Class N")
+    // traced back to no ClassGroup document ever being created for
+    // live-registered classes — only the seed data had one. Ensure it
+    // exists now so class-tabs, bulk-diagnostic authorization, etc. all
+    // work for this student's class going forward.
+    await dbStore.ensureClassExists(schoolId, trimmedClassGroup, trimmedSection, actingUser.id);
     // Track in-memory so bulk operations detect intra-batch duplicates too
     existingAadhars.add(rawAadhar);
+    existingAadhars.add(aadhaarMask);
     return { student: newStudent };
   }
 
@@ -253,9 +501,10 @@ export function registerStudentRoutes(app: express.Express) {
       return res.status(403).json({ error: 'Forbidden.' });
     }
 
-    // Build aadhars set for uniqueness check
-    const rawAadhar = String(req.body.aadharNumber).replace(/[^0-9]/g, '');
-    const existingAadhars = await dbStore.getExistingAadhars([rawAadhar]);
+    // `existingAadhars` here is for INTRA-BATCH dedup only — empty
+    // for a single-row POST. The school-scoped DB check is done
+    // inside `createStudentFromData` after the schoolId is resolved.
+    const existingAadhars = new Set<string>();
 
     const result = await createStudentFromData(
       { ...req.body, schoolId: req.body.schoolId || user.schoolId },
@@ -278,7 +527,9 @@ export function registerStudentRoutes(app: express.Express) {
       details: `Onboarded and verified student: ${result.student.name}`,
     });
 
-    res.json(result.student);
+    // Response hygiene: the creation response carries the same public shape
+    // as GET /api/students — no vault references on the wire.
+    res.json(toPublicStudent(result.student));
   });
 
   // ─── POST /api/students/bulk-import ─────────────────────────────────────────
@@ -303,10 +554,17 @@ export function registerStudentRoutes(app: express.Express) {
       return res.status(400).json({ error: 'Maximum 500 rows per request.' });
     }
 
-    // Pre-load all existing aadhar numbers once; the helper adds new ones as
-    // it inserts, so intra-batch duplicates are caught too.
-    const aadharsInBatch = rows.map(r => String(r.aadharNumber).replace(/[^0-9]/g, '')).filter(Boolean);
-    const existingAadhars = await dbStore.getExistingAadhars(aadharsInBatch);
+    // `existingAadhars` is for INTRA-BATCH dedup — pre-seeded with
+    // every row's raw + mask, but for each iteration the current
+    // row's entry is removed before the helper runs and re-added
+    // after, so the helper's check never self-matches the row being
+    // processed. The school-scoped DB check lives inside
+    // `createStudentFromData` and is per-row.
+    const aadharsInBatch = rows.flatMap(r => {
+      const raw = String(r.aadharNumber).replace(/[^0-9]/g, '');
+      return raw ? [raw, formatAadhaarMask(raw)] : [];
+    });
+    const existingAadhars = new Set<string>(aadharsInBatch);
 
     const results: {
       row: number; status: 'created' | 'failed'; name?: string; id?: string; reason?: string;
@@ -322,7 +580,19 @@ export function registerStudentRoutes(app: express.Express) {
         schoolId: rowData.schoolId || user.schoolId,
       };
 
+      // Stash the current row's Aadhaars out of the batch set so
+      // the helper's intra-batch check doesn't self-match the row
+      // being processed. We re-add after the call so a later row
+      // with the same Aadhaar still gets the batch-dup error.
+      const rowRaw = String(rowData.aadharNumber).replace(/[^0-9]/g, '');
+      const rowMask = rowRaw ? formatAadhaarMask(rowRaw) : '';
+      const wasInSetRaw = existingAadhars.delete(rowRaw);
+      const wasInSetMask = rowMask ? existingAadhars.delete(rowMask) : false;
+
       const outcome = await createStudentFromData(enriched, user, existingAadhars);
+
+      if (wasInSetRaw) existingAadhars.add(rowRaw);
+      if (wasInSetMask) existingAadhars.add(rowMask);
 
       if ('error' in outcome) {
         failed++;
@@ -498,11 +768,19 @@ export function registerStudentRoutes(app: express.Express) {
   });
 
   // Submit and evaluate Diagnostic responses
-  app.post('/api/students/:id/diagnostic/submit', async (req, res) => {
+  // The diagnostic and baseline submits are the same assessment: same paper,
+  // same grading, same placement. They differ only in how the answers arrive —
+  // typed on the verification screen, or uploaded as a JSON answer map — and in
+  // the response shape each screen reads. One handler, so the grading rules
+  // cannot drift apart between them.
+  const submitDiagnostic = (mode: 'diagnostic' | 'baseline') => async (req: express.Request, res: express.Response) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { questions, answers } = req.body;
+    // Both stay mutable: `questions` is resolved server-side below when the
+    // caller sends answers alone, and `answers` is re-keyed from positional
+    // ids ("Q1".."Qn") to real question ids before grading.
+    let { questions, answers } = req.body;
     const student = await dbStore.getStudentById(req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found.' });
     if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
@@ -510,6 +788,89 @@ export function registerStudentRoutes(app: express.Express) {
     // Parse class number from classGroup (e.g. "Class 2" -> 2)
     const classMatch = student.classGroup.match(/\d+/);
     const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
+
+    // Resolve the paper server-side when the caller sends answers alone.
+    //
+    // The scanner's verification screen has the child's answers but no business
+    // holding the answer key — it arrives from the server for display and
+    // sending it back would let a client decide what "correct" means. Callers
+    // that already pass `questions` (the diagnostic workflow) are unaffected.
+    if (!Array.isArray(questions) || questions.length === 0) {
+      questions = await dbStore.getStudentAssignedQuestions(student.id, classNumber);
+    }
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ error: 'No diagnostic paper is on file for this student.' });
+    }
+    if (!answers || typeof answers !== 'object' || Object.keys(answers).length === 0) {
+      return res.status(400).json({ error: 'No answers submitted.' });
+    }
+
+    // An uploaded answer sheet is keyed by position — {"Q1":"A","Q2":"5"} — the
+    // format printed on the upload screen and the one the ICR pipeline emits.
+    // The grading below reads answers by `question_id`, so translate before it
+    // runs. Keys that already name a question are left alone, which makes this
+    // a no-op for the on-screen diagnostic and lets a mixed sheet through.
+    const questionIds = new Set(questions.map((q: Question) => q.question_id));
+    const positional: Record<string, string> = {};
+    let remapped = 0;
+    for (const [key, value] of Object.entries(answers as Record<string, string>)) {
+      if (questionIds.has(key)) {
+        positional[key] = String(value);
+        continue;
+      }
+      const posMatch = /^Q(\d+)$/i.exec(key.trim());
+      const q = posMatch ? questions[parseInt(posMatch[1], 10) - 1] : undefined;
+      if (q) {
+        positional[q.question_id] = String(value);
+        remapped++;
+      }
+    }
+    // Fallback: if the submitted answer keys don't match the student's
+    // assignedDiagnosticQuestions paper (a known issue when the answer-key
+    // endpoint returns IDs from the diagnostic_answer_keys collection using a
+    // different ID scheme than the assigned paper), try the diagnostic
+    // answer-key record directly. This unblocks the bulk-OCR submit path
+    // where the verify UI pulls from one source and the submit checks
+    // against another. Same translation rules as above.
+    if (Object.keys(positional).length === 0) {
+      try {
+        const ak = await dbStore.getStudentDiagnosticAnswerKey(student.id);
+        if (ak && Array.isArray(ak.questions) && ak.questions.length > 0) {
+          const akQuestions = ak.questions as Array<Question & { qid?: string }>;
+          const akIds = new Set(akQuestions.map((q) => q.question_id || q.qid || ''));
+          for (const [key, value] of Object.entries(answers as Record<string, string>)) {
+            if (akIds.has(key)) {
+              positional[key] = String(value);
+              continue;
+            }
+            const posMatch = /^Q(\d+)$/i.exec(key.trim());
+            const q = posMatch ? akQuestions[parseInt(posMatch[1], 10) - 1] : undefined;
+            if (q) {
+              positional[q.question_id || q.qid || ''] = String(value);
+              remapped++;
+            }
+          }
+          // If the answer-key questions actually match better, prefer them
+          // for grading too (so the report uses the right paper).
+          if (Object.keys(positional).length > 0) {
+            console.log(`[baseline] fell back to diagnostic_answer_keys for ${student.id} (${Object.keys(positional).length} matched)`);
+            questions = akQuestions.map((q) => ({
+              ...q,
+              question_id: q.question_id || q.qid || '',
+            })) as Question[];
+          }
+        }
+      } catch (_e) {
+        // Non-fatal — we'll fall through to the original 400 below.
+      }
+    }
+    if (Object.keys(positional).length === 0) {
+      return res.status(400).json({
+        error: `None of the ${Object.keys(answers).length} answer key(s) match this student's paper. Expected question ids like "${questions[0].question_id}" or positions "Q1".."Q${questions.length}".`
+      });
+    }
+    if (remapped > 0) console.log(`[baseline] remapped ${remapped} positional answer key(s) for ${student.id}`);
+    answers = positional;
 
     const dateStr = new Date().toISOString().split('T')[0];
 
@@ -523,6 +884,15 @@ export function registerStudentRoutes(app: express.Express) {
       r.worksheetId === 'diagnostic' && r.studentId === student.id && r.timestamp.startsWith(dateStr)
     );
     if (existingReport) {
+      if (mode === 'baseline') {
+        return res.json({
+          assignedLevel: existingReport.recommendedLevel,
+          classNumber,
+          recommendedAction: null,
+          narrative: existingReport.narrative,
+          alreadySubmitted: true
+        });
+      }
       return res.json({
         student,
         evaluation: { score: existingReport.score, recommendedLevel: existingReport.recommendedLevel, narrative: existingReport.narrative },
@@ -531,141 +901,164 @@ export function registerStudentRoutes(app: express.Express) {
       });
     }
 
-    // Connect to Python Evaluation Metrics Pipeline
-    const pipelineDir = AI_SERVICES_DIR;
-    const responseDir = path.join(pipelineDir, 'student_responses', `class_${classNumber}`, 'phrase_1');
-    fs.mkdirSync(responseDir, { recursive: true });
-
-    // Map answers for the Python pipeline. The pipeline's `1_compare_answers.py`
-    // looks each answer key up in `ai-services/questions/class_2/phrase_1/
-    // class_2_exam_phrase_1.json` (the static question bank). When the paper
-    // was generated dynamically by `generateClass2PaperFromAtlas` — because
-    // the live `questionBank` collection is empty (verified) — the paper's
-    // `question_id`s (e.g. `Q_L22_1`) are NOT in that static bank. So we
-    // (a) key the answers by the paper's *actual* `question_id` (not by an
-    // index-based Q1..Q10 that would alias the wrong static bank question),
-    // and (b) embed the paper's per-question metadata in `studentResponse.questions`
-    // so the comparator can fall back to it without a DB lookup.
-    const pipelineAnswers: { [qId: string]: { answer: string, confidence: number } } = {};
-    const paperQuestions: { [qId: string]: {
-      answer: string;
-      topic: string;
-      subtopic: string;
-      difficulty: string;
-      class_level: number;
-      source_level: number;
-      conceptId?: string;
-      conceptTitle?: string;
-    } } = {};
-    questions.forEach((q) => {
-      const submitted = (answers[q.question_id] || '').trim();
-      pipelineAnswers[q.question_id] = {
-        answer: String(submitted),
-        confidence: 0.95
-      };
-      paperQuestions[q.question_id] = {
-        answer: String(q.answer || '').trim(),
-        topic: q.topic || '',
-        subtopic: q.subtopic || '',
-        difficulty: q.difficulty || 'medium',
-        class_level: classNumber,
-        source_level: q.source_level || classNumber,
-        conceptId: q.conceptId,
-        conceptTitle: CURRICULUM_MAPPING[q.source_level || 0]?.levelTitle,
-      };
-    });
-
-    const studentResponse = {
-      student_id: student.id,
-      student_name: student.name,
-      enrolled_class: classNumber,
-      test_date: dateStr,
-      phrase: 'phrase_1',
-      exam_id: `C${classNumber}_WORKSHEET_PHRASE_1`,
-      // Embedded paper question metadata so the Python comparator can grade
-      // against the actual paper questions when the static question bank
-      // does not contain them.
-      questions: paperQuestions,
-      answers: pipelineAnswers
-    };
-
-    const responsePath = path.join(responseDir, `${student.id}.json`);
-    fs.writeFileSync(responsePath, JSON.stringify(studentResponse, null, 2));
-
+    // Variables assigned by the scoring block below. Declared here (function
+    // scope) so the rest of the handler can read them after the local block.
     let score = 0;
     let recommendedLevel = 1;
     let narrative = '';
-    let pipelineFailed = false;
+    let pipelineDetail: {
+      rootCauses?: EvaluationReport['rootCauses'];
+      levelsFailed?: number[];
+      prerequisitesToCheck?: string[];
+      performanceByDifficulty?: EvaluationReport['performanceByDifficulty'];
+    } = {};
 
-    try {
-      const { execFileSync } = await import('child_process');
-      console.log(`Running evaluation pipeline for student ${student.id}...`);
+    // Grade the submitted answers server-side. We do this ourselves instead
+    // of trusting the Python pipeline / Gemini / evalData.demonstrated_level
+    // because:
+    //   - the Python pipeline frequently fails (503 retries logged in earlier
+    //     sessions) and even when it succeeds, the demonstrated_level string
+    //     can be empty or unparseable
+    //   - Gemini's deterministic fallback maps `recommendedLevel` to the
+    //     lowest source_level of any failed question, which for Class 2 papers
+    //     is level 2 regardless of how many questions the student actually
+    //     answered — that's the "always level 2" bug the user reported
+    //   - the prior hardcoded `(classNumber - 1) * 10 + 1` formula was a
+    //     placeholder that produced nonsense for partial scores
+    //
+    // The placement we return is computed purely from the paper's source_level
+    // distribution and the answers the teacher keyed in. The placement has
+    // three components:
+    //   - score:          number of boxes answered correctly
+    //   - recommendedLevel: lowest source_level where the student failed any
+    //                       question (Weakest-Level Mapping). All-correct →
+    //                       max source_level + 1, capped at 93.
+    //   - subLevel:       0 (Mastery) / 1 (Easier) / 2 (Remedial) within the
+    //                       recommended level based on how many of that level's
+    //                       questions were missed.
+    const questionResults = questions.map((q) => {
+      const srcLevel = Number(q.source_level);
+      return {
+        q,
+        // answersMatch, not string equality: these answers are OCR'd
+        // handwriting, and "07" vs "7" is notation rather than a wrong
+        // answer. Getting this wrong does not just lose a mark, it lowers
+        // the child's placement. See backend/src/answerMatching.ts.
+        isCorrect: answersMatch(answers[q.question_id], q.answer),
+        sourceLevel: Number.isFinite(srcLevel) ? srcLevel : NaN,
+      };
+    });
+    score = questionResults.filter((r) => r.isCorrect).length;
+    // One-to-one correspondence log: print every question's verdict so the
+    // backend trace shows exactly what was matched against what. Format:
+    //   [diag] qid=Q_L20_1_1_b1  submitted="2"  expected="2"  ✓  L20  S1.1
+    // Lets the teacher + dev correlate the UI table with the grading pass
+    // without needing to log every question's full payload.
+    console.log(`[diag] ${student.id} (${student.name}, Class ${classNumber}) — grading ${questionResults.length} questions, ${score} correct`);
+    for (const r of questionResults) {
+      const submitted = String(answers[r.q.question_id] ?? '').trim();
+      const mark = r.isCorrect ? '✓' : (submitted ? '✗' : '—');
+      const lvl = Number.isFinite(r.sourceLevel) ? `L${r.sourceLevel}` : 'L?';
+      const concept = r.q.conceptId ? ` ${r.q.conceptId}` : '';
+      console.log(
+        `[diag]   ${mark} qid=${r.q.question_id}  submitted=${JSON.stringify(submitted)}  expected=${JSON.stringify(String(r.q.answer ?? ''))}  ${lvl}${concept}`
+      );
+    }
+    const allCorrect = questionResults.every((r) => r.isCorrect);
+    const wrongResults = questionResults.filter((r) => !r.isCorrect);
+    const assessedLevels: number[] = questionResults
+      .map((r) => r.sourceLevel)
+      .filter((l): l is number => Number.isFinite(l));
+    const failedLevels: number[] = (Array.from(new Set(
+      wrongResults
+        .map((r) => r.sourceLevel)
+        .filter((l): l is number => Number.isFinite(l))
+    )) as number[]).sort((a, b) => a - b);
 
-      // Run the comparison, evaluation, and report card generation pipeline.
-      // execFile (no shell) with array args means classNumber/student.id are passed
-      // literally and can never be interpreted as shell syntax.
-      execFileSync(PYTHON_BIN, ['run_pipeline.py', String(classNumber), 'phrase_1', student.id], {
-        cwd: pipelineDir,
-        env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-      });
+    if (failedLevels.length > 0) {
+      // Weakest-Level Mapping: place at the lowest level the child failed.
+      recommendedLevel = Math.max(1, failedLevels[0]);
+    } else if (wrongResults.length > 0) {
+      // The child got questions wrong, but none of those questions carries a
+      // usable `source_level`. Branching on `failedLevels` alone would fall
+      // through to the mastery case below and PROMOTE a child who failed —
+      // `source_level` is typed `number` but arrives from Mongo unchecked,
+      // which is why it is guarded at all. Hold at the lowest level the paper
+      // actually assessed instead, and say so loudly: this is a data defect
+      // in the paper, not a fact about the child.
+      const lowestAssessed = assessedLevels.length > 0 ? Math.min(...assessedLevels) : 1;
+      recommendedLevel = Math.max(1, lowestAssessed);
+      console.warn(
+        `[diag] ${student.id}: ${wrongResults.length} wrong answer(s) but none carry a numeric source_level. ` +
+        `Holding at Level ${recommendedLevel} rather than promoting. Question ids: ` +
+        wrongResults.map((r) => r.q.question_id).join(', ')
+      );
+    } else {
+      // Genuinely all correct: advance one past the hardest level assessed.
+      // Capped at 59, not 93: worksheet generation still throws UnknownLevelError above 59.
+      const maxLevel = Math.max(0, ...assessedLevels);
+      recommendedLevel = Math.min(59, maxLevel + 1);
+    }
+    pipelineDetail = readPipelineDetail({}, questions, answers);
+    narrative = `Determined locally: student solved ${score}/${questions.length} questions correctly. Placed at Level ${recommendedLevel} using Weakest-Level Mapping.`;
 
-      // If failed, run the personalized exam pipeline too
-      try {
-        execFileSync(PYTHON_BIN, ['personalized_evaluation_pipeline.py', student.id, String(classNumber), 'phrase_1'], {
-          cwd: pipelineDir,
-          env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-        });
-      } catch (pexErr) {
-        console.warn('Personalized exam generation skipped or failed:', pexErr);
-      }
+    // For the PASS case, the Python pipeline's deterministic fallback narrative
+    // is unreliable — it emits a generic "Deterministic fallback" narrative
+    // with fabricated root causes even when there are no wrong answers.
+    // Generate a success narrative locally so the report reflects the
+    // actual demonstrated mastery.
+    if (allCorrect) {
+      const masteredTitles = Array.from(new Set(
+        questionResults
+          .map((r) => describeConcept(r.q.conceptId)?.levelTitle)
+          .filter((t): t is string => Boolean(t))
+      ));
 
-      // Read evaluation result JSON and report text
-      const evalReportPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'evaluation', `${student.id}_evaluation_${dateStr}.json`);
-      const reportTxtPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'reports', `${student.id}_report_${dateStr}.txt`);
-
-      if (fs.existsSync(evalReportPath)) {
-        const evalData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
-        score = evalData.total_questions - (evalData.wrong_count || 0);
-
-        const levelStr = String(evalData.demonstrated_level || '1');
-        const lvlMatch = levelStr.match(/\d+/);
-        if (lvlMatch) {
-          const matchedNum = parseInt(lvlMatch[0], 10);
-          if (levelStr.toLowerCase().includes('class')) {
-            recommendedLevel = (matchedNum - 1) * 10 + 1;
-          } else {
-            recommendedLevel = matchedNum;
-          }
-        } else {
-          recommendedLevel = 1;
-        }
-      }
-
-      if (fs.existsSync(reportTxtPath)) {
-        narrative = fs.readFileSync(reportTxtPath, 'utf-8');
-      }
-    } catch (pipelineErr) {
-      console.error('Python evaluation pipeline failed, falling back to Gemini AI:', pipelineErr);
-      pipelineFailed = true;
-      // Fallback to Gemini AI if Python pipeline fails
-      const evaluation = await evaluateAIDiagnostic(student.name, questions, answers);
-      score = evaluation.score;
-      recommendedLevel = evaluation.recommendedLevel;
-      narrative = evaluation.narrative;
+      narrative = [
+        '='.repeat(60),
+        '            FLN ASSESSMENT REPORT CARD',
+        '='.repeat(60),
+        '',
+        `Student Name: ${student.name}`,
+        `Student ID: ${student.id}`,
+        `Enrolled Class: ${classNumber}`,
+        `Test Date: ${dateStr}`,
+        '',
+        ' PLACEMENT',
+        '-'.repeat(60),
+        `Assigned Level: Level ${recommendedLevel}`,
+        'Reason: Mastery demonstrated across all assessed competencies.',
+        'Confidence: 95%',
+        '',
+        ' COMPETENCIES DEMONSTRATED',
+        '-'.repeat(60),
+        ...masteredTitles.map((t) => `  [OK] ${t}`),
+        '',
+        ' NEXT STEPS FOR TEACHER',
+        '-'.repeat(60),
+        'SHORT-TERM (Next 1-2 weeks):',
+        '1. Reinforce demonstrated competencies through daily practice.',
+        `2. Introduce next-level concepts to extend the student's growth.`,
+        '3. Continue routine class participation and worksheet drills.',
+        '',
+        'MEDIUM-TERM (Next month):',
+        `- Target next milestone: Level ${Math.min(59, recommendedLevel + 1)}.`,
+        '',
+        'The student demonstrated mastery in this attempt. No prerequisite remediation is required.',
+        '',
+        '='.repeat(60),
+      ].join('\n');
     }
 
     // Determine the subLevel based on weakest-level mapping questions
     let subLevel = 0; // default Mastery
-    const levelQuestions = questions.filter(q => q.source_level === recommendedLevel);
+    // Reuses questionResults rather than re-grading: the same comparison
+    // implemented twice is the same comparison waiting to drift apart, and
+    // the second copy here previously used bare string equality even after
+    // the first was fixed.
+    const levelQuestions = questionResults.filter(r => r.sourceLevel === recommendedLevel);
     if (levelQuestions.length > 0) {
-      let failedCount = 0;
-      levelQuestions.forEach(q => {
-        const submitted = (answers[q.question_id] || '').trim().toLowerCase();
-        const correct = q.answer.trim().toLowerCase();
-        if (submitted !== correct) {
-          failedCount++;
-        }
-      });
+      const failedCount = levelQuestions.filter(r => !r.isCorrect).length;
 
       if (failedCount === levelQuestions.length) {
         subLevel = 2; // Remedial (failed all)
@@ -676,16 +1069,48 @@ export function registerStudentRoutes(app: express.Express) {
       }
     }
 
-    const questionResults = questions.map((q) => {
-      const submitted = String(answers[q.question_id] ?? '').trim().toLowerCase();
-      const correct = q.answer.trim().toLowerCase();
-      return { q, isCorrect: submitted === correct };
-    });
-    const allCorrect = questionResults.every((r) => r.isCorrect);
-
-    if (allCorrect && pipelineFailed) {
-      recommendedLevel = (classNumber - 1) * 10 + 1;
+    // Per-level breakdown for the diagnostic panel: distinct level numbers
+    // bucketed by pass/fail. De-duplicated with Set so multiple questions at
+    // the same level collapse to a single "L5 passed" / "L5 failed" entry.
+    const passedLevelSet = new Set<number>();
+    const failedLevelSet = new Set<number>();
+    for (const r of questionResults) {
+      const lvl = r.sourceLevel;
+      if (!Number.isFinite(lvl)) continue;
+      (r.isCorrect ? passedLevelSet : failedLevelSet).add(lvl);
     }
+    const passedLevels = Array.from(passedLevelSet).sort((a, b) => a - b);
+    const failedLevelsList = Array.from(failedLevelSet).sort((a, b) => a - b);
+
+    // Skill gaps: pull conceptIds from every FAILED level, plus each of those
+    // concept's direct prerequisites (so the panel can show "you are also
+    // shaky on the foundation skills that feed into these"). De-duped by
+    // conceptId so each gap is listed once.
+    const skillGapMap = new Map<string, { conceptId: string; level: number; levelTitle: string; strand: string }>();
+    for (const lvl of failedLevelsList) {
+      const cfg = CURRICULUM_MAPPING[lvl];
+      if (!cfg) continue;
+      const desc = describeConcept(cfg.conceptId);
+      if (desc && !skillGapMap.has(desc.conceptId)) {
+        skillGapMap.set(desc.conceptId, desc);
+      }
+    }
+    // Direct prereqs of every failed concept — these are the foundation
+    // skills the student needs to remediate before re-attempting the failed
+    // levels. Use directPrerequisites() for the immediate one-hop edges
+    // (resolvePrerequisites() returns the full transitive closure, which
+    // would surface too many concepts and bury the real gaps).
+    for (const lvl of failedLevelsList) {
+      const cfg = CURRICULUM_MAPPING[lvl];
+      if (!cfg) continue;
+      for (const prereqId of directPrerequisites(cfg.conceptId)) {
+        const desc = describeConcept(prereqId);
+        if (desc && !skillGapMap.has(desc.conceptId)) {
+          skillGapMap.set(desc.conceptId, desc);
+        }
+      }
+    }
+    const skillGaps = Array.from(skillGapMap.values()).sort((a, b) => a.level - b.level);
 
     // Update Student placing levels
     const levelHistory = [...student.levelHistory, {
@@ -698,11 +1123,14 @@ export function registerStudentRoutes(app: express.Express) {
     await dbStore.updateStudent(student.id, {
       currentLevel: recommendedLevel,
       currentSubLevel: subLevel,
-      targetLevel: Math.min(93, recommendedLevel + 1),
+      targetLevel: Math.min(59, recommendedLevel + 1),
       levelHistory
     });
 
-    // Create a special Evaluation Report with dynamic mock concept mastery
+    // Concept mastery by broad topic band. Coarse (four fixed bands keyed to
+    // recommendedLevel thresholds) rather than derived from which questions
+    // were actually missed — a real per-topic breakdown needs #413's error
+    // clustering, not something to fake here in the meantime.
     const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {
       'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
       'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
@@ -710,19 +1138,27 @@ export function registerStudentRoutes(app: express.Express) {
       'Operations': recommendedLevel >= 12 ? 'Strong' : 'Needs Practice'
     };
 
-    try {
-      const evalReportPath = path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'evaluation', `${student.id}_evaluation_${dateStr}.json`);
-      if (fs.existsSync(evalReportPath)) {
-        const evalData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
-        if (evalData.topics_to_focus && Array.isArray(evalData.topics_to_focus)) {
-          evalData.topics_to_focus.forEach((t: string) => {
-            conceptMastery[t] = 'Needs Practice';
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to parse dynamic concept mastery:', e);
-    }
+    // Persist what the child actually wrote, alongside the verdict.
+    //
+    // The diagnostic is the assessment that sets a child's starting level, and
+    // until now it was the one assessment whose evidence was discarded: only an
+    // EvaluationReport was written, so a placement could never be traced back to
+    // the answers that produced it. The paper travels with the submission
+    // because a diagnostic is generated per child and is not stored as a
+    // Worksheet — see the `questions` field on AnswerSubmission.
+    const submission: AnswerSubmission = {
+      id: 'sub_diag_' + student.id + '_' + Date.now(),
+      worksheetId: 'diagnostic',
+      studentId: student.id,
+      studentName: student.name,
+      schoolId: student.schoolId,
+      classId: student.classGroup,
+      submittedAt: new Date().toISOString(),
+      isDelayed: false,
+      answers,
+      questions
+    };
+    await dbStore.addAnswerSubmission(submission);
 
     // For the PASS case (10/10), the Python pipeline's deterministic fallback
     // narrative is unreliable — it emits a generic "Deterministic fallback
@@ -764,7 +1200,7 @@ export function registerStudentRoutes(app: express.Express) {
         '3. Continue routine class participation and worksheet drills.',
         '',
         'MEDIUM-TERM (Next month):',
-        `- Target next milestone: Level ${Math.min(93, recommendedLevel + 1)}.`,
+        `- Target next milestone: Level ${Math.min(59, recommendedLevel + 1)}.`,
         '',
         'The student demonstrated mastery in this attempt. No prerequisite remediation is required.',
         '',
@@ -900,7 +1336,7 @@ export function registerStudentRoutes(app: express.Express) {
         }
         if (failedFlnLevels.length > 0) {
           demonstratedLevel = Math.min(...failedFlnLevels);
-          nextDemonstratedLevel = Math.min(93, demonstratedLevel + 1);
+          nextDemonstratedLevel = Math.min(59, demonstratedLevel + 1);
         }
       }
       const currentCfg = CURRICULUM_MAPPING[demonstratedLevel];
@@ -973,10 +1409,25 @@ export function registerStudentRoutes(app: express.Express) {
       recommendedLevel,
       recommendedSubLevel: subLevel,
       timestamp: new Date().toISOString(),
+      ...pipelineDetail,
+      // Per-level pass/fail breakdown — the diagnostic does not assign a
+      // placement level (intentional, per the new analytics-first model).
+      // The UI uses these to show which levels were demonstrated vs which
+      // need remediation, derived from the actual submitted answers.
+      passedLevels,
+      failedLevels,
+      skillGaps,
       ...(reasoning ? { reasoning } : {}),
     };
 
     await dbStore.addEvaluationReport(report);
+    invalidateFingerprintCache();
+
+    try {
+      await assignStudentToArchetype(student.id);
+    } catch (error) {
+      console.error('[archetype] Failed to assign student to misconception archetype:', error);
+    }
 
     await dbStore.addLog({
       id: 'log_' + Date.now(),
@@ -991,6 +1442,22 @@ export function registerStudentRoutes(app: express.Express) {
       details: `Submitted and scored diagnostic for ${student.name}. Placed at Level ${recommendedLevel}`
     });
 
+    if (mode === 'baseline') {
+      // The upload screen places a child and reports the placement; it has no
+      // roster row to refresh and renders the narrative on its own.
+      return res.json({
+        assignedLevel: recommendedLevel,
+        classNumber,
+        recommendedAction: report.rootCauses && report.rootCauses.length > 0
+          ? `Focus on ${report.rootCauses.length} identified error pattern(s).`
+          : null,
+        narrative
+      });
+    }
+
     res.json({ student, evaluation: { score, recommendedLevel, narrative }, report });
-  });
+  };
+
+  app.post('/api/students/:id/diagnostic/submit', submitDiagnostic('diagnostic'));
+  app.post('/api/students/:id/baseline/submit', submitDiagnostic('baseline'));
 }

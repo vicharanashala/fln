@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """
-Rasterize a PDF to PNG using PyMuPDF.
+Rasterize a PDF to JPEG using PyMuPDF.
 
-Used by the /api/icr/filter endpoint to accept PDFs (the blue-ink filter
-only operates on raster pixels). Renders at 300 DPI so downstream OCR
-sees enough detail to read student handwriting.
+Used by the Cloud OCR path (/api/icr/evaluate-cloud) to accept PDFs —
+Ollama's vision API only takes image MIME types. Renders at 200 DPI
+(down from 300 — plenty for handwriting legibility; the extra 300 DPI
+detail is thrown away by the vision model's own internal downsampling
+anyway) and saves as JPEG at quality 85 instead of lossless PNG. A real
+22-page phone-photo scan measured ~4.8 MB/page as 300-DPI PNG (lossless
+deflate compresses photo-like scanned paper poorly) vs. a small fraction
+of that as 200-DPI JPEG — this is what actually made large multi-page
+scans fit under the pipeline's size caps, not just raising the caps
+themselves (see backend/src/routes/evaluation.ts MAX_TOTAL_BASE64).
 
 Stdout format (single JSON line):
   Single-page mode: {"success": true, "output_path": "...", "page_size": [w, h]}
@@ -12,7 +19,7 @@ Stdout format (single JSON line):
 
 Usage:
   python pdf_rasterize.py <input_pdf> <output_path>              # single page (page 1) — backward compatible
-  python pdf_rasterize.py <input_pdf> <output_dir> --all-pages   # all pages, one PNG per page in output_dir
+  python pdf_rasterize.py <input_pdf> <output_dir> --all-pages   # all pages, one JPEG per page in output_dir
   python pdf_rasterize.py <input_pdf> <output_path> --page <n>   # specific page (1-based)
 """
 
@@ -63,29 +70,57 @@ def main():
             }))
             sys.exit(1)
 
-        # 300 DPI render matrix (fitz base = 72 DPI).
-        matrix = fitz.Matrix(300 / 72, 300 / 72)
+        # 200 DPI render matrix (fitz base = 72 DPI).
+        DPI = 200
+        JPEG_QUALITY = 85
+        # Guard against a stray poster/A0-sized page blowing up memory and
+        # output size at a flat 200 DPI (e.g. a wrongly-uploaded non-worksheet
+        # PDF) — cap the longer raster side, scaling the matrix down for that
+        # one page rather than for the whole document.
+        MAX_RASTER_DIM = 3500
+
+        def matrix_for(page) -> "fitz.Matrix":
+            scale = DPI / 72
+            longer_pt = max(page.rect.width, page.rect.height)
+            if longer_pt * scale > MAX_RASTER_DIM:
+                scale = MAX_RASTER_DIM / longer_pt
+            return fitz.Matrix(scale, scale)
 
         if args.all_pages:
             output.mkdir(parents=True, exist_ok=True)
             pages_info = []
+            page_errors = []
             for i in range(doc.page_count):
-                page = doc.load_page(i)
-                pix = page.get_pixmap(matrix=matrix, alpha=False)
-                out_path = output / f"page_{i + 1}.png"
-                pix.save(out_path)
-                page_w, page_h = page.rect.width, page.rect.height
-                pages_info.append({
-                    "page_number": i + 1,
-                    "output_path": str(out_path),
-                    "page_size": [page_w, page_h],
-                    "raster_size": [pix.width, pix.height],
-                })
+                # One malformed/corrupt page (rare but real with scanned/
+                # re-exported PDFs) shouldn't fail the whole multi-page scan —
+                # skip it and let the caller OCR the pages that did render.
+                try:
+                    page = doc.load_page(i)
+                    pix = page.get_pixmap(matrix=matrix_for(page), alpha=False)
+                    out_path = output / f"page_{i + 1}.jpg"
+                    pix.save(out_path, jpg_quality=JPEG_QUALITY)
+                    page_w, page_h = page.rect.width, page.rect.height
+                    pages_info.append({
+                        "page_number": i + 1,
+                        "output_path": str(out_path),
+                        "page_size": [page_w, page_h],
+                        "raster_size": [pix.width, pix.height],
+                    })
+                except Exception as page_err:
+                    page_errors.append({"page_number": i + 1, "error": str(page_err)})
             doc.close()
+            if not pages_info:
+                print(json.dumps({
+                    "success": False,
+                    "error": f"All {doc.page_count} page(s) failed to rasterize.",
+                    "page_errors": page_errors,
+                }))
+                sys.exit(1)
             print(json.dumps({
                 "success": True,
                 "page_count": len(pages_info),
                 "pages": pages_info,
+                **({"page_errors": page_errors} if page_errors else {}),
             }))
             return
 
@@ -99,9 +134,10 @@ def main():
             }))
             sys.exit(1)
         page = doc.load_page(page_index)
-        pix = page.get_pixmap(matrix=matrix, alpha=False)
+        pix = page.get_pixmap(matrix=matrix_for(page), alpha=False)
+        output = output.with_suffix('.jpg')
         output.parent.mkdir(parents=True, exist_ok=True)
-        pix.save(output)
+        pix.save(output, jpg_quality=JPEG_QUALITY)
         page_w, page_h = page.rect.width, page.rect.height
         doc.close()
 

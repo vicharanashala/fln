@@ -11,6 +11,7 @@ import { parseCSVText } from '../RoleDashboards';
 
 interface StudentListPanelProps {
   students: Student[];
+  studentsLoading?: boolean;
   currentUser: User;
   token: string;
   refreshStudents: () => void;
@@ -18,6 +19,7 @@ interface StudentListPanelProps {
 
 export const StudentListPanel: React.FC<StudentListPanelProps> = ({
   students,
+  studentsLoading,
   currentUser,
   token,
   refreshStudents,
@@ -61,6 +63,12 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
   const [csvResults, setCsvResults] = useState<any>(null);
   const [csvError, setCsvError] = useState('');
   const [parsedRows, setParsedRows] = useState<any[]>([]);
+  // Inline correction for failed rows — draft edits keyed by row number
+  // (matches csvResults.results[].row, 1-based) so a teacher can fix e.g. a
+  // duplicate Aadhar number and resubmit just that row, without downloading
+  // a CSV and re-uploading the whole batch for a single bad row.
+  const [rowDrafts, setRowDrafts] = useState<Record<number, Record<string, string>>>({});
+  const [retryingRow, setRetryingRow] = useState<number | null>(null);
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +116,7 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
     setCsvError('');
     setCsvResults(null);
     setParsedRows([]);
+    setRowDrafts({});
     setCsvImporting(true);
     try {
       const text = await file.text();
@@ -130,6 +139,55 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
     } finally {
       setCsvImporting(false);
       e.target.value = '';
+    }
+  };
+
+  // Fields a teacher can realistically need to correct inline — mirrors the
+  // CSV template's own required + commonly-used columns (see #294's
+  // downloadCsvTemplate in TeacherDashboard.tsx). Not every optional column
+  // from the full schema, just the ones a single bad-row fix usually needs.
+  const CORRECTABLE_FIELDS = ['name', 'classGroup', 'section', 'aadharNumber', 'dob', 'address'];
+
+  const getRowDraft = (rowNum: number, idx: number) => {
+    if (rowDrafts[rowNum]) return rowDrafts[rowNum];
+    const original = parsedRows[idx] || {};
+    const draft: Record<string, string> = {};
+    CORRECTABLE_FIELDS.forEach(f => { draft[f] = original[f] ?? ''; });
+    return draft;
+  };
+
+  const updateRowDraft = (rowNum: number, idx: number, field: string, value: string) => {
+    setRowDrafts(prev => ({ ...prev, [rowNum]: { ...getRowDraft(rowNum, idx), [field]: value } }));
+  };
+
+  const retryFailedRow = async (rowNum: number, idx: number) => {
+    const draft = getRowDraft(rowNum, idx);
+    setRetryingRow(rowNum);
+    try {
+      const res = await apiFetch('/api/students/bulk-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ rows: [draft] }),
+      });
+      const data = await res.json();
+      const outcome = data?.results?.[0];
+      if (res.ok && outcome) {
+        // Splice this row's outcome into the existing results in place,
+        // rather than re-running the whole batch — the other rows already
+        // succeeded/failed and shouldn't be touched by retrying one.
+        setCsvResults((prev: any) => prev && ({
+          ...prev,
+          failed: outcome.status === 'created' ? Math.max(0, prev.failed - 1) : prev.failed,
+          results: prev.results.map((r: any) => r.row === rowNum ? { ...outcome, row: rowNum } : r),
+        }));
+        if (outcome.status === 'created') {
+          refreshStudents();
+        }
+      }
+    } catch {
+      // Leave the row as still-failed; the teacher can just retry again.
+    } finally {
+      setRetryingRow(null);
     }
   };
 
@@ -362,17 +420,53 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
                   </div>
                 </div>
                 {csvResults.results && csvResults.results.length > 0 && (
-                  <div className="max-h-40 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-lg text-[10px] font-mono divide-y divide-slate-100 dark:divide-slate-800">
+                  <div className="max-h-96 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-lg text-[10px] font-mono divide-y divide-slate-100 dark:divide-slate-800">
                     {csvResults.results.map((r: any, idx: number) => (
-                      <div key={idx} className="p-2 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-                        <span>Row {r.row}: <strong className="text-slate-700 dark:text-slate-350">{r.name || '—'}</strong></span>
-                        <span className={r.status === 'created' ? 'text-green-600 dark:text-green-400 font-bold' : 'text-red-600 dark:text-red-400 font-bold'}>
-                          {r.status === 'created' ? 'Added ✅' : `Incorrect: ${r.reason}`}
-                        </span>
+                      <div key={idx} className="p-2 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div className="flex justify-between items-center gap-2">
+                          <span>Row {r.row}: <strong className="text-slate-700 dark:text-slate-350">{r.name || '—'}</strong></span>
+                          <span className={r.status === 'created' ? 'text-green-600 dark:text-green-400 font-bold shrink-0' : 'text-red-600 dark:text-red-400 font-bold shrink-0'}>
+                            {r.status === 'created' ? 'Added ✅' : `Incorrect: ${r.reason}`}
+                          </span>
+                        </div>
+                        {r.status === 'failed' && (
+                          <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {CORRECTABLE_FIELDS.map(field => (
+                              <input
+                                key={field}
+                                type="text"
+                                placeholder={field}
+                                value={getRowDraft(r.row, idx)[field] ?? ''}
+                                onChange={e => updateRowDraft(r.row, idx, field, e.target.value)}
+                                className="px-2 py-1 text-[10px] font-mono border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              />
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => retryFailedRow(r.row, idx)}
+                              disabled={retryingRow === r.row}
+                              className="col-span-2 sm:col-span-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-[10px] font-mono font-bold px-3 py-1.5 rounded transition-colors cursor-pointer"
+                            >
+                              {retryingRow === r.row ? 'Retrying…' : 'Fix & Retry'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
+                {/* Explicit closure — without this, switching tabs (or just
+                    not knowing what to click) left teachers unsure whether
+                    the import was actually done, reported live after a
+                    successful 9/10 import with no way to confirm and
+                    dismiss the panel. */}
+                <button
+                  type="button"
+                  onClick={() => { setShowCsvImport(false); setCsvResults(null); setParsedRows([]); setRowDrafts({}); }}
+                  className="w-full bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-zinc-200 text-white dark:text-slate-900 text-xs font-mono font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  ✓ Done — Close CSV Import
+                </button>
               </div>
             )}
           </div>
@@ -406,7 +500,7 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
           </div>
         )}
 
-        <EmptyStudents students={visibleStudents} />
+        <EmptyStudents students={visibleStudents} loading={studentsLoading} />
       </div>
     </div>
   );

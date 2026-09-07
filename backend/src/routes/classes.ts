@@ -11,10 +11,10 @@ export function registerClassRoutes(app: express.Express) {
     if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
       return res.json(classes);
     }
-    let filtered = classes.filter(c => c.schoolId === user.schoolId || (user.assignedSchools && user.assignedSchools.includes(c.schoolId || '')));
-    if (filtered.length === 0) {
-      filtered = classes;
-    }
+    // A teacher/school-scoped user with zero classes should see an empty
+    // list — that's a correct, expected state for a new account, not a
+    // reason to widen scope to every class in the database (issue #291).
+    const filtered = classes.filter(c => c.schoolId === user.schoolId || (user.assignedSchools && user.assignedSchools.includes(c.schoolId || '')));
     res.json(filtered);
   });
 

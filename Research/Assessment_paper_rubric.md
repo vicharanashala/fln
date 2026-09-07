@@ -1,6 +1,11 @@
 # Assessment Rubric
 
-**Resources:** link_1, link_2
+**Sources.** *(Filled in 2026-08-21 — this line previously read `link_1, link_2`, placeholder text that was never replaced. See `fln_source_verification_2026-08-21.md` §2.)*
+
+- Learning outcomes are derived from **NIPUN Bharat's Lakshya Soochi** (Ministry of Education, Government of India), verified against the primary source.
+- **The weightages and Bloom's-level assignments below have no source.** They are unsourced judgement calls presented here as a blueprint, and must not be cited as an established standard.
+
+> **⚠ Read the grade labels carefully.** "Class *N*: Baseline Test" contains **Class *N*−1** content — a baseline test deliberately covers the previous year's syllabus. Where an age is given it describes the *content's* age, not the test-taker's. Read literally, these headings shift a grade.
 
 ---
 

@@ -13,9 +13,21 @@ import { LevelBadge } from '../RoleDashboards';
 import { ClassSummaryBar } from './ClassSummaryBar';
 
 
-export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
+interface TeacherDashboardProps extends DashboardProps {
+  // Issue #294: the welcome panel's Register/CSV-Upload actions live on the
+  // Students section (a sibling panel, not part of this dashboard) — this
+  // lets the welcome panel switch the app's active panel without
+  // TeacherDashboard needing to own that navigation state itself.
+  onNavigate?: (panel: string) => void;
+}
+
+export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token, onNavigate }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  // Distinct from students.length === 0 (issue #294, same pattern as #292's
+  // studentsLoading) — without it the welcome panel would flash on screen
+  // for every teacher for a moment before their real roster loads in.
+  const [studentsLoading, setStudentsLoading] = useState(true);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
   const [showAllStudents, setShowAllStudents] = useState(true);
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
@@ -59,8 +71,13 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       const clsRes = await apiFetch('/api/classes', { headers: { 'Authorization': `Bearer ${token}` } });
       const clsData = await clsRes.json();
       if (Array.isArray(clsData)) {
-        setClasses(clsData);
-        if (clsData.length > 0) setActiveClass(clsData[0]);
+        // Defensive scope check (issue #291) — the backend is the source of
+        // truth for scoping, but a teacher's own class-tab bar should never
+        // render another school's classes even if a future backend change
+        // regresses.
+        const scoped = clsData.filter((c: ClassGroup) => c.schoolId === user.schoolId);
+        setClasses(scoped);
+        if (scoped.length > 0) setActiveClass(scoped[0]);
       }
 
       const stdRes = await apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -68,6 +85,8 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       if (Array.isArray(stdData)) setStudents(stdData);
     } catch (err) {
       console.error(err);
+    } finally {
+      setStudentsLoading(false);
     }
   };
 
@@ -99,6 +118,66 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         onPlaced={() => fetchTeacherData()}
         onBack={() => setBaselineStudent(null)}
       />
+    );
+  }
+
+  // Issue #294: CSV template matching the exact column schema
+  // `POST /api/students/bulk-import` expects (see createStudentFromData in
+  // backend/src/routes/students.ts) — required fields first (name,
+  // classGroup, section, aadharNumber), then the optional fields the same
+  // endpoint accepts. Generated client-side rather than a static file in
+  // frontend/public/ so it can never silently drift from the real schema.
+  const downloadCsvTemplate = () => {
+    const headers = ['name', 'classGroup', 'section', 'aadharNumber', 'dob', 'gender', 'guardianName', 'guardianRelation', 'guardianContact', 'address'];
+    const exampleRow = ['Aarav Sharma', 'Class 2', 'A', '123456789012', '2018-06-15', 'Male', 'Rakesh Sharma', 'Father', '9876543210', 'Village Road, Near School'];
+    const csvContent = [headers.join(','), exampleRow.map(v => `"${v.replace(/"/g, '""')}"`).join(',')].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'fln_student_upload_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Issue #294: a brand-new teacher with zero students previously landed on
+  // a fully-populated dashboard layout (with honest zeros, at least — see
+  // #292 for the fake-data version of this problem) and no guidance on
+  // what to do next. Show a welcome state instead until they register or
+  // import their first student.
+  if (!studentsLoading && students.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 text-center space-y-6" id="teacher-dashboard-welcome">
+        <div>
+          <h1 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white">Welcome, {user.name}!</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-2">
+            You don't have any students registered yet. Get started by adding your first student below.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+          <button
+            onClick={() => onNavigate?.('student_list')}
+            className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-zinc-200 font-semibold text-sm px-5 py-4 rounded-xl transition-colors cursor-pointer text-center"
+          >
+            Register New Student
+          </button>
+          <button
+            onClick={() => onNavigate?.('student_list')}
+            className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-semibold text-sm px-5 py-4 rounded-xl transition-colors cursor-pointer text-center"
+          >
+            Smart CSV Upload
+          </button>
+        </div>
+        <button
+          onClick={downloadCsvTemplate}
+          className="text-xs font-mono text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+        >
+          ⬇ Download CSV template
+        </button>
+      </div>
     );
   }
 
@@ -139,7 +218,7 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       {/* Issue #172: real "how is my class doing today?" summary + #167's
           Top Performing Students, now that the standalone Performance page
           is gone. */}
-      <ClassSummaryBar students={students} />
+      <ClassSummaryBar students={students} token={token} teacherId={user.id} />
 
       {/* Class picker tabs */}
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">
@@ -182,6 +261,15 @@ export const TeacherDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">
                 {showAllStudents ? `All Students — School Roster (${classStudents.length})` : `Classroom Student Roster (${classStudents.length})`}
               </h3>
+              {classStudents.some(s => s.levelHistory.length === 0) && (
+                <button
+                  onClick={() => onNavigate?.('diagnostic_test')}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-mono text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  title="Generate diagnostic papers for a whole class at once, instead of one student at a time"
+                >
+                  📋 Run Diagnostic in Bulk
+                </button>
+              )}
             </div>
             <div className="p-4">
               {(() => {

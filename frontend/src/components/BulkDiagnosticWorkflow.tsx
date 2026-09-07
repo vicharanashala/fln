@@ -2,6 +2,7 @@ import { apiFetch, withBase } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { UserRole } from '../types';
 import { FileText, Download, Clock, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { IcrScanner } from './IcrScanner';
 
 interface BulkDiagnosticWorkflowProps {
   user: any;
@@ -31,6 +32,11 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
   const [job, setJob] = useState<JobStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Scan & Upload is independent of `job` on purpose — in a pilot, an
+  // answer sheet can come back hours or a day after the paper was printed,
+  // long after `job` (in-memory, reset on refresh) is gone. Keep this
+  // reachable regardless of any current generation job's state.
+  const [showIcrScanner, setShowIcrScanner] = useState(false);
 
   // Fetch enrolled students when classLevel changes
   useEffect(() => {
@@ -141,6 +147,17 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
   };
 
   const progressPercent = job ? Math.round((job.completed / job.totalStudents) * 100) : 0;
+
+  // Sub-view: ICR Scanner — full-screen, with a Back to Bulk Generator button.
+  if (showIcrScanner) {
+    return (
+      <IcrScanner
+        token={token}
+        user={user}
+        onBack={() => setShowIcrScanner(false)}
+      />
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in" id="bulk-diagnostic-workflow">
@@ -302,6 +319,28 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
           )}
         </div>
       )}
+
+      {/*
+        Scan & Upload — deliberately NOT gated on `job` or its status.
+        In pilot testing an answer sheet can come back hours or a full day
+        after the paper was generated, well after this component's local
+        `job` state (or the whole browser session) is gone. This has to
+        stay reachable on its own, every time this panel is open.
+      */}
+      <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm">
+        <h3 className="font-display font-medium text-zinc-900 dark:text-white mb-1">
+          Upload Scanned Sheet
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
+          Once a student's answer sheet is filled in — whether that's today or a few days from now — upload it here to evaluate it.
+        </p>
+        <button
+          onClick={() => setShowIcrScanner(true)}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-semibold text-xs py-4 rounded-xl transition-colors shadow cursor-pointer"
+        >
+          📤 Upload Scanned Sheet
+        </button>
+      </div>
     </div>
   );
 };

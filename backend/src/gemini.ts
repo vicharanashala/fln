@@ -2,11 +2,15 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "./db";
 
 // Valid Gemini model IDs, primary first then fallbacks (used by generateContentWithRetry).
-// Centralized here so the call sites below don't drift; these match the IDs the
-// ai-services Python pipeline uses (ai-services/scripts/_api.py). The previous IDs
-// ("gemini-3.5-flash" / "gemini-3.1-*") do not exist and made every AI call 404.
-const GEMINI_MODELS = ["gemini-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-lite-latest"] as const;
-const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
+// Centralized here so the call sites below don't drift.
+// Verified 2026-07-25 against a newly-issued AI Studio key: "gemini-2.5-flash" and
+// "gemini-2.5-flash-lite" now 404 with "no longer available to new users", and
+// "gemini-2.0-flash" 429s with no free-tier quota — so the previous list failed every
+// AI call (6 wasted requests per call, via the retry/fallback loop below).
+// Both IDs here were confirmed working, including image input (inlineData).
+// NOTE: ai-services/scripts/_api.py has its own model IDs and was NOT updated here.
+const GEMINI_MODELS = ["gemini-flash-latest", "gemini-3.5-flash"] as const;
+export const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
 
 // Issue #181: forgive small, meaningless formatting/OCR differences in the
 // deterministic answer comparison (extra internal spaces, mixed case, a
@@ -73,7 +77,7 @@ function getAiClient(): GoogleGenAI {
 /**
  * Call Gemini API with retries and exponential backoff, falling back to other models if needed.
  */
-async function generateContentWithRetry(params: {
+export async function generateContentWithRetry(params: {
   contents: any;
   config?: any;
   model?: string;
@@ -492,9 +496,11 @@ Provide a clean narrative feedback summary.`;
   if (failedLevels.length > 0) {
     recommendedLevel = Math.min(...failedLevels);
   } else {
-    // If they got all questions correct, place them at highest level + 1 (capped at 93)
+    // If they got all questions correct, place them at highest level + 1.
+    // Capped at 59, not 93: worksheet generation (levels_main.html) still
+    // throws UnknownLevelError above 59 until the 59->93 migration finishes.
     const maxLevel = Math.max(...questions.map(q => q.source_level), 0);
-    recommendedLevel = Math.min(93, maxLevel + 1);
+    recommendedLevel = Math.min(59, maxLevel + 1);
   }
 
   return {
@@ -619,7 +625,7 @@ Answers submitted: ${JSON.stringify(submittedAnswers)}
 
 Grade the student's submission. Evaluate each concept topic.
 Recommended Level progression rules:
-- If score is 80%+ (e.g. 3/3 or near perfect): Recommend Level ${Math.min(93, level + 1)}.
+- If score is 80%+ (e.g. 3/3 or near perfect): Recommend Level ${Math.min(59, level + 1)}.
 - If score is 50%-80%: Retain at Level ${level}.
 - If score is < 50%: Retain at Level ${level} or suggest review at Level ${Math.max(1, level - 1)}.
 Generate a narrative report summarizing strengths and learning gaps.`;
@@ -680,7 +686,8 @@ Generate a narrative report summarizing strengths and learning gaps.`;
   });
 
   const percent = (score / questions.length) * 100;
-  const recommendedLevel = percent >= 80 ? Math.min(93, level + 1) : level;
+  // Capped at 59, not 93 — see the Weakest-Level Mapping cap above.
+  const recommendedLevel = percent >= 80 ? Math.min(59, level + 1) : level;
 
   return {
     score,

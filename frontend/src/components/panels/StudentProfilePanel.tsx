@@ -4,18 +4,25 @@
 // updateStudentLocally mutator (built in PR 1 for exactly this purpose).
 import { apiFetch } from '../../services/apiClient';
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, Student, School, EvaluationReport } from '../../types';
+import { User, UserRole, Student, School, EvaluationReport, Worksheet } from '../../types';
 import { handleDownloadPDF } from './pdfReportGenerator';
-import { Users, BookOpen, Calendar, Award, BarChart3, FileText, Search, ChevronDown } from 'lucide-react';
+import { Users, BookOpen, Calendar, Award, BarChart3, FileText, Search, ChevronDown, GitCompareArrows } from 'lucide-react';
+
+// Issue #200: canonical cycle order for the comparison view — matches
+// db.ts's CYCLE_NAMES (Worksheet.cycle already uses these exact strings
+// since #179/#191's standardization).
+const CYCLE_ORDER = ['Baseline', 'Mid-year', 'End-of-year'] as const;
 
 export const StudentProfilePanel: React.FC<{
   students: Student[];
+  studentsLoading?: boolean;
   schools: School[];
   reportsList: EvaluationReport[];
+  worksheetsList: Worksheet[];
   currentUser: User;
   token: string;
   updateStudentLocally: (studentId: string, patch: Partial<Student>) => void;
-}> = ({ students, schools, reportsList, currentUser, token, updateStudentLocally }) => {
+}> = ({ students, studentsLoading, schools, reportsList, worksheetsList, currentUser, token, updateStudentLocally }) => {
   const [sel, setSel] = useState('');
   const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
   const [editingProfile, setEditingProfile] = useState(false);
@@ -34,6 +41,29 @@ export const StudentProfilePanel: React.FC<{
     }
   }, [students, sel]);
 
+  // Issue #292: `students[0]` used to always exist because a hardcoded
+  // demo-student fallback guaranteed a non-empty list. With that fallback
+  // removed, a teacher who genuinely has zero students yet — a brand-new
+  // account, the exact case this bug was found on — would otherwise hit
+  // `s.schoolId`, `s.levelHistory[0]`, etc. on `undefined` below and crash.
+  if (studentsLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-slate-400 dark:text-slate-500">
+        <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs font-mono">Loading student records...</p>
+      </div>
+    );
+  }
+  if (students.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center text-slate-400 dark:text-slate-500">
+        <Users className="h-8 w-8 mb-3" />
+        <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No students registered yet.</p>
+        <p className="text-xs mt-1">Register a student from the Students section to see their profile here.</p>
+      </div>
+    );
+  }
+
     const s = students.find(x => x.id === sel) || students[0];
 
     const filteredStudents = students.filter(x =>
@@ -42,6 +72,27 @@ export const StudentProfilePanel: React.FC<{
     );
 
     const reports = reportsList.filter(r => r.studentId === s.id);
+
+    // Issue #200: Baseline / Mid-year / End-of-year side by side, so a
+    // teacher can see this student's trajectory across the 3-cycle model
+    // in one place instead of scrolling through the activity log. A
+    // report doesn't carry its own cycle — it's looked up via its
+    // worksheetId (Worksheet.cycle, standardized by #179/#191). If a
+    // cycle has more than one report, the most recent one represents it.
+    const worksheetCycleById = new Map(worksheetsList.map(w => [w.id, w.cycle]));
+    const cycleComparison = CYCLE_ORDER.map(cycle => {
+      const cycleReports = reports
+        .filter(r => worksheetCycleById.get(r.worksheetId) === cycle)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const report = cycleReports[0] ?? null;
+      return {
+        cycle,
+        report,
+        scorePercent: report ? Math.round((report.score / report.totalQuestions) * 100) : null,
+      };
+    });
+    const hasCycleData = cycleComparison.some(c => c.report !== null);
+
     const studentSchool = schools.find(sch => sch.id === s.schoolId);
     // No attendance data model exists on the backend yet (no dedicated
     // collection or endpoint) - showing `null` here surfaces the existing
@@ -267,6 +318,41 @@ export const StudentProfilePanel: React.FC<{
                         <span>Last: <strong>{Math.round((reports[reports.length - 1].score / reports[reports.length - 1].totalQuestions) * 100)}%</strong></span>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Issue #200: Baseline / Mid-year / End-of-year side by side —
+                  distinct from Score Trend above, which is every report in
+                  chronological order regardless of cycle. This is
+                  specifically the 3-cycle model the assessment design is
+                  built around. */}
+              {hasCycleData && (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+                  <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                    <GitCompareArrows className="h-3.5 w-3.5" /> Cycle Comparison
+                  </h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    {cycleComparison.map(({ cycle, report, scorePercent }) => (
+                      <div key={cycle} className="text-center space-y-2">
+                        <div className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase">{cycle}</div>
+                        {report ? (
+                          <>
+                            <div className="h-24 flex items-end justify-center">
+                              <div
+                                className={`w-10 rounded-t-lg ${scorePercent! >= 80 ? 'bg-emerald-500' : scorePercent! >= 60 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                style={{ height: `${Math.max(scorePercent! * 0.9, 8)}px` }}
+                              />
+                            </div>
+                            <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">{scorePercent}%</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">L{report.recommendedLevel}.{report.recommendedSubLevel ?? 0}</div>
+                            <div className="text-[9px] text-slate-400 dark:text-slate-500">{new Date(report.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                          </>
+                        ) : (
+                          <div className="h-24 flex items-center justify-center text-[10px] text-slate-300 dark:text-slate-600 font-mono">Not yet taken</div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
