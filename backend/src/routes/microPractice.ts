@@ -662,7 +662,8 @@ export function registerMicroPracticeRoutes(app: express.Express) {
   });
 
   // List practice items due today or overdue, scoped to the requesting
-  // teacher's own students (schedule.teacherId).
+  // teacher's own students (schedule.teacherId) or, for a volunteer,
+  // students in their assigned schools.
   app.get('/api/practice/due', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -673,6 +674,12 @@ export function registerMicroPracticeRoutes(app: express.Express) {
     let scoped = schedules;
     if (user.role === UserRole.TEACHER) {
       scoped = schedules.filter(s => s.teacherId === user.id);
+    } else if (user.role === UserRole.VOLUNTEER) {
+      // PracticeSchedule has no schoolId of its own — resolve via the
+      // volunteer's own (schoolId-scoped) student roster instead.
+      const scopedStudents = await dbStore.getStudents({ schoolId: user.assignedSchools });
+      const scopedStudentIds = new Set(scopedStudents.map(s => s.id));
+      scoped = schedules.filter(s => scopedStudentIds.has(s.studentId));
     }
     // Admins/Superadmin see everything; other roles get nothing by default
     // (this feature is teacher-driven, matching the Intervention pattern).
@@ -825,7 +832,8 @@ export function registerMicroPracticeRoutes(app: express.Express) {
   });
 
   // Uploaded-but-ungraded papers, scoped like /api/practice/due: teachers see
-  // their own, admin-tier roles see all, others get nothing.
+  // their own, volunteers see their assigned schools', admin-tier roles see
+  // all, others get nothing.
   app.get('/api/practice/pending-papers', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -835,6 +843,12 @@ export function registerMicroPracticeRoutes(app: express.Express) {
     let scoped = uploadedPapers;
     if (user.role === UserRole.TEACHER) {
       scoped = uploadedPapers.filter(p => p.teacherId === user.id);
+    } else if (user.role === UserRole.VOLUNTEER) {
+      // UploadedPaper has no schoolId of its own — resolve via the
+      // volunteer's own (schoolId-scoped) student roster instead.
+      const scopedStudents = await dbStore.getStudents({ schoolId: user.assignedSchools });
+      const scopedStudentIds = new Set(scopedStudents.map(s => s.id));
+      scoped = uploadedPapers.filter(p => scopedStudentIds.has(p.studentId));
     } else if (![UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN, UserRole.SCHOOL].includes(user.role)) {
       scoped = [];
     }
@@ -852,12 +866,22 @@ export function registerMicroPracticeRoutes(app: express.Express) {
     const assignments = await dbStore.getMicroAssignments();
     const completed = assignments.filter(a => a.completedAt);
 
-    // Scope to the teacher's own students where relevant, matching the
-    // existing pattern used for /api/practice/due.
+    // Scope to the caller's own students. Teachers: their own schedules
+    // (schedule.teacherId). Volunteers: schedules for students in their
+    // assigned schools — PracticeSchedule has no schoolId of its own, so
+    // resolve via the student roster instead. Admins/Superadmin see
+    // everything; any other role gets nothing, matching /api/practice/due
+    // and /api/practice/pending-papers.
     const schedules = await dbStore.getPracticeSchedules();
     let scopedScheduleIds: Set<string> | null = null;
     if (user.role === UserRole.TEACHER) {
       scopedScheduleIds = new Set(schedules.filter(s => s.teacherId === user.id).map(s => s.id));
+    } else if (user.role === UserRole.VOLUNTEER) {
+      const scopedStudents = await dbStore.getStudents({ schoolId: user.assignedSchools });
+      const scopedStudentIds = new Set(scopedStudents.map(s => s.id));
+      scopedScheduleIds = new Set(schedules.filter(s => scopedStudentIds.has(s.studentId)).map(s => s.id));
+    } else if (![UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN, UserRole.SCHOOL].includes(user.role)) {
+      scopedScheduleIds = new Set();
     }
 
     const scopedCompleted = scopedScheduleIds

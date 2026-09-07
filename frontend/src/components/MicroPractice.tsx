@@ -124,7 +124,13 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
 
     const fetchStudents = async () => {
         try {
-            const res = await apiFetch('/api/students', {
+            // `?all=1`: this component needs the caller's whole roster (class
+            // picker, Individual picker, due/pending badge resolution), not the
+            // paged default — see backend/src/routes/students.ts DEFAULT_LIMIT.
+            // Safe for Teacher/Volunteer (the only roles that reach this view,
+            // per Layout.tsx) — both are scoped server-side (schoolId /
+            // assignedSchools) before the query runs.
+            const res = await apiFetch('/api/students?all=1', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -255,6 +261,8 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
         resetBulkState();
         setSelectedClassKey(null);
         setGenerateMode('picker');
+        setShowUploadPaper(false);
+        setIdentifiedPaper(null);
     };
 
     const closeGeneratePanel = () => {
@@ -304,6 +312,8 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
         setBulkJob(null);
         setBulkSubMode('due-today');
         setGenerateMode('bulk');
+        setShowUploadPaper(false);
+        setIdentifiedPaper(null);
     };
 
     const closeDueBulkGenerate = () => {
@@ -575,7 +585,13 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
                             {generateMode === 'none' ? '+ Generate Practice Paper' : 'Close'}
                         </button>
                         <button
-                            onClick={() => { setShowUploadPaper(!showUploadPaper); setIdentifiedPaper(null); setActiveGroupKey(null); }}
+                            onClick={() => {
+                                const opening = !showUploadPaper;
+                                setShowUploadPaper(opening);
+                                setIdentifiedPaper(null);
+                                setActiveGroupKey(null);
+                                if (opening) closeGeneratePanel();
+                            }}
                             className="bg-emerald-700 text-white font-mono font-medium text-xs py-1.5 px-3 rounded-md hover:bg-emerald-600 flex items-center gap-1.5"
                         >
                             {showUploadPaper ? 'Close' : <><Upload className="h-4 w-4" /> Upload Completed Paper</>}
@@ -763,7 +779,7 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
                                 disabled={generatingPaper || !selectedStudentId || !competency}
                                 className="w-full bg-zinc-900 text-white font-medium text-sm py-2.5 rounded-lg hover:bg-zinc-800 disabled:opacity-50"
                             >
-                                {generatingPaper ? 'Generating...' : 'Generate Printable Paper'}
+                                {generatingPaper ? 'Generating...' : 'Generate Paper'}
                             </button>
                         </form>
                     ) : (
@@ -1117,6 +1133,7 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
                                 onClick={() => {
                                     const ordered = getVisualPendingOrder();
                                     if (ordered.length === 0) return;
+                                    closeGeneratePanel();
                                     setActiveGroupKey(ALL_PAPERS_KEY);
                                     openPendingPaper(ordered[0]);
                                 }}
@@ -1499,12 +1516,12 @@ const StudentProgressChart: React.FC<StudentProgressChartProps> = ({ progressDat
                         ? `${currentStudent.studentName} · ${currentClass ? `${currentClass.className}${currentClass.section ? ` - ${currentClass.section}` : ''}` : 'Unknown class'} · ${n} practice session${n !== 1 ? 's' : ''} · ${renderSeries.length} competenc${renderSeries.length !== 1 ? 'ies' : 'y'}`
                         : 'No students with practice history'}
                 </p>
-                <div className="flex items-center gap-2">
-                    <div className="relative">
+                <div className="flex items-center gap-2 shrink-0 w-auto ml-auto">
+                    <div className="relative shrink-0">
                         <button
                             type="button"
                             onClick={() => { setClassMenuOpen(o => !o); setStudentMenuOpen(false); }}
-                            className="flex items-center gap-2 min-w-[120px] text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-zinc-700 dark:text-zinc-200 hover:border-indigo-300 dark:hover:border-indigo-600"
+                            className="flex items-center gap-2 w-auto min-w-[120px] text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-zinc-700 dark:text-zinc-200 hover:border-indigo-300 dark:hover:border-indigo-600"
                         >
                             <span className="flex-1 text-left truncate">
                                 {selectedClassLabel ? `${selectedClassLabel.className}${selectedClassLabel.section ? ` - ${selectedClassLabel.section}` : ''}` : 'All Classes'}
@@ -1514,10 +1531,10 @@ const StudentProgressChart: React.FC<StudentProgressChartProps> = ({ progressDat
                         {classMenuOpen && (
                             <>
                                 <div className="fixed inset-0 z-10" onClick={() => setClassMenuOpen(false)} />
-                                <div className="absolute left-0 top-full mt-1 min-w-full w-max bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-20 overflow-hidden p-1">
+                                <div className="absolute left-0 top-full mt-1 w-max bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-20 overflow-hidden p-1">
                                     <button
                                         onClick={() => { setClassKey(null); setClassMenuOpen(false); }}
-                                        className={`w-full text-left px-3 py-1.5 text-sm rounded-lg whitespace-nowrap ${!classKey ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                                        className={`block w-full text-left px-3 py-1.5 text-sm rounded-lg whitespace-nowrap ${!classKey ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900' : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
                                     >
                                         All Classes
                                     </button>
@@ -1525,7 +1542,7 @@ const StudentProgressChart: React.FC<StudentProgressChartProps> = ({ progressDat
                                         <button
                                             key={c.key}
                                             onClick={() => { setClassKey(c.key); setClassMenuOpen(false); }}
-                                            className={`w-full text-left px-3 py-1.5 text-sm rounded-lg whitespace-nowrap ${classKey === c.key ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                                            className={`block w-full text-left px-3 py-1.5 text-sm rounded-lg whitespace-nowrap ${classKey === c.key ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900' : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200'}`}
                                         >
                                             {c.className}{c.section ? ` - ${c.section}` : ''}
                                         </button>
@@ -1551,7 +1568,7 @@ const StudentProgressChart: React.FC<StudentProgressChartProps> = ({ progressDat
                                         <button
                                             key={s.studentId}
                                             onClick={() => { setStudentId(s.studentId); setStudentMenuOpen(false); }}
-                                            className={`w-full text-left px-3 py-1.5 text-sm rounded-lg whitespace-nowrap ${effectiveStudentId === s.studentId ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                                            className={`block w-full text-left px-3 py-1.5 text-sm rounded-lg whitespace-nowrap ${effectiveStudentId === s.studentId ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900' : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
                                         >
                                             {s.studentName}
                                         </button>

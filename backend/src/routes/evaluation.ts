@@ -1218,7 +1218,8 @@ export function registerEvaluationRoutes(app: express.Express) {
     await dbStore.updateStudent(student.id, {
       currentLevel: evaluation.recommendedLevel,
       currentSubLevel: newSubLevel,
-      targetLevel: Math.min(93, evaluation.recommendedLevel + 1),
+      // Capped at 59, not 93: worksheet generation still throws UnknownLevelError above 59.
+      targetLevel: Math.min(59, evaluation.recommendedLevel + 1),
       levelHistory
     });
 
@@ -1454,7 +1455,8 @@ export function registerEvaluationRoutes(app: express.Express) {
     // turning a score into a level.
     const classMatch = student.classGroup.match(/\d+/);
     const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
-    const recommendedLevel = Math.max(1, Math.min(93, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
+    // Capped at 59, not 93: worksheet generation still throws UnknownLevelError above 59.
+    const recommendedLevel = Math.max(1, Math.min(59, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
     const recommendedSubLevel = percentage >= 80 ? 0 : percentage >= 50 ? 1 : 2;
 
     const updatedReport = await dbStore.updateEvaluationReport(report.id, {
@@ -1481,7 +1483,7 @@ export function registerEvaluationRoutes(app: express.Express) {
       await dbStore.updateStudent(student.id, {
         currentLevel: recommendedLevel,
         currentSubLevel: recommendedSubLevel,
-        targetLevel: Math.min(93, recommendedLevel + 1),
+        targetLevel: Math.min(59, recommendedLevel + 1),
         levelHistory,
       });
     }
