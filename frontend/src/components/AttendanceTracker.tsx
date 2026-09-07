@@ -37,6 +37,10 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
   currentUser,
   schools
 }) => {
+  const defaultSchoolId = currentUser.schoolId || (schools.length > 0 ? schools[0].id : '');
+  const [selectedSchool, setSelectedSchool] = useState<string>(defaultSchoolId);
+  const [fetchedStudents, setFetchedStudents] = useState<Student[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState<boolean>(false);
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [selectedClass, setSelectedClass] = useState<string>('all');
@@ -51,6 +55,27 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [lastAutoSaved, setLastAutoSaved] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    if (selectedSchool) {
+      setLoadingStudents(true);
+      apiFetch(`/api/students?schoolId=${selectedSchool}&limit=500`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (Array.isArray(d)) {
+            setFetchedStudents(d);
+          }
+        })
+        .catch(err => console.error('Error fetching students for school:', err))
+        .finally(() => setLoadingStudents(false));
+    } else if (students && students.length > 0) {
+      setFetchedStudents(students);
+    }
+  }, [selectedSchool, token, students.length]);
+
+  const activeStudentsList = fetchedStudents.length > 0 ? fetchedStudents : (students || []);
 
   // Load attendance for the specified date from backend or dateCache
   const loadAttendance = async (date: string) => {
@@ -77,7 +102,7 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
       }
 
       // For any student not yet marked for this date, default to 'Present'
-      for (const s of students) {
+      for (const s of activeStudentsList) {
         if (!newMap[s.id]) {
           newMap[s.id] = { status: 'Present', remarks: '' };
         }
@@ -88,7 +113,7 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
     } catch (err) {
       console.error('Failed to load attendance:', err);
       const fallbackMap: Record<string, StudentAttendanceState> = dateCache[date] || {};
-      for (const s of students) {
+      for (const s of activeStudentsList) {
         if (!fallbackMap[s.id]) {
           fallbackMap[s.id] = { status: 'Present', remarks: '' };
         }
@@ -112,7 +137,7 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
 
   useEffect(() => {
     loadAttendance(selectedDate);
-  }, [selectedDate, students.length]);
+  }, [selectedDate, activeStudentsList.length]);
 
   useEffect(() => {
     loadStats();
@@ -120,7 +145,7 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
 
   // Filter students based on UI selections
   const filteredStudents = useMemo(() => {
-    return students.filter(s => {
+    return activeStudentsList.filter(s => {
       if (selectedClass !== 'all' && s.classGroup.toLowerCase() !== selectedClass.toLowerCase()) {
         return false;
       }
@@ -133,11 +158,11 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
       }
       return true;
     });
-  }, [students, selectedClass, selectedSection, searchQuery]);
+  }, [activeStudentsList, selectedClass, selectedSection, searchQuery]);
 
   // Status updates with automatic backend synchronization
   const setStudentStatus = async (studentId: string, status: AttendanceStatus) => {
-    const student = students.find(s => s.id === studentId);
+    const student = activeStudentsList.find(s => s.id === studentId);
     const updatedRemarks = attendanceData[studentId]?.remarks || '';
     const updatedState: StudentAttendanceState = {
       status,
@@ -375,7 +400,7 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
   const presentPct = filteredStudents.length > 0 ? Math.round(((presentCount + lateCount) / filteredStudents.length) * 100) : 0;
 
   // Extract unique classes for filter
-  const uniqueClasses = Array.from(new Set(students.map(s => s.classGroup))).sort();
+  const uniqueClasses = Array.from(new Set(activeStudentsList.map(s => s.classGroup))).sort();
 
   return (
     <div className="space-y-6">
@@ -435,7 +460,9 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-900 dark:text-white">{filteredStudents.length}</div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white">
+              {loadingStudents ? '...' : filteredStudents.length}
+            </div>
             <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Enrolled in Roster</div>
           </div>
         </div>
@@ -497,6 +524,26 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
         {/* Controls */}
         <div className="flex flex-wrap items-center gap-3">
+          {/* School Selector (for Admins / Multi-School Users) */}
+          {schools.length > 1 && (
+            <div>
+              <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
+                School
+              </label>
+              <select
+                value={selectedSchool}
+                onChange={(e) => setSelectedSchool(e.target.value)}
+                className="text-xs border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white max-w-[220px] truncate font-medium"
+              >
+                {schools.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Date Picker */}
           <div>
             <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Date</label>
