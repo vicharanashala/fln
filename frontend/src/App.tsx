@@ -23,6 +23,7 @@ import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
 import { OfflineSyncBadge } from './components/OfflineSyncBadge';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import MisconceptionFingerprint from './components/MisconceptionFingerprint';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
 
@@ -311,7 +312,9 @@ export default function App() {
                 )}
 
                 {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'misconceptions'].includes(activePanel) && (
-                  <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
+                  <ErrorBoundary label={activePanel}>
+                    <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectView={setActivePanel} />
+                  </ErrorBoundary>
                 )}
 
                 {toast && (

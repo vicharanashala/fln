@@ -21,7 +21,9 @@
     "check:level-notation-drift": "tsx scripts/check-level-notation-drift.ts"
   },
   "dependencies": {
+    "jose": "^5.9.6",
     "mongodb": "^7.5.0",
-    "mongoose": "^9.7.4"
+    "mongoose": "^9.7.4",
+    "otpauth": "^9.5.1"
   }
 }

@@ -496,9 +496,11 @@ Provide a clean narrative feedback summary.`;
   if (failedLevels.length > 0) {
     recommendedLevel = Math.min(...failedLevels);
   } else {
-    // If they got all questions correct, place them at highest level + 1 (capped at 93)
+    // If they got all questions correct, place them at highest level + 1.
+    // Capped at 59, not 93: worksheet generation (levels_main.html) still
+    // throws UnknownLevelError above 59 until the 59->93 migration finishes.
     const maxLevel = Math.max(...questions.map(q => q.source_level), 0);
-    recommendedLevel = Math.min(93, maxLevel + 1);
+    recommendedLevel = Math.min(59, maxLevel + 1);
   }
 
   return {
@@ -623,7 +625,7 @@ Answers submitted: ${JSON.stringify(submittedAnswers)}
 
 Grade the student's submission. Evaluate each concept topic.
 Recommended Level progression rules:
-- If score is 80%+ (e.g. 3/3 or near perfect): Recommend Level ${Math.min(93, level + 1)}.
+- If score is 80%+ (e.g. 3/3 or near perfect): Recommend Level ${Math.min(59, level + 1)}.
 - If score is 50%-80%: Retain at Level ${level}.
 - If score is < 50%: Retain at Level ${level} or suggest review at Level ${Math.max(1, level - 1)}.
 Generate a narrative report summarizing strengths and learning gaps.`;
@@ -684,7 +686,8 @@ Generate a narrative report summarizing strengths and learning gaps.`;
   });
 
   const percent = (score / questions.length) * 100;
-  const recommendedLevel = percent >= 80 ? Math.min(93, level + 1) : level;
+  // Capped at 59, not 93 — see the Weakest-Level Mapping cap above.
+  const recommendedLevel = percent >= 80 ? Math.min(59, level + 1) : level;
 
   return {
     score,

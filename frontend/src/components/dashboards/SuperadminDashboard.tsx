@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '../../services/apiClient';
 import { User, UserRole, School, DashboardProps } from '../../types';
-import { UserCheck, CheckCircle2, XCircle } from 'lucide-react';
+import { UserCheck, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import { Table, Column } from '../Table';
 import { SuperAdminExecutiveDashboard } from '../SuperAdminExecutiveDashboard';
 import { RegionalAnalyticsView } from './RegionalAnalyticsView';
@@ -31,6 +31,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [coordName, setCoordName] = useState('');
   const [coordEmail, setCoordEmail] = useState('');
   const [coordPass, setCoordPass] = useState('');
+  const [showCoordPass, setShowCoordPass] = useState(false);
   const [coordRole, setCoordRole] = useState<UserRole>(UserRole.ADMIN);
   const [coordState, setCoordState] = useState('PB');
   const [coordDistrict, setCoordDistrict] = useState('');
@@ -416,14 +417,26 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
               <div>
                 <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Account Password</label>
-                <input
-                  type="password"
-                  value={coordPass}
-                  onChange={e => setCoordPass(e.target.value)}
-                  placeholder="Create complex password..."
-                  required
-                  className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
-                />
+                <div className="relative">
+                  <input
+                    type={showCoordPass ? 'text' : 'password'}
+                    value={coordPass}
+                    onChange={e => setCoordPass(e.target.value)}
+                    placeholder="Create complex password..."
+                    required
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 pr-10 bg-zinc-50 dark:bg-zinc-800 outline-none focus:bg-white dark:focus:bg-zinc-700 focus:border-zinc-500 font-medium text-zinc-900 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCoordPass(s => !s)}
+                    aria-label={showCoordPass ? 'Hide password' : 'Show password'}
+                    aria-pressed={showCoordPass}
+                    title={showCoordPass ? 'Hide password' : 'Show password'}
+                    className="absolute inset-y-0 right-0 flex items-center justify-center px-2.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                  >
+                    {showCoordPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 
                 {/* Real-time complexity checklist (§3.2 A-3) */}
                 <div className="mt-2.5 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-1.5">

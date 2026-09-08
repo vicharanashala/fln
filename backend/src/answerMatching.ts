@@ -33,7 +33,7 @@ export function normalizeAnswer(value: unknown): string {
  */
 const PLAIN_NUMBER = /^[+-]?(\d{1,3}(,\d{3})+|\d+)(\.\d+)?$/;
 
-function asNumber(normalized: string): number | null {
+export function asNumber(normalized: string): number | null {
   if (!PLAIN_NUMBER.test(normalized)) return null;
   const n = Number(normalized.replace(/,/g, ''));
   return Number.isFinite(n) ? n : null;
