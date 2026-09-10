@@ -2,7 +2,7 @@ import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { LogEntry, UserRole, User, School } from '../types';
 import * as XLSX from 'xlsx';
-import { FileSpreadsheet, Search, SlidersHorizontal } from 'lucide-react';
+import { FileSpreadsheet, Search, SlidersHorizontal, ClipboardList } from 'lucide-react';
 
 interface LogbookViewProps {
   token: string;
@@ -321,8 +321,20 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 text-sm text-zinc-700 dark:text-zinc-200">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-zinc-400 font-sans text-xs">
-                    No active system audit records found with the active filters.
+                  <td colSpan={7} className="p-12 text-center font-sans">
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 dark:text-zinc-500 mb-3">
+                        <ClipboardList className="w-6 h-6" />
+                      </div>
+                      <p className="text-zinc-800 dark:text-zinc-200 font-semibold text-sm mb-1">
+                        {logs.length === 0 ? 'No activity recorded yet' : 'No matching audit records found'}
+                      </p>
+                      <p className="text-zinc-500 dark:text-zinc-400 text-xs max-w-md">
+                        {logs.length === 0
+                          ? 'Operational events such as worksheet downloads, assessment scans, and verification checks will automatically appear here as audit records.'
+                          : 'No log entries match the selected filters or search query. Try adjusting or clearing your active filters.'}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (
