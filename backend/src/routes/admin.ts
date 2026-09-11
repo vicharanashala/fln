@@ -29,16 +29,62 @@ export function registerAdminRoutes(app: express.Express) {
       return res.status(400).json({ error: 'User with this email already exists.' });
     }
 
+    // Issue 2 + Issue 10: for principals (UserRole.SCHOOL) and teachers
+    // (UserRole.TEACHER), the schoolId is the source of truth for school
+    // identity and geography. We explicitly:
+    //   1. Require schoolId.
+    //   2. Validate that the school exists (case-insensitive lookup matches
+    //      the way /api/schools stores ids).
+    //   3. Derive stateCode/districtCode/blockCode from the school, overriding
+    //      anything the caller may have submitted.
+    //   4. If the caller did submit conflicting geography, reject with HTTP
+    //      400 rather than silently overriding, so misconfigurations are
+    //      surfaced instead of hidden.
+    //
+    // For other roles (ADMIN, district/block coordinators, volunteers) we
+    // still accept the geographic fields the caller submits — those accounts
+    // legitimately span a wider scope.
+    let resolvedSchoolId: string | undefined = schoolId || undefined;
+    let resolvedStateCode: string | undefined = stateCode ? stateCode.toUpperCase() : undefined;
+    let resolvedDistrictCode: string | undefined = districtCode ? districtCode.toUpperCase() : undefined;
+    let resolvedBlockCode: string | undefined = blockCode ? blockCode.toUpperCase() : undefined;
+
+    if (role === UserRole.SCHOOL || role === UserRole.TEACHER) {
+      const roleLabel = role === UserRole.SCHOOL ? 'school' : 'teacher';
+      if (!schoolId) {
+        return res.status(400).json({ error: `schoolId is required when role is ${roleLabel}.` });
+      }
+      const schools = await dbStore.getSchools();
+      const targetSchool = schools.find(s => s.id.toLowerCase() === String(schoolId).toLowerCase());
+      if (!targetSchool) {
+        return res.status(400).json({ error: `Unknown school: ${schoolId}. Onboard the school first via POST /api/schools.` });
+      }
+      // Reject conflicting geo up front so silent override doesn't mask
+      // configuration mistakes.
+      const conflicts: string[] = [];
+      if (resolvedStateCode && resolvedStateCode !== targetSchool.stateCode) conflicts.push(`stateCode ${resolvedStateCode} != school ${targetSchool.stateCode}`);
+      if (resolvedDistrictCode && resolvedDistrictCode !== targetSchool.districtCode) conflicts.push(`districtCode ${resolvedDistrictCode} != school ${targetSchool.districtCode}`);
+      if (resolvedBlockCode && resolvedBlockCode !== targetSchool.blockCode) conflicts.push(`blockCode ${resolvedBlockCode} != school ${targetSchool.blockCode}`);
+      if (conflicts.length) {
+        return res.status(400).json({ error: `Geographic values conflict with school ${targetSchool.id}: ${conflicts.join('; ')}. Use the school's own geography or fix the school's record.` });
+      }
+      // Derive from school.
+      resolvedSchoolId = targetSchool.id;
+      resolvedStateCode = targetSchool.stateCode;
+      resolvedDistrictCode = targetSchool.districtCode;
+      resolvedBlockCode = targetSchool.blockCode;
+    }
+
     const newUser: User = {
       id: 'u_' + Math.random().toString(36).substr(2, 9),
       name,
       email: email.toLowerCase(),
       role: role as UserRole,
       passwordHash: await bcrypt.hash(password, 10),
-      stateCode: stateCode ? stateCode.toUpperCase() : undefined,
-      districtCode: districtCode ? districtCode.toUpperCase() : undefined,
-      blockCode: blockCode ? blockCode.toUpperCase() : undefined,
-      schoolId: schoolId || undefined,
+      stateCode: resolvedStateCode,
+      districtCode: resolvedDistrictCode,
+      blockCode: resolvedBlockCode,
+      schoolId: resolvedSchoolId,
       assignedSchools: assignedSchools || undefined
     };
 
@@ -48,14 +94,15 @@ export function registerAdminRoutes(app: express.Express) {
     await dbStore.addLog({
       id: 'log_' + Date.now(),
       timestamp: new Date().toISOString(),
-      schoolId: '',
-      schoolName: 'National Framework',
+      schoolId: resolvedSchoolId || '',
+      schoolName: resolvedSchoolId ? 'GPS' : 'National Framework',
       userId: user.id,
       userEmail: user.email,
       userRole: user.role,
-      activityType: 'verify',
+      // Issue 16: account-creation events are "register", not "verify".
+      activityType: 'register',
       status: 'Success',
-      details: `Superadmin created account: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
+      details: `Superadmin created account: ${name} (${role}) for scope ${resolvedStateCode || '*'}/${resolvedDistrictCode || '*'}/${resolvedBlockCode || '*'}${resolvedSchoolId ? ` (school ${resolvedSchoolId})` : ''}`
     });
 
     res.json(newUser);

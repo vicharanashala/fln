@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../services/apiClient';
-import { ClassGroup, Student, DashboardProps } from '../../types';
+import { ClassGroup, Student, School, DashboardProps } from '../../types';
 import { WorksheetWorkflow } from '../WorksheetWorkflow';
 import { TicketSubmission } from '../TicketSubmission';
 
@@ -10,6 +10,9 @@ import { TicketSubmission } from '../TicketSubmission';
 export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  // Issue 3: school identity is fetched live so the header shows the
+  // principal's actual school instead of a hardcoded Model Town label.
+  const [school, setSchool] = useState<School | null>(null);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
 
   const fetchSchoolData = async () => {
@@ -21,6 +24,19 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       const stdRes = await apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
       const stdData = await stdRes.json();
       if (Array.isArray(stdData)) setStudents(stdData);
+
+      const schRes = await apiFetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
+      const schData = await schRes.json();
+      if (Array.isArray(schData) && schData.length > 0) {
+        // /api/schools is already role-scoped: a SCHOOL role only sees its
+        // own school. We still defensively pick the record that matches the
+        // principal's schoolId so any future role-scoping change can't
+        // accidentally leak a different school's name into this dashboard.
+        const mine = user.schoolId
+          ? schData.find(s => s.id === user.schoolId)
+          : schData[0];
+        setSchool(mine ?? null);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -46,11 +62,25 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     );
   }
 
+  // Resolve which school name and id to display. Prefer the live record but
+  // fall back to a loading string rather than showing a stale hardcoded
+  // label if the network request is slow or failing.
+  const displayName = school?.name ?? (user.schoolId ? 'Loading school…' : 'School');
+  const displayId = school?.id ?? user.schoolId;
+  const displayLocation = school
+    ? [school.address, [school.districtCode, school.stateCode, school.pincode].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+    : '';
+
   return (
     <div className="space-y-6" id="school-dashboard">
       <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4">
         <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">School Administration</h1>
-        <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5">GPS Model Town Ludhiana (ID: {user.schoolId})</p>
+        <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5" data-testid="school-header">
+          {displayName} (ID: {displayId})
+        </p>
+        {displayLocation && (
+          <p className="text-zinc-450 dark:text-zinc-500 text-xs mt-1">{displayLocation}</p>
+        )}
       </div>
 
       <TicketSubmission token={token} userRole={user.role} />

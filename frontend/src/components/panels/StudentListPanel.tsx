@@ -25,6 +25,11 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
   refreshStudents,
 }) => {
   const isTeacherOrVolunteer = currentUser.role === UserRole.TEACHER || currentUser.role === UserRole.VOLUNTEER;
+  // Issue 5: principals also need to register students (and import via CSV)
+  // for their own school. Mirrors the principal-can-add-teachers change in
+  // Issue 4: the same role set that can see the form should drive both
+  // surfaces so the UI is consistent.
+  const canRegisterStudents = isTeacherOrVolunteer || currentUser.role === UserRole.SCHOOL;
 
   // Issue #173: class-wise subtabs instead of one flat mixed list. Derived
   // directly from the students already loaded (already scoped to this
@@ -234,7 +239,7 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
           <PageHeader title="Student Roster" desc="Complete list of registered students across your classes" icon={<Users className="h-5 w-5" />} />
-          {isTeacherOrVolunteer && (
+          {canRegisterStudents && (
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => { setShowAddForm(!showAddForm); setShowCsvImport(false); setRegError(''); setRegSuccess(''); }}

@@ -46,6 +46,15 @@ export interface School {
   strength?: string;
   teachersCount: number;
   isAccessLocked?: boolean;
+  // Extended identity fields (issue #1: superadmin school onboarding).
+  // Optional so existing school records remain compatible.
+  address?: string;
+  pincode?: string;
+  udiseCode?: string;
+  schoolType?: 'primary' | 'upper_primary' | 'secondary' | 'higher_secondary' | 'other';
+  establishedYear?: number;
+  contactEmail?: string;
+  contactPhone?: string;
 }
 
 export interface ClassGroup {

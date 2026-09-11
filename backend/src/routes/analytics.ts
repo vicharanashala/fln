@@ -7,12 +7,77 @@ export function registerAnalyticsRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    // Query params for dynamic filtering
-    const stateCodeParam = (req.query.stateCode as string) || user.stateCode || 'PB';
-    const districtCodeParam = (req.query.districtCode as string) || user.districtCode || 'LDH';
-    const blockCodeParam = (req.query.blockCode as string) || user.blockCode || 'LDH-01';
+    // Issue 8: scope the response to the caller's role. Query parameters
+    // can only narrow scope for roles that legitimately choose a sub-scope
+    // (ADMIN, DISTRICT_ADMIN, BLOCK_ADMIN, SUPERADMIN). For SCHOOL,
+    // TEACHER, and VOLUNTEER the scope is fixed to one school and we
+    // ignore any query parameters that try to widen it.
+    let scopeFilter: any = {};
+    let ignoreQueryParams = false;
 
-    // Calculate dynamic scopes using fast aggregation pipelines
+    if (user.role === UserRole.SCHOOL) {
+      if (!user.schoolId) {
+        return res.status(400).json({ error: 'Principal account has no schoolId; cannot compute analytics.' });
+      }
+      scopeFilter = { id: user.schoolId };
+      ignoreQueryParams = true;
+    } else if (user.role === UserRole.TEACHER) {
+      if (!user.schoolId) {
+        return res.status(400).json({ error: 'Teacher account has no schoolId; cannot compute analytics.' });
+      }
+      scopeFilter = { id: user.schoolId };
+      ignoreQueryParams = true;
+    } else if (user.role === UserRole.VOLUNTEER) {
+      // Volunteers can be assigned to multiple schools. Limit analytics to
+      // those assignments; query parameters still cannot widen the list.
+      // The shape assignedSchools is an array of school ids.
+      const assigned = (user as any).assignedSchools || [];
+      if (assigned.length === 0) {
+        return res.status(400).json({ error: 'Volunteer account has no assignedSchools; cannot compute analytics.' });
+      }
+      scopeFilter = { id: { $in: assigned } };
+      ignoreQueryParams = true;
+    } else if (user.role === UserRole.ADMIN) {
+      scopeFilter = { stateCode: user.stateCode };
+    } else if (user.role === UserRole.DISTRICT_ADMIN) {
+      scopeFilter = { stateCode: user.stateCode, districtCode: user.districtCode };
+    } else if (user.role === UserRole.BLOCK_ADMIN) {
+      scopeFilter = { stateCode: user.stateCode, districtCode: user.districtCode, blockCode: user.blockCode };
+    } else if (user.role === UserRole.SUPERADMIN) {
+      // No scope filter for superadmin.
+      scopeFilter = {};
+    } else {
+      return res.status(403).json({ error: 'Forbidden: role not permitted to read analytics.' });
+    }
+
+    // Helpers for narrowing further when admins choose a sub-scope. These
+    // narrow the existing scopeFilter, never widen it. School-scoped callers
+    // ignore query params entirely.
+    if (!ignoreQueryParams) {
+      const stateCodeParam = req.query.stateCode as string | undefined;
+      const districtCodeParam = req.query.districtCode as string | undefined;
+      const blockCodeParam = req.query.blockCode as string | undefined;
+      if (stateCodeParam) scopeFilter.stateCode = stateCodeParam;
+      if (districtCodeParam) scopeFilter.districtCode = districtCodeParam;
+      if (blockCodeParam) scopeFilter.blockCode = blockCodeParam;
+    }
+
+    // Calculate dynamic scopes using fast aggregation pipelines. For
+    // school-scoped callers we pass the school filter directly so the
+    // aggregations run only over their school. For role-scoped callers
+    // we additionally surface the user's own geography buckets so the
+    // payload shape is preserved.
+    const nationalScope = user.role === UserRole.SUPERADMIN ? {} : scopeFilter;
+    const stateScope = user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN
+      ? { stateCode: user.stateCode || scopeFilter.stateCode }
+      : scopeFilter;
+    const districtScope = user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN
+      ? { stateCode: user.stateCode || scopeFilter.stateCode, districtCode: user.districtCode || scopeFilter.districtCode }
+      : scopeFilter;
+    const blockScope = user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN
+      ? { stateCode: user.stateCode, districtCode: user.districtCode, blockCode: user.blockCode }
+      : scopeFilter;
+
     const [
       national,
       state,
@@ -24,22 +89,53 @@ export function registerAnalyticsRoutes(app: express.Express) {
       certifiedCount,
       totalReports,
     ] = await Promise.all([
-      dbStore.getAnalyticsForScope(),
-      dbStore.getAnalyticsForScope({ stateCode: stateCodeParam }),
-      dbStore.getAnalyticsForScope({ districtCode: districtCodeParam }),
-      dbStore.getAnalyticsForScope({ blockCode: blockCodeParam }),
-      dbStore.countStudentsFast(),
-      dbStore.countSchoolsFast(),
-      // Worksheets count
+      dbStore.getAnalyticsForScope(nationalScope),
+      dbStore.getAnalyticsForScope(stateScope),
+      dbStore.getAnalyticsForScope(districtScope),
+      dbStore.getAnalyticsForScope(blockScope),
+      dbStore.countStudentsFast(ignoreQueryParams && user.role !== UserRole.VOLUNTEER ? { schoolId: (user as any).schoolId } : undefined),
+      // For totalSchools, prefer countSchoolsFast when we have a schoolId filter.
+      user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER
+        ? dbStore.countSchoolsFast({ schoolId: (user as any).schoolId })
+        : user.role === UserRole.VOLUNTEER
+        ? dbStore.countSchoolsFast({ schoolId: { $in: (user as any).assignedSchools } as any })
+        : dbStore.countSchoolsFast(),
+      // Worksheets count — scoped to the same students when possible.
       (async () => {
         if (dbStore.getDb()) {
+          // Issue 8: when school-scoped, count worksheets for this school only.
+          if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+            const sid = (user as any).schoolId;
+            const classGroups = await dbStore.getDb()!.collection('classes').find({ schoolId: sid }).project({ id: 1 }).toArray();
+            const classIds = classGroups.map(c => c.id);
+            if (classIds.length === 0) return 0;
+            return await dbStore.getDb()!.collection('worksheets').countDocuments({ classGroup: { $in: classIds } });
+          }
+          if (user.role === UserRole.VOLUNTEER) {
+            const assigned = (user as any).assignedSchools || [];
+            if (assigned.length === 0) return 0;
+            const classGroups = await dbStore.getDb()!.collection('classes').find({ schoolId: { $in: assigned } }).project({ id: 1 }).toArray();
+            const classIds = classGroups.map(c => c.id);
+            if (classIds.length === 0) return 0;
+            return await dbStore.getDb()!.collection('worksheets').countDocuments({ classGroup: { $in: classIds } });
+          }
           return await dbStore.getDb()!.collection('worksheets').countDocuments({});
         }
         return (dbStore as any).data?.worksheets?.length || 0;
       })(),
-      dbStore.countStudentsFast({ currentLevelMin: 5 }),
-      // Reports count
-      dbStore.countReports(),
+      dbStore.countStudentsFast(
+        ignoreQueryParams && user.role !== UserRole.VOLUNTEER
+          ? { schoolId: (user as any).schoolId, currentLevelMin: 5 }
+          : undefined
+      ),
+      // Reports count — scoped to school when possible.
+      dbStore.countReports(
+        (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER)
+          ? { schoolId: (user as any).schoolId }
+          : user.role === UserRole.VOLUNTEER
+          ? { schoolId: { $in: (user as any).assignedSchools } as any }
+          : undefined
+      ),
     ]);
 
     const certificationPercent = totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0;

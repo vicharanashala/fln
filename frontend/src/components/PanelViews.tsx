@@ -54,14 +54,39 @@ const CONTENT_ITEMS = [
 
 export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectView }) => {
   const {
-    students, studentsLoading, schools, usersList, reportsList, worksheetsList, teachersList,
-    getDistrictStats, getBlockStats, updateStudentLocally, refreshStudents,
+    students, studentsLoading,
+    schools, schoolsLoaded, schoolsError,
+    usersList, usersLoaded, usersError,
+    teachersList, teachersLoaded, teachersError,
+    reportsList, worksheetsList,
+    getDistrictStats, getBlockStats, updateStudentLocally, refreshStudents, refreshTeachers,
   } = usePanelData(token, currentUser, activePanel);
 
   const panel = activePanel;
 
   // ===================== TEACHER PANELS =====================
   if (panel === 'student_list') {
+    return (
+      <StudentListPanel
+        students={students}
+        studentsLoading={studentsLoading}
+        currentUser={currentUser}
+        token={token}
+        refreshStudents={refreshStudents}
+      />
+    );
+  }
+
+  // Issue 6: the principal sidebar advertises a Students item that points
+  // at panel='students'. PanelViews had no such branch (it only knew about
+  // 'student_list', used by the teacher sidebar) so clicking the principal
+  // sidebar item fell through to the `return null` fallback and rendered
+  // an empty workspace. Map 'students' to the same StudentListPanel that
+  // teachers use; the StudentListPanel itself accepts principals (canRegister
+  // Students flag added in Issue 5) and the backend /api/students is already
+  // role-scoped (Issue 5's cross-school guard ensures principals only see
+  // their own roster).
+  if (panel === 'students') {
     return (
       <StudentListPanel
         students={students}
@@ -94,7 +119,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'attendance') return <AttendancePanel students={students} reportsList={reportsList} />;
 
   // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
-  if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) return <TeachersPanel schools={schools} teachersList={teachersList} currentUser={currentUser} />;
+  if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) return <TeachersPanel schools={schools} teachersList={teachersList} currentUser={currentUser} token={token} refreshTeachers={refreshTeachers} />;
 
   // ===================== BLOCK/DISTRICT/STATE ADMIN + SUPERADMIN SHARED PANELS =====================
   if (panel === 'schools') return <SchoolsPanel schools={schools} />;
@@ -111,7 +136,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'content') return <ContentPanel />;
 
-  if (panel === 'analytics') return <AnalyticsPanel currentUser={currentUser} schools={schools} students={students} getDistrictStats={getDistrictStats} getBlockStats={getBlockStats} />;
+  if (panel === 'analytics') return <AnalyticsPanel currentUser={currentUser} schools={schools} schoolsLoaded={schoolsLoaded} schoolsError={schoolsError} students={students} getDistrictStats={getDistrictStats} getBlockStats={getBlockStats} />;
 
   if (panel === 'system_settings') return <SystemSettingsPanel />;
 

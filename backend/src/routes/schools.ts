@@ -56,7 +56,9 @@ export function registerSchoolRoutes(app: express.Express) {
       return res.status(403).json({ error: 'Forbidden. Superadmin only.' });
     }
 
-    const { id, name, stateCode, districtCode, blockCode, strength } = req.body;
+    const { id, name, stateCode, districtCode, blockCode, strength,
+            address, pincode, udiseCode, schoolType, establishedYear,
+            contactEmail, contactPhone } = req.body;
     if (!id || !name || !stateCode || !districtCode || !blockCode) {
       return res.status(400).json({ error: 'Missing required school fields.' });
     }
@@ -64,6 +66,35 @@ export function registerSchoolRoutes(app: express.Express) {
     const schools = await dbStore.getSchools();
     if (schools.some(s => s.id.toLowerCase() === id.toLowerCase())) {
       return res.status(400).json({ error: 'School ID already exists.' });
+    }
+
+    // Validate the optional identity fields (issue #1). They are not strictly
+    // required so existing onboarding flows that only send the legacy fields
+    // keep working, but when they are supplied they must be well-formed.
+    const ALLOWED_SCHOOL_TYPES = ['primary', 'upper_primary', 'secondary', 'higher_secondary', 'other'] as const;
+    if (schoolType !== undefined && !(ALLOWED_SCHOOL_TYPES as readonly string[]).includes(schoolType)) {
+      return res.status(400).json({ error: `Invalid schoolType. Allowed: ${ALLOWED_SCHOOL_TYPES.join(', ')}` });
+    }
+    if (pincode !== undefined && pincode !== null && !/^\d{6}$/.test(String(pincode))) {
+      return res.status(400).json({ error: 'pincode must be 6 digits.' });
+    }
+    if (udiseCode !== undefined && udiseCode !== null && !/^\d{11}$/.test(String(udiseCode))) {
+      return res.status(400).json({ error: 'udiseCode must be 11 digits.' });
+    }
+    if (establishedYear !== undefined && establishedYear !== null) {
+      const yr = Number(establishedYear);
+      const thisYear = new Date().getFullYear();
+      if (!Number.isFinite(yr) || yr < 1800 || yr > thisYear) {
+        return res.status(400).json({ error: `establishedYear must be between 1800 and ${thisYear}.` });
+      }
+    }
+    if (contactEmail !== undefined && contactEmail !== null && contactEmail !== '' &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(contactEmail))) {
+      return res.status(400).json({ error: 'contactEmail is not a valid email.' });
+    }
+    if (contactPhone !== undefined && contactPhone !== null && contactPhone !== '' &&
+        !/^\+?\d{7,15}$/.test(String(contactPhone).replace(/[\s-]/g, ''))) {
+      return res.status(400).json({ error: 'contactPhone must be 7-15 digits, optional leading +.' });
     }
 
     const newSch: School = {
@@ -74,7 +105,15 @@ export function registerSchoolRoutes(app: express.Express) {
       blockCode: blockCode.toUpperCase(),
       strength: strength || 'low',
       teachersCount: 0,
-      isAccessLocked: false
+      isAccessLocked: false,
+      address: address || undefined,
+      pincode: pincode ? String(pincode) : undefined,
+      udiseCode: udiseCode ? String(udiseCode) : undefined,
+      schoolType: schoolType || undefined,
+      establishedYear: establishedYear !== undefined && establishedYear !== null && establishedYear !== ''
+        ? Number(establishedYear) : undefined,
+      contactEmail: contactEmail || undefined,
+      contactPhone: contactPhone || undefined,
     };
 
     await dbStore.addSchool(newSch);
@@ -88,7 +127,7 @@ export function registerSchoolRoutes(app: express.Express) {
       userId: user.id,
       userEmail: user.email,
       userRole: user.role,
-      activityType: 'verify',
+      activityType: 'onboard',
       status: 'Success',
       details: `Superadmin onboarded a new school: ${newSch.name} (ID: ${newSch.id})`
     });

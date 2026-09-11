@@ -22,41 +22,26 @@ const STUDENTS_NOT_NEEDED_PANELS = new Set([
   'system_settings',
 ]);
 
-const TEACHERS_MOCK = [
-  { id: 't1', name: 'Ritu Sharma', email: 'gps-mt-001.t01@fln.org', schoolId: 'gps-mt-001', classes: ['Class 2-A', 'Class 3-A'], studentsCount: 42, delayedAttempts: 0, status: 'Active' },
-  { id: 't2', name: 'Amit Kumar', email: 'gps-mt-001.t02@fln.org', schoolId: 'gps-mt-001', classes: ['Class 1-A'], studentsCount: 28, delayedAttempts: 1, status: 'Active' },
-  { id: 't3', name: 'Sunita Devi', email: 'gps-bth-006.t01@fln.org', schoolId: 'gps-bth-006', classes: ['Class 2-B', 'Class 4-A'], studentsCount: 35, delayedAttempts: 3, status: 'Suspended' },
-  { id: 't4', name: 'Rajesh Kumar', email: 'gps-pkl-008.t01@fln.org', schoolId: 'gps-pkl-008', classes: ['Class 3-B'], studentsCount: 30, delayedAttempts: 0, status: 'Active' },
-];
-
-const SCHOOLS_FALLBACK: School[] = [
-  { id: 'gps-mt-001', name: 'GPS Model Town', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-01', strength: 'standard', teachersCount: 8, isAccessLocked: false },
-  { id: 'gps-vl-002', name: 'GPS Village Lohara', stateCode: 'PB', districtCode: 'MOG', blockCode: 'MOG-01', strength: 'standard', teachersCount: 2, isAccessLocked: false },
-  { id: 'gps-amb-003', name: 'GPS Ambala Cantt', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-01', strength: 'standard', teachersCount: 6, isAccessLocked: false },
-  { id: 'gps-jai-004', name: 'GPS Govind Dev Ji', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-01', strength: 'standard', teachersCount: 7, isAccessLocked: true },
-  { id: 'gps-lko-005', name: 'GPS Hazratganj', stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-01', strength: 'standard', teachersCount: 5, isAccessLocked: false },
-  { id: 'gps-bth-006', name: 'GPS Bathinda City', stateCode: 'PB', districtCode: 'BTH', blockCode: 'BTH-01', strength: 'standard', teachersCount: 4, isAccessLocked: false },
-  { id: 'gps-asr-007', name: 'GPS Amritsar', stateCode: 'PB', districtCode: 'ASR', blockCode: 'ASR-01', strength: 'standard', teachersCount: 6, isAccessLocked: false },
-  { id: 'gps-pkl-008', name: 'GPS Panchkula', stateCode: 'HR', districtCode: 'PKL', blockCode: 'PKL-01', strength: 'standard', teachersCount: 5, isAccessLocked: false },
-  { id: 'gps-jai2-009', name: 'GPS Jaipur Rural', stateCode: 'RJ', districtCode: 'JAI', blockCode: 'JAI-02', strength: 'standard', teachersCount: 3, isAccessLocked: false },
-  { id: 'gps-uda-010', name: 'GPS Udaipur', stateCode: 'RJ', districtCode: 'UDA', blockCode: 'UDA-01', strength: 'standard', teachersCount: 3, isAccessLocked: false },
-  { id: 'gps-lko2-011', name: 'GPS Aliganj', stateCode: 'UP', districtCode: 'LKO', blockCode: 'LKO-02', strength: 'standard', teachersCount: 2, isAccessLocked: false },
-  { id: 'gps-knp-012', name: 'GPS Kanpur', stateCode: 'UP', districtCode: 'KNP', blockCode: 'KNP-01', strength: 'standard', teachersCount: 5, isAccessLocked: false },
-  { id: 'gps-pb-ldh2-013', name: 'GPS Gill Village', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-02', strength: 'standard', teachersCount: 2, isAccessLocked: false },
-  { id: 'gps-hr-amb2-014', name: 'GPS Ambala South', stateCode: 'HR', districtCode: 'AMB', blockCode: 'AMB-02', strength: 'standard', teachersCount: 2, isAccessLocked: false },
-];
-
-const USERS_FALLBACK = [
-  { name: 'Jinal Gupta', email: 'superadmin@fln.org', role: 'Super Admin', scope: 'National', status: 'Active' },
-  { name: 'State Coordinator Punjab', email: 'admin.pb@fln.org', role: 'State Admin', scope: 'PB', status: 'Active' },
-  { name: 'State Coordinator Haryana', email: 'admin.hr@fln.org', role: 'State Admin', scope: 'HR', status: 'Active' },
-  { name: 'Ludhiana District Officer', email: 'district.ldh@fln.org', role: 'District Admin', scope: 'PB-LDH', status: 'Active' },
-  { name: 'Ambala District Officer', email: 'district.amb@fln.org', role: 'District Admin', scope: 'HR-AMB', status: 'Active' },
-  { name: 'Ludhiana Block Admin 1', email: 'block.ldh-01@fln.org', role: 'Block Admin', scope: 'PB-LDH-LDH-01', status: 'Active' },
-  { name: 'GPS Model Town Principal', email: 'gps-mt-001@fln.org', role: 'Principal', scope: 'gps-mt-001', status: 'Active' },
-  { name: 'Ritu Sharma', email: 'gps-mt-001.t01@fln.org', role: 'Teacher', scope: 'gps-mt-001', status: 'Active' },
-  { name: 'Rahul Kumar', email: 'vol.rahul@fln.org', role: 'Volunteer', scope: 'Moga Villages', status: 'Active' },
-];
+// Issue 9: hardcoded demo fallbacks (TEACHERS_MOCK, SCHOOLS_FALLBACK,
+// USERS_FALLBACK) used to be substituted whenever a live request returned
+// an empty array. That meant a failed or in-flight request rendered fake
+// teachers, schools, and users as if they were real production data —
+// including teachers and schools from districts the caller had nothing
+// to do with. The mocks were never aligned with the live Atlas dataset
+// (e.g. "gps-mt-001" is no longer in Atlas) so the UI showed fictitious
+// "GPS Model Town Ludhiana" etc. on every empty response.
+//
+// We now render real data only:
+//   - apiUsers / apiTeachers / apiSchools come straight from their /api
+//     endpoints.
+//   - An empty array means "fetch succeeded, result is genuinely empty"
+//     or "fetch hasn't resolved yet" (handled by *_Loaded flags).
+//   - A failed fetch shows *_Error === true so consumers can render a
+//     retryable error state (see Issue 7's AnalyticsPanel pattern).
+//
+// The previous constant declarations were removed entirely. They lived
+// only in this file, were not exported, and were not referenced by any
+// other frontend source (grep verified).
 
 export function usePanelData(token: string, currentUser: User, activePanel: string) {
   const [apiStudents, setApiStudents] = useState<Student[]>([]);
@@ -68,6 +53,20 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
   // empty state instead.
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
+  // Issue 7: track whether the /api/schools request has resolved so
+  // AnalyticsPanel can show a loading state instead of the 14-school
+  // fallback when the principal first opens the panel.
+  const [schoolsLoaded, setSchoolsLoaded] = useState(false);
+  const [schoolsError, setSchoolsError] = useState(false);
+  // Issue 9: same tracking for users and teachers. Previously the
+  // .catch handlers silently swallowed failures and the render layer
+  // substituted USERS_FALLBACK / TEACHERS_MOCK on empty arrays — meaning
+  // users and teachers panels kept rendering fake records even after the
+  // network was unreachable.
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const [usersError, setUsersError] = useState(false);
+  const [teachersLoaded, setTeachersLoaded] = useState(false);
+  const [teachersError, setTeachersError] = useState(false);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
   const [apiReports, setApiReports] = useState<EvaluationReport[]>([]);
   const [apiWorksheets, setApiWorksheets] = useState<Worksheet[]>([]);
@@ -75,12 +74,24 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
 
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${token}` };
-    apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => { });
-    apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => { });
+    apiFetch('/api/schools', { headers })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setApiSchools(d); })
+      .catch(() => { setSchoolsError(true); })
+      .finally(() => setSchoolsLoaded(true));
+    apiFetch('/api/admin/coordinators', { headers })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setApiUsers(d); })
+      .catch(() => { setUsersError(true); })
+      .finally(() => setUsersLoaded(true));
     apiFetch('/api/evaluation/reports', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiReports(d); }).catch(() => { });
     apiFetch('/api/worksheets', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiWorksheets(d); }).catch(() => { });
     if (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN) {
-      apiFetch('/api/teachers', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiTeachers(d); }).catch(() => { });
+      apiFetch('/api/teachers', { headers })
+        .then(r => r.json())
+        .then(d => { if (Array.isArray(d)) setApiTeachers(d); })
+        .catch(() => { setTeachersError(true); })
+        .finally(() => setTeachersLoaded(true));
     }
   }, [token, currentUser.role]);
 
@@ -117,15 +128,20 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
   }, [token, activePanel, apiStudents.length, studentsUrl]);
 
   const students = apiStudents;
-  const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
-  const usersList = apiUsers.length > 0 ? apiUsers : USERS_FALLBACK;
+  // Issue 9: apiSchools / apiUsers / apiTeachers are returned as-is.
+  // Empty arrays now mean "fetch succeeded, result is genuinely empty"
+  // or "fetch hasn't resolved yet" (handled by the *_Loaded flags). No
+  // more fallback substitution. Issue 7's principal-specific skip is
+  // no longer needed because there is no fallback to skip.
+  const schools = apiSchools;
+  const usersList = apiUsers;
   // No mock fallback here (unlike students/schools/users): a fake report's
   // studentId (e.g. 's1') will never match a real student in `students`,
   // which rendered as a literal "Unknown" name - showing an empty list on
   // fetch failure is honest, a mismatched fake report is not.
   const reportsList: EvaluationReport[] = apiReports;
   const worksheetsList: Worksheet[] = apiWorksheets;
-  const teachersList = apiTeachers.length > 0 ? apiTeachers : TEACHERS_MOCK;
+  const teachersList = apiTeachers;
 
   // Real per-district / per-block rollups, derived from the already-fetched
   // schools + students (no dedicated aggregation endpoint exists).
@@ -177,8 +193,22 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
     apiFetch(studentsUrl, { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => { });
   };
 
+  // Issue 4: re-fetch the teacher list after a principal adds a teacher.
+  // Mirrors refreshStudents. The list is already role-scoped on the
+  // backend (teachers.ts GET handler), so re-fetching will only return the
+  // caller's own school.
+  const refreshTeachers = () => {
+    if (currentUser.role !== UserRole.SCHOOL && currentUser.role !== UserRole.BLOCK_ADMIN) return;
+    const headers = { 'Authorization': `Bearer ${token}` };
+    apiFetch('/api/teachers', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiTeachers(d); }).catch(() => { });
+  };
+
   return {
-    students, studentsLoading, schools, usersList, reportsList, worksheetsList, teachersList,
-    getDistrictStats, getBlockStats, updateStudentLocally, refreshStudents,
+    students, studentsLoading,
+    schools, schoolsLoaded, schoolsError,
+    usersList, usersLoaded, usersError,
+    teachersList, teachersLoaded, teachersError,
+    reportsList, worksheetsList,
+    getDistrictStats, getBlockStats, updateStudentLocally, refreshStudents, refreshTeachers,
   };
 }

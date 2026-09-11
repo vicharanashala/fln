@@ -1,43 +1,63 @@
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
 import { dbStore, UserRole, Student, Question, AnswerSubmission, EvaluationReport, EvaluationReasoning, CYCLE_NAMES } from '../db';
 import { answersMatch } from '../answerMatching';
-import { classifyErrorType } from '../errorClassification';
 import { getAuthUser, canAccessStudent } from '../auth';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import { evaluateAIDiagnostic } from '../gemini';
+import { AI_SERVICES_DIR, PYTHON_BIN } from '../config';
 import { invalidateFingerprintCache } from './misconceptions';
 import { assignStudentToArchetype } from '../studentArchetypeService';
 import { resolvePrerequisites, describeConcept, directPrerequisites } from '../competencyPrerequisites';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
-import { tokenizeAadhaar, formatAadhaarMask, AadhaarVaultTokenizeResult } from '../aadhaarVault';
 
-// ─── Response hygiene (Phase 2 hardening) ───────────────────────────────────
-// Vault references are internal-only: MongoDB and the internal Student model
-// keep aadhaarTokenId / aadhaarIdentityId (duplicate detection, future
-// detokenize-by-token flows), but API clients never need them. Every student
-// serialization below goes through this helper so the wire contract carries
-// only what the existing frontend actually consumes.
-export type PublicStudent = Omit<Student, 'aadhaarTokenId' | 'aadhaarIdentityId'>;
-function toPublicStudent(s: Student): PublicStudent {
-  const { aadhaarTokenId: _tokenId, aadhaarIdentityId: _identityId, ...pub } = s;
-  return pub;
+/**
+ * The pipeline's output file for a student, tried against both date spellings.
+ *
+ * `run_pipeline.py` names its output with the machine's LOCAL date; this
+ * handler was building the path from `new Date().toISOString()`, which is UTC.
+ * East of Greenwich the two disagree for the first hours of every local day —
+ * in IST, midnight to 05:30 — and the lookup silently missed. Nothing threw:
+ * `score` and `recommendedLevel` kept their initial 0 and 1, so every child
+ * assessed in that window was placed at Level 1 with a score of zero and none
+ * of the pipeline's analysis was recorded.
+ *
+ * Returns the first path that exists, or null when the pipeline produced
+ * nothing under either name.
+ */
+function findPipelineFile(dir: string, prefix: string, suffix: string): string | null {
+  const now = new Date();
+  const utcDate = now.toISOString().split('T')[0];
+  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split('T')[0];
+  for (const date of [...new Set([localDate, utcDate])]) {
+    const candidate = path.join(dir, `${prefix}${date}${suffix}`);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
 }
 
 /**
- * Lift the per-error detail out of a wrong-answer set.
+ * Lift the per-error detail out of a `run_pipeline.py` evaluation JSON.
  *
- * `run_pipeline.py` used to write `root_causes` with a real `error_type` per
- * question; that pipeline is never invoked from this backend (see FLN #458 —
- * it runs on a legacy class/phrase data model with no connection to the
- * current MongoDB-backed students), so `evalData` is always `{}` here now.
- * Rather than leave every diagnostic `unclassified`, high-confidence patterns
- * are detected directly from the submitted/expected answer pair — see
- * `classifyErrorType` in `errorClassification.ts`. Nothing here is guessed:
- * a shape that doesn't match a known pattern stays `unclassified` rather than
- * having a fabricated cause attached — a fabricated cause is indistinguishable
- * from a measured one once it is downstream (FLN #459).
+ * The pipeline has always written `root_causes`, `levels_failed`,
+ * `prerequisites_to_check` and `performance_by_difficulty`; the diagnostic
+ * handler read `topics_to_focus` and dropped the rest on the floor. Everything
+ * downstream that asks HOW a child failed — the misconception fingerprint, the
+ * pipeline/measurement reconciliation — reads exactly these fields, so a
+ * diagnostic-only child arrived there with nothing to read.
+ *
+ * Nothing here is inferred. When the pipeline's LLM step falls back it emits a
+ * single overall verdict rather than one entry per question; in that case each
+ * wrong answer is recorded with its OWN topic and level (from the question the
+ * child actually sat) and the pipeline's overall `error_type` restated against
+ * it. A shape the pipeline did not report is left unclassified rather than
+ * guessed at — a fabricated cause is indistinguishable from a measured one
+ * once it is downstream.
  */
 function readPipelineDetail(
   evalData: any,
@@ -68,10 +88,7 @@ function readPipelineDetail(
   });
 
   if (rootCauses.length === 0) {
-    // A real pipeline verdict (when one exists) always wins over the local
-    // classifier — this is the fallback for the case that's true today,
-    // where evalData is always {} because nothing wires it in (FLN #458).
-    const overallType = evalData?.error_type ? String(evalData.error_type) : null;
+    const overallType = evalData?.error_type ? String(evalData.error_type) : 'unclassified';
     const overallAnalysis = evalData?.root_cause ? String(evalData.root_cause) : '';
     rootCauses = questions
       .filter(q => norm(answers?.[q.question_id]) !== norm(q.answer))
@@ -80,7 +97,7 @@ function readPipelineDetail(
         error: String(answers?.[q.question_id] ?? ''),
         topic: q.topic || 'Unclassified',
         flnLevel: Number(q.source_level ?? 0),
-        errorType: overallType ?? classifyErrorType(answers?.[q.question_id], q.answer),
+        errorType: overallType,
         analysis: overallAnalysis
       }));
   }
@@ -122,19 +139,12 @@ export function registerStudentRoutes(app: express.Express) {
 
     // The students collection has 86400+ docs in Atlas; without a server-side
     // limit a single query takes multi-seconds and the dashboard hangs. Push the
-    // limit/offset into mongo. Default 10 per page (most-recent-first), caller
-    // can opt in to a larger page via `?limit=…` or to the full set via
-    // `?all=1` for callers that genuinely need the whole roster.
-    const DEFAULT_LIMIT = 10;
-    const DEFAULT_MAX_LIMIT = 1000; // callers may page up to 5x default
+    // limit/offset into mongo. Default 1000 unless caller opts in to full set.
+    const DEFAULT_LIMIT = 1000;
     const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
     const requestedOffset = parseInt(String(req.query.offset ?? ''), 10) || 0;
     const wantAll = req.query.all === '1' || req.query.all === 'true';
-    const limit = wantAll
-      ? 0
-      : (Number.isFinite(requestedLimit) && requestedLimit > 0
-          ? Math.min(requestedLimit, DEFAULT_MAX_LIMIT)
-          : DEFAULT_LIMIT);
+    const limit = wantAll ? 0 : (Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, DEFAULT_LIMIT * 5) : DEFAULT_LIMIT);
 
     // server-side role scoping
     let schoolScope: string | undefined;
@@ -142,64 +152,29 @@ export function registerStudentRoutes(app: express.Express) {
       schoolScope = user.schoolId;
     }
 
-    // server-side search: `?q=foo` does a case-insensitive substring
-    // match across the same six fields the Aadhaar Reveal panel
-    // previously filtered in-browser. Without this, the panel
-    // would have to download the full roster to do a client-side
-    // filter, which is what made the panel hang on the 86,400-row
-    // payload. We deliberately allow callers to skip the search by
-    // passing `?q=` (empty) so the same handler powers both the
-    // paged roster and the search.
-    const rawQ = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-    const search = rawQ.toLowerCase();
-
-    // server-side sort: `?sort=latest` (default) returns the most
-    // recently registered students first. For the file-fallback store
-    // this is the natural array order (students are pushed on insert)
-    // reversed; for Mongo the `_id` ObjectId is time-prefixed, so a
-    // descending sort matches the same intent.
-    const sort = String(req.query.sort ?? 'latest');
-
-    const opts: { limit?: number; offset?: number; schoolId?: string; sort?: 'latest'; q?: string } = {
+    const opts: { limit?: number; offset?: number; schoolId?: string } = {
       offset: requestedOffset,
     };
     if (limit > 0) opts.limit = limit;
     if (schoolScope) opts.schoolId = schoolScope;
-    if (sort === 'latest') opts.sort = 'latest';
-    // Push the search into getStudents so it runs BEFORE the limit/offset
-    // slice. A previous version of this handler applied the search AFTER
-    // the page had been returned, which meant a match at position 500 of
-    // 86,400 students was never visible to the user (the page only held
-    // the 10 most-recent inserts, and the search filtered those 10). On
-    // the user's screen this looked like "nothing happens when I type."
-    if (search) opts.q = rawQ;
 
-    let students = await dbStore.getStudents(opts);
+    const students = await dbStore.getStudents(opts);
 
     // volunteer filter still applied in JS (assignedSchools list, not a single key)
-    let filtered = (user.role === UserRole.VOLUNTEER)
+    const filtered = (user.role === UserRole.VOLUNTEER)
       ? students.filter(s => user.assignedSchools?.includes(s.schoolId))
       : students;
 
-    // Mask Aadhar for non-Superadmins (§13.2 R-6); strip vault references
-    // for everyone (Phase 2 hardening).
+    // Mask Aadhar for non-Superadmins (§13.2 R-6)
     const masked = filtered.map(s => {
-      const pub = toPublicStudent(s);
       if (user.role !== UserRole.SUPERADMIN) {
-        pub.aadharMasked = 'XXXX-XXXX-' + String(pub.aadharMasked || '').slice(-4);
+        return { ...s, aadharMasked: 'XXXX-XXXX-' + String(s.aadharMasked || '').slice(-4) };
       }
-      return pub;
+      return s;
     });
 
-    // total count (for client-side pagination headers). When a search
-    // is active we count the full match set via the same query, so the
-    // panel can show "Page 1 of N matching 'foo'" with the right N.
-    // Done in the DB (not from `masked.length`) because masked only
-    // holds the current page.
-    const countOpts: { schoolId?: string; q?: string } = {};
-    if (schoolScope) countOpts.schoolId = schoolScope;
-    if (search) countOpts.q = rawQ;
-    const total = await dbStore.countStudents(countOpts);
+    // total count (for client-side pagination headers)
+    const total = await dbStore.countStudents(schoolScope ? { schoolId: schoolScope } : undefined);
     res.set('X-Total-Count', String(total));
     res.json(masked);
   });
@@ -245,12 +220,10 @@ export function registerStudentRoutes(app: express.Express) {
       role === UserRole.SUPERADMIN || role === UserRole.SCHOOL || role === UserRole.TEACHER;
 
     // Mask Aadhar for non-Superadmins (§13.2 R-6); redact guardian contact/address similarly.
-    // Vault references are stripped for every role (Phase 2 hardening).
     const maskedStudents = students.map(s => {
-      const masked = toPublicStudent(s);
-      if (user.role !== UserRole.SUPERADMIN) {
-        masked.aadharMasked = 'XXXX-XXXX-' + String(masked.aadharMasked || '').slice(-4);
-      }
+      const masked = user.role !== UserRole.SUPERADMIN
+        ? { ...s, aadharMasked: 'XXXX-XXXX-' + s.aadharMasked.slice(-4) }
+        : { ...s };
       if (!canSeeGuardianPII(user.role)) {
         delete masked.guardianContact;
         delete masked.address;
@@ -260,8 +233,7 @@ export function registerStudentRoutes(app: express.Express) {
 
     let scoped: typeof maskedStudents;
     if (user.role === UserRole.SUPERADMIN) {
-      // Superadmins keep full mask + guardian PII, but never vault references.
-      scoped = students.map(s => toPublicStudent(s));
+      scoped = students;
     } else if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
       scoped = maskedStudents.filter(s => s.schoolId === user.schoolId);
     } else if (user.role === UserRole.VOLUNTEER) {
@@ -313,36 +285,17 @@ export function registerStudentRoutes(app: express.Express) {
 
   async function createStudentFromData(
     data: Record<string, any>,
-    actingUser: { id: string; email: string; role: UserRole; schoolId?: string; assignedSchools?: string[] },
+    actingUser: { id: string; email: string; role: UserRole; schoolId?: string },
     existingAadhars: Set<string>,
   ): Promise<{ student: Student } | { error: string }> {
     const { name, classGroup, section, aadharNumber, dob, gender,
       guardianName, guardianRelation, guardianContact, address,
       bloodGroup, disabilityStatus, midDayMealBeneficiary, busRoute, siblingsInSchool } = data;
 
-    // Resolve schoolId — use row value for SUPERADMIN, otherwise auth context.
-    // Volunteers carry `assignedSchools[]` (not a single `schoolId`), so the
-    // resolver falls back to the only assigned school when there is exactly
-    // one. A volunteer assigned to multiple schools gets a clear 400 so the
-    // frontend can prompt for a choice (no implicit pick — that would mask
-    // a product question). A volunteer with zero assigned schools is a
-    // configuration error and is rejected explicitly.
-    const isVolunteer = actingUser.role === UserRole.VOLUNTEER;
-    const assigned = Array.isArray(actingUser.assignedSchools) ? actingUser.assignedSchools : [];
-    let schoolId: string | undefined;
-    if (actingUser.role === UserRole.SUPERADMIN && data.schoolId) {
-      schoolId = String(data.schoolId).trim();
-    } else if (actingUser.schoolId) {
-      schoolId = actingUser.schoolId;
-    } else if (isVolunteer) {
-      if (assigned.length === 1) {
-        schoolId = assigned[0];
-      } else if (assigned.length > 1) {
-        return { error: 'Volunteer is assigned to multiple schools; please select one.' };
-      } else {
-        return { error: 'Volunteer has no assigned school.' };
-      }
-    }
+    // Resolve schoolId — use row value for SUPERADMIN, otherwise auth context
+    const schoolId = (actingUser.role === UserRole.SUPERADMIN && data.schoolId)
+      ? String(data.schoolId).trim()
+      : actingUser.schoolId;
 
     // Required field check (mirrors issue.txt: name, class, dob, ID card)
     if (!name || !classGroup || !section || !aadharNumber || !schoolId) {
@@ -374,58 +327,13 @@ export function registerStudentRoutes(app: express.Express) {
       }
     }
 
-    // Aadhaar uniqueness + tokenization — the raw 12-digit Aadhaar is never
-    // stored in MongoDB. We send it to the in-process Aadhaar Vault
-    // (backend/src/modules/vault/) and persist only a mask, an opaque token,
-    // and the vault's deterministic identity id (see ../aadhaarVault.ts).
+    // Aadhar uniqueness — SRS §13.2 R-6 (issue.txt: "ID card is unique")
     const rawAadhar = String(aadharNumber).replace(/[^0-9]/g, '');
-    if (!/^[0-9]{12}$/.test(rawAadhar)) {
-      return { error: 'Invalid Aadhaar number. Expected 12 digits.' };
+    if (rawAadhar.length < 4) {
+      return { error: 'Invalid identity document — must contain at least 4 digits.' };
     }
-    const aadhaarMask = formatAadhaarMask(rawAadhar);
-    // Intra-batch dedup (caller pre-seeds `existingAadhars` with the
-    // input rows' raw + masked Aadhaars). Cheap Set check, no DB hit.
-    if (existingAadhars.has(rawAadhar) || existingAadhars.has(aadhaarMask)) {
-      return { error: 'A student with this Aadhaar / ID number is already registered.' };
-    }
-    // School-scoped DB check. Scoped to the same school so a volunteer's
-    // submission is rejected only when a same-school student already
-    // carries the mask. Cross-school collisions with the seed are
-    // expected (86,400 seed students over 1,440 schools fully saturate
-    // the 4-digit suffix space ~8.6×) and are NOT rejections; the
-    // vault identity check below is the actual re-registration guard.
-    const schoolAadhars = await dbStore.getExistingAadharsInSchool(
-      schoolId, [rawAadhar, aadhaarMask],
-    );
-    if (schoolAadhars.has(rawAadhar) || schoolAadhars.has(aadhaarMask)) {
-      return { error: 'A student with this Aadhaar / ID number is already registered.' };
-    }
-
-    // Tokenize through the Aadhaar Vault. If the vault is unavailable the
-    // registration fails cleanly rather than persisting a plaintext Aadhaar.
-    let tokenized: AadhaarVaultTokenizeResult;
-    try {
-      tokenized = await tokenizeAadhaar(rawAadhar, {
-        email: actingUser.email,
-        requestId: `fln-student-create-${Date.now()}`,
-      });
-    } catch (err: any) {
-      // Phase 2 hardening: VaultError carries a stable code + HTTP-ish status
-      // for precise diagnosis. Messages never contain raw Aadhaar or tokens.
-      console.error(
-        'Aadhaar vault tokenization error:',
-        `code=${err?.code ?? 'UNKNOWN'}`,
-        `status=${err?.status ?? 'n/a'}`,
-        err?.message || err,
-      );
-      return { error: 'Aadhaar tokenization failed. Please try again later.' };
-    }
-    // Deterministic duplicate check against the vault identity id. This is
-    // what catches a re-registration of the same Aadhaar even after the raw
-    // number has been removed from the collection.
-    const dupByIdentity = ((await dbStore.getExistingAadhaarIdentityIds([tokenized.identityId])).size ?? 0) > 0;
-    if (dupByIdentity) {
-      return { error: 'A student with this Aadhaar / ID number is already registered.' };
+    if (existingAadhars.has(rawAadhar)) {
+      return { error: 'A student with this Aadhar / ID number is already registered.' };
     }
 
     // Derive the clean numeric display ID (#184) from the school's geo hierarchy
@@ -462,9 +370,7 @@ export function registerStudentRoutes(app: express.Express) {
       currentLevel: null,
       currentSubLevel: null,
       targetLevel: null,
-      aadharMasked: aadhaarMask,
-      aadhaarTokenId: tokenized.token,
-      aadhaarIdentityId: tokenized.identityId,
+      aadharMasked: rawAadhar,
       levelHistory: [],
       streak: 0,
     };
@@ -485,7 +391,6 @@ export function registerStudentRoutes(app: express.Express) {
     await dbStore.ensureClassExists(schoolId, trimmedClassGroup, trimmedSection, actingUser.id);
     // Track in-memory so bulk operations detect intra-batch duplicates too
     existingAadhars.add(rawAadhar);
-    existingAadhars.add(aadhaarMask);
     return { student: newStudent };
   }
 
@@ -494,17 +399,34 @@ export function registerStudentRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    if (!['SCHOOL', 'TEACHER', 'ADMIN', 'SUPERADMIN', 'VOLUNTEER'].includes(user.role.toUpperCase()) &&
-      user.role !== UserRole.SCHOOL && user.role !== UserRole.TEACHER &&
-      user.role !== UserRole.ADMIN && user.role !== UserRole.SUPERADMIN &&
-      user.role !== UserRole.VOLUNTEER) {
+    const STUDENT_REGISTRATION_ROLES = [
+      UserRole.SUPERADMIN,
+      UserRole.ADMIN,
+      UserRole.SCHOOL,
+      UserRole.TEACHER,
+      UserRole.VOLUNTEER,
+    ];
+    if (!STUDENT_REGISTRATION_ROLES.includes(user.role)) {
       return res.status(403).json({ error: 'Forbidden.' });
+    }
+
+    // Issue 5: principals are scoped to their own school. If a principal
+    // submits a schoolId that disagrees with their own schoolId, reject
+    // with HTTP 400 instead of silently overriding.
+    if (user.role === UserRole.SCHOOL && user.schoolId && req.body.schoolId
+        && String(req.body.schoolId).toLowerCase() !== user.schoolId.toLowerCase()) {
+      return res.status(400).json({
+        error: `A principal can only register students at their own school (${user.schoolId}). Got '${req.body.schoolId}'.`,
+      });
     }
 
     // `existingAadhars` here is for INTRA-BATCH dedup only — empty
     // for a single-row POST. The school-scoped DB check is done
     // inside `createStudentFromData` after the schoolId is resolved.
     const existingAadhars = new Set<string>();
+    // Build aadhars set for uniqueness check
+    const rawAadhar = String(req.body.aadharNumber).replace(/[^0-9]/g, '');
+    const existingAadhars = await dbStore.getExistingAadhars([rawAadhar]);
 
     const result = await createStudentFromData(
       { ...req.body, schoolId: req.body.schoolId || user.schoolId },
@@ -522,19 +444,19 @@ export function registerStudentRoutes(app: express.Express) {
       userId: user.id,
       userEmail: user.email,
       userRole: user.role,
-      activityType: 'verify',
+      // Issue 16: student registration is "register", not "verify".
+      activityType: 'register',
       status: 'Success',
-      details: `Onboarded and verified student: ${result.student.name}`,
+      details: `Onboarded student: ${result.student.name}`,
     });
 
-    // Response hygiene: the creation response carries the same public shape
-    // as GET /api/students — no vault references on the wire.
-    res.json(toPublicStudent(result.student));
+    res.json(result.student);
   });
 
   // ─── POST /api/students/bulk-import ─────────────────────────────────────────
   // Accepts { rows: CsvRow[] }, validates and registers each row immediately.
-  // Returns a per-row summary. Allowed roles: SCHOOL, TEACHER, VOLUNTEER, ADMIN+.
+  // Returns a per-row summary. Allowed roles: SUPERADMIN, ADMIN, SCHOOL,
+  // TEACHER, VOLUNTEER. District and block admins are not allowed.
   app.post('/api/students/bulk-import', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -554,6 +476,22 @@ export function registerStudentRoutes(app: express.Express) {
       return res.status(400).json({ error: 'Maximum 500 rows per request.' });
     }
 
+    // Issue 5: principals cannot bulk-import into another school. Verify
+    // every row's schoolId (if present) matches the principal's own school.
+    if (user.role === UserRole.SCHOOL && user.schoolId) {
+      for (let i = 0; i < rows.length; i++) {
+        const sid = rows[i]?.schoolId;
+        if (sid && String(sid).toLowerCase() !== user.schoolId.toLowerCase()) {
+          return res.status(400).json({
+            error: `Row ${i + 1}: a principal can only bulk-import students at their own school (${user.schoolId}). Got '${sid}'.`,
+          });
+        }
+      }
+    }
+    // Pre-load all existing aadhar numbers once; the helper adds new ones as
+    // it inserts, so intra-batch duplicates are caught too.
+    const aadharsInBatch = rows.map(r => String(r.aadharNumber).replace(/[^0-9]/g, '')).filter(Boolean);
+    const existingAadhars = await dbStore.getExistingAadhars(aadharsInBatch);
     // `existingAadhars` is for INTRA-BATCH dedup — pre-seeded with
     // every row's raw + mask, but for each iteration the current
     // row's entry is removed before the helper runs and re-added
@@ -580,19 +518,7 @@ export function registerStudentRoutes(app: express.Express) {
         schoolId: rowData.schoolId || user.schoolId,
       };
 
-      // Stash the current row's Aadhaars out of the batch set so
-      // the helper's intra-batch check doesn't self-match the row
-      // being processed. We re-add after the call so a later row
-      // with the same Aadhaar still gets the batch-dup error.
-      const rowRaw = String(rowData.aadharNumber).replace(/[^0-9]/g, '');
-      const rowMask = rowRaw ? formatAadhaarMask(rowRaw) : '';
-      const wasInSetRaw = existingAadhars.delete(rowRaw);
-      const wasInSetMask = rowMask ? existingAadhars.delete(rowMask) : false;
-
       const outcome = await createStudentFromData(enriched, user, existingAadhars);
-
-      if (wasInSetRaw) existingAadhars.add(rowRaw);
-      if (wasInSetMask) existingAadhars.add(rowMask);
 
       if ('error' in outcome) {
         failed++;
@@ -608,7 +534,8 @@ export function registerStudentRoutes(app: express.Express) {
           userId: user.id,
           userEmail: user.email,
           userRole: user.role,
-          activityType: 'verify',
+          // Issue 16: bulk-import registration is "register", not "verify".
+          activityType: 'register',
           status: 'Success',
           details: `[Bulk Import] Onboarded student: ${outcome.student.name}`,
         });
@@ -901,6 +828,67 @@ export function registerStudentRoutes(app: express.Express) {
       });
     }
 
+    // Connect to Python Evaluation Metrics Pipeline
+    const pipelineDir = AI_SERVICES_DIR;
+    const responseDir = path.join(pipelineDir, 'student_responses', `class_${classNumber}`, 'phrase_1');
+    fs.mkdirSync(responseDir, { recursive: true });
+
+    // Map answers for the Python pipeline. The pipeline's `1_compare_answers.py`
+    // looks each answer key up in `ai-services/questions/class_2/phrase_1/
+    // class_2_exam_phrase_1.json` (the static question bank). When the paper
+    // was generated dynamically by `generateClass2PaperFromAtlas` — because
+    // the live `questionBank` collection is empty (verified) — the paper's
+    // `question_id`s (e.g. `Q_L22_1`) are NOT in that static bank. So we
+    // (a) key the answers by the paper's *actual* `question_id` (not by an
+    // index-based Q1..Q10 that would alias the wrong static bank question),
+    // and (b) embed the paper's per-question metadata in `studentResponse.questions`
+    // so the comparator can fall back to it without a DB lookup.
+    const pipelineAnswers: { [qId: string]: { answer: string, confidence: number } } = {};
+    const paperQuestions: { [qId: string]: {
+      answer: string;
+      topic: string;
+      subtopic: string;
+      difficulty: string;
+      class_level: number;
+      source_level: number;
+      conceptId?: string;
+      conceptTitle?: string;
+    } } = {};
+    questions.forEach((q) => {
+      const submitted = (answers[q.question_id] || '').trim();
+      pipelineAnswers[q.question_id] = {
+        answer: String(submitted),
+        confidence: 0.95
+      };
+      paperQuestions[q.question_id] = {
+        answer: String(q.answer || '').trim(),
+        topic: q.topic || '',
+        subtopic: q.subtopic || '',
+        difficulty: q.difficulty || 'medium',
+        class_level: classNumber,
+        source_level: q.source_level || classNumber,
+        conceptId: q.conceptId,
+        conceptTitle: CURRICULUM_MAPPING[q.source_level || 0]?.levelTitle,
+      };
+    });
+
+    const studentResponse = {
+      student_id: student.id,
+      student_name: student.name,
+      enrolled_class: classNumber,
+      test_date: dateStr,
+      phrase: 'phrase_1',
+      exam_id: `C${classNumber}_WORKSHEET_PHRASE_1`,
+      // Embedded paper question metadata so the Python comparator can grade
+      // against the actual paper questions when the static question bank
+      // does not contain them.
+      questions: paperQuestions,
+      answers: pipelineAnswers
+    };
+
+    const responsePath = path.join(responseDir, `${student.id}.json`);
+    fs.writeFileSync(responsePath, JSON.stringify(studentResponse, null, 2));
+
     // Variables assigned by the scoring block below. Declared here (function
     // scope) so the rest of the handler can read them after the local block.
     let score = 0;
@@ -995,9 +983,8 @@ export function registerStudentRoutes(app: express.Express) {
       );
     } else {
       // Genuinely all correct: advance one past the hardest level assessed.
-      // Capped at 59, not 93: worksheet generation still throws UnknownLevelError above 59.
       const maxLevel = Math.max(0, ...assessedLevels);
-      recommendedLevel = Math.min(59, maxLevel + 1);
+      recommendedLevel = Math.min(93, maxLevel + 1);
     }
     pipelineDetail = readPipelineDetail({}, questions, answers);
     narrative = `Determined locally: student solved ${score}/${questions.length} questions correctly. Placed at Level ${recommendedLevel} using Weakest-Level Mapping.`;
@@ -1042,7 +1029,7 @@ export function registerStudentRoutes(app: express.Express) {
         '3. Continue routine class participation and worksheet drills.',
         '',
         'MEDIUM-TERM (Next month):',
-        `- Target next milestone: Level ${Math.min(59, recommendedLevel + 1)}.`,
+        `- Target next milestone: Level ${Math.min(93, recommendedLevel + 1)}.`,
         '',
         'The student demonstrated mastery in this attempt. No prerequisite remediation is required.',
         '',
@@ -1123,20 +1110,35 @@ export function registerStudentRoutes(app: express.Express) {
     await dbStore.updateStudent(student.id, {
       currentLevel: recommendedLevel,
       currentSubLevel: subLevel,
-      targetLevel: Math.min(59, recommendedLevel + 1),
+      targetLevel: Math.min(93, recommendedLevel + 1),
       levelHistory
     });
 
-    // Concept mastery by broad topic band. Coarse (four fixed bands keyed to
-    // recommendedLevel thresholds) rather than derived from which questions
-    // were actually missed — a real per-topic breakdown needs #413's error
-    // clustering, not something to fake here in the meantime.
+    // Create a special Evaluation Report with dynamic mock concept mastery
     const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {
       'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
       'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
       'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
       'Operations': recommendedLevel >= 12 ? 'Strong' : 'Needs Practice'
     };
+
+    try {
+      const evalReportPath = findPipelineFile(
+        path.join(pipelineDir, 'evaluation_reports', `class_${classNumber}`, 'phrase_1', 'evaluation'),
+        `${student.id}_evaluation_`,
+        '.json'
+      );
+      if (evalReportPath) {
+        const evalData = JSON.parse(fs.readFileSync(evalReportPath, 'utf-8'));
+        if (evalData.topics_to_focus && Array.isArray(evalData.topics_to_focus)) {
+          evalData.topics_to_focus.forEach((t: string) => {
+            conceptMastery[t] = 'Needs Practice';
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse dynamic concept mastery:', e);
+    }
 
     // Persist what the child actually wrote, alongside the verdict.
     //
@@ -1200,7 +1202,7 @@ export function registerStudentRoutes(app: express.Express) {
         '3. Continue routine class participation and worksheet drills.',
         '',
         'MEDIUM-TERM (Next month):',
-        `- Target next milestone: Level ${Math.min(59, recommendedLevel + 1)}.`,
+        `- Target next milestone: Level ${Math.min(93, recommendedLevel + 1)}.`,
         '',
         'The student demonstrated mastery in this attempt. No prerequisite remediation is required.',
         '',
@@ -1336,7 +1338,7 @@ export function registerStudentRoutes(app: express.Express) {
         }
         if (failedFlnLevels.length > 0) {
           demonstratedLevel = Math.min(...failedFlnLevels);
-          nextDemonstratedLevel = Math.min(59, demonstratedLevel + 1);
+          nextDemonstratedLevel = Math.min(93, demonstratedLevel + 1);
         }
       }
       const currentCfg = CURRICULUM_MAPPING[demonstratedLevel];

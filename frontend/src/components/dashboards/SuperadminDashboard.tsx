@@ -51,6 +51,15 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [newSchoolDistrict, setNewSchoolDistrict] = useState('');
   const [newSchoolBlock, setNewSchoolBlock] = useState('');
   const [newSchoolStrength, setNewSchoolStrength] = useState<'high' | 'low'>('low');
+  // Extended identity fields (issue #1). Optional, but recommended so two
+  // schools with the same name in different districts can be told apart.
+  const [newSchoolAddress, setNewSchoolAddress] = useState('');
+  const [newSchoolPincode, setNewSchoolPincode] = useState('');
+  const [newSchoolUdiseCode, setNewSchoolUdiseCode] = useState('');
+  const [newSchoolType, setNewSchoolType] = useState<'primary' | 'upper_primary' | 'secondary' | 'higher_secondary' | 'other'>('primary');
+  const [newSchoolEstablishedYear, setNewSchoolEstablishedYear] = useState('');
+  const [newSchoolContactEmail, setNewSchoolContactEmail] = useState('');
+  const [newSchoolContactPhone, setNewSchoolContactPhone] = useState('');
   const [schoolSuccess, setSchoolSuccess] = useState('');
   const [schoolError, setSchoolError] = useState('');
 
@@ -231,7 +240,17 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           stateCode: newSchoolState,
           districtCode: newSchoolDistrict,
           blockCode: newSchoolBlock,
-          strength: newSchoolStrength
+          strength: newSchoolStrength,
+          // Extended identity fields (issue #1). Send empty strings as
+          // undefined so the backend treats them as "not provided" rather
+          // than as the literal empty string.
+          address: newSchoolAddress || undefined,
+          pincode: newSchoolPincode || undefined,
+          udiseCode: newSchoolUdiseCode || undefined,
+          schoolType: newSchoolType,
+          establishedYear: newSchoolEstablishedYear ? Number(newSchoolEstablishedYear) : undefined,
+          contactEmail: newSchoolContactEmail || undefined,
+          contactPhone: newSchoolContactPhone || undefined,
         })
       });
 
@@ -242,6 +261,12 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
         setNewSchoolName('');
         setNewSchoolDistrict('');
         setNewSchoolBlock('');
+        setNewSchoolAddress('');
+        setNewSchoolPincode('');
+        setNewSchoolUdiseCode('');
+        setNewSchoolEstablishedYear('');
+        setNewSchoolContactEmail('');
+        setNewSchoolContactPhone('');
         // Refresh school list
         const schRes = await apiFetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
         const schData = await schRes.json();
@@ -577,6 +602,186 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 className="w-full bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 font-medium text-sm py-2.5 px-4 rounded-lg cursor-pointer shadow-sm transition-colors mt-2 text-center block font-mono"
               >
                 {loading ? 'Registering...' : 'Provision Account'}
+              </button>
+            </form>
+          </div>
+
+          {/* School Onboarding Form (issue #1) */}
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Onboard New School</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Required fields: school ID, name, state, district, block. Extended identity fields are optional but recommended so two schools with the same name in different districts can be precisely identified.
+              </p>
+            </div>
+
+            {schoolError && (
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-200 text-xs rounded-lg px-3 py-2">
+                {schoolError}
+              </div>
+            )}
+            {schoolSuccess && (
+              <div className="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-200 text-xs rounded-lg px-3 py-2">
+                {schoolSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleOnboardSchool} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">School ID *</label>
+                  <input
+                    type="text"
+                    value={newSchoolId}
+                    onChange={e => setNewSchoolId(e.target.value)}
+                    placeholder="e.g. gps-vl-002"
+                    required
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">School Name *</label>
+                  <input
+                    type="text"
+                    value={newSchoolName}
+                    onChange={e => setNewSchoolName(e.target.value)}
+                    placeholder="e.g. GPS Model Town Ludhiana"
+                    required
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">State Code *</label>
+                  <input
+                    type="text"
+                    value={newSchoolState}
+                    onChange={e => setNewSchoolState(e.target.value.toUpperCase())}
+                    placeholder="e.g. PB"
+                    required
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">District Code *</label>
+                  <input
+                    type="text"
+                    value={newSchoolDistrict}
+                    onChange={e => setNewSchoolDistrict(e.target.value.toUpperCase())}
+                    placeholder="e.g. LDH"
+                    required
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Block Code *</label>
+                  <input
+                    type="text"
+                    value={newSchoolBlock}
+                    onChange={e => setNewSchoolBlock(e.target.value.toUpperCase())}
+                    placeholder="e.g. LDH-01"
+                    required
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Strength</label>
+                  <select
+                    value={newSchoolStrength}
+                    onChange={e => setNewSchoolStrength(e.target.value as 'high' | 'low')}
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  >
+                    <option value="low">low</option>
+                    <option value="high">high</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={newSchoolAddress}
+                    onChange={e => setNewSchoolAddress(e.target.value)}
+                    placeholder="Street, locality"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Pincode (6 digits)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d{6}"
+                    value={newSchoolPincode}
+                    onChange={e => setNewSchoolPincode(e.target.value)}
+                    placeholder="e.g. 141001"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">UDISE Code (11 digits)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d{11}"
+                    value={newSchoolUdiseCode}
+                    onChange={e => setNewSchoolUdiseCode(e.target.value)}
+                    placeholder="e.g. 03150100101"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">School Type</label>
+                  <select
+                    value={newSchoolType}
+                    onChange={e => setNewSchoolType(e.target.value as 'primary' | 'upper_primary' | 'secondary' | 'higher_secondary' | 'other')}
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  >
+                    <option value="primary">primary</option>
+                    <option value="upper_primary">upper_primary</option>
+                    <option value="secondary">secondary</option>
+                    <option value="higher_secondary">higher_secondary</option>
+                    <option value="other">other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Established Year</label>
+                  <input
+                    type="number"
+                    min={1800}
+                    max={new Date().getFullYear()}
+                    value={newSchoolEstablishedYear}
+                    onChange={e => setNewSchoolEstablishedYear(e.target.value)}
+                    placeholder="e.g. 1995"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Contact Email</label>
+                  <input
+                    type="email"
+                    value={newSchoolContactEmail}
+                    onChange={e => setNewSchoolContactEmail(e.target.value)}
+                    placeholder="e.g. principal@school.org"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Contact Phone</label>
+                  <input
+                    type="tel"
+                    value={newSchoolContactPhone}
+                    onChange={e => setNewSchoolContactPhone(e.target.value)}
+                    placeholder="e.g. +91 98765 43210"
+                    className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 outline-none font-medium text-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50 font-medium text-sm py-2.5 px-4 rounded-lg cursor-pointer shadow-sm transition-colors mt-2 text-center block font-mono"
+              >
+                {loading ? 'Onboarding...' : 'Onboard School'}
               </button>
             </form>
           </div>

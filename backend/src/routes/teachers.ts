@@ -3,9 +3,16 @@ import bcrypt from 'bcrypt';
 import { dbStore, UserRole, User } from '../db';
 import { getAuthUser, sanitizeUser } from '../auth';
 
-// Coordinator registration: state -> district -> block -> school cascade, then
-// creating a teacher account scoped to the chosen school.
-const COORDINATOR_ROLES = [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN];
+// Roles permitted to register a teacher. Issue 4 added SCHOOL so that a
+// principal can add teachers to their own school; the route below then
+// forces the resulting teacher's schoolId to the principal's own schoolId.
+const TEACHER_REGISTRATION_ROLES = [
+  UserRole.SUPERADMIN,
+  UserRole.ADMIN,
+  UserRole.DISTRICT_ADMIN,
+  UserRole.BLOCK_ADMIN,
+  UserRole.SCHOOL,
+];
 
 export function registerTeacherRoutes(app: express.Express) {
   app.get('/api/teachers', async (req, res) => {
@@ -61,12 +68,12 @@ export function registerTeacherRoutes(app: express.Express) {
 
   app.post('/api/teachers', async (req, res) => {
     const user = getAuthUser(req);
-    if (!user || !COORDINATOR_ROLES.includes(user.role)) {
+    if (!user || !TEACHER_REGISTRATION_ROLES.includes(user.role)) {
       return res.status(403).json({ error: 'Forbidden. Coordinator role required.' });
     }
 
     const { firstName, lastName, email, phoneNumber, password, school } = req.body;
-    if (!firstName || !lastName || !email || !password || !school) {
+    if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
 
@@ -77,8 +84,29 @@ export function registerTeacherRoutes(app: express.Express) {
       return res.status(400).json({ error: 'Password does not meet complexity requirements. Must be >= 8 chars and contain uppercase, digit, and special char.' });
     }
 
+    // Issue 4: principals are scoped to their own school. If a principal
+    // submits a `school` field that disagrees with their own schoolId, we
+    // surface the misconfiguration with HTTP 400 instead of silently
+    // overriding — that way, a copy-paste mistake can't accidentally
+    // create a teacher at the wrong school.
+    let resolvedSchoolId: string;
+    if (user.role === UserRole.SCHOOL) {
+      if (!user.schoolId) {
+        return res.status(400).json({ error: 'Principal account has no schoolId; cannot register a teacher.' });
+      }
+      if (school !== undefined && school !== null && String(school).toLowerCase() !== user.schoolId.toLowerCase()) {
+        return res.status(400).json({ error: `A principal can only register teachers at their own school (${user.schoolId}). Got '${school}'.` });
+      }
+      resolvedSchoolId = user.schoolId;
+    } else {
+      if (!school) {
+        return res.status(400).json({ error: 'school is required for coordinator-created teachers.' });
+      }
+      resolvedSchoolId = String(school);
+    }
+
     const schools = await dbStore.getSchools();
-    const targetSchool = schools.find(s => s.id.toLowerCase() === String(school).toLowerCase());
+    const targetSchool = schools.find(s => s.id.toLowerCase() === resolvedSchoolId.toLowerCase());
     if (!targetSchool) return res.status(400).json({ error: 'Unknown school.' });
 
     const users = await dbStore.getUsers();
@@ -110,15 +138,18 @@ export function registerTeacherRoutes(app: express.Express) {
       userId: user.id,
       userEmail: user.email,
       userRole: user.role,
-      activityType: 'verify',
+      // Issue 16: teacher registration is "register", not "verify".
+      activityType: 'register',
       status: 'Success',
-      details: `Coordinator registered teacher: ${newTeacher.name} at ${targetSchool.name}`,
+      details: user.role === UserRole.SCHOOL
+        ? `Principal registered teacher: ${newTeacher.name} at ${targetSchool.name}`
+        : `Coordinator registered teacher: ${newTeacher.name} at ${targetSchool.name}`,
     });
 
     res.json({
       success: true,
       message: 'Teacher registered successfully.',
-      data: { teacherId, firstName, lastName, email: newTeacher.email },
+      data: { teacherId, firstName, lastName, email: newTeacher.email, schoolId: targetSchool.id },
     });
   });
 
