@@ -555,6 +555,8 @@ export interface ScanRecord {
   createdAt: string;
   metadata: Record<string, any>;
   imageDataUrl?: string;
+  userId?: string;
+  schoolId?: string;
   error?: string;
 }
 

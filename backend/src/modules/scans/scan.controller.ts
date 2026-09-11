@@ -1,5 +1,8 @@
 import express from 'express';
+import { getAuthUser } from '../../auth';
 import { dbStore } from '../../db';
+
+const MAX_SCAN_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export interface ScanSyncPayload {
   scanUuid?: string;
@@ -11,11 +14,12 @@ export interface ScanSyncPayload {
 
 export function registerScanRoutes(app: express.Express) {
   app.post('/api/v1/scans/sync-batch', async (req, res) => {
-    const rawScans = Array.isArray(req.body?.scans) ? req.body.scans : Array.isArray(req.body) ? req.body : [];
-
-    if (!Array.isArray(rawScans)) {
-      return res.status(400).json({ error: 'Expected array of scan records.' });
+    const user = getAuthUser(req);
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    const rawScans = Array.isArray(req.body?.scans) ? req.body.scans : Array.isArray(req.body) ? req.body : [];
 
     const processed: string[] = [];
     const skippedDuplicates: string[] = [];
@@ -34,13 +38,20 @@ export function registerScanRoutes(app: express.Express) {
         continue;
       }
 
+      const imageDataUrl = typeof payload.imageDataUrl === 'string' ? payload.imageDataUrl : undefined;
+      if (imageDataUrl && Buffer.byteLength(imageDataUrl, 'utf8') > MAX_SCAN_IMAGE_BYTES) {
+        return res.status(413).json({ error: 'Scan image exceeds the 5MB limit.' });
+      }
+
       await dbStore.addScan({
         id: scanUuid,
         scanUuid,
         status: 'SYNCED',
         createdAt: payload.createdAt || new Date().toISOString(),
         metadata: payload.metadata ?? {},
-        imageDataUrl: typeof payload.imageDataUrl === 'string' ? payload.imageDataUrl : undefined,
+        imageDataUrl,
+        userId: user.id,
+        schoolId: user.schoolId || undefined,
       });
 
       processed.push(scanUuid);
