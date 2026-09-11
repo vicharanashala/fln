@@ -289,7 +289,10 @@ export function registerMicroPracticeRoutes(app: express.Express) {
             } else {
               const weakData = await getWeakCompetenciesForStudent(studentId);
               if (!weakData.weakCompetencies || weakData.weakCompetencies.length === 0) {
-                job.results.push({ studentId, studentName: student.name, skipped: true, reason: 'Not yet diagnosed' });
+                const reason = weakData.hasEvaluationData
+                  ? 'No flagged weak areas (all skills at expected level)'
+                  : 'Not yet diagnosed';
+                job.results.push({ studentId, studentName: student.name, skipped: true, reason });
                 job.completed++;
                 continue;
               }

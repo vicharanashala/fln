@@ -73,6 +73,8 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
     // per-student picker expanded, if any. Only one open at a time.
     const [expandedIndividualDueClass, setExpandedIndividualDueClass] = useState<string | null>(null);
     const [studentCompetencyOptions, setStudentCompetencyOptions] = useState<string[]>([]);
+    const [studentHasEvaluationData, setStudentHasEvaluationData] = useState<boolean | null>(null);
+    const [showAllCompetencies, setShowAllCompetencies] = useState(false);
     const [showUploadPaper, setShowUploadPaper] = useState(false);
     const [identifiedPaper, setIdentifiedPaper] = useState<any | null>(null);
     // Group key (getGroupKeyForPaper) shared by papers being graded together,
@@ -173,6 +175,8 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
     const fetchWeakCompetencies = async (studentId: string) => {
         if (!studentId) {
             setStudentCompetencyOptions([]);
+            setStudentHasEvaluationData(null);
+            setShowAllCompetencies(false);
             return;
         }
         try {
@@ -181,9 +185,13 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
             });
             const data = await res.json();
             setStudentCompetencyOptions(data.weakCompetencies || []);
+            setStudentHasEvaluationData(data.hasEvaluationData ?? null);
+            setShowAllCompetencies(false);
         } catch (err) {
             console.error('Failed to fetch competencies:', err);
             setStudentCompetencyOptions([]);
+            setStudentHasEvaluationData(null);
+            setShowAllCompetencies(false);
         }
     };
 
@@ -242,6 +250,8 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
         setSelectedStudentId('');
         setCompetency('');
         setStudentCompetencyOptions([]);
+        setStudentHasEvaluationData(null);
+        setShowAllCompetencies(false);
         setPaperQuestionCount(5);
         setGeneratedPaperResult(null);
         setGeneratePaperError(null);
@@ -744,17 +754,53 @@ export const MicroPractice: React.FC<Props> = ({ token, userRole }) => {
                                     ))}
                                 </select>
                             </div>
+
+                            {selectedStudentId && studentHasEvaluationData === true && studentCompetencyOptions.length === 0 && (
+                                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 rounded-lg text-xs space-y-1">
+                                    <div className="font-semibold flex items-center gap-1.5">
+                                        <span>✨</span> All skills at expected level — no focus areas needed
+                                    </div>
+                                    <p>
+                                        This student has no flagged weak areas — practice isn't required, but you can still generate a paper by manually selecting competencies if you'd like.
+                                    </p>
+                                </div>
+                            )}
+
+                            {selectedStudentId && studentHasEvaluationData === false && (
+                                <div className="p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 rounded-lg text-xs space-y-1">
+                                    <div className="font-semibold flex items-center gap-1.5">
+                                        <span>ℹ️</span>
+                                        This student has not yet been diagnosed. You can still generate a paper by manually selecting competencies if you'd like.
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
-                                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
-                                    Competency to Practice
-                                </label>
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                                        Competency to Practice
+                                    </label>
+                                    {selectedStudentId && studentCompetencyOptions.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAllCompetencies(!showAllCompetencies)}
+                                            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                                        >
+                                            {showAllCompetencies ? 'Show weak areas only' : 'Show all competencies'}
+                                        </button>
+                                    )}
+                                </div>
                                 <select
                                     value={competency}
                                     onChange={(e) => setCompetency(e.target.value)}
                                     className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                                 >
                                     <option value="">Select a competency...</option>
-                                    {(studentCompetencyOptions.length > 0 ? studentCompetencyOptions : ALL_COMPETENCIES).map(c => (
+                                    {(
+                                        studentCompetencyOptions.length > 0 && !showAllCompetencies
+                                            ? studentCompetencyOptions
+                                            : ALL_COMPETENCIES
+                                    ).map(c => (
                                         <option key={c} value={c}>{c}</option>
                                     ))}
                                 </select>
