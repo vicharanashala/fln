@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../services/apiClient';
-import { ClassGroup, Student, DashboardProps } from '../../types';
+import { ClassGroup, Student, School, DashboardProps } from '../../types';
 import { WorksheetWorkflow } from '../WorksheetWorkflow';
+import { TicketSubmission } from '../TicketSubmission';
 
 // ==========================================
 // 3. SCHOOL PRINCIPAL DASHBOARD
@@ -9,6 +10,7 @@ import { WorksheetWorkflow } from '../WorksheetWorkflow';
 export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [school, setSchool] = useState<School | null>(null);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
 
   const fetchSchoolData = async () => {
@@ -20,6 +22,12 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       const stdRes = await apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
       const stdData = await stdRes.json();
       if (Array.isArray(stdData)) setStudents(stdData);
+
+      // GET /api/schools is already scoped to user.schoolId for the 'school' role
+      // (see backend/src/routes/schools.ts), so the first result is this principal's school.
+      const schRes = await apiFetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
+      const schData = await schRes.json();
+      if (Array.isArray(schData) && schData.length > 0) setSchool(schData[0]);
     } catch (err) {
       console.error(err);
     }
@@ -49,8 +57,13 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     <div className="space-y-6" id="school-dashboard">
       <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4">
         <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">School Administration</h1>
-        <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5">GPS Model Town Ludhiana (ID: {user.schoolId})</p>
+        <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5">
+          {school ? school.name : (user.schoolId ?? 'Loading…')}
+          {user.schoolId && <span className="ml-1 text-zinc-400 dark:text-zinc-500">(ID: {user.schoolId})</span>}
+        </p>
       </div>
+
+      <TicketSubmission token={token} userRole={user.role} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Classes grid */}
