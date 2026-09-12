@@ -8,6 +8,7 @@ import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_N
 import { getAuthUser, canAccessStudent } from '../auth';
 import { evaluateAIWorksheet } from '../gemini';
 import { PYTHON_BIN, AI_SERVICES_DIR } from '../config';
+import { runCertificationEligibility } from '../services/certificationRecords';
 import { invalidateFingerprintCache } from './misconceptions';
 import { assignStudentToArchetype } from '../studentArchetypeService';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
@@ -1198,6 +1199,8 @@ export function registerEvaluationRoutes(app: express.Express) {
 
     await dbStore.addEvaluationReport(report);
 
+    // Fire-and-forget: re-evaluate certification eligibility.
+    runCertificationEligibility(student);
     try {
       await assignStudentToArchetype(studentId);
     } catch (error) {

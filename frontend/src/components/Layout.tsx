@@ -4,7 +4,7 @@ import { apiFetch } from '../services/apiClient';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home,
+  School, GraduationCap, MapPin, BarChart3, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home, Award,
   Fingerprint
 } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -204,6 +204,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
         list.push({ name: 'Security', view: 'security', icon: KeyRound });
+        list.push({ name: 'Certification Reviews', view: 'certification_reviews', icon: Award });
         break;
 
       case UserRole.SUPERADMIN:
@@ -216,6 +217,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
         list.push({ name: 'Security', view: 'security', icon: KeyRound });
         list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
+        list.push({ name: 'Certification Reviews', view: 'certification_reviews', icon: Award });
         break;
     }
 

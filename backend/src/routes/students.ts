@@ -6,6 +6,7 @@ import { getAuthUser, canAccessStudent } from '../auth';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import { evaluateAIDiagnostic } from '../gemini';
+import { runCertificationEligibility } from '../services/certificationRecords';
 import { invalidateFingerprintCache } from './misconceptions';
 import { assignStudentToArchetype } from '../studentArchetypeService';
 import { resolvePrerequisites, describeConcept, directPrerequisites } from '../competencyPrerequisites';
@@ -1428,6 +1429,9 @@ export function registerStudentRoutes(app: express.Express) {
     } catch (error) {
       console.error('[archetype] Failed to assign student to misconception archetype:', error);
     }
+
+    // Fire-and-forget: re-evaluate certification eligibility.
+    runCertificationEligibility(student);
 
     await dbStore.addLog({
       id: 'log_' + Date.now(),
