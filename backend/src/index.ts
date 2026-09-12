@@ -12,10 +12,9 @@ dotenv.config({ path: path.resolve(__dotenv_dir, '..', '.env') });
 
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, CYCLE_NAMES } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, CYCLE_NAMES } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
-import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS } from './geoData';
 import { validateConceptPrerequisites } from './competencyPrerequisites';
@@ -43,13 +42,12 @@ import { registerQuestionTemplateRoutes } from './routes/questionTemplates';
 import { registerQuestionOptionRoutes } from './routes/questionOptions';
 import { registerDiagnosticBulkRoutes } from './routes/diagnosticBulk';
 import { registerMisconceptionRoutes } from './routes/misconceptions';
+import { registerMicroPracticeRoutes } from './routes/microPractice';
 import { registerCurriculumRoutes } from './routes/curriculum';
 import { registerQuestionBankRoutes } from './routes/questionBank';
-import { randomUUID } from 'crypto';
-import fs from 'fs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { ROOT_DIR, PYTHON_BIN, AI_SERVICES_DIR } from './config';
+import { ROOT_DIR } from './config';
 
 // Safety net: the MongoDB driver occasionally rejects a connection AFTER
 // connectDB() has returned (the client class keeps background pools
@@ -218,7 +216,7 @@ async function startServer() {
 
   // --- API Endpoints ---
 
-registerStatsRoutes(app);
+  registerStatsRoutes(app);
 
   registerAuthRoutes(app);
   registerAnnouncementRoutes(app);
@@ -266,6 +264,9 @@ registerStatsRoutes(app);
   // Create a new intervention
   registerInterventionRoutes(app);
   registerBestPracticeRoutes(app);
+
+  // --- Adaptive Micro-Practice & Spaced-Repetition ---
+  registerMicroPracticeRoutes(app);
 
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).

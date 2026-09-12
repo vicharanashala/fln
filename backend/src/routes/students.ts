@@ -11,6 +11,7 @@ import { assignStudentToArchetype } from '../studentArchetypeService';
 import { resolvePrerequisites, describeConcept, directPrerequisites } from '../competencyPrerequisites';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
+import { ensurePracticeSchedulesForWeakCompetencies, reconcilePracticeSchedulesWithDiagnostic } from '../services/practiceScheduleService';
 import { tokenizeAadhaar, formatAadhaarMask, AadhaarVaultTokenizeResult } from '../aadhaarVault';
 
 // ─── Response hygiene (Phase 2 hardening) ───────────────────────────────────
@@ -137,9 +138,11 @@ export function registerStudentRoutes(app: express.Express) {
           : DEFAULT_LIMIT);
 
     // server-side role scoping
-    let schoolScope: string | undefined;
+    let schoolScope: string | string[] | undefined;
     if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
       schoolScope = user.schoolId;
+    } else if (user.role === UserRole.VOLUNTEER) {
+      schoolScope = user.assignedSchools;
     }
 
     // server-side search: `?q=foo` does a case-insensitive substring
@@ -160,7 +163,7 @@ export function registerStudentRoutes(app: express.Express) {
     // descending sort matches the same intent.
     const sort = String(req.query.sort ?? 'latest');
 
-    const opts: { limit?: number; offset?: number; schoolId?: string; sort?: 'latest'; q?: string } = {
+    const opts: { limit?: number; offset?: number; schoolId?: string | string[]; sort?: 'latest'; q?: string } = {
       offset: requestedOffset,
     };
     if (limit > 0) opts.limit = limit;
@@ -174,16 +177,14 @@ export function registerStudentRoutes(app: express.Express) {
     // the user's screen this looked like "nothing happens when I type."
     if (search) opts.q = rawQ;
 
-    let students = await dbStore.getStudents(opts);
-
-    // volunteer filter still applied in JS (assignedSchools list, not a single key)
-    let filtered = (user.role === UserRole.VOLUNTEER)
-      ? students.filter(s => user.assignedSchools?.includes(s.schoolId))
-      : students;
+    // getStudents' schoolId filter accepts an array ($in), so a volunteer's
+    // assignedSchools list scopes the query directly here rather than
+    // needing a separate JS-side filter over the full result set.
+    const students = await dbStore.getStudents(opts);
 
     // Mask Aadhar for non-Superadmins (§13.2 R-6); strip vault references
     // for everyone (Phase 2 hardening).
-    const masked = filtered.map(s => {
+    const masked = students.map(s => {
       const pub = toPublicStudent(s);
       if (user.role !== UserRole.SUPERADMIN) {
         pub.aadharMasked = 'XXXX-XXXX-' + String(pub.aadharMasked || '').slice(-4);
@@ -196,8 +197,10 @@ export function registerStudentRoutes(app: express.Express) {
     // panel can show "Page 1 of N matching 'foo'" with the right N.
     // Done in the DB (not from `masked.length`) because masked only
     // holds the current page.
+    // countStudents only accepts a single schoolId string, not an array,
+    // so a volunteer's total here is not scoped to their assigned schools.
     const countOpts: { schoolId?: string; q?: string } = {};
-    if (schoolScope) countOpts.schoolId = schoolScope;
+    if (typeof schoolScope === 'string') countOpts.schoolId = schoolScope;
     if (search) countOpts.q = rawQ;
     const total = await dbStore.countStudents(countOpts);
     res.set('X-Total-Count', String(total));
@@ -1112,6 +1115,10 @@ export function registerStudentRoutes(app: express.Express) {
     }
     const skillGaps = Array.from(skillGapMap.values()).sort((a, b) => a.level - b.level);
 
+    // Captured before updateStudent below overwrites currentLevel in the DB —
+    // reconcilePracticeSchedulesWithDiagnostic needs the pre-diagnostic value.
+    const previousCurrentLevel = student.currentLevel;
+
     // Update Student placing levels
     const levelHistory = [...student.levelHistory, {
       level: recommendedLevel,
@@ -1428,6 +1435,17 @@ export function registerStudentRoutes(app: express.Express) {
     } catch (error) {
       console.error('[archetype] Failed to assign student to misconception archetype:', error);
     }
+
+    await ensurePracticeSchedulesForWeakCompetencies(student.id, student.name, user.id, conceptMastery);
+
+    await reconcilePracticeSchedulesWithDiagnostic(
+      student.id,
+      student.name,
+      user.id,
+      conceptMastery,
+      previousCurrentLevel,
+      recommendedLevel
+    );
 
     await dbStore.addLog({
       id: 'log_' + Date.now(),
