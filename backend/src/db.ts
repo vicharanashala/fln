@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { MongoClient, Db, ClientSession } from 'mongodb';
 import { CURRICULUM_MAPPING } from './config/curriculumMap';
 import type { StudentCycleLock } from './paperLock';
+import type { ScanQualityResult } from './scanQuality';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DB_DIR, 'db.json');
@@ -330,6 +331,7 @@ export interface AnswerSubmission {
   submittedAt: string;
   isDelayed: boolean;
   answers: { [questionId: string]: string }; // Q1 -> A, Q2 -> 5, etc.
+  scanQuality?: ScanQualityResult;
   /**
    * The paper this submission was written against, for assessments that have no
    * persisted `Worksheet` to join to.
@@ -446,6 +448,7 @@ export interface EvaluationReport {
   recommendedLevel: number;
   recommendedSubLevel?: number;
   timestamp: string;
+  scanQuality?: ScanQualityResult;
   /**
    * Per-wrong-answer root causes from the Python pipeline (`ai-services`,
    * step 2 `evaluate_child`).
