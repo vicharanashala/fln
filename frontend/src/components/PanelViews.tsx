@@ -28,6 +28,7 @@ import { DistrictsPanel } from './panels/DistrictsPanel';
 import { BlocksPanel } from './panels/BlocksPanel';
 import { AnalyticsPanel } from './panels/AnalyticsPanel';
 import { StudentProfilePanel } from './panels/StudentProfilePanel';
+import { PageHeader } from './panels/PanelShared';
 import { CertificationReviewPanel } from './CertificationReviewPanel';
 
 interface PanelViewsProps {
