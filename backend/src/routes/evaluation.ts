@@ -12,6 +12,7 @@ import { invalidateFingerprintCache } from './misconceptions';
 import { assignStudentToArchetype } from '../studentArchetypeService';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { directPrerequisites, describeConcept } from '../competencyPrerequisites';
+import { autoFlagService } from '../services/autoFlagService';
 
 export function registerEvaluationRoutes(app: express.Express) {
 
@@ -1113,7 +1114,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     const existingSubmissions = await dbStore.getAnswerSubmissions();
     const existingSubmission = existingSubmissions.find(s => s.worksheetId === worksheetId && s.studentId === studentId);
     if (existingSubmission) {
-      const existingReports = await dbStore.getEvaluationReports();
+      const existingReports = await dbStore.getEvaluationReports({ studentIds: [studentId] });
       const existingReport = existingReports
         .filter(r => r.worksheetId === worksheetId && r.studentId === studentId)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
@@ -1197,6 +1198,11 @@ export function registerEvaluationRoutes(app: express.Express) {
     };
 
     await dbStore.addEvaluationReport(report);
+
+    // Trigger real-time pedagogical auto-flag scan in background
+    autoFlagService.checkAndFlagQuestions({ worksheetId: ws.id, minAttempts: 3, failureThreshold: 0.50, mediumFailureThreshold: 0.70 }).catch(err => {
+      console.warn('[autoflag] Evaluation auto-flag check error:', err);
+    });
 
     try {
       await assignStudentToArchetype(studentId);

@@ -261,6 +261,23 @@ export interface EvaluationReport {
     skillGaps?: { conceptId: string; level: number; levelTitle: string; strand: string }[];
   }
 
+export interface AutoFlagDetails {
+  questionId: string;
+  questionText: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  originalDifficulty?: 'easy' | 'medium' | 'hard';
+  level: number;
+  conceptId?: string;
+  topic?: string;
+  attempts: number;
+  failures: number;
+  failureRate: number; // percentage, e.g. 66.7
+  expectedAnswer: string;
+  affectedSchools?: string[];
+  recommendedBand?: 'medium' | 'hard' | 'same_cohort';
+  lastDetectedAt: string;
+}
+
 export interface Ticket {
   id: string;
   userId: string;
@@ -272,6 +289,13 @@ export interface Ticket {
   description: string;
   status: 'Open' | 'Reviewed' | 'Resolved';
   createdAt: string;
+  isAutoFlag?: boolean;
+  flagDetails?: AutoFlagDetails;
+  resolutionNote?: string;
+  reclassifiedBand?: 'easy' | 'medium' | 'hard' | 'confirmed';
+  actionTaken?: string;
+  actionTakenAt?: string;
+  actionTakenBy?: string;
 }
 
 export interface LogEntry {

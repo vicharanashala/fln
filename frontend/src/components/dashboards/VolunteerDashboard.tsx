@@ -53,6 +53,20 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
     }
   };
 
+  const handleResetDiagnostic = async (student: Student) => {
+    try {
+      const res = await apiFetch(`/api/students/${student.id}/reset-diagnostic`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchVolunteerData();
+      }
+    } catch (err) {
+      console.error('Failed to reset diagnostic:', err);
+    }
+  };
+
   const fetchVolunteerData = async () => {
     try {
       const clsRes = await apiFetch('/api/classes', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -184,9 +198,10 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => setDiagnosticStudent(s)}
-                          className="bg-amber-600 hover:bg-amber-700 text-white font-mono text-[10px] font-bold px-2 py-1 rounded cursor-pointer"
+                          className="bg-amber-600 hover:bg-amber-700 text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded cursor-pointer flex items-center gap-1 shadow-xs animate-pulse"
+                          title="Run full AI diagnostic quiz for this pending student"
                         >
-                          Run Diagnostic
+                          ▶ Run Diagnostic
                         </button>
                         <button
                           onClick={() => setBaselineStudent(s)}
@@ -196,10 +211,24 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <span className="text-green-700 dark:text-green-400 font-mono text-[9px] font-bold uppercase bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">
                           {s.levelHistory[s.levelHistory.length - 1].reason} Done · {new Date(s.levelHistory[s.levelHistory.length - 1].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         </span>
+                        <button
+                          onClick={() => setDiagnosticStudent(s)}
+                          className="bg-amber-500 hover:bg-amber-600 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 shadow-xs"
+                          title="Open full interactive diagnostic quiz for live mentor demo"
+                        >
+                          ⚡ Diagnostic Demo
+                        </button>
+                        <button
+                          onClick={() => handleResetDiagnostic(s)}
+                          className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-mono text-[9px] font-semibold px-2 py-0.5 rounded cursor-pointer transition-all"
+                          title="Reset student to Pending Diagnostic"
+                        >
+                          ↺ Reset
+                        </button>
                         <button
                           onClick={() => handlePrintLevelWorksheet(s)}
                           className="bg-indigo-600 hover:bg-indigo-700 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95"

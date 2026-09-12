@@ -4,13 +4,12 @@
 //this directory has been splitted from frontend/src/components/RoleDashboards.tsx for easy deployment
 import React, { useState, useEffect } from 'react';
 import { apiFetch, withBase } from '../../services/apiClient';
-import { User, Student, ClassGroup, School, DashboardProps } from '../../types';
+import { User, Student, ClassGroup, DashboardProps } from '../../types';
 import { DiagnosticWorkflow } from '../DiagnosticWorkflow';
 import { BaselineUpload } from '../BaselineUpload';
 import { SkillGraphPanel } from '../SkillGraphPanel';
 import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
-import { TicketSubmission } from '../TicketSubmission';
 import { ClassSummaryBar } from './ClassSummaryBar';
 
 
@@ -30,7 +29,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
   // for every teacher for a moment before their real roster loads in.
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
-  const [school, setSchool] = useState<School | null>(null);
   const [showAllStudents, setShowAllStudents] = useState(true);
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
@@ -68,6 +66,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     }
   };
 
+  const handleResetDiagnostic = async (student: Student) => {
+    try {
+      const res = await apiFetch(`/api/students/${student.id}/reset-diagnostic`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchTeacherData();
+      }
+    } catch (err) {
+      console.error('Failed to reset diagnostic:', err);
+    }
+  };
+
+
   const fetchTeacherData = async () => {
     try {
       const clsRes = await apiFetch('/api/classes', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -85,12 +98,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
       const stdRes = await apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
       const stdData = await stdRes.json();
       if (Array.isArray(stdData)) setStudents(stdData);
-
-      // GET /api/schools is scoped to user.schoolId for the 'teacher' role
-      // (see backend/src/routes/schools.ts), so the first result is this teacher's school.
-      const schRes = await apiFetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
-      const schData = await schRes.json();
-      if (Array.isArray(schData) && schData.length > 0) setSchool(schData[0]);
     } catch (err) {
       console.error(err);
     } finally {
@@ -208,16 +215,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
       <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">Classroom Workspace</h1>
-          <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5 font-medium">Teacher: {user.name} · School: {school ? school.name : (user.schoolId ?? 'Loading…')}</p>
+          <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5 font-medium">Teacher: {user.name} · School Scope: gps-mt-001 Model Town</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowSkillGraph(true)}
             className="bg-white dark:bg-slate-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
           >
             🧠 Skill Progression (93 levels)
           </button>
-
         </div>
       </div>
 
@@ -227,8 +233,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
           Top Performing Students, now that the standalone Performance page
           is gone. */}
       <ClassSummaryBar students={students} token={token} teacherId={user.id} />
-
-      <TicketSubmission token={token} userRole={user.role} />
 
       {/* Class picker tabs */}
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">
@@ -300,9 +304,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => setDiagnosticStudent(s)}
-                          className="bg-amber-600 hover:bg-amber-700 text-white font-mono text-[10px] font-bold px-2 py-1 rounded cursor-pointer"
+                          className="bg-amber-600 hover:bg-amber-700 text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded cursor-pointer flex items-center gap-1 shadow-xs animate-pulse"
+                          title="Run full AI diagnostic quiz for this pending student"
                         >
-                          Run Diagnostic
+                          ▶ Run Diagnostic
                         </button>
                         <button
                           onClick={() => setBaselineStudent(s)}
@@ -312,10 +317,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <span className="text-green-700 dark:text-green-400 font-mono text-[9px] font-bold uppercase bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">
                           {s.levelHistory[s.levelHistory.length - 1].reason} Done · {new Date(s.levelHistory[s.levelHistory.length - 1].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         </span>
+                        <button
+                          onClick={() => setDiagnosticStudent(s)}
+                          className="bg-amber-500 hover:bg-amber-600 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95 shadow-xs"
+                          title="Open full interactive diagnostic quiz for live mentor demo"
+                        >
+                          ⚡ Diagnostic Demo
+                        </button>
+                        <button
+                          onClick={() => handleResetDiagnostic(s)}
+                          className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-mono text-[9px] font-semibold px-2 py-0.5 rounded cursor-pointer transition-all"
+                          title="Reset student to Pending Diagnostic"
+                        >
+                          ↺ Reset
+                        </button>
                         <button
                           onClick={() => handlePrintLevelWorksheet(s)}
                           className="bg-indigo-600 hover:bg-indigo-700 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded cursor-pointer transition-all active:scale-95"

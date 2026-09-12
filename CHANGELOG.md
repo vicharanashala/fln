@@ -4,6 +4,14 @@ All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
 routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
+## 2026-09-09 — Diagnostics classification, placement cap & CI repo-health fixes
+
+- **`fix(ci)`: robust issue tracking in repo health check** — fixed workflow step where `jq '.[0].number'` evaluated to `"null"` when no issues existed, causing invalid issue operations, ensured label existence checks are resilient, and added Windows `pathToFileURL` compatibility in `scripts/check-level-notation-drift.ts`.
+- **`fix(diagnostics)`: classify wrong-answer error types and retire dead legacy-pipeline code (#460)** — classified diagnostic wrong answers and cleaned up obsolete pipeline logic.
+- **`fix(placement)`: cap level recommendations at 59, not 93 (#457)** — bounded diagnostic placement recommendations to the 59 valid active levels.
+- **`docs(schema)`: record decision on difficulty field (#454, #324)** — documented architecture decision and schema specifications for item difficulty.
+- **`docs(onboarding)`: add onboarding documents and task scoping** — added and updated team onboarding documents (#409, #432).
+
 ## 2026-09-02 — Per-student generation lock (cycle-based)
 
 - **`feat(backend)`: per-student generation-cycle lock helper** — new `backend/src/paperLock.ts` module + `paperLock.test.ts` (10 cases). A pure function that decides whether a teacher may re-generate a Diagnostic / Baseline / Mid-Year / End-Year paper for a given `(studentId, paperType, cycle)` triple. Remedial and Practice are explicitly NOT in the lock set — they remain unlimited per user requirement.

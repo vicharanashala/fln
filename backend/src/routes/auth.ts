@@ -47,13 +47,13 @@ export function registerAuthRoutes(app: express.Express) {
 
     // Issue a signed JWT; it is verified on every subsequent request (see getAuthUser).
     const token = jwt.sign(
-      { sub: user.id, email: user.email, role: user.role },
+      { sub: user.id, email: user.email, role: user.role, schoolId: user.schoolId },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions
     );
     return res.json({
       token,
-      user: sanitizeUser(user)
+      user: { ...sanitizeUser(user), schoolId: user.schoolId }
     });
   });
 

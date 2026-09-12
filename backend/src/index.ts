@@ -24,6 +24,7 @@ import { registerAnnouncementRoutes } from './routes/announcements';
 import { registerStatsRoutes } from './routes/stats';
 import { registerAuthRoutes } from './routes/auth';
 import { registerTicketRoutes } from './routes/tickets';
+import { registerGovernanceRoutes } from './routes/governance';
 import { registerLogbookRoutes } from './routes/logbook';
 import { registerGeoRoutes } from './routes/geo';
 import { registerClassRoutes } from './routes/classes';
@@ -223,6 +224,7 @@ registerStatsRoutes(app);
   registerAuthRoutes(app);
   registerAnnouncementRoutes(app);
   registerTicketRoutes(app);
+  registerGovernanceRoutes(app);
   registerLogbookRoutes(app);
 
   registerAdminRoutes(app);
