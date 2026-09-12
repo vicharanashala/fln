@@ -1,5 +1,6 @@
 import { Express, Request, Response } from 'express';
-import { dbStore } from '../db';
+import { dbStore, UserRole, User } from '../db';
+import { getAuthUser } from '../auth';
 
 export interface AttendanceRecord {
   id: string;
@@ -26,32 +27,94 @@ const attendanceStore: AttendanceRecord[] = [
   { id: 'att-7', studentId: 's7', studentName: 'Simran Kaur', classGroup: 'Class 1', section: 'A', schoolId: 'gps-mt-001', date: new Date().toISOString().split('T')[0], status: 'Present', remarks: 'Good engagement in preschool shapes', updatedAt: new Date().toISOString() },
 ];
 
+/**
+ * Resolves the authorized school IDs for a given authenticated user and optional query filter.
+ * Returns null if unrestricted (e.g. Superadmin querying all schools).
+ * Returns string[] containing allowed school IDs if restricted.
+ */
+async function getEffectiveSchoolIds(user: User, requestedSchoolId?: string): Promise<string[] | null> {
+  if (user.role === UserRole.SUPERADMIN) {
+    if (requestedSchoolId && requestedSchoolId !== 'all') {
+      return [requestedSchoolId];
+    }
+    return null; // Unrestricted access
+  }
+
+  if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
+    return user.schoolId ? [user.schoolId] : [];
+  }
+
+  if (user.role === UserRole.VOLUNTEER) {
+    const schools = user.assignedSchools || (user.schoolId ? [user.schoolId] : []);
+    if (requestedSchoolId && requestedSchoolId !== 'all') {
+      return schools.includes(requestedSchoolId) ? [requestedSchoolId] : [];
+    }
+    return schools;
+  }
+
+  if (user.role === UserRole.ADMIN || user.role === UserRole.DISTRICT_ADMIN || user.role === UserRole.BLOCK_ADMIN) {
+    const allSchools = await dbStore.getSchools();
+    let matching = allSchools;
+    if (user.role === UserRole.ADMIN && user.stateCode) {
+      matching = matching.filter(s => s.stateCode === user.stateCode);
+    } else if (user.role === UserRole.DISTRICT_ADMIN && user.districtCode) {
+      matching = matching.filter(s => s.districtCode === user.districtCode);
+    } else if (user.role === UserRole.BLOCK_ADMIN && user.blockCode) {
+      matching = matching.filter(s => s.blockCode === user.blockCode);
+    }
+    const scopedIds = matching.map(s => s.id);
+    if (requestedSchoolId && requestedSchoolId !== 'all') {
+      return scopedIds.includes(requestedSchoolId) ? [requestedSchoolId] : [];
+    }
+    return scopedIds;
+  }
+
+  return [];
+}
+
 export function registerAttendanceRoutes(app: Express) {
-  // GET /api/attendance - Fetch attendance records with optional filters
+  // GET /api/attendance - Fetch attendance records with role-based scoping and optional filters
   app.get('/api/attendance', async (req: Request, res: Response) => {
     try {
-      const { date, schoolId, classGroup, section } = req.query;
-      let results: AttendanceRecord[] = [];
+      const user = getAuthUser(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Authentication required to view student attendance.' });
+      }
 
+      const { date, schoolId, classGroup, section } = req.query;
+      const allowedSchoolIds = await getEffectiveSchoolIds(user, typeof schoolId === 'string' ? schoolId : undefined);
+
+      if (Array.isArray(allowedSchoolIds) && allowedSchoolIds.length === 0) {
+        return res.json([]);
+      }
+
+      let results: AttendanceRecord[] = [];
       const db = dbStore.getDb();
       if (db) {
         const query: any = {};
         if (date && typeof date === 'string') query.date = date;
-        if (schoolId && typeof schoolId === 'string' && schoolId !== 'all') query.schoolId = schoolId;
         if (classGroup && typeof classGroup === 'string' && classGroup !== 'all') query.classGroup = new RegExp(`^${classGroup}$`, 'i');
         if (section && typeof section === 'string' && section !== 'all') query.section = new RegExp(`^${section}$`, 'i');
-        
+
+        if (Array.isArray(allowedSchoolIds)) {
+          query.schoolId = { $in: allowedSchoolIds };
+        } else if (schoolId && typeof schoolId === 'string' && schoolId !== 'all') {
+          query.schoolId = schoolId;
+        }
+
         results = await db.collection<AttendanceRecord>('attendance').find(query).toArray();
       }
 
-      // If MongoDB returns 0 records for requested date, merge with in-memory fallback
+      // If MongoDB returns 0 records for requested date, filter in-memory fallback by scope
       if (results.length === 0) {
         results = [...attendanceStore];
+        if (Array.isArray(allowedSchoolIds)) {
+          results = results.filter(r => allowedSchoolIds.includes(r.schoolId));
+        } else if (schoolId && typeof schoolId === 'string' && schoolId !== 'all') {
+          results = results.filter(r => r.schoolId === schoolId);
+        }
         if (date && typeof date === 'string') {
           results = results.filter(r => r.date === date);
-        }
-        if (schoolId && typeof schoolId === 'string' && schoolId !== 'all') {
-          results = results.filter(r => r.schoolId === schoolId);
         }
         if (classGroup && typeof classGroup === 'string' && classGroup !== 'all') {
           results = results.filter(r => r.classGroup.toLowerCase() === classGroup.toLowerCase());
@@ -68,20 +131,36 @@ export function registerAttendanceRoutes(app: Express) {
     }
   });
 
-  // POST /api/attendance/mark - Batch record or update attendance
+  // POST /api/attendance/mark - Batch record or update attendance with authorization checks
   app.post('/api/attendance/mark', async (req: Request, res: Response) => {
     try {
+      const user = getAuthUser(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Authentication required to submit attendance records.' });
+      }
+
       const { records, date, markedBy } = req.body;
       if (!Array.isArray(records) || records.length === 0) {
         return res.status(400).json({ error: 'A non-empty records array is required.' });
       }
 
+      const allowedSchoolIds = await getEffectiveSchoolIds(user);
       const targetDate = date || new Date().toISOString().split('T')[0];
       const now = new Date().toISOString();
       const updatedList: AttendanceRecord[] = [];
 
       for (const rec of records) {
         if (!rec.studentId || !rec.status) continue;
+
+        // Resolve schoolId for the record
+        const recordSchoolId = (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL)
+          ? (user.schoolId || rec.schoolId || 'gps-mt-001')
+          : (rec.schoolId || user.schoolId || 'gps-mt-001');
+
+        // Verify user has permission for this record's school
+        if (Array.isArray(allowedSchoolIds) && !allowedSchoolIds.includes(recordSchoolId)) {
+          continue; // Skip records outside user's jurisdiction
+        }
 
         // Check in-memory store
         const existingIdx = attendanceStore.findIndex(
@@ -94,11 +173,11 @@ export function registerAttendanceRoutes(app: Express) {
           studentName: rec.studentName || 'Student',
           classGroup: rec.classGroup || 'Class 2',
           section: rec.section || 'A',
-          schoolId: rec.schoolId || 'gps-mt-001',
+          schoolId: recordSchoolId,
           date: targetDate,
           status: rec.status,
           remarks: rec.remarks || '',
-          markedBy: markedBy || 'Teacher',
+          markedBy: markedBy || user.name || user.email,
           updatedAt: now,
         };
 
@@ -136,16 +215,36 @@ export function registerAttendanceRoutes(app: Express) {
     }
   });
 
-  // GET /api/attendance/stats - Summary metrics and correlation analysis
+  // GET /api/attendance/stats - Summary metrics and correlation analysis with role scoping
   app.get('/api/attendance/stats', async (req: Request, res: Response) => {
     try {
+      const user = getAuthUser(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Authentication required to view attendance statistics.' });
+      }
+
+      const { schoolId } = req.query;
+      const allowedSchoolIds = await getEffectiveSchoolIds(user, typeof schoolId === 'string' ? schoolId : undefined);
+
       let records: AttendanceRecord[] = [];
       const db = dbStore.getDb();
       if (db) {
-        records = await db.collection<AttendanceRecord>('attendance').find({}).toArray();
+        const query: any = {};
+        if (Array.isArray(allowedSchoolIds)) {
+          query.schoolId = { $in: allowedSchoolIds };
+        } else if (schoolId && typeof schoolId === 'string' && schoolId !== 'all') {
+          query.schoolId = schoolId;
+        }
+        records = await db.collection<AttendanceRecord>('attendance').find(query).toArray();
       }
+
       if (records.length === 0) {
         records = [...attendanceStore];
+        if (Array.isArray(allowedSchoolIds)) {
+          records = records.filter(r => allowedSchoolIds.includes(r.schoolId));
+        } else if (schoolId && typeof schoolId === 'string' && schoolId !== 'all') {
+          records = records.filter(r => r.schoolId === schoolId);
+        }
       }
 
       const totalRecords = records.length;

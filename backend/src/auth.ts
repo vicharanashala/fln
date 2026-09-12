@@ -30,11 +30,16 @@ export function getAuthUser(req: express.Request): User | null {
   const cached = dbStore.getUserSync(payload.email);
   if (cached) return cached;
 
+  const role = payload.role as UserRole;
+  if (!role || !Object.values(UserRole).includes(role)) {
+    return null;
+  }
+
   return {
     id: payload.sub || payload.id || 'usr-auth',
     name: payload.name || payload.email.split('@')[0],
     email: payload.email,
-    role: (payload.role as UserRole) || UserRole.SUPERADMIN,
+    role,
     passwordHash: '',
     schoolId: payload.schoolId,
     stateCode: payload.stateCode,
