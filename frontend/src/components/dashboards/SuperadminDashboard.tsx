@@ -12,12 +12,13 @@ import { RegionalAnalyticsView } from './RegionalAnalyticsView';
 import { QuestionTemplatePanel } from '../panels/QuestionTemplatePanel';
 import { CurriculumLevelsPanel } from '../panels/CurriculumLevelsPanel';
 import { QuestionReviewPanel } from '../panels/QuestionReviewPanel';
+import { LogbookView } from '../LogbookView';
 
 export type { DashboardProps };
 
 
 export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'coordinators' | 'analytics' | 'intervention' | 'curriculum' | 'qreview'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'coordinators' | 'analytics' | 'intervention' | 'curriculum' | 'qreview' | 'logbook'>('overview');
   
   // Overview data
   const [schools, setSchools] = useState<School[]>([]);
@@ -319,6 +320,14 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
             }`}
           >
             📝 Question Review
+          </button>
+          <button
+            onClick={() => setActiveTab('logbook')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              activeTab === 'logbook' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+            }`}
+          >
+            📜 Audit Logbook
           </button>
         </div>
 
@@ -707,6 +716,10 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
       {activeTab === 'curriculum' && (
         <CurriculumLevelsPanel />
+      )}
+
+      {activeTab === 'logbook' && (
+        <LogbookView token={token} user={user} />
       )}
 
       {activeTab === 'qreview' && (

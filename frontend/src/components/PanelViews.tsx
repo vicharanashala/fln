@@ -96,6 +96,24 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
   if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) return <TeachersPanel schools={schools} teachersList={teachersList} currentUser={currentUser} />;
 
+  // Fix #446: Principal Students navigation (view='students') had no matching
+  // panel handler, so PanelViews returned null and rendered nothing.
+  // Reuse StudentListPanel — the same component used by teachers for
+  // 'student_list'. StudentListPanel already gates the Register/CSV-import
+  // actions behind isTeacherOrVolunteer, so the principal gets a read-only
+  // roster view without any code duplication.
+  if (panel === 'students' && currentUser.role === UserRole.SCHOOL) {
+    return (
+      <StudentListPanel
+        students={students}
+        studentsLoading={studentsLoading}
+        currentUser={currentUser}
+        token={token}
+        refreshStudents={refreshStudents}
+      />
+    );
+  }
+
   // ===================== BLOCK/DISTRICT/STATE ADMIN + SUPERADMIN SHARED PANELS =====================
   if (panel === 'schools') return <SchoolsPanel schools={schools} />;
 
