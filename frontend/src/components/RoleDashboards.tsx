@@ -7,7 +7,6 @@ import { DiagnosticWorkflow } from './DiagnosticWorkflow';
 import { BulkDiagnosticWorkflow } from './BulkDiagnosticWorkflow';
 import { WorksheetWorkflow } from './WorksheetWorkflow';
 import { LogbookView } from './LogbookView';
-import { TicketSubmission } from './TicketSubmission';
 import { IcrScanner } from './IcrScanner';
 import { BaselineUpload } from './BaselineUpload';
 import { SkillGraphPanel } from './SkillGraphPanel';

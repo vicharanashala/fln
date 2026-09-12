@@ -493,6 +493,29 @@ export interface EvaluationReport {
     skillGaps?: { conceptId: string; level: number; levelTitle: string; strand: string }[];
   }
 
+export interface AutoFlagDetails {
+  questionId: string;
+  questionText: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  originalDifficulty?: 'easy' | 'medium' | 'hard';
+  level: number;
+  conceptId?: string;
+  topic?: string;
+  attempts: number;
+  failures: number;
+  failureRate: number; // percentage, e.g. 66.7
+  expectedAnswer: string;
+  affectedSchools?: string[];
+  recommendedBand?: 'medium' | 'hard' | 'same_cohort';
+  lastDetectedAt: string;
+}
+
+export interface QuestionDifficultyOverride {
+  questionId: string;
+  effectiveDifficulty: 'easy' | 'medium' | 'hard';
+  updatedAt: string;
+}
+
 export interface Ticket {
   id: string;
   userId: string;
@@ -504,6 +527,13 @@ export interface Ticket {
   description: string;
   status: 'Open' | 'Reviewed' | 'Resolved';
   createdAt: string;
+  isAutoFlag?: boolean;
+  flagDetails?: AutoFlagDetails;
+  resolutionNote?: string;
+  reclassifiedBand?: 'easy' | 'medium' | 'hard' | 'confirmed';
+  actionTaken?: string;
+  actionTakenAt?: string;
+  actionTakenBy?: string;
 }
 
 export interface LogEntry {
@@ -2193,13 +2223,43 @@ export class DBStore {
   }
 
   async updateTicket(id: string, updates: Partial<Ticket>) {
-    await this.mongoDb!.collection('tickets').updateOne({ id }, { $set: updates });
-    const t = await this.mongoDb!.collection<Ticket>('tickets').findOne({ id });
-    if (t && this.data) {
-      const idx = this.data.tickets.findIndex(x => x.id === id);
-      if (idx !== -1) this.data.tickets[idx] = t;
+    if (this.mongoDb) {
+      await this.mongoDb.collection('tickets').updateOne({ id }, { $set: updates });
+      const t = await this.mongoDb.collection<Ticket>('tickets').findOne({ id });
+      if (t && this.data) {
+        const idx = this.data.tickets.findIndex(x => x.id === id);
+        if (idx !== -1) this.data.tickets[idx] = t;
+      }
+      return t || undefined;
     }
-    return t || undefined;
+    if (this.data) {
+      const idx = this.data.tickets.findIndex(x => x.id === id);
+      if (idx !== -1) {
+        this.data.tickets[idx] = { ...this.data.tickets[idx], ...updates };
+        await this.save();
+        return this.data.tickets[idx];
+      }
+    }
+    return undefined;
+  }
+
+  async getQuestionDifficultyOverrides(): Promise<Map<string, 'easy' | 'medium' | 'hard'>> {
+    const map = new Map<string, 'easy' | 'medium' | 'hard'>();
+    if (this.mongoDb) {
+      const overrides = await this.mongoDb.collection<QuestionDifficultyOverride>('questionDifficultyOverrides').find({}).toArray();
+      overrides.forEach(o => map.set(o.questionId, o.effectiveDifficulty));
+    }
+    return map;
+  }
+
+  async updateQuestionDifficulty(questionId: string, difficulty: 'easy' | 'medium' | 'hard'): Promise<void> {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('questionDifficultyOverrides').updateOne(
+        { questionId },
+        { $set: { questionId, effectiveDifficulty: difficulty, updatedAt: new Date().toISOString() } },
+        { upsert: true }
+      );
+    }
   }
 
   async updateUser(userId: string, updates: Partial<User>) {

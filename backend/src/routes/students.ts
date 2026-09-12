@@ -674,6 +674,26 @@ export function registerStudentRoutes(app: express.Express) {
     res.json({ success: true });
   });
 
+  // Reset Student to Pending Diagnostic (for live demonstration & mentor review)
+  app.post('/api/students/:id/reset-diagnostic', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const student = await dbStore.getStudentById(req.params.id);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
+
+    await dbStore.updateStudent(student.id, {
+      currentLevel: 1,
+      currentSubLevel: 0,
+      targetLevel: 2,
+      assignedDiagnosticQuestions: [],
+      levelHistory: []
+    });
+
+    res.json({ success: true, message: `Reset ${student.name} to Pending Diagnostic` });
+  });
+
   // Run Onboarding AI Diagnostic Test
   app.post('/api/students/:id/diagnostic', async (req, res) => {
     const user = getAuthUser(req);
@@ -879,7 +899,7 @@ export function registerStudentRoutes(app: express.Express) {
     // existing report instead of re-running the pipeline and re-appending to
     // level history. A genuinely new diagnostic on a later date still runs
     // normally (legitimate re-assessment, not a duplicate retry).
-    const existingReports = await dbStore.getEvaluationReports();
+    const existingReports = await dbStore.getEvaluationReports({ studentIds: [student.id] });
     const existingReport = existingReports.find(r =>
       r.worksheetId === 'diagnostic' && r.studentId === student.id && r.timestamp.startsWith(dateStr)
     );
@@ -1422,6 +1442,56 @@ export function registerStudentRoutes(app: express.Express) {
 
     await dbStore.addEvaluationReport(report);
     invalidateFingerprintCache();
+
+    // Ensure diagnostic worksheet exists in dbStore for question indexing
+    const enrichedQuestions: Question[] = (questions || []).map(q => ({
+      ...q,
+      difficulty: q.difficulty || ((q.source_level && q.source_level <= 20) ? 'easy' : 'medium')
+    }));
+
+    const worksheets = await dbStore.getWorksheets();
+    const existingDiagWs = worksheets.find(w => w.id === 'diagnostic');
+    if (!existingDiagWs) {
+      await dbStore.addWorksheet({
+        id: 'diagnostic',
+        classId: student.classGroup,
+        className: student.classGroup,
+        section: student.section || 'A',
+        schoolId: student.schoolId,
+        generatedByRole: UserRole.SUPERADMIN,
+        generatedByEmail: 'system@fln.org',
+        cycle: 'Baseline',
+        date: new Date().toISOString().split('T')[0],
+        questions: enrichedQuestions,
+        locks: {
+          locked: false,
+          lockedByRole: null,
+          lockedByEmail: null,
+          timestamp: null
+        },
+        timing: {
+          examDate: new Date().toISOString().split('T')[0],
+          printWindowStart: new Date().toISOString(),
+          printWindowEnd: new Date(Date.now() + 3600000).toISOString(),
+          examWindowStart: new Date(Date.now() + 3600000).toISOString(),
+          examWindowEnd: new Date(Date.now() + 7200000).toISOString(),
+          submissionWindowEnd: new Date(Date.now() + 10800000).toISOString()
+        },
+        delayLogs: {
+          delayedAttemptsCount: 0,
+          submittingTeachers: []
+        }
+      });
+    } else {
+      const existingQMap = new Map((existingDiagWs.questions || []).map(q => [q.question_id, q]));
+      enrichedQuestions.forEach(q => existingQMap.set(q.question_id, q));
+      await dbStore.updateWorksheet(existingDiagWs.id, { questions: Array.from(existingQMap.values()) });
+    }
+
+    // Trigger Auto-Flag anomaly check in background
+    autoFlagService.checkAndFlagQuestions({ minAttempts: 3, failureThreshold: 0.50, mediumFailureThreshold: 0.70 }).catch(err => {
+      console.warn('Background auto-flag check error:', err);
+    });
 
     try {
       await assignStudentToArchetype(student.id);
