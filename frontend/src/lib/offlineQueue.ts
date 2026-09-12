@@ -106,7 +106,7 @@ export async function syncPendingScansNow(): Promise<{ processed: string[]; skip
     ),
   };
 
-  const res = await apiFetch('/api/v1/scans/sync-batch', {
+  const res = await apiFetch('/api/scans/sync-batch', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

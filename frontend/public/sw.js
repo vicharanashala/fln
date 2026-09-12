@@ -1,3 +1,6 @@
+// This service worker does not cache the app shell, static assets, or API
+// responses. Its only responsibility is to observe the background-sync event
+// for queued scans and trigger a single upload attempt when connectivity is restored.
 const SYNC_TAG = 'sync-scans';
 
 function openQueueDb() {
@@ -80,7 +83,7 @@ async function syncPendingScans() {
     }))
   );
 
-  const response = await fetch('/api/v1/scans/sync-batch', {
+  const response = await fetch('/api/scans/sync-batch', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ scans }),

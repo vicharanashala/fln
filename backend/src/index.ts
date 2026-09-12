@@ -42,7 +42,7 @@ import { registerQuestionLogicRoutes } from './routes/questionLogics';
 import { registerQuestionTemplateRoutes } from './routes/questionTemplates';
 import { registerQuestionOptionRoutes } from './routes/questionOptions';
 import { registerDiagnosticBulkRoutes } from './routes/diagnosticBulk';
-import { registerScanRoutes } from './modules/scans/scan.controller';
+import { registerScanRoutes } from './routes/scans';
 import { registerMisconceptionRoutes } from './routes/misconceptions';
 import { registerCurriculumRoutes } from './routes/curriculum';
 import { registerQuestionBankRoutes } from './routes/questionBank';

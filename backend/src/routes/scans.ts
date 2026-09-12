@@ -1,6 +1,6 @@
 import express from 'express';
-import { getAuthUser } from '../../auth';
-import { dbStore } from '../../db';
+import { getAuthUser } from '../auth';
+import { dbStore } from '../db';
 
 const MAX_SCAN_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -13,7 +13,7 @@ export interface ScanSyncPayload {
 }
 
 export function registerScanRoutes(app: express.Express) {
-  app.post('/api/v1/scans/sync-batch', async (req, res) => {
+  app.post('/api/scans/sync-batch', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -32,7 +32,7 @@ export function registerScanRoutes(app: express.Express) {
         continue;
       }
 
-      const existing = await dbStore.getScanByUuid(scanUuid);
+      const existing = await dbStore.getScanByUuidForSchool(scanUuid, user.schoolId || undefined);
       if (existing) {
         skippedDuplicates.push(scanUuid);
         continue;

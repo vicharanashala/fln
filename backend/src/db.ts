@@ -2306,6 +2306,19 @@ export class DBStore {
     return (this.data?.scans || []).find(scan => scan.scanUuid === scanUuid) || null;
   }
 
+  async getScanByUuidForSchool(scanUuid: string, schoolId?: string): Promise<ScanRecord | null> {
+    if (!scanUuid) return null;
+    const query: Record<string, any> = { scanUuid };
+    if (schoolId) {
+      query.schoolId = schoolId;
+    }
+
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<ScanRecord>('scans').findOne(query);
+    }
+    return (this.data?.scans || []).find(scan => scan.scanUuid === scanUuid && (!schoolId || scan.schoolId === schoolId)) || null;
+  }
+
   async addScan(scan: ScanRecord) {
     if (this.mongoDb) {
       await this.mongoDb.collection('scans').insertOne(scan);
@@ -2316,6 +2329,8 @@ export class DBStore {
       if (!this.mongoDb) await this.save();
     }
     return scan;
+  }
+
   /**
    * Read-side counterpart of {@link addLog}. Returns logbook rows
    * whose `details` field starts with the given prefix, sorted
