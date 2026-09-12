@@ -15,7 +15,6 @@ import { createServer as createViteServer } from 'vite';
 import { dbStore, connectDB, UserRole, User, Student, School, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, CYCLE_NAMES } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
-import { mapCompetencyToLevel, KNOWN_COMPETENCIES } from './flnLevels';
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS } from './geoData';
 import { validateConceptPrerequisites } from './competencyPrerequisites';
