@@ -77,9 +77,6 @@ export interface ScanQualityResult {
   status: 'pass' | 'warning' | 'reject';
   checks: {
     resolution: 'pass' | 'fail';
-    brightness: 'pass' | 'warning';
-    contrast: 'pass' | 'warning';
-    blur: 'pass' | 'warning';
     orientation: 'pass' | 'warning';
   };
   reasons: string[];
@@ -248,6 +245,9 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
             : res.status === 502
             ? ` The upstream Ollama Cloud rejected the request — likely an invalid/revoked key, billing not enabled, or rate limit. Ask the admin to verify the OLLAMA_API_KEY value.`
             : '';
+        if (data.qualityResult) {
+          setQualityResult(data.qualityResult);
+        }
         setCloudError(providerMsg + adminHint);
         setCloudOcrState('error');
         return;
@@ -330,21 +330,12 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
 
           {qualityResult && (
             <div className="space-y-2 text-xs">
-              <div className="grid grid-cols-5 gap-1 font-mono text-[11px] py-1 border-y border-zinc-100 dark:border-slate-800">
+              <div className="flex gap-4 font-mono text-[11px] py-1 border-y border-zinc-100 dark:border-slate-800">
                 <span className={qualityResult.checks.resolution === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
-                  Res: {qualityResult.checks.resolution}
-                </span>
-                <span className={qualityResult.checks.brightness === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
-                  Bri: {qualityResult.checks.brightness}
-                </span>
-                <span className={qualityResult.checks.contrast === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
-                  Con: {qualityResult.checks.contrast}
-                </span>
-                <span className={qualityResult.checks.blur === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
-                  Blur: {qualityResult.checks.blur}
+                  Resolution: {qualityResult.checks.resolution}
                 </span>
                 <span className={qualityResult.checks.orientation === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
-                  Ori: {qualityResult.checks.orientation}
+                  Orientation: {qualityResult.checks.orientation}
                 </span>
               </div>
 
