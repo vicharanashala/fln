@@ -80,11 +80,11 @@ The student-facing placement number is still 59. The skill graph is a richer rep
   db.collection('students').aggregate([{ $match: { currentLevel: { $gte: 5 } } }, { $count: 'count' }]).toArray(),
   ```
 - **What:** The Certification Engine creates proper `Certification` rows with `status: 'active' | 'review_needed' | 'revoked'`, but this public endpoint still counts "certified" as any student whose `currentLevel >= 5`. The two numbers use different definitions of certification. **Verified live on the dev Atlas (86401 students):** `/api/stats.certifiedCount` = 63,276 (shortcut); `/api/certifications?status=active` count = 2 — a gap of 63,274 students.
-- **Why it matters:** The public landing page (`LandingView.tsx`) reads `/api/stats` to display the national certification rate. If an admin `revoke`s a cert, the public counter still says "certified". For a national dashboard whose credibility depends on provable, auditable counts, this silent drift is unacceptable, and it directly contradicts the design contract documented in `backend/src/modules/certification/README.md:88-116`.
+- **Why it matters:** The public landing page (`LandingView.tsx`) reads `/api/stats` to display the national certification rate. If an admin `revoke`s a cert, the public counter still says "certified". For a national dashboard whose credibility depends on provable, auditable counts, this silent drift is unacceptable, and it directly contradicts the design contract implemented by the certification engine (`backend/src/services/certificationEligibility.ts`).
 
-### Gap 2 — `notification.service.ts` emails **every** SUPERADMIN + ADMIN regardless of geographic scope
+### Gap 2 — `certificationNotifications.ts` emails **every** SUPERADMIN + ADMIN regardless of geographic scope
 
-- **Where:** `backend/src/modules/certification/services/notification.service.ts:35-45`
+- **Where:** `backend/src/services/certificationNotifications.ts:35-45`
   ```ts
   export async function getAdminEmails(): Promise<string[]> {
     const users = await dbStore.getUsers();
@@ -94,11 +94,11 @@ The student-facing placement number is still 59. The skill graph is a richer rep
   }
   ```
 - **What:** When a student in Guntur, AP has their cert flipped to `review_needed`, this fires an email to **every** admin in the system — including State admins in Punjab, District admins in Ludhiana. There is no `stateCode` / `districtCode` filter.
-- **Why it matters:** (a) Privacy — an administrator outside the student's jurisdiction (different state/district/block) may receive the student's certification event details (name pattern in subject line, student ID, class/level, review URL). The code at `notification.service.ts:35-45` only filters by role, not by scope; whether the recipient list in this codebase also includes non-admin roles is *not* verified from the file alone, but the absence of any scope filter on the admin list itself is what this gap is about. (b) Operational noise — every State admin gets pinged about cert events in other states, leading to alert fatigue. (c) Inconsistency — `canAccessStudent(user, student)` (the IDOR guard on the review endpoint) **does** enforce scope, but the email side-effect bypasses it.
+- **Why it matters:** (a) Privacy — an administrator outside the student's jurisdiction (different state/district/block) may receive the student's certification event details (name pattern in subject line, student ID, class/level, review URL). The code at `certificationNotifications.ts:35-45` only filters by role, not by scope; whether the recipient list in this codebase also includes non-admin roles is *not* verified from the file alone, but the absence of any scope filter on the admin list itself is what this gap is about. (b) Operational noise — every State admin gets pinged about cert events in other states, leading to alert fatigue. (c) Inconsistency — `canAccessStudent(user, student)` (the IDOR guard on the review endpoint) **does** enforce scope, but the email side-effect bypasses it.
 
 ### Gap 3 — In-memory `inFlight` Map for per-student cert serialization doesn't survive process restart or scale to multiple replicas
 
-- **Where:** `backend/src/certificationRecords.ts:11-12`, `:24`, `:163-181`
+- **Where:** `backend/src/services/certificationRecords.ts:11-12`, `:24`, `:163-181`
   ```ts
   // Lost on process restart, which is acceptable for single-process dev/prod.
   // Revisit when scaling to multiple replicas (use a Mongo-backed lock then).
@@ -132,7 +132,7 @@ The student-facing placement number is still 59. The skill graph is a richer rep
 
 ### Gap 6 — No regression test pinning the public `certifiedCount` to the Certification-table count after the stats migration
 
-- **Where:** `backend/src/routes/stats.ts:28` (the shortcut) vs `backend/src/certificationRecords.ts:countActiveCertificationsFromMemory` (the engine)
+- **Where:** `backend/src/routes/stats.ts:28` (the shortcut) vs `backend/src/services/certificationRecords.ts:countActiveCertificationsFromMemory` (the engine)
 - **What:** Today there is no assertion that the public stats number matches the number of `status: 'active'` Certification rows. Once Idea 1 (below) migrates `/api/stats` to read from the `certifications` collection, there is still no test pinning the new behaviour so a future refactor cannot silently regress it back to the shortcut.
 - **Why it matters:** Without this guard, Gap 1 becomes a permanent silent drift. The right test pins the new source of truth (Certification rows) and asserts the public endpoint honours it; the test must **not** assert equality with the legacy shortcut, because the whole point of Idea 1 is to replace that shortcut.
 
@@ -140,19 +140,19 @@ The student-facing placement number is still 59. The skill graph is a richer rep
 
 ### Idea 1 — Make `/api/stats` read from the Certification table (closes Gap 1 & Gap 6)
 
-- **What:** Replace the `currentLevel >= 5` aggregation in `backend/src/routes/stats.ts:28` with a `countDocuments({ status: 'active' })` on the `certifications` collection. During the brief window when the engine hasn't yet run on a student, fall back to the legacy shortcut **but log a warning** (matches the existing TODO in `AGENTS.md`).
-- **Why:** Restores the principle that the `Certification` table is the single source of truth for "certified". Matches the contract documented in `backend/src/modules/certification/README.md:88-100`. Makes admin `revoke` actions immediately visible on the public landing page.
+- **What:** Replace the `currentLevel >= 5` aggregation in `backend/src/routes/stats.ts:28` with a `countDocuments({ status: 'active' })` on the `certifications` collection. During the brief window when the engine hasn't yet run on a student, fall back to the legacy shortcut **but log a warning**.
+- **Why:** Restores the principle that the `Certification` table is the single source of truth for "certified". Matches the engine's contract (`backend/src/services/certificationEligibility.ts` — only `status: 'active'` rows count as certified). Makes admin `revoke` actions immediately visible on the public landing page.
 - **How:** Add a helper `countActiveCertificationsFromDb()` in `certificationRecords.ts` mirroring the existing in-memory `countActiveCertificationsFromMemory`. Swap the aggregate in `stats.ts`. Add a regression test in `__checks__/certification.check.ts` that pins `GET /api/stats → certifiedCount === db.certifications.countDocuments({ status: 'active' })`. **The test must compare against the Certification collection, not against the legacy shortcut.**
 
 ### Idea 2 — Scope-filtered notifications (closes Gap 2)
 
-- **What:** Make `notification.service.ts:35-45` accept the student as input and return only admins whose scope covers that student's school.
+- **What:** Make `certificationNotifications.ts:35-45` accept the student as input and return only admins whose scope covers that student's school.
 - **Why:** State and District admins should only hear about events in their jurisdiction. Aligns the side-effect channel with the access-control channel (`canAccessStudent`).
 - **How:** Pass `student` into `getScopedAdminEmails(student)`. Filter by `user.stateCode === student.schoolStateCode` (with SUPERADMIN exempted as the catch-all). Add a unit test in `__checks__/certification.check.ts` that pins the recipient list to "in-scope admins only".
 
 ### Idea 3 — Mongo-backed lock for cert orchestration (closes Gap 3)
 
-- **What:** Replace the in-memory `inFlight: Map<studentId, Promise>` in `backend/src/certificationRecords.ts:24, :163` with a Mongo-backed advisory lock — a `cert_locks` collection with `findOneAndUpdate({ studentId, lockUntil: { $lt: now } }, ...)`, or a Redis lock if Redis is available.
+- **What:** Replace the in-memory `inFlight: Map<studentId, Promise>` in `backend/src/services/certificationRecords.ts:24, :163` with a Mongo-backed advisory lock — a `cert_locks` collection with `findOneAndUpdate({ studentId, lockUntil: { $lt: now } }, ...)`, or a Redis lock if Redis is available.
 - **Why:** Makes the engine safe under multiple replicas and across restarts. Removes the "acceptable for dev only" caveat in the source comment.
 - **How:** Add a `tryAcquireCertLock(studentId, ttlMs)` helper. Wrap `runCertificationEligibilityForStudent` with `tryAcquireCertLock → run → release`. Keep the current in-memory fallback for dev so no infra change is required.
 
@@ -170,7 +170,7 @@ The student-facing placement number is still 59. The skill graph is a richer rep
 
 ### Idea 6 — Per-cohort certified counting (extends the analytics contract)
 
-- **What:** A "certified student" should be counted for the cert that matches their current `classGroup`, not summed across all certs. Currently deferred in `backend/src/modules/certification/README.md:101-103`.
+- **What:** A "certified student" should be counted for the cert that matches their current `classGroup`, not summed across all certs. Currently deferred — `countActiveCertificationsFromMemory` (`backend/src/services/certificationRecords.ts`) sums across all certs.
 - **Why:** A student who was certified at Class 3 and has moved to Class 4 should not count as "certified" against the Class 4 metric until they earn a Class 4 cert. Without this, the dashboard over-counts and demotivates Class 4 teachers.
 - **How:** Update `countActiveCertificationsFromMemory` to accept a `cohortKey` derived from `student.classGroup` and match it to `cert.classNumber`. One-line semantic change with meaningful correctness impact.
 
@@ -186,7 +186,7 @@ I replaced it with an **evidence-based, audit-trailed certification model**: a p
 
 ### Key technical decisions (and the reasoning)
 
-- **Pure engine + thin orchestrator.** The decision logic (`backend/src/certification.ts`) is a pure function with no IO — it can be unit-tested without spinning up MongoDB. The orchestrator (`backend/src/certificationRecords.ts`) wires it to persistence. A byte-identical mirror in `backend/src/modules/certification/services/eligibility.service.ts` keeps the legacy and Mongoose backends in lockstep; assert scripts under `__checks__/` fail CI if they diverge.
+- **Pure engine + thin orchestrator.** The decision logic (`backend/src/services/certificationEligibility.ts`) is a pure function with no IO — it can be unit-tested without spinning up MongoDB. The orchestrator (`backend/src/services/certificationRecords.ts`) wires it to persistence. Assert scripts under `backend/src/__checks__/` pin the engine's verdicts and fail on regression.
 - **Outcome precedence is load-bearing.** `insufficient_evidence > not_eligible > eligible` — a topic that was never tested is never reported as failed. This is the single most important correctness property of the engine, and it is the property most likely to be regressed by a careless future change. It is documented and tested.
 - **Fire-and-forget at every evaluation creation site, never blocking the request.** Worksheet submission is the user's hot path; a cert-engine failure must never fail a submission. Errors are logged, the request succeeds. The 3 trigger sites are wired at `routes/evaluation.ts:411`, `:1046`, and `routes/students.ts:549`.
 - **Optimistic concurrency on the cert row.** `updateCertificationIfVersion(id, expectedVersion, ...)` returns `null` on mismatch. The admin review endpoint surfaces this as `409 Concurrent modification`. Without it, two admins clicking "Revoke" at the same time would silently lose one decision.
@@ -217,4 +217,4 @@ The cert engine was originally written against the monolithic `backend/src/index
 
 ### Design rationale
 
-`backend/src/modules/certification/README.md` (326 lines) is the source-of-truth for this module — outcome precedence, mastery comparator, idempotency key, re-evaluation trigger, admin review state machine, analytics contract, race-handling, notifications, and deferred items. Anyone touching this module in the future should start there.
+The engine's design contract — outcome precedence, mastery comparator, idempotency key, re-evaluation trigger, admin review state machine, race-handling, notifications — is documented in the header comments of `backend/src/services/certificationEligibility.ts`, `backend/src/services/certificationRecords.ts`, and `backend/src/routes/certification.ts`, and pinned as executable checks by `backend/src/__checks__/certification.check.ts` and `certification-list.check.ts`. Anyone touching this module in the future should start there.
