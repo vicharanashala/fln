@@ -6,7 +6,7 @@ import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_N
 import { getAuthUser } from '../auth';
 import { evaluateAIWorksheet } from '../gemini';
 import { PYTHON_BIN, AI_SERVICES_DIR } from '../config';
-import { runCertificationEligibility } from '../certificationRecords';
+import { runCertificationEligibility } from '../services/certificationRecords';
 
 export function registerEvaluationRoutes(app: express.Express) {
   // ICR Blue-Pen Filter Stage (standalone — runs only the cv2 blue-pen

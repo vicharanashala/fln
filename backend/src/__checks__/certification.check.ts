@@ -9,9 +9,8 @@
  * Invoked via:
  *   npx tsx backend/src/__checks__/certification.check.ts
  *
- * Mirrors backend/src/modules/certification/__checks__/eligibility.check.ts
- * to guard against behavioral drift between the two engines. Any divergence
- * fails this script.
+ * Sole behavioral guard for the eligibility engine — any verdict change
+ * must keep this script passing.
  */
 import 'dotenv/config';
 import dotenv from 'dotenv';
@@ -27,18 +26,18 @@ import { strict as assert } from 'node:assert';
 import {
   decideEligibility,
   EligibilityDecision,
-} from '../certification';
+} from '../services/certificationEligibility';
 import { CompetencyRequirement, Certification, Student, School } from '../db';
 import {
   resolveCertificationReview,
   CertificationReviewError,
   countActiveCertificationsFromMemory,
   buildPerSchoolStats,
-} from '../certificationRecords';
+} from '../services/certificationRecords';
 import {
   getAdminEmails,
   buildEmailPayload,
-} from '../modules/certification/services/notification.service';
+} from '../services/certificationNotifications';
 
 const REQUIREMENTS_CLASS3_L5: CompetencyRequirement[] = [
   { classNumber: 3, level: 5, topic: 'Number Sense', isMandatory: true, meetsThreshold: 'Strong' },

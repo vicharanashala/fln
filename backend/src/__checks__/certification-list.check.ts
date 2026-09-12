@@ -7,7 +7,7 @@
  *
  * Covers cases that don't require a live server. Live-server cases
  * (role 403, 400 on empty revoke reason over HTTP) are documented in
- * backend/src/modules/certification/README.md — Phase 5 verification section.
+ * backend/src/routes/certification.ts — Phase 5 verification notes.
  *
  * Run via:
  *   npx tsx backend/src/__checks__/certification-list.check.ts
@@ -16,7 +16,7 @@ import { strict as assert } from 'node:assert';
 import {
   resolveCertificationReview,
   CertificationReviewError,
-} from '../certificationRecords';
+} from '../services/certificationRecords';
 import { Certification } from '../db';
 
 let passed = 0;

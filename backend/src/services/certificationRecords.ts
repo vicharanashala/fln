@@ -1,7 +1,7 @@
 /**
  * SRS R-7 — Certification orchestration for the LEGACY backend.
  *
- * Wires the pure eligibility engine (certification.ts) to the legacy
+ * Wires the pure eligibility engine (certificationEligibility.ts) to the legacy
  * MongoDB-backed DBStore (db.ts). Called fire-and-forget from
  * backend/src/index.ts at the two EvaluationReport creation sites
  * (:825 diagnostic, :1376 worksheet evaluation submit).
@@ -16,10 +16,10 @@
  * failed).
  */
 import { randomUUID } from 'crypto';
-import { dbStore, Student, School, Certification, CertificationStatus, UserRole } from './db';
-import { decideEligibility, EligibilityDecision } from './certification';
-import { getRequirementsForClassLevel } from './competencyRequirements';
-import { notifyCertificationReviewNeeded } from './modules/certification/services/notification.service';
+import { dbStore, Student, School, Certification, CertificationStatus, UserRole } from '../db';
+import { decideEligibility, EligibilityDecision } from './certificationEligibility';
+import { getRequirementsForClassLevel } from './certificationCompetencyRequirements';
+import { notifyCertificationReviewNeeded } from './certificationNotifications';
 
 const inFlight: Map<string, Promise<void>> = new Map();
 

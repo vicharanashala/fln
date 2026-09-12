@@ -1,16 +1,14 @@
 /**
- * Pure eligibility-decision engine for SRS R-7 — LEGACY backend mirror.
+ * Pure eligibility-decision engine for SRS R-7.
  *
- * Kept behaviorally identical to
- * backend/src/modules/certification/services/eligibility.service.ts so the
- * two backends cannot drift in their certification verdicts.
- *
- * See that file for the full spec on outcome precedence and mastery ranking.
+ * The executable spec for outcome precedence and mastery ranking lives in
+ * backend/src/__checks__/certification.check.ts — any verdict change must
+ * keep that assert script passing.
  */
 import {
   CompetencyRequirement,
   MasteryLevel,
-} from './db';
+} from '../db';
 
 export type EligibilityOutcome =
   | 'eligible'

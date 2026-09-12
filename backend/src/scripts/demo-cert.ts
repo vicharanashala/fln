@@ -24,7 +24,7 @@ const __dotenv_dir = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dotenv_dir, '..', '..', '.env') });
 
 import { connectDB, dbStore } from '../db';
-import { runCertificationEligibilityForStudent } from '../certificationRecords';
+import { runCertificationEligibilityForStudent } from '../services/certificationRecords';
 
 const CLASS_NUMBER = 4;
 const LEVEL = 5;

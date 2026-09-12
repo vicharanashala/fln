@@ -1,12 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { CompetencyRequirement, MasteryLevel } from './db';
+import { CompetencyRequirement, MasteryLevel } from '../db';
 
 /**
- * Read-only competency-requirements registry for the legacy (non-Mongoose) backend.
- * Loads the same seed JSON the Mongoose backend's seedCompetencyRequirements.ts uses,
- * so both backends see identical data while the migration is in progress.
+ * Read-only competency-requirements registry for the certification engine.
+ * Loads backend/src/data/competencyRequirements.seed.json — the same seed
+ * data DBStore.init() uses (see getSeedCompetencyRequirements in db.ts) and
+ * what backend/src/utils/seedCompetencyRequirements.ts reports on.
  *
  * Lookups are O(1) on the (classNumber, level) bucket, then a linear scan of topics
  * within the bucket. With ~16 seed records this is fine; if the curriculum grows
@@ -15,7 +16,7 @@ import { CompetencyRequirement, MasteryLevel } from './db';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const SEED_FILE = path.resolve(__dirname, 'data/competencyRequirements.seed.json');
+const SEED_FILE = path.resolve(__dirname, '../data/competencyRequirements.seed.json');
 
 let cache: CompetencyRequirement[] | null = null;
 

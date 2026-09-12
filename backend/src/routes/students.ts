@@ -7,7 +7,7 @@ import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import { evaluateAIDiagnostic } from '../gemini';
 import { AI_SERVICES_DIR, PYTHON_BIN } from '../config';
-import { runCertificationEligibility } from '../certificationRecords';
+import { runCertificationEligibility } from '../services/certificationRecords';
 
 export function registerStudentRoutes(app: express.Express) {
   // Students

@@ -23,7 +23,7 @@ import {
   resolveCertificationReview,
   CertificationReviewError,
   ReviewDecision,
-} from '../certificationRecords';
+} from '../services/certificationRecords';
 
 const ALLOWED_REVIEW_ROLES = [UserRole.SUPERADMIN, UserRole.ADMIN];
 const QUEUE_VIEW_ROLES = [UserRole.SUPERADMIN, UserRole.ADMIN];
