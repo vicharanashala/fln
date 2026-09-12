@@ -15,6 +15,7 @@ import {
   Sparkles,
   Search,
   Check,
+  Lock,
 } from 'lucide-react';
 
 interface AttendanceTrackerProps {
@@ -524,8 +525,8 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
         {/* Controls */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* School Selector (for Admins / Multi-School Users) */}
-          {schools.length > 1 && (
+          {/* School Selector (for Admins) or Assigned School Locked Badge (for Teachers/Principals) */}
+          {schools.length > 1 ? (
             <div>
               <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
                 School
@@ -541,6 +542,19 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({
                   </option>
                 ))}
               </select>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
+                Assigned School
+              </label>
+              <div 
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs text-slate-700 dark:text-slate-300 font-medium max-w-[240px] truncate"
+                title={`Locked to your assigned school: ${schools[0]?.name || currentUser.schoolId || 'Assigned School'}`}
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="truncate">{schools[0]?.name || currentUser.schoolId || 'Assigned School'}</span>
+              </div>
             </div>
           )}
 
