@@ -218,18 +218,8 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
 
     if (rankingsStateFilter !== 'ALL') {
       list = list.filter(school => school.stateCode === rankingsStateFilter);
-
-      // If no schools in database match the filtered state, dynamically generate 5 realistic rankings for that state
-      if (list.length === 0) {
-        const stateName = STATE_NAMES[rankingsStateFilter] || rankingsStateFilter;
-        list = [
-          { id: `SCH-MOCK-1`, name: `GSSS Model Town ${stateName}`, stateCode: rankingsStateFilter, schoolType: 'Government', performanceScore: 92.4, completionRate: 96.8, studentSatisfaction: 4.8, interviewSuccessRate: 91.2 },
-          { id: `SCH-MOCK-2`, name: `Jawahar Navodaya Vidyalaya ${stateName}`, stateCode: rankingsStateFilter, schoolType: 'Model', performanceScore: 89.2, completionRate: 94.5, studentSatisfaction: 4.6, interviewSuccessRate: 88.4 },
-          { id: `SCH-MOCK-3`, name: `Delhi Public School ${stateName}`, stateCode: rankingsStateFilter, schoolType: 'Private', performanceScore: 86.8, completionRate: 92.1, studentSatisfaction: 4.5, interviewSuccessRate: 85.6 },
-          { id: `SCH-MOCK-4`, name: `St. Xavier Primary Academy ${stateName}`, stateCode: rankingsStateFilter, schoolType: 'Private Aided', performanceScore: 84.1, completionRate: 90.4, studentSatisfaction: 4.3, interviewSuccessRate: 83.2 },
-          { id: `SCH-MOCK-5`, name: `Government High School ${stateName}`, stateCode: rankingsStateFilter, schoolType: 'Government', performanceScore: 81.5, completionRate: 88.2, studentSatisfaction: 4.1, interviewSuccessRate: 80.8 }
-        ];
-      }
+      // No fake fallback rankings when a state has no real ranked schools -
+      // the render side shows an honest empty state instead (see below).
     }
 
     return list.sort((a, b) => {
@@ -537,50 +527,38 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             <KPICard
               title="Registered & Active Schools"
               value={kpis.totalRegisteredSchools?.toLocaleString()}
-              subtext={`${kpis.totalRegisteredSchools ? Math.round((kpis.activeSchools / kpis.totalRegisteredSchools) * 100) : 100}% Operational`}
+              subtext={kpis.totalRegisteredSchools ? `${Math.round((kpis.activeSchools / kpis.totalRegisteredSchools) * 100)}% Operational` : 'Loading…'}
               icon={School}
-              badge="+4.2%"
-              badgeType="up"
             />
             <KPICard
               title="Total Students Enrolled"
               value={kpis.totalStudents?.toLocaleString()}
               subtext="Enrolled across FLN"
               icon={Users}
-              badge="+8.1%"
-              badgeType="up"
             />
             <KPICard
               title="Total Teachers"
               value={kpis.totalTeachers?.toLocaleString()}
               subtext="Active Educators"
               icon={ShieldCheck}
-              badge="+2.4%"
-              badgeType="up"
             />
             <KPICard
               title="Total Assessments Conducted"
               value={kpis.totalExamsConducted?.toLocaleString()}
               subtext="Assessments sync"
               icon={FileCheck}
-              badge="+12%"
-              badgeType="up"
             />
             <KPICard
-              title="Total AI Interviews Completed"
+              title="Total Evaluations Completed"
               value={kpis.totalInterviewsCompleted?.toLocaleString()}
-              subtext="AI Mock Evaluations"
+              subtext="Diagnostic + worksheet evaluations"
               icon={Zap}
-              badge="+15%"
-              badgeType="up"
             />
             <KPICard
               title="Average Performance Score"
               value={kpis.avgPerformanceScore !== undefined ? `${kpis.avgPerformanceScore}%` : '—'}
               subtext="National Index"
               icon={Award}
-              badge="+3.5%"
-              badgeType="up"
             />
           </div>
 
@@ -1264,6 +1242,13 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                      {sortedSchoolRankings.length === 0 && (
+                        <tr>
+                          <td colSpan={8} className="py-8 px-3 text-center text-slate-400 dark:text-slate-500">
+                            No ranked schools yet for this filter.
+                          </td>
+                        </tr>
+                      )}
                       {sortedSchoolRankings.map((school: any, idx: number) => (
                         <tr key={school.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                           <td className="py-3 px-3">

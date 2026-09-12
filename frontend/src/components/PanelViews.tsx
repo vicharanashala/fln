@@ -30,15 +30,49 @@ import {
   Download,
   Printer,
 } from 'lucide-react';
+import { apiFetch } from '../services/apiClient';
+import React, { useState, useEffect } from 'react';
+import { User, UserRole, Student, ClassGroup, School, Worksheet, LogEntry, Ticket } from '../types';
+import { Users, BookOpen, Calendar, ArrowRight, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, Building2, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Table, Column } from './Table';
 import { MetricCard } from './Card';
 import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
-import { FLN_LEVELS_LIST } from './RoleDashboards';
+import { FLN_LEVELS_LIST, parseCSVText, LevelBadge } from './RoleDashboards';
+import { usePanelData } from './panels/usePanelData';
+import { AdaptiveTestPanel } from './panels/AdaptiveTestPanel';
+import { TestHistoryPanel } from './panels/TestHistoryPanel';
+import { WorksheetTemplatesPanel } from './panels/WorksheetTemplatesPanel';
+import { SystemSettingsPanel } from './panels/SystemSettingsPanel';
+import { StudentListPanel } from './panels/StudentListPanel';
+import { AadhaarRevealPanel } from './panels/AadhaarRevealPanel';
+import { SecurityPanel } from './panels/SecurityPanel';
+import { DiagnosticTestPanel } from './panels/DiagnosticTestPanel';
+import { PerformancePanel } from './panels/PerformancePanel';
+import { WorksheetsPanel } from './panels/WorksheetsPanel';
+import { AssignedSchoolsPanel } from './panels/AssignedSchoolsPanel';
+import { StudentProgressPanel } from './panels/StudentProgressPanel';
+import { AttendancePanel } from './panels/AttendancePanel';
+import { TeachersPanel } from './panels/TeachersPanel';
+import { SchoolsPanel } from './panels/SchoolsPanel';
+import { UsersPanel } from './panels/UsersPanel';
+import { ContentPanel } from './panels/ContentPanel';
+import { DistrictsPanel } from './panels/DistrictsPanel';
+import { BlocksPanel } from './panels/BlocksPanel';
+import { AnalyticsPanel } from './panels/AnalyticsPanel';
+import { StudentProfilePanel } from './panels/StudentProfilePanel';
 
 interface PanelViewsProps {
   activePanel: string;
   currentUser: User;
   token: string;
+  /**
+   * Routes the admin to a different panel (e.g. `security`) when
+   * a sub-flow needs to hand off. The Aadhaar reveal dialog uses
+   * this to send admins to the Security panel when they don't have
+   * an enrolled authenticator yet. Optional so other entry points
+   * (where the sub-flow is never reached) don't need to thread it.
+   */
+  onSelectView?: (view: string) => void;
 }
 
 // Panels that render without ever reading the `students` variable — skipping
@@ -698,10 +732,13 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   // ===================== TEACHER PANELS =====================
   if (panel === 'student_list') {
     return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Student Roster" desc="Complete list of registered students across your classes" icon={<Users className="h-5 w-5" />} />
-        <EmptyStudents students={students} />
-      </div>
+      <StudentListPanel
+        students={students}
+        studentsLoading={studentsLoading}
+        currentUser={currentUser}
+        token={token}
+        refreshStudents={refreshStudents}
+      />
     );
   }
 
@@ -1009,276 +1046,13 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
                 ) : <div className="text-center py-6"><p className="text-xs text-slate-400 dark:text-slate-500">No skill data yet.</p></div>}
               </div>
 
-              {/* Recommended Focus */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border border-blue-200 dark:border-blue-800 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Recommended Focus Areas</h3>
-                <div className="space-y-2">
-                  {weakAreas.length > 0 ? weakAreas.map(topic => (
-                    <div key={topic} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />Additional practice recommended for <strong>{topic}</strong></div>
-                  )) : reports.length > 0 ? <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />All skills at expected level — no focus areas needed</div> : <div className="text-sm text-slate-500 dark:text-slate-400">Complete a diagnostic assessment to generate recommendations.</div>}
-                  {s.currentLevel < 93 && <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Next milestone: <strong>Level {Math.min(93, s.currentLevel + 1)}</strong></div>}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+  if (panel === 'adaptive_test') return <AdaptiveTestPanel />;
 
-        {/* ===== ACADEMIC TAB ===== */}
-        {profileTab === 'academic' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 space-y-6">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Academic Summary</h3>
-                <div className="space-y-2.5 text-sm">
-                  {[['Total Assessments', String(reports.length)], ['Avg Score', reports.length > 0 ? `${avgScore}%` : 'N/A'], ['Current Level', `L${s.currentLevel}.${s.currentSubLevel ?? 0}`], ['Target Level', `L${s.targetLevel}`], ['Sub-Level Status', s.currentSubLevel === 0 ? 'Mastery' : s.currentSubLevel === 1 ? 'Easier' : 'Remedial'], ['Day Streak', `${s.streak}`], ['Attendance', att ? `${att.percentage}% (${att.present}/${att.total} days)` : 'N/A']].map(([l, v]) => (
-                    <div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v}</span></div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Curriculum Coverage</h3>
-                <div className="space-y-2">
-                  {['Number Sense', 'Number Operations', 'Shapes & Geometry', 'Measurement', 'Patterns & Algebra', 'Data Handling'].map(strand => {
-                    const lvlForStrand = ['Number Sense', 'Number Operations'].includes(strand) ? s.currentLevel : Math.max(0, s.currentLevel - 5);
-                    const covered = lvlForStrand > 15;
-                    const partial = lvlForStrand > 8;
-                    return <div key={strand} className="flex items-center justify-between gap-2 text-sm py-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className={`${covered ? 'text-emerald-600' : partial ? 'text-amber-500' : 'text-slate-300'}`}>{covered ? '✓' : partial ? '◐' : '○'}</span>
-                        <span className={covered ? 'text-slate-800 dark:text-slate-100 font-medium' : 'text-slate-400 dark:text-slate-500'}>{strand}</span>
-                      </div>
-                      <span className={`text-[9px] font-mono ${covered ? 'text-emerald-600' : partial ? 'text-amber-500' : 'text-slate-300'}`}>{covered ? 'Covered' : partial ? 'Partial' : 'Not Started'}</span>
-                    </div>;
-                  })}
-                </div>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Progress Highlights</h3>
-                <div className="space-y-2 text-sm">
-                  {reports.length > 0 && <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Best Score</span><span className="font-bold text-emerald-600">{Math.max(...reports.map(r => Math.round((r.score / r.totalQuestions) * 100)))}%</span></div>}
-                  {reports.length > 0 && <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Recent Score</span><span className="font-bold text-slate-800 dark:text-slate-100">{Math.round((reports[reports.length - 1].score / reports[reports.length - 1].totalQuestions) * 100)}%</span></div>}
-                  <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Levels Gained</span><span className="font-bold text-slate-800 dark:text-slate-100">{s.levelHistory.length > 0 ? s.currentLevel - s.levelHistory[0].level : 0}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Strong Skills</span><span className="font-bold text-slate-800 dark:text-slate-100">{latestSkills.filter(([_, m]) => m === 'Strong').length}/{latestSkills.length}</span></div>
-                  {s.levelHistory.length > 0 && <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Since</span><span className="font-mono text-xs text-slate-600 dark:text-slate-300">{s.levelHistory[0].date}</span></div>}
-                </div>
-              </div>
-            </div>
-            <div className="lg:col-span-2 space-y-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">All Assessment Reports</h3>
-                {reports.length > 0 ? <div className="space-y-4">{reports.map(r => {
-                  const scorePct = Math.round((r.score / r.totalQuestions) * 100);
-                  return (
-                    <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300'}`}>{scorePct}%</div>
-                          <div><span className="text-sm font-semibold text-slate-900 dark:text-white">{r.worksheetId}</span><div className="text-[10px] text-slate-400 dark:text-slate-500">{new Date(r.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${scorePct >= 80 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : scorePct >= 60 ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{r.score}/{r.totalQuestions}</span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{r.narrative}</p>
-                      <div className="flex flex-wrap gap-1.5">{Object.entries(r.conceptMastery).map(([t, m]) => (
-                        <span key={t} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${m === 'Strong' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : m === 'Satisfactory' ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}>{t}: {m}</span>
-                      ))}</div>
-                      
-                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                        <button onClick={() => setExpandedReportId(expandedReportId === r.id ? null : r.id)} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                          {expandedReportId === r.id ? 'Hide Exam Sheet' : '📋 View Student Exam Responses'}
-                        </button>
-                        <button onClick={() => {
-                          const examResponses = s.id === 's1' ? [
-                            { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
-                            { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
-                            { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
-                            { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
-                            { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
-                          ] : s.id === 's2' ? [
-                            { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
-                            { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
-                            { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
-                            { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                          ] : [
-                            { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
-                            { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
-                            { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
-                            { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                          ];
-                          handleDownloadPDF(s, r, examResponses);
-                        }} className="text-xs font-semibold text-emerald-650 hover:text-emerald-800 flex items-center gap-1">
-                          📥 Download PDF Report
-                        </button>
-                      </div>
+  if (panel === 'test_history') return <TestHistoryPanel currentUser={currentUser} token={token} />;
 
-                      {expandedReportId === r.id && (
-                        <div className="mt-3 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 text-xs">
-                          <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">Side-by-Side Exam Grader Report</div>
-                          <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {(s.id === 's1' ? [
-                              { question: 'Q1: Match objects one-to-one (One-to-One Correspondence)', studentAnswer: '3 (incorrect match count)', correctAnswer: 'Matched all 5 items', status: 'Incorrect' },
-                              { question: 'Q2: Odd One Out - Select non-conforming object from [ball, book, table, pen]', studentAnswer: 'B (Book)', correctAnswer: 'table (furniture classification)', status: 'Incorrect' },
-                              { question: 'Q3: Single Digit Addition - Solve: 5 + 4 = ?', studentAnswer: '9', correctAnswer: '9', status: 'Correct' },
-                              { question: 'Q4: Single Digit Subtraction - Solve: 8 - 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' },
-                              { question: 'Q5: Identify shape with 3 corners and 3 straight sides', studentAnswer: 'Triangle', correctAnswer: 'Triangle', status: 'Correct' }
-                            ] : s.id === 's2' ? [
-                              { question: 'Q1: Counting up to 10 - Count the apples: 🍎🍎🍎🍎', studentAnswer: '4', correctAnswer: '4', status: 'Correct' },
-                              { question: 'Q2: Odd One Out - Select non-matching item: [square, circle, red-block, triangle]', studentAnswer: 'red-block', correctAnswer: 'red-block', status: 'Correct' },
-                              { question: 'Q3: Pattern recognition - What comes next in sequence: 🔴🔵🔴🔵 ?', studentAnswer: '🔵', correctAnswer: '🔴', status: 'Incorrect' },
-                              { question: 'Q4: Simple Addition - Solve: 3 + 2 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                            ] : [
-                              { question: 'Q1: Place Value Designation - What is the value of 7 in 372?', studentAnswer: '70 (7 tens)', correctAnswer: '70', status: 'Correct' },
-                              { question: 'Q2: Single-Digit Multiplication - Solve: 6 × 3 = ?', studentAnswer: '18', correctAnswer: '18', status: 'Correct' },
-                              { question: 'Q3: Double-Digit Subtraction with Borrowing - Solve: 42 - 17 = ?', studentAnswer: '25', correctAnswer: '25', status: 'Correct' },
-                              { question: 'Q4: Simple Division - Solve: 15 ÷ 3 = ?', studentAnswer: '5', correctAnswer: '5', status: 'Correct' }
-                            ]).map((item: any, idx: number) => (
-                              <div key={idx} className="p-3 space-y-1">
-                                <div className="font-semibold text-slate-800 dark:text-slate-100">{item.question}</div>
-                                <div className="grid grid-cols-2 gap-2 mt-1 pt-1 border-t border-dotted border-slate-200 dark:border-slate-700">
-                                  <div>
-                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Student Response</span>
-                                    <span className={`font-medium ${item.status === 'Correct' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>{item.studentAnswer}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-mono block">Correct Keys</span>
-                                    <span className="font-medium text-slate-800 dark:text-slate-100">{item.correctAnswer}</span>
-                                  </div>
-                                </div>
-                                <div className="pt-1">
-                                  <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold font-mono rounded ${item.status === 'Correct' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'}`}>{item.status === 'Correct' ? 'PASS' : 'FAIL'}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}</div> : <div className="text-center py-8"><p className="text-xs text-slate-400 dark:text-slate-500">No assessment reports yet.</p></div>}
-              </div>
-            </div>
-          </div>
-        )}
+  if (panel === 'worksheets') return <WorksheetsPanel reportsList={reportsList} worksheetsList={worksheetsList} students={students} currentUser={currentUser} token={token} refreshStudents={refreshStudents} />;
 
-        {/* ===== PERSONAL TAB ===== */}
-        {profileTab === 'personal' && (
-          <div className="space-y-6">
-            {canEditProfile && (
-              <div className="flex justify-end">
-                {editingProfile ? (
-                  <div className="flex gap-2">
-                    <button onClick={() => setEditingProfile(false)} disabled={savingProfile} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Cancel</button>
-                    <button onClick={saveProfile} disabled={savingProfile} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">{savingProfile ? 'Saving…' : 'Save Changes'}</button>
-                  </div>
-                ) : (
-                  <button onClick={startEditingProfile} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Edit Profile</button>
-                )}
-              </div>
-            )}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
-                <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Personal Information</h3>
-                <div className="space-y-2.5 text-sm">{[
-                  ['Full Name', s.name], ['Age', `${s.age} years`], ['Aadhar Number', s.aadharMasked], ['Class & Section', `${s.classGroup} - ${s.section}`], ['School', studentSchool?.name || 'N/A'], ['School ID', s.schoolId], ['Current Level', `L${s.currentLevel}`],
-                ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
-                {editingProfile ? (
-                  <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <label className="block text-xs text-slate-500 dark:text-slate-400">Gender
-                      <select value={profileDraft.gender || ''} onChange={e => setProfileDraft(d => ({ ...d, gender: e.target.value as Student['gender'] }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950">
-                        <option value="">Not set</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
-                      </select>
-                    </label>
-                    <label className="block text-xs text-slate-500 dark:text-slate-400">Date of Birth
-                      <input type="date" value={profileDraft.dob || ''} onChange={e => setProfileDraft(d => ({ ...d, dob: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
-                    </label>
-                    <label className="block text-xs text-slate-500 dark:text-slate-400">Blood Group
-                      <input type="text" placeholder="e.g. B+" value={profileDraft.bloodGroup || ''} onChange={e => setProfileDraft(d => ({ ...d, bloodGroup: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
-                    </label>
-                    <label className="block text-xs text-slate-500 dark:text-slate-400">Disability Status
-                      <input type="text" placeholder="e.g. None" value={profileDraft.disabilityStatus || ''} onChange={e => setProfileDraft(d => ({ ...d, disabilityStatus: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
-                    </label>
-                  </div>
-                ) : (
-                  <div className="space-y-2.5 text-sm pt-2 border-t border-slate-100 dark:border-slate-800">{[
-                    ['Gender', s.gender || 'N/A'], ['Date of Birth', s.dob || 'N/A'], ['Blood Group', s.bloodGroup || 'N/A'], ['Disability Status', s.disabilityStatus || 'None recorded'],
-                  ].map(([l, v]) => (<div key={l as string} className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
-                )}
-              </div>
-              <div className="space-y-6">
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
-                  <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Guardian & Contact</h3>
-                  {editingProfile ? (
-                    <div className="space-y-2.5">
-                      <label className="block text-xs text-slate-500 dark:text-slate-400">Guardian Name
-                        <input type="text" value={profileDraft.guardianName || ''} onChange={e => setProfileDraft(d => ({ ...d, guardianName: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
-                      </label>
-                      <label className="block text-xs text-slate-500 dark:text-slate-400">Relation
-                        <input type="text" placeholder="e.g. Father, Mother" value={profileDraft.guardianRelation || ''} onChange={e => setProfileDraft(d => ({ ...d, guardianRelation: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
-                      </label>
-                      <label className="block text-xs text-slate-500 dark:text-slate-400">Contact Number
-                        <input type="tel" value={profileDraft.guardianContact || ''} onChange={e => setProfileDraft(d => ({ ...d, guardianContact: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
-                      </label>
-                      <label className="block text-xs text-slate-500 dark:text-slate-400">Residential Address
-                        <textarea value={profileDraft.address || ''} onChange={e => setProfileDraft(d => ({ ...d, address: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" rows={2} />
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="space-y-2.5 text-sm">{[
-                      ['Guardian Name', s.guardianName || 'N/A'], ['Relation', s.guardianRelation || 'N/A'],
-                      ['Contact Number', s.guardianContact || (canSeeGuardianPII ? 'N/A' : 'Not visible to your role')],
-                      ['Residential Address', s.address || (canSeeGuardianPII ? 'N/A' : 'Not visible to your role')],
-                    ].map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100 text-right max-w-[55%]">{v}</span></div>))}</div>
-                  )}
-                </div>
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
-                  <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2"><FileText className="w-3.5 h-3.5" /> Logistics & Notes</h3>
-                  {editingProfile ? (
-                    <div className="space-y-2.5">
-                      <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                        <input type="checkbox" checked={!!profileDraft.midDayMealBeneficiary} onChange={e => setProfileDraft(d => ({ ...d, midDayMealBeneficiary: e.target.checked }))} /> Mid-Day Meal Beneficiary
-                      </label>
-                      <label className="block text-xs text-slate-500 dark:text-slate-400">Bus Route
-                        <input type="text" value={profileDraft.busRoute || ''} onChange={e => setProfileDraft(d => ({ ...d, busRoute: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
-                      </label>
-                      <label className="block text-xs text-slate-500 dark:text-slate-400">Siblings in School
-                        <input type="text" value={profileDraft.siblingsInSchool || ''} onChange={e => setProfileDraft(d => ({ ...d, siblingsInSchool: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" />
-                      </label>
-                      <label className="block text-xs text-slate-500 dark:text-slate-400">Teacher Notes
-                        <textarea value={profileDraft.teacherNotes || ''} onChange={e => setProfileDraft(d => ({ ...d, teacherNotes: e.target.value }))} className="mt-1 w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-950" rows={3} />
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="space-y-2.5 text-sm">
-                      {[['Mid-Day Meal', s.midDayMealBeneficiary === undefined ? 'N/A' : s.midDayMealBeneficiary ? 'Yes' : 'No'], ['Bus Route', s.busRoute || 'N/A'], ['Siblings in School', s.siblingsInSchool || 'N/A']]
-                        .map(([l, v]) => (<div key={l as string} className="flex justify-between border-b border-slate-50 dark:border-slate-800 pb-1.5"><span className="text-slate-500 dark:text-slate-400">{l}</span><span className="font-medium text-slate-800 dark:text-slate-100">{v}</span></div>))}
-                      <div className="pt-1"><span className="text-slate-500 dark:text-slate-400 block mb-1">Teacher Notes</span><p className="text-slate-800 dark:text-slate-100 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3 leading-relaxed">{s.teacherNotes || 'No notes recorded.'}</p></div>
-                    </div>
-                  )}
-                </div>
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                  <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Attendance Record</h3>
-                  {att ? (
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-500 dark:text-slate-400">Overall Attendance</span>
-                        <span className={`text-lg font-bold ${att.percentage >= 85 ? 'text-emerald-600' : att.percentage >= 75 ? 'text-amber-600' : 'text-red-600'}`}>{att.percentage}%</span>
-                      </div>
-                      <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all ${att.percentage >= 85 ? 'bg-emerald-500' : att.percentage >= 75 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${att.percentage}%` }} />
-                      </div>
-                      <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                        <span>Present: {att.present} days</span>
-                        <span>Total: {att.total} days</span>
-                        <span>Absent: {att.total - att.present} days</span>
-                      </div>
-                    </div>
-                  ) : <p className="text-xs text-slate-400 dark:text-slate-500">No attendance data available.</p>}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+  if (panel === 'performance') return <PerformancePanel students={students} currentUser={currentUser} />;
 
         {/* ===== ACTIVITY TAB ===== */}
         {profileTab === 'activity' && (
@@ -1657,497 +1431,72 @@ const students = apiStudents.length > 0 ? apiStudents : STUDENTS_FALLBACK;
   }
 
   // ===================== VOLUNTEER PANELS =====================
-  if (panel === 'assigned_schools') {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {['gps-vl-002', 'gps-jai-004', 'gps-lko-005', 'gps-amb-003'].map(id => {
-          const sch = schools.find(s => s.id === id);
-          if (!sch) return null;
-          const count = students.filter(s => s.schoolId === id).length;
-          return (
-            <div key={id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-3 hover:border-slate-400 dark:hover:border-slate-600 transition-all">
-              <div className="flex justify-between"><h3 className="font-bold text-slate-900 dark:text-white">{sch.name}</h3><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sch.strength === 'low' ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800' : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800'}`}>{sch.strength === 'low' ? 'Low-Strength' : 'High-Strength'}</span></div>
-              <div className="text-xs text-slate-400 dark:text-slate-500">{sch.stateCode} / {sch.districtCode} / {sch.blockCode}</div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs pt-2 border-t border-slate-100 dark:border-slate-700"><div><div className="font-bold text-slate-800 dark:text-slate-100">{count}</div><div className="text-slate-400 dark:text-slate-500">Students</div></div><div><div className="font-bold text-slate-800 dark:text-slate-100">{sch.teachersCount}</div><div className="text-slate-400 dark:text-slate-500">Teachers</div></div><div><div className="font-bold text-green-600 dark:text-green-400">{sch.isAccessLocked ? 'Locked' : 'Active'}</div><div className="text-slate-400 dark:text-slate-500">Status</div></div></div>
-              <button className="w-full text-xs font-medium bg-slate-900 text-white py-2 rounded-lg hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">Visit School</button>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
+  if (panel === 'assigned_schools') return <AssignedSchoolsPanel schools={schools} students={students} />;
 
-  if (panel === 'student_progress') {
-    return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Student Progress Tracking" desc="Monitor FLN level advancement across assigned schools" icon={<GraduationCap className="h-5 w-5" />} />
-        <div className="space-y-3">{students.sort((a, b) => b.currentLevel - a.currentLevel).map(s => (
-          <div key={s.id} className="flex items-center gap-4 p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
-            <div className="flex-1"><div className="font-medium text-sm">{s.name}</div><div className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup} · Streak: {s.streak}</div></div>
-            <div className="w-40"><div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1"><span>L{s.currentLevel}</span><span>Target L{s.targetLevel}</span></div><div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / s.targetLevel) * 100}%` }} /></div></div>
-            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.levelHistory.length > 0 ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.levelHistory.length > 0 ? 'Placed' : 'Pending'}</span>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
+  if (panel === 'student_progress') return <StudentProgressPanel students={students} />;
 
-  if (panel === 'attendance') {
-    const examAttendance = students.map(s => {
-      const reports = reportsList.filter(r => r.studentId === s.id);
-      const examsGiven = reports.length;
-      const lastExam = examsGiven > 0 ? new Date(Math.max(...reports.map(r => new Date(r.timestamp).getTime()))).toLocaleDateString() : 'N/A';
-      const avgScore = examsGiven > 0 ? Math.round(reports.reduce((a, r) => a + (r.score / r.totalQuestions) * 100, 0) / examsGiven) : 0;
-      return { student: s.name, class: `${s.classGroup} - ${s.section}`, examsGiven, lastExam, avgScore, placed: s.levelHistory.length > 0 };
-    });
-    const totalExams = examAttendance.reduce((a, e) => a + e.examsGiven, 0);
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <MetricCard title="Total Students" value={examAttendance.length} subtext="Assigned roster" icon={Users} />
-          <MetricCard title="Exams Conducted" value={totalExams} subtext="Across all students" icon={FileText} />
-          <MetricCard title="Avg Exams/Student" value={`${(totalExams / examAttendance.length).toFixed(1)}`} subtext="Participation rate" icon={BarChart3} />
-          <MetricCard title="Placed Students" value={examAttendance.filter(e => e.placed).length} subtext="Have level history" icon={Award} />
-        </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-          <PageHeader title="Exam Attendance Records" desc="Track which students have appeared for assessments and their performance" icon={<Calendar className="h-5 w-5" />} />
-          <div className="space-y-2 mt-4">{examAttendance.map(a => (
-            <div key={a.student} className="flex items-center gap-4 p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
-              <div className="flex items-center gap-3 w-8">{a.examsGiven > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <XCircle className="w-4 h-4 text-slate-300 dark:text-slate-600" />}</div>
-              <div className="flex-1 min-w-0"><span className="text-sm font-medium">{a.student}</span><span className="text-xs text-slate-400 dark:text-slate-500 ml-2">{a.class}</span></div>
-              <div className="flex items-center gap-6 text-sm shrink-0">
-                <div className="text-center"><div className="font-bold text-slate-900 dark:text-white">{a.examsGiven}</div><div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono uppercase">Exams</div></div>
-                <div className="text-center"><div className={`font-bold ${a.avgScore >= 70 ? 'text-emerald-600' : a.avgScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{a.examsGiven > 0 ? `${a.avgScore}%` : '—'}</div><div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono uppercase">Avg Score</div></div>
-                <div className="text-center"><div className="text-xs text-slate-500 dark:text-slate-400 font-mono">{a.lastExam}</div><div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono uppercase">Last Exam</div></div>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${a.placed ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{a.placed ? 'Placed' : 'Pending'}</span>
-              </div>
-            </div>
-          ))}</div>
-        </div>
-      </div>
-    );
-  }
+  if (panel === 'attendance') return <AttendancePanel students={students} reportsList={reportsList} />;
 
   // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
-  if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) {
-    const isBlockAdmin = currentUser.role === UserRole.BLOCK_ADMIN;
-    const schoolById = new Map<string, School>(schools.map(s => [s.id, s]));
+  if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) return <TeachersPanel schools={schools} teachersList={teachersList} currentUser={currentUser} />;
+
+  // Fix #446: Principal Students navigation (view='students') had no matching
+  // panel handler, so PanelViews returned null and rendered nothing.
+  // Reuse StudentListPanel — the same component used by teachers for
+  // 'student_list'. StudentListPanel already gates the Register/CSV-import
+  // actions behind isTeacherOrVolunteer, so the principal gets a read-only
+  // roster view without any code duplication.
+  if (panel === 'students' && currentUser.role === UserRole.SCHOOL) {
     return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Teacher Roster" desc={isBlockAdmin ? 'Teaching staff across your block' : 'Manage teaching staff at your school'} icon={<Users className="h-5 w-5" />} />
-        <div className="space-y-3">{teachersList.map((t: any) => (
-          <div key={t.id} className="flex justify-between items-center p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
-            <div>
-              <div className="font-semibold text-sm">{t.name}</div>
-              <div className="text-xs text-slate-400 dark:text-slate-500">
-                {t.email}{t.classes?.length ? ` · ${t.classes.join(', ')}` : ''}
-                {isBlockAdmin && t.schoolId && ` · ${schoolById.get(t.schoolId)?.name || t.schoolId}`}
-              </div>
-            </div>
-            <div className="text-right"><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${t.status === 'Active' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'}`}>{t.status}</span><div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t.studentsCount} students</div></div>
-          </div>
-        ))}</div>
-      </div>
+      <StudentListPanel
+        students={students}
+        studentsLoading={studentsLoading}
+        currentUser={currentUser}
+        token={token}
+        refreshStudents={refreshStudents}
+      />
     );
   }
 
   // ===================== BLOCK/DISTRICT/STATE ADMIN + SUPERADMIN SHARED PANELS =====================
-  if (panel === 'schools') {
-    const uniqueStateCodes = Array.from(new Set(schools.map(s => s.stateCode))) as string[];
-    const stateOpts = uniqueStateCodes.sort().map(c => ({ code: c, name: STATE_NAMES[c] || c }));
-    const filteredByState = schools.filter(s => stateFilter === 'all' || s.stateCode === stateFilter);
-    const uniqueDistCodes = Array.from(new Set(filteredByState.map(s => s.districtCode))) as string[];
-    const distOpts = uniqueDistCodes.sort().map(c => ({ code: c, name: DISTRICT_NAMES[c] || c }));
-    const filteredByDist = filteredByState.filter(s => distFilter === 'all' || s.districtCode === distFilter);
-    const uniqueBlockCodes = Array.from(new Set(filteredByDist.map(s => s.blockCode))) as string[];
-    const blockOpts = uniqueBlockCodes.sort().map(c => ({ code: c, name: BLOCK_NAMES[c] || c }));
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-wrap gap-3 items-end">
-          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">State</label><select value={stateFilter} onChange={e => { setStateFilter(e.target.value); setDistFilter('all'); setBlockFilter('all'); }} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]">{stateOpts.map(s => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}<option value="all">All States</option></select></div>
-          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">District</label><select value={distFilter} onChange={e => { setDistFilter(e.target.value); setBlockFilter('all'); }} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]"><option value="all">All Districts</option>{distOpts.map(d => <option key={d.code} value={d.code}>{d.name} ({d.code})</option>)}</select></div>
-          <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Block</label><select value={blockFilter} onChange={e => setBlockFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]"><option value="all">All Blocks</option>{blockOpts.map(b => <option key={b.code} value={b.code}>{b.name} ({b.code})</option>)}</select></div>
-          <div className="text-xs text-slate-400 dark:text-slate-500 pb-1">Showing {filteredSchools.length} of {schools.length} schools</div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{filteredSchools.map(s => (
-          <div key={s.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-2">
-            <div className="flex justify-between"><h4 className="font-bold text-slate-900 dark:text-white text-sm">{s.name}</h4><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.strength === 'high' ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.strength}</span></div>
-            <div className="text-xs text-slate-400 dark:text-slate-500">{STATE_NAMES[s.stateCode] || s.stateCode} &rsaquo; {DISTRICT_NAMES[s.districtCode] || s.districtCode} &rsaquo; {BLOCK_NAMES[s.blockCode] || s.blockCode}</div>
-            <div className="flex gap-4 text-xs pt-1 border-t border-slate-100 dark:border-slate-700"><span>👨‍🏫 {s.teachersCount} teachers</span><span className={s.isAccessLocked ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}>{s.isAccessLocked ? '🔒 Locked' : '🔓 Active'}</span></div>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
+  if (panel === 'schools') return <SchoolsPanel schools={schools} />;
 
-  if (panel === 'districts') {
-    const userState = currentUser.stateCode || 'PB';
-    const stateDistricts = getDistrictStats(userState);
-    const distSchools = expandedDist ? schools.filter(s => s.districtCode === expandedDist) : [];
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <MetricCard title="State Districts" value={stateDistricts.length} subtext={`${userState} jurisdiction`} icon={MapPin} />
-          <MetricCard title="Total Schools" value={stateDistricts.reduce((a, d) => a + d.schools, 0)} subtext="Registered facilities" icon={SchoolIcon} />
-          <MetricCard title="Total Students" value={stateDistricts.reduce((a, d) => a + d.students, 0)} subtext="Across all districts" icon={Users} />
-          <MetricCard title="Avg Certification" value={stateDistricts.length > 0 ? `${Math.round(stateDistricts.reduce((a, d) => a + d.certifiedRate, 0) / stateDistricts.length)}%` : '—'} subtext="State weighted average" icon={Award} />
-        </div>
+  if (panel === 'districts') return <DistrictsPanel currentUser={currentUser} schools={schools} students={students} getDistrictStats={getDistrictStats} />;
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* District list */}
-          <div className={`${expandedDist ? 'lg:col-span-1' : 'lg:col-span-3'} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm`}>
-            <PageHeader title="District Overview" desc={`${userState} — Performance metrics by district`} icon={<MapPin className="h-5 w-5" />} />
-            <div className="space-y-2 mt-4">{stateDistricts.map(d => {
-              const isExpanded = expandedDist === d.code;
-              const schoolList = schools.filter(s => s.districtCode === d.code);
-              const studentCount = schoolList.reduce((a, s) => a + (students.filter(st => st.schoolId === s.id).length), 0);
-              return (
-                <div key={d.code}>
-                  <button onClick={() => setExpandedDist(isExpanded ? null : d.code)} className={`w-full flex items-center gap-4 p-3 border rounded-lg text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${isExpanded ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950' : 'border-slate-100 dark:border-slate-700'}`}>
-                    <div className="w-16"><span className="font-bold text-sm">{d.code}</span><span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1">({d.state})</span></div>
-                    <div className="flex-1"><span className="text-sm font-semibold">{d.name}</span></div>
-                    <div className="flex gap-4 text-xs text-slate-500 dark:text-slate-400">
-                      <span><strong className="text-slate-800 dark:text-slate-100">{studentCount}</strong> students</span>
-                      <span><strong className="text-slate-800 dark:text-slate-100">{schoolList.length}</strong> schools</span>
-                    </div>
-                    <div className="w-24"><div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.certifiedRate}%` }} /></div><div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 text-right">{d.certifiedRate}% certified</div></div>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
-              );
-            })}</div>
-          </div>
-
-          {/* Schools in selected district */}
-          {expandedDist && (
-            <div className="lg:col-span-2 space-y-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Schools in {expandedDist}</h3>
-                  <button onClick={() => setExpandedDist(null)} className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 font-mono">Close</button>
-                </div>
-                <div className="grid grid-cols-1 gap-4">{distSchools.map(sch => {
-                  const schStudents = students.filter(st => st.schoolId === sch.id);
-                  const certified = schStudents.filter(st => st.currentLevel >= 5).length;
-                  const avgLevel = schStudents.length > 0 ? Math.round(schStudents.reduce((a, st) => a + st.currentLevel, 0) / schStudents.length) : 0;
-                  return (
-                    <div key={sch.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-slate-400 dark:hover:border-slate-600 transition-all">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-bold text-slate-900 dark:text-white">{sch.name}</h4>
-                          <p className="text-xs text-slate-400 dark:text-slate-500">{sch.id} · {sch.blockCode} · {sch.stateCode}/{sch.districtCode}</p>
-                        </div>
-                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sch.strength === 'high' ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{sch.strength}</span>
-                      </div>
-                      <div className="grid grid-cols-4 gap-4 mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{schStudents.length}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Students</div></div>
-                        <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">{sch.teachersCount}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Teachers</div></div>
-                        <div className="text-center"><div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{certified}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Certified</div></div>
-                        <div className="text-center"><div className="text-lg font-bold text-slate-900 dark:text-white">L{avgLevel}</div><div className="text-[10px] text-slate-400 dark:text-slate-500">Avg Level</div></div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1"><span>Certification Rate</span><span>{schStudents.length > 0 ? Math.round(certified / schStudents.length * 100) : 0}%</span></div>
-                        <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${schStudents.length > 0 ? (certified / schStudents.length) * 100 : 0}%` }} /></div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-1.5">{schStudents.map(st => (
-                        <span key={st.id} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${st.levelHistory.length > 0 ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'}`}>{st.name.split(' ')[0]} L{st.currentLevel}</span>
-                      ))}</div>
-                    </div>
-                  );
-                })}</div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (panel === 'blocks') {
-    const userDistrict = currentUser.districtCode || '';
-    const districtBlocks = getBlockStats(userDistrict);
-    return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Block Administration" desc="All blocks under your district jurisdiction" icon={<MapPin className="h-5 w-5" />} />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{districtBlocks.map(b => (
-          <div key={b.code} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between"><span className="font-bold text-sm">{b.name}</span><span className="text-xs text-slate-400 dark:text-slate-500">Dist: {DISTRICT_NAMES[b.district] || b.district}</span></div>
-            <div className="flex gap-4 text-xs"><span>🏫 {b.schools} schools</span><span>👨‍🎓 {b.students} students</span></div>
-            <div><div className="flex justify-between text-[10px] mb-0.5"><span>Certification</span><span>{b.certifiedRate}%</span></div><div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${b.certifiedRate}%` }} /></div></div>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
+  if (panel === 'blocks') return <BlocksPanel currentUser={currentUser} getBlockStats={getBlockStats} />;
 
   // ===================== SUPERADMIN PANELS =====================
-  if (panel === 'users') {
-    const roleLabel = (r: string) => r === 'superadmin' ? 'Super Admin' : r === 'admin' ? 'State Admin' : r === 'district_admin' ? 'District Admin' : r === 'block_admin' ? 'Block Admin' : r === 'school' ? 'Principal' : r === 'teacher' ? 'Teacher' : r === 'volunteer' ? 'Volunteer' : r;
-    const scopeLabel = (u: any) => u.stateCode ? [STATE_NAMES[u.stateCode] || u.stateCode, DISTRICT_NAMES[u.districtCode] || u.districtCode, BLOCK_NAMES[u.blockCode] || u.blockCode, u.schoolId].filter(Boolean).join(' › ') : 'National';
+  if (panel === 'users') return <UsersPanel usersList={usersList} />;
 
-    const userDisplayName = (u: any) => {
-      if (u.role === 'superadmin') return u.name;
-      if (u.role === 'admin') return `${STATE_NAMES[u.stateCode] || u.stateCode} State Admin`;
-      if (u.role === 'district_admin') return `${DISTRICT_NAMES[u.districtCode] || u.districtCode} District Admin`;
-      if (u.role === 'block_admin') return `${BLOCK_NAMES[u.blockCode] || u.blockCode} Block Admin`;
-      if (u.role === 'school') return `${u.name}`;
-      if (u.role === 'teacher') return `${u.name}`;
-      if (u.role === 'volunteer') return `${u.name}`;
-      return u.name;
-    };
 
-    const roleOrder = ['superadmin', 'admin', 'district_admin', 'block_admin', 'school', 'teacher', 'volunteer'];
-    const roleCounts = roleOrder.reduce((acc, r) => { acc[r] = usersList.filter((u: any) => u.role === r).length; return acc; }, {} as Record<string, number>);
+  if (panel === 'worksheet_templates') return <WorksheetTemplatesPanel />;
 
-    const filteredUsers = usersList.filter((u: any) => {
-      if (userRoleFilter !== 'all' && u.role !== userRoleFilter) return false;
-      if (userSearch) {
-        const q = userSearch.toLowerCase();
-        const name = userDisplayName(u).toLowerCase();
-        const email = (u.email || '').toLowerCase();
-        if (!name.includes(q) && !email.includes(q)) return false;
-      }
-      return true;
-    });
+  if (panel === 'content') return <ContentPanel />;
 
-    const roleFilterLabel = (r: string) => {
-      if (r === 'superadmin') return 'Super Admin';
-      if (r === 'admin') return 'State Admin';
-      if (r === 'district_admin') return 'District Admin';
-      if (r === 'block_admin') return 'Block Admin';
-      if (r === 'school') return 'Principal';
-      if (r === 'teacher') return 'Teacher';
-      if (r === 'volunteer') return 'Volunteer';
-      return r;
-    };
+  if (panel === 'analytics') return <AnalyticsPanel currentUser={currentUser} schools={schools} students={students} getDistrictStats={getDistrictStats} getBlockStats={getBlockStats} />;
 
+  if (panel === 'system_settings') return <SystemSettingsPanel />;
+
+  // Admin-only Step-Up Aadhaar Reveal (see backend/src/routes/aadhaarDetokenize.ts).
+  // The panel itself enforces role gating as a defence-in-depth; the menu
+  // also gates visibility to admin roles in Layout.tsx.
+  if (panel === 'aadhaar_reveal') {
     return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="User Management" desc={`All registered users across the FLN system (${usersList.length} total)`} icon={<Users className="h-5 w-5" />} />
-        <div className="flex flex-wrap gap-3 items-end">
-          <div>
-            <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Role</label>
-            <select value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[160px]">
-              <option value="all">All Roles</option>
-              {roleOrder.filter(r => roleCounts[r] > 0).map(r => (
-                <option key={r} value={r}>{roleFilterLabel(r)} ({roleCounts[r]})</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Search</label>
-            <input type="text" value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Name or email..." className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[200px]" />
-          </div>
-          <div className="text-xs text-slate-400 dark:text-slate-500 pb-1">Showing {filteredUsers.length} of {usersList.length} users</div>
-        </div>
-        <div className="space-y-2">{filteredUsers.map((u: any) => (
-          <div key={u.email} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
-            <div><div className="font-medium text-sm">{userDisplayName(u)}</div><div className="text-xs text-slate-400 dark:text-slate-500 font-mono">{u.email}</div></div>
-            <div className="flex items-center gap-3"><span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{roleLabel(u.role)}</span><span className="text-xs text-slate-400 dark:text-slate-500">{scopeLabel(u)}</span><span className="text-[10px] font-mono font-bold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">Active</span></div>
-          </div>
-        ))}</div>
-      </div>
+      <AadhaarRevealPanel
+        students={students}
+        currentUser={currentUser}
+        token={token}
+        onSelectView={onSelectView}
+      />
     );
   }
 
-
-  if (panel === 'worksheet_templates') {
-    return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-        <PageHeader title="Worksheet Templates" desc="Pre-designed assessment templates for each grade and cycle" icon={<ClipboardList className="h-5 w-5" />} />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{WS_TEMPLATES.map(t => (
-          <div key={t.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between"><span className="font-bold text-sm">{t.name}</span><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${t.status === 'Published' ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' : t.status === 'Draft' ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800' : 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800'}`}>{t.status}</span></div>
-            <div className="text-xs text-slate-400 dark:text-slate-500">{t.id} · Grade: {t.grade}</div>
-            <div className="flex gap-3 text-xs text-slate-500 dark:text-slate-400"><span>📝 {t.questions} questions</span><span>⏱ {t.duration}</span></div>
-          </div>
-        ))}</div>
-      </div>
-    );
-  }
-
-  if (panel === 'content') {
-    // Render the full 93-level FLN framework as cards, grouped by class
-    // (Preschool 1/2/3 + Class 1/2/3/4). All data comes from
-    // FLN_LEVELS_LIST in RoleDashboards — no backend fetch needed since
-    // the worksheet HTML is generated on demand by the worksheet engine
-    // when the user clicks "Open" / "Print".
-    const [search, setSearch] = useState('');
-    const [classFilter, setClassFilter] = useState<string>('ALL');
-
-    const classOrder = ['Preschool 1', 'Preschool 2', 'Preschool 3', 'Class 1', 'Class 2', 'Class 3', 'Class 4'];
-    const classesPresent = Array.from(new Set(FLN_LEVELS_LIST.map(l => l.class)))
-      .sort((a, b) => classOrder.indexOf(a) - classOrder.indexOf(b));
-
-    const filtered = FLN_LEVELS_LIST.filter(l => {
-      if (classFilter !== 'ALL' && l.class !== classFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return l.name.toLowerCase().includes(q) ||
-               l.strand.toLowerCase().includes(q) ||
-               String(l.id).includes(q);
-      }
-      return true;
-    });
-
-    return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <BookMarked className="h-5 w-5" />
-                FLN Level Content Library
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                All {FLN_LEVELS_LIST.length} FLN levels across {classesPresent.length} class groups.
-                Click a card to open the level's worksheet template.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search level name or strand..."
-                className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-2 text-xs w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <select
-                value={classFilter}
-                onChange={(e) => setClassFilter(e.target.value)}
-                className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="ALL">All Classes ({FLN_LEVELS_LIST.length})</option>
-                {classesPresent.map(c => (
-                  <option key={c} value={c}>
-                    {c} ({FLN_LEVELS_LIST.filter(l => l.class === c).length})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-1 text-[10px] font-mono">
-            {classOrder.filter(c => classesPresent.includes(c)).map(c => (
-              <button
-                key={c}
-                onClick={() => setClassFilter(c)}
-                className={`px-2.5 py-1 rounded-full border transition-colors ${
-                  classFilter === c
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400'
-                }`}
-              >
-                {c} · {FLN_LEVELS_LIST.filter(l => l.class === c).length}
-              </button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-6">
-            {filtered.map(level => (
-              <div
-                key={level.id}
-                className="text-left border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800"
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="inline-block text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                    Level {level.id}
-                  </span>
-                  <span className="text-[9px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                    {level.class}
-                  </span>
-                </div>
-                <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug min-h-[2.5rem]">
-                  {level.name}
-                </div>
-                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                  <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">
-                    {level.strand}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {filtered.length === 0 && (
-            <div className="text-center text-xs text-slate-400 dark:text-slate-500 py-12">
-              No levels match your search.
-            </div>
-          )}
-
-          {filtered.length > 0 && (
-            <div className="mt-4 text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right">
-              Showing {filtered.length} of {FLN_LEVELS_LIST.length} levels
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (panel === 'analytics') {
-    const isAdmin = [UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(currentUser.role);
-    let data: any[] = schools;
-    if (currentUser.role === UserRole.ADMIN) data = getDistrictStats(currentUser.stateCode || '');
-    else if (currentUser.role === UserRole.DISTRICT_ADMIN) data = getBlockStats(currentUser.districtCode || '');
-    else if (currentUser.role === UserRole.BLOCK_ADMIN) data = schools.filter(s => s.blockCode === currentUser.blockCode);
-    const title = isAdmin ? 'Geographical Analytics' : 'Performance Analytics';
-    const desc = isAdmin ? 'Cross-regional performance metrics and benchmarking' : 'School-level performance data and trends';
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <MetricCard title="Total Schools" value={schools.length} subtext="All facilities" icon={SchoolIcon} />
-          <MetricCard title="Total Students" value={students.length} subtext="Active roster" icon={Users} />
-          <MetricCard title="Avg FLN Level" value={students.length > 0 ? `L${Math.round(students.reduce((a, s) => a + s.currentLevel, 0) / students.length)}` : 'L0'} subtext="System average" icon={BarChart3} />
-          <MetricCard title="Certification Rate" value={students.length > 0 ? `${Math.round(students.filter(s => s.currentLevel >= 5).length / students.length * 100)}%` : '0%'} subtext="Level 5+ benchmark" icon={Award} />
-        </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-          <PageHeader title={title} desc={desc} icon={<BarChart3 className="h-5 w-5" />} />
-          <div className="space-y-3 mt-4">{data.map((d: any) => (
-            <div key={d.code || d.id} className="flex items-center gap-4 p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
-              <span className="font-bold text-sm w-20">{d.code || d.id}</span>
-              <span className="text-sm flex-1">{d.name || d.districtCode}</span>
-              <span className="text-xs text-slate-400 dark:text-slate-500 w-24">{d.schools || '—'} schools</span>
-              <div className="w-32"><div className="flex justify-between text-[10px] mb-0.5"><span>{d.certifiedRate || 0}%</span></div><div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.certifiedRate || 0}%` }} /></div></div>
-            </div>
-          ))}</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (panel === 'system_settings') {
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-          <PageHeader title="System Configuration" desc="Core platform settings and infrastructure" icon={<Settings className="h-5 w-5" />} />
-          <div className="space-y-3">{[
-            { label: 'Platform Name', value: 'National FLN Assessment Portal' },
-            { label: 'Version', value: 'v2.4.1 (Build 2026.07)' },
-            { label: 'Environment', value: 'Production' },
-            { label: 'Database', value: 'PostgreSQL 15.2 / Redis 7.0' },
-            { label: 'API Rate Limit', value: '1000 req/min per user' },
-            { label: 'Session Timeout', value: '120 minutes' },
-            { label: 'Auth Provider', value: 'Email + Password (SLA §3.2)' },
-            { label: 'AI Model', value: 'Gemini 1.5 Pro (Fine-tuned FLN)' },
-          ].map(c => (
-            <div key={c.label} className="flex justify-between text-sm py-2 border-b border-slate-50 dark:border-slate-800"><span className="text-slate-500 dark:text-slate-400">{c.label}</span><span className="font-medium text-slate-800 dark:text-slate-100 font-mono text-xs">{c.value}</span></div>
-          ))}</div>
-        </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
-          <PageHeader title="System Health" desc="Recent operational logs and status" icon={<Database className="h-5 w-5" />} />
-          <div className="space-y-2">{SYSTEM_LOGS_MOCK.map(l => (
-            <div key={l.action} className="flex items-center gap-3 p-2 border border-slate-100 dark:border-slate-700 rounded text-xs">
-              <span className={`w-2 h-2 rounded-full shrink-0 ${l.status === 'Success' ? 'bg-green-500' : l.status === 'Warning' ? 'bg-amber-500' : 'bg-red-500'}`} />
-              <span className="font-medium w-32">{l.action}</span>
-              <span className="text-slate-400 dark:text-slate-500 flex-1">{l.details}</span>
-              <span className="text-slate-400 dark:text-slate-500 font-mono">{l.timestamp}</span>
-            </div>
-          ))}</div>
-          <button className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mt-2"><RefreshCw className="w-3 h-3" /> Refresh Status</button>
-        </div>
-      </div>
-    );
+  // Account-level Authenticator enrollment (admin roles only — see
+  // Layout.tsx). The SecurityPanel is the ONLY place a QR is rendered;
+  // the per-student reveal dialog never renders a QR or calls the
+  // enroll endpoint. See CLAUDE.md "Hard invariant" on TOTP factors.
+  if (panel === 'security') {
+    return <SecurityPanel currentUser={currentUser} token={token} />;
   }
 
   // Fallback for any unmatched panel — renders the roles workspace (dashboard) as the content

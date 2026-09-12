@@ -22,6 +22,8 @@ import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import MisconceptionFingerprint from './components/MisconceptionFingerprint';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
 
 export default function App() {
@@ -97,6 +99,7 @@ export default function App() {
     const handleUnauthorized = () => {
       setToken(null);
       setCurrentUser(null);
+      setActivePanel('workspace');
       localStorage.removeItem('fln_token');
       setCurrentView('home');
       navigate('/');
@@ -110,6 +113,7 @@ export default function App() {
     setToken(newToken);
     localStorage.setItem('fln_token', newToken);
     setCurrentUser(user);
+    setActivePanel('workspace');
     setCurrentView('dashboard');
     navigate('/');
   };
@@ -126,30 +130,38 @@ export default function App() {
 
   const handleClearNotifications = () => setAnnouncements([]);
 
+  const handleNavigateHome = () => {
+    setCurrentView('home');
+    navigate('/');
+  };
+
   const handleLogout = () => {
     setToken(null);
     setCurrentUser(null);
+    setActivePanel('workspace');
     localStorage.removeItem('fln_token');
     setCurrentView('home');
     navigate('/');
   };
 
   const renderRoleWorkspace = () => {
+    // token is required by DashboardProps — without it the dashboards send
+    // "Bearer undefined" and every data fetch 401s.
     if (!currentUser || !token) return null;
 
     switch (currentUser.role) {
       case 'superadmin':
-return <SuperadminDashboard user={currentUser} token={token!} />;
+        return <SuperadminDashboard user={currentUser} token={token} />;
       case 'admin':
       case 'district_admin':
       case 'block_admin':
-        return <AdminDashboard user={currentUser} token={token!} />;
+        return <AdminDashboard user={currentUser} token={token} />;
       case 'school':
-        return <SchoolDashboard user={currentUser} token={token!} />;
+        return <SchoolDashboard user={currentUser} token={token} />;
       case 'teacher':
-        return <TeacherDashboard user={currentUser} token={token!} />;
+        return <TeacherDashboard user={currentUser} token={token!} onNavigate={setActivePanel} />;
       case 'volunteer':
-        return <VolunteerDashboard user={currentUser} token={token!} />;
+        return <VolunteerDashboard user={currentUser} token={token} />;
       default:
         return <div />;
     }
@@ -164,7 +176,12 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
         path="*"
         element={
           <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
-            {currentView === 'home' && <LandingView onNavigateToLogin={() => setCurrentView('login')} />}
+            {currentView === 'home' && (
+              <LandingView
+                isLoggedIn={!!(token && currentUser)}
+                onNavigateToLogin={() => setCurrentView(token && currentUser ? 'dashboard' : 'login')}
+              />
+            )}
             {currentView === 'login' && <LoginView onLoginSuccess={handleLoginSuccess} onBackToHome={() => setCurrentView('home')} />}
 
             {currentView === 'dashboard' && currentUser && token && (
@@ -177,6 +194,7 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                 onMarkNotificationRead={handleMarkNotificationRead}
                 onClearNotifications={handleClearNotifications}
                 onLogout={handleLogout}
+                onNavigateHome={handleNavigateHome}
                 isDark={isDark}
                 onThemeToggle={() => setIsDark(!isDark)}
               >
@@ -231,6 +249,7 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                 {activePanel === 'logbook' && <LogbookView token={token} user={currentUser} />}
                 {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role} />}
                 {activePanel === 'calendar' && <AssessmentCalendar />}
+                {activePanel === 'misconceptions' && <MisconceptionFingerprint token={token} />}
 
                 {activePanel === 'settings' && (
                   <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -276,8 +295,10 @@ return <SuperadminDashboard user={currentUser} token={token!} />;
                   </div>
                 )}
 
-                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications'].includes(activePanel) && (
-                  <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} />
+                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'misconceptions'].includes(activePanel) && (
+                  <ErrorBoundary label={activePanel}>
+                    <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectView={setActivePanel} />
+                  </ErrorBoundary>
                 )}
 
                 {toast && (

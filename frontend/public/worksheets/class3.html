@@ -46,10 +46,11 @@
   /* Keep the child details and QR visible; begin questions directly below. */
   .ws-fields{display:none;}
   .ws-header{min-height:18mm;box-sizing:border-box;}
-  .section{margin:8px 0 12px 0;}
+  .section{margin:8px 0 20px 0;padding-bottom:6px;border-bottom:1px dashed #d1d5db;}
+  .section:last-of-type{border-bottom:none;}
   .section, table, tr{break-inside:avoid;page-break-inside:avoid;}
-  .section h2{font-size:13px;background:#000;color:#fff;padding:3px 7px;margin:0 0 5px 0;display:inline-block;}
-  .instr{font-size:11.5px;font-style:italic;margin:0 0 4px 0;}
+  .section h2{font-size:13px;background:#000;color:#fff;padding:3px 7px;margin:0 0 5px 0;display:none;}
+  .instr{font-size:14px;font-style:italic;font-weight:normal;color:#6b7280;margin:0 0 8px 0;letter-spacing:0.2px;}
   table.wstable{width:100%;border-collapse:collapse;margin:3px 0;}
   table.wstable td,table.wstable th{border:1.4px solid #000;padding:4px 6px;vertical-align:middle;font-size:12px;}
   td.rn{width:22px;text-align:center;font-weight:bold;font-size:12px;}
@@ -426,7 +427,7 @@ const ICR_DETECT_MAP = {
 /* ===== SECTIONS ===== */
 function section1(secObj){
   const starts=[1,11,21,31,41,51,61,71,81,91];
-  const rows=sample(starts,4).sort((a,b)=>a-b);
+  const rows=sample(starts,2).sort((a,b)=>a-b);
   let html='<p class="instr">Fill in the missing numbers.</p>';
   rows.forEach((s,rowIdx)=>{
     const nums=[];for(let i=0;i<8;i++){if(s+i<=100)nums.push(s+i);}
@@ -436,9 +437,9 @@ function section1(secObj){
       if(blanks.has(i)){
         blankList.push({position:i+1,value:n});
         const id=`q1-row${rowIdx+1}-b${i+1}`;
-        return `<td style="width:30px;text-align:center;border:1px solid #000;padding:3px;"><span data-omr="${id}" style="display:inline-block;border-bottom:1.4px solid #000;width:22px;"> </span></td>`;
+        return `<td style="width:38px;height:30px;text-align:center;border:1px solid #000;padding:4px;"><span data-omr="${id}" style="display:inline-block;border-bottom:1.4px solid #000;width:26px;"> </span></td>`;
       }
-      return `<td style="width:30px;text-align:center;border:1px solid #000;padding:3px;font-size:13px;">${n}</td>`;
+      return `<td style="width:38px;height:30px;text-align:center;border:1px solid #000;padding:4px;font-size:18px;font-weight:bold;">${n}</td>`;
     });
     html+=`<table style="border-collapse:collapse;margin:2px 0;" data-omr="q1-row-${rowIdx+1}"><tr>${cells.join('')}</tr></table>`;
     secObj.items.push(mkItem(rowIdx+1,
@@ -450,7 +451,7 @@ function section1(secObj){
 
 /* ===== EXAMPLE: SECTION 2 (q2) ===== */
 function section2(secObj){
-  const types=shuffle(['eq','lt','gt','lt','gt']);
+  const types=shuffle(['eq','lt','gt','lt','gt']).slice(0,3);
   let questions='';
   types.forEach((t,i)=>{
     let a,b,sym;
@@ -458,11 +459,11 @@ function section2(secObj){
     else if(t==='lt'){a=ri(10,88);b=ri(a+1,99);sym='<';}
     else{a=ri(11,99);b=ri(10,a-1);sym='>';}
     const id=`q2-ans-${i+1}`;
-    questions+=`<div class="two-col-question"><span class="rn">${i+1}</span><span style="font-size:15px;font-weight:bold;">${a} &nbsp;<span data-omr="${id}" class="compbox"></span>&nbsp; ${b}</span></div>`;
+    questions+=`<div class="two-col-question" style="border:none;padding:5px 7px;min-height:42px;display:flex;align-items:center;justify-content:flex-start;gap:6px;"><span class="rn">${i+1}</span><span style="font-size:18px;font-weight:bold;">${a} &nbsp;<span data-omr="${id}" class="compbox"></span>&nbsp; ${b}</span></div>`;
     secObj.items.push(mkItem(i+1,{question:i+1,left:a,right:b,answer:sym},
       {detect:'handwritten_symbol',expected:sym,options:['<','>','=']}));
   });
-  return `<p class="instr">Put &lt;, &gt;, or = in the box.</p><div class="two-col-questions">${questions}</div>`;
+  return `<p class="instr">Put &lt;, &gt;, or = in the box.</p><div class="two-col-questions" style="display:flex;flex-direction:column;gap:6px;margin:3px 0;">${questions}</div>`;
 }
 
 function section3(secObj){
@@ -478,14 +479,14 @@ function section3(secObj){
     ['⏢','Trapezium',4],
     ['◹','Parallelogram',4],
   ];
-  const chosen=sample(shapes,5);
+  const chosen=sample(shapes,2);
   let questions='';
   chosen.forEach(([sym,name,sides],i)=>{
     const id=`q3-ans-${i+1}`;
-    questions+=`<div class="two-col-question"><span class="rn">${i+1}</span><span style="font-size:22px;text-align:center;width:38px;">${sym}</span><span style="font-size:12px;flex:1;">${name}</span><span data-omr="${id}" class="blankline sm"></span></div>`;
+    questions+=`<div class="two-col-question" style="border:none;padding:5px 7px;min-height:42px;display:flex;align-items:center;justify-content:flex-start;gap:6px;"><span class="rn">${i+1}</span><span style="font-size:38px;text-align:center;width:60px;">${sym}</span><span data-omr="${id}" class="blankline sm"></span></div>`;
     secObj.items.push(mkItem(i+1,{question:i+1,symbol:sym,shape:name,answer:sides},{detect:'handwritten_digit',expected:sides}));
   });
-  return `<p class="instr">Write the number of sides for each shape.</p><div class="two-col-questions">${questions}</div>`;
+  return `<p class="instr">Write the number of sides for each shape.</p><div class="two-col-questions" style="display:flex;flex-direction:column;gap:6px;margin:3px 0;">${questions}</div>`;
 }
 
 function section4(secObj){
@@ -497,21 +498,14 @@ function section4(secObj){
     ()=>{const s=ri(1,4)*10;return mkPat([s,s+10,s+20,s+30,s+40],[s+50,s+60,s+70,s+80,s+90]);},
     ()=>{const s=ri(1,9)*3;return mkPat([s,s+3,s+6,s+9,s+12],[s+15,s+18,s+21,s+24,s+27]);},
   ];
-  const sPats=[
-    {text:`○ □ △ ○ □ △ ○ □ △ _____ _____ _____`,answer:'○, □, △',answerArr:['○','□','△']},
-    {text:`★ ♥ ★ ♥ ★ ♥ ★ _____ _____ _____`,answer:'♥, ★, ♥',answerArr:['♥','★','♥']},
-    {text:`△ △ ○ △ △ ○ △ △ ○ _____ _____ _____`,answer:'△, △, ○',answerArr:['△','△','○']},
-    {text:`□ ○ ○ □ ○ ○ □ ○ ○ _____ _____ _____`,answer:'□, ○, ○',answerArr:['□','○','○']},
-  ];
-  const all=[...sample(nPats,2).map(f=>f()),...sample(sPats,1)];
-  const mixed=shuffle(all);
+  const mixed=shuffle(sample(nPats,2).map(f=>f()));
   let rows='';
   mixed.forEach((p,i)=>{
     const id=`q4-ans-${i+1}`;
-    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:13px;letter-spacing:1px;" data-omr="${id}">${p.text}</td></tr>`;
+    rows+=`<tr><td class="rn" style="border:none;font-size:18px;font-weight:bold;padding:6px 8px;">${i+1}</td><td style="font-size:18px;letter-spacing:1px;border:none;padding:6px 8px;" data-omr="${id}">${p.text}</td></tr>`;
     secObj.items.push(mkItem(i+1,{question:i+1,pattern:p.text.split(',')[0]+'...',answer:p.answer},{detect:'fill_in_blank_sequence',expected:p.answerArr}));
   });
-  return `<p class="instr">Continue the pattern.</p><table class="wstable">${rows}</table>`;
+  return `<p class="instr">Continue the pattern.</p><table class="wstable" style="border:none;"><tbody style="border:none;">${rows}</tbody></table>`;
 }
 
 /* ===== EXAMPLE: SECTION 5 (q5, Addition) ===== */
@@ -521,8 +515,8 @@ function section5(secObj){
     const id=`q5-ans-${i+1}`;
     secObj.items.push(mkItem(i+1,{question:i+1,addend1:a,addend2:b,answer:a+b,expression:`${a} + ${b} = ${a+b}`},
       {detect:'handwritten_digit',expected:a+b}));
-    return `<div class="calcbox"><div class="qnum">${i+1}.</div><div class="top-num">${a}</div><div class="op-row"><span class="op-sym">+</span><span class="op-num">${b}</span></div><div class="ans-line">= <span data-omr="${id}" class="ansrect"></span></div></div>`;}).join('');
-  return `<div class="calcgrid">${boxes}</div>`;
+    return `<div class="calcbox" style="border:none;padding:8px 14px 10px;min-width:90px;display:inline-block;vertical-align:top;"><div class="qnum">${i+1}.</div><div class="top-num">${a}</div><div class="op-row"><span class="op-sym">+</span><span class="op-num">${b}</span></div><div class="ans-line">= <span data-omr="${id}" class="ansrect"></span></div></div>`;}).join('');
+  return `<p class="instr">Addition</p><div class="calcgrid">${boxes}</div>`;
 }
 
 function section6(secObj){
@@ -530,8 +524,8 @@ function section6(secObj){
   const boxes=probs.map(([a,b],i)=>{
     const id=`q6-ans-${i+1}`;
     secObj.items.push(mkItem(i+1,{question:i+1,minuend:a,subtrahend:b,answer:a-b,expression:`${a} - ${b} = ${a-b}`},{detect:'handwritten_digit',expected:a-b}));
-    return `<div class="calcbox"><div class="qnum">${i+1}.</div><div class="top-num">${a}</div><div class="op-row"><span class="op-sym">−</span><span class="op-num">${b}</span></div><div class="ans-line">= <span data-omr="${id}" class="ansrect"></span></div></div>`;}).join('');
-  return `<div class="calcgrid">${boxes}</div>`;
+    return `<div class="calcbox" style="border:none;padding:8px 14px 10px;min-width:90px;display:inline-block;vertical-align:top;"><div class="qnum">${i+1}.</div><div class="top-num">${a}</div><div class="op-row"><span class="op-sym">−</span><span class="op-num">${b}</span></div><div class="ans-line">= <span data-omr="${id}" class="ansrect"></span></div></div>`;}).join('');
+  return `<p class="instr">Subtraction</p><div class="calcgrid">${boxes}</div>`;
 }
 
 function section7(secObj){
@@ -558,15 +552,15 @@ function section7(secObj){
 function section8(secObj){
   const objs=['pencil','crayon','brush','marker','scissors'];
   const chosen=sample(objs,1);
-  const CLIP_W=34,CLIP_H=15,GAP=3;
+  const CLIP_W=46,CLIP_H=20,GAP=4;
   let html='';
   chosen.forEach((key,i)=>{
     const n=ri(5,9);
     const totalW=n*CLIP_W+(n-1)*GAP;
-    const objW=Math.max(120,totalW);
+    const objW=Math.max(160,totalW);
     const clipsHTML=Array.from({length:n},()=>clipIcon(CLIP_W,CLIP_H)).join('');
     const id=`q8-ans-${i+1}`;
-    html+=`<div class="lenrow"><div class="lenrow-num">${i+1}.</div><div class="lenrow-main"><div class="lenrow-object">${iconStretched(key,objW,56)}</div><div class="lenrow-clips" style="width:${objW}px;">${clipsHTML}</div></div><div class="lenrow-ans"><div data-omr="${id}" class="ans-square"></div><div class="ans-label"><span class="blankline sm"></span> clips</div></div></div>`;
+    html+=`<div class="lenrow" style="border:none;padding:10px 16px;font-size:18px;"><div class="lenrow-num" style="font-size:18px;">${i+1}.</div><div class="lenrow-main"><div class="lenrow-object">${iconStretched(key,objW,72)}</div><div class="lenrow-clips" style="width:${objW}px;">${clipsHTML}</div></div><div class="lenrow-ans"><div data-omr="${id}" style="display:inline-block;border:2px solid #000;border-radius:7px;width:54px;height:54px;"></div><div class="ans-label" style="font-size:16px;"><span style="display:inline-block;border-bottom:1.4px solid #000;width:42px;margin:0 3px;"> </span> clips</div></div></div>`;
     secObj.items.push(mkItem(i+1,{question:i+1,object:key,answer:n},{detect:'handwritten_digit',expected:n}));
   });
   return `<p class="instr">Measure each object using paper clips and write the number of clips.</p>${html}`;
@@ -574,12 +568,12 @@ function section8(secObj){
 
 function section9(secObj){
   const times=shuffle([[1,0],[2,30],[3,0],[4,30],[5,0],[6,0],[7,30],[8,0],[9,0],[10,30],[11,0],[12,0],[3,30],[6,30],[9,30]]);
-  const chosen=times.slice(0,4);
+  const chosen=times.slice(0,2);
   const items=chosen.map(([h,m],i)=>{
     const timeStr=`${h}:${String(m).padStart(2,'0')}`;
     const id=`q9-ans-${i+1}`;
     secObj.items.push(mkItem(i+1,{question:i+1,hour:h,minute:m,answer:timeStr},{detect:'handwritten_time',expected:timeStr}));
-    return `<div class="clock-item">${drawClock(h,m)}<div data-omr="${id}" class="clock-ansbox"></div></div>`;
+    return `<div class="clock-item"><div style="transform:scale(1.2);transform-origin:center;margin:6px 0 10px 0;">${drawClock(h,m)}</div><span data-omr="${id}" style="display:inline-block;border-bottom:1.8px solid #000;width:110px;height:22px;"></span></div>`;
   }).join('');
   return `<p class="instr">Write the time shown on each clock.</p><div class="clock-grid">${items}</div>`;
 }
@@ -595,10 +589,10 @@ function section10(secObj){
     const key2=d2.type==='coin'?coinMap[d2.v]:noteMap[d2.v];
     const sz=d1.type==='coin'?50:64; const sz2=d2.type==='coin'?50:64;
     const id=`q10-ans-${i+1}`;
-    rows+=`<tr><td class="rn">${i+1}</td><td style="text-align:center;padding:4px;">${icon(key1,sz)}<br><span style="font-size:10px;">₹${d1.v}</span></td><td style="text-align:center;font-size:16px;font-weight:bold;">+</td><td style="text-align:center;padding:4px;">${icon(key2,sz2)}<br><span style="font-size:10px;">₹${d2.v}</span></td><td style="text-align:center;">= <span data-omr="${id}" style="display:inline-block;border:2px solid #000;width:50px;height:28px;vertical-align:middle;"></span></td></tr>`;
+    rows+=`<tr><td class="rn" style="font-size:18px;font-weight:bold;border:none;">${i+1}</td><td style="text-align:center;padding:6px;border:none;"><div style="font-size:18px;">${icon(key1,sz)}</div><span style="font-size:14px;font-weight:bold;">₹${d1.v}</span></td><td style="text-align:center;font-size:22px;font-weight:bold;border:none;">+</td><td style="text-align:center;padding:6px;border:none;"><div style="font-size:18px;">${icon(key2,sz2)}</div><span style="font-size:14px;font-weight:bold;">₹${d2.v}</span></td><td style="text-align:center;border:none;font-size:18px;font-weight:bold;">= <span data-omr="${id}" style="display:inline-block;border:2px solid #000;width:64px;height:36px;vertical-align:middle;"></span></td></tr>`;
     secObj.items.push(mkItem(i+1,{question:i+1,amount1:d1.v,type1:d1.type,amount2:d2.v,type2:d2.type,answer:d1.v+d2.v},{detect:'handwritten_digit',expected:d1.v+d2.v}));
   }
-  return `<p class="instr">Add the value of the notes or coins and write the sum.</p><table class="wstable"><tr><th style="width:22px;">#</th><th>Amount 1</th><th style="width:24px;"></th><th>Amount 2</th><th>Sum</th></tr>${rows}</table>`;
+  return `<p class="instr">Add the value of the notes or coins and write the sum.</p><table class="wstable" style="border:none;"><tbody style="border:none;">${rows}</tbody></table>`;
 }
 
 function section11(secObj){
@@ -608,10 +602,11 @@ function section11(secObj){
       const nums=sample(pool,5);
     const id=`q11-ans-${i+1}`;
     const sorted=[...nums].sort((a,b)=>a-b);
-    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:12.5px;">Arrange in ascending order: <b>${nums.join(', ')}</b></td><td><span data-omr="${id}" class="blankline lg"></span></td></tr>`;
+    const boxes=Array.from({length:5},(_,k)=>`<span data-omr="${id}-${k+1}" style="display:inline-block;border:1.6px solid #000;width:36px;height:30px;margin:0 3px;vertical-align:middle;text-align:center;line-height:30px;font-size:18px;font-weight:bold;"></span>`).join('');
+    rows+=`<tr><td class="rn" style="font-size:18px;font-weight:bold;border:none;padding:6px 10px;">${i+1}</td><td style="font-size:18px;border:none;padding:6px 10px;"><b>${nums.join(', ')}</b></td><td style="border:none;padding:6px 10px;">${boxes}</td></tr>`;
     secObj.items.push(mkItem(i+1,{question:i+1,given:nums,answer:sorted.join(', ')},{detect:'handwritten_sequence',expected:sorted}));
   }
-  return `<p class="instr">Arrange the numbers from smallest to largest.</p><table class="wstable">${rows}</table>`;
+  return `<p class="instr">Arrange the numbers from smallest to largest.</p><table class="wstable" style="border:none;"><tbody style="border:none;">${rows}</tbody></table>`;
 }
 
 function section12(secObj){
@@ -621,10 +616,11 @@ function section12(secObj){
       const nums=sample(pool,5);
     const id=`q12-ans-${i+1}`;
     const sorted=[...nums].sort((a,b)=>b-a);
-    rows+=`<tr><td class="rn">${i+1}</td><td style="font-size:12.5px;">Arrange in descending order: <b>${nums.join(', ')}</b></td><td><span data-omr="${id}" class="blankline lg"></span></td></tr>`;
+    const boxes=Array.from({length:5},(_,k)=>`<span data-omr="${id}-${k+1}" style="display:inline-block;border:1.6px solid #000;width:36px;height:30px;margin:0 3px;vertical-align:middle;text-align:center;line-height:30px;font-size:18px;font-weight:bold;"></span>`).join('');
+    rows+=`<tr><td class="rn" style="font-size:18px;font-weight:bold;border:none;padding:6px 10px;">${i+1}</td><td style="font-size:18px;border:none;padding:6px 10px;"><b>${nums.join(', ')}</b></td><td style="border:none;padding:6px 10px;">${boxes}</td></tr>`;
     secObj.items.push(mkItem(i+1,{question:i+1,given:nums,answer:sorted.join(', ')},{detect:'handwritten_sequence',expected:sorted}));
   }
-  return `<p class="instr">Arrange the numbers from largest to smallest.</p><table class="wstable">${rows}</table>`;
+  return `<p class="instr">Arrange the numbers from largest to smallest.</p><table class="wstable" style="border:none;"><tbody style="border:none;">${rows}</tbody></table>`;
 }
 
 function section13(secObj){
@@ -672,21 +668,21 @@ function section13(secObj){
 }
 
 function section14(secObj){
-  const nums=sample([...Array(89).keys()].map(x=>x+11),3);
+  const nums=sample([...Array(89).keys()].map(x=>x+11),1);
   let rows1='';
   nums.forEach((n,i)=>{
     const idTens=`q14-p1-${i+1}-tens`, idOnes=`q14-p1-${i+1}-ones`;
-    rows1+=`<tr><td class="rn">${i+1}</td><td style="font-size:15px;font-weight:bold;">${n}</td><td style="font-size:13px;"><span data-omr="${idTens}" class="blankline sm"></span> tens + <span data-omr="${idOnes}" class="blankline sm"></span> ones</td></tr>`;
+    rows1+=`<tr><td class="rn" style="font-size:18px;font-weight:bold;border:none;padding:6px 10px;">${i+1}</td><td style="font-size:18px;font-weight:bold;border:none;padding:6px 10px;">${n}</td><td style="font-size:16px;border:none;padding:6px 10px;"><span data-omr="${idTens}" style="display:inline-block;border:1.6px solid #000;width:42px;height:30px;vertical-align:middle;text-align:center;line-height:30px;"></span> tens + <span data-omr="${idOnes}" style="display:inline-block;border:1.6px solid #000;width:42px;height:30px;vertical-align:middle;text-align:center;line-height:30px;"></span> ones</td></tr>`;
     secObj.items.push(mkItem(i+1,{question:i+1,part:1,number:n,tens:Math.floor(n/10),ones:n%10},{detect:'handwritten_digit_multi',fields:['tens','ones'],expected:{tens:Math.floor(n/10),ones:n%10}}));
   });
   let rows2='';
   for(let i=0;i<1;i++){
       const t=ri(1,9),o=ri(0,9);
       const id=`q14-p2-${i+1}-number`;
-    rows2+=`<tr><td class="rn">${i+1}</td><td style="font-size:13px;"><b>${t}</b> tens and <b>${o}</b> ${o===1?'one':'ones'} = </td><td><span data-omr="${id}" class="blankline sm"></span></td></tr>`;
+    rows2+=`<tr><td class="rn" style="font-size:18px;font-weight:bold;border:none;padding:6px 10px;">${i+1}</td><td style="font-size:16px;border:none;padding:6px 10px;"><b>${t}</b> tens and <b>${o}</b> ${o===1?'one':'ones'} = </td><td style="border:none;padding:6px 10px;"><span data-omr="${id}" style="display:inline-block;border:1.6px solid #000;width:60px;height:30px;vertical-align:middle;text-align:center;line-height:30px;font-size:18px;font-weight:bold;"></span></td></tr>`;
     secObj.items.push(mkItem(i+4,{question:i+4,part:2,tens:t,ones:o,number:t*10+o},{detect:'handwritten_digit',expected:t*10+o}));
   }
-  return `<p class="instr"><b>Part 1:</b> Write the tens and ones for each number.</p><table class="wstable" style="max-width:380px;">${rows1}</table><p class="instr" style="margin-top:8px;"><b>Part 2:</b> Write the number for each tens and ones.</p><table class="wstable" style="max-width:350px;">${rows2}</table>`;
+  return `<p class="instr"><b>Part 1:</b> Write the tens and ones for each number.</p><table class="wstable" style="border:none;max-width:420px;"><tbody style="border:none;">${rows1}</tbody></table><p class="instr"><b>Part 2:</b> Write the number for each tens and ones.</p><table class="wstable" style="border:none;max-width:380px;"><tbody style="border:none;">${rows2}</tbody></table>`;
 }
 
 function section16(secObj){
@@ -697,16 +693,14 @@ function section16(secObj){
     ['Colours',['Red','Blue','Green','Yellow','Orange','Purple']],
   ];
   const [topic,items]=pick(cats);
-  const counts=items.map(it=>[it,ri(1,10)]);
+  const counts=sample(items,4).map(it=>[it,ri(1,10)]);
   let rows='';
   counts.forEach(([item,cnt])=>{
     const tId=`q15-tally-${item.replace(/\s+/g,'_')}`;
-    const totId=`q15-total-${item.replace(/\s+/g,'_')}`;
-    rows+=`<tr><td style="font-size:12px;">${item}</td><td style="text-align:center;font-size:12px;">${cnt}</td><td data-omr="${tId}" style="min-width:90px;height:28px;">&nbsp;</td><td style="text-align:center;min-width:40px;"><span data-omr="${totId}" style="display:inline-block;border-bottom:1.4px solid #000;width:32px;"> </span></td></tr>`;
+    rows+=`<tr><td style="font-size:16px;font-weight:bold;padding:6px 10px;">${item}</td><td style="text-align:center;font-size:16px;font-weight:bold;padding:6px 10px;">${cnt}</td><td data-omr="${tId}" style="min-width:130px;height:34px;padding:6px 10px;">&nbsp;</td></tr>`;
     secObj.items.push(mkItem(null,{item,count:cnt,field:'tally'},{detect:'tally_marks',expected:tallyString(cnt)}));
-    secObj.items.push(mkItem(null,{item,count:cnt,field:'total'},{detect:'handwritten_digit',expected:cnt}));
   });
-  return `<p class="instr">Draw tally marks for each number and write the total.</p><table class="wstable"><tr><th>${topic}</th><th>No. of Students</th><th>Tally Marks</th><th>Total</th></tr>${rows}</table>`;
+  return `<p class="instr">Draw tally marks for each number (${topic}).</p><table class="wstable" style="max-width:520px;"><thead><tr><th style="font-size:16px;padding:6px 10px;">${topic}</th><th style="font-size:16px;padding:6px 10px;">No. of Students</th><th style="font-size:16px;padding:6px 10px;">Tally Marks</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 
@@ -715,8 +709,8 @@ function section18(secObj){
   const boxes=probs.map(([a,b],i)=>{
     const id=`q16-ans-${i+1}`;
     secObj.items.push(mkItem(i+1,{question:i+1,factor1:a,factor2:b,answer:a*b},{detect:'handwritten_digit',expected:a*b}));
-    return `<div class="mul-box"><div class="qnum">${i+1}.</div><div class="mn" style="text-align:right;">${a}</div><div class="op-row"><span class="op-s">×</span><span style="flex:1;text-align:right;font-size:22px;font-weight:bold;">${b}</span></div><div class="ans-line"><span data-omr="${id}" class="mul-ansbox"></span></div></div>`;}).join('');
-  return `<div class="muldiv-grid">${boxes}</div>`;
+    return `<div class="mul-box" style="border:none;padding:8px 14px 10px;min-width:90px;display:inline-block;vertical-align:top;"><div class="qnum">${i+1}.</div><div class="mn" style="text-align:right;">${a}</div><div class="op-row"><span class="op-s">×</span><span style="flex:1;text-align:right;font-size:22px;font-weight:bold;">${b}</span></div><div class="ans-line"><span data-omr="${id}" class="mul-ansbox"></span></div></div>`;}).join('');
+  return `<p class="instr">Multiplication</p><div class="muldiv-grid">${boxes}</div>`;
 }
 
 function section19(secObj){
@@ -726,7 +720,7 @@ function section19(secObj){
   const boxes=probs.map(([d,n],i)=>{
     const id=`q17-ans-${i+1}`;
     secObj.items.push(mkItem(i+1,{question:i+1,dividend:n,divisor:d,answer:n/d},{detect:'handwritten_digit',expected:n/d}));
-    return `<div class="div-box">
+    return `<div class="div-box" style="border:none;padding:8px 14px 10px;min-width:90px;display:inline-block;vertical-align:top;">
       <div class="qnum">${i+1}.</div>
       <div class="div-q-row"><span class="div-spacer">${d}</span><div data-omr="${id}" class="div-quotient-blank"></div></div>
       <div class="div-bracket-row"><span class="div-divisor">${d}</span><span class="div-bracket">${n}</span></div>
@@ -736,7 +730,7 @@ function section19(secObj){
         <div class="div-sub-row"><span class="div-rem-blank"></span></div>
       </div></div>
     </div>`;}).join('');
-  return `<div class="muldiv-grid">${boxes}</div>`;
+  return `<p class="instr">Division</p><div class="muldiv-grid">${boxes}</div>`;
 }
 const SECTIONS=[
   {t:'Section 1 — Missing Numbers (1 to 100)',plain:'Section 1 — Missing Numbers',fn:section1},
