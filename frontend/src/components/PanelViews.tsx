@@ -1,11 +1,5 @@
-import { apiFetch } from '../services/apiClient';
-import React, { useState, useEffect } from 'react';
-import { User, UserRole, Student, ClassGroup, School, Worksheet, LogEntry, Ticket } from '../types';
-import { Users, BookOpen, Calendar, ArrowRight, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, Building2, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
-import { Table, Column } from './Table';
-import { MetricCard } from './Card';
-import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
-import { FLN_LEVELS_LIST, parseCSVText, LevelBadge } from './RoleDashboards';
+import React from 'react';
+import { User, UserRole } from '../types';
 import { usePanelData } from './panels/usePanelData';
 import { AdaptiveTestPanel } from './panels/AdaptiveTestPanel';
 import { TestHistoryPanel } from './panels/TestHistoryPanel';
@@ -19,7 +13,6 @@ import { PerformancePanel } from './panels/PerformancePanel';
 import { WorksheetsPanel } from './panels/WorksheetsPanel';
 import { AssignedSchoolsPanel } from './panels/AssignedSchoolsPanel';
 import { StudentProgressPanel } from './panels/StudentProgressPanel';
-import { AttendancePanel } from './panels/AttendancePanel';
 import { TeachersPanel } from './panels/TeachersPanel';
 import { SchoolsPanel } from './panels/SchoolsPanel';
 import { UsersPanel } from './panels/UsersPanel';
@@ -28,6 +21,7 @@ import { DistrictsPanel } from './panels/DistrictsPanel';
 import { BlocksPanel } from './panels/BlocksPanel';
 import { AnalyticsPanel } from './panels/AnalyticsPanel';
 import { StudentProfilePanel } from './panels/StudentProfilePanel';
+import { AttendanceTracker } from './AttendanceTracker';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -43,15 +37,6 @@ interface PanelViewsProps {
   onSelectView?: (view: string) => void;
 }
 
-const CONTENT_ITEMS = [
-  { id: 'c1', title: 'Number Line 1-10', type: 'Visual Aid', level: 'L1-L4', language: 'English, Punjabi', status: 'Approved' },
-  { id: 'c2', title: 'Addition with Objects', type: 'Lesson Plan', level: 'L7-L12', language: 'English, Hindi', status: 'Approved' },
-  { id: 'c3', title: 'Place Value Chart', type: 'Poster', level: 'L24-L30', language: 'English, Punjabi', status: 'Draft' },
-  { id: 'c4', title: 'Multiplication Tables Song', type: 'Audio', level: 'L36-L41', language: 'English', status: 'Review' },
-  { id: 'c5', title: 'Fraction Pizza Activity', type: 'Worksheet', level: 'L45-L48', language: 'English, Hindi', status: 'Approved' },
-  { id: 'c6', title: 'Money Math Games', type: 'Activity', level: 'L46-L48', language: 'English', status: 'Draft' },
-];
-
 export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectView }) => {
   const {
     students, studentsLoading, schools, usersList, reportsList, worksheetsList, teachersList,
@@ -61,7 +46,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const panel = activePanel;
 
   // ===================== TEACHER PANELS =====================
-  if (panel === 'student_list') {
+  if (panel === 'student_list' || panel === 'students') {
     return (
       <StudentListPanel
         students={students}
@@ -73,9 +58,31 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  if (panel === 'student_profile') return <StudentProfilePanel students={students} studentsLoading={studentsLoading} schools={schools} reportsList={reportsList} worksheetsList={worksheetsList} currentUser={currentUser} token={token} updateStudentLocally={updateStudentLocally} />;
+  if (panel === 'student_profile') {
+    return (
+      <StudentProfilePanel
+        students={students}
+        studentsLoading={studentsLoading}
+        schools={schools}
+        reportsList={reportsList}
+        worksheetsList={worksheetsList}
+        currentUser={currentUser}
+        token={token}
+        updateStudentLocally={updateStudentLocally}
+      />
+    );
+  }
 
-  if (panel === 'diagnostic_test') return <DiagnosticTestPanel students={students} currentUser={currentUser} token={token} refreshStudents={refreshStudents} />;
+  if (panel === 'diagnostic_test') {
+    return (
+      <DiagnosticTestPanel
+        students={students}
+        currentUser={currentUser}
+        token={token}
+        refreshStudents={refreshStudents}
+      />
+    );
+  }
 
   if (panel === 'adaptive_test') return <AdaptiveTestPanel />;
 
@@ -86,15 +93,26 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'performance') return <PerformancePanel students={students} currentUser={currentUser} />;
 
 
-  // ===================== VOLUNTEER PANELS =====================
+  // ===================== VOLUNTEER & TEACHER ATTENDANCE PANELS =====================
   if (panel === 'assigned_schools') return <AssignedSchoolsPanel schools={schools} students={students} />;
 
   if (panel === 'student_progress') return <StudentProgressPanel students={students} />;
 
-  if (panel === 'attendance') return <AttendancePanel students={students} reportsList={reportsList} />;
+  if (panel === 'attendance') {
+    return (
+      <AttendanceTracker
+        token={token}
+        students={students}
+        currentUser={currentUser}
+        schools={schools}
+      />
+    );
+  }
 
   // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
-  if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) return <TeachersPanel schools={schools} teachersList={teachersList} currentUser={currentUser} />;
+  if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) {
+    return <TeachersPanel schools={schools} teachersList={teachersList} currentUser={currentUser} />;
+  }
 
   // Fix #446: Principal Students navigation (view='students') had no matching
   // panel handler, so PanelViews returned null and rendered nothing.
@@ -123,7 +141,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   // ===================== SUPERADMIN PANELS =====================
   if (panel === 'users') return <UsersPanel usersList={usersList} />;
-
 
   if (panel === 'worksheet_templates') return <WorksheetTemplatesPanel />;
 

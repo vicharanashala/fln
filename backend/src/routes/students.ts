@@ -136,10 +136,11 @@ export function registerStudentRoutes(app: express.Express) {
           ? Math.min(requestedLimit, DEFAULT_MAX_LIMIT)
           : DEFAULT_LIMIT);
 
-    // server-side role scoping
     let schoolScope: string | undefined;
     if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
       schoolScope = user.schoolId;
+    } else if (req.query.schoolId && typeof req.query.schoolId === 'string') {
+      schoolScope = req.query.schoolId;
     }
 
     // server-side search: `?q=foo` does a case-insensitive substring

@@ -11,18 +11,11 @@ const __dotenv_dir = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dotenv_dir, '..', '.env') });
 
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, CYCLE_NAMES } from './db';
-import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
-import { generateDiagnosticPaper } from './paperGenerator';
-import { generateQuestionsForLevel } from './levelGenerator';
-import * as levelsBackendClient from './levelsBackendClient';
-import { STATES_UTS } from './geoData';
+import { dbStore, connectDB } from './db';
 import { validateConceptPrerequisites } from './competencyPrerequisites';
-import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN, SEED_DEMO_PASSWORD_HASH } from './auth';
+import { registerAuthRoutes } from './routes/auth';
 import { registerAnnouncementRoutes } from './routes/announcements';
 import { registerStatsRoutes } from './routes/stats';
-import { registerAuthRoutes } from './routes/auth';
 import { registerTicketRoutes } from './routes/tickets';
 import { registerLogbookRoutes } from './routes/logbook';
 import { registerGeoRoutes } from './routes/geo';
@@ -42,14 +35,12 @@ import { registerQuestionLogicRoutes } from './routes/questionLogics';
 import { registerQuestionTemplateRoutes } from './routes/questionTemplates';
 import { registerQuestionOptionRoutes } from './routes/questionOptions';
 import { registerDiagnosticBulkRoutes } from './routes/diagnosticBulk';
+import { registerContentRoutes } from './routes/content';
+import { registerAttendanceRoutes } from './routes/attendance';
 import { registerMisconceptionRoutes } from './routes/misconceptions';
 import { registerCurriculumRoutes } from './routes/curriculum';
 import { registerQuestionBankRoutes } from './routes/questionBank';
-import { randomUUID } from 'crypto';
-import fs from 'fs';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { ROOT_DIR, PYTHON_BIN, AI_SERVICES_DIR } from './config';
+import { ROOT_DIR } from './config';
 
 // Safety net: the MongoDB driver occasionally rejects a connection AFTER
 // connectDB() has returned (the client class keeps background pools
@@ -171,6 +162,7 @@ async function gracefulShutdown(signal: NodeJS.Signals, httpServer: import('http
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
@@ -217,24 +209,16 @@ async function startServer() {
   app.use('/worksheets', express.static(path.join(ROOT_DIR, 'public', 'worksheets')));
 
   // --- API Endpoints ---
-
-registerStatsRoutes(app);
-
   registerAuthRoutes(app);
   registerAnnouncementRoutes(app);
+  registerStatsRoutes(app);
   registerTicketRoutes(app);
   registerLogbookRoutes(app);
-
   registerAdminRoutes(app);
-
   registerGeoRoutes(app);
-
   registerTeacherRoutes(app);
   registerSchoolRoutes(app);
-
-  // Classes
   registerClassRoutes(app);
-
   registerStudentRoutes(app);
   // Admin Step-Up detokenization (Aadhaar Vault — see aadhaarDetokenize.ts).
   registerAadhaarDetokenizeRoutes(app);
@@ -262,10 +246,10 @@ registerStatsRoutes(app);
   registerQuestionBankRoutes(app);
 
   // --- Intervention Tracking & Best Practices Repository ---
-
-  // Create a new intervention
   registerInterventionRoutes(app);
   registerBestPracticeRoutes(app);
+  registerContentRoutes(app);
+  registerAttendanceRoutes(app);
 
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).
