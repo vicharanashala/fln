@@ -2,6 +2,35 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import { dbStore, UserRole, User } from '../db';
 import { getAuthUser, sanitizeUser } from '../auth';
+import {
+  generateAdminId,
+  generateDistrictAdminId,
+  generateBlockAdminId,
+  generatePrincipalId,
+  generateVolunteerId,
+} from '../idGenerator';
+
+function generateIdForRole(role: UserRole): string {
+  switch (role) {
+    case UserRole.ADMIN:
+      return generateAdminId();
+
+    case UserRole.DISTRICT_ADMIN:
+      return generateDistrictAdminId();
+
+    case UserRole.BLOCK_ADMIN:
+      return generateBlockAdminId();
+
+    case UserRole.SCHOOL:
+      return generatePrincipalId();
+
+    case UserRole.VOLUNTEER:
+      return generateVolunteerId();
+
+    default:
+      throw new Error(`Unsupported generated user role: ${role}`);
+  }
+}
 
 export function registerAdminRoutes(app: express.Express) {
   // Admin Creation (by Superadmin)
@@ -30,7 +59,7 @@ export function registerAdminRoutes(app: express.Express) {
     }
 
     const newUser: User = {
-      id: 'u_' + Math.random().toString(36).substr(2, 9),
+      id: generateIdForRole(role as UserRole),
       name,
       email: email.toLowerCase(),
       role: role as UserRole,

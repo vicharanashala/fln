@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import { dbStore, UserRole, User } from '../db';
 import { getAuthUser, sanitizeUser } from '../auth';
+import { generateTeacherId } from '../idGenerator';
 
 // Coordinator registration: state -> district -> block -> school cascade, then
 // creating a teacher account scoped to the chosen school.
@@ -86,7 +87,7 @@ export function registerTeacherRoutes(app: express.Express) {
       return res.status(400).json({ error: 'User with this email already exists.' });
     }
 
-    const teacherId = 'u_' + Math.random().toString(36).substr(2, 9);
+    const teacherId = generateTeacherId();
     const newTeacher: User = {
       id: teacherId,
       name: `${firstName} ${lastName}`,
