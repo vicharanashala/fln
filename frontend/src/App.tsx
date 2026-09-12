@@ -22,6 +22,7 @@ import { LogbookView } from './components/LogbookView';
 import { TicketSubmission } from './components/TicketSubmission';
 import { AssessmentCalendar } from './components/AssessmentCalendar';
 import { PanelViews } from './components/PanelViews';
+import { OfflineSyncBadge } from './components/OfflineSyncBadge';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MisconceptionFingerprint from './components/MisconceptionFingerprint';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
@@ -94,6 +95,20 @@ export default function App() {
       cancelled = true;
     };
   }, [token]);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).then(async () => {
+      if (!('SyncManager' in window) || !navigator.onLine) return;
+      const registration = await navigator.serviceWorker.ready as any;
+      if (registration && typeof registration.sync?.register === 'function') {
+        await registration.sync.register('sync-scans');
+      }
+    }).catch((error) => {
+      console.warn('Service worker registration failed:', error);
+    });
+  }, []);
 
   useEffect(() => {
     const handleUnauthorized = () => {
@@ -176,6 +191,7 @@ export default function App() {
         path="*"
         element={
           <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+            <OfflineSyncBadge />
             {currentView === 'home' && (
               <LandingView
                 isLoggedIn={!!(token && currentUser)}

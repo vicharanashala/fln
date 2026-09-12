@@ -826,6 +826,9 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     }
   };
 
+  const handleScanQueued = (scanUuid: string) => {
+    setSuccess(`Scan saved offline and queued for sync (${scanUuid.slice(0, 8)}). Reconnect to process it automatically.`);
+    setError('');
   // Handler for BulkIcrScan's onBulkOcrSuccess callback. Stores the per-chunk
   // OCR results + name extraction results, then switches to a dedicated
   // 'bulk-select' step where the teacher picks one chunk (one student) at a
@@ -1391,6 +1394,19 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               </div>
             </div>
 
+            {/* Two-stage ICR scan: blue-pen filter with visible preview, then
+                OCR on the filtered image. The IcrTwoStageScan component owns
+                its own state (file picker, filter button, preview, OCR
+                button, timing display, error handling). On OCR success it
+                calls handleTwoStageResult to push the answers into the
+                existing verify step. */}
+            <IcrTwoStageScan
+              token={token}
+              uploadedFile={uploadedFile}
+              onOcrSuccess={handleTwoStageResult}
+              onScanQueued={handleScanQueued}
+              expectedCount={expectedQuestionCount}
+            />
             {/* Bulk-only controls: how many pages make up one student's paper.
                 FLN papers are 1-3 pages depending on the class; the teacher
                 tells us so we can split the merged PDF correctly. */}
