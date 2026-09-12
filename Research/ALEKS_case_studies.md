@@ -2,6 +2,16 @@
 
 > **Purpose:** Extract actionable lessons from ALEKS (Assessment and Learning in Knowledge Spaces) for application to the FLN platform.
 
+> **⚠ Provenance — added 2026-08-21. See `fln_source_verification_2026-08-21.md` §1.**
+>
+> **This file contains no citations of any kind** and reads as a summary of McGraw Hill's product description. Its account of the product is consistent with the public record, but **it is vendor material, not evidence.**
+>
+> **ALEKS is a commercial implementation of Knowledge Space Theory, not its source.** For the theory itself, cite the primary literature directly:
+> - Doignon, J.-P. & Falmagne, J.-Cl. (1985). "Spaces for the assessment of knowledge." *International Journal of Man-Machine Studies*, 23(2), 175–196.
+> - Falmagne, J.-C. & Doignon, J.-P. (2011). *Learning Spaces*. Springer. (Names ALEKS as its example application.)
+>
+> ALEKS itself may be cited only as an existence proof that the approach works at scale in a shipped product. Verified provenance: built at UC Irvine under Jean-Claude Falmagne with major NSF funding; licensed out 1997; acquired by McGraw Hill 2013. Falmagne's KST work spans NYU and UC Irvine, with Doignon at Université Libre de Bruxelles.
+
 ---
 
 ## Table of Contents
@@ -95,6 +105,10 @@ Output final knowledge profile → recommend next topics
 
 ## 5. Why 20–25 Questions Suffice
 
+> **⚠ Do not use this section to justify paper length (2026-08-21).** The 20–25 figure is a vendor performance claim with no study behind it, and it depends on **within-session adaptivity** — choosing each question after seeing the answer to the previous one. A printed paper is fixed before the child starts, so the number does not transfer. See §10 of this file, which already records this difference.
+>
+> Paper length must instead be **derived from the prerequisite graph** by apex selection: test only the levels that nothing else in the grade's set depends on, since passing those infers the rest.
+
 | Reason | Explanation |
 |---|---|
 | **Skill dependencies** | Mastering advanced skills implies mastery of prerequisites (e.g., correct subtraction confirms number recognition, counting, comparison, addition) |
@@ -145,6 +159,10 @@ Practice → Retrieval → Adaptive Scheduling → Interleaving → Spaced Revie
 ---
 
 ## 8. Knowledge Tracing (KT) Models
+
+> **Verified 2026-08-21** — unlike the rest of this file, the models below are real published literature and can be cited directly:
+> - **BKT** — Corbett, A. T. & Anderson, J. R. (1995), *User Modeling and User-Adapted Interaction*, 4, 253–278.
+> - **GKT** — Nakagawa, H., Iwasawa, Y. & Matsuo, Y. (2019), IEEE/WIC/ACM Web Intelligence. **This is the closest published architecture to this platform's**, and its stated weakness — "requires an accurate prerequisite graph" — is precisely why the level-network edge work matters.
 
 > KT models track mastery as an **evolving probability over time** — different from KST which maps feasible states.
 

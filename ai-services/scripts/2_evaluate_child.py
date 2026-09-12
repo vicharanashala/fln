@@ -95,6 +95,37 @@ class ChildEvaluator:
             self._save_evaluation()
             return self.result
 
+        # Short-circuit PASS when the student got every question right but
+        # the difficulty-distribution thresholds did not fire (e.g. the paper
+        # has zero easy or zero hard questions, so easy_pct/hard_pct are 0%
+        # even though the student demonstrated full mastery). The threshold
+        # check above only makes sense when each difficulty bucket actually
+        # contains questions; for diagnostics that only span one difficulty
+        # band we must not drop a perfect score into the LLM/fallback path,
+        # where it would otherwise be assigned fabricated failure content.
+        if len(wrong_answers) == 0 and len(all_comparisons) > 0:
+            print("[OK] FLN PASS - all answers correct (mastery across assessed competencies)")
+            self.result = {
+                "student_id": comparison['student_id'],
+                "student_name": comparison.get('student_name', 'Unknown'),
+                "test_date": comparison['test_date'],
+                "enrolled_class": comparison['enrolled_class'],
+                "decision": "PASS",
+                "fln_status": "pass",
+                "demonstrated_level": f"Class {enrolled}",
+                "boundary_level": f"Class {enrolled + 1}",
+                "confidence_score": 0.95,
+                "wrong_count": 0,
+                "total_questions": len(all_comparisons),
+                "wrong_percentage": 0.0,
+                "performance_by_difficulty": perf_by_diff,
+                "reason": f"All {len(all_comparisons)} assessed questions answered correctly. Mastery demonstrated across all assessed competencies.",
+                "recommendation": f"Child has mastered foundational concepts for Class {enrolled}. Ready to continue with Class {enrolled} curriculum.",
+                "next_level_assignment": f"Class {enrolled}"
+            }
+            self._save_evaluation()
+            return self.result
+
         print(f"  Easy: {easy_pct:.0f}% (need >=90%), Medium: {medium_pct:.0f}% (need >=50%), Hard: {hard_pct:.0f}% (need >=40%)")
         print("[*] Calling AI model for evaluation...\n")
         wrong_percentage = comparison['stats']['wrong_percentage']
@@ -162,6 +193,7 @@ class ChildEvaluator:
         if result is None:
             print(f"[!] API call failed or key is missing. Using deterministic fallback evaluation.")
             failed_levels = []
+            failed_fln_levels = []
             for w in wrong_answers:
                 q_class = w.get("class", comparison.get("enrolled_class", 1))
                 if q_class:
@@ -169,14 +201,50 @@ class ChildEvaluator:
                         failed_levels.append(int(q_class))
                     except:
                         pass
-            
+                # 1_compare_answers.py records the paper's source_level as
+                # `fln_level` on each comparison row, so the deterministic
+                # fallback can show the actual 93-level framework level
+                # rather than the unknown "Level ?" the prior version emitted.
+                w_fln = w.get("fln_level")
+                if w_fln is not None:
+                    try:
+                        failed_fln_levels.append(int(w_fln))
+                    except:
+                        pass
+
             if failed_levels:
                 demonstrated_level = min(failed_levels)
             else:
                 demonstrated_level = int(comparison.get("enrolled_class", 1))
-            
+
+            # Build root_causes from the actual wrong answers so the
+            # downstream report shows real fln_level / topic / concept names
+            # rather than the "? / ? / Error: conceptual" the prior
+            # fallback emitted.
+            fallback_root_causes = []
+            seen_concepts = set()
+            for w in wrong_answers:
+                fln = w.get("fln_level")
+                topic = w.get("topic") or "Arithmetic"
+                cid = w.get("concept_id")
+                ctitle = w.get("concept_title")
+                key = (cid or topic, fln)
+                if key in seen_concepts:
+                    continue
+                seen_concepts.add(key)
+                fallback_root_causes.append({
+                    "fln_level": fln,
+                    "topic": topic,
+                    "concept_id": cid,
+                    "concept_title": ctitle,
+                    "error_type": "conceptual",
+                    "analysis": "student has gaps in foundational topics"
+                })
+            if not fallback_root_causes:
+                fallback_root_causes = [{"error_type": "conceptual", "analysis": "student has gaps in foundational topics"}]
+
             ai_eval = {
-                "root_causes": [{"error_type": "conceptual", "analysis": "student has gaps in foundational topics"}],
+                "root_causes": fallback_root_causes,
                 "topics_to_focus": list(set([w.get("topic", "Arithmetic") for w in wrong_answers if w.get("topic")])),
                 "prerequisites_to_check": [],
                 "recommendation": "Focused practice and worksheet drills on weak topics.",
@@ -184,6 +252,7 @@ class ChildEvaluator:
                 "assigned_level": demonstrated_level,
                 "confidence_score": 0.8,
                 "levels_failed": list(set(failed_levels)),
+                "fln_levels_failed": list(set(failed_fln_levels)),
                 "assign_reason": "Deterministic fallback based on wrong answers"
             }
         else:

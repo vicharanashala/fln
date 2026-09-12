@@ -8237,6 +8237,33 @@ function levelSublevelIds(level){
   return Array.from({length:level.subs},(_,i)=>level.id+'.'+i);
 }
 
+/* Single resolution point for a level id.
+
+   LEVELS below is the legacy 1-59 table. Student records are moving to the
+   1-93 curriculum space (59->93 migration), so ids above 59 now reach this
+   file from the backend. They used to fall through as `undefined` and surface
+   four frames later as "Cannot read properties of undefined (reading 'subs')",
+   which says nothing about the actual cause. Fail here, naming the id and the
+   range this file can actually build. */
+function requireLevel(levelId){
+  const level = LEVELS.find(l=>l.id===levelId);
+  if(level) return level;
+  const ids = LEVELS.map(l=>l.id);
+  const lo = Math.min.apply(null, ids), hi = Math.max.apply(null, ids);
+  const hint = levelId > hi
+    ? ' Ids above ' + hi + ' exist in the 93-level curriculum but have no template here yet - ' +
+      'they need the reviewed 59->93 crosswalk and a re-keyed LEVELS table (migration step 3).'
+    : '';
+  const err = new Error(
+    'Unknown level id ' + levelId + '. levels_main.html defines worksheet templates for levels ' +
+    lo + '-' + hi + ' only.' + hint
+  );
+  err.name = 'UnknownLevelError';
+  err.levelId = levelId;
+  err.supportedRange = [lo, hi];
+  throw err;
+}
+
 /* =========================================================
    ASSEMBLY
    ========================================================= */
@@ -8262,7 +8289,7 @@ function worksheetQRHtml(level,sublevelId,setNum){
   return `<img class="worksheet-qr" alt="Student worksheet QR" style="width:18mm;height:18mm;float:right" src="${qr.createDataURL(3,2)}">`;
 }
 function buildWorksheet(levelId, subIdx, setNum, totalForStamp){
-  const level = LEVELS.find(l=>l.id===levelId);
+  const level = requireLevel(levelId);
   const subIds = levelSublevelIds(level);
   const sublevelId = subIds[subIdx];
   const secsDesc = level.build(subIdx);
@@ -8321,7 +8348,7 @@ function generateOneSet(levelId, subIdx){
 /* Async, chunked generation — yields to the browser every few sets so the
    tab stays responsive and the status text keeps updating. */
 async function generateLevelAsync(levelId, setsPerSub, onProgress){
-  const level = LEVELS.find(l=>l.id===levelId);
+  const level = requireLevel(levelId);
   const subIds = levelSublevelIds(level);
   let done=0;
   for(let subIdx=0; subIdx<subIds.length; subIdx++){
@@ -8594,7 +8621,7 @@ function populateLevelSelect(){
 }
 function populateSublevelSelect(){
   const levelId = +document.getElementById('levelSelect').value;
-  const level = LEVELS.find(l=>l.id===levelId);
+  const level = requireLevel(levelId);
   const ids = levelSublevelIds(level);
   const sel = document.getElementById('sublevelSelect');
   sel.innerHTML = `<option value="all">All sublevels (${ids.join(', ')})</option>` + ids.map((id,idx)=>`<option value="${idx}">${id}</option>`).join('');
@@ -8602,7 +8629,7 @@ function populateSublevelSelect(){
 
 function populateSubRangeSublevelSelect(){
   const levelId = +document.getElementById('levelSelect').value;
-  const level = LEVELS.find(l=>l.id===levelId);
+  const level = requireLevel(levelId);
   const ids = levelSublevelIds(level);
   const sel = document.getElementById('subRangeSublevelSelect');
   sel.innerHTML = ids.map((id,idx)=>`<option value="${idx}">${id}</option>`).join('');
@@ -8712,7 +8739,7 @@ document.getElementById('btnDownloadCurrent').addEventListener('click', async ()
 /* --- Download: ALL sublevels of the selected level together (explicit only) --- */
 document.getElementById('btnDownloadLevel').addEventListener('click', async ()=>{
   const levelId = +document.getElementById('levelSelect').value;
-  const level = LEVELS.find(l=>l.id===levelId);
+  const level = requireLevel(levelId);
   const setsPerSub = Math.max(1, +document.getElementById('setsPerSub').value || 1);
   const btn = document.getElementById('btnDownloadLevel');
   btn.disabled = true;
@@ -8753,7 +8780,7 @@ document.getElementById('btnDownloadSelectedZip').addEventListener('click', asyn
    auto-generating any missing sets in that range first. --- */
 document.getElementById('btnDownloadSublevelRange').addEventListener('click', async ()=>{
   const levelId = +document.getElementById('levelSelect').value;
-  const level = LEVELS.find(l=>l.id===levelId);
+  const level = requireLevel(levelId);
   const subIdx = +document.getElementById('subRangeSublevelSelect').value;
   const subIds = levelSublevelIds(level);
   const sublevelId = subIds[subIdx];

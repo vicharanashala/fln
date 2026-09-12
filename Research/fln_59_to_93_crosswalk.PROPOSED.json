@@ -1,0 +1,22 @@
+{
+  "_warning": "DRAFT — mechanically proposed, not reviewed. Rename to fln_59_to_93_crosswalk.json only after pedagogy sign-off.",
+  "_onlyIncludes": "legacy levels whose best lexical match scored >= 0.5",
+  "legacy59_to_level": {
+    "1": 8,
+    "10": 28,
+    "12": 32,
+    "20": 61,
+    "21": 8,
+    "25": 32,
+    "32": 40,
+    "33": 48,
+    "34": 53,
+    "41": 50,
+    "46": 72,
+    "47": 57,
+    "53": 89,
+    "56": 93,
+    "57": 91,
+    "58": 92
+  }
+}

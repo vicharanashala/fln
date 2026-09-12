@@ -30,6 +30,24 @@ if (!lintOk) {
   notes.push('```\n' + lintOutput.split('\n').slice(0, 40).join('\n') + '\n```');
 }
 
+// --- Level-notation drift check (issue #280) ---
+// The L-notation (L1-L93, frontend/src/data/skillProgressionMap.ts) and
+// S-notation (S1.1-S7.18, Research/ docs) level-numbering systems drifted
+// apart once already without anyone noticing. This re-runs that comparison
+// daily so it can't happen silently again.
+let driftOk = true;
+let driftOutput = '';
+try {
+  execSync('npm run check:level-notation-drift --silent', { encoding: 'utf8', stdio: 'pipe' });
+} catch (err) {
+  driftOk = false;
+  driftOutput = (err.stdout || '') + (err.stderr || '');
+}
+if (!driftOk) {
+  problems.push('**The L-notation and S-notation level mappings have drifted apart again** (`npm run check:level-notation-drift`).');
+  notes.push('```\n' + driftOutput.split('\n').slice(0, 40).join('\n') + '\n```');
+}
+
 // --- CHANGELOG staleness check ---
 const changelogPath = path.join(__dirname, '..', 'CHANGELOG.md');
 const changelog = fs.readFileSync(changelogPath, 'utf8');

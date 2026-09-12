@@ -110,6 +110,18 @@ export interface PaperGenerationResult {
       questionPaperJson: any;
       questions?: any[];
       answerKey?: any[];
+      /** One answer region per gradable question, keyed by the real question id. */
+      answerRegions?: Array<{
+        question_id: string;
+        anchor?: string;
+        dx_mm?: number;
+        dy_mm?: number;
+        page: number;
+        x_mm: number;
+        y_mm: number;
+        w_mm: number;
+        h_mm: number;
+      }>;
     }>;
 }
 
@@ -150,6 +162,7 @@ export async function generateDiagnosticPaper({
     sections.forEach((sec: any, secIdx: number) => {
       if (Array.isArray(sec.items)) {
         sec.items.forEach((item: any, itemIdx: number) => {
+          console.log("******** PAPER GENERATOR EXECUTED ********");
           questions.push({
             question_id: `diag_q_${secIdx}_${itemIdx}`,
             question: item.question || `Question in section ${sec.section}`,
@@ -213,6 +226,17 @@ export async function generateDiagnosticPaper({
     questionPaperJson: any;
     questions?: Question[];
     answerKey?: any;
+    answerRegions?: Array<{
+      question_id: string;
+      anchor?: string;
+      dx_mm?: number;
+      dy_mm?: number;
+      page: number;
+      x_mm: number;
+      y_mm: number;
+      w_mm: number;
+      h_mm: number;
+    }>;
   }> = [];
 
   // Loop through results and add student directories with ONLY student-facing worksheets
@@ -231,6 +255,53 @@ export async function generateDiagnosticPaper({
     // Extract exact questions for this student set from masterJson
     const studentQuestions: Question[] = [];
     const flatAnswerKey: Array<{ qid: string; question_id: string; answer: string; type: string; pos?: number }> = [];
+
+    /**
+     * One physical answer region per gradable question, keyed by the real
+     * question id.
+     *
+     * The template measures each answer element and keys it by a reference
+     * built from the same (section, item, blank) indices this loop uses to mint
+     * the id, so the two are joined on the numbering both sides already agree
+     * on rather than on a layout name that does not survive the section
+     * renumbering. A question whose answer has no single readable box — a
+     * matching line, a four-box ordering — is recorded as unmapped rather than
+     * pointed at a neighbouring region.
+     */
+    const regionsByRef: Record<string, any> = (r as any).questionRegions || {};
+    const answerRegions: Array<{
+      question_id: string;
+      anchor: string;
+      dx_mm: number;
+      dy_mm: number;
+      page: number;
+      x_mm: number;
+      y_mm: number;
+      w_mm: number;
+      h_mm: number;
+    }> = [];
+    const unmappedQuestions: string[] = [];
+    const addRegion = (questionId: string, ref: string) => {
+      const region = regionsByRef[ref];
+      if (!region) {
+        unmappedQuestions.push(questionId);
+        return;
+      }
+      answerRegions.push({
+        question_id: questionId,
+        // Anchored to the section heading, which the reader locates in the
+        // PDF's text layer; x/y are the flow-space fallback.
+        anchor: String(region.anchor ?? ''),
+        dx_mm: Number(region.dx_mm),
+        dy_mm: Number(region.dy_mm),
+        page: Number(region.page) || 1,
+        x_mm: Number(region.x_mm),
+        y_mm: Number(region.y_mm),
+        w_mm: Number(region.w_mm),
+        h_mm: Number(region.h_mm)
+      });
+    };
+
     if (r.masterJson && Array.isArray(r.masterJson.sections)) {
       r.masterJson.sections.forEach((sec: any, secIdx: number) => {
         if (Array.isArray(sec.items)) {
@@ -263,6 +334,7 @@ export async function generateDiagnosticPaper({
               blanks.forEach((b, bi) => {
                 const v = String(b.value ?? '').trim();
                 const fid = `${qid}_b${bi + 1}`;
+                addRegion(fid, `s${secIdx}:i${itemIdx}:b${bi}`);
                 studentQuestions.push({
                   question_id: fid,
                   question: `${questionNum} (position ${b.position})`,
@@ -276,6 +348,7 @@ export async function generateDiagnosticPaper({
                 flatAnswerKey.push({ qid: fid, question_id: fid, answer: v, type: 'fill_blank', pos: b.position });
               });
             } else {
+              addRegion(qid, `s${secIdx}:i${itemIdx}`);
               studentQuestions.push({
                 question_id: qid,
                 question: questionNum,
@@ -302,8 +375,20 @@ export async function generateDiagnosticPaper({
       coords: r.coords,
       questionPaperJson: r.questionPaperJson,
       questions: studentQuestions.length > 0 ? studentQuestions : questions,
-      answerKey: flatAnswerKey
+      answerKey: flatAnswerKey,
+      answerRegions
     });
+
+    // Surfaced, not swallowed: a gradable question with no answer region cannot
+    // be read off a scan, and silently dropping it is how the region data
+    // drifted out of step with the question list in the first place.
+    if (unmappedQuestions.length > 0) {
+      console.warn(
+        `[answerRegions] set ${idx + 1} (${sName}): ${answerRegions.length} of ` +
+        `${answerRegions.length + unmappedQuestions.length} gradable questions have an answer region. ` +
+        `Unmapped: ${unmappedQuestions.join(', ')}`
+      );
+    }
   });
 
   const pdfFileName = `class${classNumber}_diagnostic_${randomUUID()}.pdf`;

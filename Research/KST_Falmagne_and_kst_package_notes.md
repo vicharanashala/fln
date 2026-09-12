@@ -1,0 +1,49 @@
+# Knowledge Space Theory — source readings and what they resolve for FLN
+
+Two primary sources added to this folder 2026-09-09, read in full:
+
+- `Falmagne_1990_KST_HCI.pdf` — Falmagne, Koppen, Villano, Doignon & Johannesen (1990), *"Introduction to Knowledge Spaces: How to Build, Test, and Search Them,"* Psychological Review 97(2), 201–224. Original source: https://www.stat.cmu.edu/~brian/nynke/726-2021/project%20HCI%20Prereqs%20(Elaine,%20Smeet%20&%20Zhou)/2021-02-23/Falmagne90.pdf. This is the founding paper: it defines knowledge states/spaces/structures, surmise relations, surmise systems (clauses), the QUERY expert-elicitation procedure, a stochastic learning-time model, and two Markovian assessment procedures. Everything ALEKS and the R `kst` package implement traces back to this paper plus Doignon & Falmagne's 1999 book.
+- `kst_kst_R_package_vignette.pdf` — Stahl & Hockemeyer, *"Knowledge Space Theory"* (kst R package vignette, 2026-03-09). Original source: https://cran.r-project.org/web/packages/kst/vignettes/kst.pdf. A working implementation: the class hierarchy (`kfamset` → `kstructure` → `kspace`), and the concrete, runnable validation statistics (`kvalidate()`) for testing a proposed prerequisite structure against real response data.
+
+This note maps their content onto the open questions from the 2026-09-09 Amrita/Pavani call and the existing SK13 pilot design ([[project_fln_kst_sk13_pilot]] in memory).
+
+## 1. The identity question (D6 / conceptId-as-identity) — this resolves it
+
+Falmagne et al.'s core object is an **item** `q ∈ Q` (a problem). A **knowledge state** `K` is *any subset of Q* — not a position on a line. A **notion** is the equivalence class of items that always co-occur in exactly the same states (Definition/discussion pp. 203–204); only *notions*, not raw item labels, actually carry information. A **gradation** (Definition 4, p. 212) is one maximal chain through the space from ∅ to Q — i.e., *one specific learning path*, not the space itself.
+
+Applied directly to the DB-identity confusion Jinal raised with Pavani (log 2026-09-08, "L or S" / stage-vs-level IDs): **the 93-level number is a position along one assumed gradation, not the knowledge state itself.** The actual state of a student is the *set* of atomic items/subskills they've mastered (this is exactly what the SK13 pilot's `concept_edges`/`student_mastery` design already does at the subskill grain). A single scalar "level" can only ever be a *derived summary* of that set (e.g., "the largest prefix of one canonical gradation fully contained in the student's state") — it cannot be the primary key without discarding information, which is precisely the failure mode `questionBankId()` baking in the raw level number already causes (per [[project_fln_59_to_93_migration]]'s D6 finding). **This paper is the citable justification for making `conceptId` — not `levelNumber` — the permanent identity everywhere.** Also directly explains why a strict 1–93 chain was always going to be an approximation: Pavani's "it's a network, not a hierarchy" (10:30 on the call) is just a plain description of a knowledge *space* that is not a single chain — Formula 3 / Theorem 1 (Birkhoff) is the formal statement that a structure is a strict linear order **only in the special case** where the surmise relation happens to be a total order, which is not assumed anywhere in the theory.
+
+## 2. Confirms the OR-group design is standard KST, not an invention
+
+Section "Knowledge Spaces, Prerequisites, and Surmise Systems" (pp. 206–207) defines a **surmise system** `(Q, σ)`: for each item `q`, `σ(q)` is a *set of clauses* — each clause is one minimal AND-set of prerequisites, and multiple clauses for the same `q` are alternative (OR'd) routes to it. Axioms [S1]–[S3] (every clause contains `q`; prerequisites-of-prerequisites nest; no clause is a proper superset of another) are exactly the constraints an OR-group prerequisite graph needs. **This is precisely the `groupId` OR-group mechanism already designed for `concept_edges`** in the SK13 pilot (e.g., SK13.02→SK13.03's alternate counting-on path). No new construct is needed — the two open SK13 judgment calls (alternate path into SK13.03; two entry routes into SK13.06) are just two clauses for the same target item, which the theory explicitly expects to be common, not an edge case.
+
+## 3. Gives a named, checkable statistic for "does response data support this prerequisite edge?"
+
+Pavani's proposal on the call (10:25) — "if students who fail A also fail B, that supports A→B as a prerequisite" — is an informal description of exactly one of four **validity coefficients** the `kst` package implements via `kvalidate()`:
+
+- **γ-Index** (Goodman & Kruskal 1972): `γ = (N_c − N_d)/(N_c + N_d)`, comparing concordant response pairs (consistent with the surmise relation) against discordant ones. Positive γ supports the edge; this is the direct formalization of Pavani's proposed reasoning.
+- **Violational Coefficient (VC)** (Schrepp, Held & Albert 1999): normalized count of discordant pairs against a proposed relation — low VC supports it.
+- **percent method**: relative solution frequency per item (more difficult/complex items solved less often) — a sanity check on the surmise relation's direction.
+- **Distance Agreement (DA)** (Schrepp 1999): compares average symmetric distance between the knowledge *structure* and observed response patterns against the same distance to the full power set — validates the whole structure, not just one edge.
+
+**Concrete recommendation:** once `concept_evidence` has enough rows for SK13, compute γ (or VC) per proposed edge before it goes live, rather than only eyeballing the admin review report already planned. This turns "admin reviews a report of mismatches" (Pavani's feedback-loop description) into a specific, reproducible statistic with a known R reference implementation (`kst::kvalidate`) that could be ported or independently reimplemented server-side.
+
+## 4. Gives a concrete answer to Lakshya's diagnostic/midline/endline redundancy objection
+
+Unresolved on the call — Pavani deferred it ("let me think about it, it's distracting"). The paper's own answer is its main practical contribution: Sections "Uncovering the State of a Student" (pp. 218–221) describe **Markovian adaptive assessment** — a *plausibility function* over all states, a *questioning rule* that always asks the item that best bisects the still-plausible states (Table 9, Figure 9), and an *updating rule* after each response. Table 8/Figure 9's worked example shows a **9-state space uncovered in as few as 2–3 targeted questions**, not by asking every item.
+
+Applied to the redundancy concern: **midline and endline exams should not re-ask the full battery of items diagnostic already placed with confidence.** An adaptive procedure only needs to re-verify near the *fringe* (`kfringe()` in the R package — the symmetric difference between a state and its neighbours) of what's already known, and spend new questions probing whatever the curriculum has newly introduced since the last timepoint. This is a direct, literature-grounded answer to "won't diagnostic/midline/endline overlap and become repetitive" — the fix isn't three fixed same-content batteries, it's one adaptive procedure re-run at three timepoints, each starting from the previously uncovered state rather than from ∅.
+
+## What these sources do *not* answer (still open, flagged in the earlier task-board notes)
+
+- **Diagnostic timing** (start-of-year previous-grade vs current-grade content) — a school-logistics question, not a modeling one. Needs actual teacher input (already flagged as still outstanding — KV teachers were unavailable when asked).
+- **Easy/Medium/Hard distribution ratio for a paper** — classical test-construction convention (not KST's subject matter); Lakshya's literature-search task stands as assigned.
+- **Item difficulty re-tagging statistic** — note the earlier correction stands: Pavani's tentative "Cronbach's alpha" is the wrong tool for *per-item* difficulty (it measures whole-scale internal-consistency reliability). Classical Item Difficulty Index (p-value) / Item Discrimination Index, or an IRT difficulty parameter, is the right family — and it is a *different* concept from KST's own μᵢ (Falmagne's model uses μᵢ as an expected-time-to-mastery parameter fitted to response latencies under a stochastic learning-time model, pp. 213–214 — not a proportion-correct difficulty index, and not fitted from this project's paper-based, non-timed data anyway).
+- **Mastery-requires-a-gap (spaced retrieval)** — Pavani's point that mastery should require retrieval *after a gap*, not immediate repetition, isn't in either source; Falmagne's stochastic model tracks time-to-first-mastery, not durability/forgetting. The SK13 pilot's v0 mastery rule (≥3 attempts, last 3 correct) should still be extended with a minimum time-between-attempts condition — that remains a design gap these papers don't fill.
+
+## How to apply
+
+- Cite Falmagne (1990) directly in the decision register for D6's structural half — it's the authoritative source for "state = set of items, level = derived path position," which is the strongest available argument for the `conceptId`-as-identity fix.
+- Reference [S1]–[S3] when documenting `concept_edges`' OR-group semantics — it confirms the schema is standard KST, useful when explaining the design to Pavani/curriculum reviewers rather than defending it as a bespoke choice.
+- Before building `computeOuterFringe()`, read the `kst` R package's `kfringe()`/`kneighbourhood()` semantics (p. 3 of the vignette) — the naming in the SK13 pilot design ("outer fringe") already follows this convention; keep the correspondence exact rather than reinventing slightly different semantics.
+- See [[project_fln_kst_sk13_pilot]] and [[project_fln_59_to_93_migration]] in memory for the design these sources ground.

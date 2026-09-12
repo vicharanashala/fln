@@ -3,6 +3,7 @@ import { MongoClient } from 'mongodb';
 import bcrypt from 'bcrypt';
 import { UserRole } from './db';
 import { STATES_UTS } from './geoData';
+import { computeStudentDisplayId } from './displayId';
 import questionBankSeed from './data/question_bank_seed.json';
 
 const SEED_PASSWORD_HASH = bcrypt.hashSync('Fln@2026', 10);
@@ -438,6 +439,14 @@ async function main() {
 
               allStudents.push({
                 id: studentId,
+                displayId: computeStudentDisplayId({
+                  stateCode: state.code,
+                  districtCode: district.code,
+                  blockCode: blockCode,
+                  schoolId: schoolId,
+                  classGroup: className,
+                  sequenceInClass: studentNum,
+                }),
                 name: nextName(),
                 age: randomAge(cIdx),
                 classGroup: className,
