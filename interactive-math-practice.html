@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Math Practice</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f8ff;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .card {
+      max-width: 440px;
+      margin: auto;
+      background: white;
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    }
+
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+    }
+
+    input {
+      width: 120px;
+      border: 1px solid #aaa;
+    }
+
+    button {
+      border: none;
+      background: #1976d2;
+      color: white;
+      cursor: pointer;
+      margin: 10px 4px;
+    }
+
+    #result {
+      font-weight: bold;
+      min-height: 24px;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Math Practice</h1>
+    <h2 id="question"></h2>
+
+    <input id="answer" type="number" placeholder="Your answer">
+    <br>
+
+    <button onclick="checkAnswer()">Check Answer</button>
+    <button onclick="newQuestion()">New Question</button>
+
+    <p id="result"></p>
+    <p>Score: <span id="score">0</span></p>
+  </main>
+
+  <script>
+    let firstNumber;
+    let secondNumber;
+    let correctAnswer;
+    let score = 0;
+
+    function newQuestion() {
+      firstNumber = Math.floor(Math.random() * 10) + 1;
+      secondNumber = Math.floor(Math.random() * 10) + 1;
+      correctAnswer = firstNumber + secondNumber;
+
+      document.getElementById("question").textContent =
+        firstNumber + " + " + secondNumber + " = ?";
+      document.getElementById("answer").value = "";
+      document.getElementById("result").textContent = "";
+    }
+
+    function checkAnswer() {
+      const answer = Number(document.getElementById("answer").value);
+      const result = document.getElementById("result");
+
+      if (answer === correctAnswer) {
+        score++;
+        result.textContent = "Correct! Well done.";
+        result.style.color = "green";
+        document.getElementById("score").textContent = score;
+      } else {
+        result.textContent = "Try again!";
+        result.style.color = "red";
+      }
+    }
+
+    newQuestion();
+  </script>
+</body>
+</html>
