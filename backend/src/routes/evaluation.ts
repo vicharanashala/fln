@@ -688,15 +688,6 @@ export function registerEvaluationRoutes(app: express.Express) {
       }
 
 
-      // ===== Azure Computer Vision (stub) =====
-      if (provider === 'azure') {
-        return {
-          status: 501, body: {
-            error: 'Azure Computer Vision integration is not yet implemented. Pick Google Cloud Vision, MiniMax, OCR.space or use the local OCR button.',
-          }
-        };
-      }
-
       return { status: 400, body: { error: 'Unknown provider: ' + provider } };
     } catch (e: any) {
       return { status: 500, body: { error: 'Cloud OCR failed: ' + (e && e.message ? e.message : String(e)) } };
