@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Kalam:wght@700&family=Luxurious+Script&family=Caveat:wght@700&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -11,6 +11,8 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-script: "Luxurious Script", cursive;
+  --font-hand: "Caveat", cursive;
 
   /* Primary theme palette for the FLN portal */
   --color-primary-navy: #0F2E5A;       /* Deep Navy */
@@ -31,6 +33,111 @@ html, body {
 html.dark, html.dark body {
   background-color: #0f172a;
   color: #f1f5f9;
+}
+
+/* Print the certificate that is already visible in the portal, and nothing
+   else. This keeps the saved PDF visually identical to the preview. */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  html,
+  body.printing-certificate {
+    width: 297mm !important;
+    height: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+
+  body.printing-certificate * {
+    visibility: hidden !important;
+  }
+
+  body.printing-certificate [data-certificate-preview],
+  body.printing-certificate [data-certificate-preview] * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.printing-certificate [data-certificate-preview] {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 297mm !important;
+    min-width: 297mm !important;
+    max-width: 297mm !important;
+    height: 210mm !important;
+    min-height: 210mm !important;
+    max-height: 210mm !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    aspect-ratio: auto !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  /* The normal certificate is temporarily attached directly to <body> before
+     printing. Remove the dashboard's hidden top-level layout from pagination
+     and anchor only this certificate at the physical page origin. */
+  body.printing-normal-certificate > :not([data-certificate-preview]) {
+    display: none !important;
+  }
+
+  body.printing-normal-certificate > [data-certificate-preview] {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+  }
+}
+
+/* Top-five rank certificate: navy-and-gold formal certificate layout.
+   Its canvas uses the exact A4 landscape ratio on screen and in the PDF. */
+.rank-certificate { width: 100%; aspect-ratio: 297 / 210; overflow: hidden; background: #fff; color: #1a1a1a; font-family: Georgia, 'Times New Roman', serif; }
+.rank-certificate__paper { position: relative; height: 92%; margin: 4%; overflow: hidden; background: #fff; border: 3px solid #000; }
+.rank-certificate__paper::before { content: ''; position: absolute; inset: 3%; z-index: 1; border: 1px solid #33538a; pointer-events: none; }
+.rank-certificate__paper::after { content: ''; position: absolute; inset: 3.6%; z-index: 1; border: 1px solid #33538a; pointer-events: none; }
+.rank-certificate__corner { position: absolute; z-index: 2; width: 24%; aspect-ratio: 1; overflow: hidden; pointer-events: none; }
+.rank-certificate__corner--tl { top: -2px; left: -2px; }
+.rank-certificate__corner--br { bottom: -2px; right: -2px; transform: rotate(180deg); }
+.rank-certificate__corner::before { content: ''; position: absolute; top: -45%; left: -45%; width: 150%; height: 65%; background: #33538a; transform: rotate(-45deg); }
+.rank-certificate__corner::after { content: ''; position: absolute; top: -28%; left: -58%; width: 150%; height: 11%; background: #e0b23c; transform: rotate(-45deg); }
+.rank-certificate__content { position: relative; z-index: 3; display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 0.6%; padding: 4% 12%; text-align: center; box-sizing: border-box; }
+.rank-certificate__portal { margin: 0; color: #0f766e; font-family: Arial, sans-serif; font-size: clamp(7px, 0.75vw, 10px); font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; }
+.rank-certificate__title { display: flex; flex-direction: column; gap: 0.15em; margin: 0; }
+.rank-certificate__title-main { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(26px, 5.2vw, 58px); font-weight: 700; line-height: 1; letter-spacing: 0.05em; color: #0d1321; text-transform: uppercase; }
+.rank-certificate__title-sub { font-family: Arial, sans-serif; font-size: clamp(11px, 1.6vw, 20px); font-weight: 500; letter-spacing: 0.18em; color: #33538a; text-transform: uppercase; }
+.rank-certificate__awarded { margin: 1.5% 0 0; font-family: Arial, sans-serif; font-size: clamp(9px, 1.05vw, 14px); letter-spacing: 0.12em; text-transform: uppercase; color: #333; }
+.rank-certificate__name { margin: 1% 0 0; font-family: Arial, sans-serif; font-size: clamp(20px, 3.6vw, 42px); font-weight: 700; color: #2f4f8f; }
+.rank-certificate__divider { width: 65%; height: 1px; margin: 1.8% auto 0; background: #c7d2e0; }
+.rank-certificate__achievement { margin: 1.6% 0 0; font-family: Arial, sans-serif; font-size: clamp(9px, 1.1vw, 15px); color: #333; }
+.rank-certificate__facts { display: flex; justify-content: center; gap: 6%; width: 100%; margin: 1.2% 0 0; font-family: Arial, sans-serif; font-size: clamp(7px, 0.85vw, 12px); text-transform: uppercase; color: #555; }
+.rank-certificate__facts span { display: flex; flex-direction: column; gap: 2px; }
+.rank-certificate__facts b { color: #1a1a1a; font-size: 1em; }
+.rank-certificate__bottom { display: flex; align-items: flex-end; justify-content: center; gap: 6%; width: 100%; margin-top: 2.2%; }
+.rank-certificate__signatures { display: flex; flex: 1; justify-content: center; max-width: 32%; }
+.rank-certificate__signatures div { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: center; }
+.rank-certificate__signatures strong { min-height: 1em; border-bottom: 1px solid #999; padding-bottom: 4px; font-family: Arial, sans-serif; font-size: clamp(9px, 1vw, 14px); font-weight: 600; color: #1a1a1a; }
+.rank-certificate__signatures span { font-family: Arial, sans-serif; font-size: clamp(7px, 0.75vw, 11px); letter-spacing: 0.1em; text-transform: uppercase; color: #666; }
+.rank-certificate__medal { position: relative; z-index: 4; width: 13%; aspect-ratio: 287 / 336; flex-shrink: 0; }
+.rank-certificate__medal-ribbon { position: absolute; left: 0; top: 43.5%; z-index: 1; width: 100%; height: 56.5%; }
+.rank-certificate__medal-ring-outer { position: absolute; top: 0; left: 50%; z-index: 2; width: 72.5%; aspect-ratio: 1; transform: translateX(-50%); border-radius: 50%; background: linear-gradient(155deg, #ffedb0, #ffcf4d); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.6); }
+.rank-certificate__medal-ring-inner { position: absolute; top: 6.8%; left: 50%; z-index: 3; width: 56.8%; aspect-ratio: 1; transform: translateX(-50%); border: 3px solid #f5a623; border-radius: 50%; box-sizing: border-box; }
+.rank-certificate__medal-circle { position: absolute; top: 11.6%; left: 50%; z-index: 4; display: flex; width: 45.6%; aspect-ratio: 1; align-items: center; justify-content: center; transform: translateX(-50%); border-radius: 50%; background: #0D99FF; }
+.rank-certificate__medal-circle span { font-family: 'Kalam', cursive; font-size: clamp(18px, 2.6vw, 32px); font-weight: 700; color: #1e1e1e; }
+
+/* Yellow star with a white outline, used on the Class 2 certificate */
+.certificate-star {
+  color: #facc15;
+  -webkit-text-stroke: 1.5px #fff;
+  paint-order: stroke fill;
 }
 
 /* Custom class for top indicator ribbon */
