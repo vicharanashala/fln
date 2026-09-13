@@ -253,63 +253,6 @@ export function registerEvaluationRoutes(app: express.Express) {
         };
       }
 
-      // ===== OCR.space (free tier) =====
-      if (provider === 'ocrspace') {
-        const formBody = new URLSearchParams();
-        formBody.append('base64Image', 'data:image/jpeg;base64,' + base64Body);
-        formBody.append('apikey', apiKey);
-        formBody.append('language', 'eng');
-        formBody.append('isOverlayRequired', 'false');
-        formBody.append('scale', 'true');
-        formBody.append('OCREngine', '2');
-        formBody.append('detectOrientation', 'true');
-        const ocrRes = await fetch('https://api.ocr.space/parse/image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formBody.toString(),
-        });
-        const ocrJson = await ocrRes.json();
-        if (ocrJson.IsErroredOnProcessing) {
-          const errMsg = (ocrJson.ErrorMessage && ocrJson.ErrorMessage[0]) ||
-            ocrJson.ErrorDetails ||
-            ('OCR.space HTTP ' + ocrRes.status);
-          return { status: 502, body: { error: 'OCR.space: ' + errMsg } };
-        }
-        const parsed = (ocrJson.ParsedResults && ocrJson.ParsedResults[0]) || null;
-        const fullText = (parsed && parsed.ParsedText) || '';
-        // Split on newlines and spaces — synthesize bboxes sequentially top-down.
-        // Use String.prototype.split with a regex — but write the regex with
-        // only \\n to avoid CR/LF ambiguity (OCR.space text uses \\n).
-        const splitRegex = new RegExp(String.fromCharCode(10));
-        const lines = String(fullText).split(splitRegex);
-        const tokens = [];
-        let yPos = 0;
-        for (let li = 0; li < lines.length; li++) {
-          if (!lines[li] || !lines[li].trim()) continue;
-          const words = lines[li].trim().split(/\\s+/);
-          for (let wi = 0; wi < words.length; wi++) {
-            const w = words[wi];
-            if (!w) continue;
-            tokens.push({
-              text: w,
-              confidence: 0.85,
-              bbox: [[0, yPos], [Math.max(w.length * 12, 30), yPos], [Math.max(w.length * 12, 30), yPos + 24], [0, yPos + 24]],
-            });
-          }
-          yPos += 30;
-        }
-        return {
-          status: 200, body: {
-            success: true,
-            provider: 'ocrspace',
-            ocrEngine: 'OCR.space (Engine 2, free tier)',
-            rawOcrText: fullText,
-            extractedTokens: tokens,
-            processingTimeMs: Date.now() - t0,
-          }
-        };
-      }
-
       // ===== Ollama Cloud + Gemma 4 (vision) =====
       // Box-only OCR via Ollama Cloud chat completions, one call per page.
       // Prompt: read ONLY the handwritten value inside each digit-box; ignore
