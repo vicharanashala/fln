@@ -310,15 +310,6 @@ export function registerEvaluationRoutes(app: express.Express) {
         };
       }
 
-      // ===== AWS Textract (stub) =====
-      if (provider === 'aws') {
-        return {
-          status: 501, body: {
-            error: 'AWS Textract integration is not yet implemented. Pick Google Cloud Vision, MiniMax, OCR.space or use the local OCR button.',
-          }
-        };
-      }
-
       // ===== Ollama Cloud + Gemma 4 (vision) =====
       // Box-only OCR via Ollama Cloud chat completions, one call per page.
       // Prompt: read ONLY the handwritten value inside each digit-box; ignore
