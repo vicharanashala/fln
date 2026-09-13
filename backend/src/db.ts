@@ -477,21 +477,21 @@ export interface EvaluationReport {
   // correcting, since a correction is meaningless without knowing which
   // question is being corrected.
   questionResults?: { questionId: string; question?: string; correctAnswer?: string; submittedAnswer: string; isCorrect: boolean }[];
-    teacherReviewed?: boolean;
-    reviewedBy?: string; // reviewing teacher's email
-    reviewedAt?: string;
-    // Per-level pass/fail breakdown for diagnostic reports — the diagnostic
-    // intentionally does NOT assign a placement level (we are heading toward
-    // analytics & reports, which read these instead). Populated wherever the
-    // grading code knows the per-question source_level.
-    passedLevels?: number[];
-    failedLevels?: number[];
-    // Skills the student is struggling with — conceptIds of the failed levels
-    // plus any direct prerequisites (so the panel can show "you have gaps in
-    // Number Sense: Counting 6-10"). Drives the status text in the diagnostic
-    // panel instead of the old hardcoded "Verified & Certified".
-    skillGaps?: { conceptId: string; level: number; levelTitle: string; strand: string }[];
-  }
+  teacherReviewed?: boolean;
+  reviewedBy?: string; // reviewing teacher's email
+  reviewedAt?: string;
+  // Per-level pass/fail breakdown for diagnostic reports — the diagnostic
+  // intentionally does NOT assign a placement level (we are heading toward
+  // analytics & reports, which read these instead). Populated wherever the
+  // grading code knows the per-question source_level.
+  passedLevels?: number[];
+  failedLevels?: number[];
+  // Skills the student is struggling with — conceptIds of the failed levels
+  // plus any direct prerequisites (so the panel can show "you have gaps in
+  // Number Sense: Counting 6-10"). Drives the status text in the diagnostic
+  // panel instead of the old hardcoded "Verified & Certified".
+  skillGaps?: { conceptId: string; level: number; levelTitle: string; strand: string }[];
+}
 
 export interface Ticket {
   id: string;
@@ -918,6 +918,8 @@ interface DatabaseSchema {
   diagnosticAnswerKeys: DiagnosticAnswerKey[];
   misconceptionClusters: MisconceptionCluster[];
   testHistory: TestHistoryEntry[];
+  remediationLedgers: any[];
+  examBlueprints: any[];
   questionLogics: QuestionLogic[];
   questionTemplates: QuestionTemplate[];
   questionOptions: QuestionOption[];
@@ -945,6 +947,8 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   diagnosticAnswerKeys: 'diagnostic_answer_keys',
   misconceptionClusters: 'misconception_clusters',
   testHistory: 'testHistory',
+  remediationLedgers: 'remediation_ledgers',
+  examBlueprints: 'exam_blueprints',
   questionLogics: 'questionLogics',
   questionTemplates: 'questionTemplates',
   questionOptions: 'questionOptions',
@@ -1734,27 +1738,27 @@ export class DBStore {
   }
 
   async getStudentAssignedQuestions(studentId: string, classNumber: number = 2): Promise<Question[]> {
-      let student: Student | null = null;
-      if (this.mongoDb) {
-        student = await this.mongoDb.collection<Student>('students').findOne({ id: studentId });
-      }
-      if (!student && this.data && this.data.students) {
-        student = this.data.students.find(s => s.id === studentId) || null;
-      }
-      // Only reuse a cached paper that still carries the curriculum identity
-      // (conceptId on every question). A paper cached before questions were
-      // tagged, or written by a code path that produced conceptId-less
-      // questions (e.g. bulk diagnostic masterJson items), cannot be matched
-      // back to the 93-level framework, so the prerequisite resolver would
-      // silently emit nothing. Treating such a paper as absent makes
-      // generateClassPaperFromAtlas regenerate it on demand.
-      const cached = student?.assignedDiagnosticQuestions;
-      if (cached && cached.length > 0 && cached.every(q => q.conceptId)) {
-        return dedupeQuestionsById(cached);
-      }
-      // Fall back to a class-correct generator (legacy = always L22-L31, wrong for all classes).
-      return await this.generateClassPaperFromAtlas(studentId, classNumber);
+    let student: Student | null = null;
+    if (this.mongoDb) {
+      student = await this.mongoDb.collection<Student>('students').findOne({ id: studentId });
     }
+    if (!student && this.data && this.data.students) {
+      student = this.data.students.find(s => s.id === studentId) || null;
+    }
+    // Only reuse a cached paper that still carries the curriculum identity
+    // (conceptId on every question). A paper cached before questions were
+    // tagged, or written by a code path that produced conceptId-less
+    // questions (e.g. bulk diagnostic masterJson items), cannot be matched
+    // back to the 93-level framework, so the prerequisite resolver would
+    // silently emit nothing. Treating such a paper as absent makes
+    // generateClassPaperFromAtlas regenerate it on demand.
+    const cached = student?.assignedDiagnosticQuestions;
+    if (cached && cached.length > 0 && cached.every(q => q.conceptId)) {
+      return cached;
+    }
+    // Fall back to a class-correct generator (legacy = always L22-L31, wrong for all classes).
+    return await this.generateClassPaperFromAtlas(studentId, classNumber);
+  }
 
   async getAnswerSubmissions() {
     if (this.mongoDb) return await this.mongoDb.collection<AnswerSubmission>('answerSubmissions').find({}).toArray();
@@ -2169,6 +2173,72 @@ export class DBStore {
   async getEvaluationReportById(id: string) {
     if (this.mongoDb) return await this.mongoDb.collection<EvaluationReport>('evaluationReports').findOne({ id });
     return (this.data?.evaluationReports || []).find(r => r.id === id);
+  }
+
+  async getExamBlueprints() {
+    if (this.mongoDb) return await this.mongoDb.collection('examBlueprints').find({}).toArray();
+    return this.data?.examBlueprints || [];
+  }
+
+  async getRemediationLedgers() {
+    if (this.mongoDb) return await this.mongoDb.collection('remediationLedgers').find({}).toArray();
+    return this.data?.remediationLedgers || [];
+  }
+
+  async getRemediationLedgerById(id: string) {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection('remediationLedgers').findOne({ id });
+    }
+    return (this.data?.remediationLedgers || []).find((l: any) => l.id === id) || null;
+  }
+
+  async getRemediationLedgerByStudentAndExam(studentId: string, examId: string) {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection('remediationLedgers').findOne({ studentId, examId });
+    }
+    return (this.data?.remediationLedgers || []).find((l: any) => l.studentId === studentId && l.examId === examId) || null;
+  }
+
+  async getRemediationLedgersByExam(examId: string) {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection('remediationLedgers').find({ examId }).toArray();
+    }
+    return (this.data?.remediationLedgers || []).filter((l: any) => l.examId === examId);
+  }
+
+  async getRemediationLedgersByStudent(studentId: string) {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection('remediationLedgers').find({ studentId }).toArray();
+    }
+    return (this.data?.remediationLedgers || []).filter((l: any) => l.studentId === studentId);
+  }
+  async addRemediationLedger(ledger: any) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('remediationLedgers').insertOne(ledger);
+    }
+    if (this.data) {
+      if (!this.data.remediationLedgers) {
+        this.data.remediationLedgers = [];
+      }
+      this.data.remediationLedgers.push(ledger);
+      await this.save();
+    }
+  }
+
+  async updateRemediationLedger(id: string, update: any) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('remediationLedgers').updateOne({ id }, { $set: update });
+    }
+    if (this.data) {
+      if (!this.data.remediationLedgers) {
+        this.data.remediationLedgers = [];
+      }
+      const idx = this.data.remediationLedgers.findIndex((l: any) => l.id === id);
+      if (idx !== -1) {
+        this.data.remediationLedgers[idx] = { ...this.data.remediationLedgers[idx], ...update };
+        await this.save();
+      }
+    }
   }
 
   async updateEvaluationReport(id: string, updates: Partial<EvaluationReport>) {
@@ -2612,12 +2682,14 @@ export class DBStore {
       coll.distinct('mappedLevel', { reviewStatus: 'mapped' }),
     ]);
     const byLevel = await coll.aggregate([
-      { $group: {
+      {
+        $group: {
           _id: '$level',
           total: { $sum: 1 },
           mapped: { $sum: { $cond: [{ $eq: ['$reviewStatus', 'mapped'] }, 1, 0] } },
           retired: { $sum: { $cond: [{ $eq: ['$reviewStatus', 'retired'] }, 1, 0] } },
-      } },
+        }
+      },
       { $sort: { _id: 1 } },
     ]).toArray();
     return {
@@ -2707,31 +2779,53 @@ export class DBStore {
   }
 
   async getStudentDiagnosticAnswerKey(studentId: string, jobId?: string): Promise<DiagnosticAnswerKey | null> {
-      if (this.mongoDb) {
-        const query: any = { studentId };
-        if (jobId) query.jobId = jobId;
-        return await this.mongoDb.collection<DiagnosticAnswerKey>('diagnostic_answer_keys').findOne(query, { sort: { createdAt: -1 } });
-      }
-      const keys = (this.data?.diagnosticAnswerKeys || []).filter(k => k.studentId === studentId && (!jobId || k.jobId === jobId));
-      return keys[keys.length - 1] || null;
+    if (this.mongoDb) {
+      const query: any = { studentId };
+      if (jobId) query.jobId = jobId;
+      return await this.mongoDb.collection<DiagnosticAnswerKey>('diagnostic_answer_keys').findOne(query, { sort: { createdAt: -1 } });
     }
+    const keys = (this.data?.diagnosticAnswerKeys || []).filter(k => k.studentId === studentId && (!jobId || k.jobId === jobId));
+    return keys[keys.length - 1] || null;
+  }
 
-    // Fetch the latest diagnostic answer key for any student in a given class —
-    // used when a single sheet scan is performed without a specific student
-    // selected (the OCR can't ask "which student", so it grabs the most
-    // recently generated paper for that class). All students in the same class
-    // get the same paper up to per-student randomization, so this is a safe
-    // approximation when no per-student answer key is available.
-    async getLatestClassAnswerKey(classNumber: number): Promise<DiagnosticAnswerKey | null> {
-      if (this.mongoDb) {
-        return await this.mongoDb.collection<DiagnosticAnswerKey>('diagnostic_answer_keys')
-          .findOne({ classNumber }, { sort: { createdAt: -1 } });
+  async findQuestionInAnyDiagnosticAnswerKey(questionId: string): Promise<any | null> {
+    const baseId = questionId.replace(/_b\d+$/, '');
+
+    if (this.mongoDb) {
+      const collection = this.mongoDb.collection<DiagnosticAnswerKey>('diagnostic_answer_keys');
+      // Try exact match first
+      let key = await collection.findOne({ 'questions.question_id': questionId });
+      if (key && key.questions) {
+        const q = key.questions.find((q: any) => q.question_id === questionId);
+        if (q) return q;
       }
-      const keys = (this.data?.diagnosticAnswerKeys || [])
-        .filter(k => k.classNumber === classNumber)
-        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-      return keys[0] || null;
+      // Try base match
+      key = await collection.findOne({ 'questions.question_id': baseId });
+      if (key && key.questions) {
+        const q = key.questions.find((q: any) => q.question_id === baseId);
+        if (q) return q;
+      }
     }
+    const allKeys = this.data?.diagnosticAnswerKeys || [];
+    for (const key of allKeys) {
+      let q = (key.questions || []).find((q: any) => q.question_id === questionId);
+      if (q) return q;
+      q = (key.questions || []).find((q: any) => q.question_id === baseId);
+      if (q) return q;
+    }
+    return null;
+  }
+
+  async getLatestClassAnswerKey(classNumber: number): Promise<DiagnosticAnswerKey | null> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<DiagnosticAnswerKey>('diagnostic_answer_keys')
+        .findOne({ classNumber }, { sort: { createdAt: -1 } });
+    }
+    const keys = (this.data?.diagnosticAnswerKeys || [])
+      .filter(k => k.classNumber === classNumber)
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    return keys[0] || null;
+  }
 
   // --- Preloaded Question Pool (Mathematical Curriculum Questions Classes 2-4) ---
   private getSeedQuestions(): Question[] {
@@ -4602,6 +4696,8 @@ export class DBStore {
       interventions,
       bestPractices,
       diagnosticAnswerKeys: [],
+      remediationLedgers: [],
+      examBlueprints: [],
       misconceptionClusters: [],
       testHistory: [],
       // Seeded empty on purpose: question logics are pedagogy authored by a real
