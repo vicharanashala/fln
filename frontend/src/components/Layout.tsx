@@ -4,7 +4,8 @@ import { apiFetch } from '../services/apiClient';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home
+  School, GraduationCap, MapPin, BarChart3, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home,
+  Fingerprint
 } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
@@ -149,6 +150,7 @@ export const Layout: React.FC<LayoutProps> = ({
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
+        list.push({ name: 'Misconceptions', view: 'misconceptions', icon: Fingerprint });
         break;
 
       case UserRole.VOLUNTEER:
@@ -187,17 +189,23 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Teachers', view: 'teachers', icon: Users });
         list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
+        list.push({ name: 'Security', view: 'security', icon: KeyRound });
         break;
 
       case UserRole.DISTRICT_ADMIN:
         list.push({ name: 'Blocks', view: 'blocks', icon: MapPin });
         list.push({ name: 'Schools', view: 'schools', icon: School });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
+        list.push({ name: 'Security', view: 'security', icon: KeyRound });
         break;
 
       case UserRole.ADMIN:
         list.push({ name: 'Districts', view: 'districts', icon: MapPin });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
+        list.push({ name: 'Security', view: 'security', icon: KeyRound });
         break;
 
       case UserRole.SUPERADMIN:
@@ -207,6 +215,8 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Content', view: 'content', icon: BookOpen });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });
+        list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
+        list.push({ name: 'Security', view: 'security', icon: KeyRound });
         list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
         break;
     }

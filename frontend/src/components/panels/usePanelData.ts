@@ -14,7 +14,13 @@ import { DISTRICT_NAMES, BLOCK_NAMES } from '../../constants';
 // Panels that render without ever reading the `students` variable — skipping
 // the fetch on these avoids an up-to-86,400-record national payload on
 // screens that don't display any student data.
-const STUDENTS_NOT_NEEDED_PANELS = new Set(['users', 'worksheet_templates', 'content', 'system_settings']);
+const STUDENTS_NOT_NEEDED_PANELS = new Set([
+  'aadhaar_reveal',  // Panel does its own paged + debounced-server-search fetch; the up-to-86k-row firehose is unused.
+  'users',
+  'worksheet_templates',
+  'content',
+  'system_settings',
+]);
 
 const TEACHERS_MOCK = [
   { id: 't1', name: 'Ritu Sharma', email: 'gps-mt-001.t01@fln.org', schoolId: 'gps-mt-001', classes: ['Class 2-A', 'Class 3-A'], studentsCount: 42, delayedAttempts: 0, status: 'Active' },
@@ -82,17 +88,33 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
   // 86,400 records nationally for Superadmin — so skip it entirely on the
   // handful of Superadmin-only panels that never read `students` at all
   // (verified by grepping for the identifier in each branch below).
+  //
+  // The backend caps the default response at 1000 rows (see
+  // `DEFAULT_LIMIT` in backend/src/routes/students.ts). Any panel that
+  // searches / filters the list client-side (e.g. Aadhaar Reveal) needs
+  // the full set, otherwise a student outside the first 1000 is invisible
+  // to in-browser search. We opt in to the full payload via `?all=1` for
+  // roles whose scope can exceed 1000 — i.e. the admin tiers. Teachers,
+  // school admins, and volunteers see ≤ their single school / assigned
+  // schools and stay on the capped default.
+  const wantsAllStudents =
+    currentUser.role === UserRole.SUPERADMIN ||
+    currentUser.role === UserRole.ADMIN ||
+    currentUser.role === UserRole.DISTRICT_ADMIN ||
+    currentUser.role === UserRole.BLOCK_ADMIN;
+  const studentsUrl = wantsAllStudents ? '/api/students?all=1' : '/api/students';
+
   useEffect(() => {
     if (apiStudents.length > 0) return;
     if (STUDENTS_NOT_NEEDED_PANELS.has(activePanel)) { setStudentsLoading(false); return; }
     setStudentsLoading(true);
     const headers = { 'Authorization': `Bearer ${token}` };
-    apiFetch('/api/students', { headers })
+    apiFetch(studentsUrl, { headers })
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setApiStudents(d); })
       .catch(() => { })
       .finally(() => setStudentsLoading(false));
-  }, [token, activePanel, apiStudents.length]);
+  }, [token, activePanel, apiStudents.length, studentsUrl]);
 
   const students = apiStudents;
   const schools = apiSchools.length > 0 ? apiSchools : SCHOOLS_FALLBACK;
@@ -152,7 +174,7 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
 
   const refreshStudents = () => {
     const headers = { 'Authorization': `Bearer ${token}` };
-    apiFetch('/api/students', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => { });
+    apiFetch(studentsUrl, { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiStudents(d); }).catch(() => { });
   };
 
   return {

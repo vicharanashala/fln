@@ -338,6 +338,48 @@ The reduction against testing every level is still substantial (Class 1: 22 ques
 
 ---
 
+## Part 4c — Adjudicating the 28 Code-Only Hard Edges (2026-08-31)
+
+Part 4b's reconciliation covered edges present in *both* graphs. Separately, the code carries **66 edges the research graph doesn't have at all** — cross-links that fell out of the code's skill-first construction (linking through shared SK skills) rather than this document's chain-first one (see issue #279 for the full 66; **28 of those are typed `required_for_procedure`** in the code, which is the set adjudicated here, applying the same surmise test as Part 2: *does passing the downstream node make upstream mastery near-certain?*
+
+- **24 edges survive as hard (→).** Added below, each with a rationale, per the standing rule.
+- **4 edges are demoted** (→ to a soft type in the code): `S4.5→S4.6` (L32→L33, single-digit addition doesn't need place-value understanding), `S6.5→S6.11` (L66→L72, money arithmetic doesn't require 3-digit fluency specifically), `S7.7→S7.18` (L82→L93, perimeter/area doesn't require unit conversion — only the mixed-unit subset of problems does), `S6.2→S7.15` (L63→L90, decimals are reading/writing/comparing tenths and hundredths, which doesn't need flexible 3-digit whole-number decomposition — see below).
+
+| Edge | L-notation | Rationale |
+|---|---|---|
+| S2.4→S3.2 | L11→L19 | Numeral-quantity correspondence requires the cardinality principle (last count = total), established at counting-to-5 |
+| S2.4→S4.3 | L11→L30 | Counting 20 objects requires the cardinality principle already established by counting to 5 |
+| S2.5→S4.3 | L12→L30 | Counting to 20 is a direct fluency extension of counting 6–10 |
+| S3.1→S3.6 | L18→L23 | Cannot sequence numeral symbols that aren't yet recognized |
+| S3.1→S4.4 | L18→L31 | Cannot read/write 2-digit numerals without recognizing the constituent digits |
+| S3.6→S4.4 | L23→L31 | Ordering single-digit numerals is the direct precursor to ordering/writing 2-digit ones |
+| S4.4→S5.1 | L31→L43 | Direct range extension, same underlying skill |
+| S4.5→S5.3 | L32→L45 | Flexible 2-digit decomposition directly builds on the tens/ones grouping concept |
+| S5.1→S5.17 | L43→L59 | Recognizing zero's placeholding role (e.g. in 205) presupposes being able to read/write 3-digit numbers generally |
+| S5.17→S6.1 | L59→L62 | Expanded form (e.g. 305 = 300+0+5) requires zero-as-placeholder already in place |
+| S5.17→S6.4 | L59→L65 | 4-digit numbers with internal zeros (e.g. 4008) need the same placeholder concept |
+| S5.19→S6.6 | L61→L67 | Skip-counting is the standard precursor to multiplication-table fluency (same logic as the L58→L61 edge in Part 4b) |
+| S5.3→S5.4 | L45→L46 | Can't regroup without decomposition |
+| S5.3→S5.5 | L45→L47 | Same, for subtraction |
+| S5.3→S6.2 | L45→L63 | 3-digit decomposition is the range extension of 2-digit decomposition |
+| S5.8→S7.4 | L50→L79 | Extended multiplication requires basic multiplication-table fluency |
+| S6.1→S6.4 | L62→L65 | Place-value range extension, 3 to 4 digits |
+| S6.1→S7.1 | L62→L76 | Place-value range extension, 3 to 4/5 digits |
+| S6.5→S7.2 | L66→L77 | 3-digit regrouping is foundational to large-number regrouping |
+| S6.6→S7.4 | L67→L79 | Extended multiplication requires the fuller table set, parallel to S5.8→S7.4 |
+| S6.7→S7.5 | L68→L80 | Long division requires division-fact fluency |
+| S7.1→S7.4 | L76→L79 | Multi-digit multiplication requires place-value alignment for partial products |
+| S7.1→S7.5 | L76→L80 | Long division of large numbers needs the same place-value grounding |
+| S7.6→S7.15 | L81→L90 | Decimals are standardly introduced as an extension of fraction notation |
+
+**L63→L90 (Flexible 3-Digit Decomposition → Decimals) — demoted on review, not kept hard.** L90's actual objective is reading/writing/comparing tenths and hundredths; nothing in it requires flexibly decomposing a 3-digit whole number. Common Core and NCERT both introduce decimals as fraction notation (denominators 10/100) converted to decimal form — i.e. via L81, already a separate hard prerequisite here — not via whole-number decomposition. A whole-number place-value link to decimals does exist eventually (e.g. 3.47 = 3 ones + 4 tenths + 7 hundredths), but the closer match for that is L62 (3-digit place value/expanded form), not L63 specifically. Demoted to `supports`.
+
+**Edge types after this adjudication: 91 prereq (→), 35 sequence (⇢), 6 parallel (∥) = 132** (Part 4b's 104 named-graph edges, plus 28 newly-adjudicated code-only edges: 24 promoted to →, 4 already ⇢).
+
+Apex-set sizes were not recomputed against this addition — Part 4b's table above predates it. Whoever next touches apex selection should treat those numbers as stale pending a recompute over the fuller edge set.
+
+---
+
 ## Part 5 — Building the Sub-Skill Layer (method, added 2026-08-21)
 
 The 104 edges in Part 2 connect **levels**. The 179 sub-skills beneath them currently carry no edges at all. This was previously listed as a "gap"; it is not one. It is unstarted work with a known method, and **most of it needs no literature whatsoever.**

@@ -4,12 +4,13 @@
 //this directory has been splitted from frontend/src/components/RoleDashboards.tsx for easy deployment
 import React, { useState, useEffect } from 'react';
 import { apiFetch, withBase } from '../../services/apiClient';
-import { User, Student, ClassGroup, DashboardProps } from '../../types';
+import { User, Student, ClassGroup, School, DashboardProps } from '../../types';
 import { DiagnosticWorkflow } from '../DiagnosticWorkflow';
 import { BaselineUpload } from '../BaselineUpload';
 import { SkillGraphPanel } from '../SkillGraphPanel';
 import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
+import { TicketSubmission } from '../TicketSubmission';
 import { ClassSummaryBar } from './ClassSummaryBar';
 
 
@@ -29,6 +30,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
   // for every teacher for a moment before their real roster loads in.
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
+  const [school, setSchool] = useState<School | null>(null);
   const [showAllStudents, setShowAllStudents] = useState(true);
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
@@ -83,6 +85,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
       const stdRes = await apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
       const stdData = await stdRes.json();
       if (Array.isArray(stdData)) setStudents(stdData);
+
+      // GET /api/schools is scoped to user.schoolId for the 'teacher' role
+      // (see backend/src/routes/schools.ts), so the first result is this teacher's school.
+      const schRes = await apiFetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
+      const schData = await schRes.json();
+      if (Array.isArray(schData) && schData.length > 0) setSchool(schData[0]);
     } catch (err) {
       console.error(err);
     } finally {
@@ -200,7 +208,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
       <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">Classroom Workspace</h1>
-          <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5 font-medium">Teacher: {user.name} · School Scope: gps-mt-001 Model Town</p>
+          <p className="text-zinc-550 dark:text-zinc-400 text-sm mt-0.5 font-medium">Teacher: {user.name} · School: {school ? school.name : (user.schoolId ?? 'Loading…')}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -219,6 +227,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
           Top Performing Students, now that the standalone Performance page
           is gone. */}
       <ClassSummaryBar students={students} token={token} teacherId={user.id} />
+
+      <TicketSubmission token={token} userRole={user.role} />
 
       {/* Class picker tabs */}
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">

@@ -4,6 +4,14 @@ All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
 routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
+## 2026-09-02 — Per-student generation lock (cycle-based)
+
+- **`feat(backend)`: per-student generation-cycle lock helper** — new `backend/src/paperLock.ts` module + `paperLock.test.ts` (10 cases). A pure function that decides whether a teacher may re-generate a Diagnostic / Baseline / Mid-Year / End-Year paper for a given `(studentId, paperType, cycle)` triple. Remedial and Practice are explicitly NOT in the lock set — they remain unlimited per user requirement.
+- **`feat(db)`: `studentCycleLocks` collection** — new entry in `DatabaseSchema`, `COLLECTION_NAMES`, and `getSeedData()`, plus `getStudentCycleLocks()` and `addStudentCycleLock()` accessors following the existing dual-mode (Mongo + JSON-file) pattern.
+- **`fix(backend)`: block same-role re-trigger of `/api/worksheets/generate`** — the existing pairwise lock (SRS §13.2 R-11) blocked different roles but allowed the same role to re-trigger, letting a teacher overwrite their own paper 5 min after generation. Now any existing lock for the same `(classId, cycle)` blocks all re-triggers with HTTP 423 and the original lock timestamp in the response.
+- **`fix(backend)`: enforce per-student lock on `/api/worksheets/generate-level-pdf`** — the single-student personalized PDF route had no lock at all. Now refuses to render a second time for the same student with HTTP 409 and the original lock record in `lockDetails`. Lock key: `(studentId, paperType='diagnostic', cycle='Baseline')` — the strictest interpretation of the "one per student" requirement.
+- **`chore`: `.gitignore` for `.hermes/` and per-student AI output dirs** — `.hermes/` (agent workspace, plans, settings) and `ai-services/personalized_evaluation/`, `ai-services/models/`, `ai-services/.cache/` (generated per-student artifacts and student records) are now ignored. Closes a path where `git add .` could have leaked PII.
+
 ## 2026-08-17 — Backend route split (Phase 4) + landing/dashboard honesty pass
 
 - **`backend/src/index.ts` split from 3566 → 126 lines** across 4 sequential PR batches (#211–#215), extracting all route groups into `backend/src/routes/*.ts` (`auth`, `tickets`, `logbook`, `geo`, `classes`, `admin`, `teachers`, `schools`, `interventions`, `bestPractices`, `students`, `worksheets`, `evaluation`, `analytics`, `diagnosticBulk`) plus a shared `backend/src/config.ts`. Zero intended behavior change — each batch verified via `tsc --noEmit` and live curl testing against a scratch MongoDB seed.

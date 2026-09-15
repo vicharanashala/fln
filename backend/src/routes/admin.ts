@@ -66,8 +66,10 @@ export function registerAdminRoutes(app: express.Express) {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const users = await dbStore.getUsers();
-    let filtered = users;
-    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+    let filtered: typeof users;
+    if (user.role === UserRole.SUPERADMIN) {
+      filtered = users;
+    } else if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
       filtered = users.filter(u => u.schoolId === user.schoolId);
     } else if (user.role === UserRole.VOLUNTEER) {
       filtered = users.filter(u => user.assignedSchools?.includes(u.schoolId || ''));
@@ -77,6 +79,11 @@ export function registerAdminRoutes(app: express.Express) {
       filtered = users.filter(u => u.blockCode === user.blockCode);
     } else if (user.role === UserRole.ADMIN) {
       filtered = users.filter(u => u.stateCode === user.stateCode);
+    } else {
+      // Fail closed. This started as `let filtered = users` with no final branch,
+      // so SUPERADMIN fell through correctly by accident — and so would any role
+      // added later, handing it every user in the system.
+      return res.status(403).json({ error: 'Forbidden: role not permitted to list coordinators.' });
     }
     res.json(filtered.map(sanitizeUser));
   });

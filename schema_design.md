@@ -107,11 +107,19 @@ interface Question {
   choices?: string[];       // MCQ choices
   topic: string;            // Broad theme (e.g., "Number Sense")
   subtopic: string;         // Specific target skills (e.g., "Addition with carry")
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: 'easy' | 'medium' | 'hard'; // observed/derived only — see decision below
   source_level: number;     // Math curriculum level origin
   svgAsset?: string;        // Optional visual symbol lookup path
 }
 ```
+
+**Decision on `difficulty` (2026-09-07, issue #324):** repurposed, not deprecated. It conflicted with the locked decision that there are no within-level difficulty tiers — apparent difficulty is supposed to move a question to a different point on the concrete→pictorial→abstract trajectory, not sit as a tag beside it.
+
+That rule governs **authoring**: it's why the question-template intent model (`generationIntent`/`questionFamily`, PR #428/#431) has no `difficulty` input at all — a Superadmin cannot author a "hard" version of a question, only a different concept placement.
+
+The field itself stays, because it is doing real, separate work as an **analytical dimension in misconception diagnosis** (`backend/src/misconceptionFingerprint.ts`) — `performanceByDifficulty` and the `hardOnlyFailure` ratio use per-question difficulty to distinguish a child failing everything from one failing only the harder items within a level. That's an observed classification of the question, not an authored one, and the two are allowed to disagree with the trajectory framing without contradicting it.
+
+**Rule going forward:** `difficulty` must never again be an author-facing field (new authoring surfaces must omit it, as #428/#431 already do). It may continue to be set programmatically — heuristically today (e.g. `levelGenerator.ts:486` assigns it by question index) — and consumed by analysis code. Replacing the index-based heuristic with a real derived measure is separate cleanup, not part of this decision.
 
 ### 6. `worksheets`
 Assessment packages issued by administrators.

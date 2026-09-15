@@ -2,6 +2,8 @@
 
 A large-scale, personalized assessment system that helps teachers measure, track, and improve every student's Foundational Literacy and Numeracy (FLN) outcomes — from automatic question paper generation to scanning answer sheets and instant, profile-driven evaluation.
 
+> **Current build scope: Mathematics only, Classes 2–4.** "FLN" names the policy problem this project is built to eventually address in full (see [SRS.md](SRS.md)), but nothing here evaluates literacy today — every level, question, and evaluation path in this repo is numeracy. Don't read the sections below as literacy features that already exist.
+
 ---
 
 ## Table of Contents
@@ -10,6 +12,8 @@ A large-scale, personalized assessment system that helps teachers measure, track
 - [Initiatives](#initiatives)
 - [What This Software Does](#what-this-software-does)
 - [How It Works (Workflow)](#how-it-works-workflow)
+- [The Level Framework](#the-level-framework)
+- [Where This Is Headed](#where-this-is-headed)
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
 - [Contribution Guidelines](#contribution-guidelines)
@@ -72,15 +76,45 @@ The platform is built around **personalized, student-specific assessment**, not 
    - **Fail** → FLN level diagnosis + scheduled re-assessment at the appropriate level.
 8. Cycle repeats until the student clears the grade-level FLN qualifier.
 
+## The Level Framework
+
+Every question, worksheet, and diagnostic is pinned to one of **93 curriculum levels** (`backend/src/config/curriculumMap.ts`), each mapped to a stage, age group, and a concept ID (`S1.1`–`S7.18`). This replaced an older 59-level numbering; the migration is still in progress (levels above ~59 are the newest additions and have had the least real-world testing).
+
+Two things worth knowing before you touch level numbers:
+
+- **Levels can't be freely renumbered.** `questionBankId()` bakes the level number directly into every stored question-bank ID, so changing a level's number would orphan existing data, not just relabel it.
+- **The curriculum is a build-time snapshot, not a live lookup table.** Levels, their ordering, and their prerequisite relationships are expected to change as the pedagogy is refined — see [Where This Is Headed](#where-this-is-headed) below. Anything you build against the level framework should tolerate that source of truth moving.
+
+## Where This Is Headed
+
+This is the thinking behind why issues get raised the way they do on this repo. If a PR contradicts a point below, that's usually why it gets sent back — read this before proposing a design, not just before writing code.
+
+**1. FLN stays level-based, but the prerequisite structure is being redesigned as a DAG with clauses, not a tree.** A tree gives each level exactly one parent; the actual pedagogy has *alternative* minimal prerequisite sets (failing a level can mean missing that level's own content, *or* missing one of several different combinations of earlier levels). This is what lets two students with the same score be diagnosed differently. Code that assumes one-parent-per-level is encoding the old, wrong model.
+
+**2. The level number is a display label, not the canonical ID — treat it as one that can move.** The target model gives every concept an immutable internal ID; the 1–93 level number, the S-strand code, and the legacy 1–59 number are all versioned aliases of it, kept specifically so the numbering can be corrected by curriculum research without another storage migration. Today's code hasn't fully caught up to this (see [The Level Framework](#the-level-framework) — `questionBankId()` still bakes the level number directly into stored IDs), which is itself one of the things being migrated away from, not a pattern to extend.
+
+**3. Scoring and progression are deterministic and auditable; an LLM never silently decides them.** Gemini (or any model) can assist with generation, tagging, and explanations, but pass/fail/certification decisions run on deterministic rules, and a wrong answer that doesn't match a known misconception pattern stays "unclassified" until a human confirms it — the system never invents a diagnosis for a case it hasn't seen before.
+
+**4. Wrong answers are evidence to build the diagnostic model from, not a catalogue to hardcode up front.** The plan is deliberately vertical-slice-first: prove one 8–12 concept chain end-to-end with a human doing the diagnosis manually, collect real wrong-answer data from that, and only then automate classification — rather than authoring all 93 levels of content or inventing a full misconception catalogue speculatively before any real student has used it. If you're proposing to "finish" the level framework or the misconception model in one PR, check whether that's actually the current priority; it usually isn't.
+
+**5. Question authoring is being decoupled from the legacy generators.** See [`docs/question-authoring-and-assets.md`](docs/question-authoring-and-assets.md) for the current intent-based authoring flow (PRs #428/#431) and where question/SVG content actually lives in the database — don't assume the old hardcoded generator logic is still the only path.
+
+**6. New code must be modular and plug-and-play, because the source of truth above is expected to keep changing.** If the Levels turn out to be wrong, or the prerequisite DAG gets revised, or a concept gets re-tagged, that should mean editing data/config in one place — not rebuilding or re-threading logic through the repository. Don't hardcode a level number, a prerequisite edge, or a misconception rule somewhere it can't be swapped independently of the rest of the system.
+
+**7. Stop designing around what the codebase already does.** Where the existing implementation and the intended pedagogy disagree, the pedagogy wins — the code is expected to change to match the design, not the other way around. Corollary: don't spend a review cycle defending existing code just because it's already there.
+
+If you're picking up level-framework, curriculum, or scoring/diagnosis work, check with a maintainer first — this area is mid-redesign and the source of truth is expected to keep changing.
+
 ## Tech Stack
 
-This project is built on the **MERN stack**:
-- **M**ongoDB — database
-- **E**xpress.js — backend framework
-- **R**eact — frontend
-- **N**ode.js — backend runtime
+This is an **npm-workspaces monorepo** with three separate backend-side pieces, not one:
 
-(Specific libraries for OCR/scanning, PDF generation, etc. will be documented as they're added.)
+- **`frontend/`** (`@fln/frontend`) — React 19 + Vite + Tailwind. Talks only to `backend/`.
+- **`backend/`** (`@fln/backend`) — Node.js + Express + TypeScript. This is "the" API server — the one described in [Getting Started](#getting-started) below. It uses the **native `mongodb` driver, not Mongoose**, and falls back to a local JSON file (`backend/data/db.json`) if `MONGODB_URI` is unset — useful for a zero-setup demo, but not concurrency-safe, so don't rely on it for anything beyond a solo local run.
+- **`backend/fln-backend`** (`fln-worksheet-backend`) — a second, separate plain-JS backend workspace for worksheet-specific functionality.
+- **`ai-services/`** — a Python evaluation/OCR pipeline, invoked by `backend/` as a subprocess (not a service you run yourself in normal dev).
+
+So "MERN" is shorthand for the general shape (Mongo + Express + React + Node), not a literal description of one Express app talking to one Mongoose-modeled database — there are two JS backends and a Python service, and the primary one doesn't use Mongoose.
 
 ## Getting Started
 
@@ -116,10 +150,47 @@ your own test data and iterate on features without touching anyone else's.
    npm run dev:frontend   # Vite dev server on :5173
    ```
 
-Demo login after seeding: `superadmin@fln.org`, password `Fln@2026` (see
-`backend/src/seed.ts` for the full list of generated teacher/volunteer/admin
-emails, which follow a predictable `role.<state>_<district>_<block>_<school>@fln.org`
-pattern).
+Demo login after seeding: `superadmin@fln.org` (see `backend/src/seed.ts` for the
+full list of generated teacher/volunteer/admin emails, which follow a predictable
+`role.<state>_<district>_<block>_<school>@fln.org` pattern). Every seeded account
+shares one password, controlled by the `SEED_DEMO_PASSWORD` env var
+(`backend/src/db.ts`) — **set it in your own `backend/.env` rather than relying on
+the built-in default.** Never deploy with the default value, and never print the
+actual password value in a commit, doc, or issue — that's exactly how it ended up
+published here before (see the git history on this line).
+
+### Aadhaar tokenization (in-process vault)
+
+Student registration tokenizes the 12-digit Aadhaar through the in-process
+vault module at [`backend/src/modules/vault/`](backend/src/modules/vault/) —
+the FLN backend never stores plaintext Aadhaar and never exposes Vault
+service JWTs to the browser (see
+[`backend/src/aadhaarVault.ts`](backend/src/aadhaarVault.ts) and
+[`backend/src/routes/students.ts`](backend/src/routes/students.ts)). The
+module is wired unconditionally at boot; no feature flag, no separate
+process, no service-JWT exchange.
+
+The module needs two env vars (both required for tokenization to succeed):
+
+- `MONGODB_URI` — the FLN backend's existing Mongo connection. The vault
+  reuses the same replica set; the module fails fast with
+  `VAULT_DB_REQUIRES_REPLICA_SET` (503) if pointed at a standalone
+  `mongod` because `session.withTransaction(...)` is unsupported there.
+- `LOCAL_DEV_MASTER_KEY` — base64; ≥ 32 decoded bytes. The
+  per-record DEK wrap subkey is derived from this via
+  `HKDF-SHA-256(master, salt=context, info="aadhaar-vault/dek-wrap")`.
+  Production deployments are expected to swap `LocalDevKeyManager` for a
+  real KMS provider; the port is stable.
+
+Until both are set, `POST /api/students` and `POST /api/students/bulk-import`
+fail with `VaultError NOT_CONFIGURED` (by design — no plaintext fallback).
+
+End-to-end contract is enforced by the integration test suite at
+[`backend/tests/aadhaar-hardening.test.ts`](backend/tests/aadhaar-hardening.test.ts)
+and [`backend/tests/aadhaar-detokenize.test.ts`](backend/tests/aadhaar-detokenize.test.ts)
+(run with `npm test` from `backend/`), and by the read-only at-rest audit
+at [`backend/scripts/audit-aadhaar-at-rest.ts`](backend/scripts/audit-aadhaar-at-rest.ts)
+(`npm run audit:aadhaar`).
 
 ## Rules
  Contributor Onboarding — Onboarding Document (Mandatory)
@@ -209,20 +280,15 @@ pattern).
 
     A document that reads as if it was written without reading the codebase will be sent back.
 
-### Explainer Video Gate (Mandatory, before Onboarding Document)
+### Working Only From Listed Issues (No Self-Invented PRs)
 
-Before submitting the Onboarding Document, every new contributor must watch the FLN project explainer video (linked on Vibe) in full and pass the attention-check questions at the end. This is required *before* your first PR, not just before onboarding review — the video explains why the project is scoped the way it is (Math-only for now, no new features until Version 1 is clean, why the 93-level framework isn't a fixed lookup table) so you don't spend your first PR re-litigating decisions that are already settled.
-
-### Working Only From Predefined Issues
-
-Until Version 1 is clean end-to-end, contributors should pick up work only from issues labeled [`intern-ready`](https://github.com/vicharanashala/fln/issues?q=is%3Aissue+is%3Aopen+label%3Aintern-ready) — these are mechanical, well-scoped tasks (e.g. splitting a god-file, rolling out pagination) that don't require a judgment call about platform behavior. Issues without that label may touch pedagogical logic (the level framework, certification distance, diagnostic scoring) or unbuilt backend features, and need core-team review before and during the work — don't self-assign those without checking with a maintainer first. If you think something is missing from the issue list, raise it as a new issue; don't build it unscoped.
-
+**Every PR must map to an issue or feature already listed on the repo.** Contributors pick work from the issue tracker; nothing self-invented gets built and submitted speculatively — if you think something is missing, raise it as a new issue first and wait for it to be scoped, rather than opening a PR for it directly. Until Version 1 is clean end-to-end, prefer issues labeled [`intern-ready`](https://github.com/vicharanashala/fln/issues?q=is%3Aissue+is%3Aopen+label%3Aintern-ready) — mechanical, well-scoped tasks that don't require a judgment call about platform behavior. Issues without that label may touch pedagogical logic (the level framework, certification distance, diagnostic scoring) or unbuilt backend features, and need core-team review before and during the work — don't self-assign those without checking with a maintainer first.
 
 ## Contribution Guidelines
 
 This is an **open-source** project — contributions are welcome. Before contributing:
 
-1. Check open issues or discuss the feature/fix you want to work on.
+1. Pick an issue already listed on the repo — see [Working Only From Listed Issues](#working-only-from-listed-issues-no-self-invented-prs) above.
 2. Fork the repo (or create a branch if you have write access).
 3. Follow the branch naming and PR process below.
 4. Keep PRs focused — one feature or one fix per PR.
@@ -230,19 +296,24 @@ This is an **open-source** project — contributions are welcome. Before contrib
 
 ## Branching & PR Convention
 
-All branches must follow this naming convention:
+All branches must follow this naming convention (`/`, not `:` — a colon is not a valid character in a git branch name and git will refuse to create one):
 
 | Type | Branch Name Format | Example |
 |------|--------------------|---------|
-| Feature | `feat: <name of feature>` | `feat: auto question paper generation` |
-| Fix | `fix: <name of fix>` | `fix: scanner upload crash on android` |
+| Feature | `feat/<name-of-feature>` | `feat/auto-question-paper-generation` |
+| Fix | `fix/<name-of-fix>` | `fix/scanner-upload-crash-on-android` |
+| Chore | `chore/<name>` | `chore/split-backend-routes-batch-a` |
+| Docs | `docs/<name>` | `docs/repo-hygiene-changelog-readme` |
+| Refactor | `refactor/<name>` | `refactor/level-migration-59-to-93` |
+
+(`chore/`, `docs/`, and `refactor/` aren't new conventions — they're already how the repo's own recent branches are named; this table just documents what's actually in use.)
 
 **Process:**
 1. Create a branch using the convention above.
 2. Make your changes and commit with clear messages.
-3. Push the branch and **raise a Pull Request (PR)** against `main` (or the appropriate base branch).
-4. PRs should reference the related issue (if any) and briefly describe the change.
-5. At least one review/approval is required before merging (process may be refined as the team grows).
+3. Push the branch and **raise a Pull Request (PR)** against `main`, referencing the issue it addresses.
+4. **Review is two stages, in order: an automated first pass, then human review.** A bot pass may auto-reject a PR with a comment explaining why (fix and resubmit) — it never auto-approves. A PR that passes the automated pass is queued for human review; a maintainer merges it, not the contributor who opened it, and not necessarily the first human to look at it.
+5. If you're a new contributor, submit your [Onboarding Document](#rules) (see Rules above) with or before your first PR.
 
 ## License
 

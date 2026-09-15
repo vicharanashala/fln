@@ -329,16 +329,16 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
       */}
       <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm">
         <h3 className="font-display font-medium text-zinc-900 dark:text-white mb-1">
-          Scan &amp; Upload Answer Sheet
+          Upload Scanned Sheet
         </h3>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
-          Once a student's answer sheet is filled in — whether that's today or a few days from now — scan it here to evaluate it.
+          Once a student's answer sheet is filled in — whether that's today or a few days from now — upload it here to evaluate it.
         </p>
         <button
           onClick={() => setShowIcrScanner(true)}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-semibold text-xs py-4 rounded-xl transition-colors shadow cursor-pointer"
         >
-          🖨 Scan &amp; Upload Answer Sheet
+          📤 Upload Scanned Sheet
         </button>
       </div>
     </div>

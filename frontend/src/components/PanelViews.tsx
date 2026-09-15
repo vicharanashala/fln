@@ -13,6 +13,8 @@ import { TestHistoryPanel } from './panels/TestHistoryPanel';
 import { WorksheetTemplatesPanel } from './panels/WorksheetTemplatesPanel';
 import { SystemSettingsPanel } from './panels/SystemSettingsPanel';
 import { StudentListPanel } from './panels/StudentListPanel';
+import { AadhaarRevealPanel } from './panels/AadhaarRevealPanel';
+import { SecurityPanel } from './panels/SecurityPanel';
 import { DiagnosticTestPanel } from './panels/DiagnosticTestPanel';
 import { PerformancePanel } from './panels/PerformancePanel';
 import { WorksheetsPanel } from './panels/WorksheetsPanel';
@@ -32,6 +34,14 @@ interface PanelViewsProps {
   activePanel: string;
   currentUser: User;
   token: string;
+  /**
+   * Routes the admin to a different panel (e.g. `security`) when
+   * a sub-flow needs to hand off. The Aadhaar reveal dialog uses
+   * this to send admins to the Security panel when they don't have
+   * an enrolled authenticator yet. Optional so other entry points
+   * (where the sub-flow is never reached) don't need to thread it.
+   */
+  onSelectView?: (view: string) => void;
 }
 
 const CONTENT_ITEMS = [
@@ -43,7 +53,7 @@ const CONTENT_ITEMS = [
   { id: 'c6', title: 'Money Math Games', type: 'Activity', level: 'L46-L48', language: 'English', status: 'Draft' },
 ];
 
-export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token }) => {
+export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectView }) => {
   const {
     students, studentsLoading, schools, usersList, reportsList, worksheetsList, teachersList,
     getDistrictStats, getBlockStats, updateStudentLocally, refreshStudents,
@@ -90,6 +100,24 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
   if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) return <TeachersPanel schools={schools} teachersList={teachersList} currentUser={currentUser} />;
 
+  // Fix #446: Principal Students navigation (view='students') had no matching
+  // panel handler, so PanelViews returned null and rendered nothing.
+  // Reuse StudentListPanel — the same component used by teachers for
+  // 'student_list'. StudentListPanel already gates the Register/CSV-import
+  // actions behind isTeacherOrVolunteer, so the principal gets a read-only
+  // roster view without any code duplication.
+  if (panel === 'students' && currentUser.role === UserRole.SCHOOL) {
+    return (
+      <StudentListPanel
+        students={students}
+        studentsLoading={studentsLoading}
+        currentUser={currentUser}
+        token={token}
+        refreshStudents={refreshStudents}
+      />
+    );
+  }
+
   // ===================== BLOCK/DISTRICT/STATE ADMIN + SUPERADMIN SHARED PANELS =====================
   if (panel === 'schools') return <SchoolsPanel schools={schools} />;
 
@@ -108,6 +136,28 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'analytics') return <AnalyticsPanel currentUser={currentUser} schools={schools} students={students} getDistrictStats={getDistrictStats} getBlockStats={getBlockStats} />;
 
   if (panel === 'system_settings') return <SystemSettingsPanel />;
+
+  // Admin-only Step-Up Aadhaar Reveal (see backend/src/routes/aadhaarDetokenize.ts).
+  // The panel itself enforces role gating as a defence-in-depth; the menu
+  // also gates visibility to admin roles in Layout.tsx.
+  if (panel === 'aadhaar_reveal') {
+    return (
+      <AadhaarRevealPanel
+        students={students}
+        currentUser={currentUser}
+        token={token}
+        onSelectView={onSelectView}
+      />
+    );
+  }
+
+  // Account-level Authenticator enrollment (admin roles only — see
+  // Layout.tsx). The SecurityPanel is the ONLY place a QR is rendered;
+  // the per-student reveal dialog never renders a QR or calls the
+  // enroll endpoint. See CLAUDE.md "Hard invariant" on TOTP factors.
+  if (panel === 'security') {
+    return <SecurityPanel currentUser={currentUser} token={token} />;
+  }
 
   // Fallback for any unmatched panel — renders the roles workspace (dashboard) as the content
   return null;

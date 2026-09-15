@@ -1,6 +1,6 @@
 // 2. STATE ADMIN / DISTRICT ADMIN / BLOCK ADMIN DASHBOARDS
 
-
+import { LogbookView } from '../LogbookView';
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../services/apiClient';
 import { User, UserRole, Student, School,DashboardProps } from '../../types';
@@ -8,7 +8,7 @@ import { STATE_NAMES, DISTRICT_NAMES} from '../RoleDashboards';
 import {RegionalAnalyticsView} from '../dashboards/RegionalAnalyticsView'
 
 export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'access'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'access' | 'logbook'>('overview');
   const [schools, setSchools] = useState<School[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -154,6 +154,14 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           >
             🛡️ Access Control & Defaulters
           </button>
+          <button
+            onClick={() => setActiveTab('logbook')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              activeTab === 'logbook' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+            }`}
+          >
+            📜 Audit Logbook
+          </button>
         </div>
       </div>
 
@@ -249,6 +257,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
       {activeTab === 'analytics' && (
         <RegionalAnalyticsView token={token} user={user} />
+      )}
+
+      {activeTab === 'logbook' && (
+        <LogbookView token={token} user={user} />
       )}
 
       {activeTab === 'access' && (

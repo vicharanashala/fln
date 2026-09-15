@@ -64,8 +64,14 @@ function formatMs(ms: number): string {
   return `${(ms / 1000).toFixed(2)} s`;
 }
 
-const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // matches backend's 8MB cap
-const MAX_UPLOAD_LABEL = '8 MB';
+// The old 8MB figure was a leftover from a since-deleted code path (the
+// removed /api/icr/filter + local-EasyOCR flow). The current backend
+// rasterizes PDFs itself (evaluation.ts) and only rejects a PDF above
+// MAX_TOTAL_BASE64 = 24MB base64 (~18MB binary); nginx's /fln location caps
+// request bodies at 25MB. 18MB raw stays safely under both once base64
+// inflation (~1.33x) is accounted for.
+const MAX_UPLOAD_BYTES = 18 * 1024 * 1024;
+const MAX_UPLOAD_LABEL = '18 MB';
 
 export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
   token,
@@ -143,9 +149,10 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
 
   const runCloudOcr = async () => {
     if (!uploadedFile) return;
-    if (uploadedFile.size > MAX_UPLOAD_BYTES) {
+    const fileToUse = await compressImageIfNeeded(uploadedFile, MAX_UPLOAD_BYTES);
+    if (fileToUse.size > MAX_UPLOAD_BYTES) {
       setCloudError(
-        `File too large: ${(uploadedFile.size / 1024 / 1024).toFixed(1)} MB (max ${MAX_UPLOAD_LABEL}). ` +
+        `File too large: ${(fileToUse.size / 1024 / 1024).toFixed(1)} MB (max ${MAX_UPLOAD_LABEL}). ` +
         `Try compressing the image, or use a smaller scan resolution.`
       );
       return;
@@ -160,7 +167,7 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
       // data URL; the backend rasterizes PDFs to PNG before posting to
       // Ollama (Ollama's vision API only accepts image MIME types).
       // NO apiKey is ever sent from the frontend.
-      const dataUrl = await fileToDataUrl(uploadedFile);
+      const dataUrl = await fileToDataUrl(fileToUse);
       const res = await apiFetch('/api/icr/evaluate-cloud', {
         method: 'POST',
         headers: {
@@ -295,6 +302,48 @@ function fileToDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error || new Error('FileReader failed'));
     reader.readAsDataURL(file);
   });
+}
+
+// Phone-camera scans routinely land north of the 8MB cap at full resolution.
+// Rather than just rejecting them, downscale + re-encode as JPEG (quality
+// step-down, then dimension step-down) until it fits. PDFs and files already
+// under the cap pass through untouched. Bails out and returns the original
+// file if canvas encoding fails for any reason — the existing size check
+// downstream will then produce the normal "too large" error.
+async function compressImageIfNeeded(file: File, maxBytes: number): Promise<File> {
+  if (file.size <= maxBytes || !file.type.startsWith('image/')) return file;
+
+  const dataUrl = await fileToDataUrl(file);
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error('Could not decode image for compression'));
+    el.src = dataUrl;
+  });
+
+  let scale = 1;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    const quality = attempt < 3 ? [0.9, 0.75, 0.6][attempt] : 0.6;
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', quality)
+    );
+    if (blob && blob.size <= maxBytes) {
+      return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', {
+        type: 'image/jpeg',
+        lastModified: file.lastModified,
+      });
+    }
+    // Quality alone didn't get us there — shrink dimensions and retry.
+    scale *= 0.7;
+  }
+  return file;
 }
 
 // --- Reusable building blocks ----------------------------------------------

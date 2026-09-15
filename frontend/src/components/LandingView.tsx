@@ -8,7 +8,6 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, Award, Globe, BookOpen, Users, BarChart3, ArrowRight, MapPin } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { FLN_LEVELS_LIST } from './RoleDashboards';
 
 interface LandingViewProps {
   onNavigateToLogin: () => void;
@@ -83,7 +82,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
       label: t('landing.stat.studentsTracked'), value: stats?.totalStudents?.toLocaleString() ?? null, desc: t('landing.stat.studentsTrackedDesc'), icon: Users,
       color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40',
       hoverDetail: stats?.certifiedCount != null && stats?.certifiedPercent != null
-        ? `${stats.certifiedCount.toLocaleString()} certified at FLN level 5+ (${stats.certifiedPercent}%).`
+        ? `${stats.certifiedCount.toLocaleString()} certified at level 5+ (${stats.certifiedPercent}%).`
         : null,
     },
     {
@@ -121,26 +120,19 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
 
       {/* 3. Main portal banner header */}
       <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-950/50">
-        <div className="mx-auto max-w-7xl px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
-            {/* Authentic Sarnath Pillar representative icon */}
-            <div className="flex h-12 w-12 items-center justify-center rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-1 shadow-sm shrink-0">
-              <svg className="h-10 w-10 text-amber-800 dark:text-amber-400" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12,2A3,3 0 0,0 9,5C9,6.08 9.58,7.03 10.42,7.56C9.03,8.4 8,9.88 8,11.6V13.5H16V11.6C16,9.88 14.97,8.4 13.58,7.56C14.42,7.03 15,6.08 15,5A3,3 0 0,0 12,2M12,4A1,1 0 0,1 13,5A1,1 0 0,1 12,6A1,1 0 0,1 11,5A1,1 0 0,1 12,4M10,15V19H14V15H10M9,20V21H15V20H9Z" />
-              </svg>
-            </div>
-            <div className="border-l-2 border-slate-200 dark:border-slate-700 pl-3">
-              <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
-                <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white uppercase">
-                  {t('portal.name')}
-                </span>
-                <span className="rounded-full bg-amber-100 dark:bg-amber-950/40 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                  Official Portal
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">
-                {t('portal.tagline')}
-              </p>
+        <div className="mx-auto max-w-screen-2xl pl-2 pr-6 py-4 md:py-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row pl-2">
+            <div className="flex items-center gap-3">
+              <img
+                src="/partners/iit-ropar-logo.svg"
+                alt="Indian Institute of Technology Ropar"
+                className="h-12 md:h-16 w-auto"
+              />
+              <img
+                src="/partners/vicharanashala-logo.png"
+                alt="Vicharanashala — Lab for Education Design"
+                className="h-12 md:h-16 w-auto"
+              />
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -159,11 +151,6 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
         <div className="text-center relative">
             <div className="absolute inset-x-0 -top-12 flex justify-center -z-10 opacity-5">
             <span className="text-[140px] font-black select-none text-slate-200 dark:text-slate-800">FLN</span>
-          </div>
-          
-          <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 dark:bg-amber-950/40 px-4 py-1.5 text-xs font-bold text-slate-900 dark:text-white mb-6 border border-amber-200 dark:border-amber-800">
-            <span className="h-2 w-2 rounded-full bg-amber-600 dark:bg-amber-500" />
-            <span>{t('landing.heroBadge')}</span>
           </div>
 
           <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl max-w-4xl mx-auto leading-tight">
@@ -228,7 +215,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
                 {t('landing.curriculum.title')}
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-slate-300">
-                              {t('landing.curriculum.body', { levels: FLN_LEVELS_LIST.length })}
+                              {t('landing.curriculum.body')}
                             </p>
             </div>
           </div>
@@ -258,7 +245,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
       <footer className="bg-[#111827] text-slate-400 dark:text-slate-400 py-8 border-t border-gray-800 text-center text-xs">
         <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-left">
-            <p>© 2026 FLN Assessment Platform. Handcrafted for educational diagnostics.</p>
+            <p>© 2026 Assessment Platform. Handcrafted for educational diagnostics.</p>
             <p className="mt-1 text-slate-500 dark:text-slate-500">Technical Support & Platform Host: Secure Education Services.</p>
           </div>
         </div>
