@@ -16,7 +16,6 @@ import { dbStore, connectDB, UserRole, User, Student, School, Question, Workshee
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
 import { generateQuestionsForLevel } from './levelGenerator';
-import { buildInterventionDashboard } from './interventionEngine';
 
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS } from './geoData';
