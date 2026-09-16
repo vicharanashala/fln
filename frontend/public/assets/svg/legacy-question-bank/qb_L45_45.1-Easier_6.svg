@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150" width="700" height="150" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="18" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Identify: 2/3</text>
+<circle cx="350" cy="55" r="35" fill="white" stroke="#333" stroke-width="1.5"/>
+<path d="M350,55 L350.0,20.0 A35,35 0 0,1 380.3,72.5 Z" fill="white" stroke="#333" stroke-width="1.5"/>
+<line x1="374.1554445662277" y1="43.25" x2="356.1554445662277" y2="49.25" stroke="#888" stroke-width="0.8"/>
+<line x1="368.1554445662277" y1="43.25" x2="362.1554445662277" y2="49.25" stroke="#888" stroke-width="0.8"/>
+<line x1="362.1554445662277" y1="43.25" x2="368.1554445662277" y2="49.25" stroke="#888" stroke-width="0.8"/>
+<line x1="356.1554445662277" y1="43.25" x2="374.1554445662277" y2="49.25" stroke="#888" stroke-width="0.8"/>
+<path d="M350,55 L380.3,72.5 A35,35 0 0,1 319.7,72.5 Z" fill="white" stroke="#333" stroke-width="1.5"/>
+<line x1="359.0" y1="69.5" x2="341.0" y2="75.5" stroke="#888" stroke-width="0.8"/>
+<line x1="353.0" y1="69.5" x2="347.0" y2="75.5" stroke="#888" stroke-width="0.8"/>
+<line x1="347.0" y1="69.5" x2="353.0" y2="75.5" stroke="#888" stroke-width="0.8"/>
+<line x1="341.0" y1="69.5" x2="359.0" y2="75.5" stroke="#888" stroke-width="0.8"/>
+<path d="M350,55 L319.7,72.5 A35,35 0 0,1 350.0,20.0 Z" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="105" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">Fraction = ___</text>
+</svg>

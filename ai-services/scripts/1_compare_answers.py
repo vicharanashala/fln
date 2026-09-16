@@ -75,14 +75,26 @@ class AnswerComparator:
         }
 
         for q_id, student_ans in answers.items():
-            if q_id not in self.questions_db:
+            # Resolve the canonical question definition. Prefer the static
+            # questions_db (loaded from ai-services/questions/class_*/phrase_*/
+            # *_exam_*.json). Fall back to the paper question metadata that
+            # the backend embeds in `student_data["questions"]`, which is the
+            # source of truth for dynamically-generated papers whose
+            # question_ids are not in the static bank.
+            if q_id in self.questions_db:
+                question = self.questions_db[q_id]
+            elif q_id in student_data.get("questions", {}):
+                question = student_data["questions"][q_id]
+            else:
                 print(f"  [!] Question not found: {q_id}")
                 continue
 
-            question = self.questions_db[q_id]
             is_correct = str(student_ans["answer"]).strip() == str(question["answer"]).strip()
 
             diff_map = {"e": "easy", "m": "medium", "h": "hard"}
+            # `fln_level` records the paper's source_level (the 93-level
+            # framework level: 1..93). Downstream steps use this to render
+            # "Level {n} - {topic} - Error: ..." instead of an unknown "Level ?".
             comparison = {
                 "question_id": q_id,
                 "class": question.get("class_level"),
@@ -92,7 +104,10 @@ class AnswerComparator:
                 "student_answer": student_ans["answer"],
                 "correct_answer": question["answer"],
                 "status": "\u2713" if is_correct else "\u2717",
-                "ocr_confidence": student_ans.get("confidence", 0.9)
+                "ocr_confidence": student_ans.get("confidence", 0.9),
+                "fln_level": question.get("source_level"),
+                "concept_id": question.get("conceptId"),
+                "concept_title": question.get("conceptTitle"),
             }
 
             self.result["comparisons"].append(comparison)

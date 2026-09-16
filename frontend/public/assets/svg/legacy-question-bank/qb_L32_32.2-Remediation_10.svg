@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150" width="700" height="150" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Write the position of the highlighted item:</text>
+<rect x="240.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/><line x1="244.4" y1="50.2" x2="244.4" y2="69.8" stroke="#333" stroke-width="1.5"/><line x1="255.6" y1="50.2" x2="255.6" y2="69.8" stroke="#333" stroke-width="1.5"/>
+<polygon points="290,46 304,60 290,74 276,60" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="320.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="360.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/><line x1="364.4" y1="50.2" x2="364.4" y2="69.8" stroke="#333" stroke-width="1.5"/><line x1="375.6" y1="50.2" x2="375.6" y2="69.8" stroke="#333" stroke-width="1.5"/>
+<rect x="354" y="44" width="32" height="32" rx="0" fill="none" stroke="#333" stroke-width="1.5"/>
+<text x="370" y="90" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">↑</text>
+<circle cx="410" cy="60" r="11.200000000000001" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="320" y="110" width="60" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="129" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+</svg>

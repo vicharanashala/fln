@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 190" width="700" height="190" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="20" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Compare: which is heavier?</text>
+<polygon points="338,95 362,95 350,80" fill="#e0e0e0" stroke="#333" stroke-width="1.5"/>
+<line x1="350" y1="45" x2="350" y2="80" stroke="#333" stroke-width="2.5"/>
+<line x1="290" y1="30" x2="410" y2="50" stroke="#333" stroke-width="2.5"/>
+<circle cx="350" cy="45" r="4" fill="#333" stroke="#333" stroke-width="1.5"/>
+<line x1="290" y1="30" x2="290" y2="50" stroke="#333" stroke-width="1.5"/>
+<rect x="273" y="50" width="34" height="6" rx="0" fill="#e0e0e0" stroke="#333" stroke-width="1.5"/>
+<line x1="410" y1="50" x2="410" y2="70" stroke="#333" stroke-width="1.5"/>
+<rect x="393" y="70" width="34" height="6" rx="0" fill="#e0e0e0" stroke="#333" stroke-width="1.5"/>
+<rect x="284" y="38" width="12" height="12" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="290" y="33" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">A</text>
+<circle cx="410" cy="46" r="12" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="410" y="41" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">B</text>
+<text x="350" y="113" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">Which is heavier?  A / B: ___</text>
+</svg>

@@ -7,94 +7,47 @@ export function registerAnalyticsRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const students = await dbStore.getStudents();
-    const schools = await dbStore.getSchools();
-    const worksheets = await dbStore.getWorksheets();
-    const reports = await dbStore.getEvaluationReports();
-
     // Query params for dynamic filtering
     const stateCodeParam = (req.query.stateCode as string) || user.stateCode || 'PB';
     const districtCodeParam = (req.query.districtCode as string) || user.districtCode || 'LDH';
     const blockCodeParam = (req.query.blockCode as string) || user.blockCode || 'LDH-01';
 
-    // Map geographical attributes to students
-    const studentsWithGeo = students.map(s => {
-      const sch = schools.find(x => x.id === s.schoolId);
-      return {
-        ...s,
-        stateCode: sch?.stateCode || '',
-        districtCode: sch?.districtCode || '',
-        blockCode: sch?.blockCode || ''
-      };
-    });
+    // Calculate dynamic scopes using fast aggregation pipelines
+    const [
+      national,
+      state,
+      district,
+      block,
+      totalStudents,
+      totalSchools,
+      totalWorksheets,
+      certifiedCount,
+      totalReports,
+    ] = await Promise.all([
+      dbStore.getAnalyticsForScope(),
+      dbStore.getAnalyticsForScope({ stateCode: stateCodeParam }),
+      dbStore.getAnalyticsForScope({ districtCode: districtCodeParam }),
+      dbStore.getAnalyticsForScope({ blockCode: blockCodeParam }),
+      dbStore.countStudentsFast(),
+      dbStore.countSchoolsFast(),
+      // Worksheets count
+      (async () => {
+        if (dbStore.getDb()) {
+          return await dbStore.getDb()!.collection('worksheets').countDocuments({});
+        }
+        return (dbStore as any).data?.worksheets?.length || 0;
+      })(),
+      dbStore.countStudentsFast({ currentLevelMin: 5 }),
+      // Reports count
+      dbStore.countReports(),
+    ]);
 
-    const getScopeMetrics = (filteredStudents: typeof studentsWithGeo) => {
-      const count = filteredStudents.length;
-      if (count === 0) {
-        return {
-          avgLevel: 0,
-          certificationRate: 0,
-          topicMastery: {
-            "Number Sense": 0,
-            "Number Operations": 0,
-            "Shapes": 0,
-            "Fractions": 0,
-            "Patterns": 0,
-            "Measurement": 0
-          },
-          levelDistribution: Object.fromEntries(
-            Array.from({ length: 15 }, (_, i) => [`Level ${i + 1}`, 0])
-              .concat([["Level 16+", 0]])
-          )
-        };
-      }
-      const sumLevel = filteredStudents.reduce((acc, s) => acc + s.currentLevel, 0);
-      const avgLevel = Math.round((sumLevel / count) * 10) / 10;
-      const certified = filteredStudents.filter(s => s.currentLevel >= 5).length;
-      const certificationRate = Math.round((certified / count) * 100);
-
-      // Create stable topic mastery values that reflect the current average level
-      const avgCurrentLevel = sumLevel / count;
-      const topicMastery = {
-        "Number Sense": Math.min(100, Math.round(55 + avgCurrentLevel * 8)),
-        "Number Operations": Math.min(100, Math.round(45 + avgCurrentLevel * 9)),
-        "Shapes": Math.min(100, Math.round(58 + avgCurrentLevel * 7)),
-        "Fractions": Math.min(100, Math.round(20 + avgCurrentLevel * 11)),
-        "Patterns": Math.min(100, Math.round(38 + avgCurrentLevel * 10)),
-        "Measurement": Math.min(100, Math.round(32 + avgCurrentLevel * 10))
-      };
-
-      const levelDistribution: Record<string, number> = {};
-      for (let i = 1; i <= 15; i++) {
-        levelDistribution[`Level ${i}`] = filteredStudents.filter((s: any) => s.currentLevel === i).length;
-      }
-      levelDistribution["Level 16+"] = filteredStudents.filter((s: any) => s.currentLevel >= 16).length;
-
-      return {
-        avgLevel,
-        certificationRate,
-        topicMastery,
-        levelDistribution
-      };
-    };
-
-    // Calculate dynamic scopes
-    const national = getScopeMetrics(studentsWithGeo);
-    const state = getScopeMetrics(studentsWithGeo.filter(s => s.stateCode === stateCodeParam));
-    const district = getScopeMetrics(studentsWithGeo.filter(s => s.districtCode === districtCodeParam));
-    const block = getScopeMetrics(studentsWithGeo.filter(s => s.blockCode === blockCodeParam));
-
-    // Compute high-level general metrics
-    const totalStudents = students.length;
-    const totalSchools = schools.length;
-    const totalWorksheets = worksheets.length;
-    const certifiedCount = students.filter(s => s.currentLevel >= 5).length;
     const certificationPercent = totalStudents > 0 ? Math.round((certifiedCount / totalStudents) * 100) : 0;
 
     const pipeline = {
-      conducted: worksheets.length * 10,
-      scanned: reports.length,
-      evaluated: reports.length,
+      conducted: totalWorksheets * 10,
+      scanned: totalReports,
+      evaluated: totalReports,
       certified: certifiedCount
     };
 
@@ -224,31 +177,31 @@ export function registerAnalyticsRoutes(app: express.Express) {
         schoolsCount: s.count,
         studentsCount: stateCode === 'ALL'
           ? (() => {
-              // For ALL, sum studentsBySchool entries whose school is in this state.
-              // We don't have state on studentBySchool key (schoolId only), so
-              // we count from the filtered list: easier to use allFilteredSchools.
-              // For per-state filter, we have the right number already.
-              if (s.stateCode === stateCode) {
-                return totalStudents;
-              }
-              // Approximate: skip the per-state student count when state=ALL
-              // to avoid loading all students. Set to 0 as a placeholder; the
-              // /api/students?stateCode=... endpoint returns accurate counts
-              // when filtered.
-              return 0;
-            })()
+            // For ALL, sum studentsBySchool entries whose school is in this state.
+            // We don't have state on studentBySchool key (schoolId only), so
+            // we count from the filtered list: easier to use allFilteredSchools.
+            // For per-state filter, we have the right number already.
+            if (s.stateCode === stateCode) {
+              return totalStudents;
+            }
+            // Approximate: skip the per-state student count when state=ALL
+            // to avoid loading all students. Set to 0 as a placeholder; the
+            // /api/students?stateCode=... endpoint returns accurate counts
+            // when filtered.
+            return 0;
+          })()
           : (() => {
-              // stateCode is a specific state — count students in schools of
-              // that state. We have allFilteredSchools with stateCode field,
-              // so count students per schoolId in that set.
-              const schIds = new Set(
-                allFilteredSchools.filter((sc: any) => sc.stateCode === s.stateCode)
-                  .map((sc: any) => sc.id)
-              );
-              let count = 0;
-              studentsBySchool.forEach((c, sid) => { if (schIds.has(sid)) count += c; });
-              return count;
-            })(),
+            // stateCode is a specific state — count students in schools of
+            // that state. We have allFilteredSchools with stateCode field,
+            // so count students per schoolId in that set.
+            const schIds = new Set(
+              allFilteredSchools.filter((sc: any) => sc.stateCode === s.stateCode)
+                .map((sc: any) => sc.id)
+            );
+            let count = 0;
+            studentsBySchool.forEach((c, sid) => { if (schIds.has(sid)) count += c; });
+            return count;
+          })(),
         avgScore: 0,
       })).sort((a, b) => b.schoolsCount - a.schoolsCount);
 

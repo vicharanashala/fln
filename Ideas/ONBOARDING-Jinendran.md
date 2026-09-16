@@ -1,55 +1,48 @@
 # Onboarding Document — Jinendran
 
-Every file path, line number and command result in this document was verified
-against `origin/main` at commit `1bd4599` — the tree this PR branches from — and
-not carried over from existing documentation, which (see G11) is materially out
-of date. Where I cite my own feature work that is not yet on `main`, I say so
-explicitly rather than pointing a reviewer at a path they cannot open.
+All file references below were checked against the repository at the head of
+branch `feat/misconception-fingerprinting`, after that branch was synced with
+`origin/main` (which recently split the backend into route modules). Line numbers
+are from that tree, not from the pre-split layout — several of the gaps below
+moved file during the split, and I re-verified each one rather than carrying the
+old citation forward.
 
 ---
 
 ## 1. What is FLN?
 
-FLN stands for **Foundational Literacy and Numeracy**. This repository implements
-the *numeracy* half: an assessment and personalised-worksheet platform for
-**Mathematics in Classes 2–4** in Indian government schools.
+FLN stands for **Foundational Literacy and Numeracy**. In this repository it is
+specifically the *numeracy* half: an assessment and personalised-worksheet
+platform for **Mathematics in Classes 2–4** in Indian government schools.
 
-The educational problem is one that every large school system hits. A class of
-forty children is taught one lesson at one pace, but the forty children are not
-at one level — some are still counting on their fingers while others are ready
-for multi-digit regrouping. The teacher can see this happening. What they do not
-have is a practical instrument to measure *where each child actually is*, or the
-hours to hand-write forty different worksheets. So the class gets taught to the
-middle, and the children at both ends are underserved. Aggregated over a state,
-this is what produces the gap between *years spent in school* and *skills
-actually acquired*.
+The educational problem it addresses is the one every large school system runs
+into. A class of forty children is taught one lesson at one pace, but the
+children in it are not at one level — some are still counting on fingers while
+others are ready for multi-digit regrouping. A teacher can see this happening,
+but has no practical instrument to measure *where* each child actually is, and
+no time to hand-write forty different worksheets. So the class is taught to the
+middle, and the children at either end are underserved. Nationally, this is what
+produces the gap between "years spent in school" and "skills acquired".
 
-FLN's purpose is to make per-child teaching mechanically possible at scale:
+FLN's purpose is to make per-child teaching mechanically possible:
 
 1. **Assess** each child on a diagnostic paper and place them on a fine-grained
-   **93-level scale**, each level with 3 sub-levels
-   (`backend/src/levelGenerator.ts:10` — *"Programmatic math builder for all 93
-   levels and 3 sub-levels"*), rather than a coarse pass/fail grade.
-2. **Generate** a printable worksheet personalised to that level. *Printable*
-   is not a limitation here — it is the requirement. These are classrooms where
-   a child does not have a device.
-3. **Ingest** the completed paper back by scanning it (ICR — a blue-ink filter
-   plus OCR), so the loop closes without a teacher retyping forty papers.
-4. **Evaluate** the answers through a Python + Gemini pipeline
-   (`ai-services/run_pipeline.py`) that produces a per-child report carrying
-   root causes, not merely a score.
-5. **Roll up** results through a seven-role administrative hierarchy so a block,
-   district or state officer sees evidence instead of paperwork.
+   **level scale (1–93, each with 3 sub-levels)** rather than a coarse pass/fail
+   grade.
+2. **Generate** a printable worksheet personalised to that level — printable
+   matters, because these are classrooms where a child does not have a device.
+3. **Ingest** the completed paper back in by scanning it (`IcrScanner.tsx`,
+   `IcrTwoStageScan.tsx` — a blue-ink filter plus OCR), so the loop closes
+   without manual data entry.
+4. **Evaluate** the scanned answers through a Python + Gemini pipeline
+   (`ai-services/run_pipeline.py`) that produces a per-child report with root
+   causes, not just a score.
+5. **Roll up** the results through a seven-role administrative hierarchy so that
+   a block, district or state officer sees aggregates rather than paperwork.
 
-It serves **children** first (work at their own level), **teachers** second (a
-diagnosis and a concrete action instead of a spreadsheet), and **administrators**
-third (evidence of where intervention is actually needed).
-
-The thing I would emphasise, having read the code rather than the pitch: the
-system's real product is not the score. It is the **level assignment**, because
-that single number decides what the child is handed next week. Everything
-upstream exists to make that number trustworthy, and everything downstream
-inherits it if it is wrong.
+It serves **children** first (they receive work at their own level), **teachers**
+second (they get a diagnosis and a concrete action instead of a spreadsheet), and
+**administrators** third (they get evidence of where intervention is needed).
 
 ---
 
@@ -57,76 +50,75 @@ inherits it if it is wrong.
 
 ### Actors
 
-The role enum lives in `backend/src/db.ts` (`UserRole`) and is enforced by
+The role enum lives in `backend/src/db.ts` (`UserRole`) and is enforced through
 `getAuthUser` / `canAccessStudent` in `backend/src/auth.ts`:
 
 | Role | What it owns | Scope of visibility |
 |---|---|---|
-| `SUPERADMIN` / `ADMIN` | The platform / a state | Everything / state |
+| `SUPERADMIN` / `ADMIN` | The platform | Everything |
 | `DISTRICT_ADMIN` | A district | All schools within it |
 | `BLOCK_ADMIN` | A block | All schools within it |
 | `SCHOOL` | One school | Students of that school |
 | `TEACHER` | A class in a school | Students of that school |
-| `VOLUNTEER` | Assessment duty | Only their `assignedSchools` |
+| `VOLUNTEER` | Assessment duty | Only `assignedSchools` |
 
-The scoping rule is visible in `backend/src/auth.ts:38-53`: the admin tiers
-return `true` unconditionally, school and teacher are gated on
-`student.schoolId === user.schoolId`, and a volunteer is gated on an explicit
-`assignedSchools` list. The volunteer is deliberately the narrowest role — they
-conduct assessments but own no teaching group.
-
-Geographic scoping is a *join*, not a field: an `ADMIN`/`DISTRICT_ADMIN`/
-`BLOCK_ADMIN` has a `stateCode`/`districtCode`/`blockCode`, and student
-visibility is resolved by looking each student's school up in the schools
-collection and comparing codes (`backend/src/routes/students.ts:91-103`).
+The scoping rule is visible in `auth.ts:38-53`: the four admin tiers return
+`true` unconditionally, school and teacher are gated on `student.schoolId ===
+user.schoolId`, and a volunteer is gated on their explicit `assignedSchools`
+list. A volunteer is deliberately the narrowest role — they conduct assessments
+but own no teaching group, which is also why they are excluded from renaming
+misconception archetypes (`routes/misconceptions.ts:19-26`).
 
 ### Entities and how they interact
+
+The core chain is:
 
 ```
 School ──has──> ClassGroup ──has──> Student
                                       │
-                                      ├─ currentLevel (1..93) + currentSubLevel (0..2)
-                                      ├─ levelHistory[]
+                                      ├─ currentLevel (1..93)
                                       │
 Worksheet ──(questions[])──> AnswerSubmission ──> EvaluationReport
     │                              │                     │
- generated from                what the child        score, conceptMastery,
- the child's level                wrote              recommendedLevel
+ generated from                 what the             score, conceptMastery,
+ the child's level           child wrote            recommendedLevel
+                                                          │
+                                                   MisconceptionCluster
+                                                  (which archetype they are)
 ```
 
-- A **Student** carries `currentLevel`, the single number driving what they are
-  given next. Certification is `currentLevel >= 5`.
+- A **Student** carries `currentLevel`, which is the single number driving what
+  they are given next. Certification is `currentLevel >= 5`.
 - A **Worksheet** holds `questions[]`, each with `question`, `answer`, `topic`,
-  `difficulty` and `source_level` — so every question knows which FLN level it
-  tests. That last field is what makes a *diagnostic* possible at all: the level
-  is inferred from which questions failed, not from a raw percentage.
-- An **AnswerSubmission** holds the child's raw responses keyed by
-  `question_id`. It is the only record of *what the child actually wrote*.
+  `difficulty` and `source_level` — so a question knows which FLN level it tests.
+- An **AnswerSubmission** is the child's raw responses, keyed by `question_id`.
+  It is the only record of *what the child actually wrote*.
 - An **EvaluationReport** is the graded verdict: `score`, `conceptMastery`,
-  `narrative`, `recommendedLevel`, `recommendedSubLevel`. Note that it does
-  **not** retain the answers.
+  `narrative`, `recommendedLevel` and `recommendedSubLevel`. Notably it does
+  **not** retain the child's answers.
+- A **MisconceptionCluster** (`db.ts:371-404`) groups children by *how* they
+  fail, keyed by `classGroup`, defined by a `centroid` vector.
 
-The interaction that took me longest to see, and which turns out to matter more
-than anything else in this document: **a report keeps the verdict and throws away
-the evidence.** Any question of the form "*how* does this child think?" — as
-opposed to "how much did they score?" — can only be answered by joining
-`AnswerSubmission.answers` back against `Worksheet.questions`. G5 and G6 below
-are both consequences of that join being unavailable on the diagnostic path.
+The interaction that matters most, and which I only understood by tracing it: a
+report keeps the score but throws away the responses, so any analysis of *how* a
+child thinks has to join `AnswerSubmission.answers` back against
+`Worksheet.questions`. That join is the raw material the whole misconception
+feature is built on.
 
 ### The lifecycle
 
 1. Teacher or volunteer administers a **diagnostic**.
-2. The paper is scanned (ICR) or entered.
+2. The paper is scanned (ICR) or entered; an `AnswerSubmission` is written.
 3. The Python pipeline evaluates it; an `EvaluationReport` is written.
-4. `currentLevel` is set from `recommendedLevel`, using a
-   **minimum-failure-level** rule — fail at Level 3 and Level 12 and you are
+4. The child's `currentLevel` is set from the report's `recommendedLevel`, using
+   a **minimum-failure-level** rule — fail at Level 3 and Level 12 and you are
    placed at 3, because the higher skill stands on the lower one.
-5. `currentSubLevel` is set by re-checking only the questions at the
-   recommended level: fail all → sub-level 2 (Remedial), fail some → 1
-   (Easier), fail none → 0 (Mastery) (`backend/src/routes/students.ts:478-493`).
+5. `assignStudentToArchetype()` fires (`routes/students.ts:552` for the
+   diagnostic, `routes/evaluation.ts:414` for an ICR scan, `:884` for a worksheet
+   submission) and files the child into a misconception archetype.
 6. A **personalised worksheet** is generated for the new level
-   (`paperGenerator.ts` → Puppeteer → PDF).
-7. Results aggregate upward; certification rates and level distributions surface
+   (`paperGenerator.ts`, rendered to PDF via Puppeteer).
+7. Results aggregate upward; `certificationRate` and level distributions surface
    on each role's dashboard.
 
 ---
@@ -135,83 +127,87 @@ are both consequences of that join being unavailable on the diagnostic path.
 
 ### Stack and layout
 
-An **npm-workspaces monorepo** (root `package.json` → `workspaces`), three parts:
+An **npm-workspaces monorepo** (`package.json` → `workspaces`), three parts:
 
-| Workspace | Stack |
-|---|---|
-| `frontend/` | React 19 + Vite + Tailwind 4 + react-router 7 + TanStack Query 5 |
-| `backend/` | Node + Express + TypeScript, run via `tsx`, bundled by `esbuild` |
-| `ai-services/` | Python — `run_pipeline.py`, `scripts/0..3`, `prompts/`, `questions/` |
+| Workspace | Stack | Size |
+|---|---|---|
+| `frontend/` | React 19 + Vite + Tailwind 4 + react-router 7 + TanStack Query 5 | ~14,458 lines across 23 components |
+| `backend/` | Node + Express + TypeScript, run via `tsx`, bundled by `esbuild` | ~15,154 lines |
+| `ai-services/` | Python — `run_pipeline.py`, `scripts/0..3`, `prompts/`, `questions/` | — |
 
-Commands: `npm run dev:frontend` (Vite, :5173), `npm run dev:backend` (:3000),
-`npm run build`, `npm run lint`.
+Commands: `npm run dev:frontend` (Vite, :5173), `npm run dev:backend`
+(:3000 by default, though `.env.example:1` sets `PORT=5000`), `npm run build`,
+`npm run lint`.
 
 ### Backend architecture — recently de-monolithed
 
-The most significant recent change, and worth stating plainly because most
-existing documentation predates it: `backend/src/index.ts` is now a **146-line
-bootstrap** that wires middleware and delegates. The API lives in **17 route
-modules** under `backend/src/routes/` — `admin`, `analytics`, `announcements`,
-`auth`, `bestPractices`, `classes`, `diagnosticBulk`, `evaluation`, `geo`,
-`interventions`, `logbook`, `schools`, `stats`, `students`, `teachers`,
-`tickets`, `worksheets` — each exporting a `register*Routes(app)` function.
+This is the most significant recent change and it is worth stating because most
+existing documentation predates it. `backend/src/index.ts` is now a **131-line
+bootstrap** that does nothing but wire middleware and delegate; the API lives in
+**18 route modules** under `backend/src/routes/` (`auth`, `students`,
+`worksheets`, `evaluation`, `analytics`, `admin`, `schools`, `teachers`,
+`classes`, `geo`, `tickets`, `logbook`, `interventions`, `bestPractices`,
+`diagnosticBulk`, `announcements`, `stats`, `misconceptions`). Each exports a
+`register*Routes(app)` function called from the bootstrap.
 
 ### Authentication — real, and better than the docs claim
 
-`backend/src/auth.ts` (59 lines) implements genuine JWT auth:
+`backend/src/auth.ts` implements proper JWT auth:
 
-- Login (`backend/src/routes/auth.ts`, `POST /api/auth/login`, behind an
-  `authRateLimiter`) enforces password complexity, looks the user up with a
-  bounded query, verifies with **bcrypt**, and issues a **signed JWT**
-  (7-day expiry).
+- Login (`routes/auth.ts:10-50`, `POST /api/auth/login`, behind an
+  `authRateLimiter` from `config.ts`) enforces password complexity, looks the
+  user up with a bounded query, verifies with **bcrypt**, and issues a **signed
+  JWT** (`jsonwebtoken`, 7-day expiry).
 - `getAuthUser` (`auth.ts:16-31`) verifies the signature on every request and
-  resolves the user from the database. The comment at `auth.ts:13-15` is
-  explicit that there is **no** role synthesis from the email prefix.
-- `sanitizeUser` strips `passwordHash` before anything leaves the server.
+  resolves the user from the database. The comment at `auth.ts:13-15` is explicit
+  that there is *no* role synthesis from the email prefix.
+- `sanitizeUser` (`auth.ts:56`) strips `passwordHash` before anything is returned.
 - `canAccessStudent` (`auth.ts:38-53`) guards by-ID endpoints against IDOR.
 
-That is a sound design. G1–G3 are about three specific lines that undo it.
+The frontend stores the token as `fln_token` in `localStorage` and attaches it in
+`apiFetch` (`frontend/src/services/apiClient.ts:20-33`), which also clears the
+token and fires an `fln_unauthorized` event on any 401.
 
 ### Data layer
 
-`backend/src/db.ts` (2,989 lines) is a `DBStore` class over **MongoDB**
-(`connectDB`, `MONGODB_URI`, `MongoClient`), with a seed-file fallback when no
-URI is set. On boot it mirrors the users collection into `this.data.users` for
-synchronous auth lookups (`db.ts:448-459`), and mutation methods write to Mongo
-and then patch the in-memory copy.
-
-`getStudents(opts?)` (`db.ts:557`) pushes `limit`/`offset`/`schoolId`/
-`teacherId` down into Mongo — but **`limit` defaults to `0`, meaning unbounded**.
-Called bare, it ships the entire students collection (86,435 documents in the
-dev database I ran against). This detail matters for G4.
+`backend/src/db.ts` (3,046 lines) is a `DBStore` class over **MongoDB**
+(`connectDB`, `MONGODB_URI`, `MongoClient` at `:4`), with a seed-file fallback
+when no URI is set. On boot it mirrors collections into `this.data` for
+synchronous reads (`:518-529`), and mutation methods write to Mongo and then
+patch the in-memory copy (e.g. `updateStudent`, `updateWorksheet`, `updateUser`).
 
 ### Implemented features
 
-- **Level generation** — `levelGenerator.ts` (493 lines), the 93-level scale.
-- **Paper generation** — `paperGenerator.ts`, Puppeteer → PDF, using the HTML
+- **Level generation** (`levelGenerator.ts`, 493 lines) — the 93-level scale
+  (`levelGenerator.ts:10`: *"Programmatic math builder for all 93 levels and 3
+  sub-levels"*).
+- **Paper generation** (`paperGenerator.ts`) — Puppeteer → PDF, using the HTML
   templates in `frontend/public/worksheets/` (shared across workspaces).
-- **ICR/OCR scanning** — blue-ink filter, PDF upload, multi-provider toggle
-  (Google / MiniMax / OCR.space, and an Ollama provider added recently).
-- **Gemini integration** — `gemini.ts` (652 lines) with `generateContentWithRetry`
-  and a model fallback chain (`gemini.ts:12`), plus a deterministic non-AI
-  fallback on every AI path, so the server runs without `GEMINI_API_KEY`.
-- **Role dashboards** — `RoleDashboards.tsx` (3,138 lines), `PanelViews.tsx`
-  (1,611 lines), `SuperAdminExecutiveDashboard.tsx`.
+- **ICR/OCR scanning** — blue-ink filter, PDF upload, a provider toggle across
+  Google / MiniMax / OCR.space.
+- **Gemini integration** (`gemini.ts`, 656 lines) with `generateContentWithRetry`
+  and a deterministic non-AI fallback on every AI path, so the server runs
+  without `GEMINI_API_KEY`.
+- **Role dashboards** — `RoleDashboards.tsx` (3,121 lines),
+  `PanelViews.tsx` (1,611), `SuperAdminExecutiveDashboard.tsx`.
+- **Misconception fingerprinting** — see §6.
 - **Governance** — tickets, interventions, best practices, defaulter escalation,
-  teacher banning.
+  teacher banning (`isBanned`).
 
 ### Deployment and CI
 
 In production the backend serves the built frontend from `FRONTEND_DIST_DIR`.
-`apiClient.ts` is base-path aware via `import.meta.env.BASE_URL`, so the app
-works under a subpath. There is no Dockerfile and no deployment manifest.
+`apiClient.ts` is base-path aware via `import.meta.env.BASE_URL`, so the app works
+under a subpath without rewriting built files. There is no Dockerfile and no
+deployment manifest in the repo.
 
-There is **one** GitHub Actions workflow,
-`.github/workflows/repo-health-check.yml`. It is worth being precise, because
-its existence is easy to mistake for CI: it runs on a **daily cron
-(`30 3 * * *`) and `workflow_dispatch` only** — no `push`, no `pull_request` —
-and executes `scripts/repo-health-check.js`, which opens or closes a
-`repo-health` tracking issue. See G8.
+There is now **one** GitHub Actions workflow,
+`.github/workflows/repo-health-check.yml`. It is worth being precise about what it
+does, because its existence is easy to mistake for CI: it runs on a **daily cron
+(`30 3 * * *`) and `workflow_dispatch` only** — there is no `push` or
+`pull_request` trigger — and it executes `scripts/repo-health-check.js`, opening
+or closing a `repo-health` tracking issue. It does not run the type-checker or
+the test suite, and nothing at all runs when a PR is opened. See G6.
 
 ### Verified state of the toolchain
 
@@ -222,14 +218,11 @@ backend:  npx tsc --noEmit  → exit 0, no errors
 frontend: npx tsc --noEmit  → exit 0, no errors
 ```
 
-Both clean. `git ls-files | grep -cE '\.test\.|\.spec\.|__tests__'` returns
-**0** — there is not a single test file in the repository.
+Both are clean.
 
 ---
 
 ## 4. Gaps Observed in the Code
-
-All eleven verified against `origin/main` @ `1bd4599`.
 
 ### G1 — `Fln@2026` is a working password for every account, including superadmin
 
@@ -237,61 +230,60 @@ All eleven verified against `origin/main` @ `1bd4599`.
 `backend/src/auth.ts:7`
 
 ```ts
-const targetHash = user.passwordHash || SEED_DEMO_PASSWORD_HASH;          // :34
-let passwordOk = await bcrypt.compare(password, targetHash);              // :35
-if (!passwordOk && user.passwordHash) {                                   // :36
-  passwordOk = await bcrypt.compare(password, SEED_DEMO_PASSWORD_HASH);   // :37
-}                                                                         // :38
+const targetHash = user.passwordHash || SEED_DEMO_PASSWORD_HASH;   // :34
+let passwordOk = await bcrypt.compare(password, targetHash);       // :35
+if (!passwordOk && user.passwordHash) {                            // :36
+  passwordOk = await bcrypt.compare(password, SEED_DEMO_PASSWORD_HASH);  // :37
+}
 ```
 
 **What:** Line 34's `||` fallback is defensible — a seeded user with no hash yet
-needs *something* to compare against, and line 45 immediately persists a real
-hash afterwards. Lines 36–38 are not defensible. The guard is
-`user.passwordHash`, so the demo hash is tried **precisely when the user does
-have a real password of their own**. A user who has set a strong password still
-authenticates with `Fln@2026`. There is no role exception, so this includes
+needs *something* to compare against. Lines 36-38 are not. The guard is
+`user.passwordHash`, meaning the demo hash is tried **precisely when the user
+does have a real password of their own**. A user who has set a strong password
+still authenticates with `Fln@2026`. There is no role exception, so this includes
 `SUPERADMIN`.
 
-**Why it matters:** A complete authentication bypass requiring only a
-known-plaintext constant committed to the repository. Behind it sit children's
-names, schools and Aadhaar references, plus every write endpoint in the
-seven-role hierarchy. Everything else in `auth.ts` — bcrypt, signed JWTs, IDOR
-guards — is correctly built and then bypassed by these three lines.
+**Why it matters:** This is a complete authentication bypass requiring only a
+known-plaintext constant that is committed to the repository. Behind it sit
+children's names, schools and Aadhaar references, plus every write endpoint in
+the seven-role hierarchy. Everything else in `auth.ts` — bcrypt, signed JWTs,
+IDOR guards — is correctly built and then bypassed by these three lines.
 
 ### G2 — The documented mitigation for G1 silently does nothing
 
-**Where:** `backend/src/auth.ts:7` vs `backend/src/db.ts:12-13`; the import at
+**Where:** `backend/src/auth.ts:7` vs `backend/src/db.ts:12-13`; import at
 `backend/src/routes/auth.ts:5`
 
 ```ts
-// db.ts:12-13 — respects the environment
+// db.ts:12-13  — respects the environment
 export const SEED_DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD || 'Fln@2026';
 export const SEED_DEMO_PASSWORD_HASH = bcrypt.hashSync(SEED_DEMO_PASSWORD, 10);
 
-// auth.ts:7 — ignores it
+// auth.ts:7    — ignores it
 export const SEED_DEMO_PASSWORD_HASH = bcrypt.hashSync('Fln@2026', 10);
 ```
 
-**What:** Two exported constants share a name and diverge. `backend/.env.example`
-documents `SEED_DEMO_PASSWORD` as the override for private deployments and
+**What:** Two constants share a name and diverge. `backend/.env.example`
+documents `SEED_DEMO_PASSWORD` as the override for private deployments, and
 `db.ts` honours it — but `routes/auth.ts:5` imports the constant from
 **`../auth`**, the hardcoded one. Setting `SEED_DEMO_PASSWORD` in production
-changes what `reseed` writes (`db.ts:1353`) but **not** what the login endpoint
-accepts.
+therefore changes what `reseed` writes (`db.ts:1409`) but **not** what the login
+endpoint accepts.
 
 **Why it matters:** An operator who follows `.env.example` will believe the
-public demo password has been disabled. It has not. A gap you think you have
-closed is worse than one you know is open.
+public demo password has been disabled. It has not. A gap you think you closed is
+worse than one you know is open.
 
 ### G3 — `JWT_SECRET` falls back to a literal and production only warns
 
-**Where:** `backend/src/auth.ts:6-10`
+**Where:** `backend/src/auth.ts:6-11`
 
 ```ts
 export const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
 ...
 if (JWT_SECRET === 'dev-insecure-secret-change-me' && process.env.NODE_ENV === 'production') {
-  console.warn('[auth] WARNING: JWT_SECRET is unset in production — set it to a strong random value.');
+  console.warn('[auth] WARNING: JWT_SECRET is unset in production — ...');
 }
 ```
 
@@ -299,98 +291,70 @@ if (JWT_SECRET === 'dev-insecure-secret-change-me' && process.env.NODE_ENV === '
 booting. A deployment that misses the env var runs with a signing key published
 in the repository, so anyone can forge a token for any role.
 
-**Why it matters:** The same total compromise as G1 by a second route. A
-`console.warn` in a container log is not a control.
+**Why it matters:** Same total bypass as G1 by a second route. A `console.warn`
+in a container log is not a control; this should be a hard boot failure.
 
-### G4 — `GET /api/students/:id/diagnostic-paper` ignores `:id` and returns the entire student list
+### G4 — Cohort archetype statistics mix weighted and unweighted vectors
 
-**Where:** `backend/src/routes/students.ts:60-125`
+**Where:** `backend/src/misconceptionFingerprint.ts:2135-2157` (persistent
+branch), compare with `:2267-2291` (k-means branch)
 
-**What:** The route is named for a per-student diagnostic paper. It never
-generates or returns one, and it **never reads `req.params.id`**. What it
-actually does is call `dbStore.getStudents()` with no arguments, mask Aadhaar and
-guardian PII, apply role scoping, and `res.json(scoped)` — a student *list*. I
-found this by calling it during onboarding and getting back 94 student objects
-where I expected a question paper. The real paper generation lives at
-`POST /api/students/:id/diagnostic` (`:256`).
+**What:** The persistent branch computes the cohort mean from **raw** vectors:
 
-**Why it matters:** Three separate problems in one handler.
+```ts
+cohortMean[key] = assignedFingerprints.reduce((a, f) => a + f.vector[key], 0) / n;   // :2137
+```
 
-- **Correctness:** the endpoint does not do what its name and its `:id` promise.
-  Any client written against it is broken by construction, and the misleading
-  name means the bug survives casual review.
-- **Performance:** `getStudents()` with no `opts` means `limit = 0`, i.e.
-  unbounded — the full students collection, 86,435 documents in my dev
-  database, serialised on a request that looks per-student.
-- **Maintainability:** it duplicates the scoping and masking logic of
-  `GET /api/students` (`:13-57`) rather than reusing it, so a change to PII
-  policy has to be made twice and one copy will be missed.
+but the cluster centroid through `toArray` → `fromArray`:
 
-### G5 — The Python pipeline's per-error analysis is computed and then thrown away
+```ts
+const centroidPoint = meanPoint(members.map(m => toArray(m.vector)));   // :2146
+const centroid = fromArray(centroidPoint);                             // :2147
+```
 
-**Where:** `backend/src/routes/students.ts:445-446` and `:522-524`, against
-`ai-services/scripts/2_evaluate_child.py:90, 181, 186, 256`
+`toArray` multiplies each component by `BLOCK_WEIGHTS` (`:961-962`, weights
+declared at `:113`) and `fromArray` (`:1368`) reads it straight back as a feature
+value, so `fromArray(toArray(v)) !== v`: distribution features return at 0.7×,
+`skillInconsistency` at 0.85×, `contextSpecificity` at 0.5×. `lift` is then
+computed as weighted ÷ raw (`:2152`). The k-means branch at `:2269` averages raw
+values and is correct, so the two paths disagree.
 
-**What:** `2_evaluate_child.py` writes a rich per-child evaluation JSON:
-`root_causes` (`:256`), `levels_failed` (`:186`), `prerequisites_to_check`
-(`:181`) and `performance_by_difficulty` (`:90`, `:130`). The backend opens that
-same file **twice** and reads four scalars from it — `total_questions`,
-`wrong_count`, `demonstrated_level` (`:445-448`) and `topics_to_focus`
-(`:522-524`). Everything else is discarded. A repository-wide search for
-`rootCauses` in `backend/src` returns **zero hits**: the field is not consumed,
-not stored, and not even declared on `EvaluationReport`.
+**Why it matters:** Correctness of the feature's own output. `distinctiveFeatures`
+keeps only entries clearing `lift > 1.1` (`:2155`), so distribution and
+consistency features are systematically under-reported as distinctive whenever a
+class has persisted clusters — which is the normal case. It also shifts the
+`INCOHERENCE_THRESHOLDS.inconsistency` cut of 0.4 (`:1359`, applied in
+`isIncoherent` at `:1361-1365`) to an effective 0.47 on the raw scale, making the
+"Careless, Not Confused" group under-fire. The same class can be described two
+different ways depending on which branch ran.
 
-**Why it matters:** This is the most expensive data the system produces — it
-costs a Python subprocess and an LLM call per child — and it is dropped on the
-floor. The teacher-facing report is reduced to a score and a level when a
-per-question diagnosis was already sitting in the file. Every downstream feature
-that wants to answer *how* a child failed has to recompute it from scratch or
-give up.
-
-### G6 — A diagnostic writes no `AnswerSubmission`, so the child's answers are never persisted
-
-**Where:** `backend/src/routes/students.ts:350-562` (the diagnostic submit
-handler); compare `backend/src/routes/evaluation.ts:1024`, the only
-`addAnswerSubmission` call in the codebase
-
-**What:** The worksheet path persists both records — an `AnswerSubmission` (what
-the child wrote) and an `EvaluationReport` (the verdict). The diagnostic path
-persists **only the report**. The handler has the raw material in hand: it
-receives `questions` and `answers` in the request body and compares them
-directly at `:478-493` to compute the sub-level. It then discards the answers.
-
-**Why it matters:** The diagnostic is the **first and most important** assessment
-a child sits — it is what sets their initial level. It is the one assessment
-whose evidence is not retained. Nothing downstream can ever revisit *how* a child
-answered their placement paper: not a teacher querying a surprising placement,
-not an appeal against a level, not any future analysis. The data existed in
-memory and was allowed to fall out of scope. Combined with G5, the diagnostic
-path discards both the pipeline's analysis *and* the child's raw answers.
-
-### G7 — The certification threshold `>= 5` is duplicated nine times, including in React
+### G5 — The certification threshold `>= 5` is duplicated nine times, including in React
 
 **Where:**
 
 - `backend/src/routes/analytics.ts:53`, `:91`
 - `frontend/src/components/PanelViews.tsx:196`, `:214`, `:986`, `:1287`, `:1558`
-- `frontend/src/components/RoleDashboards.tsx:1259`, `:1267`
+- `frontend/src/components/RoleDashboards.tsx:1258`, `:1266`
 
 **What:** `s.currentLevel >= 5` is written out longhand in nine places across two
 workspaces, and seven of them are inside React components that recompute
-certification rates client-side rather than reading them from the API.
+certification rates client-side rather than reading them from the API. The
+backend route split moved two of these between files without reducing the count.
 
-**Why it matters:** Certification is national policy. If the threshold moves it
-must move in nine places, or dashboards will silently disagree with the backend
-and two officers looking at different screens will see different certification
-rates for the same district. It is also business logic living in the view layer,
-which makes it untestable.
+**Why it matters:** Certification is national policy — if the threshold moves,
+it must move in nine places or dashboards will silently disagree with the
+backend, and two officers looking at different screens will see different
+certification rates for the same district. It is also business logic living in
+the view layer, which makes it untestable.
 
-### G8 — There are no tests, and nothing runs on a pull request
+### G6 — Nothing runs on a pull request
 
-**Where:** `.github/workflows/repo-health-check.yml:3-6`; root `package.json:19`;
-`backend/package.json:6-18`
+**Where:** `.github/workflows/repo-health-check.yml:3-6`;
+`backend/package.json:13` (`test:fingerprint`); root `package.json:19` (`lint`
+only, no `test`)
 
-**What:** Two findings that compound.
+**What:** The repository has exactly one workflow and it is scheduled, not
+triggered:
 
 ```yaml
 on:
@@ -399,32 +363,72 @@ on:
   workflow_dispatch: {}
 ```
 
-There is no `pull_request` or `push` trigger anywhere in the repository, and the
-single workflow runs a changelog/staleness reporter rather than the type-checker.
-Separately, `git ls-files | grep -cE '\.test\.|\.spec\.|__tests__'` returns
-**0** — there is no test suite to run even if something triggered it. No
-workspace defines a `test` script. `npm run lint` is `tsc --noEmit`, which proves
-types compile and nothing whatever about behaviour.
+There is no `pull_request` or `push` trigger anywhere, and the job runs
+`scripts/repo-health-check.js` — a changelog/staleness reporter — rather than the
+type-checker or the tests. The repository's only automated tests
+(`misconceptionFingerprint.test.ts`, 1,058 lines) are runnable solely by name:
+`npm run test:fingerprint --workspace @fln/backend`. There is no `test` script at
+the root at all. `npm run lint` is `tsc --noEmit`, which proves types compile and
+nothing about behaviour.
 
 **Why it matters:** A reviewer approving a PR has no signal beyond reading the
-diff — not even a type-check. Every gap in this section reached the default
-branch through a review process with zero automated verification, and G1 (a total
-auth bypass, three lines) is exactly the class of defect one assertion would
-have caught permanently.
+diff — not even a type-check. 1,058 lines of good assertions rot silently the
+first time someone changes a threshold. G4 is exactly the class of bug a run of
+those tests could be made to catch, and it reached the default branch precisely
+because nothing ran.
+
+### G7 — `CLAUDE.md` describes a repository that no longer exists
+
+**Where:** `CLAUDE.md`, the "⚠ Critical thing to understand before editing"
+section, the `Layout` section, and the auth bullet under "Conventions & gotchas"
+
+**What:** Six claims, each falsified by the current tree:
+
+| Claim | Reality |
+|---|---|
+| A mock `fetch` interceptor answers every `/api/*` call in-browser | `frontend/src/mock/` does not exist; `main.tsx` has no interceptor |
+| Any `@fln.org` email in a Bearer header is auto-promoted to a role | Replaced by verified JWT (`auth.ts:16-31`) |
+| Two pre-existing type errors at `index.ts:665` and `paperGenerator.ts:233` | Both workspaces type-check clean (exit 0) |
+| `frontend/src/utils/levelGenerator.ts` duplicates the backend copy | No `frontend/src/utils/` directory exists |
+| `backend/src/index.ts` is "still one 1580-line file" | It is 131 lines; the API lives in 18 route modules |
+| `backend/data/db.json` is the JSON-file "database" (not MongoDB) | That file does not exist; `db.ts` is MongoDB (`MongoClient`, `:4`) |
+| "max level `59`" is a magic threshold to grep for | The scale is **93** levels (`levelGenerator.ts:10`, `gemini.ts:461`) |
+
+**Why it matters:** This is the file a new contributor is told to read first, and
+it currently sends them looking for a mock backend that was deleted, warns them
+off an auth model that was fixed, and points at a monolith that has been split.
+I lost time to it during this onboarding before checking the tree directly.
+
+### G8 — An archetype rename is visible to every school teaching that class
+
+**Where:** `backend/src/routes/misconceptions.ts:251-322`;
+`backend/src/db.ts:371-404`
+
+**What:** `MisconceptionCluster` carries `classGroup` but no `schoolId`, so
+`PATCH /api/misconceptions/clusters/:clusterId` writes a name shared by every
+school teaching that class. The schema comment at `db.ts:388-396` acknowledges
+this and records `nameSetBy`/`nameSetByRole`/`nameSetAt` rather than restricting
+the write. Separately, **no frontend code calls this endpoint** — a repo-wide
+search for `misconceptions/clusters` returns exactly one hit, the route
+definition itself — so the capability is unreachable from the UI.
+
+**Why it matters:** A Class 2 teacher in one school renaming a group to something
+meaningful in their own room silently relabels it for every other school in the
+state. Attribution records who did it but does not prevent it.
 
 ### G9 — Every user is held in process memory for the lifetime of the server
 
-**Where:** `backend/src/db.ts:448-459`; `getUserSync` at `:517-519`
+**Where:** `backend/src/db.ts:518-520`, `getUserSync` at `:587-590`
 
-**What:** Boot loads the entire `users` collection into `this.data.users`
-(`:449`), and lookups scan that array with a linear `find` (`:519`). The boot log
-in my dev environment reads `MongoDB ready: 6449 users in Atlas (6449 active)`.
+**What:** Boot loads the entire `users` collection into `this.data.users`, and
+`getAuthUser` resolves against that array with a linear `find` on **every
+authenticated request**. The comment at `routes/auth.ts:27` notes the collection
+was already 6,449 users when the login path itself was optimised — the boot-time
+mirror was not.
 
-**Why it matters:** Scalability, in a system explicitly designed to roll up a
-*national* hierarchy. Every replica holds every user in heap, and an O(n) scan
-per lookup degrades as the table grows. The login path itself was already
-optimised to a bounded query (`getUserByEmail`) — the boot-time mirror was not,
-so the optimisation is undone by the thing sitting next to it.
+**Why it matters:** Scalability. A system designed to roll up a national
+hierarchy will not hold every user in every replica's heap, and an O(n) scan per
+request degrades as the user table grows.
 
 ### G10 — The route split left `index.ts` importing six symbols it never uses
 
@@ -435,39 +439,18 @@ import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN
          SEED_DEMO_PASSWORD_HASH } from './auth';
 ```
 
-**What:** All six symbols moved into the route modules along with the handlers
-that used them; the import line stayed behind. `grep -c` for each of the six in
-`index.ts` returns exactly `1` — the import itself. `tsc --noEmit` does not
-complain because `noUnusedLocals` is not enabled.
+**What:** I found this while re-verifying the other gaps against the post-split
+tree. All six symbols moved to the route modules with the handlers that used
+them; the import line stayed behind. Nothing in the remaining 131 lines
+references any of them. `tsc --noEmit` does not complain because unused *imports*
+are not an error under this config (`noUnusedLocals` is not enabled).
 
-**Why it matters:** Small on its own, but it is the residue that makes a refactor
-hard to trust: a reader of `index.ts` reasonably concludes the bootstrap still
-participates in authentication. It also demonstrates that the current lint
-configuration cannot detect dead code — which is what let it survive the split.
-
-### G11 — `CLAUDE.md` describes a repository that no longer exists
-
-**Where:** `CLAUDE.md` — the "⚠ Critical thing to understand before editing"
-section, the `Layout` section, and the auth bullet under "Conventions & gotchas"
-
-**What:** Seven claims, each falsified by the current tree:
-
-| Claim | Reality |
-|---|---|
-| A mock `fetch` interceptor answers every `/api/*` call in-browser | `frontend/src/mock/` does not exist |
-| Any `@fln.org` email in a Bearer header is auto-promoted to a role | Replaced by verified JWT (`auth.ts:16-31`) |
-| Two pre-existing type errors at `index.ts:665`, `paperGenerator.ts:233` | Both workspaces type-check clean |
-| `frontend/src/utils/levelGenerator.ts` duplicates the backend copy | No `frontend/src/utils/` directory exists |
-| `backend/src/index.ts` is "still one 1580-line file" | It is 146 lines; the API is in 17 route modules |
-| `backend/data/db.json` is the JSON-file "database" (not MongoDB) | That file does not exist; `db.ts` uses `MongoClient` |
-| "max level `59`" is a magic threshold to grep for | The scale is **93** levels (`levelGenerator.ts:10`) |
-
-**Why it matters:** This is the file a new contributor is told to read first. It
-sends them looking for a mock backend that was deleted, warns them off an auth
-model that was fixed, and points them at a monolith that has been split. It cost
-me an hour before I started checking the tree directly instead. The route split
-made it actively harmful: a contributor told to "add to the matching area of
-`index.ts`" now finds a 146-line bootstrap with nothing to add to.
+**Why it matters:** Small, but it is the kind of residue that makes a refactor
+hard to trust — a reader of `index.ts` reasonably concludes the bootstrap still
+participates in authentication. It also keeps `index.ts` bound to `auth.ts` in
+the module graph for no reason, and it is a standing signal that the linting
+configuration cannot catch dead code, which is what let it survive the split in
+the first place.
 
 ---
 
@@ -475,143 +458,121 @@ made it actively harmful: a contributor told to "add to the matching area of
 
 ### I1 — Close the authentication bypass (addresses G1, G2, G3)
 
-**What:** One focused security PR.
+**What:** One focused security PR:
 
-1. Delete `routes/auth.ts:36-38` outright. Keep the `user.passwordHash ||
-   SEED_DEMO_PASSWORD_HASH` fallback at `:34` for genuinely unhashed seed
-   accounts — it already persists a real hash immediately afterwards at `:45`.
-2. Delete the duplicate constant at `auth.ts:7` and re-export `db.ts`'s
+1. Delete `routes/auth.ts:36-38` outright. The demo-password path keeps only the
+   `user.passwordHash || SEED_DEMO_PASSWORD_HASH` fallback at `:34` for genuinely
+   unhashed seed accounts, which then immediately persists a real hash via the
+   existing `updateUserPasswordHash` call at `:45`.
+2. Delete the duplicate constant in `auth.ts:7` and re-export `db.ts`'s
    environment-aware one, so `SEED_DEMO_PASSWORD` behaves as `.env.example`
    documents. One definition, one behaviour.
 3. Turn the `JWT_SECRET` warning into a `throw` when `NODE_ENV === 'production'`.
 
-**Why:** Three routes to the same total compromise, sharing one root cause —
-convenience defaults that survived into the production path. Fixing them
-separately leaves the system exploitable in the interim, and (2) in particular is
-worthless without (1) since the demo hash would still be accepted.
+**Why:** These are three routes to the same total compromise, they share a root
+cause (convenience defaults that survived into the production path), and fixing
+them separately leaves the system exploitable in the interim.
 
-**How:** The diff is small but it changes who can log in, so it needs a
-deliberate migration: run a one-off script confirming every user document has a
-`passwordHash` **before** removing the fallback, otherwise legitimate seeded
-accounts lock out. I verified in my dev database that all 6,449 users already
-carry a hash, so the migration is likely a no-op — but that must be checked
-against production, not assumed. Add tests asserting a user with a real password
-is rejected when given `Fln@2026`, and that boot fails in production without a
-secret. I would raise this first and on its own.
+**How:** Small diff, but it changes who can log in, so it needs a deliberate
+migration: run a one-off script to confirm every user document has a
+`passwordHash` *before* removing the fallback, otherwise legitimate seeded
+accounts lock out. Add tests asserting that a user with a real password is
+rejected when given `Fln@2026`, and that boot fails in production without a
+secret. I would raise this one first and on its own.
 
-### I2 — Make `diagnostic-paper` return a diagnostic paper (addresses G4)
+### I2 — Make the two clustering paths agree on one metric (addresses G4)
 
-**What:** Decide what the route is for and make it honest. It should read
-`req.params.id`, authorise with the existing `canAccessStudent`, and return that
-child's paper — either the stored one or a freshly generated one via the same
-`generateDiagnosticPaper` path `POST /api/students/:id/diagnostic` already uses.
-If the student-list behaviour is genuinely relied on by a caller, that caller
-should be moved to `GET /api/students`, which already does exactly this.
+**What:** In the persistent branch, average raw vectors exactly as the k-means
+branch does, and keep `toArray`'s weighting strictly inside distance
+computations, where it belongs.
 
-**Why:** A route whose name, parameter and behaviour disagree is a trap for every
-future contributor, and this one also pulls 86,435 documents per call.
+**Why:** `BLOCK_WEIGHTS` exists to shape *distance* — how far apart two children
+are. It has no meaning as a displayed feature value, and letting it leak into one
+means the archetype a teacher reads depends on which code path produced it. The
+fix also removes the accidental drift in the `isIncoherent` thresholds.
 
-**How:** Grep the frontend for `diagnostic-paper` first to find the real callers
-and see which behaviour they depend on — the fix is either "implement the paper"
-or "delete the route", and the callers decide which. Whichever way it goes, the
-duplicated masking/scoping block should be extracted into one helper shared with
-`GET /api/students` so PII policy has a single home.
+**How:** Replace `fromArray(meanPoint(members.map(toArray)))` at `:2146-2147`
+with the same per-key raw mean used at `:2269`. Then add a regression test
+asserting that the same cohort, analysed through both branches, yields the same
+`distinctiveFeatures` and the same `incoherent` verdicts — which is the property
+that was actually violated, and is stronger than asserting a round-trip identity.
 
-### I3 — Persist the diagnostic's own evidence (addresses G5, G6)
+### I3 — A shared constants module (addresses G5)
 
-**What:** Two changes in the diagnostic submit handler.
+**What:** Introduce `shared/constants.ts` exporting `CERTIFICATION_LEVEL = 5`,
+`MAX_LEVEL = 93` and the mastery score bands, consumed by both workspaces. Then
+move the certification computation itself out of `PanelViews.tsx` /
+`RoleDashboards.tsx` and onto the existing aggregate endpoints in
+`routes/analytics.ts`, so components render a number rather than deriving one.
 
-1. Declare `rootCauses`, `levelsFailed`, `prerequisitesToCheck` and
-   `performanceByDifficulty` as optional fields on `EvaluationReport`, and map
-   the pipeline JSON's `root_causes` / `levels_failed` /
-   `prerequisites_to_check` / `performance_by_difficulty` onto them when reading
-   the file that is *already being parsed twice*.
-2. Write an `AnswerSubmission` alongside the report, exactly as
-   `routes/evaluation.ts:1024` does for worksheets.
-
-**Why:** Both recover data the system already has, at essentially no cost. (1)
-turns a score into a diagnosis on the report a teacher actually opens. (2) makes
-the placement paper auditable — a level assignment that cannot be traced back to
-the answers that produced it cannot be questioned by the teacher it constrains.
-
-**How:** (1) is additive and safe: optional fields, defensive mapping, no
-behaviour change for existing readers. (2) needs care about *what* the submission
-joins to — a diagnostic has no persisted `Worksheet`, so either the generated
-paper is persisted as one (making the questions retrievable, which is what any
-later analysis needs) or the submission stores the questions inline. I would do
-(1) first as a standalone PR since it is pure gain, then (2) with the worksheet
-question resolved. **I have implemented (1) — see §6.**
-
-### I4 — A shared constants module (addresses G7)
-
-**What:** Introduce a `shared/` workspace exporting `CERTIFICATION_LEVEL = 5`,
-`MAX_LEVEL = 93` and the mastery score bands, consumed by both frontend and
-backend. Then move the certification computation itself out of `PanelViews.tsx`
-and `RoleDashboards.tsx` onto the existing aggregate endpoints in
-`routes/analytics.ts`, so components render a number instead of deriving one.
-
-The score bands are scattered the same way, with the added hazard that they
-*disagree*: `routes/evaluation.ts` splits sub-levels on `>= 80 / >= 50` in one
-place and calls mastery on `>= 60 / >= 50` in another, and `IcrScanner.tsx`
-repeats that pair client-side. The `Math.min(93, …)` level cap is likewise
-repeated across `gemini.ts`.
+The score bands are scattered the same way as the certification threshold, with
+the added hazard that they *disagree*: `routes/evaluation.ts:377` splits
+sub-levels on `>= 80 / >= 50`, while `:401-402` calls mastery on `>= 60 / >= 50`,
+`IcrScanner.tsx:305-306` and `:443-444` repeat that pair client-side, and
+`misconceptionDemoSeed.ts:291-296` uses a three-way `80/60`. Also worth folding
+in is the `Math.min(93, …)` cap repeated at `gemini.ts:461`, `:586` and `:647`.
 
 **Why:** Fixes the nine-copy problem and the business-logic-in-components problem
-with one change, and makes the threshold testable in one place.
+with the same change, and makes the threshold testable in one place.
 
-**How:** Two deliberately separate PRs — first introduce the constants and
+**How:** Two steps, deliberately separate PRs — first introduce the constant and
 replace the literals (mechanical, zero behaviour change); then move the
-computation server-side (behaviour change, dashboards need re-verifying). The
-monorepo already has `workspaces`, so a third workspace is the natural home.
+computation backend-side (behaviour change, needs the dashboards re-verified).
+The monorepo already has `workspaces`, so a third workspace is the natural home.
 
-### I5 — Give the repository a test job on pull requests (addresses G8, G10)
+### I4 — Give the existing workflow a `pull_request` trigger and a test job (addresses G6, G10)
 
-**What:** Three additive changes, no new infrastructure.
+**What:** Three additive changes, no new infrastructure:
 
-1. Add a `test` script at the root and in `backend/`, using Node's built-in
-   `node:test` — no new dependency required on Node 20.
-2. Add a workflow triggered `on: [pull_request]` running `npm run lint &&
-   npm test`, on `ubuntu-latest` with Node 20 — the same runner setup
-   `repo-health-check.yml` already proves works here.
+1. Add `"test": "npm run test:fingerprint --workspace @fln/backend"` at the root.
+2. Add a second workflow (or a second job) triggered `on: [pull_request]` running
+   `npm run lint && npm test` on `ubuntu-latest` with Node 20 — the same setup
+   `repo-health-check.yml:20-22` already proves works in this repo.
 3. Enable `noUnusedLocals` in `backend/tsconfig.json` so `tsc --noEmit` catches
-   G10-class residue, cleaning existing violations in the same PR.
+   G10-class residue, and clean the existing violations in the same PR.
 
-**Why:** This is the cheapest durable quality win available and it is a
-*precondition* for I1 being safe to review — I1 changes authentication, which
-currently has no automated check whatsoever. Seeding the suite with the auth
-assertions from I1 gives the job something real to protect from day one.
+**Why:** The repo already has 1,058 lines of good assertions and a working
+Actions setup; the missing piece is purely that nothing invokes them on a PR.
+This is the cheapest durable quality win available, and it is a precondition for
+I1 and I2 being safe to review — both change logic that currently has no
+automated check at all.
 
-**How:** Start the suite with pure-function tests that need no Mongo (level
-mapping, sub-level derivation, error classification) so the job runs in a bare
-Node container with no services. Step 3 should land last and separately: turning
-on a compiler flag across a 15,000-line workspace is a mechanical but noisy diff
-that should not be mixed with a CI change.
+**How:** No Mongo needed — the fingerprint suite is pure functions over fixtures,
+which is why it can run in a bare Node container. Step 3 should land last and
+separately; turning on a compiler flag across a 15,000-line workspace is a
+mechanical but noisy diff that should not be mixed with a CI change.
 
-### I6 — Bound the user cache (addresses G9)
+### I5 — Scope archetypes to schools and build the rename UI (addresses G8)
 
-**What:** Stop mirroring the whole users collection at boot. Replace
-`getUserSync`'s linear scan with the bounded `getUserByEmail` query the login
-path already uses, behind a small LRU with a TTL for the hot path.
+**What:** Add `schoolId` to `MisconceptionCluster`, include it in the lookup in
+`getMisconceptionClusters` and in `assignStudentToArchetype`'s scoping, and only
+then add the rename affordance to `MisconceptionFingerprint.tsx`.
 
-**Why:** Removes an O(n)-per-lookup cost and a per-replica memory cost that both
-grow with national rollout, without changing any caller's contract.
+**Why:** In that order specifically. Building the UI first would take a
+cross-school write that is currently unreachable in practice and hand it to every
+teacher — turning a latent data-model gap into a live one.
 
-**How:** `getUserSync` is synchronous and its callers are not, which is the only
-real work here — the call sites need to become `await`. That is a mechanical but
-wide change, so it should be its own PR with no behaviour changes riding along.
-An index on `users.email` should be confirmed at the same time.
+**How:** The field is additive and optional, so existing clusters keep working —
+`classGroup` was introduced the same way, and the schema comment at
+`db.ts:380-385` records that pre-existing clusters carrying no class are simply
+skipped.
+The rename UI is then a small edit form against the endpoint that already exists,
+already validates, and already records attribution.
 
-### I7 — Correct `CLAUDE.md` (addresses G11)
+### I6 — Correct `CLAUDE.md` (addresses G7)
 
-**What:** Rewrite the seven stale claims in G11 to match the tree — most
+**What:** Rewrite the seven stale claims in G7 to match the tree — most
 importantly the mock-backend warning, the auth model, and the description of
-`index.ts` as a monolith, which is now the opposite of true.
+`index.ts` as a monolith, which is now the opposite of true and actively
+misdirects anyone looking for where to add a route.
 
 **Why:** It is the designated first read for new contributors and it currently
-costs each of them the same hour it cost me. Cheap to fix; the cost of leaving it
-recurs per contributor.
+costs each of them the same hour it cost me. Cheap to fix, and the cost of
+leaving it recurs per contributor. The route split made it materially worse: a
+contributor told to "add to the matching area of `index.ts`" will now find a
+131-line file with nothing to add to.
 
-**How:** Documentation-only diff, verifiable with the same commands I used:
+**How:** Documentation-only diff, verifiable by the same commands I used —
 `ls frontend/src/mock`, `ls backend/data/db.json`, `wc -l backend/src/index.ts`,
 `npx tsc --noEmit` in each workspace.
 
@@ -619,104 +580,136 @@ recurs per contributor.
 
 ## 6. Your Contribution
 
-### 6.1 Bug fixes made during onboarding
+My contribution during onboarding is the **Misconception Fingerprinting**
+feature, on branch `feat/misconception-fingerprinting`.
 
-**Recovering the pipeline's discarded analysis (I3 part 1, addresses G5).**
-I implemented the mapping described in I3: a `readPipelineDetail()` helper that
-lifts `root_causes`, `levels_failed`, `prerequisites_to_check` and
-`performance_by_difficulty` out of the pipeline JSON that the handler was already
-parsing, and writes them onto the `EvaluationReport`.
+### The problem it addresses
 
-Two details I would defend in review:
+Every assessment path in this repo reduces a child to a scalar — a score, and a
+level derived from it. Two children on 40% get the same worksheet next week. But
+a child who writes `27 + 15 = 312` (adding each column and writing the results
+side by side) and a child who writes `27 + 15 = 43` (counting on, one step short)
+have made the *same number* of mistakes and need completely different teaching.
+The data to tell them apart was already being persisted and thrown away:
+`AnswerSubmission.answers` joined against `Worksheet.questions`.
 
-- **Nothing is inferred.** When the pipeline's LLM step falls back it emits a
-  single overall verdict instead of one entry per question. In that case each
-  wrong answer is recorded with *its own* topic and FLN level taken from the
-  question the child actually sat, and the pipeline's overall `error_type`
-  restated against it — never a per-question diagnosis invented to fill the
-  shape. A fabricated cause is indistinguishable from a measured one once it is
-  downstream.
-- **The difficulty breakdown is measured** from the paper when the pipeline
-  reports none, rather than left empty.
+### What I built
 
-Verified end-to-end against a running stack: a fresh 0/42 diagnostic now writes
-**42 root causes** carrying real per-question topic and level, `levelsFailed:
-[2]`, and a measured breakdown of 13 easy / 8 medium / 21 hard — where
-previously the report carried none of it. I removed the test records and restored
-the student document afterwards.
+**`backend/src/misconceptionFingerprint.ts` (2,369 lines)** — the analysis layer:
 
-### 6.2 Feature — Misconception Fingerprinting
+- A **17-dimension error-signature vector** per child: 9 mutually exclusive error
+  *morphologies* (concatenation, place-value, reversal, permutation, operation
+  substitution, off-by-one, near-miss, gross magnitude, omission), 5
+  *distribution* features (where the errors land), and 3 *consistency* features.
+- `classifyError` — a deterministic priority cascade assigning each wrong answer
+  exactly one morphology. Order is load-bearing: `312` is also a gross-magnitude
+  error, so testing the specific patterns first is what preserves the diagnosis.
+- The **consistency block**, which is the part I am most confident matters. It is
+  conditioned on *opportunities* rather than errors, over cells of equivalent
+  questions (`topic|difficulty|regrouping|level`), so it can separate "fails this
+  every time" (a wrong rule) from "fails this half the time" (inattention).
+  `4·r·(1−r)` is symmetric — reliably right and reliably wrong score identically —
+  which keeps it score-blind by construction.
+- **Clustering**: k-means++ with `k` chosen by silhouette rather than hardcoded,
+  so the cohort decides how many distinct minds it contains. Implemented in plain
+  TypeScript — no new runtime dependency.
+- **Discovered, not predefined, archetypes**: each cluster is named from its own
+  most distinctive features. A cohort with no place-value problem cannot produce
+  a place-value archetype.
+- **Deliberate constraints**: overall accuracy is never a feature (it would
+  dominate the distance metric and rebuild the thing being replaced); nothing in
+  the module throws, since it is a read-only layer over already-graded data; and
+  clusters whose members fail *erratically* are detected statistically
+  (`isIncoherent`, `:1361`) and named by fixed copy, never sent to the LLM —
+  asked to infer a mental model from noise, a model will confidently supply one.
 
-Developed on branch `feat/misconception-fingerprinting`. **It is not on `main`
-and is not part of this PR**, which is documentation only, per the onboarding
-instructions. I am describing it here because it is the substance of my
-contribution; the file paths in this subsection are on that branch.
+**`backend/src/studentArchetypeService.ts` (409 lines)** — persistent membership.
+A child joins the nearest archetype within a `SAME_PATTERN_DISTANCE` of 0.25
+(`:57`), or founds a new one. The radius is measured, not guessed: same-pattern
+pairs sit a median 0.114 apart, cross-pattern pairs never closer than 0.272
+(`:41`).
 
-**The problem.** Every assessment path in this repo reduces a child to a scalar.
-Two children on 40% get the same worksheet next week. But a child who writes
-`27 + 15 = 312` (adding each column and writing the results side by side) and a
-child who writes `27 + 15 = 43` (counting on, one step short) have made the same
-*number* of mistakes and need completely different teaching. The data to tell
-them apart was already being persisted and thrown away — which is how I came to
-notice G5 and G6.
+**`backend/src/geminiClusterMatcher.ts` (251 lines)** — Gemini naming, with a
+strict JSON schema and full validation.
 
-**What it does.** Each child gets a **17-dimension error-signature vector**: 9
-mutually exclusive error *morphologies* (concatenation, place-value, reversal,
-permutation, operation substitution, off-by-one, near-miss, gross magnitude,
-omission), 5 *distribution* features (where the errors land), and 3 *consistency*
-features. The cohort is clustered on that vector with **k-means++**, with `k`
-chosen by **silhouette** rather than hardcoded, so the cohort decides how many
-distinct minds it contains. Implemented in plain TypeScript — no new runtime
-dependency.
+**`backend/src/misconceptionFingerprint.test.ts` (1,058 lines)** — assertions
+over the classifier, the feature construction and the clustering.
 
-Design decisions I would defend:
+**Frontend** — `MisconceptionFingerprint.tsx` (1,235 lines): per-child dossier,
+cohort view, side-by-side comparison of two children with the same score, and a
+deterministic **glyph** rendering each signature as a closed spline, so "same
+score, different mind" is visible at a glance.
 
-1. **Overall accuracy is deliberately not a feature.** Every dimension is
-   conditioned on the child's *incorrect* answers only. If score leaked into the
-   vector it would dominate the distance metric and rebuild the scalar the
-   feature exists to replace.
-2. **Membership is decided by distance, not by the model.** Given the free
+**API** — `backend/src/routes/misconceptions.ts` (323 lines):
+`/api/misconceptions/cohort`, `/fingerprint/:studentId`, `/compare`, `/residue`,
+and `PATCH /clusters/:clusterId` for renaming with role checks, validation and
+attribution.
+
+### Integrating with the backend route split
+
+The feature was written against the old monolithic `index.ts`. While preparing
+this document I synced the branch with `origin/main`, which had meanwhile split
+the backend into 18 route modules. That merge was the non-trivial part of the
+contribution and is worth describing, because a careless resolution would have
+shipped silently broken code:
+
+- The five endpoints were **extracted into a new `routes/misconceptions.ts`**
+  following the established `register*Routes(app)` pattern, rather than left in a
+  file that no longer holds routes.
+- The cohort analysis cache had been a closure inside `startServer()`. It moved
+  to module scope and exports `invalidateFingerprintCache`, because the submit
+  handlers that must invalidate it now live in *other* modules
+  (`routes/evaluation.ts`, `routes/students.ts`).
+- The three `assignStudentToArchetype()` call sites lived in the monolith and had
+  **no equivalent in the new modules**. I traced each to its new home
+  (`routes/students.ts:552` diagnostic, `routes/evaluation.ts:414` ICR scan,
+  `:884` worksheet submission) and rewired them. Had I not, both
+  `studentArchetypeService.ts` and `geminiClusterMatcher.ts` — 660 lines — would
+  have compiled cleanly as unreachable dead code, and archetype assignment would
+  have silently stopped happening. `tsc` would not have said a word. This is G6
+  and G10 in miniature, which is part of why I raised them.
+
+Both workspaces type-check clean after the merge.
+
+### Design decisions I would defend in review
+
+1. **Membership is decided by distance, not by the model.** Given the free
    choice, Gemini put thirteen of twenty children into whichever archetype
    happened to be created first, while splitting the digit reversers across
    three. Naming a discovered pattern is a language problem and stays with the
    model; deciding whether two children fail the same way is a distance
-   comparison. The code keeps the model's prose and discards its choice.
-3. **Erratic groups are never sent to the LLM.** Clusters whose members fail with
-   no consistent shape are detected statistically and named by fixed copy
-   ("Careless, Not Confused"). Asked to infer a mental model from noise, a
-   fluent model will confidently supply one.
+   comparison. The code keeps the model's prose and discards its choice
+   (`studentArchetypeService.ts:307-325`).
+2. **Stable identity separate from display name.** Gemini renames the same seven
+   children differently on every run, so `slug`/`stableName` are derived from the
+   group's own statistics and the model's wording sits on top. A teacher cannot
+   organise a remedial group around a label that changes overnight.
+3. **The module reports its own blind spot.** Wrong answers the nine rules cannot
+   read are flagged `unparsed` and surfaced as `unclassifiedRate` and `residue`,
+   because the rules cannot report a pattern they have no name for — but they can
+   report how often they failed to read one.
 4. **Children with too little evidence are reported, not dropped.** Below three
    wrong answers the vector is essentially one-hot, so they are flagged rather
-   than handed an archetype on the strength of a single slip.
+   than handed an archetype on the strength of one slip.
 
-**Tests.** 50 assertions over the error classifier, feature construction,
-clustering determinism and naming — currently the only test file in the project,
-which is what prompted G8 and I5.
+### Also produced during this onboarding
 
-### 6.3 A defect I found in my own feature
+Reading my own code back against the rest of the repository surfaced **G4** — the
+weighted/unweighted centroid mismatch in `analyseCohort`'s persistent branch,
+which is a defect in the feature I contributed. It is a real bug affecting the
+statistics teachers see, and I2 plus I4 are my proposed fixes for it. I have
+written it up here rather than quietly patching it, because how it got past
+review — a green `tsc` on a repo where nothing runs on a PR — is the more useful
+finding of the two.
 
-Late in the work I traced a report of the per-child panel reading *"Not enough
-wrong answers yet to see a pattern"* for a child who had scored **0/10** — every
-answer wrong.
-
-The cause was G6 wearing a different hat. The cohort analysis builds fingerprints
-from `AnswerSubmission` records; a diagnostic writes only an `EvaluationReport`;
-so every diagnostic-only child was counted as having made no submission and
-silently dropped, and the endpoint returned 404. Worse, the system contradicted
-itself — the per-submission path *did* have an evaluation-report fallback, so the
-child was a listed member of an archetype while the cohort pass reported no
-signature for them at all.
-
-I fixed it by giving the cohort pass the same fallback the per-submission path
-already used, and added two regression tests: a diagnostic-only child must get a
-signature, and a submission must still outrank a report when both exist.
-
-I am including this here rather than quietly patching it because *how* it
-survived is the more useful finding: a green `tsc` on a repository where nothing
-runs on a pull request. That is G8, and it is why I5 is the idea I would pick up
-first after I1.
+**G10** came out of the same exercise from the opposite direction: re-verifying
+every citation in this document against the post-split tree, rather than
+carrying the old line numbers forward, is what turned up the dead import block
+left behind in `index.ts`.
 
 ---
 
-*Prepared by Jinendran. Every path, line number and command result above was
-verified against `origin/main` at `1bd4599`.*
+*Prepared by Jinendran. Every file path, line number and command result above was
+verified against the working tree at the head of
+`feat/misconception-fingerprinting` — not taken from the existing documentation,
+which, as noted in G7, is materially out of date.*

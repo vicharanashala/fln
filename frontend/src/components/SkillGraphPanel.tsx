@@ -594,14 +594,19 @@ const LevelDetailView: React.FC<{
       )}
 
       {level.prerequisites.length > 0 && (
-        <Section title={`Prerequisites (${RELATIONSHIP_GLYPH[level.relationshipType]})`}>
+        // Issue #277: each prerequisite carries its own relationship type
+        // now (a level's prereqs can genuinely differ in strength from each
+        // other), so the glyph/color moved from the section title onto each
+        // chip individually instead of assuming one type for the whole list.
+        <Section title="Prerequisites">
           <div className="flex flex-wrap gap-1">
             {level.prerequisites.map(pre => (
               <span
-                key={pre}
-                className={`text-[10px] font-mono px-2 py-0.5 rounded border ${RELATIONSHIP_COLOR[level.relationshipType]} text-zinc-700 dark:text-zinc-300`}
+                key={pre.levelId}
+                title={pre.rationale ?? undefined}
+                className={`text-[10px] font-mono px-2 py-0.5 rounded border ${RELATIONSHIP_COLOR[pre.relationshipType]} text-zinc-700 dark:text-zinc-300`}
               >
-                {pre}
+                {RELATIONSHIP_GLYPH[pre.relationshipType]} {pre.levelId}
               </span>
             ))}
           </div>

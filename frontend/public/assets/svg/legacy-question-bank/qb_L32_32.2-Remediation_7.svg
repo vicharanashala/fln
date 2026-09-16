@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150" width="700" height="150" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="20" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">Which position is the highlighted shape in?</text>
+<polygon points="242,43 230,63.4 254,63.4" fill="white" stroke="#333" stroke-width="2"/>
+<polygon points="278,43 266,63.4 290,63.4" fill="white" stroke="#333" stroke-width="2"/>
+<circle cx="314" cy="55" r="9.600000000000001" fill="white" stroke="#333" stroke-width="2"/>
+<polygon points="350,43 362,55 350,67 338,55" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="336" y="41" width="28" height="28" rx="0" fill="none" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="83" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">↑</text>
+<rect x="383.0" y="45.4" width="6.0" height="19.200000000000003" fill="white" stroke="#333" stroke-width="2"/><rect x="376.4" y="52.0" width="19.200000000000003" height="6.0" fill="white" stroke="#333" stroke-width="2"/>
+<polygon points="422,43 434,55 422,67 410,55" fill="white" stroke="#333" stroke-width="2"/>
+<text x="350" y="105" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">Options:</text>
+<rect x="230" y="110" width="60" height="24" rx="4" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="260" y="128" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">1st</text>
+<rect x="330" y="110" width="60" height="24" rx="4" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="360" y="128" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">5th</text>
+<rect x="430" y="110" width="60" height="24" rx="4" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="460" y="128" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">4th</text>
+</svg>

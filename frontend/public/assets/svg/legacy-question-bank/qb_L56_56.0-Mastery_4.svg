@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 170" width="700" height="170" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="18" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Rectangle: 8 cm × 3 cm</text>
+<rect x="326" y="38" width="48" height="18" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="74" font-size="11" font-weight="normal" text-anchor="middle" fill="#333">L = 8 cm, W = 3 cm</text>
+<text x="350" y="96" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">Perimeter = ___ cm</text>
+</svg>

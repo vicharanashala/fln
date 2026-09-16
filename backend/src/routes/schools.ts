@@ -7,22 +7,47 @@ export function registerSchoolRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
     const schools = await dbStore.getSchools();
-    if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
-      return res.json(schools);
+
+    let scoped: typeof schools;
+    if (user.role === UserRole.SUPERADMIN) {
+      scoped = schools;
+    } else if (user.role === UserRole.ADMIN) {
+      // State admin, so scoped to their own state. GET /api/logbook and
+      // GET /api/admin/coordinators both already scope ADMIN by stateCode; this
+      // endpoint returned every school nationwide, so a Punjab admin could read
+      // Rajasthan's schools.
+      scoped = schools.filter(s => s.stateCode === user.stateCode);
+    } else if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
+      scoped = schools.filter(s => s.id === user.schoolId);
+    } else if (user.role === UserRole.VOLUNTEER) {
+      scoped = schools.filter(s => user.assignedSchools?.includes(s.id));
+    } else if (user.role === UserRole.DISTRICT_ADMIN) {
+      scoped = schools.filter(s => s.districtCode === user.districtCode);
+    } else if (user.role === UserRole.BLOCK_ADMIN) {
+      scoped = schools.filter(s => s.blockCode === user.blockCode);
+    } else {
+      // Fail closed. This branch previously returned every school nationwide, so
+      // any role added later leaked the full list until someone remembered to
+      // come back here.
+      return res.status(403).json({ error: 'Forbidden: role not permitted to list schools.' });
     }
-    if (user.role === UserRole.SCHOOL || user.role === UserRole.TEACHER) {
-      return res.json(schools.filter(s => s.id === user.schoolId));
+
+    // Opt-in pagination (same pattern as GET /api/students, PR #115).
+    // Omitting ?page & ?limit returns the full scoped list — no existing caller breaks.
+    const pageParam = req.query.page as string | undefined;
+    const limitParam = req.query.limit as string | undefined;
+    if (pageParam || limitParam) {
+      const page  = Math.max(1, parseInt(pageParam || '1', 10) || 1);
+      const limit = Math.max(1, Math.min(500, parseInt(limitParam || '50', 10) || 50));
+      const total = scoped.length;
+      const start = (page - 1) * limit;
+      res.set('X-Total-Count', String(total));
+      res.set('X-Page',        String(page));
+      res.set('X-Pages',       String(Math.max(1, Math.ceil(total / limit))));
+      return res.json(scoped.slice(start, start + limit));
     }
-    if (user.role === UserRole.VOLUNTEER) {
-      return res.json(schools.filter(s => user.assignedSchools?.includes(s.id)));
-    }
-    if (user.role === UserRole.DISTRICT_ADMIN) {
-      return res.json(schools.filter(s => s.districtCode === user.districtCode));
-    }
-    if (user.role === UserRole.BLOCK_ADMIN) {
-      return res.json(schools.filter(s => s.blockCode === user.blockCode));
-    }
-    res.json(schools);
+
+    res.json(scoped);
   });
 
   app.post('/api/schools', async (req, res) => {

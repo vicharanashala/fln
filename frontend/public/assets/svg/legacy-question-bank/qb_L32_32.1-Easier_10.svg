@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 140" width="700" height="140" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Which shape is in the 2nd position?</text>
+<circle cx="250" cy="60" r="11.200000000000001" fill="white" stroke="#333" stroke-width="2"/>
+<circle cx="290" cy="60" r="11.200000000000001" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="274" y="44" width="32" height="32" rx="0" fill="none" stroke="#333" stroke-width="1.5"/>
+<text x="290" y="90" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">↑</text>
+<polygon points="330,46 344,60 330,74 316,60" fill="white" stroke="#333" stroke-width="2"/>
+<polygon points="370.0,47.4 373.3,55.5 382.0,56.1 375.3,61.7 377.4,70.2 370.0,65.6 362.6,70.2 364.7,61.7 358.0,56.1 366.7,55.5" fill="white" stroke="#333" stroke-width="2"/>
+<polygon points="410.0,47.4 413.3,55.5 422.0,56.1 415.3,61.7 417.4,70.2 410.0,65.6 402.6,70.2 404.7,61.7 398.0,56.1 406.7,55.5" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="310" y="108" width="80" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="127" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+</svg>

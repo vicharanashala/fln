@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 180" width="700" height="180" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="16" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Read the bar graph:</text>
+<line x1="255" y1="40" x2="255" y2="130" stroke="#333" stroke-width="1.5"/>
+<line x1="255" y1="130" x2="437" y2="130" stroke="#333" stroke-width="1.5"/>
+<line x1="251" y1="130.0" x2="255" y2="130.0" stroke="#333" stroke-width="1"/>
+<text x="247" y="134.0" font-size="9" font-weight="normal" text-anchor="end" fill="#333">0</text>
+<line x1="251" y1="117.14285714285714" x2="255" y2="117.14285714285714" stroke="#333" stroke-width="1"/>
+<text x="247" y="121.14285714285714" font-size="9" font-weight="normal" text-anchor="end" fill="#333">1</text>
+<line x1="251" y1="91.42857142857143" x2="255" y2="91.42857142857143" stroke="#333" stroke-width="1"/>
+<text x="247" y="95.42857142857143" font-size="9" font-weight="normal" text-anchor="end" fill="#333">3</text>
+<line x1="251" y1="65.71428571428571" x2="255" y2="65.71428571428571" stroke="#333" stroke-width="1"/>
+<text x="247" y="69.71428571428571" font-size="9" font-weight="normal" text-anchor="end" fill="#333">5</text>
+<line x1="251" y1="40.0" x2="255" y2="40.0" stroke="#333" stroke-width="1"/>
+<text x="247" y="44.0" font-size="9" font-weight="normal" text-anchor="end" fill="#333">7</text>
+<rect x="263" y="104.28571428571429" width="34" height="25.71428571428571" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<line x1="266" y1="108.28571428571429" x2="294" y2="108.28571428571429" stroke="#888" stroke-width="0.8"/>
+<line x1="266" y1="114.28571428571429" x2="294" y2="114.28571428571429" stroke="#888" stroke-width="0.8"/>
+<line x1="266" y1="120.28571428571429" x2="294" y2="120.28571428571429" stroke="#888" stroke-width="0.8"/>
+<line x1="266" y1="126.28571428571429" x2="294" y2="126.28571428571429" stroke="#888" stroke-width="0.8"/>
+<text x="280" y="98.28571428571429" font-size="10" font-weight="normal" text-anchor="middle" fill="#333">2</text>
+<text x="280" y="144" font-size="9" font-weight="normal" text-anchor="middle" fill="#333">Apples</text>
+<rect x="321" y="78.57142857142858" width="34" height="51.42857142857142" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<line x1="324" y1="82.57142857142858" x2="352" y2="82.57142857142858" stroke="#888" stroke-width="0.8"/>
+<line x1="324" y1="88.57142857142858" x2="352" y2="88.57142857142858" stroke="#888" stroke-width="0.8"/>
+<line x1="324" y1="94.57142857142858" x2="352" y2="94.57142857142858" stroke="#888" stroke-width="0.8"/>
+<line x1="324" y1="100.57142857142858" x2="352" y2="100.57142857142858" stroke="#888" stroke-width="0.8"/>
+<line x1="324" y1="106.57142857142858" x2="352" y2="106.57142857142858" stroke="#888" stroke-width="0.8"/>
+<line x1="324" y1="112.57142857142858" x2="352" y2="112.57142857142858" stroke="#888" stroke-width="0.8"/>
+<line x1="324" y1="118.57142857142858" x2="352" y2="118.57142857142858" stroke="#888" stroke-width="0.8"/>
+<line x1="324" y1="124.57142857142858" x2="352" y2="124.57142857142858" stroke="#888" stroke-width="0.8"/>
+<text x="338" y="72.57142857142858" font-size="10" font-weight="normal" text-anchor="middle" fill="#333">4</text>
+<text x="338" y="144" font-size="9" font-weight="normal" text-anchor="middle" fill="#333">Bananas</text>
+<rect x="379" y="40.0" width="34" height="90.0" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<line x1="382" y1="44.0" x2="410" y2="44.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="50.0" x2="410" y2="50.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="56.0" x2="410" y2="56.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="62.0" x2="410" y2="62.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="68.0" x2="410" y2="68.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="74.0" x2="410" y2="74.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="80.0" x2="410" y2="80.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="86.0" x2="410" y2="86.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="92.0" x2="410" y2="92.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="98.0" x2="410" y2="98.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="104.0" x2="410" y2="104.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="110.0" x2="410" y2="110.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="116.0" x2="410" y2="116.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="122.0" x2="410" y2="122.0" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="128.0" x2="410" y2="128.0" stroke="#888" stroke-width="0.8"/>
+<text x="396" y="34.0" font-size="10" font-weight="normal" text-anchor="middle" fill="#333">7</text>
+<text x="396" y="144" font-size="9" font-weight="normal" text-anchor="middle" fill="#333">Oranges</text>
+<text x="350" y="168" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">Which is the most? ___</text>
+</svg>
