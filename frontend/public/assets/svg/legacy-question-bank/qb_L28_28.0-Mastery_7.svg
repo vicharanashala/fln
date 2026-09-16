@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 110" width="700" height="110" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="20" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Fill &gt; , &lt; , or = :</text>
+<text x="295" y="52" font-size="20" font-weight="normal" text-anchor="end" fill="#333">60</text>
+<rect x="330" y="36" width="40" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="55" font-size="16" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<text x="405" y="52" font-size="20" font-weight="normal" text-anchor="start" fill="#333">30</text>
+</svg>

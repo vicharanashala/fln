@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 155" width="700" height="155" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="18" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Identify the type of angle:</text>
+<line x1="300" y1="87" x2="400" y2="87" stroke="#333" stroke-width="2.5"/>
+<line x1="300" y1="87" x2="360.6217782649107" y2="52.00000000000001" stroke="#333" stroke-width="2.5"/>
+<text x="350" y="128" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">Acute   /   Right   /   Obtuse</text>
+</svg>

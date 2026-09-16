@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 140" width="700" height="140" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="16" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Draw the line(s) of symmetry:</text>
+<rect x="326" y="51" width="48" height="28" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="118" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">Symmetric?   Yes   /   No</text>
+</svg>

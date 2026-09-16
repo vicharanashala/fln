@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 160" width="700" height="160" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="16" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Circle the picture showing half:</text>
+<circle cx="305" cy="60" r="35" fill="white" stroke="#333" stroke-width="1.5"/>
+<path d="M305,60 L305,25 A35,35 0 0,0 305,95 Z" fill="#e0e0e0" stroke="#333" stroke-width="1.5"/>
+<path d="M305,60 L305,25 A35,35 0 0,1 305,95 Z" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="305" y="107" font-size="11" font-weight="normal" text-anchor="middle" fill="#333">(A)</text>
+<circle cx="395" cy="60" r="35" fill="white" stroke="#333" stroke-width="1.5"/>
+<path d="M395,60 L395.0,25.0 A35,35 0 0,1 425.3,77.5 Z" fill="#e0e0e0" stroke="#333" stroke-width="1.5"/>
+<path d="M395,60 L425.3,77.5 A35,35 0 0,1 364.7,77.5 Z" fill="white" stroke="#333" stroke-width="1.5"/>
+<path d="M395,60 L364.7,77.5 A35,35 0 0,1 395.0,25.0 Z" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="395" y="107" font-size="11" font-weight="normal" text-anchor="middle" fill="#333">(B)</text>
+<text x="350" y="140" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">Which shows half? (A) or (B): ___</text>
+</svg>

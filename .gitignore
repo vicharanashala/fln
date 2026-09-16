@@ -50,5 +50,7 @@ backend/data/
 backend/dist/
 frontend/dist/
 *.log
-ai-services/personalized_evaluation/
+# Local scratch UI prototype (not source)
 frontend/studentprogressdashboardUI/
+# Stray local npm artifact
+backend/npm

@@ -1,0 +1,41 @@
+name: Parikshak PR gate check
+
+# Comment-only, deterministic checks — see .github/scripts/pr-gate-check.js
+# and ~/Desktop/PR_REVIEW_AUTOMATION_SOP.md. Never approves, closes, or
+# requests changes; only posts/edits one report comment per PR.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to check (for manual testing)"
+        required: true
+
+permissions:
+  pull-requests: write
+  issues: read
+  contents: read
+
+jobs:
+  gate-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the gate-check script from the base branch
+        uses: actions/checkout@v4
+        with:
+          # pull_request_target runs with base-repo permissions even for fork
+          # PRs, which is exactly why we must NOT check out or execute the
+          # PR's own code — only our own script from the base branch.
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: |
+            .github/scripts/pr-gate-check.js
+          sparse-checkout-cone-mode: false
+
+      - name: Run gate checks
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = require('${{ github.workspace }}/.github/scripts/pr-gate-check.js');
+            await run({ github, context, core });

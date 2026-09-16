@@ -1,0 +1,31 @@
+name: Parikshak stale PR check
+
+# Scheduled follow-up to pr-gate-check.yml -- see .github/scripts/parikshak-stale-check.js
+# and ~/Desktop/PR_REVIEW_AUTOMATION_SOP.md §3. This is the one workflow that can
+# actually close a PR; pr-gate-check.yml stays comment-only.
+
+on:
+  schedule:
+    - cron: '0 */3 * * *' # every 3 hours
+  workflow_dispatch: {} # allow a manual run for testing
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  stale-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/scripts/parikshak-stale-check.js
+          sparse-checkout-cone-mode: false
+
+      - name: Run stale-PR check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/parikshak-stale-check.js`);
+            await run({ github, context, core });

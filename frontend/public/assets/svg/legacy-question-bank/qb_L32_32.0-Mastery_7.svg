@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150" width="700" height="150" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Write the position of the highlighted item:</text>
+<polygon points="260.9,53.7 260.9,66.3 250.0,72.6 239.1,66.3 239.1,53.7 250.0,47.4" fill="white" stroke="#333" stroke-width="2"/>
+<polygon points="290,46 304,60 290,74 276,60" fill="white" stroke="#333" stroke-width="2"/>
+<polygon points="340.9,53.7 340.9,66.3 330.0,72.6 319.1,66.3 319.1,53.7 330.0,47.4" fill="white" stroke="#333" stroke-width="2"/>
+<polygon points="370.0,47.4 373.3,55.5 382.0,56.1 375.3,61.7 377.4,70.2 370.0,65.6 362.6,70.2 364.7,61.7 358.0,56.1 366.7,55.5" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="400.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="394" y="44" width="32" height="32" rx="0" fill="none" stroke="#333" stroke-width="1.5"/>
+<text x="410" y="90" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">↑</text>
+<rect x="320" y="110" width="60" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="129" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+</svg>

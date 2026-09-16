@@ -1,0 +1,124 @@
+[
+  {
+    "classNumber": 2,
+    "level": 5,
+    "topic": "Number Sense",
+    "isMandatory": true,
+    "meetsThreshold": "Strong",
+    "notes": "End-of-Class 2 foundation: counting and single-digit place value."
+  },
+  {
+    "classNumber": 2,
+    "level": 5,
+    "topic": "Number Operations",
+    "isMandatory": true,
+    "meetsThreshold": "Strong",
+    "notes": "Two-digit addition/subtraction required before progressing to Class 3."
+  },
+  {
+    "classNumber": 2,
+    "level": 5,
+    "topic": "Shapes",
+    "isMandatory": true,
+    "meetsThreshold": "Satisfactory",
+    "notes": "Shape recognition supports later geometry; Satisfactory acceptable at L5."
+  },
+  {
+    "classNumber": 2,
+    "level": 5,
+    "topic": "Patterns",
+    "isMandatory": true,
+    "meetsThreshold": "Satisfactory",
+    "notes": "Pattern completion is a supporting skill; Satisfactory acceptable at L5."
+  },
+  {
+    "classNumber": 3,
+    "level": 5,
+    "topic": "Number Sense",
+    "isMandatory": true,
+    "meetsThreshold": "Strong"
+  },
+  {
+    "classNumber": 3,
+    "level": 5,
+    "topic": "Number Operations",
+    "isMandatory": true,
+    "meetsThreshold": "Strong",
+    "notes": "Multiplication tables 2-5 expected by end of Class 3."
+  },
+  {
+    "classNumber": 3,
+    "level": 5,
+    "topic": "Fractions",
+    "isMandatory": true,
+    "meetsThreshold": "Satisfactory",
+    "notes": "Basic fraction representation; Strong required at Class 4 certification."
+  },
+  {
+    "classNumber": 3,
+    "level": 5,
+    "topic": "Measurement",
+    "isMandatory": true,
+    "meetsThreshold": "Satisfactory"
+  },
+  {
+    "classNumber": 3,
+    "level": 5,
+    "topic": "Money",
+    "isMandatory": true,
+    "meetsThreshold": "Strong",
+    "notes": "Real-world transaction competence is a Class 3 graduation gate."
+  },
+  {
+    "classNumber": 4,
+    "level": 5,
+    "topic": "Number Sense",
+    "isMandatory": true,
+    "meetsThreshold": "Strong"
+  },
+  {
+    "classNumber": 4,
+    "level": 5,
+    "topic": "Number Operations",
+    "isMandatory": true,
+    "meetsThreshold": "Strong",
+    "notes": "Division and multi-digit operations expected at Class 4 certification."
+  },
+  {
+    "classNumber": 4,
+    "level": 5,
+    "topic": "Fractions",
+    "isMandatory": true,
+    "meetsThreshold": "Strong"
+  },
+  {
+    "classNumber": 4,
+    "level": 5,
+    "topic": "Measurement",
+    "isMandatory": true,
+    "meetsThreshold": "Strong"
+  },
+  {
+    "classNumber": 4,
+    "level": 5,
+    "topic": "Money",
+    "isMandatory": true,
+    "meetsThreshold": "Strong"
+  },
+  {
+    "classNumber": 4,
+    "level": 5,
+    "topic": "Calendar and Time",
+    "isMandatory": true,
+    "meetsThreshold": "Satisfactory",
+    "notes": "Reading hours and calendar arithmetic introduced in Class 4."
+  },
+  {
+    "classNumber": 4,
+    "level": 5,
+    "topic": "Data Handling",
+    "isMandatory": true,
+    "meetsThreshold": "Satisfactory",
+    "notes": "Simple arithmetic over data tables introduced in Class 4."
+  }
+]

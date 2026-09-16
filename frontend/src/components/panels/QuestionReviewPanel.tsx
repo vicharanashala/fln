@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClipboardList, Check, Ban, Layers, AlertTriangle } from 'lucide-react';
-import { apiFetch } from '../../services/apiClient';
+import { apiFetch, withBase } from '../../services/apiClient';
 import type {
   QuestionBankEntry, QuestionBankProgress, QuestionReviewStatus,
   LegacyLevelRow, CurriculumLevel,
@@ -239,10 +239,14 @@ export const QuestionReviewPanel: React.FC = () => {
                     <span className="text-slate-500 dark:text-zinc-400">Answer: </span>
                     <code className="font-mono text-emerald-700 dark:text-emerald-300">{q.answer}</code>
                   </p>
-                  {q.svgHtml && (
-                    <div className="mt-2 overflow-x-auto border border-slate-100 dark:border-zinc-800 rounded p-2 bg-white"
-                      dangerouslySetInnerHTML={{ __html: q.svgHtml }} />
-                  )}
+                  <div className="mt-2 overflow-x-auto border border-slate-100 dark:border-zinc-800 rounded p-2 bg-white">
+                    <img
+                      src={withBase(`/assets/svg/legacy-question-bank/${q.questionId}.svg`)}
+                      alt={`Illustration for ${q.questionId}`}
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <select

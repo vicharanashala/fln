@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 140" width="700" height="140" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Which shape is in the 4th position?</text>
+<rect x="200.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/>
+<polygon points="250.0,47.4 253.3,55.5 262.0,56.1 255.3,61.7 257.4,70.2 250.0,65.6 242.6,70.2 244.7,61.7 238.0,56.1 246.7,55.5" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="280.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/>
+<circle cx="330" cy="60" r="11.200000000000001" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="314" y="44" width="32" height="32" rx="0" fill="none" stroke="#333" stroke-width="1.5"/>
+<text x="330" y="90" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">↑</text>
+<line x1="370" y1="48.8" x2="370" y2="71.2" stroke="#333" stroke-width="2.5"/><line x1="358.8" y1="60" x2="381.2" y2="60" stroke="#333" stroke-width="2.5"/>
+<rect x="400.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/>
+<polygon points="450,46 436,69.8 464,69.8" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="310" y="108" width="80" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="127" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+</svg>

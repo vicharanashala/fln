@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 130" width="700" height="130" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Add:</text>
+<text x="371" y="42" font-size="20" font-weight="normal" text-anchor="end" fill="#333">27</text>
+<text x="347" y="66" font-size="18" font-weight="normal" text-anchor="end" fill="#333">+</text>
+<text x="371" y="66" font-size="20" font-weight="normal" text-anchor="end" fill="#333">44</text>
+<line x1="319" y1="76" x2="381" y2="76" stroke="#333" stroke-width="2"/>
+<rect x="319" y="84" width="62" height="30" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="106" font-size="18" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+</svg>

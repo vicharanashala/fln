@@ -1,4 +1,4 @@
-import { apiFetch } from '../services/apiClient';
+import { apiFetch, withBase } from '../services/apiClient';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -124,12 +124,12 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
           <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row pl-2">
             <div className="flex items-center gap-3">
               <img
-                src="/partners/iit-ropar-logo.svg"
+                src={withBase('/partners/iit-ropar-logo.svg')}
                 alt="Indian Institute of Technology Ropar"
                 className="h-12 md:h-16 w-auto"
               />
               <img
-                src="/partners/vicharanashala-logo.png"
+                src={withBase('/partners/vicharanashala-logo.png')}
                 alt="Vicharanashala — Lab for Education Design"
                 className="h-12 md:h-16 w-auto"
               />
