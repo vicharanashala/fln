@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 170" width="700" height="170" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="16" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Find the angle in the object:</text>
+<line x1="328" y1="78" x2="364" y2="35" stroke="#333" stroke-width="3"/>
+<line x1="336" y1="35" x2="372" y2="78" stroke="#333" stroke-width="3"/>
+<circle cx="350" cy="57" r="5" fill="#888" stroke="#333" stroke-width="1.5"/>
+<circle cx="350" cy="57" r="2" fill="#333" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="108" font-size="10" font-weight="normal" text-anchor="middle" fill="#333">Scissors</text>
+<text x="350" y="140" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">Acute   /   Right   /   Obtuse</text>
+</svg>

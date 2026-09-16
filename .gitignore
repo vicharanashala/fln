@@ -51,3 +51,7 @@ ai-services/scratch/
 # Developer artifacts
 ChatGPT Image*
 test_ocr_api.py
+
+# AI-services pipeline output (regenerates per-run; not source)
+ai-services/personalized_evaluation/class_*/
+backend/npm

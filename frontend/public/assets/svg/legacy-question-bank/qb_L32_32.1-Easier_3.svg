@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150" width="700" height="150" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="20" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">Which position is the highlighted shape in?</text>
+<circle cx="224" cy="55" r="9.600000000000001" fill="white" stroke="#333" stroke-width="2"/>
+<circle cx="260" cy="55" r="9.600000000000001" fill="none" stroke="#333" stroke-width="2.5"/>
+<rect x="246" y="41" width="28" height="28" rx="0" fill="none" stroke="#333" stroke-width="1.5"/>
+<text x="260" y="83" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">↑</text>
+<circle cx="296" cy="55" r="9.600000000000001" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="323.6" y="46.6" width="16.799999999999997" height="16.799999999999997" fill="white" stroke="#333" stroke-width="2"/>
+<circle cx="368" cy="55" r="9.600000000000001" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="395.6" y="46.6" width="16.799999999999997" height="16.799999999999997" fill="white" stroke="#333" stroke-width="2"/><line x1="399.2" y1="46.6" x2="399.2" y2="63.4" stroke="#333" stroke-width="1.5"/><line x1="408.8" y1="46.6" x2="408.8" y2="63.4" stroke="#333" stroke-width="1.5"/>
+<polygon points="440,43 428,63.4 452,63.4" fill="white" stroke="#333" stroke-width="2"/>
+<text x="350" y="105" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">Options:</text>
+<rect x="230" y="110" width="60" height="24" rx="4" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="260" y="128" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">3rd</text>
+<rect x="330" y="110" width="60" height="24" rx="4" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="360" y="128" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">2nd</text>
+<rect x="430" y="110" width="60" height="24" rx="4" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="460" y="128" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">7th</text>
+</svg>

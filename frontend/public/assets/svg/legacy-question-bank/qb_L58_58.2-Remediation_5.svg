@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 145" width="700" height="145" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="16" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Complete the mirror image (draw the other half):</text>
+<line x1="350" y1="28" x2="350" y2="96" stroke="#888" stroke-width="1.2"/>
+<polyline points="350,52 344,62 350,62 350,74" fill="none" stroke="#333" stroke-width="2"/><line x1="350" y1="52" x2="350" y2="74" stroke="#333" stroke-width="2"/>
+<text x="350" y="108" font-size="10" font-weight="normal" text-anchor="middle" fill="#888">Mirror line</text>
+</svg>

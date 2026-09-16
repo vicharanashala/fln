@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 140" width="700" height="140" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="16" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">How many lines of symmetry?</text>
+<path d="M365,65 A15,15 0 1,1 345,53 A10,12 0 1,0 365,65" fill="white" stroke="#333" stroke-width="2"/>
+<text x="350" y="118" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">Answer: ___ lines</text>
+</svg>

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 160" width="700" height="160" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Match — which tally shows</text>
+<text x="350" y="40" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">the number 17?</text>
+<line x1="166" y1="85" x2="166" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="170" y1="85" x2="170" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="174" y1="85" x2="174" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="178" y1="85" x2="178" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="166" y1="69" x2="182" y2="81" stroke="#333" stroke-width="1.5"/>
+<line x1="190" y1="85" x2="190" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="194" y1="85" x2="194" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="198" y1="85" x2="198" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="202" y1="85" x2="202" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="190" y1="69" x2="206" y2="81" stroke="#333" stroke-width="1.5"/>
+<line x1="214" y1="85" x2="214" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="218" y1="85" x2="218" y2="69" stroke="#333" stroke-width="1.5"/>
+<text x="200" y="120" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">Option A</text>
+<line x1="304" y1="85" x2="304" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="308" y1="85" x2="308" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="312" y1="85" x2="312" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="316" y1="85" x2="316" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="304" y1="69" x2="320" y2="81" stroke="#333" stroke-width="1.5"/>
+<line x1="328" y1="85" x2="328" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="332" y1="85" x2="332" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="336" y1="85" x2="336" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="340" y1="85" x2="340" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="328" y1="69" x2="344" y2="81" stroke="#333" stroke-width="1.5"/>
+<line x1="352" y1="85" x2="352" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="356" y1="85" x2="356" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="360" y1="85" x2="360" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="364" y1="85" x2="364" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="352" y1="69" x2="368" y2="81" stroke="#333" stroke-width="1.5"/>
+<line x1="376" y1="85" x2="376" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="380" y1="85" x2="380" y2="69" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="120" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">Option B</text>
+<line x1="466" y1="85" x2="466" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="470" y1="85" x2="470" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="474" y1="85" x2="474" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="478" y1="85" x2="478" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="466" y1="69" x2="482" y2="81" stroke="#333" stroke-width="1.5"/>
+<line x1="490" y1="85" x2="490" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="494" y1="85" x2="494" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="498" y1="85" x2="498" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="502" y1="85" x2="502" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="490" y1="69" x2="506" y2="81" stroke="#333" stroke-width="1.5"/>
+<line x1="514" y1="85" x2="514" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="518" y1="85" x2="518" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="522" y1="85" x2="522" y2="69" stroke="#333" stroke-width="1.5"/>
+<line x1="526" y1="85" x2="526" y2="69" stroke="#333" stroke-width="1.5"/>
+<text x="500" y="120" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">Option C</text>
+</svg>

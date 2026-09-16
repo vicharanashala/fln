@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 130" width="700" height="130" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Count the tally marks and write the number:</text>
+<line x1="268" y1="75" x2="268" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="272" y1="75" x2="272" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="276" y1="75" x2="276" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="280" y1="75" x2="280" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="268" y1="59" x2="284" y2="71" stroke="#333" stroke-width="1.5"/>
+<line x1="292" y1="75" x2="292" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="296" y1="75" x2="296" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="300" y1="75" x2="300" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="304" y1="75" x2="304" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="292" y1="59" x2="308" y2="71" stroke="#333" stroke-width="1.5"/>
+<line x1="316" y1="75" x2="316" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="320" y1="75" x2="320" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="324" y1="75" x2="324" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="328" y1="75" x2="328" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="316" y1="59" x2="332" y2="71" stroke="#333" stroke-width="1.5"/>
+<line x1="340" y1="75" x2="340" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="344" y1="75" x2="344" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="348" y1="75" x2="348" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="352" y1="75" x2="352" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="340" y1="59" x2="356" y2="71" stroke="#333" stroke-width="1.5"/>
+<line x1="364" y1="75" x2="364" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="368" y1="75" x2="368" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="372" y1="75" x2="372" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="376" y1="75" x2="376" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="364" y1="59" x2="380" y2="71" stroke="#333" stroke-width="1.5"/>
+<line x1="388" y1="75" x2="388" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="392" y1="75" x2="392" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="396" y1="75" x2="396" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="400" y1="75" x2="400" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="388" y1="59" x2="404" y2="71" stroke="#333" stroke-width="1.5"/>
+<line x1="412" y1="75" x2="412" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="416" y1="75" x2="416" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="420" y1="75" x2="420" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="424" y1="75" x2="424" y2="59" stroke="#333" stroke-width="1.5"/>
+<line x1="412" y1="59" x2="428" y2="71" stroke="#333" stroke-width="1.5"/>
+<rect x="325" y="95" width="50" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="114" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+</svg>

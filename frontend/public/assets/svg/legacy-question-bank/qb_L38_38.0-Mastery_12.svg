@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 110" width="700" height="110" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Arrange in Descending order:</text>
+<text x="350" y="50" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">Given: 438, 738, 845, 416</text>
+<rect x="212" y="62" width="60" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="242" y="81" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<rect x="284" y="62" width="60" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="314" y="81" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<rect x="356" y="62" width="60" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="386" y="81" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<rect x="428" y="62" width="60" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="458" y="81" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+</svg>

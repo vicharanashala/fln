@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 120" width="700" height="120" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Fill the missing numbers:</text>
+<text x="175" y="58" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">51</text>
+<text x="214" y="58" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">52</text>
+<rect x="236" y="42" width="34" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="253" y="61" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<text x="292" y="58" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">54</text>
+<text x="331" y="58" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">55</text>
+<text x="370" y="58" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">56</text>
+<text x="409" y="58" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">57</text>
+<rect x="431" y="42" width="34" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="448" y="61" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<rect x="470" y="42" width="34" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="487" y="61" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<text x="526" y="58" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">60</text>
+</svg>

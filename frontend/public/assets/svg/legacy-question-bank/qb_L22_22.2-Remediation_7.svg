@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 340" width="700" height="340" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Use the number line &amp; bars below to help order:</text>
+<line x1="190" y1="55" x2="510" y2="55" stroke="#555" stroke-width="1.5"/>
+<polygon points="512,55 504,50 504,60" fill="#555"/>
+<polygon points="188,55 196,50 196,60" fill="#555"/>
+<line x1="190.0" y1="51" x2="190.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<circle cx="190.0" cy="55" r="10" fill="white" stroke="#333" stroke-width="2.5"/>
+<circle cx="190.0" cy="55" r="7" fill="none" stroke="#333" stroke-width="1"/>
+<text x="190.0" y="73" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">15</text>
+<line x1="222.0" y1="51" x2="222.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<text x="222.0" y="73" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">16</text>
+<line x1="254.0" y1="51" x2="254.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<text x="254.0" y="73" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">17</text>
+<line x1="286.0" y1="51" x2="286.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<text x="286.0" y="73" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">18</text>
+<line x1="318.0" y1="51" x2="318.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<text x="318.0" y="73" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">19</text>
+<line x1="350.0" y1="51" x2="350.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<text x="350.0" y="73" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">20</text>
+<line x1="382.0" y1="51" x2="382.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<circle cx="382.0" cy="55" r="10" fill="white" stroke="#333" stroke-width="2.5"/>
+<circle cx="382.0" cy="55" r="7" fill="none" stroke="#333" stroke-width="1"/>
+<text x="382.0" y="73" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">21</text>
+<line x1="414.0" y1="51" x2="414.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<text x="414.0" y="73" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">22</text>
+<line x1="446.0" y1="51" x2="446.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<text x="446.0" y="73" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">23</text>
+<line x1="478.0" y1="51" x2="478.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<circle cx="478.0" cy="55" r="10" fill="white" stroke="#333" stroke-width="2.5"/>
+<circle cx="478.0" cy="55" r="7" fill="none" stroke="#333" stroke-width="1"/>
+<text x="478.0" y="73" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">24</text>
+<line x1="510.0" y1="51" x2="510.0" y2="59" stroke="#555" stroke-width="1.5"/>
+<text x="510.0" y="73" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">25</text>
+<rect x="296" y="125.0" width="28" height="10.0" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<line x1="299" y1="129.0" x2="321" y2="129.0" stroke="#888" stroke-width="0.8"/>
+<text x="310.0" y="151" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">15</text>
+<rect x="336" y="98.33333333333334" width="28" height="36.666666666666664" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<line x1="339" y1="102.33333333333334" x2="361" y2="102.33333333333334" stroke="#888" stroke-width="0.8"/>
+<line x1="339" y1="108.33333333333334" x2="361" y2="108.33333333333334" stroke="#888" stroke-width="0.8"/>
+<line x1="339" y1="114.33333333333334" x2="361" y2="114.33333333333334" stroke="#888" stroke-width="0.8"/>
+<line x1="339" y1="120.33333333333334" x2="361" y2="120.33333333333334" stroke="#888" stroke-width="0.8"/>
+<line x1="339" y1="126.33333333333334" x2="361" y2="126.33333333333334" stroke="#888" stroke-width="0.8"/>
+<line x1="339" y1="132.33333333333334" x2="361" y2="132.33333333333334" stroke="#888" stroke-width="0.8"/>
+<text x="350.0" y="151" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">21</text>
+<rect x="376" y="85.0" width="28" height="50.0" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<line x1="379" y1="89.0" x2="401" y2="89.0" stroke="#888" stroke-width="0.8"/>
+<line x1="379" y1="95.0" x2="401" y2="95.0" stroke="#888" stroke-width="0.8"/>
+<line x1="379" y1="101.0" x2="401" y2="101.0" stroke="#888" stroke-width="0.8"/>
+<line x1="379" y1="107.0" x2="401" y2="107.0" stroke="#888" stroke-width="0.8"/>
+<line x1="379" y1="113.0" x2="401" y2="113.0" stroke="#888" stroke-width="0.8"/>
+<line x1="379" y1="119.0" x2="401" y2="119.0" stroke="#888" stroke-width="0.8"/>
+<line x1="379" y1="125.0" x2="401" y2="125.0" stroke="#888" stroke-width="0.8"/>
+<line x1="379" y1="131.0" x2="401" y2="131.0" stroke="#888" stroke-width="0.8"/>
+<text x="390.0" y="151" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">24</text>
+<text x="350" y="197" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Ascending (smallest → largest):</text>
+<rect x="256" y="215" width="52" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="282" y="234" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<rect x="324" y="215" width="52" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="234" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<rect x="392" y="215" width="52" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="418" y="234" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<text x="350" y="254" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Descending:</text>
+<rect x="256" y="272" width="52" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="282" y="291" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<rect x="324" y="272" width="52" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="291" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<rect x="392" y="272" width="52" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="418" y="291" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+</svg>
