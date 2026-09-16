@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150" width="700" height="150" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="16" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Count the squares to find the area:</text>
+<rect x="318" y="35" width="64" height="48" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<line x1="318" y1="35" x2="382" y2="35" stroke="#888" stroke-width="0.8"/>
+<line x1="318" y1="51" x2="382" y2="51" stroke="#888" stroke-width="0.8"/>
+<line x1="318" y1="67" x2="382" y2="67" stroke="#888" stroke-width="0.8"/>
+<line x1="318" y1="83" x2="382" y2="83" stroke="#888" stroke-width="0.8"/>
+<line x1="318" y1="35" x2="318" y2="83" stroke="#888" stroke-width="0.8"/>
+<line x1="334" y1="35" x2="334" y2="83" stroke="#888" stroke-width="0.8"/>
+<line x1="350" y1="35" x2="350" y2="83" stroke="#888" stroke-width="0.8"/>
+<line x1="366" y1="35" x2="366" y2="83" stroke="#888" stroke-width="0.8"/>
+<line x1="382" y1="35" x2="382" y2="83" stroke="#888" stroke-width="0.8"/>
+<text x="350" y="107" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">Area = ___ square units</text>
+</svg>

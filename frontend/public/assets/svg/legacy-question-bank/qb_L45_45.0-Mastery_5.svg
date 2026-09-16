@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150" width="700" height="150" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="18" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Shade: 1/2</text>
+<circle cx="350" cy="55" r="35" fill="white" stroke="#333" stroke-width="1.5"/>
+<path d="M350,55 L350.0,20.0 A35,35 0 0,1 350.0,90.0 Z" fill="white" stroke="#333" stroke-width="1.5"/>
+<line x1="376.5" y1="52.0" x2="358.5" y2="58.0" stroke="#888" stroke-width="0.8"/>
+<line x1="370.5" y1="52.0" x2="364.5" y2="58.0" stroke="#888" stroke-width="0.8"/>
+<line x1="364.5" y1="52.0" x2="370.5" y2="58.0" stroke="#888" stroke-width="0.8"/>
+<line x1="358.5" y1="52.0" x2="376.5" y2="58.0" stroke="#888" stroke-width="0.8"/>
+<path d="M350,55 L350.0,90.0 A35,35 0 0,1 350.0,20.0 Z" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="105" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">Fraction = ___</text>
+</svg>

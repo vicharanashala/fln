@@ -2,11 +2,55 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "./db";
 
 // Valid Gemini model IDs, primary first then fallbacks (used by generateContentWithRetry).
-// Centralized here so the call sites below don't drift; these match the IDs the
-// ai-services Python pipeline uses (ai-services/scripts/_api.py). The previous IDs
-// ("gemini-3.5-flash" / "gemini-3.1-*") do not exist and made every AI call 404.
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"] as const;
-const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
+// Centralized here so the call sites below don't drift.
+// Verified 2026-07-25 against a newly-issued AI Studio key: "gemini-2.5-flash" and
+// "gemini-2.5-flash-lite" now 404 with "no longer available to new users", and
+// "gemini-2.0-flash" 429s with no free-tier quota — so the previous list failed every
+// AI call (6 wasted requests per call, via the retry/fallback loop below).
+// Both IDs here were confirmed working, including image input (inlineData).
+// NOTE: ai-services/scripts/_api.py has its own model IDs and was NOT updated here.
+const GEMINI_MODELS = ["gemini-flash-latest", "gemini-3.5-flash"] as const;
+export const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
+
+// Issue #181: forgive small, meaningless formatting/OCR differences in the
+// deterministic answer comparison (extra internal spaces, mixed case, a
+// single OCR-typical misread character) without starting to accept answers
+// that are genuinely wrong.
+function levenshteinDistance(a: string, b: string): number {
+  const dp: number[][] = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+const NUMERIC_ANSWER = /^-?\d+(\.\d+)?$/;
+
+// `submitted`/`correct` should already be trim()'d + toLowerCase()'d by the
+// caller — this just adds internal-whitespace collapsing and, for non-numeric
+// answers only, a small length-scaled edit-distance tolerance. Numeric
+// answers are deliberately excluded from fuzzy matching: a 1-character edit
+// distance there is a different number (e.g. "5" vs "6", "12" vs "13"), not
+// an OCR near-miss of the same answer.
+function answersMatch(submitted: string, correct: string): boolean {
+  const collapse = (s: string) => s.replace(/\s+/g, ' ').trim();
+  const a = collapse(submitted);
+  const b = collapse(correct);
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (NUMERIC_ANSWER.test(a) || NUMERIC_ANSWER.test(b)) return false;
+
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen < 3) return false; // too short to safely tolerate any edit
+  const tolerance = maxLen <= 6 ? 1 : 2;
+  return levenshteinDistance(a, b) <= tolerance;
+}
 
 // Helper to get Gemini client or null if key is missing
 let aiClient: GoogleGenAI | null = null;
@@ -33,7 +77,7 @@ function getAiClient(): GoogleGenAI {
 /**
  * Call Gemini API with retries and exponential backoff, falling back to other models if needed.
  */
-async function generateContentWithRetry(params: {
+export async function generateContentWithRetry(params: {
   contents: any;
   config?: any;
   model?: string;
@@ -393,7 +437,7 @@ Diagnostic Questions: ${JSON.stringify(questions)}
 Student Submitted Answers: ${JSON.stringify(submittedAnswers)}
 
 Grade these answers. Compute total score out of ${questions.length}.
-Implement "Weakest-Level Mapping" (SRS §6.2): Assign the student to the lowest level (from 1 to 59) where they showed weakness or made mistakes, or level 1 if they struggle with everything. If they solved all perfectly, assign level 35.
+Implement "Weakest-Level Mapping" (SRS §6.2): Assign the student to the lowest level (from 1 to 93) where they showed weakness or made mistakes, or level 1 if they struggle with everything. If they solved all perfectly, assign level 35.
 Provide a clean narrative feedback summary.`;
 
     const response = await generateContentWithRetry({
@@ -406,7 +450,7 @@ Provide a clean narrative feedback summary.`;
           type: Type.OBJECT,
           properties: {
             score: { type: Type.INTEGER, description: "Number of correct answers" },
-            recommendedLevel: { type: Type.INTEGER, description: "Level from 1 to 59 based on weakest-level mapping" },
+            recommendedLevel: { type: Type.INTEGER, description: "Level from 1 to 93 based on weakest-level mapping" },
             narrative: { type: Type.STRING, description: "Warm and encouraging narrative explaining how the student did and what they need to work on." }
           },
           required: ["score", "recommendedLevel", "narrative"]
@@ -434,7 +478,7 @@ Provide a clean narrative feedback summary.`;
   questions.forEach((q) => {
     const submitted = (submittedAnswers[q.question_id] || '').trim().toLowerCase();
     const correct = q.answer.trim().toLowerCase();
-    if (submitted === correct) {
+    if (answersMatch(submitted, correct)) {
       score++;
     }
   });
@@ -444,7 +488,7 @@ Provide a clean narrative feedback summary.`;
   questions.forEach((q) => {
     const submitted = (submittedAnswers[q.question_id] || '').trim().toLowerCase();
     const correct = q.answer.trim().toLowerCase();
-    if (submitted !== correct) {
+    if (!answersMatch(submitted, correct)) {
       failedLevels.push(q.source_level);
     }
   });
@@ -452,7 +496,9 @@ Provide a clean narrative feedback summary.`;
   if (failedLevels.length > 0) {
     recommendedLevel = Math.min(...failedLevels);
   } else {
-    // If they got all questions correct, place them at highest level + 1 (capped at 59)
+    // If they got all questions correct, place them at highest level + 1.
+    // Capped at 59, not 93: worksheet generation (levels_main.html) still
+    // throws UnknownLevelError above 59 until the 59->93 migration finishes.
     const maxLevel = Math.max(...questions.map(q => q.source_level), 0);
     recommendedLevel = Math.min(59, maxLevel + 1);
   }
@@ -627,7 +673,7 @@ Generate a narrative report summarizing strengths and learning gaps.`;
   questions.forEach((q) => {
     const submitted = (submittedAnswers[q.question_id] || '').trim().toLowerCase();
     const correct = q.answer.trim().toLowerCase();
-    const isCorrect = submitted === correct;
+    const isCorrect = answersMatch(submitted, correct);
 
     if (isCorrect) score++;
 
@@ -640,6 +686,7 @@ Generate a narrative report summarizing strengths and learning gaps.`;
   });
 
   const percent = (score / questions.length) * 100;
+  // Capped at 59, not 93 — see the Weakest-Level Mapping cap above.
   const recommendedLevel = percent >= 80 ? Math.min(59, level + 1) : level;
 
   return {

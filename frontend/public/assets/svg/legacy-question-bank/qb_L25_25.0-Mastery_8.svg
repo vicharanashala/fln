@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 140" width="700" height="140" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Find the missing tens:</text>
+<rect x="230" y="40" width="80" height="80" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="270" y="66" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Tens</text>
+<rect x="240" y="78" width="60" height="30" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="270" y="99" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+<rect x="310" y="40" width="80" height="80" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="66" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Ones</text>
+<text x="350" y="96" font-size="16" font-weight="normal" text-anchor="middle" fill="#333">3</text>
+<rect x="390" y="40" width="80" height="80" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="430" y="66" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Number</text>
+<text x="430" y="96" font-size="16" font-weight="normal" text-anchor="middle" fill="#333">33</text>
+</svg>

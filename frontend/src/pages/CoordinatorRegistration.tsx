@@ -106,30 +106,30 @@ export default function CoordinatorRegistration() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl text-slate-900 dark:text-slate-100">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Register New Coordinator</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Register New Coordinator</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Create a new teacher or administrative account
           </p>
         </div>
         <button
           onClick={() => navigate(-1)}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
         >
           Back
         </button>
       </div>
 
       {createTeacherMutation.isSuccess && (
-        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+        <div className="mb-6 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 px-4 py-3 text-sm font-medium text-emerald-800 dark:text-emerald-300">
           Coordinator registered successfully!
         </div>
       )}
 
       {createTeacherMutation.isError && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+        <div className="mb-6 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/60 px-4 py-3 text-sm font-medium text-red-800 dark:text-red-300">
           {(createTeacherMutation.error as any)?.response?.data?.message ||
             (createTeacherMutation.error as Error).message ||
             'Failed to register coordinator. Please try again.'}
@@ -137,8 +137,8 @@ export default function CoordinatorRegistration() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Account Details</h2>
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Account Details</h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>

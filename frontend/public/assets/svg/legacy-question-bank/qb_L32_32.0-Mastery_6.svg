@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 140" width="700" height="140" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Which shape is in the 4th position?</text>
+<polygon points="210,46 196,69.8 224,69.8" fill="white" stroke="#333" stroke-width="2"/>
+<line x1="250" y1="48.8" x2="250" y2="71.2" stroke="#333" stroke-width="2.5"/><line x1="238.8" y1="60" x2="261.2" y2="60" stroke="#333" stroke-width="2.5"/>
+<polygon points="300.9,53.7 300.9,66.3 290.0,72.6 279.1,66.3 279.1,53.7 290.0,47.4" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="320.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/><line x1="324.4" y1="50.2" x2="324.4" y2="69.8" stroke="#333" stroke-width="1.5"/><line x1="335.6" y1="50.2" x2="335.6" y2="69.8" stroke="#333" stroke-width="1.5"/>
+<rect x="314" y="44" width="32" height="32" rx="0" fill="none" stroke="#333" stroke-width="1.5"/>
+<text x="330" y="90" font-size="12" font-weight="normal" text-anchor="middle" fill="#333">↑</text>
+<rect x="360.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/><line x1="364.4" y1="50.2" x2="364.4" y2="69.8" stroke="#333" stroke-width="1.5"/><line x1="375.6" y1="50.2" x2="375.6" y2="69.8" stroke="#333" stroke-width="1.5"/>
+<rect x="400.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/><line x1="404.4" y1="50.2" x2="404.4" y2="69.8" stroke="#333" stroke-width="1.5"/><line x1="415.6" y1="50.2" x2="415.6" y2="69.8" stroke="#333" stroke-width="1.5"/>
+<rect x="440.2" y="50.2" width="19.599999999999998" height="19.599999999999998" fill="white" stroke="#333" stroke-width="2"/>
+<rect x="310" y="108" width="80" height="26" rx="0" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350" y="127" font-size="14" font-weight="normal" text-anchor="middle" fill="#333">___</text>
+</svg>

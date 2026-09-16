@@ -199,7 +199,7 @@ export const BLOCK_NAMES: Record<string, string> = {
   'KAL_01': 'Karaikal Block 1', 'KAL_02': 'Karaikal Block 2',
 };
 
-// Auto-generate 59 detailed FLN levels
+// Auto-generate 93 detailed FLN levels
 export const FLN_LEVELS: any[] = (() => {
   const levels: any[] = [];
   const strandRotation = [
@@ -284,8 +284,8 @@ export const FLN_LEVELS: any[] = (() => {
     ]
   };
 
-  for (let i = 1; i <= 59; i++) {
-    const classLevel = i <= 15 ? 1 : i <= 32 ? 2 : i <= 48 ? 3 : 4;
+  for (let i = 1; i <= 93; i++) {
+    const classLevel = i <= 42 ? 1 : i <= 61 ? 2 : i <= 75 ? 3 : 4;
     const strand = strandRotation[(i - 1) % strandRotation.length];
     const outcomes = outcomesByStrand[strand] || ['Demonstrates competency in foundational math concepts'];
     const outcome = outcomes[(i - 1) % outcomes.length];
@@ -633,7 +633,7 @@ export const INITIAL_ANNOUNCEMENTS: any[] = [
   {
     id: 'ann-003',
     title: 'FLN Numeracy Benchmark Standards Updated',
-    body: 'Revised NCERT-aligned sub-level descriptions have been populated for FLN levels 1 to 59. No action required; the auto-level evaluation pipeline incorporates these immediately.',
+    body: 'Revised NCERT-aligned sub-level descriptions have been populated for FLN levels 1 to 93. No action required; the auto-level evaluation pipeline incorporates these immediately.',
     urgency: 'low',
     postedAt: '2026-06-28 11:30 AM',
     emailEscalation: false

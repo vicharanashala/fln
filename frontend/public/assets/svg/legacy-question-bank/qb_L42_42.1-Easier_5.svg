@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 160" width="700" height="160" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="18" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Share 15 equally among 3 groups:</text>
+<circle cx="262.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="276.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="290.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="304.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="318.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="290.0" y="63" font-size="10" font-weight="normal" text-anchor="middle" fill="#333">Group 1</text>
+<circle cx="322.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="336.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="350.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="364.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="378.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="350.0" y="63" font-size="10" font-weight="normal" text-anchor="middle" fill="#333">Group 2</text>
+<circle cx="382.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="396.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="410.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="424.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<circle cx="438.0" cy="40.0" r="5" fill="white" stroke="#333" stroke-width="1.5"/>
+<text x="410.0" y="63" font-size="10" font-weight="normal" text-anchor="middle" fill="#333">Group 3</text>
+<text x="350" y="92" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">Each group gets: ___</text>
+</svg>

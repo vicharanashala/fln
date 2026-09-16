@@ -1,33 +1,27 @@
-import api from './api';
+import { apiFetch } from './apiClient';
 
 export interface State {
   id: string;
   name: string;
-  code: string;
 }
 
 export interface District {
   id: string;
   name: string;
-  code: string;
-  state: string;
 }
 
 export interface Block {
   id: string;
   name: string;
-  code: string;
-  district: string;
-  state: string;
+  districtId: string;
 }
 
 export interface School {
   id: string;
   name: string;
-  code: string;
-  block: string;
-  district: string;
-  state: string;
+  stateCode: string;
+  districtCode: string;
+  blockCode: string;
   strength: 'high' | 'low';
 }
 
@@ -51,27 +45,40 @@ export interface CreateTeacherResponse {
   };
 }
 
+function authHeaders(): HeadersInit {
+  const token = localStorage.getItem('fln_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function getJson<T>(path: string): Promise<T> {
+  const res = await apiFetch(path, { headers: authHeaders() });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Request failed');
+  return res.json();
+}
+
 export async function fetchStates(): Promise<State[]> {
-  const { data } = await api.get('/states');
-  return data.data ?? data;
+  return getJson('/api/states');
 }
 
 export async function fetchDistricts(stateId: string): Promise<District[]> {
-  const { data } = await api.get(`/districts/by-state/${stateId}`);
-  return data.data ?? data;
+  return getJson(`/api/districts/by-state/${stateId}`);
 }
 
 export async function fetchBlocks(districtId: string): Promise<Block[]> {
-  const { data } = await api.get(`/blocks/by-district/${districtId}`);
-  return data.data ?? data;
+  return getJson(`/api/blocks/by-district/${districtId}`);
 }
 
 export async function fetchSchools(blockId: string): Promise<School[]> {
-  const { data } = await api.get(`/schools/by-block/${blockId}`);
-  return data.data ?? data;
+  return getJson(`/api/schools/by-block/${blockId}`);
 }
 
 export async function createTeacher(payload: CreateTeacherPayload): Promise<CreateTeacherResponse> {
-  const { data } = await api.post('/teachers', payload);
+  const res = await apiFetch('/api/teachers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }

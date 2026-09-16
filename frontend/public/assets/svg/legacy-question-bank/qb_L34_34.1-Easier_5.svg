@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150" width="700" height="150" style="font-family:Cambria,serif;font-size:14px">
+<text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">Measure the length:</text>
+<text x="350" y="38" font-size="13" font-weight="normal" text-anchor="middle" fill="#333">Answer: ___ cm</text>
+<line x1="230" y1="60" x2="470" y2="60" stroke="#333" stroke-width="2"/>
+<line x1="230" y1="60" x2="230" y2="52" stroke="#333" stroke-width="1.2"/>
+<text x="230" y="74" font-size="9" font-weight="normal" text-anchor="middle" fill="#333">0</text>
+<line x1="242" y1="60" x2="242" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="254" y1="60" x2="254" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="266" y1="60" x2="266" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="278" y1="60" x2="278" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="290" y1="60" x2="290" y2="52" stroke="#333" stroke-width="1.2"/>
+<text x="290" y="74" font-size="9" font-weight="normal" text-anchor="middle" fill="#333">5</text>
+<line x1="302" y1="60" x2="302" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="314" y1="60" x2="314" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="326" y1="60" x2="326" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="338" y1="60" x2="338" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="350" y1="60" x2="350" y2="52" stroke="#333" stroke-width="1.2"/>
+<text x="350" y="74" font-size="9" font-weight="normal" text-anchor="middle" fill="#333">10</text>
+<line x1="362" y1="60" x2="362" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="374" y1="60" x2="374" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="386" y1="60" x2="386" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="398" y1="60" x2="398" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="410" y1="60" x2="410" y2="52" stroke="#333" stroke-width="1.2"/>
+<text x="410" y="74" font-size="9" font-weight="normal" text-anchor="middle" fill="#333">15</text>
+<line x1="422" y1="60" x2="422" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="434" y1="60" x2="434" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="446" y1="60" x2="446" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="458" y1="60" x2="458" y2="56" stroke="#333" stroke-width="1.2"/>
+<line x1="470" y1="60" x2="470" y2="52" stroke="#333" stroke-width="1.2"/>
+<text x="470" y="74" font-size="9" font-weight="normal" text-anchor="middle" fill="#333">20</text>
+<line x1="398" y1="40" x2="398" y2="65" stroke="#888" stroke-width="2.5"/>
+<text x="398" y="34" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">?</text>
+</svg>

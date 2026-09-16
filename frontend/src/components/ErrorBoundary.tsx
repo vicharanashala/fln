@@ -1,59 +1,100 @@
-import React, { useState, useEffect, type ReactNode } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+// React error boundary — turns a thrown render exception into a visible
+// error card instead of the previous "silent white/dark-blue screen" the
+// user used to see when, for example, the Aadhaar Reveal panel hit a
+// student record missing a required field. The rest of the app (sidebar,
+// other panels) keeps working because only the wrapped subtree unmounts.
+//
+// React 18 still requires a class component for `getDerivedStateFromError`
+// / `componentDidCatch` — there is no hook equivalent.
 
-interface ErrorBoundaryProps {
-  children: ReactNode;
+import React from 'react';
+import { AlertTriangle } from 'lucide-react';
+
+interface Props {
+  children: React.ReactNode;
+  /** Optional label shown in the error card so the user can tell which
+   *  panel broke (e.g. "Aadhaar Reveal"). Defaults to "this view". */
+  label?: string;
+  /** Optional fallback title — kept for callers that pass `fallbackTitle`
+   *  instead of `label`. When both are provided, `label` wins. */
   fallbackTitle?: string;
 }
 
-export const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ children, fallbackTitle }) => {
-  const [error, setError] = useState<Error | null>(null);
+interface State {
+  error: Error | null;
+}
 
-  useEffect(() => {
-    const handleError = (event: ErrorEvent) => {
-      event.preventDefault();
-      setError(event.error instanceof Error ? event.error : new Error(String(event.error)));
-    };
-    const handleRejection = (event: PromiseRejectionEvent) => {
-      event.preventDefault();
-      setError(new Error(String(event.reason)));
-    };
-    window.addEventListener('error', handleError);
-    window.addEventListener('unhandledrejection', handleRejection);
-    return () => {
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleRejection);
-    };
-  }, []);
+export class ErrorBoundary extends React.Component<Props, State> {
+  state: State = { error: null };
 
-  if (error) {
+  static getDerivedStateFromError(error: Error): State {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo): void {
+    // Surfacing the error here is what the user previously never saw —
+    // the React tree would just unmount and the body bg would show
+    // through. Now the team has a real stack trace in the console.
+    // eslint-disable-next-line no-console
+    console.error(`[ErrorBoundary${this.props.label ? `: ${this.props.label}` : ''}]`, error, info?.componentStack);
+  }
+
+  private handleReload = (): void => {
+    // Reset state and try re-rendering once. If the bug persists, the
+    // boundary will catch the next render too — we never loop, because
+    // this only runs on user click.
+    this.setState({ error: null });
+  };
+
+  render(): React.ReactNode {
+    const { error } = this.state;
+    if (!error) return this.props.children;
+
+    const heading = this.props.label
+      ? `${this.props.label} crashed`
+      : this.props.fallbackTitle
+        ? this.props.fallbackTitle
+        : 'This view crashed';
+
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/30 p-8 text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/50">
-          <AlertTriangle className="h-8 w-8 text-red-500 dark:text-red-400" />
+      <div
+        role="alert"
+        className="m-6 max-w-2xl rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-5 shadow-sm"
+      >
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-semibold text-red-900 dark:text-red-200">
+              {heading}
+            </h2>
+            <p className="mt-1 text-xs text-red-800 dark:text-red-300 break-words">
+              {error.message || 'An unexpected error occurred while rendering.'}
+            </p>
+            <p className="mt-2 text-[11px] font-mono text-red-700/80 dark:text-red-300/80">
+              The rest of the app is still working. You can try reloading this view, or
+              open the browser console for the full stack trace.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={this.handleReload}
+                className="px-3 py-1.5 text-xs font-medium rounded bg-red-600 hover:bg-red-700 text-white"
+              >
+                Reload this view
+              </button>
+              <button
+                type="button"
+                onClick={() => { window.location.href = '/'; }}
+                className="px-3 py-1.5 text-xs font-medium rounded bg-white dark:bg-slate-800 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30"
+              >
+                Go to login
+              </button>
+            </div>
+          </div>
         </div>
-        <h3 className="text-lg font-bold text-red-800 dark:text-red-200">
-          {fallbackTitle || 'Something went wrong'}
-        </h3>
-        <p className="mt-2 max-w-md text-sm text-red-600 dark:text-red-300">
-          An unexpected error occurred while rendering this section.
-          You can try again or navigate to a different page.
-        </p>
-        {error.message && (
-          <p className="mt-3 max-w-lg rounded-lg bg-red-100/80 dark:bg-red-900/40 px-4 py-2 font-mono text-[11px] text-red-700 dark:text-red-300">
-            {error.message}
-          </p>
-        )}
-        <button
-          onClick={() => setError(null)}
-          className="mt-6 flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-700"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Try Again
-        </button>
       </div>
     );
   }
+}
 
-  return <>{children}</>;
-};
+export default ErrorBoundary;
