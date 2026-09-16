@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { apiFetch } from "../services/apiClient";
 
 interface Intervention {
   studentId: string;
@@ -31,15 +32,9 @@ const filteredData = data.filter((s) =>
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/interventions/dashboard", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const res = await apiFetch("/api/interventions/dashboard");
 
         const json = await res.json();
-        console.log("Status:", res.status);
-console.log("Response:", json);
 
         if (res.ok) {
           setData(json);
