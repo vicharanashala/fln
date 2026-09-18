@@ -561,6 +561,20 @@ export interface Ticket {
   createdAt: string;
 }
 
+export interface AttendanceRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  classGroup: string;
+  section: string;
+  schoolId: string;
+  date: string; // YYYY-MM-DD
+  status: 'Present' | 'Absent' | 'Late' | 'Excused';
+  remarks?: string;
+  markedBy?: string;
+  updatedAt: string;
+}
+
 export interface LogEntry {
   id: string;
   timestamp: string;
@@ -980,6 +994,7 @@ interface DatabaseSchema {
   questionOptions: QuestionOption[];
   curriculumLevels: CurriculumLevel[];
   studentCycleLocks: StudentCycleLock[];
+  attendance: AttendanceRecord[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -1009,6 +1024,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   questionOptions: 'questionOptions',
   curriculumLevels: 'curriculumLevels',
   studentCycleLocks: 'studentCycleLocks',
+  attendance: 'attendance',
 };
 
 /**
@@ -1212,6 +1228,16 @@ export class DBStore {
           console.warn('Failed to ensure indexes on "evaluationReports" collection:', e.message);
         }
 
+        // Ensure indexes on attendance collection for performance and deduplication
+        try {
+          const attendanceColl = db.collection('attendance');
+          await attendanceColl.createIndex({ studentId: 1, date: 1 }, { unique: true });
+          await attendanceColl.createIndex({ schoolId: 1, date: 1 });
+          console.log('Successfully ensured indexes on "attendance" collection');
+        } catch (e: any) {
+          console.warn('Failed to ensure indexes on "attendance" collection:', e.message);
+        }
+
         for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
           (this.data as any)[key] = [];
         }
@@ -1241,6 +1267,9 @@ export class DBStore {
       try {
         const content = await fs.readFile(DB_FILE, 'utf-8');
         this.data = JSON.parse(content);
+        if (this.data && !this.data.attendance) {
+          this.data.attendance = [];
+        }
       } catch (_) {
         this.data = this.getSeedData();
         await this.save();
@@ -1657,6 +1686,97 @@ export class DBStore {
     const filtered = teacherId ? all.filter(t => t.teacherId === teacherId) : all;
     return [...filtered].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   }
+
+  async getAttendance(opts?: {
+    schoolId?: string | string[];
+    date?: string;
+    classGroup?: string;
+    section?: string;
+  }): Promise<AttendanceRecord[]> {
+    if (this.mongoDb) {
+      const query: any = {};
+      if (opts?.date) query.date = opts.date;
+      if (opts?.classGroup && opts.classGroup !== 'all') {
+        query.classGroup = new RegExp(`^${opts.classGroup}$`, 'i');
+      }
+      if (opts?.section && opts.section !== 'all') {
+        query.section = new RegExp(`^${opts.section}$`, 'i');
+      }
+      if (opts?.schoolId) {
+        if (Array.isArray(opts.schoolId)) {
+          query.schoolId = { $in: opts.schoolId };
+        } else if (opts.schoolId !== 'all') {
+          query.schoolId = opts.schoolId;
+        }
+      }
+      return await this.mongoDb.collection<AttendanceRecord>('attendance').find(query).toArray();
+    }
+
+    let records = this.data?.attendance || [];
+    if (opts?.schoolId) {
+      if (Array.isArray(opts.schoolId)) {
+        records = records.filter(r => opts.schoolId!.includes(r.schoolId));
+      } else if (opts.schoolId !== 'all') {
+        records = records.filter(r => r.schoolId === opts.schoolId);
+      }
+    }
+    if (opts?.date) {
+      records = records.filter(r => r.date === opts.date);
+    }
+    if (opts?.classGroup && opts.classGroup !== 'all') {
+      records = records.filter(r => r.classGroup.toLowerCase() === opts.classGroup!.toLowerCase());
+    }
+    if (opts?.section && opts.section !== 'all') {
+      records = records.filter(r => r.section.toLowerCase() === opts.section!.toLowerCase());
+    }
+    return records;
+  }
+
+  async upsertAttendance(record: AttendanceRecord): Promise<AttendanceRecord> {
+    if (this.mongoDb) {
+      const existing = await this.mongoDb.collection<AttendanceRecord>('attendance').findOne({
+        studentId: record.studentId,
+        date: record.date,
+      });
+      if (existing) {
+        record.id = existing.id;
+      }
+      await this.mongoDb.collection('attendance').updateOne(
+        { studentId: record.studentId, date: record.date },
+        { $set: record },
+        { upsert: true }
+      );
+    }
+    if (this.data) {
+      if (!this.data.attendance) {
+        this.data.attendance = [];
+      }
+      const idx = this.data.attendance.findIndex(
+        a => a.studentId === record.studentId && a.date === record.date
+      );
+      if (idx >= 0) {
+        if (!this.mongoDb) {
+          record.id = this.data.attendance[idx].id;
+        }
+        this.data.attendance[idx] = record;
+      } else {
+        this.data.attendance.push(record);
+      }
+      if (!this.mongoDb) {
+        await this.save();
+      }
+    }
+    return record;
+  }
+
+  getFallbackAttendance(): AttendanceRecord[] {
+    return this.data?.attendance || [];
+  }
+
+  async upsertFallbackAttendance(record: AttendanceRecord): Promise<AttendanceRecord> {
+    return this.upsertAttendance(record);
+  }
+
   async getLevelWorksheets() {
     if (this.mongoDb) return await this.mongoDb.collection<LevelWorksheet>('levelWorksheets').find({}).toArray();
     return this.data?.levelWorksheets || [];
@@ -4758,7 +4878,8 @@ export class DBStore {
       // Populated by `npm run seed:levels`, not by the demo seed — the
       // curriculum is real data with one source, not fixture content.
       curriculumLevels: [],
-      studentCycleLocks: []
+      studentCycleLocks: [],
+      attendance: []
     };
   }
 }

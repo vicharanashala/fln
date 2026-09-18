@@ -79,7 +79,13 @@ export default function App() {
 
         const data = await res.json();
         if (cancelled) return;
-        setCurrentUser(data.user);
+        if (data.user) {
+          setCurrentUser(data.user);
+        } else if (data.data?.user) {
+          setCurrentUser(data.data.user);
+        } else {
+          throw new Error('Invalid user payload');
+        }
         setCurrentView('dashboard');
       } catch {
         if (cancelled) return;
@@ -208,98 +214,100 @@ export default function App() {
                   </div>
                 )}
 
-                {activePanel === 'workspace' && renderRoleWorkspace()}
+                <ErrorBoundary fallbackView={() => setActivePanel('workspace')}>
+                  {activePanel === 'workspace' && renderRoleWorkspace()}
 
-                {activePanel === 'notifications' && (
-                  <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                    <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
-                      <Bell className="h-6 w-6 text-slate-550 dark:text-slate-400" />
-                      <div>
-                        <h2 className="font-sans text-lg font-bold text-slate-900 dark:text-white">Announcements Log</h2>
-                        <p className="text-xs text-slate-505 dark:text-slate-400">Official notifications escalated by state administrative coordinators.</p>
+                  {activePanel === 'notifications' && (
+                    <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                      <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
+                        <Bell className="h-6 w-6 text-slate-550 dark:text-slate-400" />
+                        <div>
+                          <h2 className="font-sans text-lg font-bold text-slate-900 dark:text-white">Announcements Log</h2>
+                          <p className="text-xs text-slate-505 dark:text-slate-400">Official notifications escalated by state administrative coordinators.</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-4">
-                      {announcements.length === 0 ? (
-                        <div className="p-8 text-center font-mono text-xs text-slate-400 dark:text-slate-500">No active broadcasts.</div>
-                      ) : (
-                        announcements.map(notif => (
-                          <div
-                            key={notif.id}
-                            className={`space-y-2 rounded-xl border p-4 ${
-                              notif.isUrgent
-                                ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30'
-                                : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-sm font-bold text-slate-900 dark:text-white">{notif.title}</h4>
-                              <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                                {new Date(notif.createdAt).toLocaleString()}
-                              </span>
+                      <div className="space-y-4">
+                        {announcements.length === 0 ? (
+                          <div className="p-8 text-center font-mono text-xs text-slate-400 dark:text-slate-500">No active broadcasts.</div>
+                        ) : (
+                          announcements.map(notif => (
+                            <div
+                              key={notif.id}
+                              className={`space-y-2 rounded-xl border p-4 ${
+                                notif.isUrgent
+                                  ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/30'
+                                  : 'border-slate-150 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-bold text-slate-900 dark:text-white">{notif.title}</h4>
+                                <span className="font-mono text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                                  {new Date(notif.createdAt).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="font-sans text-xs leading-relaxed text-slate-650 dark:text-slate-300">{notif.message}</p>
                             </div>
-                            <p className="font-sans text-xs leading-relaxed text-slate-650 dark:text-slate-300">{notif.message}</p>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {activePanel === 'logbook' && <LogbookView token={token} user={currentUser} />}
+                  {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role} />}
+                  {activePanel === 'calendar' && <AssessmentCalendar />}
+                  {activePanel === 'misconceptions' && <MisconceptionFingerprint token={token} />}
+
+                  {activePanel === 'settings' && (
+                    <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                      <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
+                        <Settings className="h-6 w-6 text-slate-500 dark:text-slate-450" />
+                        <div>
+                          <h2 className="font-sans text-lg font-bold text-slate-900 dark:text-white">Portal Preferences & Account Settings</h2>
+                          <p className="text-xs text-slate-505 dark:text-slate-400">Configure user settings, localization preferences, and SSO authorization status.</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-6 text-sm font-sans md:grid-cols-2">
+                        <div className="space-y-4">
+                          <h3 className="font-mono text-xs font-bold uppercase text-slate-800 dark:text-slate-300">User Profile Details</h3>
+                          <div className="space-y-2 rounded-lg border border-slate-150 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                            <div><span className="text-xs font-semibold text-slate-450 dark:text-slate-400">Full Name:</span> <strong className="text-slate-800 dark:text-slate-200">{currentUser.name}</strong></div>
+                            <div><span className="text-xs font-semibold text-slate-450 dark:text-slate-400">Email ID:</span> <strong className="font-mono text-slate-850 dark:text-slate-300">{currentUser.email}</strong></div>
+                            <div><span className="text-xs font-semibold text-slate-450 dark:text-slate-400">Assigned Scope:</span> <strong className="font-mono text-slate-800 dark:text-slate-200">{currentUser.schoolId || currentUser.districtCode || currentUser.stateCode || 'National Oversight'}</strong></div>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {activePanel === 'logbook' && <LogbookView token={token} user={currentUser} />}
-                {activePanel === 'tickets' && <TicketSubmission token={token} userRole={currentUser.role} />}
-                {activePanel === 'calendar' && <AssessmentCalendar />}
-                {activePanel === 'misconceptions' && <MisconceptionFingerprint token={token} />}
-
-                {activePanel === 'settings' && (
-                  <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                    <div className="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
-                      <Settings className="h-6 w-6 text-slate-500 dark:text-slate-450" />
-                      <div>
-                        <h2 className="font-sans text-lg font-bold text-slate-900 dark:text-white">Portal Preferences & Account Settings</h2>
-                        <p className="text-xs text-slate-505 dark:text-slate-400">Configure user settings, localization preferences, and SSO authorization status.</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 gap-6 text-sm font-sans md:grid-cols-2">
-                      <div className="space-y-4">
-                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800 dark:text-slate-300">User Profile Details</h3>
-                        <div className="space-y-2 rounded-lg border border-slate-150 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
-                          <div><span className="text-xs font-semibold text-slate-450 dark:text-slate-400">Full Name:</span> <strong className="text-slate-800 dark:text-slate-200">{currentUser.name}</strong></div>
-                          <div><span className="text-xs font-semibold text-slate-450 dark:text-slate-400">Email ID:</span> <strong className="font-mono text-slate-850 dark:text-slate-300">{currentUser.email}</strong></div>
-                          <div><span className="text-xs font-semibold text-slate-450 dark:text-slate-400">Assigned Scope:</span> <strong className="font-mono text-slate-800 dark:text-slate-200">{currentUser.schoolId || currentUser.districtCode || currentUser.stateCode || 'National Oversight'}</strong></div>
                         </div>
-                      </div>
-                      <div className="space-y-4">
-                        <h3 className="font-mono text-xs font-bold uppercase text-slate-800 dark:text-slate-300">Accessibility Configuration</h3>
-                        <div className="space-y-3 rounded-lg border border-slate-150 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
-                          <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={isDark}
-                              onChange={() => setIsDark(!isDark)}
-                              className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900"
-                            />
-                            <span>Use Dark Theme Preference</span>
-                          </label>
-                          <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
-                            <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900" />
-                            <span>Enable High-Contrast Border Outlines</span>
-                          </label>
-                          <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
-                            <input type="checkbox" className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900" />
-                            <span>Audio voice narration on hover (SLA §2.3)</span>
-                          </label>
+                        <div className="space-y-4">
+                          <h3 className="font-mono text-xs font-bold uppercase text-slate-800 dark:text-slate-300">Accessibility Configuration</h3>
+                          <div className="space-y-3 rounded-lg border border-slate-150 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                            <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isDark}
+                                onChange={() => setIsDark(!isDark)}
+                                className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900"
+                              />
+                              <span>Use Dark Theme Preference</span>
+                            </label>
+                            <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
+                              <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900" />
+                              <span>Enable High-Contrast Border Outlines</span>
+                            </label>
+                            <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
+                              <input type="checkbox" className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900" />
+                              <span>Audio voice narration on hover (SLA §2.3)</span>
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'misconceptions'].includes(activePanel) && (
-                  <ErrorBoundary label={activePanel}>
-                    <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectView={setActivePanel} />
-                  </ErrorBoundary>
-                )}
+                  {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'misconceptions'].includes(activePanel) && (
+                    <ErrorBoundary label={activePanel}>
+                      <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectView={setActivePanel} />
+                    </ErrorBoundary>
+                  )}
+                </ErrorBoundary>
 
                 {toast && (
                   <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-2xl dark:border-slate-600">

@@ -19,15 +19,34 @@ export function getAuthUser(req: express.Request): User | null {
   const token = authHeader.replace('Bearer ', '').trim();
   if (!token) return null;
 
-  let payload: { email?: string };
+  let payload: any;
   try {
-    payload = jwt.verify(token, JWT_SECRET) as { email?: string };
+    payload = jwt.verify(token, JWT_SECRET) as any;
   } catch {
     return null; // invalid signature or expired token
   }
   if (!payload?.email) return null;
 
-  return dbStore.getUserSync(payload.email);
+  const cached = dbStore.getUserSync(payload.email);
+  if (cached) return cached;
+
+  const role = payload.role as UserRole;
+  if (!role || !Object.values(UserRole).includes(role)) {
+    return null;
+  }
+
+  return {
+    id: payload.sub || payload.id || 'usr-auth',
+    name: payload.name || payload.email.split('@')[0],
+    email: payload.email,
+    role,
+    passwordHash: '',
+    schoolId: payload.schoolId,
+    stateCode: payload.stateCode,
+    districtCode: payload.districtCode,
+    blockCode: payload.blockCode,
+    assignedSchools: payload.assignedSchools,
+  };
 }
 
 // Authorization check for by-ID student endpoints (PATCH/diagnostic/diagnostic-submit).
