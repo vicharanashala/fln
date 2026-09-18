@@ -46,6 +46,7 @@ import { registerCertificationRoutes } from './routes/certification';
 import { registerMisconceptionRoutes } from './routes/misconceptions';
 import { registerCurriculumRoutes } from './routes/curriculum';
 import { registerQuestionBankRoutes } from './routes/questionBank';
+import { registerPracticeRoutes } from './routes/practice';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
@@ -237,6 +238,7 @@ registerStatsRoutes(app);
   registerClassRoutes(app);
 
   registerStudentRoutes(app);
+  registerPracticeRoutes(app);
   // Admin Step-Up detokenization (Aadhaar Vault — see aadhaarDetokenize.ts).
   registerAadhaarDetokenizeRoutes(app);
   // Account-level MFA enrollment (Wave 2A — see mfaEnrollment.ts).

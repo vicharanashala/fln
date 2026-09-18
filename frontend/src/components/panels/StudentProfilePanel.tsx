@@ -6,6 +6,7 @@ import { apiFetch } from '../../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Student, School, EvaluationReport, Worksheet } from '../../types';
 import { handleDownloadPDF } from './pdfReportGenerator';
+import { PracticeMode } from '../PracticeMode';
 import { Users, BookOpen, Calendar, Award, BarChart3, FileText, Search, ChevronDown, GitCompareArrows } from 'lucide-react';
 
 // Issue #200: canonical cycle order for the comparison view — matches
@@ -34,6 +35,7 @@ export const StudentProfilePanel: React.FC<{
   // Issue #174: expand one report at a time to show its full per-question
   // exam-history breakdown (question, given answer, correct answer, verdict).
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
+  const [practiceTarget, setPracticeTarget] = useState<{ studentId: string; studentName: string; topic?: string } | null>(null);
 
   useEffect(() => {
     if (students.length > 0 && !sel) {
@@ -156,6 +158,8 @@ export const StudentProfilePanel: React.FC<{
     }));
     const latestSkills = reports.length > 0 ? Object.entries(reports[0].conceptMastery) : [];
     const weakAreas = latestSkills.filter(([_, m]) => m !== 'Strong').map(([t]) => t);
+    const canFacilitatePractice = currentUser.role === UserRole.TEACHER || currentUser.role === UserRole.VOLUNTEER;
+    const canStartPractice = canFacilitatePractice && s.currentLevel !== null;
     const recentActivity = [
       ...reports.map(r => ({ type: 'assessment' as const, label: `${r.score}/${r.totalQuestions} on ${r.worksheetId}`, date: r.timestamp, detail: `Score ${Math.round(r.score / r.totalQuestions * 100)}%` })),
       ...s.levelHistory.map(lh => ({ type: 'level_change' as const, label: `Level changed to L${lh.level}`, date: lh.date, detail: lh.reason })),
@@ -425,11 +429,13 @@ export const StudentProfilePanel: React.FC<{
                 <h3 className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-2"><Award className="w-3.5 h-3.5" /> Recommended Focus Areas</h3>
                 <div className="space-y-2">
                   {weakAreas.length > 0 ? weakAreas.map(topic => (
-                    <div key={topic} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />Additional practice recommended for <strong>{topic}</strong></div>
+                    <div key={topic} className="flex items-center justify-between gap-3 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />Additional practice recommended for <strong>{topic}</strong></span>{canStartPractice && <button onClick={() => setPracticeTarget({ studentId: s.id, studentName: s.name, topic })} className="shrink-0 rounded-md border border-indigo-200 dark:border-indigo-800 px-2 py-1 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900">Practice</button>}</div>
                   )) : reports.length > 0 ? <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />All skills at expected level — no focus areas needed</div> : <div className="text-sm text-slate-500 dark:text-slate-400">Complete a diagnostic assessment to generate recommendations.</div>}
-                  {s.currentLevel < 93 && <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Next milestone: <strong>Level {Math.min(93, s.currentLevel + 1)}</strong></div>}
+                  {canFacilitatePractice && <div className="flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-white/60 px-3 py-2 dark:border-blue-800 dark:bg-slate-800/60"><span className="text-xs text-slate-600 dark:text-slate-300">Quick, ungraded level practice. It does not change placement.</span><button onClick={() => setPracticeTarget({ studentId: s.id, studentName: s.name })} disabled={!canStartPractice} className="shrink-0 rounded-md bg-indigo-700 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-40">Start Practice</button></div>}
+                  {s.currentLevel !== null && s.currentLevel < 93 && <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Next milestone: <strong>Level {Math.min(93, s.currentLevel + 1)}</strong></div>}
                 </div>
               </div>
+              {practiceTarget && <PracticeMode studentId={practiceTarget.studentId} studentName={practiceTarget.studentName} topic={practiceTarget.topic} onClose={() => setPracticeTarget(null)} />}
             </div>
           </div>
         )}

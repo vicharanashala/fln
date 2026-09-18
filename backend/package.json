@@ -24,7 +24,8 @@
     "audit:aadhaar": "tsx scripts/audit-aadhaar-at-rest.ts",
     "test:answer-matching": "tsx src/answerMatching.test.ts",
     "test:error-classification": "tsx src/errorClassification.test.ts",
-    "test:paper-lock": "tsx src/paperLock.test.ts"
+    "test:paper-lock": "tsx src/paperLock.test.ts",
+    "test:practice": "tsx --test src/services/practiceSessions.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
