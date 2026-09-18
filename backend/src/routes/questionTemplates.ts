@@ -156,6 +156,14 @@ function buildTemplate(
     name: string;
     tags: string[];
     source: 'form' | 'csv';
+    /**
+     * Optional, defaults to 'written' -- matches every template authored
+     * before this field existed (2026-09-19). The authoring form/CSV
+     * importer don't collect this yet; that's a real follow-up (letting a
+     * Superadmin actually choose observed-only for a Balvatika item), not
+     * something to infer here. Explicit callers can already pass it.
+     */
+    assessmentMode?: 'written' | 'observed' | 'both';
   },
   user: { id: string; email: string },
   now: string
@@ -169,6 +177,7 @@ function buildTemplate(
     levelName: getLevel(concept.levelNumber)!.capability,
     skills: input.skills,
     subskills: input.subskills,
+    assessmentMode: input.assessmentMode ?? 'written',
     generationIntent: input.generationIntent.trim(),
     questionFamily: input.questionFamily,
     paramMode: 'structured',

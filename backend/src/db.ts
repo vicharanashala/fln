@@ -777,6 +777,18 @@ export interface QuestionTemplate {
   subskills: string[];
 
   /**
+   * Whether this item is answered on a student worksheet, recorded by a
+   * teacher watching the child, or valid either way. Added 2026-09-19 for
+   * Balvatika's two-sheet decision (PR #517 §4): NCF-FS §6.1.2(a) rules out
+   * written tests at this age for some outcomes (e.g. "counts in any order,
+   * total stays the same" — the order can't be captured on paper, only
+   * observed). Defaults to 'written' for existing rows, since every template
+   * before this field existed was authored for the student worksheet path;
+   * `'observed'`/`'both'` are opt-in on new rows, not inferred.
+   */
+  assessmentMode: 'written' | 'observed' | 'both';
+
+  /**
    * What the question should make the child do, in the author's words. This is
    * an instruction to the generator, not a finished question: it names the
    * learning action, the visual behaviour, and how the answer is given.
@@ -907,6 +919,64 @@ export interface QuestionOption {
 }
 
 /**
+ * One teacher's rating of one student on one observable concept, for one
+ * assessment cycle. Added 2026-09-19 for Balvatika's teacher-observation
+ * sheet (PR #517 §4/§4b) — the counterpart to `answerSubmissions` for
+ * concepts that can't be captured on a written worksheet at all (NCF-FS
+ * §6.1.2(a) forbids testing at this age for some outcomes; a teacher watches
+ * and records instead).
+ *
+ * Deliberately a separate collection from `answerSubmissions`, not a variant
+ * of it: the author is the teacher, not the child; there is no scanned
+ * artefact or answer key; and the rating scale is the three-level Holistic
+ * Progress Card scale (PR #517 §4b), not correct/incorrect. Folding this into
+ * `answerSubmissions` would force every consumer of that collection to
+ * branch on "was this actually answered by a student," which is exactly the
+ * kind of two-incompatible-lifecycles problem `QuestionLogic`'s own comment
+ * warns against for a different pair of collections.
+ *
+ * One record = one (studentId, conceptId, cycle) rating. A class-grid sheet
+ * and a per-child half-page sheet (PR #517 §4's two supported teacher-sheet
+ * layouts) both produce the same shape of record on the backend — the
+ * layout is a rendering/scanning choice, not a data-model one.
+ */
+export interface TeacherObservationRecord {
+  id: string;
+  studentId: string;
+  /** The concept observed, e.g. "S3.12" (Counts in Any Order). */
+  conceptId: string;
+  teacherId: string;
+  teacherEmail: string;
+  schoolId: string;
+  classId: string;
+  cycle: string; // matches CycleName ('Baseline' | 'Mid-year' | 'End-of-year')
+
+  /**
+   * PR #517 §4/§4b's three-level scale, in both spellings used across the
+   * decision doc: the Holistic Progress Card terms, and "how much help" —
+   * same meaning, kept as one field so a UI can render either without a
+   * second lookup. Proficient = on their own; Progressive = with some help;
+   * Beginner = with a lot of help.
+   */
+  rating: 'Proficient' | 'Progressive' | 'Beginner';
+
+  /**
+   * Explicit absence-of-evidence state, distinct from `rating` entirely —
+   * PR #517 §4: "observation-only nodes show 'not yet assessed', never
+   * 'Beginner', until observation data exists." A record should not exist at
+   * all until a teacher has actually observed the child; this flag exists so
+   * a UI can distinguish "no record" (never observed) from "record exists
+   * but marked not-yet-assessed" (observed, teacher couldn't judge yet) —
+   * the two have different implications for follow-up.
+   */
+  notYetAssessed: boolean;
+
+  observedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * One row per FLN level in the canonical 93-level taxonomy.
  *
  * This collection exists to give the curriculum a single queryable home. Before
@@ -988,6 +1058,7 @@ interface DatabaseSchema {
   questionOptions: QuestionOption[];
   curriculumLevels: CurriculumLevel[];
   studentCycleLocks: StudentCycleLock[];
+  teacherObservationRecords: TeacherObservationRecord[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -1017,6 +1088,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   questionOptions: 'questionOptions',
   curriculumLevels: 'curriculumLevels',
   studentCycleLocks: 'studentCycleLocks',
+  teacherObservationRecords: 'teacher_observation_records',
 };
 
 /**
@@ -1202,10 +1274,26 @@ export class DBStore {
           await templatesColl.createIndex({ variantKey: 1, deletedAt: 1 });
           await templatesColl.createIndex({ tags: 1, deletedAt: 1 });
           await templatesColl.createIndex({ paramMode: 1, deletedAt: 1 });
+          // Multikey indexes: "which questions test skill X" / "...subskill X" is a
+          // direct index lookup, not a table scan across every question×skill pair —
+          // the key-value structure this collection already is, made queryable by it.
+          await templatesColl.createIndex({ skills: 1, deletedAt: 1 });
+          await templatesColl.createIndex({ subskills: 1, deletedAt: 1 });
+          await templatesColl.createIndex({ assessmentMode: 1, deletedAt: 1 });
 
           const optionsColl = db.collection('questionOptions');
           await optionsColl.createIndex({ id: 1 }, { unique: true });
           await optionsColl.createIndex({ type: 1, active: 1 });
+
+          // Balvatika teacher-observation records (PR #517 §4/§4b) — see the
+          // TeacherObservationRecord interface for why this is a separate
+          // collection from answerSubmissions.
+          const obsColl = db.collection('teacher_observation_records');
+          await obsColl.createIndex({ id: 1 }, { unique: true });
+          await obsColl.createIndex({ studentId: 1, conceptId: 1, cycle: 1 }, { unique: true });
+          await obsColl.createIndex({ classId: 1, cycle: 1 });
+          await obsColl.createIndex({ conceptId: 1 });
+
           console.log('Successfully ensured indexes on the question authoring collections');
         } catch (e: any) {
           console.warn('Failed to ensure indexes on the question authoring collections:', e.message);
@@ -2588,6 +2676,30 @@ export class DBStore {
     return (await this.mongoDb!.collection<QuestionTemplate>('questionTemplates').findOne({ id })) || undefined;
   }
 
+  /** Every live question assessing a given concept — the direct "what tests S3.4" lookup, index-backed. */
+  async getQuestionTemplatesByConcept(conceptId: string) {
+    return await this.mongoDb!.collection<QuestionTemplate>('questionTemplates')
+      .find({ conceptId, deletedAt: null }).toArray();
+  }
+
+  /**
+   * Every live question that lists `skillId` in either its primary or
+   * supporting skills. This is the key-value lookup the schema exists for:
+   * `skills`/`subskills` are multikey-indexed, so "which questions test
+   * SK18 (Patterns)" is one indexed query, never a scan across every
+   * question x skill combination.
+   */
+  async getQuestionTemplatesBySkill(skillId: string) {
+    return await this.mongoDb!.collection<QuestionTemplate>('questionTemplates')
+      .find({ skills: skillId, deletedAt: null }).toArray();
+  }
+
+  /** Same lookup at subskill granularity, e.g. "SK18.08" (Identify pattern rule). */
+  async getQuestionTemplatesBySubskill(subskillId: string) {
+    return await this.mongoDb!.collection<QuestionTemplate>('questionTemplates')
+      .find({ subskills: subskillId, deletedAt: null }).toArray();
+  }
+
   /** Live templates sharing a variant fingerprint. Drives the duplicate warning. */
   async getQuestionTemplatesByVariantKey(variantKey: string) {
     return await this.mongoDb!.collection<QuestionTemplate>('questionTemplates')
@@ -2598,6 +2710,39 @@ export class DBStore {
     await this.mongoDb!.collection('questionTemplates').insertOne(template);
     if (this.data) this.data.questionTemplates.push(template);
     return template;
+  }
+
+  // --- Teacher Observation Record Methods --------------------------------
+  // See TeacherObservationRecord's own comment for why this is a separate
+  // collection from answerSubmissions/questionTemplates. Addressed by
+  // (studentId, conceptId, cycle) -- the unique index this file's init
+  // sequence creates on that triple is what makes `upsert` below safe as a
+  // real upsert rather than a document-growing append.
+
+  /** One student's ratings across every observed concept, for one cycle. */
+  async getObservationRecordsForStudent(studentId: string, cycle: string) {
+    return await this.mongoDb!.collection<TeacherObservationRecord>('teacher_observation_records')
+      .find({ studentId, cycle }).toArray();
+  }
+
+  /** A whole class's ratings on one concept, for one cycle -- the class-grid sheet's read path. */
+  async getObservationRecordsForClass(classId: string, cycle: string) {
+    return await this.mongoDb!.collection<TeacherObservationRecord>('teacher_observation_records')
+      .find({ classId, cycle }).toArray();
+  }
+
+  /**
+   * Record or update one teacher's rating. Upsert on (studentId, conceptId,
+   * cycle) so re-submitting the same class-grid sheet corrects a rating
+   * rather than duplicating it.
+   */
+  async upsertObservationRecord(record: TeacherObservationRecord) {
+    await this.mongoDb!.collection<TeacherObservationRecord>('teacher_observation_records').updateOne(
+      { studentId: record.studentId, conceptId: record.conceptId, cycle: record.cycle },
+      { $set: record },
+      { upsert: true }
+    );
+    return record;
   }
 
   /**
@@ -4766,7 +4911,11 @@ export class DBStore {
       // Populated by `npm run seed:levels`, not by the demo seed — the
       // curriculum is real data with one source, not fixture content.
       curriculumLevels: [],
-      studentCycleLocks: []
+      studentCycleLocks: [],
+      // Seeded empty on purpose, same reasoning as questionLogics above: a
+      // teacher's observation of a real child is not something to fabricate
+      // demo data for.
+      teacherObservationRecords: []
     };
   }
 }
