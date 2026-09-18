@@ -28,6 +28,7 @@ import { DistrictsPanel } from './panels/DistrictsPanel';
 import { BlocksPanel } from './panels/BlocksPanel';
 import { AnalyticsPanel } from './panels/AnalyticsPanel';
 import { StudentProfilePanel } from './panels/StudentProfilePanel';
+import { QuestionBankPanel } from './panels/QuestionBankPanel';
 import { PageHeader } from './panels/PanelShared';
 import { CertificationReviewPanel } from './CertificationReviewPanel';
 
@@ -134,6 +135,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'analytics') return <AnalyticsPanel currentUser={currentUser} schools={schools} students={students} getDistrictStats={getDistrictStats} getBlockStats={getBlockStats} />;
 
   if (panel === 'system_settings') return <SystemSettingsPanel />;
+  if (panel === 'question_bank') return <QuestionBankPanel currentUser={currentUser} token={token} />;
 
   // Admin-only Step-Up Aadhaar Reveal (see backend/src/routes/aadhaarDetokenize.ts).
   // The panel itself enforces role gating as a defence-in-depth; the menu

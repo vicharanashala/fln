@@ -187,6 +187,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Teachers', view: 'teachers', icon: Users });
         list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Question Bank', view: 'question_bank', icon: Database });
         list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
         list.push({ name: 'Security', view: 'security', icon: KeyRound });
         break;
@@ -195,6 +196,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Blocks', view: 'blocks', icon: MapPin });
         list.push({ name: 'Schools', view: 'schools', icon: School });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Question Bank', view: 'question_bank', icon: Database });
         list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
         list.push({ name: 'Security', view: 'security', icon: KeyRound });
         break;
@@ -202,6 +204,7 @@ export const Layout: React.FC<LayoutProps> = ({
       case UserRole.ADMIN:
         list.push({ name: 'Districts', view: 'districts', icon: MapPin });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
+        list.push({ name: 'Question Bank', view: 'question_bank', icon: Database });
         list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
         list.push({ name: 'Security', view: 'security', icon: KeyRound });
         list.push({ name: 'Certification Reviews', view: 'certification_reviews', icon: Award });
@@ -212,6 +215,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Schools', view: 'schools', icon: School });
         list.push({ name: 'Worksheet Templates', view: 'worksheet_templates', icon: ClipboardList });
         list.push({ name: 'Content', view: 'content', icon: BookOpen });
+        list.push({ name: 'Question Bank', view: 'question_bank', icon: Database });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });
         list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
