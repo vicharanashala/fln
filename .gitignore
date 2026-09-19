@@ -1,50 +1,12 @@
+<<<<<<< HEAD
+=======
 # Archive and outputs
+>>>>>>> origin/main
 archive/
-mvp/
-output/
-
-# Node
-node_modules/
-
-# Build outputs
-dist/
-backend/dist/
-frontend/dist/
-
-# Backend data (local seed files) - keep ignored by default
-backend/data/
-
-# Environment / secrets
-.env
-.env.local
-.env.*.local
-
-# OS files
-.DS_Store
-
-# Python
-__pycache__/
-*.pyc
-
-# Logs
-*.log
-
-# Hermes agent workspace (plans, scratch, settings) — local-only
-.hermes/
-
-# Per-student AI evaluation output — generated per student per scan, never committed
-ai-services/personalized_evaluation/
-ai-services/models/
-ai-services/.cache/
-
-# Misc
-# Add any IDE/editor folders you want to ignore
-.vscode/
-.idea/
-archive/
-mvp/
 node_modules/
 .DS_Store
+<<<<<<< HEAD
+=======
 .env
 backend/data/
 backend/dist/
@@ -54,3 +16,4 @@ frontend/dist/
 ai-services/personalized_evaluation/class_*/
 backend/npm
 
+>>>>>>> origin/main
