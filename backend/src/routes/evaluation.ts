@@ -484,7 +484,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
   };
 
-  // Scan quality endpoint: analyzes scan metrics (resolution, brightness, contrast, blur, orientation)
+  // Scan quality endpoint: analyzes scan metrics (resolution, orientation)
   // before starting OCR extraction. Returns ScanQualityResult.
   app.post('/api/icr/check-quality', async (req, res) => {
     const user = getAuthUser(req);
