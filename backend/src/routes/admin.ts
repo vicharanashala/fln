@@ -24,9 +24,37 @@ export function registerAdminRoutes(app: express.Express) {
       return res.status(400).json({ error: 'Password does not meet complexity requirements. Must be >= 8 chars and contain uppercase, digit, and special char.' });
     }
 
+    const schools = await dbStore.getSchools();
     const users = await dbStore.getUsers();
     if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
       return res.status(400).json({ error: 'User with this email already exists.' });
+    }
+
+    let resolvedState = stateCode ? stateCode.toUpperCase() : undefined;
+    let resolvedDistrict = districtCode ? districtCode.toUpperCase() : undefined;
+    let resolvedBlock = blockCode ? blockCode.toUpperCase() : undefined;
+
+    // Issue #456: Normalize multiple school assignments for volunteers
+    let normalizedAssignedSchools: string[] | undefined = undefined;
+    if (role === UserRole.VOLUNTEER) {
+      if (Array.isArray(assignedSchools)) {
+        normalizedAssignedSchools = assignedSchools.map(String).map(s => s.trim()).filter(Boolean);
+      } else if (typeof assignedSchools === 'string' && assignedSchools.trim()) {
+        normalizedAssignedSchools = assignedSchools.split(',').map(s => s.trim()).filter(Boolean);
+      } else if (schoolId) {
+        normalizedAssignedSchools = [String(schoolId).trim()];
+      }
+    }
+
+    // Issue #450: New principals and teachers automatically inherit geographic scope from their school
+    const primarySchoolId = schoolId || (normalizedAssignedSchools && normalizedAssignedSchools.length > 0 ? normalizedAssignedSchools[0] : undefined);
+    if (primarySchoolId) {
+      const targetSchool = schools.find(s => s.id.toLowerCase() === String(primarySchoolId).toLowerCase());
+      if (targetSchool) {
+        resolvedState = resolvedState || targetSchool.stateCode;
+        resolvedDistrict = resolvedDistrict || targetSchool.districtCode;
+        resolvedBlock = resolvedBlock || targetSchool.blockCode;
+      }
     }
 
     const newUser: User = {
@@ -35,11 +63,11 @@ export function registerAdminRoutes(app: express.Express) {
       email: email.toLowerCase(),
       role: role as UserRole,
       passwordHash: await bcrypt.hash(password, 10),
-      stateCode: stateCode ? stateCode.toUpperCase() : undefined,
-      districtCode: districtCode ? districtCode.toUpperCase() : undefined,
-      blockCode: blockCode ? blockCode.toUpperCase() : undefined,
+      stateCode: resolvedState,
+      districtCode: resolvedDistrict,
+      blockCode: resolvedBlock,
       schoolId: schoolId || undefined,
-      assignedSchools: assignedSchools || undefined
+      assignedSchools: normalizedAssignedSchools || (Array.isArray(assignedSchools) ? assignedSchools : undefined)
     };
 
     await dbStore.addUser(newUser);
