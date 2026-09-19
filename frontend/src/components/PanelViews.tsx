@@ -1,11 +1,5 @@
-import { apiFetch } from '../services/apiClient';
-import React, { useState, useEffect } from 'react';
-import { User, UserRole, Student, ClassGroup, School, Worksheet, LogEntry, Ticket } from '../types';
-import { Users, BookOpen, Calendar, ArrowRight, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, Building2, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
-import { Table, Column } from './Table';
-import { MetricCard } from './Card';
-import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
-import { FLN_LEVELS_LIST, parseCSVText, LevelBadge } from './RoleDashboards';
+import React from 'react';
+import { User, UserRole } from '../types';
 import { usePanelData } from './panels/usePanelData';
 import { AdaptiveTestPanel } from './panels/AdaptiveTestPanel';
 import { TestHistoryPanel } from './panels/TestHistoryPanel';
@@ -44,15 +38,6 @@ interface PanelViewsProps {
    */
   onSelectView?: (view: string) => void;
 }
-
-const CONTENT_ITEMS = [
-  { id: 'c1', title: 'Number Line 1-10', type: 'Visual Aid', level: 'L1-L4', language: 'English, Punjabi', status: 'Approved' },
-  { id: 'c2', title: 'Addition with Objects', type: 'Lesson Plan', level: 'L7-L12', language: 'English, Hindi', status: 'Approved' },
-  { id: 'c3', title: 'Place Value Chart', type: 'Poster', level: 'L24-L30', language: 'English, Punjabi', status: 'Draft' },
-  { id: 'c4', title: 'Multiplication Tables Song', type: 'Audio', level: 'L36-L41', language: 'English', status: 'Review' },
-  { id: 'c5', title: 'Fraction Pizza Activity', type: 'Worksheet', level: 'L45-L48', language: 'English, Hindi', status: 'Approved' },
-  { id: 'c6', title: 'Money Math Games', type: 'Activity', level: 'L46-L48', language: 'English', status: 'Draft' },
-];
 
 export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectView }) => {
   const {

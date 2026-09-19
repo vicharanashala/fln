@@ -8,6 +8,7 @@ import { PageHeader, EmptyStudents } from './PanelShared';
 import { Users } from 'lucide-react';
 import { apiFetch } from '../../services/apiClient';
 import { parseCSVText } from '../RoleDashboards';
+import { CertificatesPanel } from './CertificatesPanel';
 
 interface StudentListPanelProps {
   students: Student[];
@@ -44,6 +45,9 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
   const visibleStudents = activeTab === 'all'
     ? students
     : students.filter(s => `${s.classGroup}|${s.section}` === activeTab);
+  const visibleClassTabs = activeTab === 'all'
+    ? classTabs
+    : classTabs.filter(c => `${c.classGroup}|${c.section}` === activeTab);
 
   // Student registration states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -501,6 +505,22 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
         )}
 
         <EmptyStudents students={visibleStudents} loading={studentsLoading} />
+
+        {!studentsLoading && isTeacherOrVolunteer && visibleClassTabs.map(c => {
+          const classStudents = students.filter(
+            student => student.classGroup === c.classGroup && student.section === c.section
+          );
+          return (
+            <CertificatesPanel
+              key={`${c.classGroup}|${c.section}`}
+              students={classStudents}
+              currentUser={currentUser}
+              variant="ranked"
+              rankingLimit={3}
+              rankingTitle={`Top 3 Students — ${c.classGroup} - ${c.section}`}
+            />
+          );
+        })}
       </div>
     </div>
   );
