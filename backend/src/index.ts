@@ -7,8 +7,12 @@ import 'dotenv/config';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dns from 'node:dns';
+
 const __dotenv_dir = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dotenv_dir, '..', '.env') });
+
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 import express from 'express';
 import { createServer as createViteServer } from 'vite';

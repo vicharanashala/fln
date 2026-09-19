@@ -12,6 +12,7 @@ import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
 import { TicketSubmission } from '../TicketSubmission';
 import { ClassSummaryBar } from './ClassSummaryBar';
+import { TeacherAnalyticsDashboard } from '../TeacherAnalyticsDashboard';
 
 
 interface TeacherDashboardProps extends DashboardProps {
@@ -228,7 +229,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
           is gone. */}
       <ClassSummaryBar students={students} token={token} teacherId={user.id} />
 
-      <TicketSubmission token={token} userRole={user.role} />
+      <TeacherAnalyticsDashboard />
 
       {/* Class picker tabs */}
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">

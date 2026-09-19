@@ -1,0 +1,422 @@
+.dashboard-container {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #1f2937;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.dashboard-header h2 {
+    margin: 0 0 4px 0;
+}
+
+.dashboard-header p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+.filters-bar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.filters-bar select {
+    margin-left: 8px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    font-size: 0.9rem;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.metric-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.metric-card h4 {
+    margin: 0 0 8px 0;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.metric-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.metric-card.alert .metric-value {
+    color: #ef4444;
+}
+
+.metric-card.success .metric-value {
+    color: #10b981;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.chart-card,
+.table-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.chart-card h3,
+.table-card h3 {
+    margin-top: 0;
+    font-size: 1.1rem;
+    color: #374151;
+}
+
+.chart-wrapper {
+    margin-top: 16px;
+}
+
+.remediation-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    text-align: left;
+}
+
+.remediation-table th,
+.remediation-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+/* ================================
+   PRIORITY GAP BADGE
+   ================================ */
+
+.badge-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #fee2e2;
+    color: #b91c1c;
+    padding: 6px 10px;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+
+/* ================================
+   ACTION BUTTON
+   ================================ */
+
+.btn-action {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.btn-action:hover {
+    background-color: #2563eb;
+}
+
+/* ================================
+   EMPTY / STATUS STATES
+   ================================ */
+
+.empty-state {
+    color: #059669;
+    font-weight: 500;
+    padding: 20px 0;
+}
+
+.dashboard-status {
+    margin-top: 16px;
+}
+
+.dashboard-error {
+    border-color: #fecaca;
+}
+
+.section-description {
+    margin: -4px 0 16px;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+/* ================================
+   LISTS
+   ================================ */
+
+.competency-list,
+.progress-list,
+.gap-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.competency-row,
+.gap-row,
+.progress-row {
+    border: 1px solid #eef2f7;
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.competency-heading,
+.progress-row,
+.gap-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.competency-heading span,
+.progress-row span,
+.gap-row span {
+    color: #6b7280;
+    font-size: 0.82rem;
+}
+
+/* ================================
+   SEGMENTED COMPETENCY BAR
+   ================================ */
+
+.performance-bar {
+    width: 100%;
+    height: 12px;
+    display: flex;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e5e7eb;
+    margin: 10px 0 7px;
+}
+
+.performance-segment {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.strong-segment {
+    background: #22c55e;
+}
+
+.satisfactory-segment {
+    background: #f59e0b;
+}
+
+.needs-practice-segment {
+    background: #ef4444;
+}
+
+/* ================================
+   COMPETENCY VALUES
+   ================================ */
+
+.competency-values,
+.gap-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.78rem;
+}
+
+.competency-values span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Strong */
+
+.metric-strong {
+    color: #16a34a;
+    font-weight: 600;
+}
+
+.strong-dot {
+    background: #22c55e;
+}
+
+/* Satisfactory */
+
+.metric-satisfactory {
+    color: #d97706;
+    font-weight: 600;
+}
+
+.satisfactory-dot {
+    background: #f59e0b;
+}
+
+/* Needs Practice */
+
+.metric-needs-practice {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.needs-practice-dot {
+    background: #ef4444;
+}
+
+/* Small colored dots */
+
+.metric-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* ================================
+   ASSESSMENT CYCLE SCORE
+   ================================ */
+
+.cycle-score {
+    color: #16a34a;
+}
+
+/* ================================
+   PRIORITY GAPS
+   ================================ */
+
+.gap-row {
+    min-height: 54px;
+}
+
+.gap-row>div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+/* ================================
+   RESPONSIVE
+   ================================ */
+
+@media (max-width: 700px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .competency-heading,
+    .gap-row,
+    .progress-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+/* ================================
+   DARK MODE
+   ================================ */
+
+.dark .dashboard-container {
+    color: #f3f4f6;
+}
+
+.dark .dashboard-header p {
+    color: #9ca3af;
+}
+
+.dark .filters-bar select {
+    background: #111827;
+    color: #f3f4f6;
+    border-color: #374151;
+}
+
+.dark .metric-card,
+.dark .chart-card,
+.dark .table-card {
+    background: #111827;
+    border-color: #374151;
+    color: #f3f4f6;
+}
+
+.dark .metric-card h4,
+.dark .section-description,
+.dark .competency-heading span,
+.dark .progress-row span,
+.dark .gap-row span {
+    color: #9ca3af;
+}
+
+.dark .competency-row,
+.dark .gap-row,
+.dark .progress-row {
+    background: #111827;
+    border-color: #374151;
+}
+
+.dark .performance-bar {
+    background: #374151;
+}
+
+.dark .chart-card h3,
+.dark .table-card h3 {
+    color: #f3f4f6;
+}
+
+.dark .empty-state {
+    color: #34d399;
+}
+
+.dark .dashboard-error {
+    border-color: #7f1d1d;
+    background: #1f1111;
+}
+
+.dark .remediation-table th,
+.dark .remediation-table td {
+    border-color: #374151;
+}
+
+.dark .metric-strong,
+.dark .cycle-score {
+    color: #4ade80;
+}
+
+.dark .metric-satisfactory {
+    color: #fbbf24;
+}
+
+.dark .metric-needs-practice {
+    color: #f87171;
+}
+
+.dark .badge-danger {
+    background-color: #451a1a;
+    color: #fca5a5;
+}
