@@ -8,6 +8,15 @@ import { PageHeader, EmptyStudents } from './PanelShared';
 import { Users } from 'lucide-react';
 import { apiFetch } from '../../services/apiClient';
 import { parseCSVText } from '../RoleDashboards';
+import {
+  clearRosterFilter,
+  getDefaultRosterFilter,
+  getRosterFilterStorageKey,
+  isRosterFilterAvailable,
+  readRosterFilter,
+  RosterFilter,
+  writeRosterFilter,
+} from '../../utils/rosterFilters';
 
 interface StudentListPanelProps {
   students: Student[];
@@ -30,20 +39,65 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
   // directly from the students already loaded (already scoped to this
   // teacher/volunteer's own roster server-side) rather than a separate
   // classes fetch — same source of truth, one less request.
+  const rosterFilterStorageKey = getRosterFilterStorageKey(currentUser);
+  const defaultRosterFilter = React.useMemo(() => getDefaultRosterFilter(currentUser), [
+    currentUser.id,
+    currentUser.role,
+    currentUser.schoolId,
+  ]);
+  const [filterState, setFilterState] = useState<{ storageKey: string; filter: RosterFilter }>(() => ({
+    storageKey: rosterFilterStorageKey,
+    filter: readRosterFilter(rosterFilterStorageKey) || defaultRosterFilter,
+  }));
+  const rosterFilter = filterState.storageKey === rosterFilterStorageKey
+    ? filterState.filter
+    : readRosterFilter(rosterFilterStorageKey) || defaultRosterFilter;
+  const setRosterFilter = (filter: RosterFilter) => setFilterState({ storageKey: rosterFilterStorageKey, filter });
+
+  // Do not carry a prior user's filter into a new login in the same tab.
+  React.useEffect(() => {
+    if (filterState.storageKey !== rosterFilterStorageKey) {
+      setFilterState({
+        storageKey: rosterFilterStorageKey,
+        filter: readRosterFilter(rosterFilterStorageKey) || defaultRosterFilter,
+      });
+    }
+  }, [defaultRosterFilter, filterState.storageKey, rosterFilterStorageKey]);
+
+  React.useEffect(() => {
+    if (filterState.storageKey === rosterFilterStorageKey) {
+      writeRosterFilter(rosterFilterStorageKey, filterState.filter);
+    }
+  }, [filterState, rosterFilterStorageKey]);
+
+  React.useEffect(() => {
+    if (!studentsLoading && students.length > 0 && !isRosterFilterAvailable(rosterFilter, students)) {
+      setRosterFilter(defaultRosterFilter);
+    }
+  }, [defaultRosterFilter, rosterFilter, students, studentsLoading]);
+
   const classTabs = React.useMemo(() => {
-    const seen = new Map<string, { classGroup: string; section: string }>();
+    const seen = new Map<string, { schoolId: string; classGroup: string; section: string }>();
     students.forEach(s => {
-      const key = `${s.classGroup}|${s.section}`;
-      if (!seen.has(key)) seen.set(key, { classGroup: s.classGroup, section: s.section });
+      const key = `${s.schoolId}|${s.classGroup}|${s.section}`;
+      if (!seen.has(key)) seen.set(key, { schoolId: s.schoolId, classGroup: s.classGroup, section: s.section });
     });
     return Array.from(seen.values()).sort((a, b) =>
-      a.classGroup === b.classGroup ? a.section.localeCompare(b.section) : a.classGroup.localeCompare(b.classGroup)
+      a.schoolId === b.schoolId
+        ? (a.classGroup === b.classGroup ? a.section.localeCompare(b.section) : a.classGroup.localeCompare(b.classGroup))
+        : a.schoolId.localeCompare(b.schoolId)
     );
   }, [students]);
-  const [activeTab, setActiveTab] = useState<string>('all');
-  const visibleStudents = activeTab === 'all'
-    ? students
-    : students.filter(s => `${s.classGroup}|${s.section}` === activeTab);
+  const schoolIds = React.useMemo(() => [...new Set(students.map(s => s.schoolId))].sort(), [students]);
+  const visibleStudents = students.filter(s =>
+    (!rosterFilter.schoolId || s.schoolId === rosterFilter.schoolId)
+    && (!rosterFilter.classGroup || s.classGroup === rosterFilter.classGroup)
+    && (!rosterFilter.section || s.section === rosterFilter.section)
+  );
+  const resetRosterFilter = () => {
+    clearRosterFilter(rosterFilterStorageKey);
+    setRosterFilter(defaultRosterFilter);
+  };
 
   // Student registration states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -472,31 +526,55 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
           </div>
         )}
 
-        {classTabs.length > 1 && (
-          <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-px overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
-                activeTab === 'all' ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white font-semibold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >
-              All Students ({students.length})
-            </button>
-            {classTabs.map(c => {
-              const key = `${c.classGroup}|${c.section}`;
-              const count = students.filter(s => s.classGroup === c.classGroup && s.section === c.section).length;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setActiveTab(key)}
-                  className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
-                    activeTab === key ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white font-semibold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                  }`}
+        {(classTabs.length > 1 || schoolIds.length > 1) && (
+          <div className="space-y-3">
+            {schoolIds.length > 1 && (
+              <label className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs font-mono text-slate-600 dark:text-slate-300">
+                <span className="font-bold uppercase">School</span>
+                <select
+                  value={rosterFilter.schoolId || ''}
+                  onChange={(e) => setRosterFilter({ schoolId: e.target.value || null, classGroup: null, section: null })}
+                  className="w-full sm:w-auto text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                 >
-                  {c.classGroup} - {c.section} ({count})
-                </button>
-              );
-            })}
+                  <option value="">All assigned schools</option>
+                  {schoolIds.map(schoolId => <option key={schoolId} value={schoolId}>School ID: {schoolId}</option>)}
+                </select>
+              </label>
+            )}
+            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-px overflow-x-auto">
+              <button
+                onClick={() => setRosterFilter({ schoolId: rosterFilter.schoolId, classGroup: null, section: null })}
+                className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
+                  rosterFilter.classGroup === null && rosterFilter.section === null ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white font-semibold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                All Students ({visibleStudents.length})
+              </button>
+              {classTabs
+                .filter(c => !rosterFilter.schoolId || c.schoolId === rosterFilter.schoolId)
+                .map(c => {
+                  const count = students.filter(s => s.schoolId === c.schoolId && s.classGroup === c.classGroup && s.section === c.section).length;
+                  const isActive = rosterFilter.schoolId === c.schoolId && rosterFilter.classGroup === c.classGroup && rosterFilter.section === c.section;
+                  return (
+                    <button
+                      key={`${c.schoolId}|${c.classGroup}|${c.section}`}
+                      onClick={() => setRosterFilter({ schoolId: c.schoolId, classGroup: c.classGroup, section: c.section })}
+                      className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
+                        isActive ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white font-semibold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {c.classGroup} - {c.section} ({count})
+                    </button>
+                  );
+                })}
+              <button
+                type="button"
+                onClick={resetRosterFilter}
+                className="ml-auto mb-1 text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white underline underline-offset-2 whitespace-nowrap"
+              >
+                Reset filters
+              </button>
+            </div>
           </div>
         )}
 

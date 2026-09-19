@@ -12,6 +12,15 @@ import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
 import { TicketSubmission } from '../TicketSubmission';
 import { ClassSummaryBar } from './ClassSummaryBar';
+import {
+  clearRosterFilter,
+  getDefaultRosterFilter,
+  getRosterFilterStorageKey,
+  isRosterFilterAvailable,
+  readRosterFilter,
+  RosterFilter,
+  writeRosterFilter,
+} from '../../utils/rosterFilters';
 
 
 interface TeacherDashboardProps extends DashboardProps {
@@ -29,9 +38,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
   // studentsLoading) — without it the welcome panel would flash on screen
   // for every teacher for a moment before their real roster loads in.
   const [studentsLoading, setStudentsLoading] = useState(true);
-  const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
+  const [classesLoaded, setClassesLoaded] = useState(false);
   const [school, setSchool] = useState<School | null>(null);
-  const [showAllStudents, setShowAllStudents] = useState(true);
+  const rosterFilterStorageKey = getRosterFilterStorageKey(user);
+  const defaultRosterFilter = React.useMemo(() => getDefaultRosterFilter(user), [
+    user.id,
+    user.role,
+    user.schoolId,
+  ]);
+  const [filterState, setFilterState] = useState<{ storageKey: string; filter: RosterFilter }>(() => ({
+    storageKey: rosterFilterStorageKey,
+    filter: readRosterFilter(rosterFilterStorageKey) || defaultRosterFilter,
+  }));
+  const rosterFilter = filterState.storageKey === rosterFilterStorageKey
+    ? filterState.filter
+    : readRosterFilter(rosterFilterStorageKey) || defaultRosterFilter;
+  const setRosterFilter = (filter: RosterFilter) => setFilterState({ storageKey: rosterFilterStorageKey, filter });
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
   const [showSkillGraph, setShowSkillGraph] = useState(false);
@@ -68,7 +90,32 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     }
   };
 
+  React.useEffect(() => {
+    if (filterState.storageKey !== rosterFilterStorageKey) {
+      setFilterState({
+        storageKey: rosterFilterStorageKey,
+        filter: readRosterFilter(rosterFilterStorageKey) || defaultRosterFilter,
+      });
+    }
+  }, [defaultRosterFilter, filterState.storageKey, rosterFilterStorageKey]);
+
+  React.useEffect(() => {
+    if (filterState.storageKey === rosterFilterStorageKey) {
+      writeRosterFilter(rosterFilterStorageKey, filterState.filter);
+    }
+  }, [filterState, rosterFilterStorageKey]);
+
+  React.useEffect(() => {
+    if (!classesLoaded || classes.length === 0) return;
+    const entries = classes.map(c => ({ schoolId: c.schoolId, classGroup: c.className, section: c.section }));
+    if (!isRosterFilterAvailable(rosterFilter, entries)) {
+      setRosterFilter(defaultRosterFilter);
+    }
+  }, [classes, classesLoaded, defaultRosterFilter, rosterFilter]);
+
   const fetchTeacherData = async () => {
+    setStudentsLoading(true);
+    setClassesLoaded(false);
     try {
       const clsRes = await apiFetch('/api/classes', { headers: { 'Authorization': `Bearer ${token}` } });
       const clsData = await clsRes.json();
@@ -79,7 +126,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
         // regresses.
         const scoped = clsData.filter((c: ClassGroup) => c.schoolId === user.schoolId);
         setClasses(scoped);
-        if (scoped.length > 0) setActiveClass(scoped[0]);
       }
 
       const stdRes = await apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -94,6 +140,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     } catch (err) {
       console.error(err);
     } finally {
+      setClassesLoaded(true);
       setStudentsLoading(false);
     }
   };
@@ -189,8 +236,20 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     );
   }
 
-  // Filter students under selected active class
-  const classStudents = showAllStudents ? students : (activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : []);
+  // Filter only the students already authorized and loaded for this teacher.
+  const activeClass = rosterFilter.classGroup === null || rosterFilter.section === null
+    ? null
+    : classes.find(c => c.schoolId === rosterFilter.schoolId && c.className === rosterFilter.classGroup && c.section === rosterFilter.section) || null;
+  const showAllStudents = rosterFilter.classGroup === null && rosterFilter.section === null;
+  const classStudents = students.filter(s =>
+    (!rosterFilter.schoolId || s.schoolId === rosterFilter.schoolId)
+    && (!rosterFilter.classGroup || s.classGroup === rosterFilter.classGroup)
+    && (!rosterFilter.section || s.section === rosterFilter.section)
+  );
+  const resetRosterFilter = () => {
+    clearRosterFilter(rosterFilterStorageKey);
+    setRosterFilter(defaultRosterFilter);
+  };
 
   return (
     <div className="space-y-6" id="teacher-dashboard">
@@ -231,26 +290,33 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
       <TicketSubmission token={token} userRole={user.role} />
 
       {/* Class picker tabs */}
-      <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">
+      <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px overflow-x-auto">
         <button
-          onClick={() => { setShowAllStudents(true); setActiveClass(null); }}
-          className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
+          onClick={() => setRosterFilter({ schoolId: user.schoolId || null, classGroup: null, section: null })}
+          className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
             showAllStudents ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
           }`}
         >
-          All Students ({students.length})
+          All Students ({classStudents.length})
         </button>
         {classes.map(c => (
           <button
             key={c.id}
-            onClick={() => { setShowAllStudents(false); setActiveClass(c); }}
-            className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
+            onClick={() => setRosterFilter({ schoolId: c.schoolId, classGroup: c.className, section: c.section })}
+            className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
               !showAllStudents && activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
           >
             {c.className} - {c.section}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={resetRosterFilter}
+          className="ml-auto mb-1 text-xs font-mono font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white underline underline-offset-2 whitespace-nowrap"
+        >
+          Reset filters
+        </button>
       </div>
 
       {/* Issue #166: Diagnostic Paper Generator + Level-Wise Paper Generator
