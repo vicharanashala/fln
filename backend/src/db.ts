@@ -92,6 +92,8 @@ export interface User {
   assignedSchools?: string[]; // for Volunteers
   delayedAttemptsCount?: number;
   isBanned?: boolean;
+  resetToken?: string; // Stored as SHA-256 hex hash
+  resetTokenExpiry?: number;
 }
 
 export interface School {
@@ -1247,6 +1249,7 @@ export class DBStore {
           const usersColl = db.collection('users');
           await usersColl.createIndex({ id: 1 }, { unique: true });
           await usersColl.createIndex({ email: 1 }, { unique: true });
+          await usersColl.createIndex({ resetToken: 1 }, { sparse: true });
           console.log('Successfully ensured indexes on "users" collection');
         } catch (e: any) {
           console.warn('Failed to ensure indexes on "users" collection:', e.message);
@@ -1401,6 +1404,31 @@ export class DBStore {
       } catch (_) { }
     }
     return this.getUserSync(cleanEmail);
+  }
+
+  async getUserByResetToken(tokenHash: string): Promise<User | null> {
+    if (!tokenHash) return null;
+    const now = Date.now();
+    if (this.mongoDb) {
+      try {
+        const u = await this.mongoDb.collection<User>('users').findOne({
+          resetToken: tokenHash,
+          resetTokenExpiry: { $gt: now }
+        });
+        if (u) {
+          if (this.data && this.data.users) {
+            const idx = this.data.users.findIndex(x => x.id === u.id);
+            if (idx >= 0) this.data.users[idx] = u;
+            else this.data.users.push(u);
+          }
+          return u;
+        }
+      } catch (_) { }
+    }
+    if (this.data && this.data.users) {
+      return this.data.users.find(u => u.resetToken === tokenHash && u.resetTokenExpiry && u.resetTokenExpiry > now) || null;
+    }
+    return null;
   }
 
   async getUsers() {
@@ -2435,13 +2463,42 @@ export class DBStore {
   }
 
   async updateUser(userId: string, updates: Partial<User>) {
-    await this.mongoDb!.collection('users').updateOne({ id: userId }, { $set: updates });
-    const u = await this.mongoDb!.collection<User>('users').findOne({ id: userId });
-    if (u && this.data) {
-      const idx = this.data.users.findIndex(x => x.id === userId);
-      if (idx !== -1) this.data.users[idx] = u;
+    if (this.mongoDb) {
+      const setFields: Record<string, any> = {};
+      const unsetFields: Record<string, any> = {};
+      for (const [key, val] of Object.entries(updates)) {
+        if (val === undefined) {
+          unsetFields[key] = '';
+        } else {
+          setFields[key] = val;
+        }
+      }
+      const mongoUpdate: Record<string, any> = {};
+      if (Object.keys(setFields).length > 0) mongoUpdate.$set = setFields;
+      if (Object.keys(unsetFields).length > 0) mongoUpdate.$unset = unsetFields;
+
+      if (Object.keys(mongoUpdate).length > 0) {
+        await this.mongoDb.collection('users').updateOne({ id: userId }, mongoUpdate);
+      }
+      const u = await this.mongoDb.collection<User>('users').findOne({ id: userId });
+      if (u && this.data?.users) {
+        const idx = this.data.users.findIndex(x => x.id === userId);
+        if (idx !== -1) this.data.users[idx] = u;
+      }
+      return u || undefined;
     }
-    return u || undefined;
+    if (this.data?.users) {
+      const u = this.data.users.find(x => x.id === userId);
+      if (u) {
+        Object.assign(u, updates);
+        for (const [k, v] of Object.entries(updates)) {
+          if (v === undefined) delete (u as any)[k];
+        }
+        await this.save();
+        return u;
+      }
+    }
+    return undefined;
   }
 
   async updateSchool(schoolId: string, updates: Partial<School>) {

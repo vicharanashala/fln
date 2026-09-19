@@ -5,6 +5,7 @@ import { apiFetch } from '../services/apiClient';
  */
 
 import React, { Suspense, lazy, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
 import { User, UserRole } from '../types';
 
@@ -118,9 +119,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onBackToHo
 
           {/* User Password input */}
           <div className="space-y-1.5">
-            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-              Official Access Password
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                Official Access Password
+              </label>
+              <Link 
+                to="/forgot-password" 
+                className="text-xs font-bold text-indigo-650 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}

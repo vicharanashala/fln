@@ -1,11 +1,128 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import { dbStore } from '../db';
 import { getAuthUser, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN, SEED_DEMO_PASSWORD_HASH } from '../auth';
 import { authRateLimiter } from '../config';
 
 export function registerAuthRoutes(app: express.Express) {
+  // Auth: Forgot Password
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    // Use indexed getUserByEmail — no full user scan.
+    const user = await dbStore.getUserByEmail(cleanEmail);
+
+    // Always return the same response to avoid leaking whether an account exists.
+    const safeResponse = { success: true, message: 'If an account exists, a reset link will be sent.' };
+
+    if (!user) return res.json(safeResponse);
+
+    const { randomBytes, createHash } = await import('crypto');
+    const resetToken = randomBytes(32).toString('hex');
+    // Store only the SHA-256 hash — raw token is sent to the user only.
+    const resetTokenHash = createHash('sha256').update(resetToken).digest('hex');
+    const resetTokenExpiry = Date.now() + 3600000; // 1 hour
+
+    await dbStore.updateUser(user.id, { resetToken: resetTokenHash, resetTokenExpiry });
+
+    const appBaseUrl = (process.env.APP_BASE_URL || 'http://localhost:5173').replace(/\/+$/, '');
+    const resetLink = `${appBaseUrl}/reset-password/${resetToken}`;
+
+    // Development fallback: log the token (not the email) so testers can grab the link.
+    // Gated to non-production so the token never appears in production logs.
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n======================================================`);
+      console.log(`🔑 PASSWORD RESET TOKEN (expires in 1h): ${resetToken}`);
+      console.log(`🔗 RESET LINK: ${resetLink}`);
+      console.log(`======================================================\n`);
+    }
+
+    try {
+      let transporter;
+      if (process.env.SMTP_HOST) {
+        transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587', 10),
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+        });
+      } else if (process.env.NODE_ENV !== 'production') {
+        const testAccount = await nodemailer.createTestAccount();
+        transporter = nodemailer.createTransport({
+          host: 'smtp.ethereal.email',
+          port: 587,
+          secure: false,
+          auth: { user: testAccount.user, pass: testAccount.pass },
+        });
+      }
+
+      if (transporter) {
+        const info = await transporter.sendMail({
+          from: process.env.SMTP_FROM || '"FLN Platform" <no-reply@fln.org>',
+          to: user.email,
+          subject: 'Password Reset Request — FLN Platform',
+          html: `
+            <p>Hello ${user.name || user.email},</p>
+            <p>A password reset was requested for your account. Click the link below to set a new password. The link expires in <strong>1 hour</strong>.</p>
+            <p><a href="${resetLink}">${resetLink}</a></p>
+            <p>If you did not request this, you can safely ignore this email.</p>
+          `,
+        });
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`✉️  Preview: ${nodemailer.getTestMessageUrl(info)}`);
+        }
+      }
+    } catch (error) {
+      // Log but do not expose to client — the safe response is returned regardless.
+      console.error('Failed to send password reset email:', error);
+    }
+
+    return res.json(safeResponse);
+  });
+
+  // Auth: Reset Password
+  app.post('/api/auth/reset-password', async (req, res) => {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    // Verify password complexity (§3.2 A-3)
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    if (password.length < 8 || !hasUppercase || !hasNumber || !hasSpecial) {
+      return res.status(400).json({
+        error: 'Password must be at least 8 characters and contain an uppercase letter, a number, and a special character.',
+      });
+    }
+
+    const { createHash } = await import('crypto');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    // Indexed query — no full user scan, expiry checked in the query itself.
+    const user = await dbStore.getUserByResetToken(tokenHash);
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired password reset token' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    // Clear the token fields so it can never be reused.
+    await dbStore.updateUser(user.id, {
+      passwordHash,
+      resetToken: undefined,
+      resetTokenExpiry: undefined,
+    });
+
+    return res.json({ success: true, message: 'Password has been successfully reset.' });
+  });
+
   // Auth: Login
   app.post('/api/auth/login', authRateLimiter, async (req, res) => {
     const { email, password } = req.body;
