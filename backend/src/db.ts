@@ -225,6 +225,88 @@ export interface DiagnosticAnswerKey {
   createdAt: string;
 }
 
+// ===========================================================================
+// OCR/ICR scan persistence (Issue #366 — V0.1 Deep Audit §5 review gate)
+//
+// A scan that arrives as a file is traced through the pipeline as a
+// `ScanSubmission` (upload → quality check → rasterize → extract / failed),
+// and each extracted answer is stored as an `ExtractedResponse` carrying the
+// ORIGINAL OCR/ICR output, the provider, the provider's confidence (when it
+// reports one — see `ocrConfidence`), the question item it maps to, the page
+// number and an optional bounding box. Responses that are blank, ambiguous or
+// low-confidence are flagged `requiresReview` so a teacher reconciles them
+// BEFORE they are scored (the Step-5 review gate).
+//
+// The original OCR text (`rawText`) is immutable once written; a teacher's
+// correction lives separately in `correctedAnswer` and is never written over
+// the raw output.
+//
+// Underlying constraint that shapes this schema: the existing cloud OCR path
+// (Ollama Gemma 4 via /api/icr/evaluate-cloud) returns a flat answer list with
+// a HARD-CODED placeholder confidence of 0.7 per token and no per-question
+// regions. So `ocrConfidence` and `boundingBox` are optional/null here and are
+// only populated when a real value is actually available — never invented.
+// ===========================================================================
+
+export type ScanProcessingStage =
+  | 'uploaded'           // file received; nothing processed yet
+  | 'quality_checked'    // passed the pre-OCR scan-quality gate
+  | 'rasterized'         // pages rendered to images (PDF path)
+  | 'extracted'          // OCR/ICR produced an answer set
+  | 'failed';            // rejected/failed at any step
+
+export interface ScanSubmissionPageState {
+  pageNumber: number;                         // 1-based page within the submission
+  rasterized: boolean;
+  extractionStatus: 'pending' | 'done' | 'error';
+  error?: string;
+}
+
+export interface ScanSubmission {
+  id: string;             // `scan_<uuid8>`
+  schoolId?: string;
+  classId?: string;
+  studentId?: string;     // known for single-sheet scans; bulk scans cover many students
+  uploaderId: string;     // user id of the teacher/volunteer/admin who ran the scan
+  fileName?: string;
+  pageCount?: number;
+  provider?: string;      // e.g. 'ollama-gemma4'
+  stage: ScanProcessingStage;
+  pages?: ScanSubmissionPageState[];
+  scanQuality?: ScanQualityResult;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ExtractedResponseReviewState = 'pending' | 'reviewed' | 'corrected';
+
+export interface ExtractedResponseBoundingBox {
+  x_mm?: number;
+  y_mm?: number;
+  w_mm?: number;
+  h_mm?: number;
+}
+
+export interface ExtractedResponse {
+  id: string;                      // `extr_<uuid8>`
+  scanSubmissionId: string;
+  studentId?: string;
+  questionId: string;              // real question id from the DiagnosticAnswerKey
+  pageNumber: number;              // 1-based page within the submission
+  rawText: string;                 // ORIGINAL OCR output — immutable once written
+  ocrConfidence?: number | null;   // 0..1 when the provider reports one; null when it does not
+  ocrProvider: string;             // e.g. 'ollama-gemma4'
+  boundingBox?: ExtractedResponseBoundingBox | null; // from answerKey.answerRegions when available
+  requiresReview: boolean;         // low-confidence/ambiguous → teacher review before scoring
+  reviewState: ExtractedResponseReviewState;
+  correctedAnswer?: string;        // teacher correction — stored separately, never overwrites rawText
+  reviewedBy?: string;             // reviewing user id
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface LevelHtmlTemplate {
   levelNumber: number;
   title: string;
@@ -1052,6 +1134,8 @@ interface DatabaseSchema {
   curriculumLevels: CurriculumLevel[];
   studentCycleLocks: StudentCycleLock[];
   teacherObservationRecords: TeacherObservationRecord[];
+  scanSubmissions: ScanSubmission[];
+  extractedResponses: ExtractedResponse[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -1082,6 +1166,8 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   curriculumLevels: 'curriculumLevels',
   studentCycleLocks: 'studentCycleLocks',
   teacherObservationRecords: 'teacher_observation_records',
+  scanSubmissions: 'scan_submissions',
+  extractedResponses: 'extracted_responses',
 };
 
 /**
@@ -1299,6 +1385,23 @@ export class DBStore {
           console.log('Successfully ensured indexes on "evaluationReports" collection');
         } catch (e: any) {
           console.warn('Failed to ensure indexes on "evaluationReports" collection:', e.message);
+        }
+
+        // Ensure indexes on the OCR scan-review collections (Issue #366).
+        // Extracted responses are queried per submission for the review gate,
+        // and the review work queue filters on requiresReview before scoring.
+        try {
+          const scanSubsColl = db.collection('scan_submissions');
+          await scanSubsColl.createIndex({ id: 1 }, { unique: true });
+          await scanSubsColl.createIndex({ schoolId: 1, createdAt: -1 });
+
+          const extractedColl = db.collection('extracted_responses');
+          await extractedColl.createIndex({ id: 1 }, { unique: true });
+          await extractedColl.createIndex({ scanSubmissionId: 1, pageNumber: 1, questionId: 1 });
+          await extractedColl.createIndex({ reviewState: 1, requiresReview: 1 });
+          console.log('Successfully ensured indexes on "scan_submissions"/"extracted_responses" collections');
+        } catch (e: any) {
+          console.warn('Failed to ensure indexes on the scan-review collections:', e.message);
         }
 
         for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
@@ -2413,6 +2516,99 @@ export class DBStore {
       if (idx !== -1) {
         this.data.evaluationReports[idx] = { ...this.data.evaluationReports[idx], ...updates };
         return this.data.evaluationReports[idx];
+      }
+    }
+    return undefined;
+  }
+
+  // --- Scan Submission & Extracted Response Methods (Issue #366) ---
+
+  async getScanSubmissions() {
+    if (this.mongoDb) return await this.mongoDb.collection<ScanSubmission>('scan_submissions').find({}).toArray();
+    return (this.data?.scanSubmissions || []);
+  }
+
+  async getScanSubmissionById(id: string) {
+    if (this.mongoDb) return await this.mongoDb.collection<ScanSubmission>('scan_submissions').findOne({ id });
+    return (this.data?.scanSubmissions || []).find(s => s.id === id);
+  }
+
+  async addScanSubmission(submission: ScanSubmission) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('scan_submissions').insertOne(submission);
+    }
+    if (this.data) {
+      if (!this.data.scanSubmissions) this.data.scanSubmissions = [];
+      this.data.scanSubmissions.push(submission);
+    }
+    return submission;
+  }
+
+  async updateScanSubmission(id: string, updates: Partial<ScanSubmission>) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('scan_submissions').updateOne({ id }, { $set: updates });
+      return await this.mongoDb.collection<ScanSubmission>('scan_submissions').findOne({ id });
+    }
+    if (this.data) {
+      const list = this.data.scanSubmissions || [];
+      const idx = list.findIndex(s => s.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...updates };
+        return list[idx];
+      }
+    }
+    return undefined;
+  }
+
+  async getExtractedResponses(filter?: {
+    scanSubmissionId?: string;
+    questionId?: string;
+    reviewState?: ExtractedResponseReviewState;
+    requiresReview?: boolean;
+  }) {
+    if (this.mongoDb) {
+      const query: Record<string, unknown> = {};
+      if (filter?.scanSubmissionId) query.scanSubmissionId = filter.scanSubmissionId;
+      if (filter?.questionId) query.questionId = filter.questionId;
+      if (filter?.reviewState) query.reviewState = filter.reviewState;
+      if (filter?.requiresReview !== undefined) query.requiresReview = filter.requiresReview;
+      return await this.mongoDb.collection<ExtractedResponse>('extracted_responses').find(query).toArray();
+    }
+    let list = this.data?.extractedResponses || [];
+    if (filter?.scanSubmissionId) list = list.filter(r => r.scanSubmissionId === filter.scanSubmissionId);
+    if (filter?.questionId) list = list.filter(r => r.questionId === filter.questionId);
+    if (filter?.reviewState) list = list.filter(r => r.reviewState === filter.reviewState);
+    if (filter?.requiresReview !== undefined) list = list.filter(r => r.requiresReview === filter.requiresReview);
+    return list;
+  }
+
+  async getExtractedResponseById(id: string) {
+    if (this.mongoDb) return await this.mongoDb.collection<ExtractedResponse>('extracted_responses').findOne({ id });
+    return (this.data?.extractedResponses || []).find(r => r.id === id);
+  }
+
+  async addExtractedResponses(items: ExtractedResponse[]) {
+    if (this.mongoDb && items.length > 0) {
+      await this.mongoDb.collection('extracted_responses').insertMany(items);
+    }
+    if (this.data) {
+      if (!this.data.extractedResponses) this.data.extractedResponses = [];
+      this.data.extractedResponses.push(...items);
+    }
+    return items;
+  }
+
+  async updateExtractedResponse(id: string, updates: Partial<ExtractedResponse>) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('extracted_responses').updateOne({ id }, { $set: updates });
+      return await this.mongoDb.collection<ExtractedResponse>('extracted_responses').findOne({ id });
+    }
+    if (this.data) {
+      const list = this.data.extractedResponses || [];
+      const idx = list.findIndex(r => r.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...updates };
+        return list[idx];
       }
     }
     return undefined;
@@ -4908,7 +5104,11 @@ export class DBStore {
       // Seeded empty on purpose, same reasoning as questionLogics above: a
       // teacher's observation of a real child is not something to fabricate
       // demo data for.
-      teacherObservationRecords: []
+      teacherObservationRecords: [],
+      // Scan submissions and extracted responses are real operational data —
+      // nothing to seed for a demo.
+      scanSubmissions: [],
+      extractedResponses: []
     };
   }
 }
