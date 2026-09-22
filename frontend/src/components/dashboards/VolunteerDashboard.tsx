@@ -10,12 +10,17 @@ import { BaselineUpload } from '../BaselineUpload';
 import { SkillGraphPanel } from '../SkillGraphPanel';
 import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
+import { DashboardSkeleton } from '../ui/DashboardSkeleton';
+import { RosterSkeleton } from '../ui/RosterSkeleton';
+import { EmptyStateCard } from '../ui/EmptyStateCard';
+import { School } from 'lucide-react';
 
 
 export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
 
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
@@ -54,6 +59,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
   };
 
   const fetchVolunteerData = async () => {
+    setDashboardLoading(true);
     try {
       const clsRes = await apiFetch('/api/classes', { headers: { 'Authorization': `Bearer ${token}` } });
       const clsData = await clsRes.json();
@@ -67,6 +73,8 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
       if (Array.isArray(stdData)) setStudents(stdData);
     } catch (err) {
       console.error(err);
+    } finally {
+      setDashboardLoading(false);
     }
   };
 
@@ -103,6 +111,15 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
 
   const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : [];
 
+  if (dashboardLoading) {
+    return (
+      <div className="space-y-6" id="volunteer-dashboard">
+        <DashboardSkeleton metricCount={3} />
+        <RosterSkeleton columns={5} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6" id="volunteer-dashboard">
       {levelPdfLoading && (
@@ -134,6 +151,16 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
 
 
 
+      {classes.length === 0 && (
+        <EmptyStateCard
+          illustration={<School className="h-6 w-6" />}
+          title="No classrooms assigned"
+          description="There are no classrooms assigned to your volunteer account yet. Contact your coordinator if you expect an assignment."
+        />
+      )}
+
+      {classes.length > 0 && (
+        <>
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">
         {classes.map(c => (
           <button
@@ -148,7 +175,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
         ))}
       </div>
 
-      {activeClass && (
+      {activeClass && (classStudents.length > 0 ? (
         <div className="space-y-6">
           {/* Issue #166: Diagnostic Paper Generator + Level-Wise Paper Generator
               + Exam Worksheets Engine cards removed from this dashboard. They
@@ -227,6 +254,14 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
             </div>
           </div>
         </div>
+      ) : (
+        <EmptyStateCard
+          illustration={<School className="h-6 w-6" />}
+          title="No students in this classroom"
+          description="This classroom does not have any registered students yet. Choose another assigned classroom to continue."
+        />
+      ))}
+      </>
       )}
       <SkillGraphPanel open={showSkillGraph} onClose={() => setShowSkillGraph(false)} />
     </div>

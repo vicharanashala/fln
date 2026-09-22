@@ -40,7 +40,21 @@ export const BORROW_BEHAVIORS = ['none', 'allowed', 'required'] as const;
 export const MAX_SUM_OR_DIFFERENCES = ['<=10', '<=20', '<=50', '<=100', '<=200', '<=1000', '<=2000', '<=10000'] as const;
 export const MAX_OPERAND_COUNTS = [2, 3, 4] as const;
 export const ANSWER_TYPES = ['single-number', 'mcq-4', 'fill-blanks', 'true-false', 'matching', 'trace'] as const;
-export const QUESTION_FAMILIES = ['counting', 'operation'] as const;
+/**
+ * Extended 2026-09-19 for Balvatika content authoring: 'counting'/'operation'
+ * alone can't classify roughly half of Balvatika's 29 nodes (shapes,
+ * patterns, vocabulary, classification, sequencing, measurement comparison,
+ * calendar, riddles) -- authoring those against the wrong family would
+ * misclassify them for anyone querying `questionTemplates` by family later.
+ * Chosen to mirror `SkillDomain` in frontend/src/data/skillProgressionMap.ts
+ * loosely (not 1:1 -- this taxonomy is about the *question's* shape, that
+ * one is about the *skill's* domain) so the two vocabularies stay legible
+ * against each other rather than diverging into two unrelated systems.
+ */
+export const QUESTION_FAMILIES = [
+  'counting', 'operation', 'shape', 'pattern', 'comparison',
+  'classification', 'sequencing', 'vocabulary', 'calendar', 'reasoning',
+] as const;
 export const PARAM_MODES = ['structured', 'legacy-free-text', 'hybrid'] as const;
 
 export const SUBJECT_CATEGORIES = [

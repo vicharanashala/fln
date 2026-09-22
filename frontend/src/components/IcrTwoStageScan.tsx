@@ -78,9 +78,19 @@ export interface ScanQualityResult {
   checks: {
     resolution: 'pass' | 'fail';
     orientation: 'pass' | 'warning';
+    brightness?: 'pass' | 'warning';
+    contrast?: 'pass' | 'warning';
+    blur?: 'pass' | 'warning';
   };
   reasons: string[];
   canOverride: boolean;
+  metrics?: {
+    width?: number;
+    height?: number;
+    brightness?: number;
+    contrast?: number;
+    sharpness?: number;
+  };
 }
 
 export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
@@ -330,13 +340,28 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
 
           {qualityResult && (
             <div className="space-y-2 text-xs">
-              <div className="flex gap-4 font-mono text-[11px] py-1 border-y border-zinc-100 dark:border-slate-800">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] py-1 border-y border-zinc-100 dark:border-slate-800">
                 <span className={qualityResult.checks.resolution === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
                   Resolution: {qualityResult.checks.resolution}
                 </span>
                 <span className={qualityResult.checks.orientation === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
                   Orientation: {qualityResult.checks.orientation}
                 </span>
+                {qualityResult.checks.brightness !== undefined && (
+                  <span className={qualityResult.checks.brightness === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                    Brightness: {qualityResult.checks.brightness}
+                  </span>
+                )}
+                {qualityResult.checks.contrast !== undefined && (
+                  <span className={qualityResult.checks.contrast === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                    Contrast: {qualityResult.checks.contrast}
+                  </span>
+                )}
+                {qualityResult.checks.blur !== undefined && (
+                  <span className={qualityResult.checks.blur === 'pass' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                    Blur: {qualityResult.checks.blur}
+                  </span>
+                )}
               </div>
 
               {qualityResult.reasons.length > 0 && (

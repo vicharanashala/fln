@@ -1,11 +1,5 @@
-import { apiFetch } from '../services/apiClient';
-import React, { useState, useEffect } from 'react';
-import { User, UserRole, Student, ClassGroup, School, Worksheet, LogEntry, Ticket } from '../types';
-import { Users, BookOpen, Calendar, ArrowRight, SlidersHorizontal, Layers, Award, MapPin, School as SchoolIcon, BarChart3, FileText, Building2, BookMarked, Globe, Settings, Database, RefreshCw, Search, ChevronDown } from 'lucide-react';
-import { Table, Column } from './Table';
-import { MetricCard } from './Card';
-import { STATE_NAMES, DISTRICT_NAMES, BLOCK_NAMES } from '../constants';
-import { FLN_LEVELS_LIST, parseCSVText, LevelBadge } from './RoleDashboards';
+import React from 'react';
+import { User, UserRole } from '../types';
 import { usePanelData } from './panels/usePanelData';
 import { AdaptiveTestPanel } from './panels/AdaptiveTestPanel';
 import { TestHistoryPanel } from './panels/TestHistoryPanel';
@@ -28,6 +22,7 @@ import { DistrictsPanel } from './panels/DistrictsPanel';
 import { BlocksPanel } from './panels/BlocksPanel';
 import { AnalyticsPanel } from './panels/AnalyticsPanel';
 import { StudentProfilePanel } from './panels/StudentProfilePanel';
+import { QuestionBankPanel } from './panels/QuestionBankPanel';
 import { PageHeader } from './panels/PanelShared';
 import { CertificationReviewPanel } from './CertificationReviewPanel';
 
@@ -44,15 +39,6 @@ interface PanelViewsProps {
    */
   onSelectView?: (view: string) => void;
 }
-
-const CONTENT_ITEMS = [
-  { id: 'c1', title: 'Number Line 1-10', type: 'Visual Aid', level: 'L1-L4', language: 'English, Punjabi', status: 'Approved' },
-  { id: 'c2', title: 'Addition with Objects', type: 'Lesson Plan', level: 'L7-L12', language: 'English, Hindi', status: 'Approved' },
-  { id: 'c3', title: 'Place Value Chart', type: 'Poster', level: 'L24-L30', language: 'English, Punjabi', status: 'Draft' },
-  { id: 'c4', title: 'Multiplication Tables Song', type: 'Audio', level: 'L36-L41', language: 'English', status: 'Review' },
-  { id: 'c5', title: 'Fraction Pizza Activity', type: 'Worksheet', level: 'L45-L48', language: 'English, Hindi', status: 'Approved' },
-  { id: 'c6', title: 'Money Math Games', type: 'Activity', level: 'L46-L48', language: 'English', status: 'Draft' },
-];
 
 export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectView }) => {
   const {
@@ -98,12 +84,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
   if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) return <TeachersPanel schools={schools} teachersList={teachersList} currentUser={currentUser} />;
 
-  // Fix #446: Principal Students navigation (view='students') had no matching
-  // panel handler, so PanelViews returned null and rendered nothing.
-  // Reuse StudentListPanel — the same component used by teachers for
-  // 'student_list'. StudentListPanel already gates the Register/CSV-import
-  // actions behind isTeacherOrVolunteer, so the principal gets a read-only
-  // roster view without any code duplication.
+  // Fix #445/#446: Principal Students navigation (view='students') uses StudentListPanel,
+  // providing full student registration, CSV bulk import, and roster management.
   if (panel === 'students' && currentUser.role === UserRole.SCHOOL) {
     return (
       <StudentListPanel
@@ -134,6 +116,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'analytics') return <AnalyticsPanel currentUser={currentUser} schools={schools} students={students} getDistrictStats={getDistrictStats} getBlockStats={getBlockStats} />;
 
   if (panel === 'system_settings') return <SystemSettingsPanel />;
+  if (panel === 'question_bank') return <QuestionBankPanel currentUser={currentUser} token={token} />;
 
   // Admin-only Step-Up Aadhaar Reveal (see backend/src/routes/aadhaarDetokenize.ts).
   // The panel itself enforces role gating as a defence-in-depth; the menu

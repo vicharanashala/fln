@@ -245,7 +245,7 @@ export function registerAnalyticsRoutes(app: express.Express) {
           name: sch.name,
           stateCode: sch.stateCode,
           schoolType: sch.schoolType || 'Government',
-          performanceScore: schStudents > 0 ? Math.round((schStudents / 93) * 100) : 0,
+          performanceScore: schStudents > 0 ? Math.round((schStudents / 108) * 100) : 0,
           completionRate: 0,
           studentSatisfaction: 0,
           interviewSuccessRate: 0,

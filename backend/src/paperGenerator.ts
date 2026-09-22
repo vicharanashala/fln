@@ -162,7 +162,6 @@ export async function generateDiagnosticPaper({
     sections.forEach((sec: any, secIdx: number) => {
       if (Array.isArray(sec.items)) {
         sec.items.forEach((item: any, itemIdx: number) => {
-          console.log("******** PAPER GENERATOR EXECUTED ********");
           questions.push({
             question_id: `diag_q_${secIdx}_${itemIdx}`,
             question: item.question || `Question in section ${sec.section}`,

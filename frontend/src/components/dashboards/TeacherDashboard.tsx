@@ -2,16 +2,20 @@
 // 4. TEACHER DASHBOARD
 // ==========================================
 //this directory has been splitted from frontend/src/components/RoleDashboards.tsx for easy deployment
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiFetch, withBase } from '../../services/apiClient';
-import { User, Student, ClassGroup, School, DashboardProps } from '../../types';
+import { User, Student, School, DashboardProps } from '../../types';
 import { DiagnosticWorkflow } from '../DiagnosticWorkflow';
 import { BaselineUpload } from '../BaselineUpload';
 import { SkillGraphPanel } from '../SkillGraphPanel';
 import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
-import { TicketSubmission } from '../TicketSubmission';
+
 import { ClassSummaryBar } from './ClassSummaryBar';
+import { DashboardSkeleton } from '../ui/DashboardSkeleton';
+import { RosterSkeleton } from '../ui/RosterSkeleton';
+import { EmptyStateCard } from '../ui/EmptyStateCard';
+import { UsersRound } from 'lucide-react';
 
 
 interface TeacherDashboardProps extends DashboardProps {
@@ -23,15 +27,17 @@ interface TeacherDashboardProps extends DashboardProps {
 }
 
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token, onNavigate }) => {
-  const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   // Distinct from students.length === 0 (issue #294, same pattern as #292's
   // studentsLoading) — without it the welcome panel would flash on screen
   // for every teacher for a moment before their real roster loads in.
   const [studentsLoading, setStudentsLoading] = useState(true);
-  const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
+  // null = "All Students" tab; otherwise the exact classGroup string
+  // ("Class 1", "Class 2", etc.). Derived from the actual student roster
+  // rather than the ClassGroup table so a missing classGroup record never
+  // hides a child from view.
+  const [activeClassFilter, setActiveClassFilter] = useState<string | null>(null);
   const [school, setSchool] = useState<School | null>(null);
-  const [showAllStudents, setShowAllStudents] = useState(true);
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
   const [showSkillGraph, setShowSkillGraph] = useState(false);
@@ -69,20 +75,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
   };
 
   const fetchTeacherData = async () => {
+    setStudentsLoading(true);
     try {
-      const clsRes = await apiFetch('/api/classes', { headers: { 'Authorization': `Bearer ${token}` } });
-      const clsData = await clsRes.json();
-      if (Array.isArray(clsData)) {
-        // Defensive scope check (issue #291) — the backend is the source of
-        // truth for scoping, but a teacher's own class-tab bar should never
-        // render another school's classes even if a future backend change
-        // regresses.
-        const scoped = clsData.filter((c: ClassGroup) => c.schoolId === user.schoolId);
-        setClasses(scoped);
-        if (scoped.length > 0) setActiveClass(scoped[0]);
-      }
-
-      const stdRes = await apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
+      const stdRes = await apiFetch('/api/students?all=1', { headers: { 'Authorization': `Bearer ${token}` } });
       const stdData = await stdRes.json();
       if (Array.isArray(stdData)) setStudents(stdData);
 
@@ -126,6 +121,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
         onPlaced={() => fetchTeacherData()}
         onBack={() => setBaselineStudent(null)}
       />
+    );
+  }
+
+  if (studentsLoading) {
+    return (
+      <div className="space-y-6" id="teacher-dashboard">
+        <DashboardSkeleton metricCount={3} />
+        <RosterSkeleton columns={5} />
+      </div>
     );
   }
 
@@ -189,8 +193,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     );
   }
 
-  // Filter students under selected active class
-  const classStudents = showAllStudents ? students : (activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : []);
+  // Distinct classGroups present in this teacher's roster, with counts.
+  // Used to drive the class-tab bar above the student list. Sorting is
+  // alphabetical so Balvatika / Class 1 / Class 2 … line up predictably
+  // regardless of registration order. A classGroup with zero students
+  // never gets a tab — empty tabs were the source of the previous
+  // "missing students" confusion.
+  const distinctClasses = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of students) {
+      counts.set(s.classGroup, (counts.get(s.classGroup) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [students]);
+
+  // Filter students under selected active class tab (null = "All Students")
+  const classStudents = activeClassFilter === null
+    ? students
+    : students.filter(s => s.classGroup === activeClassFilter);
 
   return (
     <div className="space-y-6" id="teacher-dashboard">
@@ -228,27 +248,32 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
           is gone. */}
       <ClassSummaryBar students={students} token={token} teacherId={user.id} />
 
-      <TicketSubmission token={token} userRole={user.role} />
+      {/* Pedagogical & Process Feedback Tickets moved to the LHS sidebar
+          (Layout.tsx → 'Pedagogical & Process Feedback' → activePanel ===
+          'tickets'). It used to render here, which crowded the dashboard
+          and forced teachers to leave the roster to file a ticket. */}
 
-      {/* Class picker tabs */}
-      <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">
+      {/* Class picker tabs — derived from the actual students in `students`,
+       so a missing ClassGroup record can't hide a child from view. Counts
+       in each tab make it obvious when a class is unexpectedly empty. */}
+      <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px overflow-x-auto">
         <button
-          onClick={() => { setShowAllStudents(true); setActiveClass(null); }}
-          className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
-            showAllStudents ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+          onClick={() => setActiveClassFilter(null)}
+          className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all whitespace-nowrap ${
+            activeClassFilter === null ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
           }`}
         >
           All Students ({students.length})
         </button>
-        {classes.map(c => (
+        {distinctClasses.map(([classGroup, count]) => (
           <button
-            key={c.id}
-            onClick={() => { setShowAllStudents(false); setActiveClass(c); }}
-            className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
-              !showAllStudents && activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+            key={classGroup}
+            onClick={() => setActiveClassFilter(classGroup)}
+            className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all whitespace-nowrap ${
+              activeClassFilter === classGroup ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
           >
-            {c.className} - {c.section}
+            {classGroup} ({count})
           </button>
         ))}
       </div>
@@ -264,12 +289,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
           Interactive) remain because they are roster interactions, not
           operational tools. */}
 
-      {classStudents.length > 0 && (
+      {classStudents.length > 0 ? (
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b border-zinc-150 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
               <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">
-                {showAllStudents ? `All Students — School Roster (${classStudents.length})` : `Classroom Student Roster (${classStudents.length})`}
+                {activeClassFilter === null
+                  ? `All Students — School Roster (${classStudents.length})`
+                  : `${activeClassFilter} — Student Roster (${classStudents.length})`}
               </h3>
               {classStudents.some(s => s.levelHistory.length === 0) && (
                 <button
@@ -343,6 +370,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
             </div>
           </div>
         </div>
+      ) : (
+        <EmptyStateCard
+          illustration={<UsersRound className="h-6 w-6" />}
+          title="No students in this classroom"
+          description="This class does not have any registered students yet. Choose another class or return to the full school roster."
+          actions={showAllStudents ? [] : [{
+            label: 'View all students',
+            onClick: () => { setShowAllStudents(true); setActiveClass(null); },
+            variant: 'secondary',
+          }]}
+        />
       )}
       <SkillGraphPanel open={showSkillGraph} onClose={() => setShowSkillGraph(false)} />
     </div>

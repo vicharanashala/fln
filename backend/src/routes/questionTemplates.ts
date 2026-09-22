@@ -104,8 +104,16 @@ function validateTemplate(
       return `Unknown visual theme "${t}".`;
     }
   }
-  if (questionFamily === 'counting' && svgThemeIds.length === 0) {
-    return 'A counting question needs at least one visual theme, otherwise there is nothing for the child to count.';
+  // Extended 2026-09-19 alongside the new families: counting was the only
+  // family checked before, but shape/pattern/comparison/classification are
+  // exactly as visually-grounded -- a shape-tracing or pattern-extension
+  // item with no theme has nothing for the child to look at either.
+  // vocabulary/calendar/reasoning/sequencing can be legitimately text-only
+  // (e.g. a calendar-reading item can print its own calendar inline via the
+  // answer type rather than a theme asset), so they're not required here.
+  const VISUAL_FAMILIES: readonly string[] = ['counting', 'shape', 'pattern', 'comparison', 'classification'];
+  if (VISUAL_FAMILIES.includes(questionFamily) && svgThemeIds.length === 0) {
+    return `A ${questionFamily} question needs at least one visual theme, otherwise there is nothing for the child to look at.`;
   }
 
   if (name.length > MAX_NAME_CHARS) {
@@ -156,6 +164,14 @@ function buildTemplate(
     name: string;
     tags: string[];
     source: 'form' | 'csv';
+    /**
+     * Optional, defaults to 'written' -- matches every template authored
+     * before this field existed (2026-09-19). The authoring form/CSV
+     * importer don't collect this yet; that's a real follow-up (letting a
+     * Superadmin actually choose observed-only for a Balvatika item), not
+     * something to infer here. Explicit callers can already pass it.
+     */
+    assessmentMode?: 'written' | 'observed' | 'both';
   },
   user: { id: string; email: string },
   now: string
@@ -169,6 +185,7 @@ function buildTemplate(
     levelName: getLevel(concept.levelNumber)!.capability,
     skills: input.skills,
     subskills: input.subskills,
+    assessmentMode: input.assessmentMode ?? 'written',
     generationIntent: input.generationIntent.trim(),
     questionFamily: input.questionFamily,
     paramMode: 'structured',

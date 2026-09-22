@@ -8,6 +8,7 @@ import { PageHeader, EmptyStudents } from './PanelShared';
 import { Users } from 'lucide-react';
 import { apiFetch } from '../../services/apiClient';
 import { parseCSVText } from '../RoleDashboards';
+import { CertificatesPanel } from './CertificatesPanel';
 
 interface StudentListPanelProps {
   students: Student[];
@@ -24,7 +25,10 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
   token,
   refreshStudents,
 }) => {
-  const isTeacherOrVolunteer = currentUser.role === UserRole.TEACHER || currentUser.role === UserRole.VOLUNTEER;
+  const canAddOrImportStudents =
+    currentUser.role === UserRole.TEACHER ||
+    currentUser.role === UserRole.VOLUNTEER ||
+    currentUser.role === UserRole.SCHOOL;
 
   // Issue #173: class-wise subtabs instead of one flat mixed list. Derived
   // directly from the students already loaded (already scoped to this
@@ -44,6 +48,9 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
   const visibleStudents = activeTab === 'all'
     ? students
     : students.filter(s => `${s.classGroup}|${s.section}` === activeTab);
+  const visibleClassTabs = activeTab === 'all'
+    ? classTabs
+    : classTabs.filter(c => `${c.classGroup}|${c.section}` === activeTab);
 
   // Student registration states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -234,7 +241,7 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
           <PageHeader title="Student Roster" desc="Complete list of registered students across your classes" icon={<Users className="h-5 w-5" />} />
-          {isTeacherOrVolunteer && (
+          {canAddOrImportStudents && (
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => { setShowAddForm(!showAddForm); setShowCsvImport(false); setRegError(''); setRegSuccess(''); }}
@@ -501,6 +508,22 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
         )}
 
         <EmptyStudents students={visibleStudents} loading={studentsLoading} />
+
+        {!studentsLoading && isTeacherOrVolunteer && visibleClassTabs.map(c => {
+          const classStudents = students.filter(
+            student => student.classGroup === c.classGroup && student.section === c.section
+          );
+          return (
+            <CertificatesPanel
+              key={`${c.classGroup}|${c.section}`}
+              students={classStudents}
+              currentUser={currentUser}
+              variant="ranked"
+              rankingLimit={3}
+              rankingTitle={`Top 3 Students — ${c.classGroup} - ${c.section}`}
+            />
+          );
+        })}
       </div>
     </div>
   );

@@ -14,6 +14,8 @@ import { assignStudentToArchetype } from '../studentArchetypeService';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { directPrerequisites, describeConcept } from '../competencyPrerequisites';
 import { analyzeScanQuality } from '../scanQuality';
+import { calculateStandardAdvancement } from '../gradeLevelCalculator';
+import { calculateConceptMastery } from '../conceptMasteryCalculator';
 
 export function registerEvaluationRoutes(app: express.Express) {
 
@@ -301,9 +303,19 @@ export function registerEvaluationRoutes(app: express.Express) {
           '9. EMPTY / UNANSWERED — No writing at all → null. Smudge or stray mark only → "unclear".',
           '',
           '════════════════════════════════════',
-          'WHAT NOT TO CAPTURE',
+          'PRINTED QUESTION TEXT — capture this too',
           '════════════════════════════════════',
-          '- Any printed text: instructions, question numbers, option labels, example digits, ',
+          'For each row, also capture the printed question text exactly as written on the sheet',
+          '(the question/instruction the student was answering) — this is used ONLY to double-check',
+          'that the row was matched to the right question downstream; it does not replace the',
+          'system\'s own record of the question. Keep it short: the question sentence or prompt itself,',
+          'not surrounding decorative text. If a printed question number precedes it (e.g. "3."), you',
+          'may include it. Do not paraphrase or translate — transcribe the printed text as-is.',
+          '',
+          '════════════════════════════════════',
+          'WHAT NOT TO CAPTURE (besides the question text above)',
+          '════════════════════════════════════',
+          '- Page-level instructions/headers not tied to a specific row, option labels, example digits, ',
           '  decorative borders, school name, page numbers, class/grade labels.',
           '- Printed images or diagrams (reference them only to determine left vs right ',
           '  for a circled answer).',
@@ -316,8 +328,7 @@ export function registerEvaluationRoutes(app: express.Express) {
           '- One key per row: "row_1", "row_2", … "row_N" — continuous across all pages.',
           '',
           'Each row value is either:',
-          '- A string (one answer or comma-separated answers for multi-slot rows)',
-          '- null (row exists but student left it blank)',
+          '- An object: {"question": "<printed question text>", "answer": "<student\'s answer, or null if blank>"}',
           '- An object with an "error" key (row belongs to an unreadable page)',
           '',
           'Example (2-page sheet, page 2 unreadable):',
@@ -329,21 +340,22 @@ export function registerEvaluationRoutes(app: express.Express) {
           '      "page_2": "Unreadable — could not extract answers. Please check scan quality."',
           '    }',
           '  },',
-          '  "row_1": "7, null, 9",',
-          '  "row_2": ">",',
-          '  "row_3": "left",',
-          '  "row_4": "A→3, B→1, C→2",',
-          '  "row_5": "circle, square, circle",',
-          '  "row_6": "heart",',
-          '  "row_7": "unclear",',
-          '  "row_8": null,',
+          '  "row_1": {"question": "Fill in the boxes: 3 + 4 = __, 5 - 2 = __, 8 + 1 = __", "answer": "7, null, 9"},',
+          '  "row_2": {"question": "Compare: 12 __ 9", "answer": ">"},',
+          '  "row_3": {"question": "Circle the larger number.", "answer": "left"},',
+          '  "row_4": {"question": "Match the following.", "answer": "A→3, B→1, C→2"},',
+          '  "row_5": {"question": "Circle the shapes shown.", "answer": "circle, square, circle"},',
+          '  "row_6": {"question": "Draw the shape described.", "answer": "heart"},',
+          '  "row_7": {"question": "What is 9 + 6?", "answer": "unclear"},',
+          '  "row_8": {"question": "What is 15 - 8?", "answer": null},',
           '  "row_9": { "error": "Page unreadable — could not extract answer. Please check scan quality." },',
           '  "row_10": { "error": "Page unreadable — could not extract answer. Please check scan quality." }',
           '}',
           '',
           'Rules:',
           '- Output ONLY the JSON object. No prose, no markdown fences, no commentary.',
-          '- Preserve exactly what the student wrote. Do not compute, correct, or normalise.',
+          '- Preserve exactly what the student wrote. Do not compute, correct, or normalise the answer.',
+          '- Transcribe the question text as printed — do not paraphrase, translate, or solve it.',
           '- For LEFT/RIGHT answers, base the decision purely on horizontal position on that page.',
           '- If you cannot confidently read a character, output "unclear" — do not guess.',
           '- Never invent rows that do not exist on the physical sheet.',
@@ -388,14 +400,18 @@ export function registerEvaluationRoutes(app: express.Express) {
         const rawText = (ollamaJson && ollamaJson.message && ollamaJson.message.content)
           ? String(ollamaJson.message.content)
           : '';
-        // Parse the model's row_N schema (new prompt) — keep the existing
-                // flat `answers[]` shape stable for downstream consumers (the
-                // IcrTwoStageScan → IcrScanner pipeline reads answers[] by index).
-                // We derive flatAnswers from sorted row_N keys so row 1, row 2,
-                // ... row N come out in order, and skip rows whose value is an
-                // { error: ... } object (the model emits those for unreadable
-                // pages).
+        // Parse the model's row_N schema. Keep the existing flat `answers[]`
+                // shape stable for downstream consumers (the IcrTwoStageScan ->
+                // IcrScanner pipeline reads answers[] by index), and additionally
+                // derive a parallel `extractedQuestions[]` array (same index
+                // alignment) — the printed question text the model read next to
+                // each answer. This is NOT used to replace the system's own
+                // known question for that row; it exists purely so a caller can
+                // flag a mismatch if the model's row segmentation drifted (e.g.
+                // it skipped or merged a row), catching a misaligned answer
+                // before it reaches scoring.
                 let flatAnswers: string[] | null = null;
+                let extractedQuestions: string[] | null = null;
                 let parseError: string | null = null;
                 let pageErrors: Record<string, string> | null = null;
                 let meta: any = null;
@@ -417,16 +433,36 @@ export function registerEvaluationRoutes(app: express.Express) {
                         .filter(k => /^row_\d+$/.test(k))
                         .sort((a, b) => parseInt(a.slice(4), 10) - parseInt(b.slice(4), 10));
                       if (rowKeys.length > 0) {
-                        flatAnswers = rowKeys.map(k => {
+                        flatAnswers = [];
+                        extractedQuestions = [];
+                        rowKeys.forEach(k => {
                           const v = parsed[k];
-                          if (v === null || v === undefined) return '';
+                          if (v === null || v === undefined) {
+                            flatAnswers!.push('');
+                            extractedQuestions!.push('');
+                            return;
+                          }
                           if (typeof v === 'object' && v && 'error' in v) {
                             // Per-page error — emit a sentinel token so the verify
                             // UI can show it. Use the literal "unclear" so the
                             // existing post-processing handles it consistently.
-                            return 'unclear';
+                            flatAnswers!.push('unclear');
+                            extractedQuestions!.push('');
+                            return;
                           }
-                          return String(v);
+                          // New schema: {"question": "...", "answer": "..."}.
+                          // Fall back to treating the whole value as the answer
+                          // (old schema / model didn't follow the new format)
+                          // so a prompt regression degrades gracefully instead
+                          // of losing the row entirely.
+                          if (typeof v === 'object' && v && 'answer' in v) {
+                            const ans = v.answer;
+                            flatAnswers!.push(ans === null || ans === undefined ? '' : String(ans));
+                            extractedQuestions!.push(typeof v.question === 'string' ? v.question : '');
+                          } else {
+                            flatAnswers!.push(String(v));
+                            extractedQuestions!.push('');
+                          }
                         });
                       } else {
                         parseError = 'model output did not contain any row_N keys';
@@ -455,6 +491,11 @@ export function registerEvaluationRoutes(app: express.Express) {
                     mimeUsed,
                     // The cleaned, flat answer list — exactly what the verify UI consumes.
                     answers: flatAnswers || [],
+                    // Parallel array (same index alignment as `answers`) of the
+                    // printed question text the model read next to each answer.
+                    // For validation/mismatch-flagging against the system's own
+                    // known question for that row — never used to replace it.
+                    extractedQuestions: extractedQuestions || [],
                     // Keep raw text + tokens for the OCR analysis preview pane.
                     extractedText: rawText,
                     extractedTokens: tokens,
@@ -484,7 +525,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
   };
 
-  // Scan quality endpoint: analyzes scan metrics (resolution, brightness, contrast, blur, orientation)
+  // Scan quality endpoint: analyzes scan metrics (resolution, orientation)
   // before starting OCR extraction. Returns ScanQualityResult.
   app.post('/api/icr/check-quality', async (req, res) => {
     const user = getAuthUser(req);
@@ -722,7 +763,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { fileDataUrl, imageDataUrl, fileBase64, provider, pagesPerStudent } = req.body || {};
+    const { fileDataUrl, imageDataUrl, fileBase64, provider, pagesPerStudent, expectedCount } = req.body || {};
     const singleDataUrl = fileDataUrl || imageDataUrl || fileBase64;
     if (!singleDataUrl || typeof singleDataUrl !== 'string') {
       return res.status(400).json({ error: 'fileDataUrl / imageDataUrl / fileBase64 is required (data URL).' });
@@ -738,6 +779,19 @@ export function registerEvaluationRoutes(app: express.Express) {
     const pps = Number.isFinite(pagesPerStudent) && pagesPerStudent >= 1
       ? Math.min(Math.floor(pagesPerStudent), 20) // hard cap to avoid accidental 1000
       : 2;
+
+    // Optional: how many questions ONE student's paper has, applied uniformly
+    // to every chunk in this batch. A bulk scan is normally one class/level,
+    // so every student in it has the same-length paper — same assumption the
+    // single-scan flow's expectedCount already makes for one student. Without
+    // this, the model has no row-count guardrail on the bulk path and can
+    // over-segment (e.g. split a multi-part question into multiple rows),
+    // producing more rows than the student's real answer key has (#549-adjacent
+    // bug: the bulk endpoint never wired up the same guard the single-scan
+    // path has had since #234/PR #314).
+    const expectedCountPerStudent = (typeof expectedCount === 'number' && expectedCount > 0)
+      ? Math.floor(expectedCount)
+      : undefined;
 
     const apiKey = await getCloudKey(provider);
     if (!apiKey) {
@@ -820,7 +874,7 @@ export function registerEvaluationRoutes(app: express.Express) {
         // Reuse the existing single-image helper — it already handles
         // data:application/pdf → rasterize → Ollama → parse JSON for the
         // Ollama branch. No logic duplication.
-        r = await runCloudOcrOnImage(chunkDataUrl, provider, apiKey);
+        r = await runCloudOcrOnImage(chunkDataUrl, provider, apiKey, expectedCountPerStudent);
       } catch (e: any) {
         results.push({
           studentIndex: i,
@@ -967,25 +1021,29 @@ export function registerEvaluationRoutes(app: express.Express) {
 
     // Grade and generate AI narrative using Gemini AI
     const studentQuestions = ws.questions.filter(q => q.question_id.startsWith(student.id + '_'));
-    const evaluation = await evaluateAIWorksheet(student.name, student.currentLevel, studentQuestions, answers);
+    const evaluation = await evaluateAIWorksheet(
+      student.name,
+      studentQuestions,
+      answers,
+      student.currentLevel
+    );
 
-    // Determine subLevel based on question performance at the recommended level
-    let newSubLevel = 0; // default Mastery
-    const recLevel = evaluation.recommendedLevel;
-    const levelQs = studentQuestions.filter(q => q.source_level === recLevel);
-    if (levelQs.length > 0) {
-      let failedCount = 0;
-      levelQs.forEach(q => {
-        const submitted = (answers[q.question_id] || '').trim().toLowerCase();
-        const correct = q.answer.trim().toLowerCase();
-        if (submitted !== correct) failedCount++;
-      });
-      if (failedCount === levelQs.length) {
-        newSubLevel = 2; // Remedial
-      } else if (failedCount > 0) {
-        newSubLevel = 1; // Easier
-      }
-    }
+    const conceptMastery = calculateConceptMastery(
+      studentQuestions,
+      answers
+    );
+
+    const advancement = calculateStandardAdvancement(
+      student.currentLevel,
+      evaluation.total,
+      evaluation.score
+    );
+
+    const recommendedLevel = advancement.newLevel;
+    const newSubLevel = advancement.newSubLevel;
+
+
+
 
     // Save submission
     const submission: AnswerSubmission = {
@@ -1010,9 +1068,9 @@ export function registerEvaluationRoutes(app: express.Express) {
       worksheetId,
       score: evaluation.score,
       totalQuestions: studentQuestions.length,
-      conceptMastery: evaluation.conceptMastery,
+      conceptMastery: conceptMastery,
       narrative: evaluation.narrative,
-      recommendedLevel: evaluation.recommendedLevel,
+      recommendedLevel: recommendedLevel,
       recommendedSubLevel: newSubLevel,
       timestamp: now.toISOString(),
       // Issue #180: per-question breakdown so a teacher can later correct
@@ -1038,9 +1096,9 @@ export function registerEvaluationRoutes(app: express.Express) {
 
     // If correct, update student levels
     const levelHistory = [...student.levelHistory];
-    if (evaluation.recommendedLevel !== student.currentLevel || newSubLevel !== (student.currentSubLevel || 0)) {
+    if (recommendedLevel !== student.currentLevel || newSubLevel !== (student.currentSubLevel || 0)) {
       levelHistory.push({
-        level: evaluation.recommendedLevel,
+        level: recommendedLevel,
         subLevel: newSubLevel,
         date: now.toISOString().split('T')[0],
         reason: ws.cycle // already one of CYCLE_NAMES
@@ -1048,10 +1106,10 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
 
     await dbStore.updateStudent(student.id, {
-      currentLevel: evaluation.recommendedLevel,
+      currentLevel: recommendedLevel,
       currentSubLevel: newSubLevel,
       // Capped at 59, not 93: worksheet generation still throws UnknownLevelError above 59.
-      targetLevel: Math.min(59, evaluation.recommendedLevel + 1),
+      targetLevel: Math.min(59, recommendedLevel + 1),
       levelHistory
     });
 
@@ -1117,16 +1175,16 @@ export function registerEvaluationRoutes(app: express.Express) {
       i => i.studentId === studentId && i.status === 'active' && !i.outcome
     );
     for (const intv of activeInterventions) {
-      const improved = evaluation.recommendedLevel > intv.currentLevel;
+      const improved = recommendedLevel > intv.currentLevel;
       await dbStore.updateIntervention(intv.id, {
         status: 'completed',
         endDate: now.toISOString().split('T')[0],
         outcome: {
           improved,
           previousLevel: intv.currentLevel,
-          newLevel: evaluation.recommendedLevel,
+          newLevel: recommendedLevel,
           improvementDetails: improved
-            ? `Auto-detected: Student improved from Level ${intv.currentLevel} to Level ${evaluation.recommendedLevel} after intervention targeting ${intv.weakCompetencies.join(', ')}.`
+            ? `Auto-detected: Student improved from Level ${intv.currentLevel} to Level ${recommendedLevel} after intervention targeting ${intv.weakCompetencies.join(', ')}.`
             : `Auto-detected: Student remained at Level ${intv.currentLevel} after intervention. Further remediation may be needed.`,
           assessmentId: report.id,
           detectedAt: now.toISOString()

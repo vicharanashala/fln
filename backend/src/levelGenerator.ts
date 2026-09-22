@@ -7,7 +7,9 @@ function randomVal(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Programmatic math builder for all 93 levels and 3 sub-levels
+// Programmatic math builder — fallback for any level not in CURRICULUM_MAPPING (all
+// current levels are mapped, so this switch is legacy/dead code for the live registry;
+// see the CURRICULUM_MAPPING[level] short-circuit below).
 export function generateQuestionsForLevel(level: number, subLevel: number): Question[] {
   // If the level is mapped in our concept registry, use concept-driven generation
   if (CURRICULUM_MAPPING[level]) {

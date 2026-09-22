@@ -23,6 +23,8 @@
 
 This is a genuine count from decomposing the research, not a target to hit — it's organized by cognitive dependency within 10 strand-chains (see Part 2), not by an arbitrary sequential number, so it isn't directly comparable 1:1 to the repo's 59. **This count is not fixed and isn't expected to stay fixed** — it grew from 77→85 during the framework's own review rounds, and from 85→93 on 2026-07-19 after the repo comparison surfaced a genuine missing shape-composition sub-strand (Stage 2/3/4, +3 nodes) and four uncited-but-standard Class-4 topics plus the resolved Perimeter/Area gap (Stage 7, +5 nodes) — see the **Appendix: How These Documents Were Built** for the full history, and `fln_framework_evolution_log.md` for the repo-comparison reasoning specifically. Treat every count in this document as current-as-of-its-last-edit, not permanent.
 
+**2026-09-17: the year before Class 1 is being finalised as its own stage**, the first of a stage-by-stage build that stops at Class 3. The table above does not include those changes yet: 15 proposed new nodes, 4 nodes moving into this stage and 2 widened definitions. They are recorded in **Part 2b** and in `fln_year_before_class1.md`, and join the chain tables once the dev team registers the new ids.
+
 **Note on Part 3's worked diagnostic example, below:** it predates the 2026-07-19 Stage 2/3 additions and has not yet been recomputed to include the new nodes (S2.10, S3.10) — flagged at the point it appears rather than silently left inconsistent.
 
 ---
@@ -235,6 +237,52 @@ Backward inference within this chain works across every stage boundary — a sam
 | Chain B (counting, matching stage) | S6.14 | → | Needed to read a tally/bar value |
 | Chain A (classification) | S6.14 | → | Needed to sort into categories in the first place |
 | S6.14 | S7.13 (Bar graphs, reading/interpreting) | ⇢ | *(demoted → to ⇢ on 2026-08-21: typed as a hard prerequisite with no recorded rationale; the code's softer typing was adopted — see `fln_L_to_S_crosswalk.md` §5.2)* |
+
+
+### Part 2b — Proposed edges for the year before Class 1 (2026-09-17, not yet in code)
+
+**Full reasoning:** `fln_year_before_class1.md` §5. That covers the NCF-FS age 5–6 outcomes, the move/split decisions, the evidence for each edge, and the stage graph.
+
+**Why these rows are here and not in the chain tables:**
+- The new S-codes (S3.11–S3.25) are not registered in `curriculumMap.ts` yet.
+- `validateConceptPrerequisites()` rejects unknown ids.
+- Once the ids exist, move each row into its chain table and regenerate `competencyPrerequisites.ts`.
+
+**Structural changes, alongside the edges:**
+- **Moved to the year-before-Class-1 stage (stage label only, S-code kept):** S4.12 Zero, S4.13 Ordinal positions, S5.13 Spatial vocabulary, S5.9 Currency recognition.
+- **Delete** the S5.12 ⇢ S5.13 row in Chain D. Once S5.13 moves, it would point from Class 2 back into the earlier stage.
+- **Definitions widened:** S1.6 (match shapes of different sizes and orientations), S2.9 (recognise up to 6 at a glance).
+
+| Source | Target | Type | Chain | Note |
+|---|---|---|---|---|
+| S1.4 (Rote counting to 10) | S3.11 (Says number names to 20) — new | → | B | NCF-FS C-8.3 trajectory |
+| S3.11 | S4.3 (Counting objects to 20) | → | B | Can't count 20 objects without the names to 20 |
+| S2.4 (Counting to 5, cardinality) | S3.12 (Counts in any order) — new | → | B | Gelman & Gallistel (1978) order-irrelevance principle; NCF-FS C-8.3 |
+| S3.1 (Numeral recognition) | S3.13 (Writes numerals to 9) — new | → | B | NCF-FS C-8.5 |
+| S3.13 | S4.4 (Read/write to 99) | → | B | Strict superset |
+| S2.5 (Counting 6–10) | S3.14 (Puts two groups together ≤ 9, recounts) — new | → | C | NCF-FS C-8.6 |
+| S3.14 | S4.6 (Addition to 9) | → | C | NCF-FS C-8.6 (objects → facts) |
+| S2.5 | S3.15 (Takes away ≤ 9, recounts) — new | → | C | NCF-FS C-8.6 |
+| S3.15 | S4.7 (Subtraction to 9) | → | C | NCF-FS C-8.6 |
+| S3.15 | S4.12 (Zero) | ⇢ | B | NCF-FS introduces zero through taking away, but it doesn't gate zero-as-none |
+| S2.5 | S3.16 (Makes groups, counts objects and groups) — new | → | C | NCF-FS C-8.7 |
+| S3.16 | S5.6 (Multiplication, repeated addition) | → | C | NCF-FS C-8.7 |
+| S1.1 (One-to-one) | S3.17 (Shares ≤ 20 equally among 4–5) — new | → | C | Frydman & Bryant (1988): sharing by one-to-one dealing |
+| S2.1 (Quantity comparison) | S3.17 | ⇢ | C | Frydman & Bryant: children share without linking it to equal numbers, so sequence only |
+| S3.17 | S5.7 (Division, equal sharing) | → | C | NCF-FS C-8.7. S5.7 previously had no incoming edge. |
+| S3.8 (Patterns 2/3-item) | S3.18 (Creates a new pattern) — new | → | F | NCF-FS C-8.2 |
+| S3.8 | S3.19 (Describes the rule of a repeating pattern) — new | → | F | NCF-FS C-8.2 |
+| S3.19 | S6.13 (Pattern rules) | ⇢ | F | Different modality; same reasoning as S4.11 ⇢ S5.16 |
+| S2.6 (Shape identification) | S3.20 (Describes solids in own words) — new | → | D | Van Hiele Level 0 → 1, as S2.6 → S4.8 |
+| S3.20 | S4.8 (3D shape properties) | → | D | Formal property names imply informal description |
+| S2.6 | S3.21 (Traces faces of 3D objects) — new | → | D | Naming the traced shape needs identification; NCF-FS C-8.8 |
+| S3.20 | S3.21 | ⇢ | D | Tracing doesn't require describing |
+| S3.21 | S6.9 (Relating 2D to 3D) | → | D | NCF-FS C-8.8 |
+| S2.6 | S3.22 (Draws 2D shapes freehand) — new | → | D | Drawing a named shape needs identification |
+| S2.8 (Comparative vocab, informal) | S3.23 (Compares capacity of two vessels) — new | ⇢ | E | NCF-FS C-8.9; ⇢ follows the 2026-08-21 demotion of S2.8 → S3.7 |
+| S3.23 | S4.10 (Capacity estimation) | → | E | Estimating implies comparing |
+| S3.24 (Names days of the week and months) — new | S5.14 (Calendar reading) | → | H | NCF-FS C-8.10. S5.14 previously had no incoming edge; S3.24 is an entry node. |
+| S3.2 (Numeral–quantity) | S3.25 (Solves simple number riddles/puzzles) — new | ⇢ | B | NCF-FS C-8.13; riddles are oral, so sequence only |
 
 ---
 
@@ -480,3 +528,20 @@ Same trigger as the companion framework document's own Round 4 (see its appendix
 - **Chain B gained S7.15 (Decimals)**, a prereq off the thousands-place-value node (S7.1).
 - **Total node count: 85 → 93.** Not treated as a new fixed number — see the note at the top of Part 1.
 - **Not yet done, flagged rather than silently skipped:** Part 3's worked Stage-3 diagnostic blueprint (24 items, tier counts 12/8/4) predates the Stage-2/3 shape-composition additions (S2.10, S3.10) and has not been recomputed to include them. Whoever picks this up next should treat that blueprint as stale until it's redone, not as still-authoritative.
+
+### Round 5 — the year before Class 1, finalised against NCF-FS (2026-09-17)
+
+**Trigger:** a decision to build stage by stage (MVP stops at Class 3), starting with the year before Class 1. The Stage-3 levels had been built mainly from NIPUN Bharat's Balvatika targets. Reading NCF-FS 2022's own age 5–6 learning outcomes (Annexure 1, Tables 29–41, column C) showed they go further.
+
+**What the comparison found:**
+- All six NIPUN targets were already covered.
+- 15 NCF-FS outcomes sat in Class 1–3 nodes.
+- 5 had no node.
+
+**What changed:**
+- **Proposed:** 4 later-stage nodes move to this stage, 11 early nodes split off later ones, 4 new nodes are added and 2 definitions are widened.
+- **Prerequisites checked against sources before being written.** Gelman & Gallistel (1978) and Frydman & Bryant (1988) were confirmed, and the check changed two proposed edges:
+  - Frydman & Bryant show children share by dealing *without* linking it to equal numbers, so S2.1 → S3.17 was downgraded to sequence.
+  - S3.15 → S4.12 and S3.19 → S6.13 were downgraded to sequence on the surmise test.
+- The edges sit in Part 2b until the new ids are registered in code. Full record in `fln_year_before_class1.md`.
+

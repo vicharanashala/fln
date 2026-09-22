@@ -263,6 +263,13 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   // pages) can both be scanned without code changes.
   const [scanMode, setScanMode] = useState<'single' | 'bulk'>('single');
   const [pagesPerStudent, setPagesPerStudent] = useState<number>(2);
+  // How many questions ONE student's paper has, applied uniformly to every
+  // chunk in the bulk batch (a batch is normally one class/level, so every
+  // student's paper is the same length). Optional — undefined means no
+  // guardrail is sent and the model free-segments rows, same as before this
+  // field existed. Empty string, not 0, is the "unset" UI state so the field
+  // can be genuinely blank rather than forcing a 0 that gets coerced away.
+  const [bulkExpectedCount, setBulkExpectedCount] = useState<string>('');
   // Result of the latest /api/icr/evaluate-bulk call. One entry per student
   // chunk (pageFrom..pageTo) with the OCR'd answers + extracted student name.
   const [bulkChunkResults, setBulkChunkResults] = useState<BulkChunkResult[] | null>(null);
@@ -1419,6 +1426,35 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
               </div>
             )}
 
+            {/* Bulk-only: tell the model exactly how many questions ONE
+                student's paper has, so it stops free-segmenting rows.
+                Without this the model can over/under-count rows (e.g.
+                splitting one multi-part question into two), which then
+                fails to match the student's real answer key at submit
+                time. Optional — leave blank to skip the guard. */}
+            {scanMode === 'bulk' && (
+              <div>
+                <label className="block text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1.5">
+                  Expected Questions Per Student (optional)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={bulkExpectedCount}
+                    onChange={(e) => setBulkExpectedCount(e.target.value)}
+                    placeholder="e.g. 10"
+                    className="w-24 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-zinc-900 dark:text-white focus:border-zinc-500 outline-none"
+                  />
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono leading-relaxed">
+                    How many questions ONE student's paper has (all students in this batch
+                    must have the same-length paper). Leave blank to skip this check.
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Answer Sheet Upload — hidden in bulk mode because BulkIcrScan
                 owns its own upload UX (the bulk flow is upload-then-run, not
                 upload-then-pick-student). The single-sheet flow keeps the
@@ -1484,6 +1520,10 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                   token={token}
                   uploadedFile={uploadedFile}
                   pagesPerStudent={pagesPerStudent}
+                  expectedCount={(() => {
+                    const n = parseInt(bulkExpectedCount, 10);
+                    return Number.isFinite(n) && n > 0 ? n : undefined;
+                  })()}
                   onBulkOcrSuccess={handleBulkOcrSuccess}
                 />
               </div>

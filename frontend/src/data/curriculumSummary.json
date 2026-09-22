@@ -1,0 +1,177 @@
+{
+  "totalConcepts": 109,
+  "totalStages": 7,
+  "totalStrands": 10,
+  "ageMin": 3,
+  "ageMax": 10,
+  "maxCellCount": 9,
+  "stages": [
+    {
+      "stage": 1,
+      "ageLabel": "3–4",
+      "count": 8
+    },
+    {
+      "stage": 2,
+      "ageLabel": "4–5",
+      "count": 10
+    },
+    {
+      "stage": 3,
+      "ageLabel": "5–6",
+      "count": 28
+    },
+    {
+      "stage": 4,
+      "ageLabel": "6–7",
+      "count": 14
+    },
+    {
+      "stage": 5,
+      "ageLabel": "7–8",
+      "count": 17
+    },
+    {
+      "stage": 6,
+      "ageLabel": "8–9",
+      "count": 14
+    },
+    {
+      "stage": 7,
+      "ageLabel": "9–10",
+      "count": 18
+    }
+  ],
+  "matrix": [
+    {
+      "strand": "Pre-Number Foundations",
+      "counts": [
+        4,
+        3,
+        3,
+        0,
+        0,
+        0,
+        0
+      ],
+      "total": 10
+    },
+    {
+      "strand": "Number Sense",
+      "counts": [
+        3,
+        3,
+        9,
+        6,
+        5,
+        4,
+        3
+      ],
+      "total": 33
+    },
+    {
+      "strand": "Shapes & Spatial",
+      "counts": [
+        1,
+        2,
+        5,
+        3,
+        1,
+        1,
+        3
+      ],
+      "total": 16
+    },
+    {
+      "strand": "Measurement",
+      "counts": [
+        0,
+        1,
+        2,
+        2,
+        1,
+        1,
+        3
+      ],
+      "total": 10
+    },
+    {
+      "strand": "Patterns",
+      "counts": [
+        0,
+        1,
+        3,
+        1,
+        2,
+        1,
+        1
+      ],
+      "total": 9
+    },
+    {
+      "strand": "Number Operations",
+      "counts": [
+        0,
+        0,
+        4,
+        2,
+        5,
+        3,
+        4
+      ],
+      "total": 18
+    },
+    {
+      "strand": "Calendar & Time",
+      "counts": [
+        0,
+        0,
+        1,
+        0,
+        1,
+        1,
+        1
+      ],
+      "total": 4
+    },
+    {
+      "strand": "Money",
+      "counts": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        1
+      ],
+      "total": 3
+    },
+    {
+      "strand": "Data Handling",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+      ],
+      "total": 3
+    },
+    {
+      "strand": "Fractions",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+      ],
+      "total": 3
+    }
+  ]
+}
