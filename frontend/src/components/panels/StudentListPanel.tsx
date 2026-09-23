@@ -29,6 +29,8 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
     currentUser.role === UserRole.TEACHER ||
     currentUser.role === UserRole.VOLUNTEER ||
     currentUser.role === UserRole.SCHOOL;
+  const isTeacherOrVolunteer =
+    currentUser.role === UserRole.TEACHER || currentUser.role === UserRole.VOLUNTEER;
 
   // Issue #173: class-wise subtabs instead of one flat mixed list. Derived
   // directly from the students already loaded (already scoped to this

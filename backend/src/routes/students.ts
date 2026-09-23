@@ -14,6 +14,7 @@ import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
 import { ensurePracticeSchedulesForWeakCompetencies, reconcilePracticeSchedulesWithDiagnostic } from '../services/practiceScheduleService';
 import { tokenizeAadhaar, formatAadhaarMask, AadhaarVaultTokenizeResult } from '../aadhaarVault';
+import { generateStudentId } from '../idGenerator';
 
 // ─── Response hygiene (Phase 2 hardening) ───────────────────────────────────
 // Vault references are internal-only: MongoDB and the internal Student model
@@ -456,7 +457,7 @@ export function registerStudentRoutes(app: express.Express) {
     }
 
     const newStudent: Student = {
-      id: 'STD_' + Math.floor(10000 + Math.random() * 90000),
+      id: generateStudentId(),
       displayId,
       name: String(name).trim(),
       age,

@@ -15,7 +15,6 @@ import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { directPrerequisites, describeConcept } from '../competencyPrerequisites';
 import { analyzeScanQuality } from '../scanQuality';
 import { calculateStandardAdvancement } from '../gradeLevelCalculator';
-import { calculateConceptMastery } from '../conceptMasteryCalculator';
 
 export function registerEvaluationRoutes(app: express.Express) {
 
@@ -1028,11 +1027,6 @@ export function registerEvaluationRoutes(app: express.Express) {
       student.currentLevel
     );
 
-    const conceptMastery = calculateConceptMastery(
-      studentQuestions,
-      answers
-    );
-
     const advancement = calculateStandardAdvancement(
       student.currentLevel,
       evaluation.total,
@@ -1068,7 +1062,7 @@ export function registerEvaluationRoutes(app: express.Express) {
       worksheetId,
       score: evaluation.score,
       totalQuestions: studentQuestions.length,
-      conceptMastery: conceptMastery,
+      conceptMastery: evaluation.conceptMastery,
       narrative: evaluation.narrative,
       recommendedLevel: recommendedLevel,
       recommendedSubLevel: newSubLevel,

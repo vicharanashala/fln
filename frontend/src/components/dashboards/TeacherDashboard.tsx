@@ -97,6 +97,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     fetchTeacherData();
   }, [token]);
 
+  // Distinct classGroups present in this teacher's roster, with counts.
+  // Used to drive the class-tab bar above the student list. Sorting is
+  // alphabetical so Balvatika / Class 1 / Class 2 … line up predictably
+  // regardless of registration order. A classGroup with zero students
+  // never gets a tab — empty tabs were the source of the previous
+  // "missing students" confusion.
+  //
+  // Kept above the early returns below — a hook can't run conditionally,
+  // and studentsLoading/diagnosticStudent/baselineStudent/empty-roster all
+  // return early before this point on some renders.
+  const distinctClasses = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of students) {
+      counts.set(s.classGroup, (counts.get(s.classGroup) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [students]);
+
   if (diagnosticStudent) {
     return (
       <DiagnosticWorkflow
@@ -192,20 +210,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
       </div>
     );
   }
-
-  // Distinct classGroups present in this teacher's roster, with counts.
-  // Used to drive the class-tab bar above the student list. Sorting is
-  // alphabetical so Balvatika / Class 1 / Class 2 … line up predictably
-  // regardless of registration order. A classGroup with zero students
-  // never gets a tab — empty tabs were the source of the previous
-  // "missing students" confusion.
-  const distinctClasses = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const s of students) {
-      counts.set(s.classGroup, (counts.get(s.classGroup) ?? 0) + 1);
-    }
-    return Array.from(counts.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [students]);
 
   // Filter students under selected active class tab (null = "All Students")
   const classStudents = activeClassFilter === null
@@ -375,9 +379,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
           illustration={<UsersRound className="h-6 w-6" />}
           title="No students in this classroom"
           description="This class does not have any registered students yet. Choose another class or return to the full school roster."
-          actions={showAllStudents ? [] : [{
+          actions={activeClassFilter === null ? [] : [{
             label: 'View all students',
-            onClick: () => { setShowAllStudents(true); setActiveClass(null); },
+            onClick: () => setActiveClassFilter(null),
             variant: 'secondary',
           }]}
         />
