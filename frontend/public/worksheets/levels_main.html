@@ -1589,19 +1589,25 @@ GENERATORS['tens-units-match'] = (p,subIdx,qc,sid,sname) => {
 /* ---- 25.2: Abacus, write the number ---- */
 GENERATORS['abacus-tens-ones'] = (p,subIdx,qc,sid,sname) => {
   const min = p.min||10, max = p.max||50;
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
+  const pool = max - min + 1;
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
+  let nums=[]; while(nums.length<n){ const x=ri(min,max); if(!nums.includes(x)) nums.push(x); }
   let cellsHtml=[], answers=[];
-  for(let i=0;i<n;i++){
+  nums.forEach((num,i)=>{
     const qid=qidOf(qc);
-    const num = ri(min,max);
     const tens=Math.floor(num/10), ones=num%10;
     cellsHtml.push(`<div style="text-align:center;">
       ${abacusHtml(tens,ones,130)}
       <div style="margin-top:6px;"><span class="ans-box" data-omr="${qid}-num" style="width:50px;height:32px;font-size:16px;"></span></div>
     </div>`);
     answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',num,'number written in box below the abacus',ICR_DETECT_MAP['fill-blank']));
-  }
-  return {html:`<p class="instr">Write the remaining numbers.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">${cellsHtml.join('')}</div>`, answers};
+  });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different numbers in this set.</p>`
+    : '';
+  return {html:`<p class="instr">Write the remaining numbers.</p>${cappedNote}<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">${cellsHtml.join('')}</div>`, answers};
 };
 
 /* ---- 14. Number tracing / range writing (Level 13A,19,24) ---- */
@@ -2185,16 +2191,22 @@ GENERATORS['fraction-complete-whole'] = (p,subIdx,qc,sid,sname) => {
 };
 
 GENERATORS['fraction-colour-target'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
   const bank = p.fractions || FRACTION_BANK.filter(f=>f.den<=4);
+  const n = Math.min(requestedN, bank.length);
+  const wasCapped = requestedN > bank.length;
+  const usedFractions = new Set();
+  let picks = []; while (picks.length < n) { const f = pick(bank); const key = f.num+'/'+f.den; if (usedFractions.has(key)) continue; usedFractions.add(key); picks.push(f); }
   let rows='', answers=[];
-  for(let i=0;i<n;i++){
+  picks.forEach((f,i)=>{
     const qid=qidOf(qc);
-    const f = pick(bank);
     rows += `<div class="q-row"><span class="q-num">${i+1}.</span>${fractionCompleteSVG(f.den, 0, qid, 90)}<span style="margin-left:10px;">Colour ${fracText(f.num,f.den)} of the shape.</span></div>`;
     answers.push(makeAnsItem(qid,sid,sname,i+1,'draw-count',{den:f.den,num:f.num},`${f.num} out of ${f.den} part(s) coloured/shaded`,ICR_DETECT_MAP['draw-count']));
-  }
-  return {html:`<p class="instr">Colour the fraction shown.</p><div class="q-list">${rows}</div>`, answers};
+  });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${bank.length} different fractions in this set.</p>`
+    : '';
+  return {html:`<p class="instr">Colour the fraction shown.</p>${cappedNote}<div class="q-list">${rows}</div>`, answers};
 };
 
 GENERATORS['fraction-target-choice'] = (p,subIdx,qc,sid,sname) => {
@@ -3209,15 +3221,21 @@ GENERATORS['decimal-tenths-visual-write'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- 55.2 Section B: Shade the decimal on a tenths strip ---- */
 GENERATORS['decimal-shade-strip'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
+  const pool = 9; // 1-9 -- the only values ri(1,9) can ever produce
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
+  let shadedVals=[]; while(shadedVals.length<n){ const x=ri(1,9); if(!shadedVals.includes(x)) shadedVals.push(x); }
   let rows='', answers=[];
-  for(let i=0;i<n;i++){
+  shadedVals.forEach((shaded,i)=>{
     const qid=qidOf(qc);
-    const shaded = ri(1,9);
     rows += `<div class="q-row" style="gap:14px;"><span class="q-num">${i+1}.</span><b style="font-size:17px;">Shade: 0.${shaded}</b>${decimalStripBlankSVG(qid,10,170,32)}</div>`;
     answers.push(makeAnsItem(qid,sid,sname,i+1,'draw-count',{shaded,total:10},`${shaded} out of 10 segments shaded to match the decimal`,ICR_DETECT_MAP['draw-count']));
-  }
-  return {html:`<p class="instr">Shade the strip to match each decimal.</p><div class="q-list">${rows}</div>`, answers};
+  });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different decimals in this set.</p>`
+    : '';
+  return {html:`<p class="instr">Shade the strip to match each decimal.</p>${cappedNote}<div class="q-list">${rows}</div>`, answers};
 };
 
 /* ---- 55.2 Section C: Match tenths picture to decimal ---- */
@@ -3329,27 +3347,45 @@ function gridSquaresShadedSVG(rows, cols, unitPx){
 
 /* ---- 56 Section A: Find the Perimeter (rectangle + square mix) ---- */
 GENERATORS['perimeter-shapes-find'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
   const rectRatio = p.rectRatio !== undefined ? p.rectRatio : 0.6;
   const lenRange = p.lenRange || [5,12];
   const widRange = p.widRange || [3,9];
   const sideRange = p.sideRange || [4,10];
   const unitPx = p.unitPx || 18;
-  let rows='', answers=[];
-  for(let i=0;i<n;i++){
-    const qid=qidOf(qc);
+  // Two disjoint key spaces (rectangle len x wid, square side) — the pool is
+  // their combined size, not either one alone.
+  const pool = (lenRange[1]-lenRange[0]+1)*(widRange[1]-widRange[0]+1) + (sideRange[1]-sideRange[0]+1);
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
+  const usedShapes = new Set();
+  let shapes = [];
+  while (shapes.length < n) {
     const isRect = Math.random() < rectRatio;
-    let svg, correct, label;
-    if(isRect){
+    let shape;
+    if (isRect) {
       const len=ri(lenRange[0],lenRange[1]), wid=ri(widRange[0],widRange[1]);
-      svg = rectDiagramSVG(len,wid,unitPx,false);
-      correct = 2*(len+wid);
-      label = `Rectangle: Length = ${len} cm, Width = ${wid} cm`;
+      shape = { isRect: true, len, wid, key: `R:${len}x${wid}` };
     } else {
       const side=ri(sideRange[0],sideRange[1]);
-      svg = squareDiagramSVG(side,unitPx,false);
-      correct = 4*side;
-      label = `Square: Side = ${side} cm`;
+      shape = { isRect: false, side, key: `S:${side}` };
+    }
+    if (usedShapes.has(shape.key)) continue;
+    usedShapes.add(shape.key);
+    shapes.push(shape);
+  }
+  let rows='', answers=[];
+  shapes.forEach((shape,i)=>{
+    const qid=qidOf(qc);
+    let svg, correct, label;
+    if(shape.isRect){
+      svg = rectDiagramSVG(shape.len,shape.wid,unitPx,false);
+      correct = 2*(shape.len+shape.wid);
+      label = `Rectangle: Length = ${shape.len} cm, Width = ${shape.wid} cm`;
+    } else {
+      svg = squareDiagramSVG(shape.side,unitPx,false);
+      correct = 4*shape.side;
+      label = `Square: Side = ${shape.side} cm`;
     }
     rows += `<div class="q-row" style="flex-direction:column;align-items:flex-start;gap:6px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:10px;">
       <span class="q-num">${i+1}.</span>
@@ -3358,33 +3394,52 @@ GENERATORS['perimeter-shapes-find'] = (p,subIdx,qc,sid,sname) => {
       <div>Perimeter = <span class="ans-box wide" data-omr="${qid}-ans"></span> cm</div>
     </div>`;
     answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',correct,'perimeter written in box (cm)',ICR_DETECT_MAP['fill-blank']));
-  }
-  return {html:`<p class="instr">Find the perimeter of each shape.</p><div>${rows}</div>`, answers};
+  });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different shapes in this set.</p>`
+    : '';
+  return {html:`<p class="instr">Find the perimeter of each shape.</p>${cappedNote}<div>${rows}</div>`, answers};
 };
 
 /* ---- 56 Section B: Find the Area (rectangle + square mix) ---- */
 GENERATORS['area-shapes-find'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
   const rectRatio = p.rectRatio !== undefined ? p.rectRatio : 0.6;
   const lenRange = p.lenRange || [5,9];
   const widRange = p.widRange || [3,7];
   const sideRange = p.sideRange || [4,8];
   const unitPx = p.unitPx || 18;
-  let rows='', answers=[];
-  for(let i=0;i<n;i++){
-    const qid=qidOf(qc);
+  const pool = (lenRange[1]-lenRange[0]+1)*(widRange[1]-widRange[0]+1) + (sideRange[1]-sideRange[0]+1);
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
+  const usedShapes = new Set();
+  let shapes = [];
+  while (shapes.length < n) {
     const isRect = Math.random() < rectRatio;
-    let svg, correct, label;
-    if(isRect){
+    let shape;
+    if (isRect) {
       const len=ri(lenRange[0],lenRange[1]), wid=ri(widRange[0],widRange[1]);
-      svg = rectDiagramSVG(len,wid,unitPx,false);
-      correct = len*wid;
-      label = `Rectangle: Length = ${len} cm, Width = ${wid} cm`;
+      shape = { isRect: true, len, wid, key: `R:${len}x${wid}` };
     } else {
       const side=ri(sideRange[0],sideRange[1]);
-      svg = squareDiagramSVG(side,unitPx,false);
-      correct = side*side;
-      label = `Square: Side = ${side} cm`;
+      shape = { isRect: false, side, key: `S:${side}` };
+    }
+    if (usedShapes.has(shape.key)) continue;
+    usedShapes.add(shape.key);
+    shapes.push(shape);
+  }
+  let rows='', answers=[];
+  shapes.forEach((shape,i)=>{
+    const qid=qidOf(qc);
+    let svg, correct, label;
+    if(shape.isRect){
+      svg = rectDiagramSVG(shape.len,shape.wid,unitPx,false);
+      correct = shape.len*shape.wid;
+      label = `Rectangle: Length = ${shape.len} cm, Width = ${shape.wid} cm`;
+    } else {
+      svg = squareDiagramSVG(shape.side,unitPx,false);
+      correct = shape.side*shape.side;
+      label = `Square: Side = ${shape.side} cm`;
     }
     rows += `<div class="q-row" style="flex-direction:column;align-items:flex-start;gap:6px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:10px;">
       <span class="q-num">${i+1}.</span>
@@ -3393,8 +3448,11 @@ GENERATORS['area-shapes-find'] = (p,subIdx,qc,sid,sname) => {
       <div>Area = <span class="ans-box wide" data-omr="${qid}-ans"></span> sq cm</div>
     </div>`;
     answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',correct,'area written in box (sq cm)',ICR_DETECT_MAP['fill-blank']));
-  }
-  return {html:`<p class="instr">Find the area of each shape.</p><div>${rows}</div>`, answers};
+  });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different shapes in this set.</p>`
+    : '';
+  return {html:`<p class="instr">Find the area of each shape.</p>${cappedNote}<div>${rows}</div>`, answers};
 };
 
 /* ---- 56 Section C: Count the Square Units ---- */
@@ -3650,11 +3708,19 @@ GENERATORS['angle-measure-protractor'] = (p,subIdx,qc,sid,sname) => {
 GENERATORS['angle-compare-circle'] = (p,subIdx,qc,sid,sname) => {
   const n = p.n || 5;
   const pool = p.pool || [20,30,40,50,60,70,90,100,110,120,130,140,150,160];
-  let rows='', answers=[];
-  for(let i=0;i<n;i++){
-    const qid=qidOf(qc);
+  const usedPairs = new Set();
+  let pairs = [];
+  while (pairs.length < n) {
     let a=pick(pool), b=pick(pool);
     while(b===a) b=pick(pool);
+    const key = a+','+b;
+    if (usedPairs.has(key)) continue;
+    usedPairs.add(key);
+    pairs.push({a,b});
+  }
+  let rows='', answers=[];
+  pairs.forEach(({a,b},i)=>{
+    const qid=qidOf(qc);
     const correct = a>b?'left':'right';
     const svgA = angleDiagramSimpleSVG(a,90), svgB = angleDiagramSimpleSVG(b,90);
     rows += `<div class="q-row" style="gap:24px;align-items:flex-end;"><span class="q-num">${i+1}.</span>
@@ -3663,7 +3729,7 @@ GENERATORS['angle-compare-circle'] = (p,subIdx,qc,sid,sname) => {
       <span class="circle-target" data-omr="${qid}-right">${svgB}</span>
     </div>`;
     answers.push(makeAnsItem(qid,sid,sname,i+1,'circle-choice',correct,`circle the larger angle (${correct})`,ICR_DETECT_MAP['circle-choice']));
-  }
+  });
   return {html:`<p class="instr">Circle the larger angle in each pair.</p><div class="q-list">${rows}</div>`, answers};
 };
 
@@ -5104,11 +5170,22 @@ GENERATORS['comparison-grid-symbol'] = (p,subIdx,qc,sid,sname) => {
   const rows = p.rows || 9;
   const cols = p.cols || 3;
   const max = p.max || 10;
-  const n = rows*cols;
+  const requestedN = rows*cols;
+  const pool = max*max; // (a,b) pairs, a and b each 1..max
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
+  const usedPairs = new Set();
+  let picks = [];
+  while (picks.length < n) {
+    const a=ri(1,max), b=ri(1,max);
+    const key = a+','+b;
+    if (usedPairs.has(key)) continue;
+    usedPairs.add(key);
+    picks.push({a,b});
+  }
   let cellsHtml='', answers=[];
-  for(let i=0;i<n;i++){
+  picks.forEach(({a,b},i)=>{
     const qid=qidOf(qc);
-    let a=ri(1,max), b=ri(1,max);
     const symbol = a>b?'>':(a<b?'<':'=');
     cellsHtml += `<div style="display:flex;align-items:center;justify-content:center;gap:10px;background:#f4f6f9;border-radius:6px;padding:10px;">
       <b style="font-size:18px;">${a}</b>
@@ -5116,8 +5193,11 @@ GENERATORS['comparison-grid-symbol'] = (p,subIdx,qc,sid,sname) => {
       <b style="font-size:18px;">${b}</b>
     </div>`;
     answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',symbol,'symbol written in circle',ICR_DETECT_MAP['fill-blank']));
-  }
-  return {html:`<p class="instr">Put '&gt;', '&lt;' or '=' in the circles.</p><div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px;">${cellsHtml}</div>`, answers};
+  });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different comparisons in this set.</p>`
+    : '';
+  return {html:`<p class="instr">Put '&gt;', '&lt;' or '=' in the circles.</p>${cappedNote}<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px;">${cellsHtml}</div>`, answers};
 };
 
 /* ---- Compare two picture groups: symbol + difference (Level 10.1 part A) ---- */
@@ -5240,35 +5320,57 @@ GENERATORS['add-subtract-match-mixed'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- Mixed place-value practice: decompose / blocks-to-number / compose (Level 12.0) ---- */
 GENERATORS['tens-ones-mixed'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 10;
+  const requestedN = p.n || 10;
   const maxNum = Math.min(p.max || 20, 20);
+  // Three branches, each with its own small pool of distinct numbers
+  // ('decompose': 11..maxNum; 'blocks'/'compose': tens 1..floor(maxNum/10)
+  // combined with valid ones) — cap so no branch's share of n can ever
+  // exceed what it can actually produce uniquely.
+  const decomposePool = Math.max(0, maxNum-11+1);
+  let blocksPool = 0;
+  for (let t=1; t<=Math.max(1,Math.floor(maxNum/10)); t++) { blocksPool += Math.max(0, Math.min(9, maxNum-t*10)) + 1; }
+  const perBranchPool = Math.min(decomposePool, blocksPool);
+  const pool = perBranchPool * 3;
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
   let types = shuffle([
     ...Array(Math.ceil(n/3)).fill('decompose'),
     ...Array(Math.ceil(n/3)).fill('blocks'),
     ...Array(Math.ceil(n/3)).fill('compose')
   ]).slice(0,n);
   while(types.length<n) types.push('decompose');
+  // Tracks used (type, num) pairs across all three branches — a repeat in
+  // the SAME branch renders byte-identical (same visible number/blocks), so
+  // uniqueness must span the whole loop, not just be drawn independently
+  // per row.
+  const usedByType = new Set();
   let rows='', answers=[];
   types.forEach((type,i)=>{
     const qid=qidOf(qc);
     if(type==='decompose'){
-      const num=ri(11,maxNum);
+      let num; do { num=ri(11,maxNum); } while(usedByType.has('decompose:'+num));
+      usedByType.add('decompose:'+num);
       const tens=Math.floor(num/10), ones=num%10;
       rows+=`<div class="q-row"><span class="q-num">${i+1}.</span><b>${num}</b> &rarr; Tens = <span class="ans-box" data-omr="${qid}-tens"></span>, Ones = <span class="ans-box" data-omr="${qid}-ones"></span></div>`;
       answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',{tens,ones},'tens and ones written in boxes',ICR_DETECT_MAP['fill-blank']));
     } else if(type==='blocks'){
-      const tens=ri(1,Math.max(1,Math.floor(maxNum/10))), maxOnes=Math.max(0,Math.min(9,maxNum-tens*10)); const ones=ri(0,maxOnes);
-      const num=tens*10+ones;
+      let tens,ones,num;
+      do { tens=ri(1,Math.max(1,Math.floor(maxNum/10))); const maxOnes=Math.max(0,Math.min(9,maxNum-tens*10)); ones=ri(0,maxOnes); num=tens*10+ones; } while(usedByType.has('blocks:'+num));
+      usedByType.add('blocks:'+num);
       rows+=`<div class="q-row"><span class="q-num">${i+1}.</span>${blocksHtml(tens,ones,30)} &rarr; Number = <span class="ans-box" data-omr="${qid}-num"></span></div>`;
       answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',num,'number written in box',ICR_DETECT_MAP['fill-blank']));
     } else {
-      const tens=ri(1,Math.max(1,Math.floor(maxNum/10))), maxOnes=Math.max(0,Math.min(9,maxNum-tens*10)); const ones=ri(0,maxOnes);
-      const num=tens*10+ones;
+      let tens,ones,num;
+      do { tens=ri(1,Math.max(1,Math.floor(maxNum/10))); const maxOnes=Math.max(0,Math.min(9,maxNum-tens*10)); ones=ri(0,maxOnes); num=tens*10+ones; } while(usedByType.has('compose:'+num));
+      usedByType.add('compose:'+num);
       rows+=`<div class="q-row"><span class="q-num">${i+1}.</span>${tens} Ten${tens>1?'s':''} + ${ones} One${ones!==1?'s':''} = <span class="ans-box" data-omr="${qid}-sum"></span></div>`;
       answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',num,'number written in box',ICR_DETECT_MAP['fill-blank']));
     }
   });
-  return {html:`<p class="instr">(Black bar = 10, White square = 1) Complete each place-value question.</p><div class="q-list">${rows}</div>`, answers};
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different questions in this set.</p>`
+    : '';
+  return {html:`<p class="instr">(Black bar = 10, White square = 1) Complete each place-value question.</p>${cappedNote}<div class="q-list">${rows}</div>`, answers};
 };
   
 
@@ -5421,12 +5523,15 @@ GENERATORS['number-trace-blocks'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- 15.0: Grid of 3-box consecutive-number groups (1-30), random blank pattern ---- */
 GENERATORS['triple-box-blank-groups'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 27;
+  const requestedN = p.n || 27;
   const cols = p.cols || 3;
+  const pool = 28; // mid = ri(2,29) -- 28 possible values, keeps mid-1>=1 and mid+1<=30
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
+  let mids=[]; while(mids.length<n){ const x=ri(2,29); if(!mids.includes(x)) mids.push(x); }
   let cellsHtml=[], answers=[];
-  for(let i=0;i<n;i++){
+  mids.forEach((mid,i)=>{
     const qid=qidOf(qc);
-    const mid = ri(2,29); // keeps mid-1 >= 1 and mid+1 <= 30
     const triple = [mid-1,mid,mid+1];
     const pattern = pick(['middle','ends']);
     const blankPositions = pattern==='middle' ? [1] : [0,2];
@@ -5439,8 +5544,11 @@ GENERATORS['triple-box-blank-groups'] = (p,subIdx,qc,sid,sname) => {
     cellsHtml.push(`<div style="display:flex;">${boxesHtml}</div>`);
     const correct = blankPositions.map(pos=>triple[pos]);
     answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',correct,'missing number(s) written in blank box(es)',ICR_DETECT_MAP['fill-blank']));
-  }
-  const html = `<p class="instr">Write the missing numbers.</p><div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:14px;">${cellsHtml.join('')}</div>`;
+  });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different middle numbers in this set.</p>`
+    : '';
+  const html = `<p class="instr">Write the missing numbers.</p>${cappedNote}<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:14px;">${cellsHtml.join('')}</div>`;
   return {html, answers};
 };
 
@@ -5470,10 +5578,18 @@ GENERATORS['addition-sticks-vertical'] = (p,subIdx,qc,sid,sname) => {
   const n = p.n || 12;
   const maxA = p.maxA || 16, minA = p.minA || 9;
   const maxB = p.maxB || 9, minB = p.minB || 1;
-  let cellsHtml=[], answers=[];
-  for(let i=0;i<n;i++){
-    const qid=qidOf(qc);
+  const usedPairs = new Set();
+  let picks = [];
+  while (picks.length < n) {
     const a=ri(minA,maxA), b=ri(minB,maxB);
+    const key = a+'+'+b;
+    if (usedPairs.has(key)) continue;
+    usedPairs.add(key);
+    picks.push({a,b});
+  }
+  let cellsHtml=[], answers=[];
+  picks.forEach(({a,b},i)=>{
+    const qid=qidOf(qc);
     const tens=Math.floor(a/10), ones=a%10;
     cellsHtml.push(`<div style="display:flex;align-items:flex-end;gap:14px;">
       <div style="text-align:center;">
@@ -5485,7 +5601,7 @@ GENERATORS['addition-sticks-vertical'] = (p,subIdx,qc,sid,sname) => {
       <div style="min-height:40px;">${sticksHtml(tens,ones,34)}</div>
     </div>`);
     answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',a+b,'sum written under the line',ICR_DETECT_MAP['fill-blank']));
-  }
+  });
   return {html:`<p class="instr">Add the numbers given using bundles of sticks and loose sticks.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">${cellsHtml.join('')}</div>`, answers};
 };
 
@@ -5717,11 +5833,19 @@ GENERATORS['ascending-descending-scatter'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- 18.2 / 22.2: Object size-ranking with boxes above each object (10 numbered questions) ---- */
 GENERATORS['size-rank-boxes'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 10;
-  const iconPool = p.iconPool || ['plane','cup','ball','car','fish','balloon','tree','house'];
+  const requestedN = p.n || 10;
+  // Widened well past the old 8 — every question shows all 4 fixed sizes, so
+  // once two questions shared an icon (guaranteed once n > iconPool.length),
+  // every one of that icon's 4 boxes was byte-identical between them. A
+  // bigger pool plus tracking used icons below removes that entirely,
+  // instead of capping a "rank these" task down to 8 questions.
+  const iconPool = p.iconPool || ['plane','cup','ball','car','fish','balloon','tree','house','kite','drum','teddy','cupcake','umbrella','bell','clock','key','lamp','chair','egg','bread','carrot','cookie','duck','frog'];
+  const n = Math.min(requestedN, iconPool.length);
+  const wasCapped = requestedN > iconPool.length;
+  const usedIcons = new Set();
+  let icons = []; while (icons.length < n) { const ic = pick(iconPool); if (usedIcons.has(ic)) continue; usedIcons.add(ic); icons.push(ic); }
   let rows='', answers=[];
-  for(let i=0;i<n;i++){
-    const ic = pick(iconPool);
+  icons.forEach((ic,i)=>{
     const sizes = shuffle([18,30,46,64]);
     const order = [...sizes].sort((a,b)=>b-a); // rank 1 = biggest
     let colsHtml='';
@@ -5738,8 +5862,11 @@ GENERATORS['size-rank-boxes'] = (p,subIdx,qc,sid,sname) => {
       <div style="font-weight:700;margin-bottom:8px;">Question ${i+1}</div>
       <div style="display:flex;justify-content:center;gap:10px;">${colsHtml}</div>
     </div>`;
-  }
-  return {html:`<p class="instr">Number 1 to 4 from the biggest to the smallest.</p><div>${rows}</div>`, answers};
+  });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${iconPool.length} different objects in this set.</p>`
+    : '';
+  return {html:`<p class="instr">Number 1 to 4 from the biggest to the smallest.</p>${cappedNote}<div>${rows}</div>`, answers};
 };
 
 /* ---- 19.0: Sequential fill-in-order grid (first & last given, e.g. 31...50) ---- */
@@ -6000,13 +6127,21 @@ GENERATORS['subtraction-vertical-boxed-grid'] = (p,subIdx,qc,sid,sname) => {
   const twoDigitBOdds = p.twoDigitBOdds || 0;
   const minusOnRight = !!p.minusOnRight;
   const showBox = p.showBox !== false;
-  let cellsHtml=[], answers=[];
-  for(let i=0;i<n;i++){
-    const qid=qidOf(qc);
+  const usedPairs = new Set();
+  let picks = [];
+  while (picks.length < n) {
     const a=ri(topMin,topMax);
     const useTwoDigitB = Math.random()<twoDigitBOdds;
     const maxB = useTwoDigitB ? Math.min(bMax,a-1) : Math.min(bMax,a-1);
     const b = ri(useTwoDigitB?10:bMin, Math.max(useTwoDigitB?10:bMin, maxB));
+    const key = a+'-'+b;
+    if (usedPairs.has(key)) continue;
+    usedPairs.add(key);
+    picks.push({a,b});
+  }
+  let cellsHtml=[], answers=[];
+  picks.forEach(({a,b},i)=>{
+    const qid=qidOf(qc);
     const diff=a-b;
     const ansMarkup = showBox
       ? `<span class="ans-box" data-omr="${qid}-ans" style="display:inline-block;width:44px;height:28px;"></span>`
@@ -6035,7 +6170,7 @@ GENERATORS['subtraction-vertical-boxed-grid'] = (p,subIdx,qc,sid,sname) => {
       </div>`);
     }
     answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',diff,'answer written below the line',ICR_DETECT_MAP['fill-blank']));
-  }
+  });
   return {html:`<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:20px;">${cellsHtml.join('')}</div>`, answers};
 };
 
@@ -6647,19 +6782,33 @@ GENERATORS['count-equal-groups'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- 33 Section B: Repeated addition -> total (no pictures) ---- */
 GENERATORS['repeated-addition-only'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
   const groupsRange = p.groupsRange || [2,4];
   const perGroupRange = p.perGroupRange || [2,5];
-  let rows='', answers=[];
-  for(let i=0;i<n;i++){
-    const qid=qidOf(qc);
+  const pool = (groupsRange[1]-groupsRange[0]+1) * (perGroupRange[1]-perGroupRange[0]+1);
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
+  const usedPairs = new Set();
+  let picks = [];
+  while (picks.length < n) {
     const groups=ri(groupsRange[0],groupsRange[1]);
     const perGroup=ri(perGroupRange[0],perGroupRange[1]);
+    const key = groups+'x'+perGroup;
+    if (usedPairs.has(key)) continue;
+    usedPairs.add(key);
+    picks.push({groups,perGroup});
+  }
+  let rows='', answers=[];
+  picks.forEach(({groups,perGroup},i)=>{
+    const qid=qidOf(qc);
     const terms = Array.from({length:groups}).fill(perGroup).join(' + ');
     rows+=`<div class="q-row"><span class="q-num">${i+1}.</span><b>${terms} =</b> <span class="ans-box" data-omr="${qid}-sum"></span></div>`;
     answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',groups*perGroup,'sum written in box',ICR_DETECT_MAP['fill-blank']));
-  }
-  return {html:`<p class="instr">Find the totals using repeated addition.</p><div class="q-list">${rows}</div>`, answers};
+  });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different totals in this set.</p>`
+    : '';
+  return {html:`<p class="instr">Find the totals using repeated addition.</p>${cappedNote}<div class="q-list">${rows}</div>`, answers};
 };
 
 /* ---- 33 Section C: Complete the pattern table (equal groups / repeated addition / multiplication / total) ---- */
@@ -6996,17 +7145,23 @@ GENERATORS['multiplication-vertical-row'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- 41.3 Section C: Multiplication pattern (skip counting), last two terms blank ---- */
 GENERATORS['multiplication-pattern-fill'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
   const factors = p.factors || [2,3,4,5,6,7,8,9];
+  const n = Math.min(requestedN, factors.length);
+  const wasCapped = requestedN > factors.length;
+  const usedFactors = new Set();
+  let picks = []; while (picks.length < n) { const f = pick(factors); if (usedFactors.has(f)) continue; usedFactors.add(f); picks.push(f); }
   let rows='', answers=[];
-  for(let i=0;i<n;i++){
+  picks.forEach((f,i)=>{
     const qid=qidOf(qc);
-    const f = pick(factors);
     const seq = [f*1,f*2,f*3,f*4,f*5];
     rows += `<div class="q-row"><span class="q-num">${i+1}.</span><b>${seq[0]}, ${seq[1]}, ${seq[2]},</b> <span class="ans-box" data-omr="${qid}-b0"></span>, <span class="ans-box" data-omr="${qid}-b1"></span></div>`;
     answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',[seq[3],seq[4]],'last two numbers written in boxes, continuing the multiplication pattern',ICR_DETECT_MAP['fill-blank']));
-  }
-  return {html:`<p class="instr">Complete each multiplication pattern.</p><div class="q-list">${rows}</div>`, answers};
+  });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${factors.length} different patterns in this set.</p>`
+    : '';
+  return {html:`<p class="instr">Complete each multiplication pattern.</p>${cappedNote}<div class="q-list">${rows}</div>`, answers};
 };
 
 /* ---- Level 50: configurable vertical multiplication (2x2 digit / 3x1 digit / 2x1 digit) ---- */
@@ -7121,9 +7276,9 @@ GENERATORS['division-vertical-remainder'] = (p,subIdx,qc,sid,sname) => {
   const divisorMin = p.divisorMin || 3, divisorMax = p.divisorMax || 9;
   const dividendMin = p.dividendMin || 100, dividendMax = p.dividendMax || 999;
   const cols = p.cols || 5;
-  let cellsHtml=[], answers=[];
-  for(let i=0;i<n;i++){
-    const qid=qidOf(qc);
+  const usedDividends = new Set();
+  let picks = [];
+  while (picks.length < n) {
     let divisor,quotient,remainder,dividend,tries=0,ok=false;
     while(!ok && tries<50){
       divisor=ri(Math.max(2,divisorMin),divisorMax);
@@ -7137,9 +7292,16 @@ GENERATORS['division-vertical-remainder'] = (p,subIdx,qc,sid,sname) => {
       }
       tries++;
     }
+    if (!ok || usedDividends.has(dividend)) continue;
+    usedDividends.add(dividend);
+    picks.push({divisor,quotient,remainder,dividend});
+  }
+  let cellsHtml=[], answers=[];
+  picks.forEach(({divisor,quotient,remainder,dividend},i)=>{
+    const qid=qidOf(qc);
     cellsHtml.push(`<div>${divisionBracketRemainderHtml(dividend,divisor,qid)}</div>`);
     answers.push(makeAnsItem(qid,sid,sname,i+1,'fill-blank',{quotient,remainder},'quotient above the bracket, remainder written on the R= line',ICR_DETECT_MAP['fill-blank']));
-  }
+  });
   return {html:`<p class="instr">Divide. Write the quotient and remainder.</p><div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:20px;">${cellsHtml.join('')}</div>`, answers};
 };
 
