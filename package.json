@@ -18,7 +18,8 @@
     "start": "npm run start --workspace @fln/backend",
     "lint": "npm run lint --workspaces --if-present",
     "seed:question-bank": "npm run seed:question-bank --workspace @fln/backend",
-    "check:level-notation-drift": "tsx scripts/check-level-notation-drift.ts"
+    "check:level-notation-drift": "tsx scripts/check-level-notation-drift.ts",
+    "check:duplicate-questions": "tsx scripts/check-duplicate-questions.ts"
   },
   "dependencies": {
     "jose": "^5.9.6",

@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import { dbStore, UserRole, User } from '../db';
 import { getAuthUser, sanitizeUser } from '../auth';
+import { generateTeacherId } from '../idGenerator';
 
 // Coordinator registration: state -> district -> block -> school cascade, then
 // creating a teacher account scoped to the chosen school.
@@ -61,8 +62,10 @@ export function registerTeacherRoutes(app: express.Express) {
 
   app.post('/api/teachers', async (req, res) => {
     const user = getAuthUser(req);
-    if (!user || !COORDINATOR_ROLES.includes(user.role)) {
-      return res.status(403).json({ error: 'Forbidden. Coordinator role required.' });
+    const isCoordinator = user && COORDINATOR_ROLES.includes(user.role);
+    const isPrincipal = user && user.role === UserRole.SCHOOL;
+    if (!user || (!isCoordinator && !isPrincipal)) {
+      return res.status(403).json({ error: 'Forbidden. Coordinator or School Principal role required.' });
     }
 
     const { firstName, lastName, email, phoneNumber, password, school } = req.body;
@@ -81,12 +84,22 @@ export function registerTeacherRoutes(app: express.Express) {
     const targetSchool = schools.find(s => s.id.toLowerCase() === String(school).toLowerCase());
     if (!targetSchool) return res.status(400).json({ error: 'Unknown school.' });
 
+    // Issue #444: School principals can only register teachers to their own assigned school
+    if (user.role === UserRole.SCHOOL && targetSchool.id.toLowerCase() !== (user.schoolId || '').toLowerCase()) {
+      return res.status(403).json({ error: 'Forbidden. School Principals can only register teachers for their own school.' });
+    }
+
+    // Block Admins can only register teachers in their own block
+    if (user.role === UserRole.BLOCK_ADMIN && targetSchool.blockCode !== user.blockCode) {
+      return res.status(403).json({ error: 'Forbidden. Block Admins can only register teachers within their block.' });
+    }
+
     const users = await dbStore.getUsers();
     if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
       return res.status(400).json({ error: 'User with this email already exists.' });
     }
 
-    const teacherId = 'u_' + Math.random().toString(36).substr(2, 9);
+    const teacherId = generateTeacherId();
     const newTeacher: User = {
       id: teacherId,
       name: `${firstName} ${lastName}`,
@@ -112,7 +125,7 @@ export function registerTeacherRoutes(app: express.Express) {
       userRole: user.role,
       activityType: 'verify',
       status: 'Success',
-      details: `Coordinator registered teacher: ${newTeacher.name} at ${targetSchool.name}`,
+      details: `${user.role === UserRole.SCHOOL ? 'Principal' : 'Coordinator'} registered teacher: ${newTeacher.name} at ${targetSchool.name}`,
     });
 
     res.json({

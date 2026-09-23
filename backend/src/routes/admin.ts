@@ -2,6 +2,36 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import { dbStore, UserRole, User } from '../db';
 import { getAuthUser, sanitizeUser } from '../auth';
+import {
+  generateAdminId,
+  generateDistrictAdminId,
+  generateBlockAdminId,
+  generatePrincipalId,
+  generateVolunteerId,
+} from '../idGenerator';
+
+function generateIdForRole(role: UserRole): string {
+  switch (role) {
+    case UserRole.ADMIN:
+      return generateAdminId();
+
+    case UserRole.DISTRICT_ADMIN:
+      return generateDistrictAdminId();
+
+    case UserRole.BLOCK_ADMIN:
+      return generateBlockAdminId();
+
+    case UserRole.SCHOOL:
+      return generatePrincipalId();
+
+    case UserRole.VOLUNTEER:
+      return generateVolunteerId();
+
+    default:
+      throw new Error(`Unsupported generated user role: ${role}`);
+  }
+}
+import { getAuthUser, sanitizeUser, requireSuperadmin } from '../auth';
 
 export function registerAdminRoutes(app: express.Express) {
   // Admin Creation (by Superadmin)
@@ -24,22 +54,50 @@ export function registerAdminRoutes(app: express.Express) {
       return res.status(400).json({ error: 'Password does not meet complexity requirements. Must be >= 8 chars and contain uppercase, digit, and special char.' });
     }
 
+    const schools = await dbStore.getSchools();
     const users = await dbStore.getUsers();
     if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
       return res.status(400).json({ error: 'User with this email already exists.' });
     }
 
+    let resolvedState = stateCode ? stateCode.toUpperCase() : undefined;
+    let resolvedDistrict = districtCode ? districtCode.toUpperCase() : undefined;
+    let resolvedBlock = blockCode ? blockCode.toUpperCase() : undefined;
+
+    // Issue #456: Normalize multiple school assignments for volunteers
+    let normalizedAssignedSchools: string[] | undefined = undefined;
+    if (role === UserRole.VOLUNTEER) {
+      if (Array.isArray(assignedSchools)) {
+        normalizedAssignedSchools = assignedSchools.map(String).map(s => s.trim()).filter(Boolean);
+      } else if (typeof assignedSchools === 'string' && assignedSchools.trim()) {
+        normalizedAssignedSchools = assignedSchools.split(',').map(s => s.trim()).filter(Boolean);
+      } else if (schoolId) {
+        normalizedAssignedSchools = [String(schoolId).trim()];
+      }
+    }
+
+    // Issue #450: New principals and teachers automatically inherit geographic scope from their school
+    const primarySchoolId = schoolId || (normalizedAssignedSchools && normalizedAssignedSchools.length > 0 ? normalizedAssignedSchools[0] : undefined);
+    if (primarySchoolId) {
+      const targetSchool = schools.find(s => s.id.toLowerCase() === String(primarySchoolId).toLowerCase());
+      if (targetSchool) {
+        resolvedState = resolvedState || targetSchool.stateCode;
+        resolvedDistrict = resolvedDistrict || targetSchool.districtCode;
+        resolvedBlock = resolvedBlock || targetSchool.blockCode;
+      }
+    }
+
     const newUser: User = {
-      id: 'u_' + Math.random().toString(36).substr(2, 9),
+      id: generateIdForRole(role as UserRole),
       name,
       email: email.toLowerCase(),
       role: role as UserRole,
       passwordHash: await bcrypt.hash(password, 10),
-      stateCode: stateCode ? stateCode.toUpperCase() : undefined,
-      districtCode: districtCode ? districtCode.toUpperCase() : undefined,
-      blockCode: blockCode ? blockCode.toUpperCase() : undefined,
+      stateCode: resolvedState,
+      districtCode: resolvedDistrict,
+      blockCode: resolvedBlock,
       schoolId: schoolId || undefined,
-      assignedSchools: assignedSchools || undefined
+      assignedSchools: normalizedAssignedSchools || (Array.isArray(assignedSchools) ? assignedSchools : undefined)
     };
 
     await dbStore.addUser(newUser);
@@ -192,5 +250,23 @@ export function registerAdminRoutes(app: express.Express) {
     }
     await dbStore.reset();
     res.json({ success: true, message: 'Database reset to fresh seed data.' });
+  });
+
+  // ══════════════════════════════════════════
+  // QUESTION BANK (Superadmin only, Read-only)
+  // ══════════════════════════════════════════
+  // Serves the full canonical Question Bank dataset for admin integrity audits.
+  // Must return real records; if unavailable returns 503 instead of empty/mock.
+  app.get('/api/admin/questions', requireSuperadmin, async (_req, res) => {
+    try {
+      const questions = await dbStore.getAllQuestionBank();
+      if (!questions || questions.length === 0) {
+        return res.status(503).json({ error: 'Question Bank dataset is currently unavailable.' });
+      }
+      return res.json(questions);
+    } catch (err: any) {
+      console.error('Failed to retrieve Question Bank:', err?.message || err);
+      return res.status(500).json({ error: 'Internal server error retrieving Question Bank.' });
+    }
   });
 }

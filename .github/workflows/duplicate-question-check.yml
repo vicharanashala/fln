@@ -1,0 +1,84 @@
+name: Duplicate question check
+
+# Issue #399 — runs scripts/check-duplicate-questions.ts against every
+# GENERATORS entry in frontend/public/worksheets/levels_main.html and fails
+# the PR if a generator produces a genuinely NEW duplicate-question or
+# render-hang risk (see scripts/check-duplicate-questions.ts for exactly what
+# that means and why).
+#
+# 47 such findings already existed when this check was introduced — issue
+# #398 is the tracked, separate effort to fix them one at a time. Hard-failing
+# every PR on all 47 from day one would get this check disabled, not the bugs
+# fixed. So it's a ratchet: scripts/duplicate-questions-baseline.json commits
+# the known pre-existing findings, and this workflow only fails on a finding
+# NOT in that file — a real regression, not old debt. Findings that ARE in
+# the baseline still print in the job log every run (so they stay visible)
+# but never fail the build. See the script's own "Baseline ratchet" comment
+# block for the full design.
+
+on:
+  pull_request:
+    paths:
+      - "frontend/public/worksheets/levels_main.html"
+      - "scripts/check-duplicate-questions.ts"
+      - "scripts/duplicate-questions-baseline.json"
+      - ".github/workflows/duplicate-question-check.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # ---------------------------------------------------------------------
+      # THE ON/OFF SWITCH. If this check is causing more friction than value —
+      # too many false positives, the baseline drifting faster than #398 can
+      # keep up, whatever — set this to 'false'. That turns the job into a
+      # report-only run: it still prints the same findings to the log, but a
+      # failing check no longer blocks the PR. No revert, no file deletion,
+      # just this one line.
+      BLOCKING: "true"
+      # ---------------------------------------------------------------------
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install --workspaces --include-workspace-root
+        # Deliberately NOT setting PUPPETEER_SKIP_DOWNLOAD here (unlike
+        # repo-health-check.yml) — this check needs a real headless Chrome to
+        # drive levels_main.html's generators through Puppeteer, so `npm
+        # install` must be left to fetch puppeteer's bundled Chrome for
+        # Testing build.
+
+      - name: Run duplicate-question check
+        id: check
+        run: |
+          set +e
+          npm run check:duplicate-questions
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Evaluate result
+        if: always()
+        run: |
+          EXIT_CODE="${{ steps.check.outputs.exit_code }}"
+          if [ "$EXIT_CODE" = "0" ]; then
+            echo "No new duplicate-question or hang findings."
+            exit 0
+          fi
+
+          echo "::error::check-duplicate-questions found NEW findings not in the baseline — see the 'Run duplicate-question check' step's log above for which generator(s), what kind of finding (hang / thrown exception / duplicate-at-natural-count), and why."
+          echo "To reproduce locally: npm run check:duplicate-questions"
+          echo "If the finding is a genuine new regression, fix the generator (issue #398 has the general pattern: an unbounded 'pick a distinct value' retry loop, or a pick()/sample() with no exclusion of already-used values)."
+          echo "If it's pre-existing and just missing from the baseline, or a false positive in the checker itself, confirm by hand and then regenerate the baseline: npm run check:duplicate-questions -- --write-baseline"
+
+          if [ "$BLOCKING" = "false" ]; then
+            echo "::warning::BLOCKING is set to 'false' in .github/workflows/duplicate-question-check.yml — reporting only, not failing this PR."
+            exit 0
+          fi
+          exit 1

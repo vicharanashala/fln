@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { User, UserRole, Student, School, EvaluationReport, Worksheet } from '../../types';
 import { handleDownloadPDF } from './pdfReportGenerator';
 import { Users, BookOpen, Calendar, Award, BarChart3, FileText, Search, ChevronDown, GitCompareArrows } from 'lucide-react';
+import { CertificatesPanel } from './CertificatesPanel';
 
 // Issue #200: canonical cycle order for the comparison view — matches
 // db.ts's CYCLE_NAMES (Worksheet.cycle already uses these exact strings
@@ -24,7 +25,7 @@ export const StudentProfilePanel: React.FC<{
   updateStudentLocally: (studentId: string, patch: Partial<Student>) => void;
 }> = ({ students, studentsLoading, schools, reportsList, worksheetsList, currentUser, token, updateStudentLocally }) => {
   const [sel, setSel] = useState('');
-  const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity'>('overview');
+  const [profileTab, setProfileTab] = useState<'overview' | 'academic' | 'personal' | 'activity' | 'certificate'>('overview');
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileDraft, setProfileDraft] = useState<Partial<Student>>({});
   const [savingProfile, setSavingProfile] = useState(false);
@@ -167,6 +168,7 @@ export const StudentProfilePanel: React.FC<{
       { key: 'academic' as const, label: 'Academic Record', icon: BookOpen },
       { key: 'personal' as const, label: 'Personal Details', icon: Users },
       { key: 'activity' as const, label: 'Activity Log', icon: Calendar },
+      { key: 'certificate' as const, label: 'Certificate', icon: Award },
     ];
 
     return (
@@ -699,6 +701,11 @@ export const StudentProfilePanel: React.FC<{
               ) : <div className="text-center py-8"><p className="text-xs text-slate-400 dark:text-slate-500">{activityFilter === 'all' ? 'No activity recorded yet.' : `No ${activityFilter === 'assessment' ? 'assessment' : 'level change'} activity found.`}</p></div>}
             </div>
           </div>
+        )}
+
+        {/* ===== CERTIFICATE TAB ===== */}
+        {profileTab === 'certificate' && (
+          <CertificatesPanel students={[s]} currentUser={currentUser} variant="individual" />
         )}
       </div>
     );
