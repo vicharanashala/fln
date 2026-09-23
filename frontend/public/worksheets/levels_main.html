@@ -1006,10 +1006,18 @@ const GENERATORS = {};
 
 /* ---- 1. Equal-quantity matching (Level 1A, 5.0) ---- */
 GENERATORS['compare-equal-match'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || (subIdx===0?4:3);
+  const requestedN = p.n || (subIdx===0?4:3);
   const theme = p.theme || randomTheme();
   // Each row is a unique (icon,count) PAIR rather than a unique count alone —
   // supports n beyond the old 7-value count range (icons x 7 possible pairs).
+  // Still a finite pool though — cap rather than let the retry loop below
+  // spin forever once n exceeds it. Same fallback as themeIcon() (THEMES.fruits
+  // when theme isn't a real key), so the pool size matches what themeIcon()
+  // will actually draw from.
+  const themeIconPool = THEMES[theme] || THEMES.fruits;
+  const pool = themeIconPool.length * 7; // 7 = ri(2,8)'s value count (8-2+1)
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
   const usedPairs = new Set();
   const pairs = [];
   while (pairs.length < n) {
@@ -1031,8 +1039,11 @@ GENERATORS['compare-equal-match'] = (p,subIdx,qc,sid,sname) => {
     const correctLetter = String.fromCharCode(65 + rightOrder.indexOf(i));
     answers.push(makeAnsItem(qid,sid,sname,i+1,'match-line',correctLetter, `draw a line from the left dot to the right dot with the same object & count`, ICR_DETECT_MAP['match-line']));
   });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different pictures in this set.</p>`
+    : '';
   return {
-    html:`<p class="instr">Draw a line connecting each group on the left to the SAME object with the SAME number on the right. Right-hand options are labeled A, B, C...</p>
+    html:`<p class="instr">Draw a line connecting each group on the left to the SAME object with the SAME number on the right. Right-hand options are labeled A, B, C...</p>${cappedNote}
       <div class="match-grid">
         <div class="match-col-left">${leftItems}</div>
         <div class="match-space"></div>
@@ -1546,7 +1557,10 @@ GENERATORS['sticks-to-number'] = (p,subIdx,qc,sid,sname) => {
 /* ---- 25 Part C: Match numbers to sticks/bundles groups ---- */
 GENERATORS['tens-units-match'] = (p,subIdx,qc,sid,sname) => {
   const min = p.min||30, max = p.max||70;
-  const n = p.n || 4;
+  const requestedN = p.n || 4;
+  const pool = max - min + 1;
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
   let nums=[]; while(nums.length<n){ const x=ri(min,max); if(!nums.includes(x)) nums.push(x); }
   const rightOrder = shuffle(nums.map((_,i)=>i));
   let leftItems='', rightItems='', answers=[];
@@ -1562,8 +1576,11 @@ GENERATORS['tens-units-match'] = (p,subIdx,qc,sid,sname) => {
     const tens=Math.floor(num/10), ones=num%10;
     rightItems += `<div class="match-item" style="min-height:50px;height:50px;box-sizing:border-box;overflow:hidden;"><span class="match-dot" data-omr="${qid}-rightdot"></span><div class="match-content">${sticksHtml(tens,ones,28)}</div><span class="match-label">${String.fromCharCode(65 + k)}</span></div>`;
   });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different numbers in this set.</p>`
+    : '';
   return {
-    html:`<p class="instr">Match the following. Right-hand options are labeled A, B, C...</p>
+    html:`<p class="instr">Match the following. Right-hand options are labeled A, B, C...</p>${cappedNote}
       <div class="match-grid spaced"><div class="match-col-left">${leftItems}</div><div class="match-space"></div><div class="match-col-right">${rightItems}</div></div>`,
     answers
   };
@@ -2600,11 +2617,13 @@ GENERATORS['money-identify-currency'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- Money Section: Match Object Price to Money Combination ---- */
 GENERATORS['money-match-object-price'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
   const objectPool = p.objectPool || ['apple','balloon','cupcake','ball','book','icecream','pencil','kite'];
   const notePool = p.notePool || [10,20,50];
   const coinPool = p.coinPool || [1,2,5,10];
   const pricePool = p.pricePool || [10,15,20,25,30,35,40];
+  const n = Math.min(requestedN, pricePool.length);
+  const wasCapped = requestedN > pricePool.length;
   let prices=[]; while(prices.length<n){ const x=pick(pricePool); if(!prices.includes(x)) prices.push(x); }
   const objectsUsed = sample(objectPool, n).length===n ? sample(objectPool,n) : Array.from({length:n},()=>pick(objectPool));
   const combos = prices.map(pr=>randomMoneyCombo(pr, notePool, coinPool));
@@ -2622,8 +2641,11 @@ GENERATORS['money-match-object-price'] = (p,subIdx,qc,sid,sname) => {
     const combo = combos[origIdx], qid = qids[origIdx];
     rightItems += `<div class="match-item" style="min-height:${rowH}px;height:${rowH}px;box-sizing:border-box;overflow:hidden;"><span class="match-dot" data-omr="${qid}-rightdot"></span><div class="match-content">${moneySetHtml(combo,40)}</div><span class="match-label">${String.fromCharCode(65 + k)}</span></div>`;
   });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pricePool.length} different prices in this set.</p>`
+    : '';
   return {
-    html:`<p class="instr">Match each object's price to the correct combination of money. Right-hand options are labeled A, B, C...</p>
+    html:`<p class="instr">Match each object's price to the correct combination of money. Right-hand options are labeled A, B, C...</p>${cappedNote}
       <div class="match-grid spaced"><div class="match-col-left">${leftItems}</div><div class="match-space"></div><div class="match-col-right">${rightItems}</div></div>`,
     answers
   };
@@ -3200,7 +3222,10 @@ GENERATORS['decimal-shade-strip'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- 55.2 Section C: Match tenths picture to decimal ---- */
 GENERATORS['decimal-picture-match'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
+  const pool = 9; // tenths 1-9 — the only values ri(1,9) can ever produce
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
   let shadedVals=[]; while(shadedVals.length<n){ const x=ri(1,9); if(!shadedVals.includes(x)) shadedVals.push(x); }
   const rightOrder = shuffle(shadedVals.map((_,i)=>i));
   const rowH=54;
@@ -3216,8 +3241,11 @@ GENERATORS['decimal-picture-match'] = (p,subIdx,qc,sid,sname) => {
     const v = shadedVals[origIdx], qid = qids[origIdx];
     rightItems += `<div class="match-item" style="min-height:${rowH}px;height:${rowH}px;box-sizing:border-box;"><span class="match-dot" data-omr="${qid}-rightdot"></span><div class="match-content"><b style="font-size:18px;">0.${v}</b></div><span class="match-label">${String.fromCharCode(65 + k)}</span></div>`;
   });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different decimals in this set.</p>`
+    : '';
   return {
-    html:`<p class="instr">Match each picture with its decimal. Right-hand options are labeled A, B, C...</p>
+    html:`<p class="instr">Match each picture with its decimal. Right-hand options are labeled A, B, C...</p>${cappedNote}
       <div class="match-grid spaced"><div class="match-col-left">${leftItems}</div><div class="match-space"></div><div class="match-col-right">${rightItems}</div></div>`,
     answers
   };
@@ -3766,8 +3794,10 @@ GENERATORS['angle-circle-all-right'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- 57.2 Section B: Match identical angles ---- */
 GENERATORS['angle-identical-match'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
   const pool = p.pool || [30,45,60,90,120,150,75,100];
+  const n = Math.min(requestedN, pool.length);
+  const wasCapped = requestedN > pool.length;
   let degs=[]; while(degs.length<n){ const d=pick(pool); if(!degs.includes(d)) degs.push(d); }
   const rightOrder = shuffle(degs.map((_,i)=>i));
   const rowH=90;
@@ -3783,8 +3813,11 @@ GENERATORS['angle-identical-match'] = (p,subIdx,qc,sid,sname) => {
     const d = degs[origIdx], qid = qids[origIdx];
     rightItems += `<div class="match-item" style="min-height:${rowH}px;height:${rowH}px;box-sizing:border-box;"><span class="match-dot" data-omr="${qid}-rightdot"></span><div class="match-content">${angleDiagramSimpleSVG(d,76)}</div><span class="match-label">${String.fromCharCode(65 + k)}</span></div>`;
   });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool.length} different angles in this set.</p>`
+    : '';
   return {
-    html:`<p class="instr">Match the identical angles. Right-hand options are labeled A, B, C...</p>
+    html:`<p class="instr">Match the identical angles. Right-hand options are labeled A, B, C...</p>${cappedNote}
       <div class="match-grid spaced"><div class="match-col-left">${leftItems}</div><div class="match-space"></div><div class="match-col-right">${rightItems}</div></div>`,
     answers
   };
@@ -4394,9 +4427,28 @@ GENERATORS['compare-hto-picture'] = (p,subIdx,qc,sid,sname) => {
     const qid=qidOf(qc);
     let ha=ri(1,maxH), ta=ri(0,5), oa=ri(0,5);
     let hb=ri(1,maxH), tb=ri(0,5), ob=ri(0,5);
-    const numA = ha*100+ta*10+oa, numB = hb*100+tb*10+ob;
-    while(numA===numB){ hb=ri(1,maxH); tb=ri(0,5); ob=ri(0,5); }
-    const finalNumB = hb*100+tb*10+ob;
+    const numA = ha*100+ta*10+oa;
+    let finalNumB = hb*100+tb*10+ob;
+    // Recompute finalNumB on every retry — the old code compared against a
+    // `const numB` snapshotted once before the loop, so once a collision hit,
+    // the while condition could never see the retried value change, and spun
+    // forever. Bounded to 30 tries as a second line of defense even if this
+    // recompute is ever wrong again.
+    let tries = 0;
+    while(numA===finalNumB && tries<30){
+      hb=ri(1,maxH); tb=ri(0,5); ob=ri(0,5);
+      finalNumB=hb*100+tb*10+ob;
+      tries++;
+    }
+    if(numA===finalNumB){
+      // Retries exhausted without a resolvable draw — force a
+      // guaranteed-distinct value by construction rather than leaving the
+      // pair equal, which would make "circle the greater representation"
+      // unanswerable. Changing ob by a nonzero amount (+1, or -5 on wrap)
+      // always changes finalNumB, so it can no longer equal numA.
+      ob = (ob + 1) % 6;
+      finalNumB = hb*100+tb*10+ob;
+    }
     const correctIsA = numA>finalNumB;
     const options = Math.random()<0.5
       ? [{h:ha,t:ta,o:oa,correct:correctIsA},{h:hb,t:tb,o:ob,correct:!correctIsA}]
@@ -4562,7 +4614,10 @@ GENERATORS['count-trace-number-table'] = (p,subIdx,qc,sid,sname) => {
 /* ---- Number <-> Number-word matching, shuffled, spaced (Level 4.1 fix) ---- */
 GENERATORS['number-name-match'] = (p,subIdx,qc,sid,sname) => {
   const min = p.min || 1, max = p.max || 10;
-  const n = p.n || (subIdx===0?6:5);
+  const requestedN = p.n || (subIdx===0?6:5);
+  const pool = max - min + 1;
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
   let nums=[]; while(nums.length<n){ const x=ri(min,max); if(!nums.includes(x)) nums.push(x); }
   nums.sort((a,b)=>a-b);
   const rightOrder = shuffle(nums.map((_,i)=>i));
@@ -4578,8 +4633,11 @@ GENERATORS['number-name-match'] = (p,subIdx,qc,sid,sname) => {
     const num = nums[origIdx], qid = qids[origIdx];
     rightItems += `<div class="match-item" style="min-height:44px;height:44px;box-sizing:border-box;"><span class="match-dot" data-omr="${qid}-rightdot"></span><div class="match-content" style="font-size:13px;">${esc(numberWord(num))}</div><span class="match-label">${String.fromCharCode(65 + k)}</span></div>`;
   });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different numbers in this set.</p>`
+    : '';
   return {
-    html:`<p class="instr">Draw a line to match each number with its correct name. Right-hand options are labeled A, B, C...</p>
+    html:`<p class="instr">Draw a line to match each number with its correct name. Right-hand options are labeled A, B, C...</p>${cappedNote}
       <div class="match-grid spaced">
         <div class="match-col-left">${leftItems}</div>
         <div class="match-space"></div>
@@ -4680,10 +4738,12 @@ GENERATORS['hand-number-mini-panels'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- Count, write number, and match (Level 5.0) ---- */
 GENERATORS['count-write-match'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
   const leftIcon = p.leftIcon || 'kid';
   const rightIcon = p.rightIcon || 'cup';
   const maxVal = p.max || 8;
+  const n = Math.min(requestedN, maxVal);
+  const wasCapped = requestedN > maxVal;
   let counts=[]; while(counts.length<n){ const x=ri(1,maxVal); if(!counts.includes(x)) counts.push(x); }
   const rightOrder = shuffle(counts.map((_,i)=>i));
   let leftItems='', writeIds=[], matchIds=[], answers=[];
@@ -4700,8 +4760,11 @@ GENERATORS['count-write-match'] = (p,subIdx,qc,sid,sname) => {
     const c = counts[origIdx], qidM = matchIds[origIdx], qidW2 = writeIds[origIdx]+'r';
     rightItems += `<div class="match-item" style="min-height:56px;"><span class="match-dot" data-omr="${qidM}-rightdot"></span><span class="ans-box" data-omr="${qidW2}-write"></span><div class="match-content">${iconRow(rightIcon,c,24)}</div><span class="match-label">${String.fromCharCode(65 + k)}</span></div>`;
   });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${maxVal} different counts in this set.</p>`
+    : '';
   return {
-    html:`<p class="instr">Count, write the number in the box and match. Right-hand options are labeled A, B, C...</p>
+    html:`<p class="instr">Count, write the number in the box and match. Right-hand options are labeled A, B, C...</p>${cappedNote}
       <div class="match-grid spaced">
         <div class="match-col-left">${leftItems}</div>
         <div class="match-space"></div>
@@ -6238,8 +6301,10 @@ GENERATORS['count-and-tally'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- 30.2: Match tally marks to numbers (10 rows, spaced + shuffled) ---- */
 GENERATORS['tally-number-match'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 10;
+  const requestedN = p.n || 10;
   const maxNum = p.max || 10;
+  const n = Math.min(requestedN, maxNum);
+  const wasCapped = requestedN > maxNum;
   let nums=[]; while(nums.length<n){ const x=ri(1,maxNum); if(!nums.includes(x)) nums.push(x); }
   const rightOrder = shuffle(nums.map((_,i)=>i));
   let leftItems='', rightItems='', answers=[];
@@ -6254,8 +6319,11 @@ GENERATORS['tally-number-match'] = (p,subIdx,qc,sid,sname) => {
     const num = nums[origIdx], qid = qids[origIdx];
     rightItems += `<div class="match-item" style="min-height:50px;height:50px;box-sizing:border-box;"><span class="match-dot" data-omr="${qid}-rightdot"></span><div class="match-content"><b style="font-size:20px;">${num}</b></div><span class="match-label">${String.fromCharCode(65 + k)}</span></div>`;
   });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${maxNum} different numbers in this set.</p>`
+    : '';
   return {
-    html:`<p class="instr">Draw lines to match the tallies and numbers. Right-hand options are labeled A, B, C...</p>
+    html:`<p class="instr">Draw lines to match the tallies and numbers. Right-hand options are labeled A, B, C...</p>${cappedNote}
       <div class="match-grid spaced"><div class="match-col-left">${leftItems}</div><div class="match-space"></div><div class="match-col-right">${rightItems}</div></div>`,
     answers
   };
@@ -6312,8 +6380,11 @@ GENERATORS['clock-time-match'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- Match identical clocks (both sides show clocks, same alignment pattern as clock-time-match) ---- */
 GENERATORS['clock-clock-match'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
   const minuteOptions = p.minuteOptions || [0];
+  const pool = 12 * minuteOptions.length;
+  const n = Math.min(requestedN, pool);
+  const wasCapped = requestedN > pool;
   let times=[]; while(times.length<n){ const h=ri(1,12), m=pick(minuteOptions); const key=h+':'+m; if(!times.find(t=>t.key===key)) times.push({h,m,key}); }
   const rightOrder = shuffle(times.map((_,i)=>i));
   const rowH=96;
@@ -6329,8 +6400,11 @@ GENERATORS['clock-clock-match'] = (p,subIdx,qc,sid,sname) => {
     const t = times[origIdx], qid = qids[origIdx];
     rightItems += `<div class="match-item" style="min-height:${rowH}px;height:${rowH}px;box-sizing:border-box;"><span class="match-dot" data-omr="${qid}-rightdot"></span><div class="match-content">${drawClock(t.h,t.m)}</div><span class="match-label">${String.fromCharCode(65 + k)}</span></div>`;
   });
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pool} different clock times in this set.</p>`
+    : '';
   return {
-    html:`<p class="instr">Match the identical clocks. Right-hand options are labeled A, B, C...</p>
+    html:`<p class="instr">Match the identical clocks. Right-hand options are labeled A, B, C...</p>${cappedNote}
       <div class="match-grid spaced"><div class="match-col-left">${leftItems}</div><div class="match-space"></div><div class="match-col-right">${rightItems}</div></div>`,
     answers
   };
