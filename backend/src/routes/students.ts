@@ -903,6 +903,62 @@ export function registerStudentRoutes(app: express.Express) {
       });
     }
 
+    // Issue #366 — OCR review gate (V0.1 Step 5): never score an uncertain
+    // extraction silently. When the caller tells us which scan produced these
+    // answers, refuse to grade until every low-confidence/ambiguous response
+    // has been reviewed. Callers that send no scanSubmissionId (manual entry,
+    // legacy clients, old submissions) are unaffected.
+    //
+    // Deliberately keyed on the scan's own id, NOT on studentId: a child can
+    // have an unrelated pending scan, which must not block a typed submission.
+    const scanSubmissionId = typeof req.body?.scanSubmissionId === 'string'
+      ? req.body.scanSubmissionId.trim()
+      : '';
+    if (scanSubmissionId) {
+      const scan = await dbStore.getScanSubmissionById(scanSubmissionId);
+      if (!scan) {
+        return res.status(404).json({
+          error: 'Scan submission not found.',
+          code: 'SCAN_NOT_FOUND',
+          scanSubmissionId
+        });
+      }
+      // The scan must belong to the student being scored. A bulk sheet may
+      // legitimately have no studentId; in that case fall back to the student's
+      // school so a scan can never be attached to an unrelated child by id.
+      if (scan.studentId) {
+        if (scan.studentId !== student.id) {
+          return res.status(403).json({
+            error: 'This scan belongs to a different student.',
+            code: 'SCAN_STUDENT_MISMATCH',
+            scanSubmissionId
+          });
+        }
+      } else if (scan.schoolId && student.schoolId && scan.schoolId !== student.schoolId) {
+        return res.status(403).json({
+          error: 'This scan belongs to a different school.',
+          code: 'SCAN_STUDENT_MISMATCH',
+          scanSubmissionId
+        });
+      }
+
+      // Block only genuinely-uncertain, not-yet-reviewed answers. A pending
+      // high-confidence answer (requiresReview === false), or one already
+      // reviewed/corrected, is safe to score.
+      const responses = await dbStore.getExtractedResponses({ scanSubmissionId });
+      const pendingReview = responses
+        .filter(r => r.reviewState === 'pending' && r.requiresReview === true)
+        .map(r => ({ questionId: r.questionId, pageNumber: r.pageNumber }));
+      if (pendingReview.length > 0) {
+        return res.status(409).json({
+          error: `This scan has ${pendingReview.length} answer(s) awaiting review before scoring.`,
+          code: 'SCAN_REVIEW_REQUIRED',
+          scanSubmissionId,
+          pendingReview
+        });
+      }
+    }
+
     // Variables assigned by the scoring block below. Declared here (function
     // scope) so the rest of the handler can read them after the local block.
     let score = 0;

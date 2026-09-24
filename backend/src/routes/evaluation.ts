@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import { randomUUID } from 'crypto';
 import { PDFDocument } from 'pdf-lib';
-import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_NAMES, dedupeQuestionsById } from '../db';
+import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_NAMES, dedupeQuestionsById, ScanSubmissionPageState, ScanProcessingStage } from '../db';
 import { getAuthUser, canAccessStudent } from '../auth';
 import { evaluateAIWorksheet } from '../gemini';
 import { PYTHON_BIN, AI_SERVICES_DIR } from '../config';
@@ -13,7 +13,7 @@ import { invalidateFingerprintCache } from './misconceptions';
 import { assignStudentToArchetype } from '../studentArchetypeService';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { directPrerequisites, describeConcept } from '../competencyPrerequisites';
-import { analyzeScanQuality } from '../scanQuality';
+import { analyzeScanQuality, type ScanQualityResult } from '../scanQuality';
 import { calculateStandardAdvancement } from '../gradeLevelCalculator';
 
 export function registerEvaluationRoutes(app: express.Express) {
@@ -46,6 +46,23 @@ export function registerEvaluationRoutes(app: express.Express) {
       }
     }
     return _cloudKeyCache[provider] || null;
+  };
+
+  // Issue #366 (opt-in, non-breaking): reflect an OCR attempt onto the
+  // scan_submissions record — but ONLY when the caller supplied a
+  // scanSubmissionId. Requests that omit it (i.e. every pre-existing client)
+  // flow through exactly as before; no scan tracking occurs.
+  const reflectScanSubmission = async (
+    id: unknown,
+    updates: { stage?: ScanProcessingStage; provider?: string; scanQuality?: ScanQualityResult; error?: string; fileName?: string; pageCount?: number; pages?: ScanSubmissionPageState[] }
+  ) => {
+    if (typeof id !== 'string' || !id) return;
+    const existing = await dbStore.getScanSubmissionById(id);
+    if (!existing) return; // id supplied but no record — don't fabricate one
+    // Never write `undefined` values (Mongo $set rejects them): drop them here.
+    const patch: Record<string, unknown> = { ...updates, updatedAt: new Date().toISOString() };
+    for (const key of Object.keys(patch)) if (patch[key] === undefined) delete patch[key];
+    await dbStore.updateScanSubmission(id, patch as Parameters<typeof dbStore.updateScanSubmission>[1]);
   };
 
   // Admin endpoint: configure (or clear) a cloud OCR API key.
@@ -556,7 +573,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { imageDataUrl, fileBase64, provider, expectedCount, proceedDespiteQualityWarning } = req.body || {};
+    const { imageDataUrl, fileBase64, provider, expectedCount, proceedDespiteQualityWarning, scanSubmissionId } = req.body || {};
     const singleDataUrl = imageDataUrl || fileBase64;
     if (!singleDataUrl || typeof singleDataUrl !== 'string') {
       return res.status(400).json({ error: 'imageDataUrl or fileBase64 is required (data URL).' });
@@ -572,6 +589,8 @@ export function registerEvaluationRoutes(app: express.Express) {
     const qualityResult = analyzeScanQuality(imgBuf);
 
     if (qualityResult.status === 'reject') {
+      // Issue #366: only when the caller passed scanSubmissionId.
+      await reflectScanSubmission(scanSubmissionId, { stage: 'failed', provider, scanQuality: qualityResult, error: 'Scan quality check failed: ' + qualityResult.reasons.join('; ') });
       return res.status(400).json({
         error: 'Scan quality check failed: ' + qualityResult.reasons.join('; '),
         qualityResult,
@@ -580,6 +599,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
 
     if (qualityResult.status === 'warning' && proceedDespiteQualityWarning !== true) {
+      await reflectScanSubmission(scanSubmissionId, { stage: 'quality_checked', provider, scanQuality: qualityResult, error: 'Scan quality warning: ' + qualityResult.reasons.join('; ') });
       return res.status(422).json({
         error: 'Scan quality warning: ' + qualityResult.reasons.join('; '),
         qualityResult,
@@ -607,6 +627,15 @@ export function registerEvaluationRoutes(app: express.Express) {
     if (r.body && typeof r.body === 'object') {
       r.body.scanQuality = qualityResult;
     }
+    // Issue #366: opt-in scan_submissions tracking. Only when scanSubmissionId
+    // is supplied; pre-existing callers are unchanged.
+    const ocrOk = !!(r.body && typeof r.body === 'object' && r.body.success);
+    await reflectScanSubmission(
+      scanSubmissionId,
+      ocrOk
+        ? { stage: 'extracted', provider, scanQuality: qualityResult }
+        : { stage: 'failed', provider, scanQuality: qualityResult, error: (r.body && typeof r.body === 'object' && r.body.error) || 'Cloud OCR failed' }
+    );
     return res.status(r.status).json(r.body);
   });
 
@@ -762,7 +791,8 @@ export function registerEvaluationRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { fileDataUrl, imageDataUrl, fileBase64, provider, pagesPerStudent, expectedCount } = req.body || {};
+const { fileDataUrl, imageDataUrl, fileBase64, provider, pagesPerStudent, scanSubmissionId, expectedCount } = req.body || {};
+const singleDataUrl = fileDataUrl || imageDataUrl || fileBase64;
     const singleDataUrl = fileDataUrl || imageDataUrl || fileBase64;
     if (!singleDataUrl || typeof singleDataUrl !== 'string') {
       return res.status(400).json({ error: 'fileDataUrl / imageDataUrl / fileBase64 is required (data URL).' });
@@ -956,6 +986,28 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
 
     const successCount = results.filter((x) => x.success).length;
+
+    // Issue #366: opt-in scan_submissions tracking — only when the caller
+    // passed scanSubmissionId (pre-existing bulk requests are unchanged).
+    if (typeof scanSubmissionId === 'string' && scanSubmissionId) {
+      const pages: ScanSubmissionPageState[] = subPdfs.map((sub, i) => {
+        const ok = !!(results[i] && results[i].success);
+        return {
+          pageNumber: sub.pageFrom,
+          rasterized: true,
+          extractionStatus: ok ? 'done' : 'error',
+          ...(ok ? {} : { error: (results[i] && results[i].error) || 'OCR failed' }),
+        };
+      });
+      await reflectScanSubmission(scanSubmissionId, {
+        stage: successCount > 0 ? 'extracted' : 'failed',
+        provider,
+        pageCount: totalPages,
+        pages,
+        ...(successCount > 0 ? {} : { error: 'All OCR chunks failed' }),
+      });
+    }
+
     return res.json({
       success: true,
       provider,
