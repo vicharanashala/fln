@@ -12,6 +12,8 @@ import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
 import { TicketSubmission } from '../TicketSubmission';
 import { ClassSummaryBar } from './ClassSummaryBar';
+import { DashboardSkeleton } from '../ui/DashboardSkeleton';
+import { EmptyStateCard } from '../ui/EmptyStateCard';
 
 
 interface TeacherDashboardProps extends DashboardProps {
@@ -129,6 +131,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     );
   }
 
+  if (studentsLoading) {
+    return <DashboardSkeleton />;
+  }
+
   // Issue #294: CSV template matching the exact column schema
   // `POST /api/students/bulk-import` expects (see createStudentFromData in
   // backend/src/routes/students.ts) — required fields first (name,
@@ -158,20 +164,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
   // import their first student.
   if (!studentsLoading && students.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center space-y-6" id="teacher-dashboard-welcome">
-        <div>
-          <h1 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white">Welcome, {user.name}!</h1>
-          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-2">
-            You don't have any students registered yet. Get started by adding your first student below.
-          </p>
-        </div>
+      <div className="max-w-2xl mx-auto py-16 space-y-4" id="teacher-dashboard-welcome">
+        <EmptyStateCard
+          title={`Welcome, ${user.name}!`}
+          description="You don't have any students registered yet. Get started by adding your first student."
+          actionLabel="Register Students"
+          onAction={() => onNavigate?.('student_list')}
+        />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-          <button
-            onClick={() => onNavigate?.('student_list')}
-            className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-zinc-200 font-semibold text-sm px-5 py-4 rounded-xl transition-colors cursor-pointer text-center"
-          >
-            Register New Student
-          </button>
           <button
             onClick={() => onNavigate?.('student_list')}
             className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-semibold text-sm px-5 py-4 rounded-xl transition-colors cursor-pointer text-center"
@@ -229,6 +229,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
       <ClassSummaryBar students={students} token={token} teacherId={user.id} />
 
       <TicketSubmission token={token} userRole={user.role} />
+
+      {classes.length === 0 && (
+        <EmptyStateCard
+          title="No classes assigned yet"
+          description="You can register students now; assigned classrooms will appear here when they are ready."
+          actionLabel="Register Students"
+          onAction={() => onNavigate?.('student_list')}
+        />
+      )}
 
       {/* Class picker tabs */}
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">

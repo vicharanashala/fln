@@ -6,12 +6,15 @@ import { apiFetch } from '../../services/apiClient';
 import { User, UserRole, Student, School,DashboardProps } from '../../types';
 import { STATE_NAMES, DISTRICT_NAMES} from '../RoleDashboards';
 import {RegionalAnalyticsView} from '../dashboards/RegionalAnalyticsView'
+import { DashboardSkeleton } from '../ui/DashboardSkeleton';
+import { EmptyStateCard } from '../ui/EmptyStateCard';
 
 export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'access' | 'logbook'>('overview');
   const [schools, setSchools] = useState<School[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -29,6 +32,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         if (Array.isArray(uData)) setAllUsers(uData);
       } catch (err) {
         console.error(err);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchData();
@@ -120,6 +125,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     v.assignedSchools.some(schId => scopedSchoolIds.includes(schId))
   );
 
+  if (isLoading) {
+    return <DashboardSkeleton rosterRows={3} />;
+  }
+
   return (
     <div className="space-y-6" id="admin-dashboard">
       <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -196,7 +205,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               <h3 className="text-base font-display font-semibold text-zinc-900 dark:text-white">Regional Learning Gaps & Lagging Alerts</h3>
               <div className="space-y-3">
                 {schoolPerformance.length === 0 ? (
-                  <p className="text-zinc-400 dark:text-zinc-500 text-xs text-center py-6 font-mono">No preseeded schools found in this regional scope.</p>
+                  <EmptyStateCard title="No schools in this scope" description="Schools assigned to this administrative scope will appear here." />
                 ) : (
                   schoolPerformance.map(perf => (
                     <div 
@@ -233,7 +242,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               <h3 className="text-base font-display font-semibold text-zinc-900 dark:text-white">Volunteer Assignments</h3>
               <div className="space-y-3">
                 {scopedVolunteers.length === 0 ? (
-                  <p className="text-zinc-400 dark:text-zinc-500 text-xs text-center py-6 font-mono">No active volunteers deployed in this regional node.</p>
+                  <EmptyStateCard title="No volunteers deployed" description="Volunteer assignments for this regional node will appear here." />
                 ) : (
                   scopedVolunteers.map(vol => (
                     <div key={vol.email} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg flex justify-between items-center bg-zinc-50 dark:bg-zinc-800">

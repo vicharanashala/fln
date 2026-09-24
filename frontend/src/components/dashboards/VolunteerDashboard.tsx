@@ -10,12 +10,15 @@ import { BaselineUpload } from '../BaselineUpload';
 import { SkillGraphPanel } from '../SkillGraphPanel';
 import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
+import { DashboardSkeleton } from '../ui/DashboardSkeleton';
+import { EmptyStateCard } from '../ui/EmptyStateCard';
 
 
 export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
@@ -67,6 +70,8 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
       if (Array.isArray(stdData)) setStudents(stdData);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -99,6 +104,10 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
         onBack={() => setBaselineStudent(null)}
       />
     );
+  }
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
   }
 
   const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : [];
@@ -148,6 +157,15 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
         ))}
       </div>
 
+      {classes.length === 0 && (
+        <EmptyStateCard
+          title="No classrooms assigned yet"
+          description="A classroom assignment is needed before you can view its roster or begin assessments."
+          actionLabel="View Skill Progression"
+          onAction={() => setShowSkillGraph(true)}
+        />
+      )}
+
       {activeClass && (
         <div className="space-y-6">
           {/* Issue #166: Diagnostic Paper Generator + Level-Wise Paper Generator
@@ -166,7 +184,12 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
               <h3 className="font-display font-medium text-zinc-900 dark:text-white text-sm">Classroom Student Roster ({classStudents.length})</h3>
             </div>
             <div className="p-4">
-              {(() => {
+              {classStudents.length === 0 ? (
+                <EmptyStateCard
+                  title="No students in this classroom"
+                  description="Students will appear here when they are registered to this classroom."
+                />
+              ) : (() => {
                 const studentColumns: Column<Student>[] = [
                   { header: 'ID', accessor: (s) => s.displayId || s.id, sortKey: 'id', className: 'font-mono text-xs text-slate-400 dark:text-slate-500' },
                   { header: 'Student Name', accessor: 'name', sortKey: 'name', className: 'font-medium text-slate-900 dark:text-slate-100' },
