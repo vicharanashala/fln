@@ -31,7 +31,7 @@ function generateIdForRole(role: UserRole): string {
       throw new Error(`Unsupported generated user role: ${role}`);
   }
 }
-import { getAuthUser, sanitizeUser, requireSuperadmin } from '../auth';
+import { requireSuperadmin } from '../auth';
 
 export function registerAdminRoutes(app: express.Express) {
   // Admin Creation (by Superadmin)
