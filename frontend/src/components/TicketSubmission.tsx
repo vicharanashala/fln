@@ -90,8 +90,8 @@ export const TicketSubmission: React.FC<TicketSubmissionProps> = ({ token, userR
   return (
     <div className="space-y-6" id="ticket-submission">
       <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4">
-        <h2 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">Pedagogical & Process Feedback Tickets</h2>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">Submit feedback on syllabus, exam timings, or report inconsistencies. Superadmins review all entries.</p>
+        <h2 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">Pedagogical & Process Support Tickets</h2>
+        <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">Submit feedback on syllabus, exam timings, or report inconsistencies. Routed directly to Superadmin review queue.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

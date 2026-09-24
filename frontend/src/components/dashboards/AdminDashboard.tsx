@@ -79,6 +79,15 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const scopedSchoolIds = scopedSchools.map(s => s.id);
   const scopedStudents = students.filter(s => scopedSchoolIds.includes(s.schoolId));
 
+  if (dashboardLoading) {
+    return (
+      <div className="space-y-6" id="admin-dashboard">
+        <DashboardSkeleton metricCount={4} showChart={true} />
+        <RosterSkeleton columns={5} rows={6} showToolbar={true} />
+      </div>
+    );
+  }
+
   // Calculate dynamic pipeline metrics
   const studentsCount = scopedStudents.length;
   const certifiedCount = scopedStudents.filter(s => s.currentLevel !== null && s.currentLevel >= 5).length;

@@ -64,8 +64,8 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   if (dashboardLoading) {
     return (
       <div className="space-y-6" id="school-dashboard">
-        <DashboardSkeleton metricCount={2} />
-        <RosterSkeleton columns={2} showToolbar={false} />
+        <DashboardSkeleton metricCount={3} showChart={true} />
+        <RosterSkeleton columns={4} rows={5} showToolbar={true} />
       </div>
     );
   }
@@ -89,9 +89,16 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {classes.length === 0 ? (
               <EmptyStateCard
-                illustration={<SchoolIcon className="h-6 w-6" />}
+                illustration={<SchoolIcon className="h-6 w-6 text-indigo-500" />}
                 title="No classrooms available"
                 description="No classrooms are currently available for this school. Contact your administrator if this is unexpected."
+                actions={[
+                  {
+                    label: 'Refresh Classes',
+                    onClick: () => fetchSchoolData(),
+                    variant: 'primary',
+                  },
+                ]}
                 className="md:col-span-2"
               />
             ) : classes.map(c => {

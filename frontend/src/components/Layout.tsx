@@ -430,12 +430,16 @@ export const Layout: React.FC<LayoutProps> = ({
             )}
           </div>
 
-          {/* Support Tickets — opens the existing ticket list/create flow */}
+          {/* Support Tickets — opens the modal ticket list/create flow */}
           <button
             onClick={() => setShowTicketModal(true)}
-            className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 hover:text-indigo-600 transition dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
-            title="Support Tickets"
-            aria-label="Open support tickets"
+            className={`relative rounded-lg p-2 transition duration-200 ${
+              showTicketModal
+                ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400'
+                : 'text-slate-505 hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400'
+            }`}
+            title="Open Support & Feedback Tickets Modal"
+            aria-label="Open support tickets modal"
           >
             <TicketIcon className="h-4.5 w-4.5" />
           </button>
@@ -444,9 +448,13 @@ export const Layout: React.FC<LayoutProps> = ({
           {canViewLogbook && (
             <button
               onClick={() => setShowLogbookModal(true)}
-              className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 hover:text-indigo-600 transition dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
-              title="Activity Logbook"
-              aria-label="Open activity logbook"
+              className={`relative rounded-lg p-2 transition duration-200 ${
+                showLogbookModal
+                  ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400'
+                  : 'text-slate-505 hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400'
+              }`}
+              title="Open Activity Logbook Audit Trail Modal"
+              aria-label="Open activity logbook modal"
             >
               <ScrollText className="h-4.5 w-4.5" />
             </button>

@@ -34,10 +34,28 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
   // for every teacher for a moment before their real roster loads in.
   const [studentsLoading, setStudentsLoading] = useState(true);
   // null = "All Students" tab; otherwise the exact classGroup string
-  // ("Class 1", "Class 2", etc.). Derived from the actual student roster
-  // rather than the ClassGroup table so a missing classGroup record never
-  // hides a child from view.
-  const [activeClassFilter, setActiveClassFilter] = useState<string | null>(null);
+  // ("Class 1", "Class 2", etc.). Derived from the actual student roster.
+  const [activeClassFilter, setActiveClassFilter] = useState<string | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('fln_teacher_class_filter');
+      return saved && saved !== 'all' ? saved : null;
+    } catch (_e) {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (activeClassFilter) {
+        sessionStorage.setItem('fln_teacher_class_filter', activeClassFilter);
+      } else {
+        sessionStorage.setItem('fln_teacher_class_filter', 'all');
+      }
+    } catch (_e) {
+      // Ignore
+    }
+  }, [activeClassFilter]);
+
   const [school, setSchool] = useState<School | null>(null);
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);

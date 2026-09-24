@@ -115,8 +115,8 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
   if (dashboardLoading) {
     return (
       <div className="space-y-6" id="volunteer-dashboard">
-        <DashboardSkeleton metricCount={3} />
-        <RosterSkeleton columns={5} />
+        <DashboardSkeleton metricCount={4} showChart={true} />
+        <RosterSkeleton columns={5} rows={6} showToolbar={true} />
       </div>
     );
   }
@@ -150,13 +150,18 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
         </div>
       </div>
 
-
-
       {classes.length === 0 && (
         <EmptyStateCard
-          illustration={<School className="h-6 w-6" />}
+          illustration={<School className="h-6 w-6 text-indigo-500" />}
           title="No classrooms assigned"
-          description="There are no classrooms assigned to your volunteer account yet. Contact your coordinator if you expect an assignment."
+          description="There are no classrooms assigned to your volunteer account yet. Contact your block coordinator if you expect an assignment."
+          actions={[
+            {
+              label: 'Refresh Dashboard',
+              onClick: () => fetchVolunteerData(),
+              variant: 'primary',
+            },
+          ]}
         />
       )}
 

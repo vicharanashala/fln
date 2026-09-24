@@ -4,6 +4,7 @@ import { Student, ClassGroup, EvaluationReport, User } from '../types';
 import { ChildErrorSignature } from './MisconceptionFingerprint';
 import { IcrTwoStageScan } from './IcrTwoStageScan';
 import { BulkIcrScan, BulkChunkResult, BulkOcrResponse } from './BulkIcrScan';
+import { OcrCorrectionDrawer } from './evaluation/OcrCorrectionDrawer';
 
 interface IcrScannerProps {
   token: string;
@@ -301,6 +302,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   // overall progress so the button can show a spinner / progress label.
   const [savingAll, setSavingAll] = useState(false);
   const [saveAllProgress, setSaveAllProgress] = useState<{ done: number; total: number } | null>(null);
+  const [showOcrDrawer, setShowOcrDrawer] = useState(false);
 
   const [step, setStep] = useState<ScannerStep>('select');
   const [loading, setLoading] = useState(false);
@@ -2323,6 +2325,13 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                   >
                     {showPastReports ? '▾ Hide Past Reports' : '📜 Past Reports'}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowOcrDrawer(true)}
+                    className="flex-1 text-xs font-mono font-bold uppercase tracking-wider px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 cursor-pointer"
+                  >
+                    ✏️ OCR Correction Drawer
+                  </button>
                 </div>
 
                 {showFullReport && (
@@ -2404,6 +2413,39 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
           ) : null}
         </div>
       )}
+
+      {/* Teacher OCR Correction & Manual Verification Drawer (Issue #367) */}
+      <OcrCorrectionDrawer
+        isOpen={showOcrDrawer}
+        onClose={() => setShowOcrDrawer(false)}
+        reportId={report?.id || 'rep_draft'}
+        studentName={selectedStudent?.name || report?.studentId || 'Student'}
+        studentId={selectedStudent?.id || report?.studentId}
+        token={token}
+        questionResults={questions.map((q, idx) => {
+          const userVal = extractedAnswers[q.id] || '';
+          const expectedAns = (q.correctAnswer || '').trim();
+          const isMatch = expectedAns.length > 0 && userVal.trim() === expectedAns;
+          return {
+            questionId: q.id || `q_${idx + 1}`,
+            questionNumber: idx + 1,
+            questionText: q.question,
+            expectedAnswer: q.correctAnswer,
+            submittedAnswer: userVal,
+            isCorrect: isMatch,
+          };
+        })}
+        onOverrideSuccess={(updatedData) => {
+          if (updatedData && updatedData.report) {
+            setReport((prev: any) => prev ? {
+              ...prev,
+              score: updatedData.report.score,
+              recommendedLevel: updatedData.report.recommendedLevel,
+              recommendedSubLevel: updatedData.report.recommendedSubLevel,
+            } : prev);
+          }
+        }}
+      />
     </div>
   );
 };

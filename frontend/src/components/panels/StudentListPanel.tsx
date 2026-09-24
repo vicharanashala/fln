@@ -46,7 +46,39 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
       a.classGroup === b.classGroup ? a.section.localeCompare(b.section) : a.classGroup.localeCompare(b.classGroup)
     );
   }, [students]);
-  const [activeTab, setActiveTab] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    try {
+      const saved = sessionStorage.getItem('fln_roster_filter');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.activeTab === 'string') {
+          return parsed.activeTab;
+        }
+      }
+    } catch (_e) {
+      // Fallback on error
+    }
+    return 'all';
+  });
+
+  // Save roster filter to sessionStorage on change
+  React.useEffect(() => {
+    try {
+      sessionStorage.setItem('fln_roster_filter', JSON.stringify({ activeTab, userRole: currentUser.role }));
+    } catch (_e) {
+      // Ignore quota errors
+    }
+  }, [activeTab, currentUser.role]);
+
+  const handleResetFilters = () => {
+    setActiveTab('all');
+    try {
+      sessionStorage.removeItem('fln_roster_filter');
+    } catch (_e) {
+      // Ignore
+    }
+  };
+
   const visibleStudents = activeTab === 'all'
     ? students
     : students.filter(s => `${s.classGroup}|${s.section}` === activeTab);
@@ -482,30 +514,41 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
         )}
 
         {classTabs.length > 1 && (
-          <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-px overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
-                activeTab === 'all' ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white font-semibold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >
-              All Students ({students.length})
-            </button>
-            {classTabs.map(c => {
-              const key = `${c.classGroup}|${c.section}`;
-              const count = students.filter(s => s.classGroup === c.classGroup && s.section === c.section).length;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setActiveTab(key)}
-                  className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
-                    activeTab === key ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white font-semibold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {c.classGroup} - {c.section} ({count})
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-px overflow-x-auto">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
+                  activeTab === 'all' ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white font-semibold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                All Students ({students.length})
+              </button>
+              {classTabs.map(c => {
+                const key = `${c.classGroup}|${c.section}`;
+                const count = students.filter(s => s.classGroup === c.classGroup && s.section === c.section).length;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
+                      activeTab === key ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white font-semibold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {c.classGroup} - {c.section} ({count})
+                  </button>
+                );
+              })}
+            </div>
+            {activeTab !== 'all' && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400 hover:underline px-2 py-1 shrink-0"
+              >
+                ↺ Reset Filter
+              </button>
+            )}
           </div>
         )}
 
