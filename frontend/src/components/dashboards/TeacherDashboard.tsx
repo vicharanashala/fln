@@ -8,6 +8,7 @@ import { User, Student, School, DashboardProps } from '../../types';
 import { DiagnosticWorkflow } from '../DiagnosticWorkflow';
 import { BaselineUpload } from '../BaselineUpload';
 import { SkillGraphPanel } from '../SkillGraphPanel';
+import { LEVEL_SKILL_MAP } from '../../data/skillProgressionMap';
 import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
 
@@ -239,7 +240,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
             onClick={() => setShowSkillGraph(true)}
             className="bg-white dark:bg-slate-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
           >
-            🧠 Skill Progression (93 levels)
+            🧠 Skill Progression ({LEVEL_SKILL_MAP.length} levels)
           </button>
 
         </div>

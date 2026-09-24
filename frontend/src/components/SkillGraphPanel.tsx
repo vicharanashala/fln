@@ -4,6 +4,8 @@ import {
   LEVEL_SKILL_MAP,
   DOMAIN_TINT,
   STAGE_TINT,
+  STAGES,
+  STAGE_LABELS,
   getSkillsForLevel,
   getCoverageMatrix,
   getPrerequisiteEdges,
@@ -30,18 +32,12 @@ const RELATIONSHIP_COLOR: Record<RelationshipType, string> = {
   required_for_procedure: 'border-solid border-rose-400 dark:border-rose-700',
 };
 
-// Stages we support (also bound to dashboard-side data)
-const ALL_STAGES: LevelSkillMapping['stage'][] = [
-  'Pre-school 1', 'Pre-school 2', 'Pre-school 3',
-  'Class 1', 'Class 2', 'Class 3', 'Class 4',
-];
-
 // ─── modal wrapper ───────────────────────────────────────────────────────────
 
 export const SkillGraphPanel: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
   const [view, setView] = useState<'matrix' | 'graph' | 'level-detail'>('matrix');
   const [stages, setStages] = useState<Set<LevelSkillMapping['stage']>>(
-    new Set(ALL_STAGES)
+    new Set<LevelSkillMapping['stage']>(STAGES)
   );
   const [selectedLevel, setSelectedLevel] = useState<string>('L1');
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
@@ -68,11 +64,11 @@ export const SkillGraphPanel: React.FC<{ open: boolean; onClose: () => void }> =
         <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div>
             <h2 className="text-lg font-mono font-semibold text-zinc-900 dark:text-white">
-              🧠 FLN Skill Progression — 93 Levels
+              🧠 FLN Skill Progression — {LEVEL_SKILL_MAP.length} Levels
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               Source: <code className="font-mono">docs/skill-graph/FLN_93_Level_Skill_Graph_Specification.md</code>
-              {' '}· 24 core skills (SK01–SK24) · 93 levels (Pre-school 1 → Class 4)
+              {' '}· 24 core skills (SK01–SK24) · {LEVEL_SKILL_MAP.length} levels ({STAGE_LABELS[STAGES[0]]} → {STAGE_LABELS[STAGES[STAGES.length - 1]]})
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -117,7 +113,7 @@ export const SkillGraphPanel: React.FC<{ open: boolean; onClose: () => void }> =
 
         {/* Footer */}
         <div className="border-t border-zinc-200 dark:border-zinc-800 px-6 py-3 text-[11px] font-mono text-zinc-500 dark:text-zinc-400 flex flex-wrap gap-x-6 gap-y-1">
-          <span><strong>{visibleLevels.length}</strong> / 93 levels visible</span>
+          <span><strong>{visibleLevels.length}</strong> / {LEVEL_SKILL_MAP.length} levels visible</span>
           <span><strong>{CORE_SKILLS.length}</strong> core skills (SK01-SK24)</span>
           <span><strong>{CORE_SKILLS.reduce((n, s) => n + s.subskills.length, 0)}</strong> granular subskills</span>
           <span><strong>{edges.length}</strong> prereq edges</span>
@@ -161,12 +157,12 @@ const StageFilter: React.FC<{
     if (next.has(s)) next.delete(s); else next.add(s);
     setStages(next);
   };
-  const allOn = stages.size === ALL_STAGES.length;
+  const allOn = stages.size === STAGES.length;
   const allOff = stages.size === 0;
   return (
     <div className="mb-4 flex flex-wrap items-center gap-1.5">
       <span className="text-[10px] text-zinc-500 dark:text-zinc-400 mr-1">Stages:</span>
-      {ALL_STAGES.map(s => (
+      {STAGES.map(s => (
         <button
           key={s}
           onClick={() => toggle(s)}
@@ -176,12 +172,12 @@ const StageFilter: React.FC<{
               : 'bg-white dark:bg-slate-900 text-zinc-400 dark:text-zinc-600 border-zinc-300 dark:border-zinc-700 line-through'
           }`}
         >
-          {s}
+          {STAGE_LABELS[s]}
         </button>
       ))}
       <span className="ml-2 flex gap-1">
         <button
-          onClick={() => setStages(new Set(ALL_STAGES))}
+          onClick={() => setStages(new Set<LevelSkillMapping['stage']>(STAGES))}
           disabled={allOn}
           className="text-[10px] font-mono px-2 py-1 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40"
         >
@@ -217,7 +213,7 @@ const MatrixView: React.FC<{
   return (
     <div className="space-y-4">
       <p className="text-xs text-zinc-600 dark:text-zinc-400">
-        Each row is one of the 93 levels (L1-L93). Each column is a core skill
+        Each row is one of the {LEVEL_SKILL_MAP.length} levels ({LEVEL_SKILL_MAP[0].levelId}-{LEVEL_SKILL_MAP[LEVEL_SKILL_MAP.length - 1].levelId}). Each column is a core skill
         (SK01-SK24). A filled cell marks primary/secondary involvement. Click a
         header to filter the graph; click a level row to open its detail.
       </p>
@@ -279,7 +275,7 @@ const MatrixView: React.FC<{
                   <div className="font-semibold text-zinc-800 dark:text-zinc-100">
                     {lvl.levelId}
                   </div>
-                  <div className="text-[9px] text-zinc-500 dark:text-zinc-400">{lvl.stage}</div>
+                  <div className="text-[9px] text-zinc-500 dark:text-zinc-400">{STAGE_LABELS[lvl.stage]}</div>
                   <div className="text-[10px] text-zinc-600 dark:text-zinc-300">{lvl.capability}</div>
                 </th>
                 {allSkillIds.map(sid => {
@@ -325,7 +321,7 @@ const MatrixView: React.FC<{
         <span className="text-emerald-700 dark:text-emerald-300">S</span> = supporting skill ·
         <span className="text-amber-600 dark:text-amber-400">x</span> = touched but not assigned ·
         <span className="text-zinc-400">·</span> = not involved.
-        Pre-school rows have a <span className="text-pink-600">pink</span> left border,
+        Pre-school/Balvatika rows have a <span className="text-pink-600">pink</span> left border,
         Class rows have an <span className="text-emerald-600">emerald</span> one.
       </p>
     </div>
@@ -517,7 +513,7 @@ const LevelDetailView: React.FC<{
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         <span className={`text-[10px] font-mono px-2 py-1 rounded-full ${STAGE_TINT[level.stage]}`}>
-          {level.stage}
+          {STAGE_LABELS[level.stage]}
         </span>
         <h3 className="text-base font-mono font-semibold text-zinc-900 dark:text-white">
           {level.levelId} — {level.capability}
