@@ -14,11 +14,47 @@ interface WorksheetWorkflowProps {
 }
 
 export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup, students, token, userRole, onBack }) => {
+  const isTeacher = userRole === 'teacher';
+  const isSchool = userRole === 'school';
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
   const [activeStudentId, setActiveStudentId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+    const [generationWindow, setGenerationWindow] = useState<{
+    start: string;
+    teacherPriorityEnd: string;
+    end: string;
+    generatedByRole: string | null;
+    generatedByEmail: string | null;
+  } | null>(null);
+
+  const [generationTimeLeft, setGenerationTimeLeft] = useState<number | null>(null);
+    useEffect(() => {
+    if (!generationWindow) {
+      setGenerationTimeLeft(null);
+      return;
+    }
+
+    const updateTimer = () => {
+      const remaining = Math.max(
+        0,
+        new Date(generationWindow.end).getTime() - Date.now()
+      );
+
+      setGenerationTimeLeft(remaining);
+
+      if (remaining === 0) {
+        setGenerationWindow(null);
+      }
+    };
+
+    updateTimer();
+
+    const timer = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(timer);
+  }, [generationWindow]);
 
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [pdfUrl, setPdfUrl] = useState('');
@@ -46,33 +82,70 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
       }
     } catch (_) {}
   };
+  const startGenerationWindow = async (
+  cycle: 'Baseline' | 'Mid-year' | 'End-of-year'
+) => {
+  setLoading(true);
+  setError('');
+  setSuccess('');
 
-  const generateWorksheets = async (cycle: 'Baseline' | 'Mid-year' | 'End-of-year') => {
-    setLoading(true);
-    setError('');
-    setSuccess('');
-    try {
-      const res = await apiFetch('/api/worksheets/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ classId: classGroup.id, cycle })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setWorksheet(data);
-        setSuccess('Class worksheets generated successfully using Gemini AI personalization!');
-      } else {
-        setError(data.error || 'Failed to generate worksheets due to active generation locks.');
-      }
-    } catch (err) {
-      setError('Network error generating worksheets.');
-    } finally {
-      setLoading(false);
+  try {
+    const res = await apiFetch('/api/worksheets/generation-window/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ classId: classGroup.id, cycle })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || 'Failed to start worksheet generation window.');
+      return;
     }
-  };
+
+    setGenerationWindow(data);
+    setSuccess('60-minute worksheet generation window started.');
+  } catch (err) {
+    setError('Network error starting worksheet generation window.');
+  } finally {
+    setLoading(false);
+  }
+};
+  const generateWorksheets = async (
+  cycle: 'Baseline' | 'Mid-year' | 'End-of-year'
+) => {
+  setLoading(true);
+  setError('');
+  setSuccess('');
+
+  try {
+    const res = await apiFetch('/api/worksheets/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ classId: classGroup.id, cycle })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setWorksheet(data);
+      setGenerationWindow(data.generationWindow || null);
+      setSuccess('Class worksheets generated successfully using Gemini AI personalization!');
+    } else {
+      setError(data.error || 'Failed to generate worksheets due to active generation locks.');
+    }
+  } catch (err) {
+    setError('Network error generating worksheets.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleAnswerChange = (qId: string, val: string) => {
     setStudentAnswers({ ...studentAnswers, [qId]: val });
@@ -192,19 +265,38 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
           <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed max-w-md mx-auto">
             Choose an assessment cycle to generate distinct, AI-personalized papers for each child based on their current FLN mathematical level milestones.
           </p>
-
+          {generationWindow && generationTimeLeft !== null && (
+          <div className="text-center text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Worksheet generation window:{" "}
+          {Math.floor(generationTimeLeft / 60000)}:
+          {String(Math.floor((generationTimeLeft % 60000) / 1000)).padStart(2, '0')} remaining
+          </div>
+      )}
           <div className="flex flex-col items-center gap-3 pt-4">
             <div className="flex justify-center gap-3">
               <button
-                onClick={() => generateWorksheets('Baseline')}
-                disabled={loading}
-                className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-5 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
-              >
-                Generate Baseline Worksheets
-              </button>
+  onClick={() => startGenerationWindow('Baseline')}
+  disabled={loading}
+  className="bg-zinc-600 hover:bg-zinc-700 text-white font-medium text-sm py-2.5 px-5 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
+>
+  Start Baseline Generation Window
+</button>
+<button
+  onClick={() => startGenerationWindow('Mid-year')}
+  disabled={loading}
+  className="bg-zinc-600 hover:bg-zinc-700 text-white font-medium text-sm py-2.5 px-5 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
+>
+  Start Mid-Year Generation Window
+</button>
               <button
                 onClick={() => generateWorksheets('Mid-year')}
-                disabled={loading}
+                disabled={
+  loading ||
+  (isSchool &&
+    generationWindow !== null &&
+    generationTimeLeft !== null &&
+    generationTimeLeft > 30 * 60 * 1000)
+}
                 className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-5 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
               >
                 Generate Mid-Year Worksheets

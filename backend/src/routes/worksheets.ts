@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
-import { dbStore, UserRole, Student, Question, Worksheet, LevelWorksheet } from '../db';
+import { dbStore, UserRole, Student, Question, Worksheet, LevelWorksheet, WorksheetGenerationWindow } from '../db';
 import { getAuthUser } from '../auth';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import * as levelsBackendClient from '../levelsBackendClient';
@@ -157,7 +157,94 @@ export function registerWorksheetRoutes(app: express.Express) {
     }
     return res.json(worksheets);
   });
+    app.post('/api/worksheets/generation-window/start', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+    const { classId, cycle } = req.body;
+    if (!classId || !cycle) {
+      return res.status(400).json({ error: 'Class ID and assessment cycle are required.' });
+    }
+
+    const classes = await dbStore.getClasses();
+    const classObj = classes.find(c => c.id === classId);
+    if (!classObj) return res.status(404).json({ error: 'Class not found.' });
+
+    if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
+      if (user.schoolId !== classObj.schoolId) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+    }
+
+    const existingWindows = await dbStore.getGenerationWindows();
+    const existingWindow = existingWindows.find(
+      window => window.classId === classId && window.cycle === cycle
+    );
+
+    if (existingWindow) {
+      return res.json(existingWindow);
+    }
+
+    const start = new Date();
+    const teacherPriorityEnd = new Date(start.getTime() + 30 * 60 * 1000);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+    const generationWindow: WorksheetGenerationWindow = {
+      id: randomUUID(),
+      classId,
+      cycle,
+      schoolId: classObj.schoolId,
+      start: start.toISOString(),
+      teacherPriorityEnd: teacherPriorityEnd.toISOString(),
+      end: end.toISOString(),
+      generatedByRole: null,
+      generatedByEmail: null,
+      closed: false
+    };
+
+    await dbStore.addGenerationWindow(generationWindow);
+
+    return res.status(201).json(generationWindow);
+  });
+    app.get('/api/worksheets/generation-window', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { classId, cycle } = req.query;
+
+    if (!classId || !cycle) {
+      return res.status(400).json({
+        error: 'Class ID and assessment cycle are required.'
+      });
+    }
+
+    const classes = await dbStore.getClasses();
+    const classObj = classes.find(c => c.id === classId);
+
+    if (!classObj) {
+      return res.status(404).json({ error: 'Class not found.' });
+    }
+
+    if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
+      if (user.schoolId !== classObj.schoolId) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+    }
+
+    const generationWindows = await dbStore.getGenerationWindows();
+
+    const generationWindow = generationWindows.find(
+      window => window.classId === classId && window.cycle === cycle
+    );
+
+    if (!generationWindow) {
+      return res.status(404).json({
+        error: 'No worksheet generation window found.'
+      });
+    }
+
+    return res.json(generationWindow);
+  });
   app.post('/api/worksheets/generate', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -175,6 +262,46 @@ export function registerWorksheetRoutes(app: express.Express) {
     const schools = await dbStore.getSchools();
     const school = schools.find(s => s.id === classObj.schoolId);
     if (!school) return res.status(404).json({ error: 'School not found.' });
+        const generationWindows = await dbStore.getGenerationWindows();
+    const generationWindow = generationWindows.find(
+      window => window.classId === classId && window.cycle === cycle
+    );
+
+    if (!generationWindow) {
+      return res.status(409).json({
+        error: 'Worksheet generation window has not been started.'
+      });
+    }
+
+    const currentTime = new Date();
+
+    if (generationWindow.closed || currentTime >= new Date(generationWindow.end)) {
+      if (!generationWindow.closed) {
+        await dbStore.updateGenerationWindow(generationWindow.id, { closed: true });
+      }
+
+      return res.status(410).json({
+        error: 'Worksheet generation window has expired.'
+      });
+    }
+
+    if (
+      user.role === UserRole.TEACHER &&
+      currentTime >= new Date(generationWindow.teacherPriorityEnd)
+    ) {
+      return res.status(403).json({
+        error: 'Teacher priority period has ended. School can now generate the worksheet.'
+      });
+    }
+
+    if (
+      user.role === UserRole.SCHOOL &&
+      currentTime < new Date(generationWindow.teacherPriorityEnd)
+    ) {
+      return res.status(403).json({
+        error: 'Teacher priority period is still active.'
+      });
+    }
 
     // Check if Teacher is banned due to Delayed Attempts (§6.5)
     if (user.role === UserRole.TEACHER && user.isBanned) {
@@ -199,17 +326,14 @@ export function registerWorksheetRoutes(app: express.Express) {
     // route; they go through /api/worksheets/generate-level-pdf.
     const existingWorksheets = await dbStore.getWorksheets();
     const conflicting = existingWorksheets.find(w => w.classId === classId && w.cycle === cycle);
-
-    if (conflicting && conflicting.locks.locked) {
-      // Always block a re-trigger: the lock-holder's previous generation
-      // is still in flight / just completed. A second call would create
-      // a duplicate Worksheet record and break the per-class invariant
-      // (one paper per class per cycle).
+        if (conflicting && conflicting.locks.locked) {
       return res.status(423).json({
-        error: `Lock Active: A ${cycle} paper for this class was already generated by ${conflicting.locks.lockedByRole} (${conflicting.locks.lockedByEmail}) at ${conflicting.locks.timestamp}. One generation per class per cycle is allowed; re-generate is blocked.`,
-        lockDetails: conflicting.locks
+        error: 'Worksheet generation is already locked for this class and assessment cycle.',
+        lockedByRole: conflicting.generatedByRole,
+        lockedByEmail: conflicting.generatedByEmail
       });
     }
+    
 
     // Generate personalized questions for every student in the class
     const students = await dbStore.getStudents();
@@ -264,6 +388,13 @@ export function registerWorksheetRoutes(app: express.Express) {
       schoolId: classObj.schoolId,
       generatedByRole: user.role,
       generatedByEmail: user.email,
+      generationWindow: {
+        start: generationWindow.start,
+        teacherPriorityEnd: generationWindow.teacherPriorityEnd,
+        end: generationWindow.end,
+        generatedByRole: user.role,
+        generatedByEmail: user.email
+      },
       cycle,
       date: todayStr,
       questions: compiledQuestions,
@@ -281,14 +412,20 @@ export function registerWorksheetRoutes(app: express.Express) {
         examWindowEnd: examEnd.toISOString(),
         submissionWindowEnd: submissionEnd.toISOString()
       },
-      delayLogs: {
+            delayLogs: {
         delayedAttemptsCount: 0,
         submittingTeachers: []
-      }
+      },
     };
+// Issue #182:
+    
 
     await dbStore.addWorksheet(newWorksheet);
-
+        await dbStore.updateGenerationWindow(generationWindow.id, {
+      generatedByRole: user.role,
+      generatedByEmail: user.email,
+      closed: true
+    });
     await dbStore.addLog({
       id: 'log_' + Date.now(),
       timestamp: now.toISOString(),
