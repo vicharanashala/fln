@@ -12,10 +12,9 @@ dotenv.config({ path: path.resolve(__dotenv_dir, '..', '.env') });
 
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
-import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, CYCLE_NAMES } from './db';
+import { dbStore, connectDB, UserRole, User, Student, School, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, CYCLE_NAMES } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
 import { generateDiagnosticPaper } from './paperGenerator';
-import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS } from './geoData';
 import { validateConceptPrerequisites } from './competencyPrerequisites';
@@ -44,13 +43,12 @@ import { registerQuestionOptionRoutes } from './routes/questionOptions';
 import { registerDiagnosticBulkRoutes } from './routes/diagnosticBulk';
 import { registerCertificationRoutes } from './routes/certification';
 import { registerMisconceptionRoutes } from './routes/misconceptions';
+import { registerMicroPracticeRoutes } from './routes/microPractice';
 import { registerCurriculumRoutes } from './routes/curriculum';
 import { registerQuestionBankRoutes } from './routes/questionBank';
-import { randomUUID } from 'crypto';
-import fs from 'fs';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { ROOT_DIR, PYTHON_BIN, AI_SERVICES_DIR } from './config';
+import { ROOT_DIR } from './config';
 
 // Safety net: the MongoDB driver occasionally rejects a connection AFTER
 // connectDB() has returned (the client class keeps background pools
@@ -219,7 +217,7 @@ async function startServer() {
 
   // --- API Endpoints ---
 
-registerStatsRoutes(app);
+  registerStatsRoutes(app);
 
   registerAuthRoutes(app);
   registerAnnouncementRoutes(app);
@@ -268,6 +266,9 @@ registerStatsRoutes(app);
   // Create a new intervention
   registerInterventionRoutes(app);
   registerBestPracticeRoutes(app);
+
+  // --- Adaptive Micro-Practice & Spaced-Repetition ---
+  registerMicroPracticeRoutes(app);
 
   // Any /api/* path that reached here matched no registered route. Answer
   // with a real 404 now, before the dev-only Vite middleware below — that

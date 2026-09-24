@@ -4,7 +4,7 @@ import { apiFetch } from '../services/apiClient';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home, Award,
+  School, GraduationCap, MapPin, BarChart3, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Repeat, Home, Award,
   Fingerprint, Ticket as TicketIcon, ScrollText
 } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -162,6 +162,7 @@ export const Layout: React.FC<LayoutProps> = ({
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
+        list.push({ name: 'Micro-Practice', view: 'micro-practice', icon: Repeat });
         list.push({ name: 'Misconceptions', view: 'misconceptions', icon: Fingerprint });
         // Pedagogical & Process Feedback — moved out of the TeacherDashboard
         // body into the LHS sidebar so the ticket form doesn't crowd the
@@ -193,6 +194,7 @@ export const Layout: React.FC<LayoutProps> = ({
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
+        list.push({ name: 'Micro-Practice', view: 'micro-practice', icon: Repeat });
         break;
 
       case UserRole.SCHOOL:
