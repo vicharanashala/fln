@@ -608,6 +608,18 @@ export interface LogEntry {
   details: string;
 }
 
+export interface ScanRecord {
+  id: string;
+  scanUuid: string;
+  status: 'PENDING' | 'SYNCED' | 'FAILED';
+  createdAt: string;
+  metadata: Record<string, any>;
+  imageDataUrl?: string;
+  userId?: string;
+  schoolId?: string;
+  error?: string;
+}
+
 export interface Announcement {
   id: string;
   title: string;
@@ -1042,6 +1054,7 @@ interface DatabaseSchema {
   evaluationReports: EvaluationReport[];
   tickets: Ticket[];
   logbook: LogEntry[];
+  scans: ScanRecord[];
   announcements: Announcement[];
   interventions: Intervention[];
   bestPractices: BestPractice[];
@@ -1072,12 +1085,11 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   evaluationReports: 'evaluation_reports',
   tickets: 'tickets',
   logbook: 'logbook',
+  scans: 'scans',
   announcements: 'announcements',
   interventions: 'interventions',
   bestPractices: 'best_practices',
   diagnosticAnswerKeys: 'diagnostic_answer_keys',
-  certifications: 'certifications',
-  competencyRequirements: 'competency_requirements',
   misconceptionClusters: 'misconception_clusters',
   testHistory: 'testHistory',
   questionLogics: 'questionLogics',
@@ -2563,6 +2575,38 @@ export class DBStore {
       if (!this.mongoDb) await this.save();
     }
     return log;
+  }
+
+  async getScanByUuid(scanUuid: string): Promise<ScanRecord | null> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<ScanRecord>('scans').findOne({ scanUuid });
+    }
+    return (this.data?.scans || []).find(scan => scan.scanUuid === scanUuid) || null;
+  }
+
+  async getScanByUuidForSchool(scanUuid: string, schoolId?: string): Promise<ScanRecord | null> {
+    if (!scanUuid) return null;
+    const query: Record<string, any> = { scanUuid };
+    if (schoolId) {
+      query.schoolId = schoolId;
+    }
+
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<ScanRecord>('scans').findOne(query);
+    }
+    return (this.data?.scans || []).find(scan => scan.scanUuid === scanUuid && (!schoolId || scan.schoolId === schoolId)) || null;
+  }
+
+  async addScan(scan: ScanRecord) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('scans').insertOne(scan);
+    }
+    if (this.data) {
+      if (!this.data.scans) this.data.scans = [];
+      this.data.scans.push(scan);
+      if (!this.mongoDb) await this.save();
+    }
+    return scan;
   }
 
   /**
@@ -4936,8 +4980,8 @@ export class DBStore {
       evaluationReports,
       tickets,
       logbook,
-      announcements,
-      interventions,
+      scans: [],
+      announcements,      interventions,
       bestPractices,
       diagnosticAnswerKeys: [],
       certifications: [],
