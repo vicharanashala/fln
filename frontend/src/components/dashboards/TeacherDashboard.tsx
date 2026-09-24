@@ -8,10 +8,14 @@ import { User, Student, ClassGroup, School, DashboardProps } from '../../types';
 import { DiagnosticWorkflow } from '../DiagnosticWorkflow';
 import { BaselineUpload } from '../BaselineUpload';
 import { SkillGraphPanel } from '../SkillGraphPanel';
+import { LEVEL_SKILL_MAP } from '../../data/skillProgressionMap';
 import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
 import { TicketSubmission } from '../TicketSubmission';
 import { ClassSummaryBar } from './ClassSummaryBar';
+import { GraduationCap } from 'lucide-react';
+import { DashboardSkeleton } from '../ui/DashboardSkeleton';
+import { EmptyStateCard } from '../ui/EmptyStateCard';
 
 
 interface TeacherDashboardProps extends DashboardProps {
@@ -129,6 +133,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     );
   }
 
+  // Issue #531: show a layout-stable skeleton (same section dimensions as
+  // the loaded dashboard) instead of a blank/zero-filled shell while the
+  // classes + students + school requests are in flight.
+  if (studentsLoading) {
+    return <DashboardSkeleton variant="teacher" id="teacher-dashboard" />;
+  }
+
   // Issue #294: CSV template matching the exact column schema
   // `POST /api/students/bulk-import` expects (see createStudentFromData in
   // backend/src/routes/students.ts) — required fields first (name,
@@ -155,16 +166,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
   // a fully-populated dashboard layout (with honest zeros, at least — see
   // #292 for the fake-data version of this problem) and no guidance on
   // what to do next. Show a welcome state instead until they register or
-  // import their first student.
-  if (!studentsLoading && students.length === 0) {
+  // import their first student. Rendered with the shared EmptyStateCard
+  // (issue #531) while keeping the same anchor id and CTAs.
+  if (students.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center space-y-6" id="teacher-dashboard-welcome">
-        <div>
-          <h1 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white">Welcome, {user.name}!</h1>
-          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-2">
-            You don't have any students registered yet. Get started by adding your first student below.
-          </p>
-        </div>
+      <EmptyStateCard
+        id="teacher-dashboard-welcome"
+        icon={<GraduationCap className="h-7 w-7 text-indigo-500 dark:text-indigo-400" />}
+        title={`Welcome, ${user.name}!`}
+        description="You don't have any students registered yet. Get started by adding your first student below."
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
           <button
             onClick={() => onNavigate?.('student_list')}
@@ -185,7 +196,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
         >
           ⬇ Download CSV template
         </button>
-      </div>
+      </EmptyStateCard>
     );
   }
 
@@ -215,7 +226,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
             onClick={() => setShowSkillGraph(true)}
             className="bg-white dark:bg-slate-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
           >
-            🧠 Skill Progression (93 levels)
+            🧠 Skill Progression ({LEVEL_SKILL_MAP.length} levels)
           </button>
 
         </div>

@@ -8,13 +8,25 @@ import { User, Student, ClassGroup, DashboardProps } from '../../types';
 import { DiagnosticWorkflow } from '../DiagnosticWorkflow';
 import { BaselineUpload } from '../BaselineUpload';
 import { SkillGraphPanel } from '../SkillGraphPanel';
+import { LEVEL_SKILL_MAP } from '../../data/skillProgressionMap';
 import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
+import { Users } from 'lucide-react';
+import { DashboardSkeleton } from '../ui/DashboardSkeleton';
+import { EmptyStateCard } from '../ui/EmptyStateCard';
 
+interface VolunteerDashboardProps extends DashboardProps {
+  // Issue #531: lets the volunteer empty state hand off to the existing
+  // Student List panel without owning navigation state itself (the same
+  // optional-nav pattern TeacherDashboard uses for issue #294).
+  onNavigate?: (panel: string) => void;
+}
 
-export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) => {
+export const VolunteerDashboard: React.FC<VolunteerDashboardProps> = ({ user, token, onNavigate }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  // Distinguishes "still fetching" from "genuinely empty" (issue #531).
+  const [loading, setLoading] = useState(true);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
 
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
@@ -67,6 +79,8 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
       if (Array.isArray(stdData)) setStudents(stdData);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,6 +115,28 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
     );
   }
 
+  if (loading) {
+    return <DashboardSkeleton variant="volunteer" id="volunteer-dashboard" />;
+  }
+
+  if (students.length === 0) {
+    return (
+      <EmptyStateCard
+        id="volunteer-dashboard"
+        icon={<Users className="h-7 w-7 text-indigo-500 dark:text-indigo-400" />}
+        title="No students registered yet"
+        description="No students are assigned to you yet. You can still open the Student List to view the roster once your coordinator registers students."
+      >
+        <button
+          onClick={() => onNavigate?.('student_list')}
+          className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-zinc-200 font-semibold text-sm px-5 py-4 rounded-xl transition-colors cursor-pointer text-center"
+        >
+          Open Student List
+        </button>
+      </EmptyStateCard>
+    );
+  }
+
   const classStudents = activeClass ? students.filter(s => s.classGroup === activeClass.className && s.section === activeClass.section) : [];
 
   return (
@@ -126,7 +162,7 @@ export const VolunteerDashboard: React.FC<DashboardProps> = ({ user, token }) =>
             onClick={() => setShowSkillGraph(true)}
             className="bg-white dark:bg-slate-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
           >
-            🧠 Skill Progression (93 levels)
+            🧠 Skill Progression ({LEVEL_SKILL_MAP.length} levels)
           </button>
 
         </div>

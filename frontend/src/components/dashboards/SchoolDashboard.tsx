@@ -3,15 +3,26 @@ import { apiFetch } from '../../services/apiClient';
 import { ClassGroup, Student, School, DashboardProps } from '../../types';
 import { WorksheetWorkflow } from '../WorksheetWorkflow';
 import { TicketSubmission } from '../TicketSubmission';
+import { GraduationCap } from 'lucide-react';
+import { DashboardSkeleton } from '../ui/DashboardSkeleton';
+import { EmptyStateCard } from '../ui/EmptyStateCard';
 
 // ==========================================
 // 3. SCHOOL PRINCIPAL DASHBOARD
 // ==========================================
-export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
+interface SchoolDashboardProps extends DashboardProps {
+  // Issue #531: lets the empty state hand off to the existing Student List
+  // panel without owning navigation state itself.
+  onNavigate?: (panel: string) => void;
+}
+
+export const SchoolDashboard: React.FC<SchoolDashboardProps> = ({ user, token, onNavigate }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [school, setSchool] = useState<School | null>(null);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
+  // Distinguishes "still fetching" from "genuinely empty" (issue #531).
+  const [loading, setLoading] = useState(true);
 
   const fetchSchoolData = async () => {
     try {
@@ -30,6 +41,8 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       if (Array.isArray(schData) && schData.length > 0) setSchool(schData[0]);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,7 +78,23 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
 
       <TicketSubmission token={token} userRole={user.role} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {loading ? (
+        <DashboardSkeleton variant="school" />
+      ) : classes.length === 0 ? (
+        <EmptyStateCard
+          icon={<GraduationCap className="h-7 w-7 text-indigo-500 dark:text-indigo-400" />}
+          title="No classes assigned yet"
+          description="Assigned classroom rosters will appear here once your coordinator maps classes to your school."
+        >
+          <button
+            onClick={() => onNavigate?.('students')}
+            className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-zinc-200 font-semibold text-sm px-5 py-4 rounded-xl transition-colors cursor-pointer text-center"
+          >
+            View Students
+          </button>
+        </EmptyStateCard>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Classes grid */}
         <div className="md:col-span-2 space-y-4">
           <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Assigned Classroom Roster</h3>
@@ -108,6 +137,7 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

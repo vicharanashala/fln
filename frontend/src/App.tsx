@@ -157,11 +157,11 @@ export default function App() {
       case 'block_admin':
         return <AdminDashboard user={currentUser} token={token} />;
       case 'school':
-        return <SchoolDashboard user={currentUser} token={token} />;
+        return <SchoolDashboard user={currentUser} token={token} onNavigate={setActivePanel} />;
       case 'teacher':
         return <TeacherDashboard user={currentUser} token={token!} onNavigate={setActivePanel} />;
       case 'volunteer':
-        return <VolunteerDashboard user={currentUser} token={token} />;
+        return <VolunteerDashboard user={currentUser} token={token} onNavigate={setActivePanel} />;
       default:
         return <div />;
     }
