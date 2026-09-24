@@ -12,6 +12,7 @@ import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
 import { TicketSubmission } from '../TicketSubmission';
 import { ClassSummaryBar } from './ClassSummaryBar';
+import { useRosterFilters } from '../../hooks/useRosterFilters';
 
 
 interface TeacherDashboardProps extends DashboardProps {
@@ -35,6 +36,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
   const [showSkillGraph, setShowSkillGraph] = useState(false);
+  const { filters, setFilter, resetFilters } = useRosterFilters(user.id, user.role);
 
   // Issue #166: per-student "Print L{level}.{sub}" action kept on the roster
   // (it's a per-row interaction, not an operational tool). State below is the
@@ -79,7 +81,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
         // regresses.
         const scoped = clsData.filter((c: ClassGroup) => c.schoolId === user.schoolId);
         setClasses(scoped);
-        if (scoped.length > 0) setActiveClass(scoped[0]);
+        if (scoped.length > 0) {
+          const savedClass = scoped.find(c => c.className === filters.classGroup && c.section === filters.section) ?? null;
+          setActiveClass(savedClass ?? scoped[0]);
+          setShowAllStudents(savedClass === null);
+        }
       }
 
       const stdRes = await apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -233,7 +239,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
       {/* Class picker tabs */}
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px">
         <button
-          onClick={() => { setShowAllStudents(true); setActiveClass(null); }}
+          onClick={() => { setShowAllStudents(true); setActiveClass(null); setFilter({ schoolId: null, classId: null, classGroup: null, section: null }); }}
           className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
             showAllStudents ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
           }`}
@@ -243,7 +249,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
         {classes.map(c => (
           <button
             key={c.id}
-            onClick={() => { setShowAllStudents(false); setActiveClass(c); }}
+            onClick={() => { setShowAllStudents(false); setActiveClass(c); setFilter({ schoolId: c.schoolId, classId: c.id, classGroup: c.className, section: c.section }); }}
             className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all ${
               !showAllStudents && activeClass?.id === c.id ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
@@ -251,6 +257,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
             {c.className} - {c.section}
           </button>
         ))}
+        {!showAllStudents && activeClass && (
+          <button
+            onClick={() => { resetFilters(); setShowAllStudents(true); setActiveClass(null); }}
+            className="ml-auto px-3 py-1.5 text-xs font-mono font-semibold text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
+          >
+            Reset Filters
+          </button>
+        )}
       </div>
 
       {/* Issue #166: Diagnostic Paper Generator + Level-Wise Paper Generator
