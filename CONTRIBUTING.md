@@ -103,7 +103,7 @@ ai-services/      Python pipeline  → evaluation / level placement
    ```bash
    npm run lint        # type-check (note: this only checks types, not behavior)
    ```
-   > `lint` passing does **not** mean it works. There are no automated tests at the repo root — you must click through it. (The `backend/` workspace does have its own integration test suite for the Aadhaar vault — see the README's Aadhaar section — but that's a narrow slice, not general coverage.) Two type errors are pre-existing (`backend/src/index.ts:665`, `backend/src/paperGenerator.ts:233`); don't add new ones.
+   > `lint` passing does **not** mean it works. There are no automated tests at the repo root — you must click through it. (The `backend/` workspace does have its own integration test suite for the Aadhaar vault — see the README's Aadhaar section — but that's a narrow slice, not general coverage.)
 5. **Push and open a PR** against `main`, referencing the issue it addresses. Describe what changed and how you tested it.
 6. **Review is two stages.** An automated first pass may reject with a comment explaining why — fix and resubmit, don't argue it in the thread. What passes goes to human review; a maintainer merges it once approved. You won't be asked to merge your own PR.
 
