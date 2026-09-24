@@ -25,6 +25,7 @@ import { PanelViews } from './components/PanelViews';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MisconceptionFingerprint from './components/MisconceptionFingerprint';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
+import { RemediationNotesView } from './components/RemediationNotesView';
 
 export default function App() {
   const navigate = useNavigate();
@@ -172,6 +173,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/register-coordinator" element={<CoordinatorRegistration />} />
+      <Route path="/remediation/:studentId/:examId" element={<RemediationNotesView />} />
       <Route
         path="*"
         element={
