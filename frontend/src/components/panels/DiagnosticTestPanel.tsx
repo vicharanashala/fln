@@ -10,7 +10,6 @@ import { PageHeader } from './PanelShared';
 import { ShieldAlert, CheckCircle2, Upload, FileText } from 'lucide-react';
 import { apiFetch } from '../../services/apiClient';
 import { parseCSVText, FLNLevelReferenceModal } from '../RoleDashboards';
-import { BulkDiagnosticWorkflow } from '../BulkDiagnosticWorkflow';
 
 interface DiagnosticTestPanelProps {
   students: Student[];
@@ -46,6 +45,16 @@ export const DiagnosticTestPanel: React.FC<DiagnosticTestPanelProps> = ({ studen
     failed: { studentId: string; studentName: string; reason: string }[];
   } | null>(null);
 
+  // Class filter for the Selective checklist. Default 'all' so the teacher
+  // sees everything pending; clicking a class pill narrows the list to
+  // only that class's pending students. The "absent on test day" use case:
+  // teacher picks the class they actually tested, sees only those kids'
+  // pending papers, and prints just that class's set.
+  //
+  // Values are the literal `classGroup` strings used in the student seed
+  // ('Class 1' .. 'Class 4'). 'all' is the special unfiltered case.
+  const [selectedClassFilter, setSelectedClassFilter] = useState<'all' | 'Class 1' | 'Class 2' | 'Class 3' | 'Class 4'>('all');
+
   // Map of studentId -> lock record for students who already have a
   // diagnostic paper. Fetched on mount and after each generation so the
   // dropdown stays in sync with the server's lock state — currentLevel
@@ -54,6 +63,25 @@ export const DiagnosticTestPanel: React.FC<DiagnosticTestPanelProps> = ({ studen
   // reads it (TDZ would crash the whole component on render).
   const [studentLocks, setStudentLocks] = useState<Record<string, { generatedByEmail: string; createdAt: string }>>({});
   const pendingStudents = students.filter(s => !studentLocks[s.id]);
+
+  // Apply the class filter on top of the pending set so the checklist only
+  // shows the selected class. Recomputed every render — cheap because the
+  // student list is already in memory and small (per teacher).
+  const filteredPendingStudents = selectedClassFilter === 'all'
+    ? pendingStudents
+    : pendingStudents.filter(s => s.classGroup === selectedClassFilter);
+
+  // Switching the class filter discards any in-flight selection that no
+  // longer applies — a student hidden by the new filter shouldn't remain
+  // ticked. This also clears the success/fail summary so it doesn't show
+  // a stale "5 papers downloaded" for a class the teacher just left.
+  const switchClassFilter = (next: 'all' | 'Class 1' | 'Class 2' | 'Class 3' | 'Class 4') => {
+    if (next === selectedClassFilter) return;
+    setSelectedClassFilter(next);
+    setSelectedStudentIds([]);
+    setMultiResult(null);
+    setSingleError('');
+  };
 
   const refreshLocks = () => {
     apiFetch('/api/students/locks', { headers: { Authorization: `Bearer ${token}` } })
@@ -113,8 +141,14 @@ export const DiagnosticTestPanel: React.FC<DiagnosticTestPanelProps> = ({ studen
         continue;
       }
       try {
+        // Puppeteer-driven PDF generation routinely takes 20–40s per student
+        // (Chromium launch + render + page-to-PDF). The default 15s
+        // apiFetch timeout was aborting these requests mid-generation and
+        // surfacing them as the misleading "Network error." Override to
+        // 60s to give Puppeteer enough headroom on a cold start.
         const res = await apiFetch('/api/diagnostic/single', {
           method: 'POST',
+          timeoutMs: 60_000,
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ studentId: target.id, className: target.classGroup }),
         });
@@ -154,8 +188,15 @@ export const DiagnosticTestPanel: React.FC<DiagnosticTestPanelProps> = ({ studen
         } else {
           failed.push({ studentId: target.id, studentName: target.name, reason: data.error || `HTTP ${res.status}` });
         }
-      } catch {
-        failed.push({ studentId: target.id, studentName: target.name, reason: 'Network error.' });
+      } catch (err: any) {
+        // Surface the real reason instead of the misleading blanket
+        // "Network error." — most common cause is the per-call AbortError
+        // when Puppeteer generation exceeds the apiFetch timeout, but it
+        // could also be offline / CORS / etc.
+        const reason = err?.name === 'AbortError'
+          ? 'Request timed out before the server finished generating the PDF. Try again — if it keeps failing, the backend may be overloaded.'
+          : (err?.message || String(err) || 'Network error.');
+        failed.push({ studentId: target.id, studentName: target.name, reason });
       }
     }
 
@@ -172,11 +213,30 @@ export const DiagnosticTestPanel: React.FC<DiagnosticTestPanelProps> = ({ studen
     setMultiResult(null);
     setSingleError('');
   };
+  // "Select all pending" toggles only the currently-filtered pending
+  // students — i.e. the ones visible in the checklist. Picking Class 2
+  // then "Select all" only ticks Class 2's students; the other classes
+  // are unaffected (their pending IDs may still be selected from before,
+  // but won't be in the current generation's payload since the visible
+  // checkboxes are what gets POSTed). After clicking Select all +
+  // Generate, the loop iterates only `selectedStudentIds`, so non-visible
+  // selections would also be sent — to keep behaviour predictable the
+  // switchClassFilter handler resets the selection on filter change so
+  // this stays consistent.
   const toggleAllPending = () => {
-    if (selectedStudentIds.length === pendingStudents.length) {
-      setSelectedStudentIds([]);
+    if (filteredPendingStudents.length === 0) return;
+    const allVisibleSelected = filteredPendingStudents.every(s => selectedStudentIds.includes(s.id));
+    if (allVisibleSelected) {
+      // Deselect: clear only the visible IDs, leave any non-visible ones
+      // alone (defensive — switchClassFilter should have cleared them,
+      // but if a manual tick happened across filters, don't nuke it).
+      const visibleIds = new Set(filteredPendingStudents.map(s => s.id));
+      setSelectedStudentIds(prev => prev.filter(id => !visibleIds.has(id)));
     } else {
-      setSelectedStudentIds(pendingStudents.map(s => s.id));
+      // Select all visible. Don't merge with existing non-visible IDs —
+      // they shouldn't exist (filter switch clears), and if they do, the
+      // teacher can deselect manually.
+      setSelectedStudentIds(filteredPendingStudents.map(s => s.id));
     }
     setMultiResult(null);
     setSingleError('');
@@ -233,41 +293,61 @@ export const DiagnosticTestPanel: React.FC<DiagnosticTestPanelProps> = ({ studen
         )}
       </div>
 
-      {/* Bulk diagnostic generation — reuses the existing, already-working
-          BulkDiagnosticWorkflow (previously only reachable from a Dashboard
-          card that #166 is removing) instead of writing new calling code. */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-        <BulkDiagnosticWorkflow user={currentUser} token={token} userRole={currentUser.role} />
-      </div>
-
-      {/* One paper per selected student. Same generator as the bulk job, so the
-          answer regions the scanner reads back are stored either way. Select
-          1 or N — the route processes one student per call, but the UI loops
-          and reports per-student success/failure. */}
+      {/* Diagnostic Paper — Selective only. Class filter pills narrow the
+          checklist to one class's pending students, then "Select all" +
+          "Generate" prints the per-student PDFs in one click. The "absent
+          on test day" use case is the reason this exists in this shape:
+          teacher prints only the class that was actually tested, doesn't
+          have to scroll past 80 students from other classes. */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <PageHeader title="Diagnostic Paper" desc="Generate printable papers for one or more selected students" icon={<FileText className="h-5 w-5" />} />
+
+        {/* Class filter pills. Same visual idiom as the Bulk tab bar so the
+            two places feel related. Just the class names — counts are
+            visible in the checklist label below so we don't double-up. */}
+        <div className="flex items-center gap-2 flex-wrap" role="tablist" aria-label="Filter pending students by class">
+          {(['all', 'Class 1', 'Class 2', 'Class 3', 'Class 4'] as const).map(cls => (
+            <button
+              key={cls}
+              type="button"
+              role="tab"
+              aria-selected={selectedClassFilter === cls}
+              onClick={() => switchClassFilter(cls)}
+              className={`px-4 py-1.5 text-xs font-mono font-semibold rounded-md transition-all cursor-pointer border ${
+                selectedClassFilter === cls
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              {cls === 'all' ? 'All Classes' : cls}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-              Select students ({selectedStudentIds.length} of {pendingStudents.length} pending)
+              Select students ({selectedStudentIds.length} of {filteredPendingStudents.length} pending{selectedClassFilter !== 'all' ? ` in ${selectedClassFilter}` : ''})
             </label>
-            {pendingStudents.length > 0 && (
+            {filteredPendingStudents.length > 0 && (
               <button
                 type="button"
                 onClick={toggleAllPending}
                 className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 hover:underline"
               >
-                {selectedStudentIds.length === pendingStudents.length ? 'Deselect all' : 'Select all pending'}
+                {selectedStudentIds.length === filteredPendingStudents.length ? 'Deselect all' : 'Select all pending'}
               </button>
             )}
           </div>
-          {pendingStudents.length === 0 ? (
+          {filteredPendingStudents.length === 0 ? (
             <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-6 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
-              All students have a diagnostic on file. See Completed Diagnostics below.
+              {pendingStudents.length === 0
+                ? 'All students have a diagnostic on file. See Completed Diagnostics below.'
+                : `No pending students in ${selectedClassFilter}.`}
             </p>
           ) : (
             <div className="max-h-64 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg divide-y divide-slate-100 dark:divide-slate-800">
-              {pendingStudents.map(s => (
+              {filteredPendingStudents.map(s => (
                 <label
                   key={s.id}
                   className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"

@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import tls from 'tls';
 import bcrypt from 'bcrypt';
 import { MongoClient, Db, ClientSession } from 'mongodb';
 import { CURRICULUM_MAPPING } from './config/curriculumMap';
@@ -44,11 +45,22 @@ export const connectDB = async () => {
   let connected = false;
   let attempt = 1;
   const maxAttempts = 3;
+  // Use Node's TLS (OpenSSL 3.5.7) instead of the MongoDB driver's bundled
+  // OpenSSL 3.0.x — the driver's OpenSSL fails the Atlas TLS handshake with
+  // `tlsv1 alert internal error` because of an incompatible cipher/extension
+  // negotiation. Passing a `secureContext` from `tls.createSecureContext()`
+  // makes the driver use Node's TLS, which works.
+  const secureContext = tls.createSecureContext({
+    minVersion: 'TLSv1.2',
+    maxVersion: 'TLSv1.3',
+  });
   while (!connected && attempt <= maxAttempts) {
     try {
       mongoClient = new MongoClient(uri, {
         serverSelectionTimeoutMS: 5000,
         connectTimeoutMS: 8000,
+        tls: true,
+        secureContext,
       });
       await mongoClient.connect();
       // Test ping to verify active MongoDB connection
@@ -1028,6 +1040,87 @@ export interface CurriculumLevel {
   updatedAt: string;
 }
 
+// === Level template authoring (Option B: structured config) ===
+//
+// The Superadmin stores MERN-stack template code per level through a
+// dashboard. Code is parsed at save time into a whitelisted config tree
+// (`LevelTemplateNode[]`). Raw JSX is never executed and never stored —
+// see backend/src/routes/levelTemplates.ts for the parser and the
+// whitelist.
+//
+// A template configures the *layout* of a Student Worksheet or a Teacher
+// Observation Sheet for a level (FK → curriculumLevels.conceptId). It
+// references questionTemplates / questionOptions / etc. for content,
+// not for structure.
+
+export type LevelTemplateType = 'student_worksheet' | 'teacher_observation_sheet';
+
+/**
+ * The whitelisted set of template nodes. Each `kind` is one allowed
+ * component. The parser only emits these — anything else is rejected.
+ *
+ * To add a new kind:
+ *   1. Add the union member here.
+ *   2. Add its prop set to LEVEL_TEMPLATE_WHITELIST in routes/levelTemplates.ts.
+ *   3. Add the renderer in frontend/src/components/level-templates/.
+ */
+export type LevelTemplateNode =
+  | { kind: 'header'; props: {
+      title: string;
+      subtitle?: string;
+      showDate: boolean;
+      showStudentName: boolean;
+      showClassName: boolean;
+    }}
+  | { kind: 'conceptTitle'; props: {
+      conceptId: string;
+      fallbackName?: string;
+    }}
+  | { kind: 'themeVisual'; props: {
+      themeId: string;
+      size: 'small' | 'medium' | 'large' | 'xlarge';
+      repeat: number;
+    }}
+  | { kind: 'questionBlock'; props: {
+      questionTemplateIds: string[];
+      layout: 'inline' | 'stacked' | 'grid';
+      spacingMm: number;
+      showAnswerSpace: boolean;
+      answerSpaceMm: number;
+    }}
+  | { kind: 'observationGrid'; props: {
+      conceptIds: string[];
+      outcomeOptions: Array<'demonstrated' | 'emerging' | 'not_yet' | 'declining'>;
+      showRowNotes: boolean;
+      showClassSummary: boolean;
+    }}
+  | { kind: 'spacer'; props: { heightMm: number } }
+  | { kind: 'pageBreak'; props: Record<string, never> };
+
+export interface LevelTemplate {
+  id: string;
+  /** FK → curriculumLevels.conceptId (logical, not enforced — a level may be authored before its row exists). */
+  levelId: string;
+  type: LevelTemplateType;
+  /** Human label, e.g. "Preschool 1 — Counting 1-5 (Default)". */
+  name: string;
+  /** The structured config tree. Each node is one of the whitelisted kinds. */
+  config: LevelTemplateNode[];
+  /** System-provided fallback template. Authored templates override these. */
+  isDefault: boolean;
+  /** Bumped on every save so old rendered PDFs stay reproducible. */
+  version: number;
+  createdBy: string;
+  createdByEmail: string;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy: string;
+  updatedByEmail: string;
+  /** Soft delete — keep for audit. */
+  deletedAt: string | null;
+  deletedBy: string | null;
+}
+
 interface DatabaseSchema {
   users: User[];
   schools: School[];
@@ -1056,6 +1149,7 @@ interface DatabaseSchema {
   curriculumLevels: CurriculumLevel[];
   studentCycleLocks: StudentCycleLock[];
   teacherObservationRecords: TeacherObservationRecord[];
+  levelTemplates: LevelTemplate[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -1086,6 +1180,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   curriculumLevels: 'curriculumLevels',
   studentCycleLocks: 'studentCycleLocks',
   teacherObservationRecords: 'teacher_observation_records',
+  levelTemplates: 'levelTemplates',
 };
 
 /**
@@ -1303,6 +1398,16 @@ export class DBStore {
           console.log('Successfully ensured indexes on "evaluationReports" collection');
         } catch (e: any) {
           console.warn('Failed to ensure indexes on "evaluationReports" collection:', e.message);
+        }
+
+        // Ensure indexes on levelTemplates collection (id unique; lookup by levelId+type+version).
+        try {
+          const levelTemplatesColl = db.collection('levelTemplates');
+          await levelTemplatesColl.createIndex({ id: 1 }, { unique: true });
+          await levelTemplatesColl.createIndex({ levelId: 1, type: 1, deletedAt: 1 });
+          console.log('Successfully ensured indexes on "levelTemplates" collection');
+        } catch (e: any) {
+          console.warn('Failed to ensure indexes on "levelTemplates" collection:', e.message);
         }
 
         for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
@@ -4957,8 +5062,10 @@ export class DBStore {
       // Seeded empty on purpose, same reasoning as questionLogics above: a
       // teacher's observation of a real child is not something to fabricate
       // demo data for.
-      teacherObservationRecords: []
-    };
+      teacherObservationRecords: [],
+      // Authored by Superadmin through the dashboard; not seeded here.
+      levelTemplates: [],
+};
   }
 }
 
