@@ -27,6 +27,7 @@ interface ExtractedAnswer {
 interface ScanResponse {
   success: boolean;
   answers?: Record<string, ExtractedAnswer>;
+  extractedQuestions: string[];
   ocrAnalysis?: {
     rawOcrText: string;
     extractedTokens: Array<{ text: string; confidence: number; bbox?: number[][] }>;
@@ -287,6 +288,9 @@ export const IcrTwoStageScan: React.FC<IcrTwoStageScanProps> = ({
       const normalized: ScanResponse = {
         success: true,
         answers,
+        extractedQuestions: Array.isArray(data.extractedQuestions)
+          ? data.extractedQuestions.map((question: unknown) => String(question ?? ''))
+          : [],
         ocrAnalysis: {
           rawOcrText: data.rawOcrText || '',
           extractedTokens: (data.extractedTokens || []).map((t: any) => ({
