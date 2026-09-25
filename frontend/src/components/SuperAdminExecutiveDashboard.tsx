@@ -49,34 +49,16 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
   const [grade, setGrade] = useState<string>('ALL');
   const [status, setStatus] = useState<string>('ALL');
 
-  // Ranking Metric state
-  const [rankingSortMetric, setRankingSortMetric] = useState<'performance' | 'completion' | 'satisfaction' | 'interview'>('performance');
-
   // Loading and Data states
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [chartLoading, setChartLoading] = useState<boolean>(false);
   const isNextFetchChartOnly = useRef<boolean>(false);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
-
-  // States & Filter for Student Performance Analytics school chart
-  const [perfChartTab, setPerfChartTab] = useState<'states' | 'schools'>('states');
-  const [schoolSearchQuery, setSchoolSearchQuery] = useState<string>('');
-
-  const filteredSchoolsForChart = useMemo(() => {
-    const list = analyticsData?.schoolRankings || [];
-    if (!schoolSearchQuery) {
-      return [...list].sort((a, b) => b.performanceScore - a.performanceScore).slice(0, 10);
-    }
-    return list
-      .filter(s => s.name.toLowerCase().includes(schoolSearchQuery.toLowerCase()))
-      .sort((a, b) => b.performanceScore - a.performanceScore)
-      .slice(0, 10);
-  }, [analyticsData?.schoolRankings, schoolSearchQuery]);
   const [error, setError] = useState<string | null>(null);
   const [perfTooltip, setPerfTooltip] = useState<{ x: number; y: number; content: React.ReactNode; visible: boolean } | null>(null);
-  const [isRankingsOpen, setIsRankingsOpen] = useState<boolean>(false);
-  const [rankingsStateFilter, setRankingsStateFilter] = useState<string>('ALL');
+  const [isSchoolOverviewOpen, setSchoolOverviewOpen] = useState<boolean>(false);
+  const [schoolStateFilter, setSchoolStateFilter] = useState<string>('ALL');
 
   // Fetch Super Admin Executive Analytics
   const fetchAnalytics = useCallback(async (isRefresh = false) => {
@@ -210,26 +192,11 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
     return boardsData.filter(b => b.board === matchingBoard);
   }, [boardsData, board]);
 
-  // Memoized School Rankings sorted by chosen metric
-  // Memoized School Rankings sorted by chosen metric and state filter
-  const sortedSchoolRankings = useMemo(() => {
-    if (!analyticsData?.schoolRankings) return [];
-    let list = [...analyticsData.schoolRankings];
-
-    if (rankingsStateFilter !== 'ALL') {
-      list = list.filter(school => school.stateCode === rankingsStateFilter);
-      // No fake fallback rankings when a state has no real ranked schools -
-      // the render side shows an honest empty state instead (see below).
-    }
-
-    return list.sort((a, b) => {
-      if (rankingSortMetric === 'performance') return b.performanceScore - a.performanceScore;
-      if (rankingSortMetric === 'completion') return b.completionRate - a.completionRate;
-      if (rankingSortMetric === 'satisfaction') return b.studentSatisfaction - a.studentSatisfaction;
-      if (rankingSortMetric === 'interview') return b.interviewSuccessRate - a.interviewSuccessRate;
-      return 0;
-    });
-  }, [analyticsData, rankingSortMetric, rankingsStateFilter]);
+  const visibleSchools = useMemo(() => {
+    const list = analyticsData?.schoolRankings || [];
+    if (schoolStateFilter === 'ALL') return list;
+    return list.filter((school: any) => school.stateCode === schoolStateFilter);
+  }, [analyticsData?.schoolRankings, schoolStateFilter]);
 
   if (loading) {
     return (
@@ -693,49 +660,11 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               </div>              {/* Grouped Bar Chart Comparing Current vs Previous Performance */}
               <div className="space-y-3 relative">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      {perfChartTab === 'states' ? 'Top 6 State Performance' : 'School Performance Benchmark'}
-                    </h4>
-
-                    {/* States/Schools Tab Selector */}
-                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-[10px] font-bold">
-                      <button
-                        onClick={() => setPerfChartTab('states')}
-                        className={`px-2 py-0.5 rounded-md transition-all ${perfChartTab === 'states'
-                            ? 'bg-white dark:bg-slate-700 text-indigo-650 dark:text-indigo-305 shadow-sm'
-                            : 'text-slate-500 dark:text-slate-450 hover:text-slate-700 dark:hover:text-slate-200'
-                          }`}
-                      >
-                        States
-                      </button>
-                      <button
-                        onClick={() => setPerfChartTab('schools')}
-                        className={`px-2 py-0.5 rounded-md transition-all ${perfChartTab === 'schools'
-                            ? 'bg-white dark:bg-slate-700 text-indigo-655 dark:text-indigo-305 shadow-sm'
-                            : 'text-slate-500 dark:text-slate-440 hover:text-slate-700 dark:hover:text-slate-200'
-                          }`}
-                      >
-                        Schools
-                      </button>
-                    </div>
-                  </div>
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Top 6 State Performance
+                  </h4>
 
                   <div className="flex items-center gap-4 flex-wrap">
-                    {/* Search Input for Schools */}
-                    {perfChartTab === 'schools' && (
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Search school name..."
-                          value={schoolSearchQuery}
-                          onChange={(e) => setSchoolSearchQuery(e.target.value)}
-                          className="text-[10px] bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg pl-6 pr-2 py-1 w-44 text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500 font-semibold"
-                        />
-                        <Search className="absolute left-2 top-2 h-2.5 w-2.5 text-slate-400" />
-                      </div>
-                    )}
-
                     {/* Legend */}
                     <div className="flex items-center gap-4 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
                       <div className="flex items-center gap-1.5">
@@ -781,15 +710,14 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
 
                     {/* Chart Bars */}
                     {(() => {
-                      if (perfChartTab === 'states') {
-                        const statesData = (perfAnalytics.performanceByState || []).slice(0, 6);
-                        const K = statesData.length;
-                        const plotWidth = 545;
-                        const groupWidth = plotWidth / (K || 1);
-                        const barWidth = 16;
-                        const barSpacing = 4;
+                      const statesData = (perfAnalytics.performanceByState || []).slice(0, 6);
+                      const K = statesData.length;
+                      const plotWidth = 545;
+                      const groupWidth = plotWidth / (K || 1);
+                      const barWidth = 16;
+                      const barSpacing = 4;
 
-                        return statesData.map((st: any, i: number) => {
+                      return statesData.map((st: any, i: number) => {
                           const stateName = STATE_NAMES[st.stateCode] || st.stateName || st.stateCode;
                           const currScore = st.avgScore || 0;
                           const prevScore = st.prevScore ?? currScore;
@@ -881,119 +809,6 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                             </g>
                           );
                         });
-                      } else {
-                        const schoolsData = filteredSchoolsForChart;
-                        const K = schoolsData.length;
-                        const plotWidth = 545;
-                        const groupWidth = plotWidth / (K || 1);
-                        const barWidth = 16;
-                        const barSpacing = 4;
-
-                        if (K === 0) {
-                          return (
-                            <text x="300" y="150" textAnchor="middle" className="fill-slate-400 dark:fill-slate-500 text-xs font-semibold">
-                              No schools found matching search query
-                            </text>
-                          );
-                        }
-
-                        return schoolsData.map((school: any, idx: number) => {
-                          const name = school.name;
-                          const currScore = school.performanceScore || 0;
-                          const prevScore = school.completionRate || Math.round(currScore - 2.5);
-                          const diff = Math.round((currScore - prevScore) * 10) / 10;
-                          const isImprovement = diff >= 0;
-
-                          const yPrev = 10 + 150 * (1 - prevScore / 100);
-                          const yCurr = 10 + 150 * (1 - currScore / 100);
-
-                          const xMid = 45 + idx * groupWidth + groupWidth / 2;
-                          const xPrev = xMid - barWidth - barSpacing / 2;
-                          const xCurr = xMid + barSpacing / 2;
-
-                          const diffText = diff >= 0 ? `+${diff}%` : `${diff}%`;
-                          const diffColor = isImprovement ? '#10B981' : '#EF4444';
-
-                          return (
-                            <g
-                              key={school.id}
-                              className="group/bar cursor-pointer"
-                              onMouseMove={(e) => {
-                                const parentRect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect();
-                                if (parentRect) {
-                                  setPerfTooltip({
-                                    x: e.clientX - parentRect.left + 15,
-                                    y: e.clientY - parentRect.top - 15,
-                                    content: (
-                                      <div className="flex flex-col gap-0.5">
-                                        <span className="font-bold text-slate-100">{name}</span>
-                                        <span className="text-[10px] text-slate-400 font-mono">
-                                          State: <span className="text-slate-200">{STATE_NAMES[school.stateCode] || school.stateCode}</span>
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 font-mono">
-                                          Current: <span className="text-blue-400 font-bold">{currScore}%</span>
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 font-mono">
-                                          Previous: <span className="text-slate-350 font-bold">{prevScore}%</span>
-                                        </span>
-                                        <span className={`text-[10px] font-bold ${isImprovement ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                          {isImprovement ? `Improvement: +${diff}%` : `Decline: ${diff}%`}
-                                        </span>
-                                      </div>
-                                    ),
-                                    visible: true
-                                  });
-                                }
-                              }}
-                              onMouseLeave={() => setPerfTooltip(null)}
-                            >
-                              {/* Previous Bar (Gray) */}
-                              <rect
-                                x={xPrev}
-                                y={yPrev}
-                                width={barWidth}
-                                height={Math.max(2, 160 - yPrev)}
-                                rx="2"
-                                fill="#94A3B8"
-                                className="opacity-75 group-hover/bar:opacity-100 transition-opacity duration-200"
-                              />
-
-                              {/* Current Bar (Blue) */}
-                              <rect
-                                x={xCurr}
-                                y={yCurr}
-                                width={barWidth}
-                                height={Math.max(2, 160 - yCurr)}
-                                rx="2"
-                                fill="#3B82F6"
-                                className="group-hover/bar:brightness-110 transition-all duration-200"
-                              />
-
-                              {/* Percentage Change Text */}
-                              <text
-                                x={xCurr + barWidth / 2}
-                                y={yCurr - 6}
-                                textAnchor="middle"
-                                fill={diffColor}
-                                className="text-[8px] font-extrabold font-mono opacity-90 group-hover/bar:opacity-100"
-                              >
-                                {diffText}
-                              </text>
-
-                              {/* School Label on X-axis (Rotated) */}
-                              <text
-                                x={xMid}
-                                y="180"
-                                textAnchor="middle"
-                                className="fill-slate-500 dark:fill-slate-400 text-[8px] font-semibold"
-                                transform={`rotate(-15, ${xMid}, 180)`}
-                              >
-                                {name.length > 12 ? name.substring(0, 10) + '...' : name}
-                              </text>
-                            </g>
-                          );
-                        });
-                      }
                     })()}
                   </svg>
 
@@ -1085,7 +900,6 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             </div>
           </div>
 
-          {/* FOURTH ROW: TOP 10 SCHOOL RANKINGS LEADERBOARD */}
           <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4" id="section-school-rankings">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500">
@@ -1093,19 +907,19 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  National School Leaderboard & Rankings
+                  National School Overview
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  View the top 10 schools ranked by performance score, student completion rate, satisfaction, and AI interview success rate.
+                  View schools in the selected national and state filters.
                 </p>
               </div>
             </div>
             <button
-              onClick={() => setIsRankingsOpen(true)}
+              onClick={() => setSchoolOverviewOpen(true)}
               className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all whitespace-nowrap"
             >
               <Award className="h-4 w-4" />
-              <span>View Rankings</span>
+              <span>View Schools</span>
             </button>
           </div>
 
@@ -1146,8 +960,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             </div>
           </div>
 
-          {/* Modal popup for rankings */}
-          {isRankingsOpen && (
+          {isSchoolOverviewOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
               <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
                 {/* Modal Header */}
@@ -1155,11 +968,11 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                   <div className="flex items-center gap-2">
                     <Award className="h-5 w-5 text-amber-500" />
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                      Top 10 School Rankings
+                      School Overview
                     </h3>
                   </div>
                   <button
-                    onClick={() => setIsRankingsOpen(false)}
+                    onClick={() => setSchoolOverviewOpen(false)}
                     className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
                     <svg className="h-4 w-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1175,8 +988,8 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                       State Filter:
                     </label>
                     <select
-                      value={rankingsStateFilter}
-                      onChange={(e) => setRankingsStateFilter(e.target.value)}
+                      value={schoolStateFilter}
+                      onChange={(e) => setSchoolStateFilter(e.target.value)}
                       className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="ALL">All India</option>
@@ -1186,85 +999,30 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
-                    <button
-                      onClick={() => setRankingSortMetric('performance')}
-                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'performance'
-                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                        }`}
-                    >
-                      Score %
-                    </button>
-                    <button
-                      onClick={() => setRankingSortMetric('completion')}
-                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'completion'
-                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                        }`}
-                    >
-                      Completion Rate
-                    </button>
-                    <button
-                      onClick={() => setRankingSortMetric('satisfaction')}
-                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'satisfaction'
-                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                        }`}
-                    >
-                      Satisfaction
-                    </button>
-                    <button
-                      onClick={() => setRankingSortMetric('interview')}
-                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${rankingSortMetric === 'interview'
-                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                        }`}
-                    >
-                      Interview Success
-                    </button>
-                  </div>
                 </div>
 
-                {/* Modal Body: Rankings Table */}
                 <div className="p-5 overflow-y-auto flex-grow custom-scrollbar">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-mono text-[10px] uppercase tracking-wider">
-                        <th className="py-2.5 px-3">Rank</th>
                         <th className="py-2.5 px-3">School Name</th>
                         <th className="py-2.5 px-3">State</th>
                         <th className="py-2.5 px-3">Type</th>
-                        <th className="py-2.5 px-3 text-right">Performance Score</th>
                         <th className="py-2.5 px-3 text-right">Completion</th>
                         <th className="py-2.5 px-3 text-right">Satisfaction</th>
                         <th className="py-2.5 px-3 text-right">Interview Success</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                      {sortedSchoolRankings.length === 0 && (
+                      {visibleSchools.length === 0 && (
                         <tr>
-                          <td colSpan={8} className="py-8 px-3 text-center text-slate-400 dark:text-slate-500">
-                            No ranked schools yet for this filter.
+                          <td colSpan={6} className="py-8 px-3 text-center text-slate-400 dark:text-slate-500">
+                            No schools found for this filter.
                           </td>
                         </tr>
                       )}
-                      {sortedSchoolRankings.map((school: any, idx: number) => (
+                      {visibleSchools.map((school: any) => (
                         <tr key={school.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                          <td className="py-3 px-3">
-                            <span
-                              className={`inline-flex items-center justify-center h-6 w-6 rounded-full font-mono text-xs font-bold ${idx === 0
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300'
-                                : idx === 1
-                                  ? 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
-                                  : idx === 2
-                                    ? 'bg-amber-900/20 text-amber-700 dark:text-amber-400'
-                                    : 'text-slate-500'
-                                }`}
-                            >
-                              #{idx + 1}
-                            </span>
-                          </td>
                           <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white">
                             {school.name}
                           </td>
@@ -1272,9 +1030,6 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                             {STATE_NAMES[school.stateCode] || school.stateCode}
                           </td>
                           <td className="py-3 px-3 text-slate-600 dark:text-slate-400">{school.schoolType}</td>
-                          <td className="py-3 px-3 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                            {school.performanceScore}%
-                          </td>
                           <td className="py-3 px-3 text-right font-mono text-slate-700 dark:text-slate-300">
                             {school.completionRate}%
                           </td>

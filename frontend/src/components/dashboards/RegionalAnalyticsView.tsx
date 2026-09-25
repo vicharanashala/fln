@@ -6,8 +6,9 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../services/apiClient';
 import { User, UserRole } from '../../types';
+import { SuperAdminExecutiveDashboard } from '../SuperAdminExecutiveDashboard';
 
-export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({ token, user }) => {
+const LegacyRegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({ token, user }) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
@@ -294,4 +295,12 @@ export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({
 
     </div>
   );
+};
+
+export const RegionalAnalyticsView: React.FC<{ token: string; user: User }> = ({ token, user }) => {
+  if (user.role === UserRole.SUPERADMIN) {
+    return <SuperAdminExecutiveDashboard user={user} token={token} />;
+  }
+
+  return <LegacyRegionalAnalyticsView token={token} user={user} />;
 };
