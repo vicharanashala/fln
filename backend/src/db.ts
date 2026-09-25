@@ -1068,16 +1068,16 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   levelWorksheets: 'levelWorksheets',
   levelHtmlTemplates: 'levelHtmlTemplates',
   questionBank: 'questionBank',
-  answerSubmissions: 'answer_submissions',
-  evaluationReports: 'evaluation_reports',
+  answerSubmissions: 'answerSubmissions',
+  evaluationReports: 'evaluationReports',
   tickets: 'tickets',
   logbook: 'logbook',
   announcements: 'announcements',
   interventions: 'interventions',
-  bestPractices: 'best_practices',
+  bestPractices: 'bestPractices',
   diagnosticAnswerKeys: 'diagnostic_answer_keys',
   certifications: 'certifications',
-  competencyRequirements: 'competency_requirements',
+  competencyRequirements: 'competencyRequirements',
   misconceptionClusters: 'misconception_clusters',
   testHistory: 'testHistory',
   questionLogics: 'questionLogics',
@@ -1702,7 +1702,7 @@ export class DBStore {
   /** Fast aggregation: count of evaluation reports. */
   async countReports(): Promise<number> {
     if (this.mongoDb) {
-      return await this.mongoDb.collection('evaluation_reports').countDocuments({});
+      return await this.mongoDb.collection('evaluationReports').countDocuments({});
     }
     return (this.data?.evaluationReports || []).length;
   }
@@ -1710,7 +1710,7 @@ export class DBStore {
   /** Fast aggregation: count reports grouped by pass/fail (score >= 50). */
   async countReportsByOutcome(): Promise<{ pass: number; fail: number; total: number; avgScore: number }> {
     if (this.mongoDb) {
-      const result = await this.mongoDb.collection('evaluation_reports').aggregate([
+      const result = await this.mongoDb.collection('evaluationReports').aggregate([
         {
           $group: {
             _id: null,
