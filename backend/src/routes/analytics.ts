@@ -233,26 +233,18 @@ export function registerAnalyticsRoutes(app: express.Express) {
         cumulative: Math.min(totalSchools, Math.round(perMonth * (i + 1))),
       }));
 
-      // School rankings: real filtered schools with computed metrics from
-      // studentsBySchool map (no scan needed).
       const schoolRankings = allFilteredSchools.map((sch: any) => {
         const schId = sch.id || sch._id;
-        const totalStud = studentsBySchool.get(schId) || 0;
-        const schStudents = totalStud; // could re-query if we need per-school avg
         return {
-          rank: 0,
           id: schId,
           name: sch.name,
           stateCode: sch.stateCode,
           schoolType: sch.schoolType || 'Government',
-          performanceScore: schStudents > 0 ? Math.round((schStudents / 108) * 100) : 0,
           completionRate: 0,
           studentSatisfaction: 0,
           interviewSuccessRate: 0,
         };
       });
-      schoolRankings.sort((a, b) => b.performanceScore - a.performanceScore);
-      schoolRankings.forEach((sch, idx) => { sch.rank = idx + 1; });
 
       // Performance by state
       const performanceByState = stateDistribution.map(s => ({
