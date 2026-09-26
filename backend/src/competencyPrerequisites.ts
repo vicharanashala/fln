@@ -52,6 +52,13 @@ import { getLevelForConcept } from './config/curriculumMap';
  * "one AND group, exactly the members in CONCEPT_PREREQUISITES" — today's
  * existing behaviour, unchanged.
  *
+ * Two things are deliberately kept apart, because they answer different
+ * questions: `prerequisiteGroups()` says what has been *proposed* (a pending OR
+ * is visible there, for review and teaching-plan views), while
+ * `effectiveHardPrerequisiteGroups()` says what is *in force* (only VALIDATED
+ * groups count, so a not-yet-approved override gates nobody). #523's proposed
+ * S5.8 OR therefore changes nothing until it is approved and its status flips.
+ *
  * FLN prerequisite-graph policy (agreed 2026-09-19, to be confirmed with
  * Pavani before the first real OR case ships):
  *   1. Every hard prerequisite is one or more prerequisite groups.
@@ -103,12 +110,15 @@ export interface PrerequisiteGroup {
 
 /**
  * Append-only audit trail for AND<->OR (or any group-shape) changes — policy
- * point 10. Nothing has changed yet (CONCEPT_PREREQUISITE_GROUP_OVERRIDES is
- * still empty), so this is currently unused; it exists so the *first* real
- * change has somewhere principled to be recorded, rather than a habit being
- * invented ad hoc under deadline later. Not wired to a Mongo collection yet —
- * this is a static-config file, not a live-edited one, so there is nothing to
- * persist until the graph itself becomes editable at runtime.
+ * point 10. Still unused, and deliberately so: `approvedBy` is a required
+ * field, and the map's only entry so far (#523's S5.8) is `status: 'PROPOSED'`,
+ * i.e. not yet approved and not in force — so there is no approver to record.
+ * The type exists so the *first approved* change has somewhere principled to go,
+ * rather than a habit being invented ad hoc under deadline later. That change
+ * will land together with the status flip, and #523 itself is meanwhile recorded
+ * by its per-group `rationale`/`evidence` plus git history. Not wired to a Mongo
+ * collection yet — this is a static-config file, not a live-edited one, so there
+ * is nothing to persist until the graph itself becomes editable at runtime.
  */
 export interface PrerequisiteGraphChange {
   conceptId: string;
@@ -123,43 +133,84 @@ export interface PrerequisiteGraphChange {
 }
 
 /**
- * Explicit per-node overrides only. Empty today — no edge has been loosened to
- * OR yet (see #466: "which prerequisites are really OR ... settle through
- * teacher sessions, not on paper"). Per policy point 5/6, do not populate this
- * from a guess made while wiring up code: OR requires curriculum-lead approval
- * and either NCF-FS/NIPUN textual support or real pilot/student-response
- * evidence (Pavani's 2026-09-18 call: "we will create a feedback loop where we
- * learn from the student responses and improve the levels") — not expert
- * judgment alone, and not silently. Add a conceptId here only once that
- * evidence and sign-off exist.
+ * Explicit per-node overrides only. Populated for the first time by #523, which
+ * is filed as the reference case for the AND/OR policy (Pavani, 2026-09-19):
+ * `S5.8` (Multiplication Tables) is entered as a PROPOSED two-route case.
+ *
+ * That entry is deliberately NOT a live gate yet. `prerequisiteGroups()` below
+ * reports what has been *proposed*; `effectiveHardPrerequisiteGroups()` reports
+ * what is *in force*, and only VALIDATED groups gate. So while #523's groups
+ * stay `status: 'PROPOSED'`, S5.8 keeps exactly the flat-AND behaviour it had
+ * before this entry existed, and flipping one word to 'VALIDATED' after
+ * sign-off is the single switch that activates the OR.
+ *
+ * Per policy point 5/6, do not populate this from a guess made while wiring up
+ * code: OR requires curriculum-lead approval and either NCF-FS/NIPUN textual
+ * support or real pilot/student-response evidence (Pavani's 2026-09-18 call:
+ * "we will create a feedback loop where we learn from the student responses and
+ * improve the levels") — not expert judgment alone, and not silently. #523 is
+ * filed precisely as the reference case for that discussion, which is why its
+ * evidence is `sourceType: 'EXPERT'` and its status is 'PROPOSED'; promote it
+ * only once the sign-off and that evidence exist.
+ *
+ * `S5.4` and `S6.5` are deliberately absent: #466 flags them as "not yet decided
+ * AND vs OR" pending teacher elicitation, and policy point 6 forbids adding an
+ * override on assumption.
  */
 export const CONCEPT_PREREQUISITE_GROUP_OVERRIDES: Readonly<Record<string, readonly PrerequisiteGroup[]>> = {
-  // Example shape for whoever adds the first OR case, once Pavani has approved
-  // a concrete educational example (not merely "we aren't sure"):
-  // 'S3.25': [
-  //   {
-  //     groupId: 'g1', type: 'AND', memberIds: ['S3.2'],
-  //     relationshipType: 'HARD_PREREQUISITE', status: 'PROPOSED',
-  //     evidence: { sourceType: 'NCF_FS', reference: 'C-8.13' },
-  //   },
-  //   {
-  //     groupId: 'g2', type: 'AND', memberIds: ['S3.1', 'S3.6'],
-  //     relationshipType: 'HARD_PREREQUISITE', status: 'PROPOSED',
-  //     rationale: 'Alternative route: ...', evidence: { sourceType: 'EXPERT' },
-  //   },
-  // ],
+  // #523 — the first real OR case, proposed rather than in force.
+  //
+  // Multiplication is reachable by two genuinely independent, valid routes:
+  // skip-counting fluency, or times-tables familiarity reached through repeated
+  // addition. Pavani's rule: when a concept can be reached by more than one
+  // valid route, that is an OR — not a hedge, and not a sequence-only (⇢) edge
+  // either. Schools teach skip-counting first and introduce tables later, but a
+  // student can solve a multiplication problem by either method, so the two
+  // routes are alternatives rather than a sequence.
+  //
+  // The OR is spelled the way `isPrerequisiteSatisfied` actually traverses it:
+  // AND *within* a group, OR *across* groups. A plain OR of two single-concept
+  // routes is therefore two single-member AND-groups. Do not collapse this into
+  // one `type: 'OR'` group holding both ids — `type` is descriptive metadata
+  // that traversal does not read, so that shape would silently mean AND-of-both
+  // and quietly re-break the very case this entry exists to express.
+  //
+  // `S5.19` (Skip Counting) is registered at L77, i.e. *after* `S5.8` at L68,
+  // and under a different strand (Patterns vs Number Operations). #523 flags
+  // that ordering as worth revisiting, but moving a registry level would
+  // renumber every later level (#519 §9 settled that conceptId, not
+  // levelNumber, is the durable identity) and is a curriculum-lead call, so
+  // nothing is moved here.
+  'S5.8': [
+    {
+      groupId: 'g1',
+      type: 'AND',
+      memberIds: ['S5.19'],
+      relationshipType: 'HARD_PREREQUISITE',
+      status: 'PROPOSED',
+      rationale: 'Route 1 — skip-counting fluency (S5.19, "Skip Counting (2s, 5s, 10s)").',
+      evidence: { sourceType: 'EXPERT', reference: 'fln#523' },
+    },
+    {
+      groupId: 'g2',
+      type: 'AND',
+      memberIds: ['S5.6'],
+      relationshipType: 'HARD_PREREQUISITE',
+      status: 'PROPOSED',
+      rationale: 'Route 2 — multiplication as repeated addition (S5.6), i.e. the times-tables route.',
+      evidence: { sourceType: 'EXPERT', reference: 'fln#523' },
+    },
+  ],
 };
 
 /**
- * Resolved prerequisite groups for a concept: the override if one exists,
- * otherwise the single implicit AND group derived from CONCEPT_PREREQUISITES.
- * The implicit group is tagged HARD_PREREQUISITE/VALIDATED because it
- * reproduces exactly today's existing, already-relied-upon behaviour — not a
- * new provisional claim.
+ * The single implicit AND group for a concept, derived from the flat
+ * CONCEPT_PREREQUISITES edge list. Tagged HARD_PREREQUISITE/VALIDATED because it
+ * reproduces exactly today's existing, already-relied-upon behaviour — not a new
+ * provisional claim. Shared by the two resolvers below so "proposed" and "in
+ * force" can never drift apart in how they build this group.
  */
-export function prerequisiteGroups(conceptId: string): readonly PrerequisiteGroup[] {
-  const override = CONCEPT_PREREQUISITE_GROUP_OVERRIDES[conceptId];
-  if (override) return override;
+function implicitPrerequisiteGroups(conceptId: string): readonly PrerequisiteGroup[] {
   const flat = CONCEPT_PREREQUISITES[conceptId];
   if (!flat || flat.length === 0) return [];
   return [{
@@ -172,14 +223,60 @@ export function prerequisiteGroups(conceptId: string): readonly PrerequisiteGrou
 }
 
 /**
+ * Resolved prerequisite groups for a concept: the override if one exists,
+ * otherwise the single implicit AND group derived from CONCEPT_PREREQUISITES.
+ *
+ * This reports what has been *proposed*, including groups still awaiting
+ * curriculum-lead sign-off — it is the shape a reviewer or teaching-plan view
+ * should read, so a pending OR is visible rather than invisible. For gating,
+ * use `effectiveHardPrerequisiteGroups()` below instead.
+ */
+export function prerequisiteGroups(conceptId: string): readonly PrerequisiteGroup[] {
+  const override = CONCEPT_PREREQUISITE_GROUP_OVERRIDES[conceptId];
+  if (override) return override;
+  return implicitPrerequisiteGroups(conceptId);
+}
+
+/**
+ * The prerequisite groups that may actually gate progression for a concept.
+ *
+ * Only VALIDATED hard-prerequisite groups count. An override still awaiting
+ * sign-off — e.g. #523's proposed S5.8 OR — therefore cannot quietly change
+ * which students are gated (policy point 5: OR requires curriculum-lead
+ * approval; point 6: expert judgment proposes, a human approves). While no group
+ * in an override is VALIDATED, the concept falls back to the same implicit AND
+ * group it would have had anyway, so adding a PROPOSED override is a no-op for
+ * behaviour. Flipping a group's `status` to 'VALIDATED' is the one-word switch
+ * that puts it into force.
+ *
+ * `overrides` is injectable purely so the activation path can be exercised
+ * without mutating this module's const; callers should omit it.
+ */
+export function effectiveHardPrerequisiteGroups(
+  conceptId: string,
+  overrides: Readonly<Record<string, readonly PrerequisiteGroup[]>> = CONCEPT_PREREQUISITE_GROUP_OVERRIDES,
+): readonly PrerequisiteGroup[] {
+  const approved = overrides[conceptId]?.filter(
+    g => g.status === 'VALIDATED' && g.relationshipType === 'HARD_PREREQUISITE',
+  );
+  if (approved && approved.length > 0) return approved;
+  return implicitPrerequisiteGroups(conceptId);
+}
+
+/**
  * Whether conceptId's prerequisites are satisfied, given the set of concepts
- * already mastered. True when at least one HARD_PREREQUISITE group is fully
- * covered by `mastered` (or when the concept has no such groups — an entry
+ * already mastered. True when at least one in-force HARD_PREREQUISITE group is
+ * fully covered by `mastered` (or when the concept has no such groups — an entry
  * node, or one whose only groups are RECOMMENDED/SEQUENCE — policy point 7:
  * only hard prerequisites gate progression).
+ *
+ * OR-of-ANDs: satisfaction is "some group is entirely mastered", so several
+ * groups describe alternative routes rather than a longer required chain. A
+ * not-yet-approved override does not participate — see
+ * `effectiveHardPrerequisiteGroups()`.
  */
 export function isPrerequisiteSatisfied(conceptId: string, mastered: ReadonlySet<string>): boolean {
-  const groups = prerequisiteGroups(conceptId).filter(g => g.relationshipType === 'HARD_PREREQUISITE');
+  const groups = effectiveHardPrerequisiteGroups(conceptId);
   if (groups.length === 0) return true;
   return groups.some(g => g.memberIds.every(id => mastered.has(id)));
 }
