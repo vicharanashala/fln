@@ -187,6 +187,7 @@ export default function App() {
             {currentView === 'dashboard' && currentUser && token && (
               <Layout
                 currentUser={currentUser}
+                token={token}
                 onRoleSwitch={handleRoleSwitch}
                 activeView={activePanel}
                 onSelectView={setActivePanel}

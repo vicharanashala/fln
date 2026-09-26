@@ -5,6 +5,15 @@ import { UserRole } from './db';
 import { STATES_UTS } from './geoData';
 import { computeStudentDisplayId } from './displayId';
 import questionBankSeed from './data/question_bank_seed.json';
+import {
+  generateAdminId,
+  generateDistrictAdminId,
+  generateBlockAdminId,
+  generatePrincipalId,
+  generateTeacherId,
+  generateVolunteerId,
+  generateStudentId,
+} from './idGenerator';
 
 const SEED_PASSWORD_HASH = bcrypt.hashSync('Fln@2026', 10);
 
@@ -319,7 +328,7 @@ async function main() {
 
     // ── State Admin ──
     allUsers.push({
-      id: `u_admin_${state.code}`,
+      id: generateAdminId(),
       email: `admin.${sc}@fln.org`,
       name: `${state.name} State Coordinator`,
       role: UserRole.ADMIN,
@@ -333,7 +342,7 @@ async function main() {
 
       // ── District Admin ──
       allUsers.push({
-        id: `u_dist_${state.code}_${district.code}`,
+        id: generateDistrictAdminId(),
         email: `district.${dc}@fln.org`,
         name: `${district.name} District Officer`,
         role: UserRole.DISTRICT_ADMIN,
@@ -349,7 +358,7 @@ async function main() {
 
         // ── Block Admin ──
         allUsers.push({
-          id: `u_blk_${state.code}_${district.code}_${pad2(blockNum)}`,
+          id: generateBlockAdminId(),
           email: `block.${bc}@fln.org`,
           name: `${district.name} Block ${blockNum} Admin`,
           role: UserRole.BLOCK_ADMIN,
@@ -380,7 +389,7 @@ async function main() {
 
           // ── Principal (School role) ──
           allUsers.push({
-            id: `u_prn_${schoolId}`,
+            id: generatePrincipalId(),
             email: `school.${schoolIdLower}@fln.org`,
             name: `${district.name} ${areaName} Principal`,
             role: UserRole.SCHOOL,
@@ -392,7 +401,7 @@ async function main() {
           const teacherIds: string[] = [];
           for (let cIdx = 0; cIdx < 3; cIdx++) {
             const classShort = CLASS_SHORTS[cIdx];
-            const teacherId = `u_tch_${schoolId}_${classShort}`;
+            const teacherId = generateTeacherId();
             teacherIds.push(teacherId);
 
             allUsers.push({
@@ -408,7 +417,7 @@ async function main() {
           // ── Volunteer for low-strength schools ──
           if (isLowStrength) {
             allUsers.push({
-              id: `u_vol_${schoolId}`,
+              id: generateVolunteerId(),
               email: `vol.${schoolIdLower}@fln.org`,
               name: `${nextName()} (Volunteer)`,
               role: UserRole.VOLUNTEER,
@@ -434,7 +443,7 @@ async function main() {
             // ── 20 Students per class ──
             for (let stIdx = 0; stIdx < 20; stIdx++) {
               const studentNum = stIdx + 1;
-              const studentId = `s_${schoolId}_${classShort}_${pad2(studentNum)}`;
+              const studentId = generateStudentId();
               const currentLevel = randomLevel();
 
               allStudents.push({

@@ -65,12 +65,14 @@ export const UsersPanel: React.FC<{ usersList: any[] }> = ({ usersList }) => {
           </div>
           <div className="text-xs text-slate-400 dark:text-slate-500 pb-1">Showing {filteredUsers.length} of {usersList.length} users</div>
         </div>
-        <div className="space-y-2">{filteredUsers.map((u: any) => (
+        {filteredUsers.length === 0 ? (
+          <div className="py-8 text-center text-sm text-slate-400 dark:text-slate-500">No users found.</div>
+        ) : <div className="space-y-2">{filteredUsers.map((u: any) => (
           <div key={u.email} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
             <div><div className="font-medium text-sm">{userDisplayName(u)}</div><div className="text-xs text-slate-400 dark:text-slate-500 font-mono">{u.email}</div></div>
             <div className="flex items-center gap-3"><span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{roleLabel(u.role)}</span><span className="text-xs text-slate-400 dark:text-slate-500">{scopeLabel(u)}</span><span className="text-[10px] font-mono font-bold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">Active</span></div>
           </div>
-        ))}</div>
+        ))}</div>}
       </div>
     );
 };

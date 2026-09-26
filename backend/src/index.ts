@@ -269,6 +269,15 @@ registerStatsRoutes(app);
   registerInterventionRoutes(app);
   registerBestPracticeRoutes(app);
 
+  // Any /api/* path that reached here matched no registered route. Answer
+  // with a real 404 now, before the dev-only Vite middleware below — that
+  // middleware inherits frontend/vite.config.ts's /api proxy (targeting this
+  // same server), which otherwise proxies unmatched /api/* requests back to
+  // itself indefinitely (#563).
+  app.use('/api', (_req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).
   if (process.env.NODE_ENV !== "production") {

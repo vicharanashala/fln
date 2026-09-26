@@ -31,13 +31,15 @@ export const SchoolsPanel: React.FC<{ schools: School[] }> = ({ schools }) => {
           <div><label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Block</label><select value={blockFilter} onChange={e => setBlockFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[180px]"><option value="all">All Blocks</option>{blockOpts.map(b => <option key={b.code} value={b.code}>{b.name} ({b.code})</option>)}</select></div>
           <div className="text-xs text-slate-400 dark:text-slate-500 pb-1">Showing {filteredSchools.length} of {schools.length} schools</div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{filteredSchools.map(s => (
+        {filteredSchools.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white py-8 text-center text-sm text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500">No schools found.</div>
+        ) : <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{filteredSchools.map(s => (
           <div key={s.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-2">
             <div className="flex justify-between"><h4 className="font-bold text-slate-900 dark:text-white text-sm">{s.name}</h4><span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${s.strength === 'high' ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800' : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800'}`}>{s.strength}</span></div>
             <div className="text-xs text-slate-400 dark:text-slate-500">{STATE_NAMES[s.stateCode] || s.stateCode} &rsaquo; {DISTRICT_NAMES[s.districtCode] || s.districtCode} &rsaquo; {BLOCK_NAMES[s.blockCode] || s.blockCode}</div>
             <div className="flex gap-4 text-xs pt-1 border-t border-slate-100 dark:border-slate-700"><span>👨‍🏫 {s.teachersCount} teachers</span><span className={s.isAccessLocked ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}>{s.isAccessLocked ? '🔒 Locked' : '🔓 Active'}</span></div>
           </div>
-        ))}</div>
+        ))}</div>}
       </div>
     );
 };

@@ -14,6 +14,7 @@ import { assignStudentToArchetype } from '../studentArchetypeService';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { directPrerequisites, describeConcept } from '../competencyPrerequisites';
 import { analyzeScanQuality } from '../scanQuality';
+import { calculateStandardAdvancement } from '../gradeLevelCalculator';
 
 export function registerEvaluationRoutes(app: express.Express) {
 
@@ -523,7 +524,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
   };
 
-  // Scan quality endpoint: analyzes scan metrics (resolution, brightness, contrast, blur, orientation)
+  // Scan quality endpoint: analyzes scan metrics (resolution, orientation)
   // before starting OCR extraction. Returns ScanQualityResult.
   app.post('/api/icr/check-quality', async (req, res) => {
     const user = getAuthUser(req);
@@ -1019,25 +1020,24 @@ export function registerEvaluationRoutes(app: express.Express) {
 
     // Grade and generate AI narrative using Gemini AI
     const studentQuestions = ws.questions.filter(q => q.question_id.startsWith(student.id + '_'));
-    const evaluation = await evaluateAIWorksheet(student.name, student.currentLevel, studentQuestions, answers);
+    const evaluation = await evaluateAIWorksheet(
+      student.name,
+      studentQuestions,
+      answers,
+      student.currentLevel
+    );
 
-    // Determine subLevel based on question performance at the recommended level
-    let newSubLevel = 0; // default Mastery
-    const recLevel = evaluation.recommendedLevel;
-    const levelQs = studentQuestions.filter(q => q.source_level === recLevel);
-    if (levelQs.length > 0) {
-      let failedCount = 0;
-      levelQs.forEach(q => {
-        const submitted = (answers[q.question_id] || '').trim().toLowerCase();
-        const correct = q.answer.trim().toLowerCase();
-        if (submitted !== correct) failedCount++;
-      });
-      if (failedCount === levelQs.length) {
-        newSubLevel = 2; // Remedial
-      } else if (failedCount > 0) {
-        newSubLevel = 1; // Easier
-      }
-    }
+    const advancement = calculateStandardAdvancement(
+      student.currentLevel,
+      evaluation.total,
+      evaluation.score
+    );
+
+    const recommendedLevel = advancement.newLevel;
+    const newSubLevel = advancement.newSubLevel;
+
+
+
 
     // Save submission
     const submission: AnswerSubmission = {
@@ -1064,7 +1064,7 @@ export function registerEvaluationRoutes(app: express.Express) {
       totalQuestions: studentQuestions.length,
       conceptMastery: evaluation.conceptMastery,
       narrative: evaluation.narrative,
-      recommendedLevel: evaluation.recommendedLevel,
+      recommendedLevel: recommendedLevel,
       recommendedSubLevel: newSubLevel,
       timestamp: now.toISOString(),
       // Issue #180: per-question breakdown so a teacher can later correct
@@ -1090,9 +1090,9 @@ export function registerEvaluationRoutes(app: express.Express) {
 
     // If correct, update student levels
     const levelHistory = [...student.levelHistory];
-    if (evaluation.recommendedLevel !== student.currentLevel || newSubLevel !== (student.currentSubLevel || 0)) {
+    if (recommendedLevel !== student.currentLevel || newSubLevel !== (student.currentSubLevel || 0)) {
       levelHistory.push({
-        level: evaluation.recommendedLevel,
+        level: recommendedLevel,
         subLevel: newSubLevel,
         date: now.toISOString().split('T')[0],
         reason: ws.cycle // already one of CYCLE_NAMES
@@ -1100,10 +1100,10 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
 
     await dbStore.updateStudent(student.id, {
-      currentLevel: evaluation.recommendedLevel,
+      currentLevel: recommendedLevel,
       currentSubLevel: newSubLevel,
       // Capped at 59, not 93: worksheet generation still throws UnknownLevelError above 59.
-      targetLevel: Math.min(59, evaluation.recommendedLevel + 1),
+      targetLevel: Math.min(59, recommendedLevel + 1),
       levelHistory
     });
 
@@ -1169,16 +1169,16 @@ export function registerEvaluationRoutes(app: express.Express) {
       i => i.studentId === studentId && i.status === 'active' && !i.outcome
     );
     for (const intv of activeInterventions) {
-      const improved = evaluation.recommendedLevel > intv.currentLevel;
+      const improved = recommendedLevel > intv.currentLevel;
       await dbStore.updateIntervention(intv.id, {
         status: 'completed',
         endDate: now.toISOString().split('T')[0],
         outcome: {
           improved,
           previousLevel: intv.currentLevel,
-          newLevel: evaluation.recommendedLevel,
+          newLevel: recommendedLevel,
           improvementDetails: improved
-            ? `Auto-detected: Student improved from Level ${intv.currentLevel} to Level ${evaluation.recommendedLevel} after intervention targeting ${intv.weakCompetencies.join(', ')}.`
+            ? `Auto-detected: Student improved from Level ${intv.currentLevel} to Level ${recommendedLevel} after intervention targeting ${intv.weakCompetencies.join(', ')}.`
             : `Auto-detected: Student remained at Level ${intv.currentLevel} after intervention. Further remediation may be needed.`,
           assessmentId: report.id,
           detectedAt: now.toISOString()

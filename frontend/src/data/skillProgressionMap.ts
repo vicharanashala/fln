@@ -371,6 +371,31 @@ export interface LevelSkillMapping {
   evidence: string[];
 }
 
+// Ordered stage list — single source for the level -> stage registry (stageFor)
+// and for stage-order-dependent UI (SkillGraphPanel).
+export const STAGES = [
+  'Pre-school 1', 'Pre-school 2', 'Pre-school 3',
+  'Class 1', 'Class 2', 'Class 3', 'Class 4',
+] as const;
+
+// Canonical stage labels as the curriculum names them (backend curriculumMap.ts
+// and students.ts VALID_CLASS_GROUPS): "Pre-school 3" is the year before Class 1,
+// a.k.a. Balvatika (PR #517/#519), and the preschool spelling drops the hyphen.
+export const STAGE_LABELS: Record<LevelSkillMapping['stage'], string> = {
+  'Pre-school 1': 'Preschool 1',
+  'Pre-school 2': 'Preschool 2',
+  'Pre-school 3': 'Balvatika',
+  'Class 1': 'Class 1',
+  'Class 2': 'Class 2',
+  'Class 3': 'Class 3',
+  'Class 4': 'Class 4',
+};
+
+/** Canonical display label for any stage string, with a safe passthrough. */
+export function stageLabel(stage: string): string {
+  return STAGE_LABELS[stage as LevelSkillMapping['stage']] ?? stage;
+}
+
 /**
  * Issue #277: a level's prerequisites can genuinely differ in strength from
  * each other (e.g. L53 depends on L36 more loosely than it depends on L37) —
