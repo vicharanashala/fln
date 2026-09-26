@@ -8,7 +8,7 @@ import { PageHeader, EmptyStudents } from './PanelShared';
 import { Users } from 'lucide-react';
 import { apiFetch } from '../../services/apiClient';
 import { parseCSVText } from '../RoleDashboards';
-import { useRosterFilters } from '../../hooks/useRosterFilters';
+import { useRosterFilters, resolveRestoredClassTab } from '../../hooks/useRosterFilters';
 import { CertificatesPanel } from './CertificatesPanel';
 
 interface StudentListPanelProps {
@@ -53,17 +53,12 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
   useEffect(() => {
     if (restoredFiltersRef.current || studentsLoading) return;
     restoredFiltersRef.current = true;
-    const savedClassGroup = filters.classGroup;
-    const savedSection = filters.section;
-    if (savedClassGroup && savedSection) {
-      const savedKey = `${savedClassGroup}|${savedSection}`;
-      if (classTabs.some(c => `${c.classGroup}|${c.section}` === savedKey)) {
-        setActiveTab(savedKey);
-        return;
-      }
-    }
-    setActiveTab('all');
-  }, [studentsLoading, classTabs, filters]);
+    // Issue #532: `classTabs` are keyed classGroup|section and are not unique
+    // across schools, so the saved schoolId (not the tab key) is what decides
+    // whether this selection is still ours to restore. See
+    // resolveRestoredClassTab.
+    setActiveTab(resolveRestoredClassTab(filters, students) ?? 'all');
+  }, [studentsLoading, students, filters]);
   const visibleStudents = activeTab === 'all'
     ? students
     : students.filter(s => `${s.classGroup}|${s.section}` === activeTab);

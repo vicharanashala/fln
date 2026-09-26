@@ -13,7 +13,7 @@ import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
 
 import { ClassSummaryBar } from './ClassSummaryBar';
-import { useRosterFilters } from '../../hooks/useRosterFilters';
+import { useRosterFilters, savedRosterAppliesToSchool } from '../../hooks/useRosterFilters';
 import { DashboardSkeleton } from '../ui/DashboardSkeleton';
 import { RosterSkeleton } from '../ui/RosterSkeleton';
 import { EmptyStateCard } from '../ui/EmptyStateCard';
@@ -91,7 +91,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
         // reassigned mid-session must land on "All Students" instead of a
         // same-named class they may no longer teach.
         const savedGroup = filters.classGroup;
-        setActiveClassFilter(savedGroup);
+        setActiveClassFilter(
+          savedRosterAppliesToSchool(filters, user.schoolId ?? null) &&
+          savedGroup !== null &&
+          stdData.some((s: Student) => s.classGroup === savedGroup)
+            ? savedGroup
+            : null,
+        );
       }
 
       // GET /api/schools is scoped to user.schoolId for the 'teacher' role
@@ -106,9 +112,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     }
   };
 
+  // `filters` is a dependency because `fetchTeacherData` reads it to decide
+  // which class tab to restore: without it the effect would close over the
+  // filters as they were at mount and re-mounting the panel (roster ->
+  // student profile -> back) would restore a stale selection. `user` is
+  // deliberately not listed — it arrives as a fresh object on renders that
+  // change it, which would refetch the roster on every parent render.
   useEffect(() => {
     fetchTeacherData();
-  }, [token]);
+  }, [token, filters]);
 
   // Distinct classGroups present in this teacher's roster, with counts.
   // Used to drive the class-tab bar above the student list. Sorting is
