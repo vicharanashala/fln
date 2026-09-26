@@ -774,6 +774,23 @@ export interface QuestionTemplate {
   subskills: string[];
 
   /**
+   * What *kind* of question this is -- symbolic (numbers only), visual
+   * (pictures the child counts/compares), or word_problem (sentence context).
+   * Same skill + same level looks different in each; that's evidence.
+   * Optional on legacy rows, defaults to null when not specified.
+   *
+   * Added for issue #478 (D1.3 Q-Matrix).
+   */
+  representation: 'symbolic' | 'visual' | 'word_problem' | null;
+
+  /**
+   * How directly the question maps to the skill: `direct` (a clean math
+   * exercise) or `real_world` (the same math wrapped in a story/setting).
+   * Optional; null means the author did not tag it. See issue #478.
+   */
+  context: 'direct' | 'real_world' | null;
+
+  /**
    * Whether this item is answered on a student worksheet, recorded by a
    * teacher watching the child, or valid either way. Added 2026-09-19 for
    * Balvatika's two-sheet decision (PR #517 §4): NCF-FS §6.1.2(a) rules out
@@ -1276,6 +1293,13 @@ export class DBStore {
           // the key-value structure this collection already is, made queryable by it.
           await templatesColl.createIndex({ skills: 1, deletedAt: 1 });
           await templatesColl.createIndex({ subskills: 1, deletedAt: 1 });
+          // Issue #478 (D1.3 Q-Matrix): indexed for the
+          // "which questions test SK13.06 in a word_problem representation"
+          // style of cross-cuts. Sparse because most existing rows have null
+          // for these fields and a sparse index does not index them at all,
+          // which is what we want for "find rows that have actually been tagged".
+          await templatesColl.createIndex({ representation: 1, context: 1, deletedAt: 1 }, { sparse: true });
+          await templatesColl.createIndex({ subskills: 1, representation: 1, context: 1, deletedAt: 1 }, { sparse: true });
           await templatesColl.createIndex({ assessmentMode: 1, deletedAt: 1 });
 
           const optionsColl = db.collection('questionOptions');
@@ -2740,6 +2764,24 @@ export class DBStore {
   async getQuestionTemplatesBySubskill(subskillId: string) {
     return await this.mongoDb!.collection<QuestionTemplate>('questionTemplates')
       .find({ subskills: subskillId, deletedAt: null }).toArray();
+  }
+
+  /**
+   * Issue #478 (D1.3 Q-Matrix): find questions that test a given subskill
+   * AND carry a particular representation/context tag. Either tag may be
+   * null/undefined to skip that filter. Backed by the sparse index
+   * `{ subskills, representation, context, deletedAt }`.
+   */
+  async getQuestionTemplatesBySubskillAndTag(
+    subskillId: string,
+    representation?: 'symbolic' | 'visual' | 'word_problem' | null,
+    context?: 'direct' | 'real_world' | null,
+  ) {
+    const filter: Record<string, unknown> = { subskills: subskillId, deletedAt: null };
+    if (representation) filter.representation = representation;
+    if (context) filter.context = context;
+    return await this.mongoDb!.collection<QuestionTemplate>('questionTemplates')
+      .find(filter).toArray();
   }
 
   /** Live templates sharing a variant fingerprint. Drives the duplicate warning. */

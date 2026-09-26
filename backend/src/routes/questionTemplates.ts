@@ -23,6 +23,18 @@ import { isKnownThemeId, listThemes } from '../svgAssetCatalog';
 const MAX_NAME_CHARS = 200;
 const MAX_TAGS = 20;
 const MAX_TAG_CHARS = 40;
+
+/**
+ * Issue #478 (D1.3 Q-Matrix). Two new author-supplied tags on a question.
+ * Both are optional on legacy rows (null = author did not tag), but when
+ * present they must be one of the enum values -- an open string would
+ * defeat the point of being able to filter on them.
+ */
+const REPRESENTATIONS = ['symbolic', 'visual', 'word_problem'] as const;
+const CONTEXTS = ['direct', 'real_world'] as const;
+type Representation = typeof REPRESENTATIONS[number];
+type Context = typeof CONTEXTS[number];
+
 /** Cap on one import. Large enough for a curriculum batch, small enough to stay a single round trip. */
 const MAX_IMPORT_ROWS = 1000;
 
@@ -49,7 +61,12 @@ function validateTemplate(
   answerSpec: string,
   params: QuestionTemplateParams,
   tags: string[],
-  name: string
+  name: string,
+  // Issue #478 (D1.3 Q-Matrix): optional representation/context tags.
+  // Both default to null when the caller did not send them. Either may be
+  // null OR one of the enum values -- never an arbitrary string.
+  representation?: Representation | null,
+  context?: Context | null,
 ): string | null {
   if (typeof conceptId !== 'string' || conceptId.trim().length === 0) {
     return 'conceptId is required.';
@@ -79,6 +96,18 @@ function validateTemplate(
     if (!isSubskillUnderSkills(ss, skills)) {
       return `Sub-skill ${ss} is not under any of the selected skills.`;
     }
+  }
+
+  // Issue #478: representation/context may be null (author did not tag)
+  // or a member of the enum. Anything else is a typo and must be rejected
+  // so the question does not silently miss the filter on the read side.
+  if (representation !== null && representation !== undefined &&
+      !(REPRESENTATIONS as readonly string[]).includes(representation)) {
+    return `representation must be one of ${REPRESENTATIONS.join(', ')}.`;
+  }
+  if (context !== null && context !== undefined &&
+      !(CONTEXTS as readonly string[]).includes(context)) {
+    return `context must be one of ${CONTEXTS.join(', ')}.`;
   }
 
   const intentProblem = validateGenerationIntent(generationIntent);
@@ -172,6 +201,9 @@ function buildTemplate(
      * something to infer here. Explicit callers can already pass it.
      */
     assessmentMode?: 'written' | 'observed' | 'both';
+    // Issue #478
+    representation?: Representation | null;
+    context?: Context | null;
   },
   user: { id: string; email: string },
   now: string
@@ -190,6 +222,11 @@ function buildTemplate(
     questionFamily: input.questionFamily,
     paramMode: 'structured',
     svgThemeIds: input.svgThemeIds,
+    // Issue #478: representation/context tags. Both optional; default
+    // to null when the caller did not pass them, so legacy code paths
+    // that build a template without setting them still work.
+    representation: input.representation ?? null,
+    context: input.context ?? null,
     // Legacy columns stay present and empty on new rows. See QuestionTemplate.
     stem: '',
     answerSpec: '',
@@ -268,6 +305,9 @@ const CSV_COLUMNS = [
   'carryBehavior', 'borrowBehavior', 'maxSumOrDifference',
   'answerType', 'blankCount', 'questionCount', 'subjectCategory',
   'name', 'tags',
+  // Issue #478: optional representation/context columns. Missing or blank
+  // becomes null. Both must be valid enum values when present.
+  'representation', 'context',
 ] as const;
 
 export function registerQuestionTemplateRoutes(app: express.Express) {
@@ -318,6 +358,37 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     res.json(templates);
   });
 
+  /**
+   * Issue #478 (D1.3 Q-Matrix acceptance criterion 3):
+   *   GET /api/question-templates/by-skill?subskill=SK13.06&representation=word_problem&context=real_world
+   * Returns questions that test the named subskill AND carry the optional
+   * representation/context tags. Both tag arguments are optional -- omit
+   * them to retrieve every question testing the subskill regardless of tag.
+   * Backed by the sparse index on `{ subskills, representation, context, deletedAt }`.
+   */
+  app.get('/api/question-templates/by-skill', async (req, res) => {
+    if (!requireSuperadmin(req, res, SUBJECT)) return;
+
+    const subskill = req.query.subskill as string | undefined;
+    if (!subskill) return res.status(400).json({ error: 'subskill is required.' });
+
+    const rep = req.query.representation as string | undefined;
+    if (rep && !(REPRESENTATIONS as readonly string[]).includes(rep)) {
+      return res.status(400).json({ error: `representation must be one of ${REPRESENTATIONS.join(', ')}.` });
+    }
+    const ctx = req.query.context as string | undefined;
+    if (ctx && !(CONTEXTS as readonly string[]).includes(ctx)) {
+      return res.status(400).json({ error: `context must be one of ${CONTEXTS.join(', ')}.` });
+    }
+
+    const templates = await dbStore.getQuestionTemplatesBySubskillAndTag(
+      subskill,
+      rep as Representation | undefined,
+      ctx as Context | undefined,
+    );
+    res.json(templates);
+  });
+
   app.post('/api/question-templates', async (req, res) => {
     const user = requireSuperadmin(req, res, SUBJECT);
     if (!user) return;
@@ -332,12 +403,15 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     const params = coerceParams(req.body);
     const tags = normalizeTags(req.body?.tags);
     const name: string = (req.body?.name ?? '').trim();
+    // Issue #478: optional tags from the body, default null when absent.
+    const representation: Representation | null = req.body?.representation ?? null;
+    const context: Context | null = req.body?.context ?? null;
 
-    const problem = validateTemplate(conceptId, skills, subskills, generationIntent, questionFamily, svgThemeIds, answerSpec, params, tags, name);
+    const problem = validateTemplate(conceptId, skills, subskills, generationIntent, questionFamily, svgThemeIds, answerSpec, params, tags, name, representation, context);
     if (problem) return res.status(400).json({ error: problem });
 
     const template = buildTemplate(
-      { conceptId, skills, subskills, generationIntent, questionFamily: questionFamily as QuestionFamily, svgThemeIds, params, name, tags, source: 'form' },
+      { conceptId, skills, subskills, generationIntent, questionFamily: questionFamily as QuestionFamily, svgThemeIds, params, name, tags, source: 'form', representation, context },
       user,
       new Date().toISOString()
     );
@@ -380,8 +454,14 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     const tags = req.body?.tags !== undefined ? normalizeTags(req.body.tags) : current.tags;
     const params = coerceParams({ ...current, ...req.body });
     const name: string = (req.body?.name ?? current.name).trim();
+    // Issue #478: fall back to the stored value on PATCH so the author can
+    // update one without clearing the other.
+    const representation: Representation | null =
+      req.body?.representation !== undefined ? req.body.representation : (current.representation ?? null);
+    const context: Context | null =
+      req.body?.context !== undefined ? req.body.context : (current.context ?? null);
 
-    const problem = validateTemplate(conceptId, skills, subskills, generationIntent, questionFamily, svgThemeIds, answerSpec, params, tags, name);
+    const problem = validateTemplate(conceptId, skills, subskills, generationIntent, questionFamily, svgThemeIds, answerSpec, params, tags, name, representation, context);
     if (problem) {
       // Make the concept-only case actionable rather than merely rejected.
       if (req.body?.conceptId !== undefined && req.body?.skills === undefined && problem.includes('not mapped')) {
@@ -408,6 +488,8 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
       questionFamily: questionFamily as QuestionFamily,
       paramMode: 'structured' as ParamMode,
       svgThemeIds,
+      representation,
+      context,
       numeralRange: params.numeralRange,
       digitCount: params.digitCount,
       operations: params.operations,
@@ -501,6 +583,10 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
       const answerSpec = col(row, 'answerSpec');
       const tags = normalizeTags(splitList(col(row, 'tags')));
       const name = col(row, 'name');
+      // Issue #478: cellOrNull converts empty cells to null so the validator
+      // can treat them as 'author did not tag' rather than 'invalid string'.
+      const representation = cellOrNull(col(row, 'representation'));
+      const context = cellOrNull(col(row, 'context'));
 
       const params = coerceParams({
         numeralRange: cellOrNull(col(row, 'numeralRange')),
@@ -516,14 +602,14 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
         subjectCategory: cellOrNull(col(row, 'subjectCategory')),
       });
 
-      const problem = validateTemplate(conceptId, skills, subskills, generationIntent, questionFamily, svgThemeIds, answerSpec, params, tags, name);
+      const problem = validateTemplate(conceptId, skills, subskills, generationIntent, questionFamily, svgThemeIds, answerSpec, params, tags, name, representation, context);
       if (problem) {
         errors.push({ row: rowNumber, error: problem });
         return;
       }
 
       prepared.push(buildTemplate(
-        { conceptId, skills, subskills, generationIntent, questionFamily: questionFamily as QuestionFamily, svgThemeIds, params, name, tags, source: 'csv' },
+        { conceptId, skills, subskills, generationIntent, questionFamily: questionFamily as QuestionFamily, svgThemeIds, params, name, tags, source: 'csv', representation, context },
         user,
         now
       ));
