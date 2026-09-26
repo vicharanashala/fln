@@ -22,6 +22,7 @@
     "test:detokenize": "esbuild tests/aadhaar-detokenize.test.ts --bundle --platform=node --format=esm --packages=external --outfile=tests/dist/aadhaar-detokenize.test.mjs --log-level=warning && node tests/dist/aadhaar-detokenize.test.mjs",
     "test:search-index": "tsx --test tests/students-search-index.test.ts",
     "test:panel-isolation": "tsx --test tests/panel-isolation.test.cjs",
+    "test:roster-filters": "tsx --test tests/roster-filters-persistence.test.cjs",
     "audit:aadhaar": "tsx scripts/audit-aadhaar-at-rest.ts",
     "test:answer-matching": "tsx src/answerMatching.test.ts",
     "test:error-classification": "tsx src/errorClassification.test.ts",

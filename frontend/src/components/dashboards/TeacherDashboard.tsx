@@ -13,6 +13,7 @@ import { Table, Column } from '../Table';
 import { LevelBadge } from '../RoleDashboards';
 
 import { ClassSummaryBar } from './ClassSummaryBar';
+import { useRosterFilters, savedRosterAppliesToSchool } from '../../hooks/useRosterFilters';
 import { DashboardSkeleton } from '../ui/DashboardSkeleton';
 import { RosterSkeleton } from '../ui/RosterSkeleton';
 import { EmptyStateCard } from '../ui/EmptyStateCard';
@@ -42,6 +43,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
   const [showSkillGraph, setShowSkillGraph] = useState(false);
+  const { filters, setFilter, resetFilters } = useRosterFilters(user.id, user.role);
 
   // Issue #166: per-student "Print L{level}.{sub}" action kept on the roster
   // (it's a per-row interaction, not an operational tool). State below is the
@@ -80,7 +82,23 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     try {
       const stdRes = await apiFetch('/api/students?all=1', { headers: { 'Authorization': `Bearer ${token}` } });
       const stdData = await stdRes.json();
-      if (Array.isArray(stdData)) setStudents(stdData);
+      if (Array.isArray(stdData)) {
+        setStudents(stdData);
+        // Issue #532: restore this session's saved class tab, but only when it
+        // still belongs to the school actually on screen. `schoolId` is part
+        // of the persisted filter precisely so a selection made against one
+        // school is never silently re-applied to another; a teacher
+        // reassigned mid-session must land on "All Students" instead of a
+        // same-named class they may no longer teach.
+        const savedGroup = filters.classGroup;
+        setActiveClassFilter(
+          savedRosterAppliesToSchool(filters, user.schoolId ?? null) &&
+          savedGroup !== null &&
+          stdData.some((s: Student) => s.classGroup === savedGroup)
+            ? savedGroup
+            : null,
+        );
+      }
 
       // GET /api/schools is scoped to user.schoolId for the 'teacher' role
       // (see backend/src/routes/schools.ts), so the first result is this teacher's school.
@@ -94,9 +112,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
     }
   };
 
+  // `filters` is a dependency because `fetchTeacherData` reads it to decide
+  // which class tab to restore: without it the effect would close over the
+  // filters as they were at mount and re-mounting the panel (roster ->
+  // student profile -> back) would restore a stale selection. `user` is
+  // deliberately not listed — it arrives as a fresh object on renders that
+  // change it, which would refetch the roster on every parent render.
   useEffect(() => {
     fetchTeacherData();
-  }, [token]);
+  }, [token, filters]);
 
   // Distinct classGroups present in this teacher's roster, with counts.
   // Used to drive the class-tab bar above the student list. Sorting is
@@ -263,7 +287,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
        in each tab make it obvious when a class is unexpectedly empty. */}
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700 pb-px overflow-x-auto">
         <button
-          onClick={() => setActiveClassFilter(null)}
+          onClick={() => { setActiveClassFilter(null); setFilter({ schoolId: null, classId: null, classGroup: null, section: null }); }}
           className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all whitespace-nowrap ${
             activeClassFilter === null ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
           }`}
@@ -273,7 +297,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
         {distinctClasses.map(([classGroup, count]) => (
           <button
             key={classGroup}
-            onClick={() => setActiveClassFilter(classGroup)}
+            onClick={() => { setActiveClassFilter(classGroup); setFilter({ schoolId: user.schoolId ?? null, classId: null, classGroup, section: null }); }}
             className={`px-4 py-2 text-sm font-display font-medium border-b-2 transition-all whitespace-nowrap ${
               activeClassFilter === classGroup ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-semibold' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
             }`}
@@ -281,6 +305,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
             {classGroup} ({count})
           </button>
         ))}
+        {activeClassFilter !== null && (
+          <button
+            onClick={() => { resetFilters(); setActiveClassFilter(null); }}
+            className="ml-auto px-3 py-1.5 text-xs font-mono font-semibold text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
+          >
+            Reset Filters
+          </button>
+        )}
       </div>
 
       {/* Issue #166: Diagnostic Paper Generator + Level-Wise Paper Generator
