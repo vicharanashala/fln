@@ -37,7 +37,36 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
   // ("Class 1", "Class 2", etc.). Derived from the actual student roster
   // rather than the ClassGroup table so a missing classGroup record never
   // hides a child from view.
-  const [activeClassFilter, setActiveClassFilter] = useState<string | null>(null);
+  //
+  // Issue #342 (Task 3, re-scoped): persisted to sessionStorage so drilling
+  // into a student's report and navigating back doesn't reset the tab to
+  // "All Students". Scoped by teacherId so switching demo accounts in the
+  // same browser session can't leak one teacher's filter into another's view.
+  const ROSTER_FILTER_KEY = 'fln_roster_filter';
+  const [activeClassFilter, setActiveClassFilter] = useState<string | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(ROSTER_FILTER_KEY);
+      if (!raw) return null;
+      const saved = JSON.parse(raw);
+      return saved.teacherId === user.id ? saved.classGroup ?? null : null;
+    } catch {
+      // sessionStorage unavailable (private browsing, storage quota, etc.) —
+      // fall back to the old default rather than breaking the dashboard.
+      return null;
+    }
+  });
+  // Keep the persisted filter in sync whenever the teacher changes tabs.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        ROSTER_FILTER_KEY,
+        JSON.stringify({ teacherId: user.id, classGroup: activeClassFilter })
+      );
+    } catch {
+      // Non-fatal: the tab just won't survive navigation this session.
+    }
+  }, [activeClassFilter, user.id]);
+
   const [school, setSchool] = useState<School | null>(null);
   const [diagnosticStudent, setDiagnosticStudent] = useState<Student | null>(null);
   const [baselineStudent, setBaselineStudent] = useState<Student | null>(null);
