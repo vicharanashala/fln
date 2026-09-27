@@ -11,6 +11,7 @@ import { ShieldAlert, CheckCircle2, Upload, FileText } from 'lucide-react';
 import { apiFetch } from '../../services/apiClient';
 import { parseCSVText, FLNLevelReferenceModal } from '../RoleDashboards';
 import { BulkDiagnosticWorkflow } from '../BulkDiagnosticWorkflow';
+import { LEVEL_SKILL_MAP } from '../../data/skillProgressionMap';
 
 interface DiagnosticTestPanelProps {
   students: Student[];
@@ -29,7 +30,7 @@ export const DiagnosticTestPanel: React.FC<DiagnosticTestPanelProps> = ({ studen
   const [csvResults, setCsvResults] = useState<any>(null);
   const [csvError, setCsvError] = useState('');
 
-  // Issue #166: 93 FLN Framework reference modal — moved here from the
+  // Issue #166: FLN Framework reference modal — moved here from the
   // Teacher/Volunteer dashboards so the framework reference lives next to
   // the diagnostic test where it's actually used for placement decisions.
   const [showLevelRef, setShowLevelRef] = useState(false);
@@ -193,7 +194,7 @@ export const DiagnosticTestPanel: React.FC<DiagnosticTestPanelProps> = ({ studen
               onClick={() => setShowLevelRef(true)}
               className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
             >
-              📖 93 FLN Framework
+              📖 {LEVEL_SKILL_MAP.length} FLN Framework
             </button>
             <button
               onClick={() => { setShowCsvImport(!showCsvImport); setCsvResults(null); setCsvError(''); }}

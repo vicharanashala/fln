@@ -7,17 +7,18 @@
 import React, { useState } from 'react';
 import { BookMarked } from 'lucide-react';
 import { FLN_LEVELS_LIST } from '../RoleDashboards';
+import { STAGES, STAGE_LABELS } from '../../data/skillProgressionMap';
 
 export const ContentPanel: React.FC = () => {
-    // Render the full 93-level FLN framework as cards, grouped by class
-    // (Preschool 1/2/3 + Class 1/2/3/4). All data comes from
+    // Render the full FLN framework as cards, grouped by canonical class.
+    // All data comes from
     // FLN_LEVELS_LIST in RoleDashboards — no backend fetch needed since
     // the worksheet HTML is generated on demand by the worksheet engine
     // when the user clicks "Open" / "Print".
     const [search, setSearch] = useState('');
     const [classFilter, setClassFilter] = useState<string>('ALL');
 
-    const classOrder = ['Preschool 1', 'Preschool 2', 'Preschool 3', 'Class 1', 'Class 2', 'Class 3', 'Class 4'];
+    const classOrder = STAGES.map(stage => STAGE_LABELS[stage]);
     const classesPresent = Array.from(new Set(FLN_LEVELS_LIST.map(l => l.class)))
       .sort((a, b) => classOrder.indexOf(a) - classOrder.indexOf(b));
 
