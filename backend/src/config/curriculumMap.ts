@@ -198,6 +198,22 @@ for (const config of Object.values(CURRICULUM_MAPPING)) {
 }
 
 /**
+ * True iff the given curriculum level belongs to Stage 3 (Balvatika).
+ *
+ * Centralised so callers (#616's assessmentMode gate, #621's mastery
+ * computation, etc.) don't inline `CURRICULUM_MAPPING[level]?.stage === 3`
+ * -- a typo or stage-numbering change would silently break every caller.
+ *
+ * NOTE: PR #517 shifted the level registry (now 109 levels, not 93), so
+ * the Stage-3 range is NOT 1-18 / 19-something-static -- it's whatever
+ * `CURRICULUM_MAPPING` says it is at the moment this function is called.
+ * The test (curriculumMap.test.ts) checks the boundary dynamically.
+ */
+export function isBalvatikaStage(level: number): boolean {
+  return CURRICULUM_MAPPING[level]?.stage === 3;
+}
+
+/**
  * Get Level configuration by Curriculum Level Number
  */
 export function getConceptForLevel(levelNumber: number): LevelConceptConfig | undefined {

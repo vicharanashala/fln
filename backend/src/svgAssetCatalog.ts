@@ -14,6 +14,15 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM-safe substitute for __dirname. The tsx loader used in development
+// runs the backend as ESM, where the implicit __dirname binding from
+// CommonJS is not available -- this file's manifestPath() function
+// crashed every time it was called from a request handler.
+// `import.meta.url` is the documented ESM equivalent.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface SvgThemeVariant {
   variantId: string;
