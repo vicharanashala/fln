@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FileQuestion, Layers, CheckCircle2, Shapes, Pencil, Trash2, X, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import { apiFetch } from '../../services/apiClient';
+// Issue #598: import QuestionFamily from the backend so the panel's
+// local state, the catalog-cast, and the label-rendering all stay in
+// sync with QUESTION_FAMILIES in backend/src/types/questionTemplateParams.ts.
+// This is a deliberate cross-workspace import -- the only one in the
+// frontend -- and worth the deviation from the 'no cross-workspace
+// imports' convention because the alternative is mirroring the 10-value
+// union in two places that can silently drift.
+import type { QuestionFamily } from '../../../../backend/src/types/questionTemplateParams';
 import type {
   QuestionTemplate,
   QuestionTemplateParams,
@@ -11,6 +19,26 @@ import type {
 } from '../../types';
 
 const MAX_INTENT_CHARS = 2000;
+
+/**
+ * Issue #598: human-readable labels for every value of QuestionFamily.
+ * Single source of truth so the chip picker, the list table, and any
+ * future display surface render the same label for the same value.
+ * Keep the keys in sync with QUESTION_FAMILIES in
+ * backend/src/types/questionTemplateParams.ts.
+ */
+const QUESTION_FAMILY_LABELS: Record<QuestionFamily, string> = {
+  counting:        'Counting a picture',
+  operation:       'Number operation',
+  shape:           'Shape (identify / match / trace)',
+  pattern:         'Pattern (continue / find missing)',
+  comparison:      'Comparison (more / less / longer / shorter)',
+  classification:  'Classification (sort / group / odd one out)',
+  sequencing:      'Sequencing (before / after / ordinal)',
+  vocabulary:      'Vocabulary (number word <-> numeral)',
+  calendar:        'Calendar (days / months / date read)',
+  reasoning:       'Mathematical reasoning / problem solving',
+};
 
 const EMPTY_PARAMS: QuestionTemplateParams = {
   numeralRange: null,
@@ -53,7 +81,7 @@ export const QuestionTemplatePanel: React.FC = () => {
   const [skills, setSkills] = useState<string[]>([]);
   const [subskills, setSubskills] = useState<string[]>([]);
   const [generationIntent, setGenerationIntent] = useState('');
-  const [questionFamily, setQuestionFamily] = useState<'counting' | 'operation'>('operation');
+  const [questionFamily, setQuestionFamily] = useState<QuestionFamily>('operation');
   const [svgThemeIds, setSvgThemeIds] = useState<string[]>([]);
   const [params, setParams] = useState<QuestionTemplateParams>(EMPTY_PARAMS);
   const [name, setName] = useState('');
@@ -579,10 +607,12 @@ export const QuestionTemplatePanel: React.FC = () => {
             <div className="mt-3">
               <div className={labelCls}>Kind of question</div>
               <div className="mt-1 flex flex-wrap gap-2">
-                {(catalog?.questionFamily ?? ['counting', 'operation']).map(f => (
-                  <button key={f} type="button" onClick={() => { setQuestionFamily(f as 'counting' | 'operation'); setFormError(null); }}
+                {/* Issue #598: the cast below used to throw away 8 of 10 valid families. */}
+                {/* Fallback lists all 10 so the picker still works if the catalog fetch fails. */}
+                {(catalog?.questionFamily ?? ['counting','operation','shape','pattern','comparison','classification','sequencing','vocabulary','calendar','reasoning']).map(f => (
+                  <button key={f} type="button" onClick={() => { setQuestionFamily(f as QuestionFamily); setFormError(null); }}
                     aria-pressed={questionFamily === f} className={chipCls(questionFamily === f)}>
-                    {f === 'counting' ? 'Counting a picture' : 'Number operation'}
+                    {QUESTION_FAMILY_LABELS[f as QuestionFamily]}
                   </button>
                 ))}
               </div>
