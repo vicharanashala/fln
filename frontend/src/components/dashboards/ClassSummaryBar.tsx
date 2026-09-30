@@ -6,6 +6,7 @@ import { Student } from '../../types';
 import { MetricCard } from '../Card';
 import { apiFetch } from '../../services/apiClient';
 import { Users, BarChart3, TrendingUp, TrendingDown, Printer } from 'lucide-react';
+import { LEVEL_SKILL_MAP } from '../../data/skillProgressionMap';
 
 // Issue #200: class-level worksheet print-count rollup, piggybacking on
 // #182's Test History log (GET /api/teachers/:id/test-history) rather than
@@ -101,7 +102,7 @@ export const ClassSummaryBar: React.FC<{ students: Student[]; token?: string; te
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-32 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${((s.currentLevel ?? 0) / 93) * 100}%` }} />
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, ((s.currentLevel ?? 0) / LEVEL_SKILL_MAP.length) * 100)}%` }} />
                   </div>
                   <span className="font-mono font-bold text-sm">L{s.currentLevel ?? 0}</span>
                 </div>

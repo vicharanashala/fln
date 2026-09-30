@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../services/apiClient';
 import { STATE_NAMES } from '../constants';
+import { LEVEL_SKILL_MAP } from '../data/skillProgressionMap';
 
 interface SuperAdminDashboardProps {
   user: any;
@@ -429,15 +430,12 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
               onChange={(e) => setGrade(e.target.value)}
               className="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="ALL">All Levels (FLN 1–93)</option>
-              {Array.from({ length: 93 }, (_, i) => {
-                const level = i + 1;
-                return (
-                  <option key={level} value={`FLN ${level}`}>
-                    FLN {level}
-                  </option>
-                );
-              })}
+              <option value="ALL">All Levels (FLN 1–{LEVEL_SKILL_MAP.length})</option>
+              {LEVEL_SKILL_MAP.map((level) => (
+                <option key={level.levelNumber} value={`FLN ${level.levelNumber}`}>
+                  FLN {level.levelNumber}
+                </option>
+              ))}
             </select>
           </div>
 

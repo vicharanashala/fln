@@ -4,6 +4,8 @@ import { Student, ClassGroup, EvaluationReport, User } from '../types';
 import { ChildErrorSignature } from './MisconceptionFingerprint';
 import { IcrTwoStageScan } from './IcrTwoStageScan';
 import { BulkIcrScan, BulkChunkResult, BulkOcrResponse } from './BulkIcrScan';
+import { LEVEL_SKILL_MAP } from '../data/skillProgressionMap';
+=======
 import { alignExtractedQuestions, questionsLikelyMatch } from '../utils/ocrQuestionMatching';
 
 interface IcrScannerProps {
@@ -2205,7 +2207,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 <div className="text-xs font-mono opacity-90">
                   {report.recommendedSubLevel === 2 ? 'Remedial'
                     : report.recommendedSubLevel === 1 ? 'Easier'
-                    : 'Mastery'} · target L{Math.min(93, (report.recommendedLevel ?? 1) + 1)}
+                    : 'Mastery'} · target L{Math.min(LEVEL_SKILL_MAP.length, (report.recommendedLevel ?? 1) + 1)}
                 </div>
               </div>
 
