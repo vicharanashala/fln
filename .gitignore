@@ -50,7 +50,7 @@ backend/data/
 backend/dist/
 frontend/dist/
 *.log
-# AI-services pipeline output (regenerates per-run; not source)
-ai-services/personalized_evaluation/class_*/
+# Local scratch UI prototype (not source)
+frontend/studentprogressdashboardUI/
+# Stray local npm artifact
 backend/npm
-
