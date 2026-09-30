@@ -267,7 +267,7 @@ const CSV_COLUMNS = [
   'numeralRange', 'digitCount', 'operations', 'maxOperandCount',
   'carryBehavior', 'borrowBehavior', 'maxSumOrDifference',
   'answerType', 'blankCount', 'questionCount', 'subjectCategory',
-  'name', 'tags',
+  'name', 'tags', 'assessmentMode',
 ] as const;
 
 export function registerQuestionTemplateRoutes(app: express.Express) {
@@ -332,12 +332,28 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     const params = coerceParams(req.body);
     const tags = normalizeTags(req.body?.tags);
     const name: string = (req.body?.name ?? '').trim();
+    // Issue #599 follow-up: the POST path never read assessmentMode from
+    // req.body, so every authored template silently defaulted to 'written'
+    // even though the schema and the form both supported the other values.
+    // Mirrors what PATCH already does (line 372-ish) and what buildTemplate
+    // already accepts. Validation is done inline here rather than added
+    // to validateTemplate() to keep that function's signature stable for
+    // every existing caller.
+    const assessmentMode: 'written' | 'observed' | 'both' | undefined = req.body?.assessmentMode;
+    if (assessmentMode !== undefined &&
+        assessmentMode !== 'written' &&
+        assessmentMode !== 'observed' &&
+        assessmentMode !== 'both') {
+      return res.status(400).json({
+        error: `assessmentMode must be one of written, observed, both.`,
+      });
+    }
 
     const problem = validateTemplate(conceptId, skills, subskills, generationIntent, questionFamily, svgThemeIds, answerSpec, params, tags, name);
     if (problem) return res.status(400).json({ error: problem });
 
     const template = buildTemplate(
-      { conceptId, skills, subskills, generationIntent, questionFamily: questionFamily as QuestionFamily, svgThemeIds, params, name, tags, source: 'form' },
+      { conceptId, skills, subskills, generationIntent, questionFamily: questionFamily as QuestionFamily, svgThemeIds, params, name, tags, source: 'form', assessmentMode },
       user,
       new Date().toISOString()
     );
@@ -501,6 +517,12 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
       const answerSpec = col(row, 'answerSpec');
       const tags = normalizeTags(splitList(col(row, 'tags')));
       const name = col(row, 'name');
+      // Issue #599 follow-up: read assessmentMode from CSV too. Empty /
+      // missing cell becomes undefined and falls through to the
+      // backend's default ('written') via buildTemplate.
+      const rawMode = cellOrNull(col(row, 'assessmentMode'));
+      const assessmentMode: 'written' | 'observed' | 'both' | undefined =
+        rawMode === 'written' || rawMode === 'observed' || rawMode === 'both' ? rawMode : undefined;
 
       const params = coerceParams({
         numeralRange: cellOrNull(col(row, 'numeralRange')),
