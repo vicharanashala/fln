@@ -396,6 +396,14 @@ export interface QuestionTemplate {
   /** What the question should make the child do. An instruction, not a finished question. */
   generationIntent: string;
   questionFamily: 'counting' | 'operation';
+  /**
+   * Issue #599: how the child's answer is recorded.
+   * 'written' = the child fills a worksheet. 'observed' = the teacher
+   * watches and records on an observation sheet (separate flow, tracked
+   * separately). 'both' = either path is valid.
+   * Defaults to 'written' server-side when missing (db.ts:786).
+   */
+  assessmentMode: 'written' | 'observed' | 'both';
   paramMode: 'structured' | 'legacy-free-text' | 'hybrid';
   /** Ids into the SVG manifest. The artwork lives in files, not in the database. */
   svgThemeIds: string[];
