@@ -1827,6 +1827,20 @@ export class DBStore {
     if (this.mongoDb) return await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray();
     return this.data?.worksheets || [];
   }
+  /**
+   * Single-worksheet lookup by id. Used by `getAttemptHistoryForStudent`
+   * (issue #613) to resolve a EvaluationReport.worksheetId back to the
+   * full `Worksheet.questions: Question[]` array. Returns undefined if no
+   * such worksheet exists (e.g. a literal `'diagnostic'` worksheetId from
+   * seed data, or a worksheet that has since been deleted/archived).
+   */
+  async getWorksheet(id: string): Promise<Worksheet | undefined> {
+    if (this.mongoDb) {
+      const ws = await this.mongoDb.collection<Worksheet>('worksheets').findOne({ id });
+      return ws ?? undefined;
+    }
+    return (this.data?.worksheets || []).find(w => w.id === id);
+  }
   async getStudentCycleLocks() {
     if (this.mongoDb) return await this.mongoDb.collection<StudentCycleLock>('studentCycleLocks').find({}).toArray();
     return this.data?.studentCycleLocks || [];
@@ -2066,6 +2080,16 @@ export class DBStore {
     let result = this.data?.evaluationReports || [];
     if (opts?.studentIds) result = result.filter(r => opts.studentIds!.includes(r.studentId));
     return result;
+  }
+  /**
+   * Single-student evaluator-report lookup. Thin wrapper over
+   * `getEvaluationReports({studentIds: [studentId]})`, kept here as a
+   * convenience for `getAttemptHistoryForStudent` (issue #613) so callers
+   * don't have to know about the optional-array shape. Natural analog
+   * to `getObservationRecordsForStudent` (which already exists).
+   */
+  async getEvaluationReportsForStudent(studentId: string): Promise<EvaluationReport[]> {
+    return await this.getEvaluationReports({ studentIds: [studentId] });
   }
 
   async getStudentsByIds(ids: string[]): Promise<Student[]> {
