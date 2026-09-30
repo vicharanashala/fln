@@ -5,6 +5,9 @@ import { randomUUID } from 'crypto';
 import { dbStore, UserRole, Student, Question, Worksheet, LevelWorksheet } from '../db';
 import { getAuthUser } from '../auth';
 import { generateQuestionsForLevel } from '../levelGenerator';
+// Issue #601: route wires the concept-selection resolver (issue #600)
+// into the HTTP layer. The PDF render step is a separate issue (#602).
+import { resolveWorksheetContent } from '../services/worksheetContent';
 import * as levelsBackendClient from '../levelsBackendClient';
 import { ROOT_DIR } from '../config';
 import { recordStudentCycleLock } from '../paperLock';
@@ -351,6 +354,118 @@ export function registerWorksheetRoutes(app: express.Express) {
       res.json({ success: true, pdfUrl: result.pdfUrl });
     } catch (err: any) {
       console.error('Worksheet PDF generation failed:', err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  /**
+   * Issue #601: generate a worksheet from a teacher's concept selection.
+   *
+   * Pipeline (issue body):
+   *   1. Auth check + input validation (modeled on /generate-pdf above).
+   *   2. resolveWorksheetContent() (#600) -- reads QuestionTemplate rows,
+   *      filters assessmentMode='observed' (those go to the teacher
+      observation sheet, #618), picks deterministic SVG variants.
+   *   3. Persist a Worksheet row so the PDF pipeline (#602) can pick it
+   *      up by id -- same round-trip the existing /generate-pdf route
+   *      does with worksheetId from the body.
+   *
+   * PDF generation itself (#602: renderConceptWorksheet) is intentionally
+   * NOT inlined here -- the issue body explicitly defers it. The route
+   * returns the worksheet id so a follow-up caller (or the future UI
+   * from #605) can POST /generate-pdf with it. Once #602 lands,
+   * `renderConceptWorksheet` will be importable from paperGenerator;
+   * the body of this handler can then call it directly.
+   */
+  app.post('/api/worksheets/generate-concept-batch', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const conceptIds: unknown = req.body?.conceptIds;
+    const questionsPerConcept: unknown = req.body?.questionsPerConcept;
+    const className: string = (req.body?.className ?? '').trim();
+    const section: string = (req.body?.section ?? '').trim();
+    const paperSeed: string | undefined = req.body?.paperSeed;
+
+    if (!Array.isArray(conceptIds) || conceptIds.length === 0) {
+      return res.status(400).json({
+        error: 'conceptIds must be a non-empty array of concept ids (e.g. ["S1.1"]).',
+      });
+    }
+    if (typeof questionsPerConcept !== 'number' ||
+        !Number.isInteger(questionsPerConcept) ||
+        questionsPerConcept <= 0) {
+      return res.status(400).json({
+        error: 'questionsPerConcept must be a positive integer.',
+      });
+    }
+    if (!className || !section) {
+      return res.status(400).json({
+        error: 'className and section are required to scope the worksheet.',
+      });
+    }
+
+    try {
+      // Step 1: resolve the concept selection into concrete question instances.
+      const bundle = await resolveWorksheetContent(
+        conceptIds as string[],
+        questionsPerConcept,
+        paperSeed,
+      );
+
+      if (bundle.totalQuestions === 0) {
+        return res.status(400).json({
+          error: 'No authored QuestionTemplate rows found for the selected concepts. Author at least one template per concept first.',
+        });
+      }
+
+      // Step 2: persist a Worksheet row so the PDF pipeline (#602) can
+      // pick it up by id.
+      const questionsForWorksheet = bundle.concepts.flatMap(c =>
+        c.questions.map(q => ({
+          ...q.template,
+          svgAsset: q.artwork?.variantId ?? q.template.svgThemeIds?.[0],
+        })),
+      );
+      const worksheetId = `ws_concept_${randomUUID().slice(0, 8)}`;
+      const nowIso = new Date().toISOString();
+      await dbStore.addWorksheet({
+        id: worksheetId,
+        classId: `${className}__${section}`.replace(/\s+/g, '-'),
+        className,
+        section,
+        schoolId: (user as any).schoolId ?? '',
+        generatedByRole: user.role,
+        generatedByEmail: user.email,
+        cycle: 'Baseline',
+        date: nowIso.slice(0, 10),
+        questions: questionsForWorksheet,
+        studentIds: undefined,
+        locks: { locked: false, lockedByRole: null, lockedByEmail: null, timestamp: null },
+        timing: {
+          examDate: nowIso.slice(0, 10),
+          printWindowStart: nowIso,
+          printWindowEnd: nowIso,
+          examWindowStart: nowIso,
+          examWindowEnd: nowIso,
+          submissionWindowEnd: nowIso,
+        },
+      } as any);
+
+      // Step 3: PDF rendering deferred to #602. Return the worksheet id
+      // so a follow-up caller can POST /generate-pdf with it.
+      res.status(201).json({
+        success: true,
+        worksheetId,
+        totalQuestions: bundle.totalQuestions,
+        concepts: bundle.concepts.map(c => ({
+          conceptId: c.conceptId,
+          questionCount: c.questions.length,
+        })),
+        pdfUrl: undefined,
+      });
+    } catch (err: any) {
+      console.error('Concept-batch generation failed:', err);
       res.status(500).json({ success: false, error: err.message });
     }
   });
