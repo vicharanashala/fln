@@ -12,6 +12,10 @@ interface BulkDiagnosticWorkflowProps {
   // Test panel) without the standalone "Back to Dashboard" header — pass it
   // only when this is used as its own full-screen step.
   onBack?: () => void;
+  // Hide the inner "Bulk Diagnostic Generator" h1 + "Back to Dashboard"
+  // button so the workflow can sit inside another card without a duplicate
+  // header. Defaults to false so existing standalone mounts still show it.
+  embedded?: boolean;
 }
 
 interface JobStatus {
@@ -25,7 +29,7 @@ interface JobStatus {
   downloadUrl: string | null;
 }
 
-export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ user, token, userRole, onBack }) => {
+export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ user, token, userRole, onBack, embedded = false }) => {
   const [classLevel, setClassLevel] = useState<number>(2); // Default to Class 2
   const [totalStudents, setTotalStudents] = useState<number | ''>(30); // Default to 30 students
   const [enrolledStudents, setEnrolledStudents] = useState<Array<{ name: string; studentId: string }>>([]);
@@ -42,7 +46,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
   useEffect(() => {
     const fetchStudentsForClass = async () => {
       try {
-        const res = await apiFetch('/api/students', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await apiFetch('/api/students?all=1', { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) {
           const stdData = await res.json();
           if (Array.isArray(stdData)) {
@@ -60,11 +64,18 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
                       });
             const mapped = filtered.map(s => ({ name: s.name, studentId: s.id }));
             setEnrolledStudents(mapped);
-            if (mapped.length > 0) {
-              setTotalStudents(mapped.length);
-            } else {
-              setTotalStudents('');
-            }
+            // Pre-fill the Number of Students input ONLY if the teacher
+            // hasn't already typed a value (and the default 30 hasn't been
+            // touched). After that, the teacher's typed value is the source
+            // of truth — we never overwrite it. Previously this block did
+            // `setTotalStudents(mapped.length)` unconditionally, which
+            // silently overwrote the teacher's typed count on every class
+            // switch and caused "Generate & Print (9 Sets)" to render 20
+            // sheets because the POST payload used enrolledStudents.length.
+            setTotalStudents(prev => {
+              const stillEmpty = prev === '' || prev === 30;
+              return stillEmpty ? mapped.length : prev;
+            });
           }
         }
       } catch (err) {
@@ -119,9 +130,15 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
         return;
       }
 
+      // The user-typed `totalStudents` (the Number of Students input) is the
+      // source of truth for how many paper sets to print — NOT
+      // enrolledStudents.length. The input exists so a teacher can print
+      // blank sets, demo runs, or a partial roster without enrolling first.
+      // Sending enrolledStudents.length here caused the backend to render
+      // 20 sheets even when the input showed 9 and the button said "9 Sets".
       const payload: any = {
         classNumber: classLevel,
-        count: enrolledStudents.length,
+        count: count,
         students: enrolledStudents
       };
 
@@ -161,24 +178,26 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in" id="bulk-diagnostic-workflow">
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700 pb-4">
-        <div>
-          <h1 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">
-            Bulk Diagnostic Generator
-          </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Specify the class level and the number of students to generate and print baseline diagnostic papers
-          </p>
+      {!embedded && (
+        <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700 pb-4">
+          <div>
+            <h1 className="text-2xl font-display font-semibold text-zinc-900 dark:text-white tracking-tight">
+              Bulk Diagnostic Generator
+            </h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+              Specify the class level and the number of students to generate and print baseline diagnostic papers
+            </p>
+          </div>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 font-medium text-sm border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+            >
+              Back to Dashboard
+            </button>
+          )}
         </div>
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 font-medium text-sm border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-          >
-            Back to Dashboard
-          </button>
-        )}
-      </div>
+      )}
 
       {error && (
         <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3 text-sm text-red-700 dark:text-red-300">
