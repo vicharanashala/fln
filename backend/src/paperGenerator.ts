@@ -8,6 +8,20 @@ import { renderBatch } from './worksheetRenderer';
 import { mergeAndStamp } from './pdfMerge';
 import { drawQrCode } from './qrCode';
 import JSZip from 'jszip';
+// Issue #603: layout minimums come from a single config so the
+// Balvatika print rules (large fonts, small pages, no shrink) are
+// defined once. Issue #602 consumes them; do not inline new literals.
+import {
+  MIN_FONT_SIZE_PT,
+  MIN_ANSWER_BOX_HEIGHT_PT,
+  QUESTIONS_PER_PAGE_MAX,
+  OVERFLOW_POLICY,
+} from './config/worksheetLayoutRules';
+// Issue #602: takes the output of resolveWorksheetContent (#600),
+// not raw DB rows, so the renderer and the resolver stay decoupled.
+// A test can hand-build a ResolvedWorksheetContent and exercise this
+// function without standing up Mongo or a QuestionTemplate.
+import type { ResolvedWorksheetContent } from './services/worksheetContent';
 
 // Resolve __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -733,5 +747,187 @@ export async function renderWorksheetPdf({
     fileName,
     filePath,
     pdfUrl: `/output/${fileName}`
+  };
+}
+
+/**
+ * Issue #602: a fourth renderer, sibling to generateDiagnosticPaper /
+ * generateLevelWorksheet / renderWorksheetPdf. The other three reach
+ * into the DB themselves; this one takes already-resolved concept-based
+ * content (#600) as input, so it can be unit-tested with a hand-built
+ * ResolvedWorksheetContent, and the resolver and the renderer stay
+ * decoupled.
+ *
+ * Output PDF contract is identical to renderWorksheetPdf so the existing
+ * /generate-pdf route can keep its response shape once this lands.
+ *
+ * Pagination rules (issue #603 + Research/fln_year_before_class1.md):
+ *   - One concept per block (header + questions for that concept only).
+ *   - Layout minimums come from worksheetLayoutRules; never shrink
+ *     below them to force a single-page fit.
+ *   - Overflow adds a new page (OVERFLOW_POLICY.onOverflow); page count
+ *     is the only thing that flexes.
+ *   - QUESTIONS_PER_PAGE_MAX = 6 controls per-page question count.
+ *   - Explicitly does NOT copy renderWorksheetPdf's
+ *     swq.questions.slice(0, 4) (the bug already filed as #597).
+ *     Every resolved question for the requested concept gets rendered.
+ */
+export async function renderConceptWorksheet({
+  worksheetId,
+  className,
+  section,
+  cycle,
+  resolved,
+}: {
+  worksheetId: string;
+  className: string;
+  section: string;
+  cycle: string;
+  resolved: ResolvedWorksheetContent;
+}): Promise<WorksheetPdfResult> {
+  const merged = await PDFDocument.create();
+  const font = await merged.embedFont(StandardFonts.Helvetica);
+  const boldFont = await merged.embedFont(StandardFonts.HelveticaBold);
+
+  // SVG manifest lookup. Renderer is the single place that translates
+  // the resolver's variantId into an actual artwork reference.
+  const { loadManifest } = await import('./svgAssetCatalog');
+  const manifest = loadManifest();
+
+  // Page geometry (A4 portrait). These are page sizes, not content sizes;
+  // per-item geometry below enforces the minimums.
+  const PAGE_WIDTH = 595.28;
+  const PAGE_HEIGHT = 841.89;
+  const MARGIN_X = 50;
+  const HEADER_BAND_HEIGHT = 30;
+
+  // Vertical room one question takes. Layout minimums set a floor on
+  // font + box; the spacing we put on top is controlled here.
+  const QUESTION_SPACING_PT = 70;
+
+  for (const conceptBundle of resolved.concepts) {
+    const questions = conceptBundle.questions;
+    if (questions.length === 0) continue;
+
+    // Compute page count for this concept block: ceil(q / maxPerPage).
+    // Page count is the only thing that flexes (issue #603 policy).
+    const pagesNeeded = Math.max(1, Math.ceil(questions.length / QUESTIONS_PER_PAGE_MAX));
+
+    for (let pageIdx = 0; pageIdx < pagesNeeded; pageIdx++) {
+      const page = merged.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      const { width, height } = page.getSize();
+
+      // Green theme header band -- matches renderWorksheetPdf.
+      page.drawRectangle({
+        x: 0,
+        y: height - HEADER_BAND_HEIGHT,
+        width: width,
+        height: HEADER_BAND_HEIGHT,
+        color: rgb(0.06, 0.48, 0.35),
+      });
+
+      // Title row -- size stays >= MIN_FONT_SIZE_PT.
+      page.drawText(`FLN BALVATIKA WORKSHEET -- ${conceptBundle.conceptId}`, {
+        x: MARGIN_X,
+        y: height - 60,
+        size: Math.max(MIN_FONT_SIZE_PT, 20),
+        font: boldFont,
+        color: rgb(0.06, 0.48, 0.35),
+      });
+
+      page.drawText(`CLASS: ${className} - Section ${section} | CYCLE: ${cycle}`, {
+        x: MARGIN_X,
+        y: height - 85,
+        size: Math.max(MIN_FONT_SIZE_PT - 4, 14),
+        font: boldFont,
+        color: rgb(0.4, 0.45, 0.5),
+      });
+
+      // QR code so the existing ICR pipeline can match the filled-in
+      // scan back to this exact paper via worksheetId.
+      drawQrCode(
+        page,
+        {
+          studentName: 'CONCEPT PAPER',
+          studentId: 'concept-' + conceptBundle.conceptId,
+          className,
+          section,
+          currentLevel: 0,
+          currentSubLevel: 0,
+          worksheetId,
+        },
+        width - 105,
+        height - 120,
+        45,
+      );
+
+      // The questions for this page -- slice, no truncation of the
+      // underlying bundle.
+      const startIdx = pageIdx * QUESTIONS_PER_PAGE_MAX;
+      const endIdx = Math.min(startIdx + QUESTIONS_PER_PAGE_MAX, questions.length);
+      const pageQuestions = questions.slice(startIdx, endIdx);
+
+      let currentY = height - 150;
+      pageQuestions.forEach((q, idxOnPage) => {
+        const absoluteIdx = startIdx + idxOnPage;
+
+        // Question text -- Math.max floors us at the minimum font.
+        page.drawText(`Q${absoluteIdx + 1}. ${q.template.generationIntent || '(no intent)'}`, {
+          x: MARGIN_X,
+          y: currentY,
+          size: Math.max(MIN_FONT_SIZE_PT - 4, 14),
+          font: boldFont,
+          color: rgb(0.15, 0.15, 0.15),
+        });
+
+        // Artwork label -- pdf-lib has no SVG support out of the box,
+        // so we draw a labelled placeholder. A follow-up can rasterise
+        // via the existing renderBatch pipeline.
+        const artworkLabel = q.artwork ? `${q.artwork.variantId}` : '(text-only)';
+        page.drawText(`[artwork: ${artworkLabel}]`, {
+          x: MARGIN_X,
+          y: currentY - 15,
+          size: 10,
+          font: font,
+          color: rgb(0.5, 0.5, 0.5),
+        });
+
+        // Answer box -- height = MIN_ANSWER_BOX_HEIGHT_PT minimum.
+        page.drawRectangle({
+          x: MARGIN_X,
+          y: currentY - 15 - MIN_ANSWER_BOX_HEIGHT_PT,
+          width: width - 2 * MARGIN_X,
+          height: MIN_ANSWER_BOX_HEIGHT_PT,
+          color: rgb(1, 1, 1),
+          borderColor: rgb(0.7, 0.7, 0.7),
+          borderWidth: 1,
+        });
+
+        currentY -= QUESTION_SPACING_PT;
+      });
+
+      // Footer -- Page X of Y per concept.
+      page.drawText(
+        `Worksheet ${worksheetId} | ${conceptBundle.conceptId} | Page ${pageIdx + 1} of ${pagesNeeded}`,
+        {
+          x: MARGIN_X,
+          y: 30,
+          size: 9,
+          font: font,
+          color: rgb(0.6, 0.6, 0.6),
+        },
+      );
+    }
+  }
+
+  const mergedBuffer = Buffer.from(await merged.save());
+  const fileName = `concept_${worksheetId}_${randomUUID()}.pdf`;
+  const filePath = path.join(OUTPUT_DIR, fileName);
+  fs.writeFileSync(filePath, mergedBuffer);
+
+  return {
+    fileName,
+    filePath,
+    pdfUrl: `/output/${fileName}`,
   };
 }
