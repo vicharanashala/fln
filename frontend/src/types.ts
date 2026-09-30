@@ -393,6 +393,18 @@ export interface QuestionTemplate {
   levelName: string;
   skills: string[];
   subskills: string[];
+  /**
+   * Issue #478 (D1.3 Q-Matrix): representation tag.
+   * `symbolic` (numbers only), `visual` (pictures the child counts/compares),
+   * `word_problem` (sentence context). null = author did not tag.
+   */
+  representation: 'symbolic' | 'visual' | 'word_problem' | null;
+  /**
+   * Issue #478 (D1.3 Q-Matrix): context tag.
+   * `direct` (a clean math exercise) or `real_world` (wrapped in a story).
+   * null = author did not tag.
+   */
+  context: 'direct' | 'real_world' | null;
   /** What the question should make the child do. An instruction, not a finished question. */
   generationIntent: string;
   questionFamily: 'counting' | 'operation';

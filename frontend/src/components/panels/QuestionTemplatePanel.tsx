@@ -52,6 +52,10 @@ export const QuestionTemplatePanel: React.FC = () => {
   const [level, setLevel] = useState<number | ''>('');
   const [skills, setSkills] = useState<string[]>([]);
   const [subskills, setSubskills] = useState<string[]>([]);
+  // Issue #478 (D1.3 Q-Matrix): representation/context tags. Both optional.
+  // Null means "author did not tag this row".
+  const [representation, setRepresentation] = useState<'symbolic' | 'visual' | 'word_problem' | null>(null);
+  const [context, setContext] = useState<'direct' | 'real_world' | null>(null);
   const [generationIntent, setGenerationIntent] = useState('');
   const [questionFamily, setQuestionFamily] = useState<'counting' | 'operation'>('operation');
   const [svgThemeIds, setSvgThemeIds] = useState<string[]>([]);
@@ -199,6 +203,9 @@ export const QuestionTemplatePanel: React.FC = () => {
     setLevel('');
     setSkills([]);
     setSubskills([]);
+    // Issue #478: clear representation/context too.
+    setRepresentation(null);
+    setContext(null);
     setGenerationIntent('');
     setQuestionFamily('operation');
     setSvgThemeIds([]);
@@ -214,6 +221,9 @@ export const QuestionTemplatePanel: React.FC = () => {
     setLevel(t.levelNumber);
     setSkills(t.skills);
     setSubskills(t.subskills);
+    // Issue #478: hydrate representation/context from the stored row.
+    setRepresentation(t.representation ?? null);
+    setContext(t.context ?? null);
     setGenerationIntent(t.generationIntent ?? '');
     setQuestionFamily(t.questionFamily ?? 'operation');
     setSvgThemeIds(t.svgThemeIds ?? []);
@@ -256,6 +266,11 @@ export const QuestionTemplatePanel: React.FC = () => {
         conceptId: selectedLevel.sCode,
         skills,
         subskills,
+        // Issue #478: include the optional tags. null is sent explicitly
+        // (not undefined) so the backend serializer stores the field
+        // even on the legacy "author did not tag" rows.
+        representation,
+        context,
         generationIntent: generationIntent.trim(),
         questionFamily,
         svgThemeIds,
@@ -560,6 +575,56 @@ export const QuestionTemplatePanel: React.FC = () => {
             )}
           </div>
 
+          {/* Step 3.5 — Issue #478 (D1.3 Q-Matrix): representation/context tags. */}
+          <div>
+            <label className={labelCls}>Step 3.5 — Representation &amp; context (optional)</label>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              What <em>kind</em> of question this is, and how directly it maps to the skill.
+              Both optional; leave both unset when the row pre-dates this field.
+            </p>
+            <div className="mt-2 space-y-3">
+              <div>
+                <div className={labelCls}>Representation</div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {[
+                    { v: 'symbolic',     label: 'Symbolic' },
+                    { v: 'visual',       label: 'Visual' },
+                    { v: 'word_problem', label: 'Word problem' },
+                  ].map(opt => (
+                    <button key={opt.v} type="button"
+                      onClick={() => { setFormError(null); setRepresentation(representation === opt.v ? null : opt.v as typeof representation); }}
+                      aria-pressed={representation === opt.v}
+                      className={chipCls(representation === opt.v)}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Symbolic: numbers only. Visual: pictures the child counts or compares. Word problem: sentence context.
+                </p>
+              </div>
+              <div>
+                <div className={labelCls}>Context</div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {[
+                    { v: 'direct',     label: 'Direct' },
+                    { v: 'real_world', label: 'Real world' },
+                  ].map(opt => (
+                    <button key={opt.v} type="button"
+                      onClick={() => { setFormError(null); setContext(context === opt.v ? null : opt.v as typeof context); }}
+                      aria-pressed={context === opt.v}
+                      className={chipCls(context === opt.v)}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Direct: a clean math exercise. Real world: same math wrapped in a story or setting.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Step 4 — what the question should do */}
           <div>
             <label htmlFor="qt-intent" className={labelCls}>Step 4 — What the question should do (required)</label>
@@ -826,6 +891,7 @@ export const QuestionTemplatePanel: React.FC = () => {
                   <th className="py-2 pr-3 font-medium">What it asks for</th>
                   <th className="py-2 pr-3 font-medium">Skills</th>
                   <th className="py-2 pr-3 font-medium">Tags</th>
+                  <th className="py-2 pr-3 font-medium">Rep / Ctx</th>
                   <th className="py-2 pr-3 font-medium">Created by</th>
                   <th className="py-2 font-medium">Actions</th>
                 </tr>
@@ -843,6 +909,10 @@ export const QuestionTemplatePanel: React.FC = () => {
                     </td>
                     <td className="py-3 pr-3 text-zinc-600 dark:text-zinc-300">{t.skills.join(', ')}</td>
                     <td className="py-3 pr-3 text-zinc-500 dark:text-zinc-400">{t.tags.length ? t.tags.join(', ') : '—'}</td>
+                    <td className="py-3 pr-3 text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+                      {t.representation ? <span className="mr-1 rounded bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 text-indigo-700 dark:text-indigo-200">{t.representation}</span> : <span className="mr-1 text-zinc-400">—</span>}
+                      {t.context ? <span className="rounded bg-teal-50 dark:bg-teal-900/30 px-1.5 py-0.5 text-teal-700 dark:text-teal-200">{t.context}</span> : null}
+                    </td>
                     <td className="py-3 pr-3 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
                       {t.createdByEmail}
                       {t.source === 'csv' && <div className="text-xs">via upload</div>}
