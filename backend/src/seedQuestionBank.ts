@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { MongoClient } from 'mongodb';
 import { questionBankId } from './db';
+import { escapeStraySvgText } from './utils/svgEscape';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const QUESTION_BANK_PATH = path.join(__dirname, '../../data/questionBank.json');
@@ -105,7 +106,7 @@ async function seed() {
           questionNumber: Number(q.questionNumber),
           questionText: q.questionText,
           answer: q.answer,
-          svgHtml: q.svgHtml,
+          svgHtml: escapeStraySvgText(q.svgHtml),
         },
         $setOnInsert: {
           questionId,

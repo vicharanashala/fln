@@ -13,6 +13,7 @@ import { resolvePrerequisites, describeConcept, directPrerequisites } from '../c
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
 import { tokenizeAadhaar, formatAadhaarMask, AadhaarVaultTokenizeResult } from '../aadhaarVault';
+import { generateStudentId } from '../idGenerator';
 
 // ─── Response hygiene (Phase 2 hardening) ───────────────────────────────────
 // Vault references are internal-only: MongoDB and the internal Student model
@@ -453,7 +454,7 @@ export function registerStudentRoutes(app: express.Express) {
     }
 
     const newStudent: Student = {
-      id: 'STD_' + Math.floor(10000 + Math.random() * 90000),
+      id: generateStudentId(),
       displayId,
       name: String(name).trim(),
       age,
@@ -712,12 +713,12 @@ export function registerStudentRoutes(app: express.Express) {
       const startLevel = (classNumber - 1) * 12 + 1;
       questions = [];
       for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-        const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 93), 0);
+        const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 108), 0);
         lvlQuestions.forEach(q => {
           questions.push({
             ...q,
             question_id: `DIAG_${lvl}_${q.question_id}`,
-            source_level: Math.min(lvl, 93)
+            source_level: Math.min(lvl, 108)
           });
         });
       }

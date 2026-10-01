@@ -98,27 +98,22 @@ For my onboarding contribution, I built and integrated the **Pre-OCR Scan Qualit
 ### What I Built
 
 #### 1. Core Scan Quality Engine (`backend/src/scanQuality.ts`)
-A standalone, zero-heavy-dependency quality analyzer that inspects raw image buffers:
+A standalone, zero-heavy-dependency quality analyzer that inspects raw image headers:
 - **Header Resolution Check:** Inspects PNG `IHDR` and JPEG `SOF0`/`SOF2` segment markers to extract exact pixel dimensions without decompressing the full image. Enforces a strict minimum of $600\times 600\text{px}$.
-- **Brightness Analysis:** Samples luminance across the buffer (flags $<45$ as underexposed, $>235$ as overexposed).
-- **Contrast Analysis:** Calculates sample standard deviation (flags $<15$ as low contrast).
-- **Blur & Sharpness Score:** Computes variance of adjacent sample differences (flags $<8$ as blurry/out-of-focus).
 - **Orientation Check:** Detects landscape aspect ratios ($w > 1.25h$) for portrait worksheets.
 - **Tri-State Status:** Returns `pass`, `warning` (non-fatal, overrideable), or `reject` (hard failure, cannot override) along with plain-language reason strings and metrics.
+*(Note: Pixel-level brightness, contrast, and blur metrics require uncompressed pixel decoding and will be introduced in a follow-up task following dependency review).*
 
 ```typescript
 export type ScanQualityResult = {
   status: 'pass' | 'warning' | 'reject';
   checks: {
     resolution: 'pass' | 'fail';
-    brightness: 'pass' | 'warning';
-    contrast: 'pass' | 'warning';
-    blur: 'pass' | 'warning';
     orientation: 'pass' | 'warning';
   };
   reasons: string[];
   canOverride: boolean;
-  metrics: { width: number; height: number; brightnessScore: number; contrastScore: number; blurScore: number };
+  metrics: { width: number; height: number };
 };
 ```
 
@@ -131,23 +126,23 @@ export type ScanQualityResult = {
 
 #### 3. Interactive Quality Feedback UI (`frontend/src/components/IcrTwoStageScan.tsx`)
 - **Pre-Flight Scan Quality Card:** Displays immediate feedback as soon as a paper is photographed or uploaded.
-- **Metric Badges:** Shows status tags for Resolution, Brightness, Contrast, Blur, and Orientation.
-- **Clear Guidance:** Explains detected flaws (e.g. *"Image is too dark"*, *"Image appears blurry or out of focus"*).
+- **Active Metric Badges:** Shows status tags for Resolution and Orientation (no greyed-out or misleading placeholders).
+- **Clear Guidance:** Explains detected flaws (e.g. low resolution or sideways scan).
 - **Override Action:** Provides a `"Continue Anyway (Override)"` button for non-fatal warnings so teachers remain in control, while blocking unreadable corrupt files.
 
 #### 4. Automated Boundary Test Suite (`backend/src/scanQuality.test.ts`)
 Authored 8 automated boundary unit tests covering:
 1. Clear valid image $\rightarrow$ `pass`.
 2. Low resolution ($400\times 400\text{px}$) $\rightarrow$ `reject` (`canOverride: false`).
-3. Dark / underexposed image $\rightarrow$ `warning` (`canOverride: true`).
-4. Rotated landscape image $\rightarrow$ `warning`.
-5. Corrupt / empty file $\rightarrow$ `reject`.
+3. Rotated landscape image $\rightarrow$ `warning` (`canOverride: true`).
+4. Corrupt / empty file ($<5\text{KB}$) $\rightarrow$ `reject`.
+5. Exceeding 25MB limit $\rightarrow$ `reject`.
 6. Unsupported MIME type $\rightarrow$ `reject`.
-7. Overexposed bright image $\rightarrow$ `warning`.
-8. Low-contrast image $\rightarrow$ `warning`.
+7. JPEG SOF0/SOF2 header parsing $\rightarrow$ `pass`.
+8. Boundary minimum resolution ($600\times 600\text{px}$) $\rightarrow$ `pass`.
 
 ### Verification & Test Results
-- **Unit Tests:** Ran `npx tsx backend/src/scanQuality.test.ts` — all 8 boundary tests pass 100% cleanly.
+- **Unit Tests:** Ran `npx tsx src/scanQuality.test.ts` — all 8 boundary tests pass 100% cleanly.
 - **TypeScript & Linting:** Verified `npm run lint` across both `@fln/frontend` and `@fln/backend` with zero compilation errors.
 - **Build Verification:** Tested `npm run build` for both Vite frontend and backend esbuild bundles.
 

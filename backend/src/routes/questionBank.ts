@@ -89,7 +89,7 @@ export function registerQuestionBankRoutes(app: express.Express) {
         const target = await resolveTarget(Number(mappedLevel));
         if (!target) {
           return res.status(400).json({
-            error: `Level ${mappedLevel} is not a curriculum level. Valid levels are 1-93; ` +
+            error: `Level ${mappedLevel} is not a curriculum level. Valid levels are 1-108; ` +
                    `if the collection is empty run "npm run seed:levels".`,
           });
         }
@@ -131,7 +131,7 @@ export function registerQuestionBankRoutes(app: express.Express) {
       const patch: any = { reviewStatus, reviewedBy: user.email };
       if (reviewStatus === 'mapped') {
         const target = await resolveTarget(Number(mappedLevel));
-        if (!target) return res.status(400).json({ error: `Level ${mappedLevel} is not a curriculum level (1-93).` });
+        if (!target) return res.status(400).json({ error: `Level ${mappedLevel} is not a curriculum level (1-108).` });
         patch.mappedLevel = target.levelNumber;
         patch.conceptId = target.conceptId;
       } else {
@@ -195,7 +195,7 @@ export function registerQuestionBankRoutes(app: express.Express) {
         return res.json({ legacyId, mappedLevel: null });
       }
       const target = await resolveTarget(Number(mappedLevel));
-      if (!target) return res.status(400).json({ error: `Level ${mappedLevel} is not a curriculum level (1-93).` });
+      if (!target) return res.status(400).json({ error: `Level ${mappedLevel} is not a curriculum level (1-108).` });
 
       // One legacy level cannot feed two 93-space levels: the seeder aborts on
       // exactly this collision rather than picking a winner, so refuse it here

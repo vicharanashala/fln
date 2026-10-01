@@ -22,33 +22,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { questionBankId } from './db';
-
-// The real, known tag vocabulary this corpus actually uses (verified by
-// scanning every row: svg, text, rect, line, circle, path, polygon,
-// polyline, image -- plus a few harmless extras in case a rarer question
-// uses them). Anything that looks like `<`/`>` OUTSIDE these tags is
-// literal question text that was never escaped when it was authored (e.g.
-// "Insert the correct symbol ( >  <  = )"), not markup -- 105 of the
-// 1,202 rows have this. Escaping it turns invalid XML into valid XML
-// without changing what a browser already renders for the other 1,097,
-// verified unchanged byte-for-byte by this exact function against every
-// row in the corpus before this was wired in.
-const KNOWN_TAG_RE = /<\/?(?:svg|text|tspan|rect|line|circle|g|path|polygon|polyline|ellipse|defs|style|image)\b[^<>]*\/?>/g;
-
-function escapeStraySvgText(svg: string): string {
-  const tags = svg.match(KNOWN_TAG_RE) ?? [];
-  const parts = svg.split(KNOWN_TAG_RE);
-  let out = '';
-  parts.forEach((part, i) => {
-    out += part
-      .replace(/&/g, '&amp;')
-      .replace(/&amp;(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/g, '&$1;') // don't double-escape real entities
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    if (i < tags.length) out += tags[i];
-  });
-  return out;
-}
+import { escapeStraySvgText } from './utils/svgEscape';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = path.resolve(__dirname, '../../data/questionBank.json');

@@ -200,7 +200,7 @@ These are levels where both graphs agree an edge exists but disagree on whether 
 | `L9` | `S2.2` | Seriation (3 Objects) | S2.1: docs=requires/code=often-precedes |
 | `L12` | `S2.5` | Counting 6-10 | S2.4: docs=requires/code=often-precedes |
 | `L16` | `S2.9` | Conceptual Subitizing | S1.7: docs=requires/code=supports |
-| `L21` | `S3.4` | Seriation with Transitivity | S2.2: docs=requires/code=supports |
+| `L21` | `S3.4` | ~~Seriation with Transitivity~~ Seriation (Up to 5 Objects) — re-scoped 2026-09-19 | S2.2: **RESOLVED 2026-09-19** — `skillProgressionMap.ts:528` and `competencyPrerequisites.ts` both already register this as `required_for_procedure`/hard prerequisite. This row's "code=supports" was stale by the time it was checked; no code change was needed, only this doc correction. |
 | `L22` | `S3.5` | Flexible Classification | S2.3: docs=requires/code=supports |
 | `L24` | `S3.7` | Comparative Vocabulary (Formalizing) | S2.8: docs=requires/code=supports |
 | `L25` | `S3.8` | Patterns (2-Item Indep & 3-Item Intro) | S2.7: docs=requires/code=often-precedes |

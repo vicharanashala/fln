@@ -1,0 +1,194 @@
+{
+  "note": "Committed ratchet baseline for issue #399 (see scripts/check-duplicate-questions.ts). Lists generators with a known, pre-existing 'bug'-severity finding, tracked for fixing under issue #398. CI (.github/workflows/*duplicate-question*) only fails a PR on a finding NOT listed here. When a listed generator is fixed, its entry stops reproducing and the script says so — remove it by hand, or regenerate this whole file from a clean run with: npm run check:duplicate-questions -- --write-baseline",
+  "generatedAt": "2026-09-16T14:45:21.301Z",
+  "entries": [
+    {
+      "type": "abacus-tens-ones",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "addition-sticks-vertical",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "angle-compare-circle",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "angle-identical-match",
+      "kind": "hang"
+    },
+    {
+      "type": "area-perimeter-both-visual",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "area-shapes-find",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "clock-clock-match",
+      "kind": "hang"
+    },
+    {
+      "type": "compare-equal-match",
+      "kind": "hang"
+    },
+    {
+      "type": "compare-hto-picture",
+      "kind": "hang"
+    },
+    {
+      "type": "comparison-grid-symbol",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "count-and-tally",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "count-write-match",
+      "kind": "hang"
+    },
+    {
+      "type": "decimal-picture-match",
+      "kind": "hang"
+    },
+    {
+      "type": "decimal-place-value-fill",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "decimal-shade-strip",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "decimal-tenths-hundredths-fill",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "division-picture-match-interactive",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "division-vertical-remainder",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "fraction-colour-target",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "fraction-complete-whole",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "fraction-identify-visual",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "frequency-tally-table",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "money-match-object-price",
+      "kind": "hang"
+    },
+    {
+      "type": "multiplication-pattern-fill",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "number-grid-missing",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "number-name-match",
+      "kind": "hang"
+    },
+    {
+      "type": "number-sequential-grid-fill",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "number-trace-blocks",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "number-write-columns",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "ordering-box-grid",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "ordering-caterpillar-3digit",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "ordering-caterpillar",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "ordering-mixed-circle",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "perimeter-shapes-find",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "place-value-4digit",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "place-value-hto",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "repeated-addition-only",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "size-rank-boxes",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "skip-count-arrows-boxes",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "skip-count-table-rows",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "smallest-largest-3digit",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "subtraction-vertical-boxed-grid",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "tally-number-match",
+      "kind": "hang"
+    },
+    {
+      "type": "tens-ones-mixed",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "tens-units-match",
+      "kind": "hang"
+    },
+    {
+      "type": "tens-units-table",
+      "kind": "natural-duplicate"
+    },
+    {
+      "type": "triple-box-blank-groups",
+      "kind": "natural-duplicate"
+    }
+  ]
+}

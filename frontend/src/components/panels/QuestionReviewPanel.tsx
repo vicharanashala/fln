@@ -162,7 +162,7 @@ export const QuestionReviewPanel: React.FC = () => {
               <b className="text-lg">{progress.retired}</b> retired
             </div>
             <div className="px-3 py-2 rounded-lg border bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800">
-              <b className="text-lg">{progress.targetLevelsCovered.length}</b> / 93 levels have content
+              <b className="text-lg">{progress.targetLevelsCovered.length}</b> / {levels.length} levels have content
             </div>
           </div>
         )}

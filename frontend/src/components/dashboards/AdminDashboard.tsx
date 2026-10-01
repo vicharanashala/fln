@@ -6,15 +6,21 @@ import { apiFetch } from '../../services/apiClient';
 import { User, UserRole, Student, School,DashboardProps } from '../../types';
 import { STATE_NAMES, DISTRICT_NAMES} from '../RoleDashboards';
 import {RegionalAnalyticsView} from '../dashboards/RegionalAnalyticsView'
+import { DashboardSkeleton } from '../ui/DashboardSkeleton';
+import { RosterSkeleton } from '../ui/RosterSkeleton';
+import { EmptyStateCard } from '../ui/EmptyStateCard';
+import { School as SchoolIcon, UsersRound } from 'lucide-react';
 
 export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'access' | 'logbook'>('overview');
   const [schools, setSchools] = useState<School[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
+      setDashboardLoading(true);
       try {
         const schRes = await apiFetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
         const schData = await schRes.json();
@@ -29,6 +35,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         if (Array.isArray(uData)) setAllUsers(uData);
       } catch (err) {
         console.error(err);
+      } finally {
+        setDashboardLoading(false);
       }
     };
     fetchData();
@@ -165,7 +173,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         </div>
       </div>
 
-      {activeTab === 'overview' && (
+      {activeTab === 'overview' && (dashboardLoading ? (
+        <DashboardSkeleton metricCount={4} />
+      ) : (
         <>
           {/* Pipeline tracker (Conducted -> Scanned -> Evaluated -> Certified) */}
           <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4">
@@ -196,7 +206,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               <h3 className="text-base font-display font-semibold text-zinc-900 dark:text-white">Regional Learning Gaps & Lagging Alerts</h3>
               <div className="space-y-3">
                 {schoolPerformance.length === 0 ? (
-                  <p className="text-zinc-400 dark:text-zinc-500 text-xs text-center py-6 font-mono">No preseeded schools found in this regional scope.</p>
+                  <EmptyStateCard
+                    illustration={<SchoolIcon className="h-5 w-5" />}
+                    title="No schools in this region"
+                    description="No schools match your current administrative scope."
+                  />
                 ) : (
                   schoolPerformance.map(perf => (
                     <div 
@@ -233,7 +247,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
               <h3 className="text-base font-display font-semibold text-zinc-900 dark:text-white">Volunteer Assignments</h3>
               <div className="space-y-3">
                 {scopedVolunteers.length === 0 ? (
-                  <p className="text-zinc-400 dark:text-zinc-500 text-xs text-center py-6 font-mono">No active volunteers deployed in this regional node.</p>
+                  <EmptyStateCard
+                    illustration={<UsersRound className="h-5 w-5" />}
+                    title="No volunteers assigned"
+                    description="No active volunteers are assigned within this regional scope."
+                  />
                 ) : (
                   scopedVolunteers.map(vol => (
                     <div key={vol.email} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg flex justify-between items-center bg-zinc-50 dark:bg-zinc-800">
@@ -253,7 +271,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             </div>
           </div>
         </>
-      )}
+      ))}
 
       {activeTab === 'analytics' && (
         <RegionalAnalyticsView token={token} user={user} />
@@ -263,7 +281,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         <LogbookView token={token} user={user} />
       )}
 
-      {activeTab === 'access' && (
+      {activeTab === 'access' && (dashboardLoading ? (
+        <RosterSkeleton columns={2} rows={5} showToolbar={false} />
+      ) : (
         <div className="bg-white dark:bg-slate-900 p-6 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-6">
           <div>
             <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">School & Teacher Access Control</h3>
@@ -275,7 +295,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             <div className="space-y-3">
               <h4 className="font-display font-bold text-zinc-800 dark:text-zinc-100 text-xs uppercase font-mono border-b border-zinc-100 dark:border-zinc-800 pb-2">Schools Lock Status</h4>
               {scopedSchools.length === 0 ? (
-                <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono">No schools found in scope.</p>
+                <EmptyStateCard
+                  illustration={<SchoolIcon className="h-5 w-5" />}
+                  title="No schools in scope"
+                  description="No schools match your current administrative scope."
+                />
               ) : (
                 scopedSchools.map(sch => {
                   const isLocked = sch.isAccessLocked;
@@ -349,7 +373,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             <div className="space-y-3">
               <h4 className="font-display font-bold text-zinc-800 dark:text-zinc-100 text-xs uppercase font-mono border-b border-zinc-100 dark:border-zinc-800 pb-2">Teacher Defaulters & Bans</h4>
               {allUsers.filter(u => u.role === UserRole.TEACHER && (user.role === UserRole.SUPERADMIN || (u.schoolId && scopedSchoolIds.includes(u.schoolId)))).length === 0 ? (
-                <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono">No teachers registered in this scope.</p>
+                <EmptyStateCard
+                  illustration={<UsersRound className="h-5 w-5" />}
+                  title="No teachers in scope"
+                  description="No teacher accounts match your current administrative scope."
+                />
               ) : (
                 allUsers.filter(u => u.role === UserRole.TEACHER && (user.role === UserRole.SUPERADMIN || (u.schoolId && scopedSchoolIds.includes(u.schoolId)))).map(tch => {
                   const delays = tch.delayedAttemptsCount || 0;
@@ -416,7 +444,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ user, token }) => {
             </div>
           </div>
         </div>
-      )}
+      ))}
     </div>
   );
 };

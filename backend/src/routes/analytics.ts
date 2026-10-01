@@ -8,9 +8,9 @@ export function registerAnalyticsRoutes(app: express.Express) {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     // Query params for dynamic filtering
-    const stateCodeParam = (req.query.stateCode as string) || user.stateCode || 'PB';
-    const districtCodeParam = (req.query.districtCode as string) || user.districtCode || 'LDH';
-    const blockCodeParam = (req.query.blockCode as string) || user.blockCode || 'LDH-01';
+    const stateCodeParam = (req.query.stateCode as string) || user.stateCode || '';
+    const districtCodeParam = (req.query.districtCode as string) || user.districtCode || '';
+    const blockCodeParam = (req.query.blockCode as string) || user.blockCode || '';
 
     // Calculate dynamic scopes using fast aggregation pipelines
     const [
@@ -75,7 +75,7 @@ export function registerAnalyticsRoutes(app: express.Express) {
   app.get('/api/analytics/superadmin', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    if (user.role !== UserRole.SUPERADMIN && user.role !== UserRole.ADMIN) {
+    if (user.role !== UserRole.SUPERADMIN) {
       return res.status(403).json({ error: 'Forbidden: Superadmin access required.' });
     }
 
@@ -105,6 +105,7 @@ export function registerAnalyticsRoutes(app: express.Express) {
         totalStudents,
         certifiedCount,
         studentsBySchool,
+        schoolEvaluationStats,
         userCounts,
         reportStats,
         totalUsers,
@@ -120,6 +121,7 @@ export function registerAnalyticsRoutes(app: express.Express) {
         dbStore.countStudentsFast(),
         dbStore.countStudentsFast({ currentLevelMin: 5 }),
         dbStore.getSchoolStudentCounts(),
+        dbStore.getSchoolEvaluationStats(),
         dbStore.countUsersByRole(),
         dbStore.countReportsByOutcome(),
         // users count for the KPI tile
@@ -233,26 +235,41 @@ export function registerAnalyticsRoutes(app: express.Express) {
         cumulative: Math.min(totalSchools, Math.round(perMonth * (i + 1))),
       }));
 
-      // School rankings: real filtered schools with computed metrics from
-      // studentsBySchool map (no scan needed).
+      // Percentage with an explicit zero-denominator guard, matching the
+      // guarded arithmetic used above (certifiedPercent, passPercent). A
+      // school with no enrolled students has no completion rate and a school
+      // with no evaluation reports has no pass rate; both report 0 rather
+      // than NaN or Infinity.
+      const percentOf = (numerator: number, denominator: number) =>
+        denominator > 0 ? Math.round((numerator / denominator) * 100) : 0;
+
       const schoolRankings = allFilteredSchools.map((sch: any) => {
         const schId = sch.id || sch._id;
-        const totalStud = studentsBySchool.get(schId) || 0;
-        const schStudents = totalStud; // could re-query if we need per-school avg
+        const stats = schoolEvaluationStats.get(schId) || {
+          students: 0, assessedStudents: 0, reports: 0, passed: 0,
+        };
         return {
-          rank: 0,
           id: schId,
           name: sch.name,
           stateCode: sch.stateCode,
           schoolType: sch.schoolType || 'Government',
-          performanceScore: schStudents > 0 ? Math.round((schStudents / 93) * 100) : 0,
-          completionRate: 0,
-          studentSatisfaction: 0,
-          interviewSuccessRate: 0,
+          // Share of the school's roster that has actually been assessed:
+          // distinct students with at least one evaluation report, over the
+          // students enrolled at that school.
+          completionRate: percentOf(stats.assessedStudents, stats.students),
+          // FLN collects no student satisfaction signal of any kind — there is
+          // no survey, feedback or rating collection in the schema, and the
+          // only rating that exists is a teacher's proficiency mark on a
+          // concept, which is a different measurement. Reported as null ("not
+          // tracked") rather than 0, which would read as "every child is
+          // dissatisfied" instead of "we do not know".
+          studentSatisfaction: null as number | null,
+          // Per-school evaluation pass rate: reports where the child scored at
+          // least half the questions right, over that school's reports. Same
+          // measure as interviewAnalytics.passVsFail below, scoped per school.
+          interviewSuccessRate: percentOf(stats.passed, stats.reports),
         };
       });
-      schoolRankings.sort((a, b) => b.performanceScore - a.performanceScore);
-      schoolRankings.forEach((sch, idx) => { sch.rank = idx + 1; });
 
       // Performance by state
       const performanceByState = stateDistribution.map(s => ({

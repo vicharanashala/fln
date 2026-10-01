@@ -3,6 +3,10 @@ import { apiFetch } from '../../services/apiClient';
 import { ClassGroup, Student, School, DashboardProps } from '../../types';
 import { WorksheetWorkflow } from '../WorksheetWorkflow';
 import { TicketSubmission } from '../TicketSubmission';
+import { DashboardSkeleton } from '../ui/DashboardSkeleton';
+import { RosterSkeleton } from '../ui/RosterSkeleton';
+import { EmptyStateCard } from '../ui/EmptyStateCard';
+import { School as SchoolIcon } from 'lucide-react';
 
 // ==========================================
 // 3. SCHOOL PRINCIPAL DASHBOARD
@@ -12,8 +16,10 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [school, setSchool] = useState<School | null>(null);
   const [activeClass, setActiveClass] = useState<ClassGroup | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
 
   const fetchSchoolData = async () => {
+    setDashboardLoading(true);
     try {
       const clsRes = await apiFetch('/api/classes', { headers: { 'Authorization': `Bearer ${token}` } });
       const clsData = await clsRes.json();
@@ -30,6 +36,8 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
       if (Array.isArray(schData) && schData.length > 0) setSchool(schData[0]);
     } catch (err) {
       console.error(err);
+    } finally {
+      setDashboardLoading(false);
     }
   };
 
@@ -53,6 +61,15 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
     );
   }
 
+  if (dashboardLoading) {
+    return (
+      <div className="space-y-6" id="school-dashboard">
+        <DashboardSkeleton metricCount={2} />
+        <RosterSkeleton columns={2} showToolbar={false} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6" id="school-dashboard">
       <div className="border-b border-zinc-200 dark:border-zinc-700 pb-4">
@@ -70,7 +87,14 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
         <div className="md:col-span-2 space-y-4">
           <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Assigned Classroom Roster</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {classes.map(c => {
+            {classes.length === 0 ? (
+              <EmptyStateCard
+                illustration={<SchoolIcon className="h-6 w-6" />}
+                title="No classrooms available"
+                description="No classrooms are currently available for this school. Contact your administrator if this is unexpected."
+                className="md:col-span-2"
+              />
+            ) : classes.map(c => {
               const count = students.filter(s => s.classGroup === c.className && s.section === c.section).length;
               return (
                 <div key={c.id} className="bg-white dark:bg-slate-900 p-5 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm space-y-4 hover:border-zinc-400 dark:hover:border-zinc-500 transition-all flex flex-col justify-between">

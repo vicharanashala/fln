@@ -2,12 +2,14 @@
 // Issue #166: this panel is the canonical home for the "New Registration"
 // (Register New Student) action. The toggle button + form below live here
 // in the Students section; no register-style action exists on the dashboards.
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Student, User, UserRole } from '../../types';
 import { PageHeader, EmptyStudents } from './PanelShared';
 import { Users } from 'lucide-react';
 import { apiFetch } from '../../services/apiClient';
 import { parseCSVText } from '../RoleDashboards';
+import { useRosterFilters, resolveRestoredClassTab } from '../../hooks/useRosterFilters';
+import { CertificatesPanel } from './CertificatesPanel';
 
 interface StudentListPanelProps {
   students: Student[];
@@ -24,7 +26,12 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
   token,
   refreshStudents,
 }) => {
-  const isTeacherOrVolunteer = currentUser.role === UserRole.TEACHER || currentUser.role === UserRole.VOLUNTEER;
+  const canAddOrImportStudents =
+    currentUser.role === UserRole.TEACHER ||
+    currentUser.role === UserRole.VOLUNTEER ||
+    currentUser.role === UserRole.SCHOOL;
+  const isTeacherOrVolunteer =
+    currentUser.role === UserRole.TEACHER || currentUser.role === UserRole.VOLUNTEER;
 
   // Issue #173: class-wise subtabs instead of one flat mixed list. Derived
   // directly from the students already loaded (already scoped to this
@@ -41,9 +48,23 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
     );
   }, [students]);
   const [activeTab, setActiveTab] = useState<string>('all');
+  const { filters, setFilter, resetFilters } = useRosterFilters(currentUser.id, currentUser.role);
+  const restoredFiltersRef = useRef(false);
+  useEffect(() => {
+    if (restoredFiltersRef.current || studentsLoading) return;
+    restoredFiltersRef.current = true;
+    // Issue #532: `classTabs` are keyed classGroup|section and are not unique
+    // across schools, so the saved schoolId (not the tab key) is what decides
+    // whether this selection is still ours to restore. See
+    // resolveRestoredClassTab.
+    setActiveTab(resolveRestoredClassTab(filters, students) ?? 'all');
+  }, [studentsLoading, students, filters]);
   const visibleStudents = activeTab === 'all'
     ? students
     : students.filter(s => `${s.classGroup}|${s.section}` === activeTab);
+  const visibleClassTabs = activeTab === 'all'
+    ? classTabs
+    : classTabs.filter(c => `${c.classGroup}|${c.section}` === activeTab);
 
   // Student registration states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -234,7 +255,7 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
           <PageHeader title="Student Roster" desc="Complete list of registered students across your classes" icon={<Users className="h-5 w-5" />} />
-          {isTeacherOrVolunteer && (
+          {canAddOrImportStudents && (
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => { setShowAddForm(!showAddForm); setShowCsvImport(false); setRegError(''); setRegSuccess(''); }}
@@ -475,7 +496,7 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
         {classTabs.length > 1 && (
           <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-px overflow-x-auto">
             <button
-              onClick={() => setActiveTab('all')}
+              onClick={() => { setActiveTab('all'); setFilter({ schoolId: null, classId: null, classGroup: null, section: null }); }}
               className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
                 activeTab === 'all' ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white font-semibold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
@@ -488,7 +509,7 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
               return (
                 <button
                   key={key}
-                  onClick={() => setActiveTab(key)}
+                  onClick={() => { setActiveTab(key); setFilter({ schoolId: students.find(s => s.classGroup === c.classGroup && s.section === c.section)?.schoolId ?? null, classId: null, classGroup: c.classGroup, section: c.section }); }}
                   className={`px-4 py-2 text-sm font-display font-medium border-b-2 whitespace-nowrap transition-all ${
                     activeTab === key ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white font-semibold' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                   }`}
@@ -497,10 +518,34 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
                 </button>
               );
             })}
+            {activeTab !== 'all' && (
+              <button
+                onClick={() => { resetFilters(); setActiveTab('all'); }}
+                className="ml-auto px-3 py-1.5 text-xs font-mono font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 whitespace-nowrap transition-colors cursor-pointer"
+              >
+                Reset Filters
+              </button>
+            )}
           </div>
         )}
 
         <EmptyStudents students={visibleStudents} loading={studentsLoading} />
+
+        {!studentsLoading && isTeacherOrVolunteer && visibleClassTabs.map(c => {
+          const classStudents = students.filter(
+            student => student.classGroup === c.classGroup && student.section === c.section
+          );
+          return (
+            <CertificatesPanel
+              key={`${c.classGroup}|${c.section}`}
+              students={classStudents}
+              currentUser={currentUser}
+              variant="ranked"
+              rankingLimit={3}
+              rankingTitle={`Top 3 Students — ${c.classGroup} - ${c.section}`}
+            />
+          );
+        })}
       </div>
     </div>
   );

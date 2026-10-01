@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: repo-health-check
+  cancel-in-progress: false
+
 permissions:
   contents: read
   issues: write

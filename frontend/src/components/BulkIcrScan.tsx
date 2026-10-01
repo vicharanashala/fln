@@ -48,6 +48,12 @@ interface BulkIcrScanProps {
   token: string;
   uploadedFile: File | null;
   pagesPerStudent: number;
+  // Optional: how many questions ONE student's paper has, applied uniformly
+  // to every chunk. A bulk batch is normally one class/level, so every
+  // student has the same-length paper. Mirrors the single-scan flow's
+  // expectedCount guard, which tells the model exactly how many rows to
+  // output instead of letting it freely over/under-segment.
+  expectedCount?: number;
   // Called once per chunk when the bulk OCR call succeeds. The parent takes
   // ownership of the result state and renders its own per-student UI.
   onBulkOcrSuccess: (resp: BulkOcrResponse) => void;
@@ -73,6 +79,7 @@ export const BulkIcrScan: React.FC<BulkIcrScanProps> = ({
   token,
   uploadedFile,
   pagesPerStudent,
+  expectedCount,
   onBulkOcrSuccess,
 }) => {
   const [state, setState] = useState<BulkState>('idle');
@@ -137,6 +144,7 @@ export const BulkIcrScan: React.FC<BulkIcrScanProps> = ({
           provider: 'ollama-gemma4',
           fileDataUrl: dataUrl,
           pagesPerStudent,
+          ...(typeof expectedCount === 'number' && expectedCount > 0 ? { expectedCount } : {}),
         }),
       });
       const clientMs = Math.round(performance.now() - t0);
