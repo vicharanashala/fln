@@ -19,6 +19,7 @@ import { generateQuestionsForLevel } from './levelGenerator';
 import * as levelsBackendClient from './levelsBackendClient';
 import { STATES_UTS } from './geoData';
 import { validateConceptPrerequisites } from './competencyPrerequisites';
+import { validateSkillRelationships } from './skillRelationships';
 import { getAuthUser, canAccessStudent, sanitizeUser, JWT_SECRET, JWT_EXPIRES_IN, SEED_DEMO_PASSWORD_HASH } from './auth';
 import { registerAnnouncementRoutes } from './routes/announcements';
 import { registerStatsRoutes } from './routes/stats';
@@ -46,6 +47,7 @@ import { registerCertificationRoutes } from './routes/certification';
 import { registerMisconceptionRoutes } from './routes/misconceptions';
 import { registerCurriculumRoutes } from './routes/curriculum';
 import { registerQuestionBankRoutes } from './routes/questionBank';
+import { registerSkillRelationshipRoutes } from './routes/skillRelationships';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
@@ -209,6 +211,19 @@ async function startServer() {
   }
   console.log(`[competencyPrerequisites] prerequisite graph OK — ${prereqReport.totalConceptsWithPrerequisites} concepts, ${prereqReport.totalEdges} edges, 0 unknown ids, 0 cycles`);
 
+  const skillRelReport = validateSkillRelationships();
+  if (!skillRelReport.isValid) {
+    console.error('[skillRelationships] skill relationship graph is INVALID at startup; refusing to start');
+    if (skillRelReport.unknownSkillIds.length > 0) {
+      console.error(`[skillRelationships]   unknownSkillIds: ${skillRelReport.unknownSkillIds.join(', ')}`);
+    }
+    for (const cycle of skillRelReport.cycles) {
+      console.error(`[skillRelationships]   cycle: ${cycle.join(' -> ')}`);
+    }
+    process.exit(1);
+  }
+  console.log(`[skillRelationships] skill relationship graph OK — ${skillRelReport.totalRelationships} relationships, ${skillRelReport.totalSkillsWithPrerequisites} skills with prerequisites, 0 unknown ids, 0 cycles`);
+
   const app = express();
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
@@ -262,6 +277,7 @@ registerStatsRoutes(app);
   registerMisconceptionRoutes(app);
   registerCurriculumRoutes(app);
   registerQuestionBankRoutes(app);
+  registerSkillRelationshipRoutes(app);
 
   // --- Intervention Tracking & Best Practices Repository ---
 
