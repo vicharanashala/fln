@@ -1,6 +1,10 @@
 import { Question } from './db';
 import { QuestionService } from './services/questionService';
 import { CURRICULUM_MAPPING } from './config/curriculumMap';
+import { generateQuestionsFromTemplates } from './services/questionTemplateRenderer';
+
+/** Questions a generated paper carries per level. The legacy builder below builds the same count. */
+export const QUESTIONS_PER_LEVEL = 4;
 
 // Helper to generate a random integer
 function randomVal(min: number, max: number): number {
@@ -10,9 +14,26 @@ function randomVal(min: number, max: number): number {
 // Programmatic math builder — fallback for any level not in CURRICULUM_MAPPING (all
 // current levels are mapped, so this switch is legacy/dead code for the live registry;
 // see the CURRICULUM_MAPPING[level] short-circuit below).
-export function generateQuestionsForLevel(level: number, subLevel: number): Question[] {
+//
+// Async since issue #486: a level's approved `questionTemplates` are queried
+// first, and only when a concept has none does generation fall back to the
+// hand-written sources beneath it.
+export async function generateQuestionsForLevel(level: number, subLevel: number): Promise<Question[]> {
   // If the level is mapped in our concept registry, use concept-driven generation
-  if (CURRICULUM_MAPPING[level]) {
+  const conceptConfig = CURRICULUM_MAPPING[level];
+  if (conceptConfig) {
+    // Template-first: the intent-based authoring model is the source of truth
+    // for a concept somebody has actually authored for. `generateQuestionsFromTemplates`
+    // returns [] for a concept with no approved templates (or an unreadable
+    // store), which is exactly the "not authored yet" case the legacy
+    // generator still has to cover.
+    const fromTemplates = await generateQuestionsFromTemplates(conceptConfig.conceptId, {
+      count: QUESTIONS_PER_LEVEL,
+      levelNumber: level,
+      subLevel,
+    });
+    if (fromTemplates.length > 0) return fromTemplates;
+
     return QuestionService.getQuestionsByLevel(level, subLevel);
   }
 

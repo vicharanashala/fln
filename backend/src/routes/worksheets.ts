@@ -224,7 +224,7 @@ export function registerWorksheetRoutes(app: express.Express) {
 
     for (const student of classStudents) {
       const subLvl = student.currentSubLevel || 0;
-      const qs = generateQuestionsForLevel(student.currentLevel, subLvl);
+      const qs = await generateQuestionsForLevel(student.currentLevel, subLvl);
       // Map question IDs to be student-specific to prevent duplicate collisions
       qs.forEach(q => {
         compiledQuestions.push({

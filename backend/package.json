@@ -27,6 +27,7 @@
     "test:answer-matching": "tsx src/answerMatching.test.ts",
     "test:error-classification": "tsx src/errorClassification.test.ts",
     "test:paper-lock": "tsx src/paperLock.test.ts",
+    "test:template-renderer": "tsx src/services/questionTemplateRenderer.test.ts",
     "test:competency-prerequisites": "tsx src/competencyPrerequisites.test.ts"
   },
   "dependencies": {

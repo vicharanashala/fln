@@ -713,7 +713,7 @@ export function registerStudentRoutes(app: express.Express) {
       const startLevel = (classNumber - 1) * 12 + 1;
       questions = [];
       for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-        const lvlQuestions = generateQuestionsForLevel(Math.min(lvl, 108), 0);
+        const lvlQuestions = await generateQuestionsForLevel(Math.min(lvl, 108), 0);
         lvlQuestions.forEach(q => {
           questions.push({
             ...q,

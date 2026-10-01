@@ -13,13 +13,15 @@
 // sheet-type (student/teacher/both) assignments from PR #517 section 5's
 // outcome table.
 //
-// IMPORTANT CAVEAT, not hidden: as of 2026-09-19, nothing in the codebase
-// reads `questionTemplates` to actually render a worksheet item (see issue
-// #486, "Generation pipeline must consume questionTemplates" -- confirmed
-// unresolved by direct grep before this script was written). These rows are
-// real, reviewable curriculum intent, not yet anything a student or teacher
-// will see. Content-authoring and pipeline-wiring were a deliberate decision
-// to treat as separate concerns for this pass, not an oversight.
+// CONSUMER, as of issue #486: the generation pipeline reads these rows.
+// `levelGenerator.ts` asks `getQuestionTemplatesByConcept()` for the level's
+// concept before anything else and renders an approved row through
+// `services/questionTemplateRenderer.ts` (eligibility, `paramMode`, answer key
+// all handled there). Two caveats that remain true:
+//   - `status` is absent on rows this script writes, which the generator reads
+//     as 'approved'; #451's propose/approve workflow does not exist yet.
+//   - `assessmentMode: 'observed'` rows are deliberately NOT eligible for a
+//     written worksheet; they are for the teacher's observation sheet.
 //
 // Idempotency contract:
 //   - matched on `conceptId` (one seed template per concept, not per

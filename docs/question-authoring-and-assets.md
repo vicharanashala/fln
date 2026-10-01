@@ -42,7 +42,8 @@ Three separate things exist today, and it is worth knowing which is which:
 
 The new themes are the only one of the three that keeps artwork **out** of the
 database. The database stores **ids** and nothing else: `svgThemeIds` on the
-template, and `svgThemeId` plus `svgAsset` on a generated question.
+template, and `svgAsset` on a generated question — the one theme id the
+renderer picked from `svgThemeIds` for that draw.
 
 That was deliberate. SVG markup already sits in Mongo in two places; a third
 copy would mean the same drawing could disagree with itself depending on which
@@ -76,9 +77,36 @@ Two rules stop that becoming a way to break generation:
 `0-100` and `0-1000` remain valid but are reported as deprecated. Persisted data
 is never silently rewritten.
 
+## How an intent becomes a question
+
+`levelGenerator.ts` asks `questionTemplates` for the level's concept before it
+asks anything else (`backend/src/services/questionTemplateRenderer.ts`).
+
+- **Eligibility.** Only `approved` rows are considered — `status` absent counts
+  as approved, because every row written before that field existed is live
+  Superadmin content. `assessmentMode: 'observed'` rows are never eligible:
+  NCF-FS rules those outcomes out of written tests, so they belong on the
+  teacher's sheet, not the child's.
+- **`paramMode`, respected both ways.** A legacy `stem` + `answerSpec` pair is
+  printed verbatim and never re-authored. A `generationIntent` is rendered by
+  its `questionFamily` (all ten families have a renderer). A row with neither
+  is skipped with a warning rather than guessed at, so neither model silently
+  overrides the other.
+- **Deterministic, no LLM.** Numbers and the answer come from one seeded draw,
+  so the printed sheet and the answer key stored beside it can never disagree,
+  and a reprint produces the same paper. A family renders the *shape* of the
+  intent — count the set, solve the sum, complete the pattern — not every
+  sentence of it; only `mcq-4` and `true-false` are specialised beyond the
+  family's default answer shape, so `fill-blanks`, `matching` and `trace` keep
+  that default.
+- **Fallback.** A concept with no eligible templates falls back to the legacy
+  concept/level generators, because a level nobody has authored for still has
+  to produce a paper.
+
 ## What is not built yet
 
-Nothing reads these templates. `paperGenerator.ts` and `levelGenerator.ts` do not
-consume `generationIntent`, and no Gemini call turns an intent into a question.
-Authoring works end to end and the database can be populated now; the papers
-children receive are unchanged until the generator work lands.
+No Gemini call turns an intent into a question — deliberately, for the reasons
+above. The approval *workflow* (#451) does not exist either: `status` is a
+field the API accepts and the generator honours, but nothing proposes,
+approves or rejects a row yet, so every row is `approved` until someone sets
+`status` through the API.
