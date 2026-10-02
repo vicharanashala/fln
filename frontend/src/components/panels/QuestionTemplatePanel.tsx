@@ -343,22 +343,27 @@ export const QuestionTemplatePanel: React.FC = () => {
   };
 
   /**
-   * Fetch the header row and hand it to the browser as a file.
+   * Download the questions CSV together with its curriculum and SVG references.
    *
    * Not a plain link: the API is authenticated with a bearer token from
    * localStorage, which an <a href> cannot send, so a link would 403. Going
    * through apiFetch also keeps the deployment's base path applied.
    */
   const downloadCsvTemplate = async () => {
-    const res = await apiFetch('/api/question-templates/csv-template');
-    if (!res.ok) { setToast('Could not download the column headings.'); return; }
-    const blob = new Blob([await res.text()], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'question-template-columns.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const res = await apiFetch('/api/question-templates/csv-template.zip');
+      if (!res.ok) { setToast('Could not download the template and references.'); return; }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'question-authoring-template.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      setToast('Could not download the template and references. Please try again.');
+    }
   };
 
   const onCsvFile = async (file: File | undefined) => {
@@ -725,7 +730,7 @@ export const QuestionTemplatePanel: React.FC = () => {
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Bulk upload</h3>
             <button type="button" onClick={downloadCsvTemplate}
               className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-              Download the column headings
+              Download template + references (ZIP)
             </button>
           </div>
 
@@ -733,6 +738,11 @@ export const QuestionTemplatePanel: React.FC = () => {
             Every row is checked before anything is saved. If any row has a problem, nothing is imported and
             the row numbers are listed below. Lists inside a cell are separated with a vertical bar, for
             example <code className="rounded bg-zinc-100 dark:bg-zinc-900 px-1">SK03|SK07</code>.
+          </p>
+
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+            Extract the ZIP for the level/subskill and SVG reference tables. Fill in and upload only
+            <code className="mx-1 rounded bg-zinc-100 dark:bg-zinc-900 px-1">questions.csv</code>, not the ZIP or reference files.
           </p>
 
           <input type="file" accept=".csv,text/csv" className="mt-3 block text-sm text-zinc-600 dark:text-zinc-300"
