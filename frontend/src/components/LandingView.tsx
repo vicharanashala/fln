@@ -138,10 +138,10 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 transition-colors duration-200">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.08),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.15),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_24%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] text-slate-800 transition-colors duration-200">
       
       {/* 1. Accessibility / Top strip (neutral branding) */}
-      <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-gray-800">
+      <div className="w-full bg-slate-950/95 text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-slate-800/90 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <span className="font-bold">{t('portal.name')}</span>
           <span className="text-gray-500">|</span>
@@ -159,26 +159,33 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
       </div>
 
       {/* 3. Main portal banner header */}
-      <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-950/50">
-        <div className="mx-auto max-w-screen-2xl pl-2 pr-6 py-4 md:py-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row pl-2">
-            <div className="flex items-center gap-3">
-              <img
-                src={withBase('/partners/iit-ropar-logo.svg')}
-                alt="Indian Institute of Technology Ropar"
-                className="h-12 md:h-16 w-auto"
-              />
-              <img
-                src={withBase('/partners/vicharanashala-logo.png')}
-                alt="Vicharanashala — Lab for Education Design"
-                className="h-12 md:h-16 w-auto"
-              />
+      <header className="border-b border-slate-200/70 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+        <div className="mx-auto max-w-7xl px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
+            {/* Authentic Sarnath Pillar representative icon */}
+            <div className="flex h-12 w-12 items-center justify-center rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-1 shadow-sm shrink-0">
+              <svg className="h-10 w-10 text-amber-800 dark:text-amber-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12,2A3,3 0 0,0 9,5C9,6.08 9.58,7.03 10.42,7.56C9.03,8.4 8,9.88 8,11.6V13.5H16V11.6C16,9.88 14.97,8.4 13.58,7.56C14.42,7.03 15,6.08 15,5A3,3 0 0,0 12,2M12,4A1,1 0 0,1 13,5A1,1 0 0,1 12,6A1,1 0 0,1 11,5A1,1 0 0,1 12,4M10,15V19H14V15H10M9,20V21H15V20H9Z" />
+              </svg>
+            </div>
+            <div className="border-l-2 border-slate-200 dark:border-slate-700 pl-3">
+              <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
+                <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white uppercase">
+                  FLN Portal
+                </span>
+                <span className="rounded-full bg-amber-100 dark:bg-amber-950/40 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                  Official Portal
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">
+                Foundational Literacy & Numeracy initiative
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={onNavigateToLogin}
-              className="rounded-lg bg-indigo-700 dark:bg-indigo-800 px-6 py-2.5 text-xs font-extrabold text-white shadow-md dark:shadow-slate-950/50 transition-all duration-150 hover:bg-indigo-600 dark:hover:bg-indigo-700 border border-indigo-300 dark:border-indigo-700 active:scale-[0.98] uppercase tracking-wider"
+              className="rounded-full bg-indigo-600 px-6 py-2.5 text-xs font-semibold text-white shadow-[0_12px_28px_-16px_rgba(79,70,229,0.75)] transition-all duration-150 hover:bg-indigo-500 active:scale-[0.98] uppercase tracking-[0.2em] border border-indigo-400/60"
             >
               {isLoggedIn ? 'Go to Dashboard' : t('landing.signIn')}
             </button>
@@ -240,7 +247,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
             return (
               <div
                 key={index}
-                className="group relative flex items-center gap-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm dark:shadow-slate-950/50 transition hover:shadow-md dark:hover:shadow-slate-950/50"
+                className="flex items-center gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/80 p-6 shadow-[0_16px_40px_-24px_rgba(15,23,42,0.35)] backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_-24px_rgba(15,23,42,0.45)]"
               >
                 <div className={`rounded-xl p-3 ${stat.color}`}>
                   <Icon className="h-6 w-6" />
@@ -271,7 +278,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToLogin, isL
         </div>
 
         {/* Vision Section */}
-        <div className="mt-20 rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 shadow-sm dark:shadow-slate-950/50">
+        <div className="mt-20 rounded-[28px] border border-slate-200/80 dark:border-slate-700/80 bg-white/75 dark:bg-slate-900/75 p-8 shadow-[0_24px_48px_-30px_rgba(15,23,42,0.35)] backdrop-blur-xl">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             <div>
               <h3 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">

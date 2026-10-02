@@ -184,30 +184,34 @@ export default function App() {
             )}
             {currentView === 'login' && <LoginView onLoginSuccess={handleLoginSuccess} onBackToHome={() => setCurrentView('home')} />}
 
-            {currentView === 'dashboard' && currentUser && token && (
-              <Layout
-                currentUser={currentUser}
+      {/* 3. Authorized Dashboard Portal */}
+      {currentView === 'dashboard' && currentUser && token && (
+        <Layout
+          currentUser={currentUser}
                 token={token}
-                onRoleSwitch={handleRoleSwitch}
-                activeView={activePanel}
-                onSelectView={setActivePanel}
-                notifications={announcements}
-                onMarkNotificationRead={handleMarkNotificationRead}
-                onClearNotifications={handleClearNotifications}
-                onLogout={handleLogout}
+          onRoleSwitch={handleRoleSwitch}
+          activeView={activePanel}
+          onSelectView={setActivePanel}
+          notifications={announcements}
+          onMarkNotificationRead={handleMarkNotificationRead}
+          onClearNotifications={handleClearNotifications}
+          onLogout={handleLogout}
                 onNavigateHome={handleNavigateHome}
                 isDark={isDark}
                 onThemeToggle={() => setIsDark(!isDark)}
-              >
-                {activeUrgentAnnouncements.length > 0 && (
-                  <div className="mb-6 flex items-center justify-between rounded-xl border border-amber-700 bg-amber-600 px-6 py-2.5 text-xs font-medium text-white shadow-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold">⚠️ CRITICAL ALERT:</span>
-                      <span>{activeUrgentAnnouncements[0].message}</span>
-                    </div>
-                    <span className="rounded bg-amber-800/40 px-2 py-0.5 text-[10px] font-mono uppercase text-amber-200">Escalated</span>
-                  </div>
-                )}
+        >
+          {/* Urgent Announcements Strip inside Layout Content */}
+          {activeUrgentAnnouncements.length > 0 && (
+            <div className="bg-amber-600 text-white font-medium text-xs py-2.5 px-6 flex items-center justify-between shadow-sm border border-amber-700 rounded-xl mb-6">
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-bold">⚠️ CRITICAL ALERT:</span>
+                <span>{activeUrgentAnnouncements[0].message}</span>
+              </div>
+              <span className="text-[10px] font-mono text-amber-200 bg-amber-800/40 px-2 py-0.5 rounded uppercase">
+                Escalated
+              </span>
+            </div>
+          )}
 
                 {activePanel === 'workspace' && renderRoleWorkspace()}
 
