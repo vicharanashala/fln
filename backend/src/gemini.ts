@@ -785,17 +785,6 @@ Provide:
       isCorrect,
       topic
     });
-
-    if (!conceptMastery[topic]) {
-      conceptMastery[topic] = isCorrect
-        ? 'Strong'
-        : 'Needs Practice';
-    } else if (
-      conceptMastery[topic] === 'Needs Practice' &&
-      isCorrect
-    ) {
-      conceptMastery[topic] = 'Satisfactory';
-    }
   });
 
   const score = evaluatedQuestions.filter(

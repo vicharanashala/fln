@@ -3,8 +3,8 @@ import { User, UserRole, Announcement } from '../types';
 import { apiFetch } from '../services/apiClient';
 import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
-  LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
-  School, GraduationCap, MapPin, BarChart3, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home, Award,
+  LayoutDashboard, BookOpen, BookMarked, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
+  School, GraduationCap, MapPin, BarChart3, FileText, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home, Award,
   Fingerprint, Ticket as TicketIcon, ScrollText
 } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -161,6 +161,8 @@ export const Layout: React.FC<LayoutProps> = ({
             { name: 'Student Profile', view: 'student_profile' }
           ]
         });
+        list.push({ name: 'Attendance', view: 'attendance', icon: Calendar });
+        list.push({ name: 'Content Library', view: 'content', icon: BookMarked });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
         list.push({ name: 'Misconceptions', view: 'misconceptions', icon: Fingerprint });
         // Pedagogical & Process Feedback — moved out of the TeacherDashboard
@@ -192,12 +194,16 @@ export const Layout: React.FC<LayoutProps> = ({
             { name: 'Performance', view: 'performance' }
           ]
         });
+        list.push({ name: 'Attendance', view: 'attendance', icon: Calendar });
+        list.push({ name: 'Content Library', view: 'content', icon: BookMarked });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
         break;
 
       case UserRole.SCHOOL:
         list.push({ name: 'Teachers', view: 'teachers', icon: Users });
         list.push({ name: 'Students', view: 'students', icon: GraduationCap });
+        list.push({ name: 'Attendance', view: 'attendance', icon: Calendar });
+        list.push({ name: 'Content Library', view: 'content', icon: BookMarked });
         list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         break;
@@ -205,6 +211,8 @@ export const Layout: React.FC<LayoutProps> = ({
       case UserRole.BLOCK_ADMIN:
         list.push({ name: 'Schools', view: 'schools', icon: School });
         list.push({ name: 'Teachers', view: 'teachers', icon: Users });
+        list.push({ name: 'Attendance', view: 'attendance', icon: Calendar });
+        list.push({ name: 'Content Library', view: 'content', icon: BookMarked });
         list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         list.push({ name: 'Question Bank', view: 'question_bank', icon: Database });
@@ -215,6 +223,8 @@ export const Layout: React.FC<LayoutProps> = ({
       case UserRole.DISTRICT_ADMIN:
         list.push({ name: 'Blocks', view: 'blocks', icon: MapPin });
         list.push({ name: 'Schools', view: 'schools', icon: School });
+        list.push({ name: 'Attendance', view: 'attendance', icon: Calendar });
+        list.push({ name: 'Content Library', view: 'content', icon: BookMarked });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         list.push({ name: 'Question Bank', view: 'question_bank', icon: Database });
         list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
@@ -223,6 +233,8 @@ export const Layout: React.FC<LayoutProps> = ({
 
       case UserRole.ADMIN:
         list.push({ name: 'Districts', view: 'districts', icon: MapPin });
+        list.push({ name: 'Attendance', view: 'attendance', icon: Calendar });
+        list.push({ name: 'Content Library', view: 'content', icon: BookMarked });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         list.push({ name: 'Question Bank', view: 'question_bank', icon: Database });
         list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
@@ -234,7 +246,8 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Users', view: 'users', icon: Users });
         list.push({ name: 'Schools', view: 'schools', icon: School });
         list.push({ name: 'Worksheet Templates', view: 'worksheet_templates', icon: ClipboardList });
-        list.push({ name: 'Content', view: 'content', icon: BookOpen });
+        list.push({ name: 'Attendance', view: 'attendance', icon: Calendar });
+        list.push({ name: 'Content Library', view: 'content', icon: BookMarked });
         list.push({ name: 'Question Bank', view: 'question_bank', icon: Database });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         list.push({ name: 'System Settings', view: 'system_settings', icon: Settings });

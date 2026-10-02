@@ -1,7 +1,8 @@
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { LogEntry, UserRole, User, School } from '../types';
-import { Download, Search, SlidersHorizontal } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { FileSpreadsheet, Search, SlidersHorizontal, ClipboardList } from 'lucide-react';
 
 interface LogbookViewProps {
   token: string;
@@ -38,7 +39,9 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
   // Fetch school list for geographical lookup
   const fetchSchools = async () => {
     try {
-      const res = await apiFetch('/api/schools');
+      const res = await apiFetch('/api/schools', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
       if (Array.isArray(data)) {
         setSchools(data);
@@ -118,34 +121,41 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
     return stateMatch && districtMatch && blockMatch && schoolMatch && typeMatch && searchMatch;
   });
 
-  // Export to CSV function
-  const exportToCSV = () => {
+  // Export to Excel (.xlsx) function
+  const exportToExcel = () => {
     if (filteredLogs.length === 0) return;
     
-    const headers = ['Timestamp', 'Log ID', 'User Email', 'User Role', 'Location School ID', 'Location School Name', 'Activity', 'Status', 'Details'];
+    const rows = filteredLogs.map((l, idx) => ({
+      'S.No': idx + 1,
+      'Timestamp': new Date(l.timestamp).toLocaleString(),
+      'Log ID': l.id,
+      'User Email': l.userEmail,
+      'User Role': l.userRole,
+      'School ID': l.schoolId || 'National',
+      'School Name': l.schoolName || 'National Framework',
+      'Activity Type': l.activityType,
+      'Status': l.status,
+      'Activity Details': l.details
+    }));
     
-    const rows = filteredLogs.map(l => [
-      new Date(l.timestamp).toISOString(),
-      l.id,
-      l.userEmail,
-      l.userRole,
-      l.schoolId || 'National',
-      l.schoolName || 'National Framework',
-      l.activityType,
-      l.status,
-      `"${l.details.replace(/"/g, '""')}"`
-    ]);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 22 },
+      { wch: 18 },
+      { wch: 26 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 24 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 45 }
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Audit Logbook');
     
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `FLN_System_Logbook_Export_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const today = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `FLN_System_Logbook_Export_${today}.xlsx`);
   };
 
   // Check locks for selectors based on user roles
@@ -163,11 +173,12 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
         
         {/* Export Button */}
         <button
-          onClick={exportToCSV}
+          onClick={exportToExcel}
           disabled={filteredLogs.length === 0}
-          className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 text-white font-medium text-xs font-mono py-2.5 px-4 rounded-lg shadow-sm transition-colors cursor-pointer w-fit self-start sm:self-center"
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold text-xs py-2.5 px-4 rounded-lg shadow-sm transition-colors cursor-pointer w-fit self-start sm:self-center"
+          title="Download formatted Microsoft Excel (.xlsx) spreadsheet"
         >
-          <Download className="w-4 h-4" /> Export Filtered CSV
+          <FileSpreadsheet className="w-4 h-4" /> Export Excel (.xlsx)
         </button>
       </div>
 
@@ -310,8 +321,20 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 text-sm text-zinc-700 dark:text-zinc-200">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-zinc-400 font-sans text-xs">
-                    No active system audit records found with the active filters.
+                  <td colSpan={7} className="p-12 text-center font-sans">
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 dark:text-zinc-500 mb-3">
+                        <ClipboardList className="w-6 h-6" />
+                      </div>
+                      <p className="text-zinc-800 dark:text-zinc-200 font-semibold text-sm mb-1">
+                        {logs.length === 0 ? 'No activity recorded yet' : 'No matching audit records found'}
+                      </p>
+                      <p className="text-zinc-500 dark:text-zinc-400 text-xs max-w-md">
+                        {logs.length === 0
+                          ? 'Operational events such as worksheet downloads, assessment scans, and verification checks will automatically appear here as audit records.'
+                          : 'No log entries match the selected filters or search query. Try adjusting or clearing your active filters.'}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (

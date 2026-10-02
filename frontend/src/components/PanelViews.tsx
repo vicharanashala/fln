@@ -14,7 +14,6 @@ import { PerformancePanel } from './panels/PerformancePanel';
 import { WorksheetsPanel } from './panels/WorksheetsPanel';
 import { AssignedSchoolsPanel } from './panels/AssignedSchoolsPanel';
 import { StudentProgressPanel } from './panels/StudentProgressPanel';
-import { AttendancePanel } from './panels/AttendancePanel';
 import { TeachersPanel } from './panels/TeachersPanel';
 import { SchoolsPanel } from './panels/SchoolsPanel';
 import { UsersPanel } from './panels/UsersPanel';
@@ -23,9 +22,11 @@ import { DistrictsPanel } from './panels/DistrictsPanel';
 import { BlocksPanel } from './panels/BlocksPanel';
 import { AnalyticsPanel } from './panels/AnalyticsPanel';
 import { StudentProfilePanel } from './panels/StudentProfilePanel';
+import { AttendanceTracker } from './AttendanceTracker';
 import { QuestionBankPanel } from './panels/QuestionBankPanel';
 import { PageHeader } from './panels/PanelShared';
 import { CertificationReviewPanel } from './CertificationReviewPanel';
+
 
 interface PanelViewsProps {
   activePanel: string;
@@ -50,7 +51,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   const panel = activePanel;
 
   // ===================== TEACHER PANELS =====================
-  if (panel === 'student_list') {
+  if (panel === 'student_list' || panel === 'students') {
     return (
       <StudentListPanel
         students={students}
@@ -62,9 +63,31 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  if (panel === 'student_profile') return <StudentProfilePanel students={students} studentsLoading={studentsLoading} schools={schools} reportsList={reportsList} worksheetsList={worksheetsList} currentUser={currentUser} token={token} updateStudentLocally={updateStudentLocally} />;
+  if (panel === 'student_profile') {
+    return (
+      <StudentProfilePanel
+        students={students}
+        studentsLoading={studentsLoading}
+        schools={schools}
+        reportsList={reportsList}
+        worksheetsList={worksheetsList}
+        currentUser={currentUser}
+        token={token}
+        updateStudentLocally={updateStudentLocally}
+      />
+    );
+  }
 
-  if (panel === 'diagnostic_test') return <DiagnosticTestPanel students={students} currentUser={currentUser} token={token} refreshStudents={refreshStudents} />;
+  if (panel === 'diagnostic_test') {
+    return (
+      <DiagnosticTestPanel
+        students={students}
+        currentUser={currentUser}
+        token={token}
+        refreshStudents={refreshStudents}
+      />
+    );
+  }
 
   if (panel === 'adaptive_test') return <AdaptiveTestPanel />;
 
@@ -75,15 +98,26 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
   if (panel === 'performance') return <PerformancePanel students={students} currentUser={currentUser} />;
 
 
-  // ===================== VOLUNTEER PANELS =====================
+  // ===================== VOLUNTEER & TEACHER ATTENDANCE PANELS =====================
   if (panel === 'assigned_schools') return <AssignedSchoolsPanel schools={schools} students={students} />;
 
   if (panel === 'student_progress') return <StudentProgressPanel students={students} />;
 
-  if (panel === 'attendance') return <AttendancePanel students={students} reportsList={reportsList} />;
+  if (panel === 'attendance') {
+    return (
+      <AttendanceTracker
+        token={token}
+        students={students}
+        currentUser={currentUser}
+        schools={schools}
+      />
+    );
+  }
 
   // ===================== PRINCIPAL / SCHOOL ADMIN PANELS =====================
-  if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) return <TeachersPanel schools={schools} teachersList={teachersList} currentUser={currentUser} />;
+  if (panel === 'teachers' && (currentUser.role === UserRole.SCHOOL || currentUser.role === UserRole.BLOCK_ADMIN)) {
+    return <TeachersPanel schools={schools} teachersList={teachersList} currentUser={currentUser} />;
+  }
 
   // Fix #445/#446: Principal Students navigation (view='students') uses StudentListPanel,
   // providing full student registration, CSV bulk import, and roster management.
@@ -108,7 +142,6 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   // ===================== SUPERADMIN PANELS =====================
   if (panel === 'users') return <UsersPanel usersList={usersList} />;
-
 
   if (panel === 'worksheet_templates') return <WorksheetTemplatesPanel />;
 
