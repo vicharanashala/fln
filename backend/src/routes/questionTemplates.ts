@@ -19,6 +19,7 @@ import {
   MAX_SVG_THEMES,
 } from '../types/questionTemplateParams';
 import { isKnownThemeId, listThemes } from '../svgAssetCatalog';
+import { buildQuestionTemplateDownload } from '../services/questionTemplateDownload';
 
 const MAX_NAME_CHARS = 200;
 const MAX_TAGS = 20;
@@ -287,6 +288,18 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
   app.get('/api/question-templates/csv-template', (req, res) => {
     if (!requireSuperadmin(req, res, SUBJECT)) return;
     res.type('text/csv').send(CSV_COLUMNS.join(',') + '\n');
+  });
+
+  /** One download containing the unchanged import template and current references. */
+  app.get('/api/question-templates/csv-template.zip', async (req, res, next) => {
+    if (!requireSuperadmin(req, res, SUBJECT)) return;
+    try {
+      const archive = await buildQuestionTemplateDownload(CSV_COLUMNS, buildLevelMapPayload(), listThemes());
+      res.setHeader('Cache-Control', 'no-store');
+      res.attachment('question-authoring-template.zip').type('application/zip').send(archive);
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.get('/api/question-templates/stats', async (req, res) => {
