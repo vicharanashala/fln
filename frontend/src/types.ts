@@ -609,3 +609,18 @@ export interface LegacyLevelRow {
   mappedLevel: number | null;
   mappedCapability: string | null;
 }
+
+export type PaperType = 'diagnostic' | 'midline' | 'endline' | 'practice' | 'remedial';
+
+export interface PaperTypeConfig {
+  requestType: PaperType;
+  title: string;
+  description: string;
+  questionCount: number;
+  levelSelectionStrategy: {
+    mode: 'class_band' | 'milestone' | 'prerequisite_gaps';
+    defaultLevelRange?: { min: number; max: number };
+    subskills?: string[];
+  };
+  eligibleStatuses: Array<'approved' | 'active'>;
+}

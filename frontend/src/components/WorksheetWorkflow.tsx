@@ -52,18 +52,31 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
     setError('');
     setSuccess('');
     try {
+      // Issue #593: Fetch paper type configuration dynamically before generating
+      const requestType = cycle === 'Baseline' ? 'diagnostic' : cycle === 'Mid-year' ? 'midline' : 'endline';
+      let paperConfig = null;
+      try {
+        const configRes = await apiFetch(`/api/worksheets/paper-config/${requestType}`);
+        if (configRes.ok) {
+          const configData = await configRes.json();
+          paperConfig = configData.config;
+        }
+      } catch (_) {
+        // Fallback gracefully if config fetch fails
+      }
+
       const res = await apiFetch('/api/worksheets/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ classId: classGroup.id, cycle })
+        body: JSON.stringify({ classId: classGroup.id, cycle, paperConfig })
       });
       const data = await res.json();
       if (res.ok) {
         setWorksheet(data);
-        setSuccess('Class worksheets generated successfully using Gemini AI personalization!');
+        setSuccess(`Class worksheets generated successfully using Gemini AI personalization (${paperConfig?.questionCount || 10} questions)!`);
       } else {
         setError(data.error || 'Failed to generate worksheets due to active generation locks.');
       }
@@ -73,6 +86,7 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
       setLoading(false);
     }
   };
+
 
   const handleAnswerChange = (qId: string, val: string) => {
     setStudentAnswers({ ...studentAnswers, [qId]: val });
