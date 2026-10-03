@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="sock">
+  <g fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M27 7h25v29c0 6-3 10-9 13L24 59C10 64 2 52 9 45l18-11ZM27 17h25M39 40c-6-1-10 2-11 7M10 44c7 0 11 5 11 14"/>
+  </g>
+</svg>

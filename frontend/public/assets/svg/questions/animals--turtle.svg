@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="turtle">
+  <g fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="29" cy="32" rx="19" ry="17"/><ellipse cx="54" cy="32" rx="6" ry="8"/><path d="m18 18-6-8-7 6 7 8M18 46l-6 8-7-6 7-8M36 17l7-8 6 6-7 8M36 47l7 8 6-6-7-8M10 29l-6 3 6 3"/><path d="m29 21 10 6v11l-10 6-10-6V27Zm0 0v-6m10 12 7-4m-7 15 7 4m-27-4-7 4m7-15-7-4m17 21v5"/>
+  </g>
+</svg>
