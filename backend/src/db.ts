@@ -107,6 +107,23 @@ export interface School {
   strength: 'high' | 'low'; // High-strength vs. Low-strength (§1.2)
   teachersCount: number;
   isAccessLocked?: boolean;
+  villageCity?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  landmark?: string;
+  pinCode?: string;
+  udiseCode?: string;
+  governmentSchoolCode?: string;
+  schoolType?: string;
+  managementType?: string;
+  email?: string;
+  phone?: string;
+  establishmentYear?: number;
+  initialClasses?: string[];
+  principalId?: string;
+  status?: 'active' | 'pending' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ClassGroup {
@@ -2261,8 +2278,11 @@ export class DBStore {
   // --- Write / Update Helpers ---
 
   async addUser(user: User) {
-    await this.mongoDb!.collection('users').insertOne(user);
-    if (this.data) this.data.users.push(user);
+    if (this.mongoDb) await this.mongoDb.collection('users').insertOne(user);
+    if (this.data) {
+      this.data.users.push(user);
+      if (!this.mongoDb) await this.save();
+    }
     return user;
   }
 
@@ -2377,6 +2397,31 @@ export class DBStore {
         this.data.classes.push(newClass);
       }
       if (!this.mongoDb) await this.save();
+    }
+  }
+
+  async ensureClassesExist(schoolId: string, classNames: string[], section: string, teacherId: string) {
+    const classes: ClassGroup[] = classNames.map(className => ({
+      id: 'c_' + schoolId + '_' + className.replace(/\s+/g, '') + '_' + section,
+      schoolId,
+      className,
+      section,
+      teacherId,
+    }));
+    if (this.mongoDb && classes.length > 0) {
+      await this.mongoDb.collection<ClassGroup>('classes').bulkWrite(classes.map(cls => ({
+        updateOne: {
+          filter: { id: cls.id },
+          update: { $setOnInsert: cls },
+          upsert: true,
+        },
+      })));
+    }
+    if (this.data) {
+      for (const cls of classes) {
+        if (!this.data.classes.some(existing => existing.id === cls.id)) this.data.classes.push(cls);
+      }
+      if (!this.mongoDb && classes.length > 0) await this.save();
     }
   }
 
@@ -2594,8 +2639,11 @@ export class DBStore {
   }
 
   async addSchool(school: School) {
-    await this.mongoDb!.collection('schools').insertOne(school);
-    if (this.data) this.data.schools.push(school);
+    if (this.mongoDb) await this.mongoDb.collection('schools').insertOne(school);
+    if (this.data) {
+      this.data.schools.push(school);
+      if (!this.mongoDb) await this.save();
+    }
     return school;
   }
 

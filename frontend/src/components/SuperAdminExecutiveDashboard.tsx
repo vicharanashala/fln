@@ -1025,6 +1025,11 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                         <tr key={school.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                           <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white">
                             {school.name}
+                            {(school.addressLine1 || school.villageCity || school.pinCode || school.udiseCode || school.governmentSchoolCode) && (
+                              <span className="block mt-1 text-[10px] font-normal text-slate-500 dark:text-slate-400">
+                                {[school.addressLine1, school.villageCity, school.pinCode && `PIN ${school.pinCode}`, school.udiseCode && `UDISE ${school.udiseCode}`, !school.udiseCode && school.governmentSchoolCode && `Code ${school.governmentSchoolCode}`].filter(Boolean).join(' · ')}
+                              </span>
+                            )}
                           </td>
                           <td className="py-3 px-3 text-slate-600 dark:text-slate-400">
                             {STATE_NAMES[school.stateCode] || school.stateCode}
