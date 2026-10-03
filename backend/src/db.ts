@@ -368,6 +368,64 @@ export interface AnswerSubmission {
   questions?: Question[];
 }
 
+/**
+ * Evidence Model (#479): one row per question attempt, richer than
+ * `AnswerSubmission.answers`' bare string.
+ *
+ * Two attempts can both be correct and still not be equivalent evidence of
+ * whether a child can do a concept independently -- e.g. correct with zero
+ * hints on the first try vs. correct only after three hints and two tries.
+ * The architecture discussion is explicit that this has to be captured at
+ * the time, not reverse-engineered later from correct/incorrect alone --
+ * see `scaffoldingLevel`'s own comment.
+ *
+ * Deliberately a separate collection from `AnswerSubmission`, the same way
+ * `TeacherObservationRecord` (#617) is -- see that interface's comment for
+ * why a richer evidence record doesn't just get bolted onto the thing it's
+ * evidence about.
+ */
+export interface AttemptRecord {
+  id: string;
+  studentId: string;
+  questionId: string;
+  /** The worksheet/session this attempt belongs to, when one exists -- optional for the same reason `AnswerSubmission.questions` is: a live practice session may not be tied to a persisted Worksheet. */
+  worksheetId?: string;
+
+  answer: string;
+  isCorrect: boolean;
+  /** Seconds spent on this question, when the capture path can measure it. Optional: not every path can. */
+  timeTakenSeconds?: number;
+
+  hintsUsed: number;
+  attemptsBeforeSuccess: number;
+  /**
+   * 0 Independent · 1 Procedural prompt ("What operation do you need?") ·
+   * 2 Strategic prompt ("Can you first separate the tens and ones?") ·
+   * 3 Worked/example support · 4 Direct assistance (system guides step by
+   * step). A closed 0-4 scale, not free text, per #479's acceptance
+   * criteria. An `independenceScore`, if wanted downstream, is meant to be
+   * DERIVED from this + `attemptsBeforeSuccess` + `hintsUsed` -- not stored
+   * as its own separate field.
+   */
+  scaffoldingLevel: 0 | 1 | 2 | 3 | 4;
+  /** How the question was presented/answered (e.g. 'numeric', 'visual', 'verbal'). Left as an open string -- the architecture discussion names this field but, unlike scaffoldingLevel, doesn't define a closed vocabulary for it. */
+  representation?: string;
+
+  /**
+   * Required, not optional (#479 acceptance criteria) -- this is the join
+   * key to D1.6 (#459). 'none' covers a fully correct attempt, which has no
+   * error to classify. The three substantive values match
+   * `EvaluationReport.rootCauses`'s existing enum so the two vocabularies
+   * don't quietly diverge (conceptual = doesn't understand · careless =
+   * slip · prerequisite = missing foundation).
+   */
+  errorType: 'conceptual' | 'careless' | 'prerequisite' | 'none' | string;
+
+  recordedAt: string;
+  /** teacherId/volunteerId who captured this attempt. */
+  recordedBy: string;
+}
+
 export type ConfidenceLevel = 'Very High' | 'High' | 'Moderate' | 'Low';
 
 export interface TeacherActionPlanStep {
@@ -1056,6 +1114,7 @@ interface DatabaseSchema {
   curriculumLevels: CurriculumLevel[];
   studentCycleLocks: StudentCycleLock[];
   teacherObservationRecords: TeacherObservationRecord[];
+  attemptRecords: AttemptRecord[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -1086,6 +1145,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   curriculumLevels: 'curriculumLevels',
   studentCycleLocks: 'studentCycleLocks',
   teacherObservationRecords: 'teacher_observation_records',
+  attemptRecords: 'attempt_records',
 };
 
 /**
@@ -2874,6 +2934,35 @@ export class DBStore {
       { $set: record },
       { upsert: true }
     );
+    return record;
+  }
+
+  // --- Attempt Record Methods (Evidence Model, #479) ----------------------
+  // See AttemptRecord's own comment for what this captures and why it's a
+  // separate collection from answerSubmissions. Unlike the observation-record
+  // methods just above, these branch on `this.mongoDb` for reads and guard
+  // `this.data.attemptRecords` before pushing, so they work against the
+  // local file DB too -- a real local data/db.json can predate a collection
+  // (teacherObservationRecords above is itself missing from the current
+  // file), so assuming the array is already there isn't safe.
+
+  /** Every attempt one student has made, richest-evidence-first consumers filter/sort themselves. */
+  async getAttemptRecordsForStudent(studentId: string): Promise<AttemptRecord[]> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<AttemptRecord>('attempt_records').find({ studentId }).toArray();
+    }
+    return (this.data?.attemptRecords || []).filter(a => a.studentId === studentId);
+  }
+
+  /** Append-only -- an attempt is a historical fact, not something later attempts should overwrite. */
+  async addAttemptRecord(record: AttemptRecord): Promise<AttemptRecord> {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('attempt_records').insertOne(record);
+    }
+    if (this.data) {
+      if (!this.data.attemptRecords) this.data.attemptRecords = [];
+      this.data.attemptRecords.push(record);
+    }
     return record;
   }
 
@@ -5047,7 +5136,10 @@ export class DBStore {
       // Seeded empty on purpose, same reasoning as questionLogics above: a
       // teacher's observation of a real child is not something to fabricate
       // demo data for.
-      teacherObservationRecords: []
+      teacherObservationRecords: [],
+      // Same reasoning again -- a child's actual hints/scaffolding evidence
+      // isn't something to fabricate demo data for either.
+      attemptRecords: []
     };
   }
 }
