@@ -228,7 +228,8 @@
       "supportedAnswerShapes": [
         "single-number",
         "fill-blanks",
-        "mcq-4"
+        "mcq-4",
+        "circle"
       ],
       "printSafe": true,
       "viewBox": "0 0 64 64"

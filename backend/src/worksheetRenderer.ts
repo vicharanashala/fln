@@ -1,6 +1,13 @@
 import { getAdapter, MAX_SETS_PER_PAGE_LOAD } from './classAdapters';
 import { launchBrowser } from './browser';
 
+export {
+  type AnswerSpaceRule,
+  getAnswerSpaceRule,
+  getAllAnswerSpaceRules,
+  generateAnswerSpaceCss,
+} from './answerSpaceRules';
+
 export interface RenderedResult {
   index: number;
   pdfBase64: string;
