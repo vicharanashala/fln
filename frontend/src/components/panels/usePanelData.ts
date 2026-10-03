@@ -32,14 +32,32 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
   // empty state instead.
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(true);
+  const [schoolsError, setSchoolsError] = useState<string | null>(null);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
   const [apiReports, setApiReports] = useState<EvaluationReport[]>([]);
   const [apiWorksheets, setApiWorksheets] = useState<Worksheet[]>([]);
   const [apiTeachers, setApiTeachers] = useState<any[]>([]);
 
-  useEffect(() => {
+  const fetchSchools = () => {
+    setSchoolsLoading(true);
+    setSchoolsError(null);
     const headers = { 'Authorization': `Bearer ${token}` };
-    apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => { });
+    apiFetch('/api/schools', { headers })
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        if (Array.isArray(d)) setApiSchools(d);
+      })
+      .catch(err => {
+        setSchoolsError(err?.message || 'Failed to load school data');
+      })
+      .finally(() => setSchoolsLoading(false));
+  };
+
+  useEffect(() => {
+    fetchSchools();
+    const headers = { 'Authorization': `Bearer ${token}` };
     apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => { });
     apiFetch('/api/evaluation/reports', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiReports(d); }).catch(() => { });
     apiFetch('/api/worksheets', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiWorksheets(d); }).catch(() => { });
@@ -138,7 +156,7 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
   };
 
   return {
-    students, studentsLoading, schools, usersList, reportsList, worksheetsList, teachersList,
+    students, studentsLoading, schools, schoolsLoading, schoolsError, refreshSchools: fetchSchools, usersList, reportsList, worksheetsList, teachersList,
     getDistrictStats, getBlockStats, updateStudentLocally, refreshStudents,
   };
 }
