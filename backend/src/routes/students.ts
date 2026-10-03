@@ -1044,7 +1044,7 @@ export function registerStudentRoutes(app: express.Express) {
         '3. Continue routine class participation and worksheet drills.',
         '',
         'MEDIUM-TERM (Next month):',
-        `- Target next milestone: Level ${Math.min(59, recommendedLevel + 1)}.`,
+        `- Target next milestone: Level ${Math.min(109, recommendedLevel + 1)}.`,
         '',
         'The student demonstrated mastery in this attempt. No prerequisite remediation is required.',
         '',
@@ -1125,20 +1125,35 @@ export function registerStudentRoutes(app: express.Express) {
     await dbStore.updateStudent(student.id, {
       currentLevel: recommendedLevel,
       currentSubLevel: subLevel,
-      targetLevel: Math.min(59, recommendedLevel + 1),
+      targetLevel: Math.min(109, recommendedLevel + 1),
       levelHistory
     });
 
-    // Concept mastery by broad topic band. Coarse (four fixed bands keyed to
-    // recommendedLevel thresholds) rather than derived from which questions
-    // were actually missed — a real per-topic breakdown needs #413's error
-    // clustering, not something to fake here in the meantime.
-    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {
-      'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
-      'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
-      'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
-      'Operations': recommendedLevel >= 12 ? 'Strong' : 'Needs Practice'
-    };
+    // Derive conceptMastery from actual question performance per strand/topic:
+    // >= 80% Strong, >= 60% Satisfactory, < 60% Needs Practice.
+    const strandOutcomes = new Map<string, { correct: number; total: number }>();
+    for (const r of questionResults) {
+      const strand = CURRICULUM_MAPPING[r.sourceLevel]?.strand
+        || (r.q.conceptId ? describeConcept(r.q.conceptId)?.strand : undefined)
+        || r.q.topic
+        || 'General Mathematics';
+      const o = strandOutcomes.get(strand) ?? { correct: 0, total: 0 };
+      o.total += 1;
+      if (r.isCorrect) o.correct += 1;
+      strandOutcomes.set(strand, o);
+    }
+
+    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {};
+    for (const [strand, { correct, total }] of strandOutcomes) {
+      const pct = total > 0 ? (correct / total) * 100 : 0;
+      if (pct >= 80) {
+        conceptMastery[strand] = 'Strong';
+      } else if (pct >= 60) {
+        conceptMastery[strand] = 'Satisfactory';
+      } else {
+        conceptMastery[strand] = 'Needs Practice';
+      }
+    }
 
     // Persist what the child actually wrote, alongside the verdict.
     //
@@ -1202,7 +1217,7 @@ export function registerStudentRoutes(app: express.Express) {
         '3. Continue routine class participation and worksheet drills.',
         '',
         'MEDIUM-TERM (Next month):',
-        `- Target next milestone: Level ${Math.min(59, recommendedLevel + 1)}.`,
+        `- Target next milestone: Level ${Math.min(109, recommendedLevel + 1)}.`,
         '',
         'The student demonstrated mastery in this attempt. No prerequisite remediation is required.',
         '',
@@ -1232,16 +1247,14 @@ export function registerStudentRoutes(app: express.Express) {
       if (correct === 0) failedConceptIds.push(conceptId);
     }
 
-    // Override conceptMastery for the PASS case. The level-threshold heuristic
-    // above would otherwise mark every strand as "Needs Practice" because the
-    // student is placed at Level 2 — which directly contradicts the
-    // demonstrated mastery.
+    // Override conceptMastery for the PASS case.
     if (allCorrect) {
       for (const r of questionResults) {
-        const cfg = CURRICULUM_MAPPING[r.q.source_level || 0];
-        if (cfg?.strand) {
-          conceptMastery[cfg.strand] = 'Strong';
-        }
+        const strand = CURRICULUM_MAPPING[r.sourceLevel]?.strand
+          || (r.q.conceptId ? describeConcept(r.q.conceptId)?.strand : undefined)
+          || r.q.topic
+          || 'General Mathematics';
+        conceptMastery[strand] = 'Strong';
       }
     }
 
@@ -1338,7 +1351,7 @@ export function registerStudentRoutes(app: express.Express) {
         }
         if (failedFlnLevels.length > 0) {
           demonstratedLevel = Math.min(...failedFlnLevels);
-          nextDemonstratedLevel = Math.min(59, demonstratedLevel + 1);
+          nextDemonstratedLevel = Math.min(109, demonstratedLevel + 1);
         }
       }
       const currentCfg = CURRICULUM_MAPPING[demonstratedLevel];
