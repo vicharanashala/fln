@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="bicycle">
+  <g fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="15" cy="45" r="11"/><circle cx="49" cy="45" r="11"/><path d="m15 45 11-23 11 23H15l23-21 11 21M38 24l-4-11h10M21 22h12m4 23 5 5h5"/>
+  </g>
+</svg>

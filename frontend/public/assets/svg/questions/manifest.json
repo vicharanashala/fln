@@ -13,6 +13,22 @@
         {
           "variantId": "pear",
           "file": "fruits--pear.svg"
+        },
+        {
+          "variantId": "banana",
+          "file": "fruits--banana.svg"
+        },
+        {
+          "variantId": "orange",
+          "file": "fruits--orange.svg"
+        },
+        {
+          "variantId": "grapes",
+          "file": "fruits--grapes.svg"
+        },
+        {
+          "variantId": "strawberry",
+          "file": "fruits--strawberry.svg"
         }
       ],
       "supportedAnswerShapes": [
@@ -34,6 +50,22 @@
         {
           "variantId": "pepper",
           "file": "vegetables--pepper.svg"
+        },
+        {
+          "variantId": "tomato",
+          "file": "vegetables--tomato.svg"
+        },
+        {
+          "variantId": "peas",
+          "file": "vegetables--peas.svg"
+        },
+        {
+          "variantId": "aubergine",
+          "file": "vegetables--aubergine.svg"
+        },
+        {
+          "variantId": "pumpkin",
+          "file": "vegetables--pumpkin.svg"
         }
       ],
       "supportedAnswerShapes": [
@@ -55,6 +87,22 @@
         {
           "variantId": "bird",
           "file": "animals--bird.svg"
+        },
+        {
+          "variantId": "elephant",
+          "file": "animals--elephant.svg"
+        },
+        {
+          "variantId": "rabbit",
+          "file": "animals--rabbit.svg"
+        },
+        {
+          "variantId": "turtle",
+          "file": "animals--turtle.svg"
+        },
+        {
+          "variantId": "butterfly",
+          "file": "animals--butterfly.svg"
         }
       ],
       "supportedAnswerShapes": [
@@ -76,6 +124,10 @@
         {
           "variantId": "fish",
           "file": "pets--fish.svg"
+        },
+        {
+          "variantId": "hamster",
+          "file": "pets--hamster.svg"
         }
       ],
       "supportedAnswerShapes": [
@@ -97,6 +149,18 @@
         {
           "variantId": "bus",
           "file": "vehicles--bus.svg"
+        },
+        {
+          "variantId": "bicycle",
+          "file": "vehicles--bicycle.svg"
+        },
+        {
+          "variantId": "boat",
+          "file": "vehicles--boat.svg"
+        },
+        {
+          "variantId": "train",
+          "file": "vehicles--train.svg"
         }
       ],
       "supportedAnswerShapes": [
@@ -118,6 +182,14 @@
         {
           "variantId": "sign",
           "file": "street-furniture--sign.svg"
+        },
+        {
+          "variantId": "bench",
+          "file": "street-furniture--bench.svg"
+        },
+        {
+          "variantId": "bin",
+          "file": "street-furniture--bin.svg"
         }
       ],
       "supportedAnswerShapes": [
@@ -139,6 +211,10 @@
         {
           "variantId": "school",
           "file": "buildings--school.svg"
+        },
+        {
+          "variantId": "hut",
+          "file": "buildings--hut.svg"
         }
       ],
       "supportedAnswerShapes": [
@@ -160,6 +236,14 @@
         {
           "variantId": "shoe",
           "file": "clothing--shoe.svg"
+        },
+        {
+          "variantId": "cap",
+          "file": "clothing--cap.svg"
+        },
+        {
+          "variantId": "sock",
+          "file": "clothing--sock.svg"
         }
       ],
       "supportedAnswerShapes": [
@@ -181,6 +265,14 @@
         {
           "variantId": "tree",
           "file": "flowers-trees--tree.svg"
+        },
+        {
+          "variantId": "leaf",
+          "file": "flowers-trees--leaf.svg"
+        },
+        {
+          "variantId": "sunflower",
+          "file": "flowers-trees--sunflower.svg"
         }
       ],
       "supportedAnswerShapes": [
@@ -202,6 +294,18 @@
         {
           "variantId": "book",
           "file": "classroom-objects--book.svg"
+        },
+        {
+          "variantId": "ruler",
+          "file": "classroom-objects--ruler.svg"
+        },
+        {
+          "variantId": "bag",
+          "file": "classroom-objects--bag.svg"
+        },
+        {
+          "variantId": "scissors",
+          "file": "classroom-objects--scissors.svg"
         }
       ],
       "supportedAnswerShapes": [
@@ -223,6 +327,14 @@
         {
           "variantId": "square",
           "file": "mixed--square.svg"
+        },
+        {
+          "variantId": "triangle",
+          "file": "mixed--triangle.svg"
+        },
+        {
+          "variantId": "star",
+          "file": "mixed--star.svg"
         }
       ],
       "supportedAnswerShapes": [

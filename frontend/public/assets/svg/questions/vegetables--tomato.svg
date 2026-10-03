@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="tomato">
+  <g fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M31 20C8 6-1 46 20 54c8 4 16 4 24 0 21-8 12-48-11-34"/><path d="m32 25-13-8 11 1 2-8 3 8 11-1-14 8ZM32 17V6M15 32c-2 5-1 9 1 12"/>
+  </g>
+</svg>
