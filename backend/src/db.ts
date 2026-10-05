@@ -1857,6 +1857,13 @@ export class DBStore {
     if (this.mongoDb) return await this.mongoDb.collection<Worksheet>('worksheets').find({}).toArray();
     return this.data?.worksheets || [];
   }
+  async getWorksheet(id: string): Promise<Worksheet | undefined> {
+    if (this.mongoDb) {
+      const ws = await this.mongoDb.collection<Worksheet>('worksheets').findOne({ id });
+      return ws ?? undefined;
+    }
+    return (this.data?.worksheets || []).find(w => w.id === id);
+  }
   async getStudentCycleLocks() {
     if (this.mongoDb) return await this.mongoDb.collection<StudentCycleLock>('studentCycleLocks').find({}).toArray();
     return this.data?.studentCycleLocks || [];
@@ -2100,6 +2107,9 @@ export class DBStore {
     let result = this.data?.evaluationReports || [];
     if (opts?.studentIds) result = result.filter(r => opts.studentIds!.includes(r.studentId));
     return result;
+  }
+  async getEvaluationReportsForStudent(studentId: string): Promise<EvaluationReport[]> {
+    return await this.getEvaluationReports({ studentIds: [studentId] });
   }
 
   async getStudentsByIds(ids: string[]): Promise<Student[]> {
