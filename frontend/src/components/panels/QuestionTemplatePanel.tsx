@@ -54,6 +54,7 @@ export const QuestionTemplatePanel: React.FC = () => {
   const [subskills, setSubskills] = useState<string[]>([]);
   const [generationIntent, setGenerationIntent] = useState('');
   const [questionFamily, setQuestionFamily] = useState<'counting' | 'operation'>('operation');
+  const [assessmentMode, setAssessmentMode] = useState<'written' | 'observed' | 'both'>('written');
   const [svgThemeIds, setSvgThemeIds] = useState<string[]>([]);
   const [params, setParams] = useState<QuestionTemplateParams>(EMPTY_PARAMS);
   const [name, setName] = useState('');
@@ -201,6 +202,7 @@ export const QuestionTemplatePanel: React.FC = () => {
     setSubskills([]);
     setGenerationIntent('');
     setQuestionFamily('operation');
+    setAssessmentMode('written');
     setSvgThemeIds([]);
     setParams(EMPTY_PARAMS);
     setName('');
@@ -216,6 +218,7 @@ export const QuestionTemplatePanel: React.FC = () => {
     setSubskills(t.subskills);
     setGenerationIntent(t.generationIntent ?? '');
     setQuestionFamily(t.questionFamily ?? 'operation');
+    setAssessmentMode(t.assessmentMode ?? 'written');
     setSvgThemeIds(t.svgThemeIds ?? []);
     setParams({
       numeralRange: t.numeralRange,
@@ -258,6 +261,7 @@ export const QuestionTemplatePanel: React.FC = () => {
         subskills,
         generationIntent: generationIntent.trim(),
         questionFamily,
+        assessmentMode,
         svgThemeIds,
         ...params,
         name: name.trim(),
@@ -576,15 +580,29 @@ export const QuestionTemplatePanel: React.FC = () => {
               <span className="tabular-nums">{generationIntent.length} / {MAX_INTENT_CHARS}</span>
             </div>
 
-            <div className="mt-3">
-              <div className={labelCls}>Kind of question</div>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {(catalog?.questionFamily ?? ['counting', 'operation']).map(f => (
-                  <button key={f} type="button" onClick={() => { setQuestionFamily(f as 'counting' | 'operation'); setFormError(null); }}
-                    aria-pressed={questionFamily === f} className={chipCls(questionFamily === f)}>
-                    {f === 'counting' ? 'Counting a picture' : 'Number operation'}
-                  </button>
-                ))}
+            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <div className={labelCls}>Kind of question</div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {(catalog?.questionFamily ?? ['counting', 'operation']).map(f => (
+                    <button key={f} type="button" onClick={() => { setQuestionFamily(f as 'counting' | 'operation'); setFormError(null); }}
+                      aria-pressed={questionFamily === f} className={chipCls(questionFamily === f)}>
+                      {f === 'counting' ? 'Counting a picture' : 'Number operation'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className={labelCls}>Assessment Mode</div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {(catalog?.assessmentMode ?? ['written', 'observed', 'both']).map(mode => (
+                    <button key={mode} type="button" onClick={() => { setAssessmentMode(mode as 'written' | 'observed' | 'both'); setFormError(null); }}
+                      aria-pressed={assessmentMode === mode} className={chipCls(assessmentMode === mode)}>
+                      {mode}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

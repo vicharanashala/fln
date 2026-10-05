@@ -333,11 +333,16 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     const tags = normalizeTags(req.body?.tags);
     const name: string = (req.body?.name ?? '').trim();
 
+    const assessmentMode: 'written' | 'observed' | 'both' =
+      req.body?.assessmentMode && ['written', 'observed', 'both'].includes(req.body.assessmentMode)
+        ? req.body.assessmentMode
+        : 'written';
+
     const problem = validateTemplate(conceptId, skills, subskills, generationIntent, questionFamily, svgThemeIds, answerSpec, params, tags, name);
     if (problem) return res.status(400).json({ error: problem });
 
     const template = buildTemplate(
-      { conceptId, skills, subskills, generationIntent, questionFamily: questionFamily as QuestionFamily, svgThemeIds, params, name, tags, source: 'form' },
+      { conceptId, skills, subskills, generationIntent, questionFamily: questionFamily as QuestionFamily, assessmentMode, svgThemeIds, params, name, tags, source: 'form' },
       user,
       new Date().toISOString()
     );
@@ -393,6 +398,10 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     }
 
     const concept = getLevelForConcept(conceptId)!;
+    const assessmentMode: 'written' | 'observed' | 'both' =
+      req.body?.assessmentMode && ['written', 'observed', 'both'].includes(req.body.assessmentMode)
+        ? req.body.assessmentMode
+        : (current.assessmentMode ?? 'written');
 
     // The name is the author's once they have edited it, so it is only
     // re-derived when the caller explicitly asks or has left it empty.
@@ -404,6 +413,7 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
       levelName: getLevel(concept.levelNumber)!.capability,
       skills,
       subskills,
+      assessmentMode,
       generationIntent: generationIntent.trim(),
       questionFamily: questionFamily as QuestionFamily,
       paramMode: 'structured' as ParamMode,

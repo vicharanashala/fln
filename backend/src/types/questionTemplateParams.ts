@@ -344,6 +344,7 @@ export function getParamCatalog() {
     numeralRange: NUMERAL_RANGES,
     deprecatedNumeralRange: DEPRECATED_NUMERAL_RANGES,
     questionFamily: QUESTION_FAMILIES,
+    assessmentMode: ['written', 'observed', 'both'],
     digitCount: DIGIT_COUNTS,
     operations: OPERATIONS,
     carryBehavior: CARRY_BEHAVIORS,
