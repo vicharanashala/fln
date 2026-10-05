@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "./db";
+import { evaluateQuestionInstance } from "./answerMatching";
 
 // Valid Gemini model IDs, primary first then fallbacks (used by generateContentWithRetry).
 // Centralized here so the call sites below don't drift.
@@ -475,20 +476,13 @@ Provide a clean narrative feedback summary.`;
   let recommendedLevel = 1;
 
   // Grade the questions deterministically
-  questions.forEach((q) => {
-    const submitted = (submittedAnswers[q.question_id] || '').trim().toLowerCase();
-    const correct = q.answer.trim().toLowerCase();
-    if (answersMatch(submitted, correct)) {
-      score++;
-    }
-  });
-
-  // Weakest level mapping: find the lowest source_level of any failed question
   const failedLevels: number[] = [];
   questions.forEach((q) => {
-    const submitted = (submittedAnswers[q.question_id] || '').trim().toLowerCase();
-    const correct = q.answer.trim().toLowerCase();
-    if (!answersMatch(submitted, correct)) {
+    const submitted = (submittedAnswers[q.question_id] || '').trim();
+    const evalResult = evaluateQuestionInstance(submitted, q);
+    if (evalResult.isCorrect) {
+      score++;
+    } else {
       failedLevels.push(q.source_level);
     }
   });
@@ -770,13 +764,10 @@ Provide:
   questions.forEach(q => {
     const submitted = (
       submittedAnswers[q.question_id] || ''
-    )
-      .trim()
-      .toLowerCase();
+    ).trim();
 
-    const correct = q.answer.trim().toLowerCase();
-
-    const isCorrect = answersMatch(submitted, correct);
+    const evalResult = evaluateQuestionInstance(submitted, q);
+    const isCorrect = evalResult.isCorrect;
 
     const topic = q.topic || 'General Mathematics';
 

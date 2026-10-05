@@ -7,6 +7,7 @@ import { PDFDocument } from 'pdf-lib';
 import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_NAMES, dedupeQuestionsById } from '../db';
 import { getAuthUser, canAccessStudent } from '../auth';
 import { evaluateAIWorksheet } from '../gemini';
+import { evaluateQuestionInstance, getExpectedAnswerForQuestionInstance } from '../answerMatching';
 import { PYTHON_BIN, AI_SERVICES_DIR } from '../config';
 import { runCertificationEligibility } from '../services/certificationRecords';
 import { invalidateFingerprintCache } from './misconceptions';
@@ -1069,13 +1070,17 @@ export function registerEvaluationRoutes(app: express.Express) {
       timestamp: now.toISOString(),
       // Issue #180: per-question breakdown so a teacher can later correct
       // individual mis-scanned answers via the override endpoint.
-      questionResults: studentQuestions.map(q => ({
-        questionId: q.question_id,
-        question: q.question,
-        correctAnswer: q.answer,
-        submittedAnswer: answers[q.question_id] || '',
-        isCorrect: (answers[q.question_id] || '').trim().toLowerCase() === q.answer.trim().toLowerCase(),
-      })),
+      questionResults: studentQuestions.map(q => {
+        const subAns = answers[q.question_id] || '';
+        const evalRes = evaluateQuestionInstance(subAns, q);
+        return {
+          questionId: q.question_id,
+          question: q.question,
+          correctAnswer: evalRes.expectedAnswer || getExpectedAnswerForQuestionInstance(q),
+          submittedAnswer: subAns,
+          isCorrect: evalRes.isCorrect,
+        };
+      }),
     };
 
     await dbStore.addEvaluationReport(report);

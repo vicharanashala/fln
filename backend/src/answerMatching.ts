@@ -1,20 +1,5 @@
-/**
- * Deciding whether a child's written answer matches the expected one.
- *
- * This is the single most consequential comparison in the diagnostic path:
- * its result feeds `recommendedLevel`, so a false negative here does not just
- * lose a mark — it places the child at a lower level and hands them the wrong
- * worksheets. The inputs are OCR'd handwriting, so surface-level variation is
- * the norm rather than the exception.
- *
- * The rule followed here: normalise only differences that are unambiguously
- * *notation*, never differences that could be a genuine misconception. "07"
- * and "7" are the same number written two ways. "2/3" and "0.67" are not
- * obviously the same claim by a seven-year-old, and treating them as equal
- * would erase exactly the evidence the misconception work needs. So numeric
- * equality is applied only when BOTH sides parse as plain numbers, and
- * anything else falls back to a normalised string compare.
- */
+import { Question } from './db';
+import { pickVariant, SvgThemeVariant } from './svgAssetCatalog';
 
 /** Lowercase, collapse whitespace, tidy list separators, drop a trailing full stop. */
 export function normalizeAnswer(value: unknown): string {
@@ -69,6 +54,197 @@ export function answersMatch(submitted: unknown, expected: unknown): boolean {
       const qn = asNumber(eParts[i]);
       return pn !== null && qn !== null && pn === qn;
     });
+  }
+
+  return false;
+}
+
+/**
+ * Extract authoritative expected answer for a concrete question instance.
+ *
+ * Prefers explicitly persisted expectedAnswer/answer or generatedParams answer,
+ * ensuring evaluation uses the instance's concrete answer instead of a generic template default.
+ */
+export function getExpectedAnswerForQuestionInstance(instance: Partial<Question> | any): string {
+  if (!instance || typeof instance !== 'object') return '';
+
+  if (typeof instance.expectedAnswer === 'string' && instance.expectedAnswer.trim() !== '') {
+    return instance.expectedAnswer.trim();
+  }
+  if (typeof instance.answer === 'string' && instance.answer.trim() !== '') {
+    return instance.answer.trim();
+  }
+  if (instance.generatedParams && typeof instance.generatedParams === 'object') {
+    if (typeof instance.generatedParams.expectedAnswer === 'string' && instance.generatedParams.expectedAnswer.trim() !== '') {
+      return instance.generatedParams.expectedAnswer.trim();
+    }
+    if (typeof instance.generatedParams.answer === 'string' && instance.generatedParams.answer.trim() !== '') {
+      return instance.generatedParams.answer.trim();
+    }
+  }
+  return '';
+}
+
+/**
+ * Resolve the SVG theme/variant for a question instance.
+ *
+ * If already persisted on the question instance, use the persisted value.
+ * Only call pickVariant if not persisted and deterministic seed is available.
+ */
+export function getSvgVariantForQuestionInstance(
+  instance: Partial<Question> | any,
+  seed?: string
+): SvgThemeVariant | string | undefined {
+  if (!instance || typeof instance !== 'object') return undefined;
+
+  if (instance.svgVariantId) return instance.svgVariantId;
+  if (instance.svgAsset) return instance.svgAsset;
+  if (instance.svgThemeId) {
+    if (seed) {
+      const picked = pickVariant(instance.svgThemeId, seed);
+      if (picked) return picked;
+    }
+    return instance.svgThemeId;
+  }
+  return undefined;
+}
+
+/**
+ * Evaluate a student's response against a specific question instance.
+ *
+ * Supports answer types:
+ * - single-number / number
+ * - fill-blanks
+ * - mcq-4 / choice
+ * - true-false
+ * - matching
+ * - trace / text
+ *
+ * Fails safely if required answer metadata is missing or malformed for a templated question.
+ */
+export function evaluateAnswerAgainstQuestion(
+  submitted: unknown,
+  questionInstance: Partial<Question> | any
+): {
+  isCorrect: boolean;
+  expectedAnswer: string;
+  submittedAnswer: string;
+  error?: string;
+} {
+  const sStr = String(submitted ?? '').trim();
+
+  if (!questionInstance || typeof questionInstance !== 'object') {
+    return {
+      isCorrect: false,
+      expectedAnswer: '',
+      submittedAnswer: sStr,
+      error: 'MISSING_METADATA',
+    };
+  }
+
+  const expected = getExpectedAnswerForQuestionInstance(questionInstance);
+  const isTemplated = !!(
+    questionInstance.templateId ||
+    questionInstance.generationIntent ||
+    questionInstance.generatedParams ||
+    questionInstance.questionFamily
+  );
+
+  if (expected === '') {
+    if (isTemplated) {
+      return {
+        isCorrect: false,
+        expectedAnswer: '',
+        submittedAnswer: sStr,
+        error: 'MISSING_EXPECTED_ANSWER',
+      };
+    }
+    return {
+      isCorrect: false,
+      expectedAnswer: '',
+      submittedAnswer: sStr,
+    };
+  }
+
+  const answerType = String(
+    questionInstance.answer_type || questionInstance.answerType || ''
+  ).toLowerCase();
+
+  let isCorrect = false;
+
+  if (answerType === 'true-false') {
+    isCorrect = evaluateTrueFalse(sStr, expected);
+  } else if (answerType === 'matching') {
+    isCorrect = evaluateMatching(sStr, expected);
+  } else if (answerType === 'mcq-4' || answerType === 'choice') {
+    isCorrect = evaluateMcq(sStr, expected, questionInstance.choices);
+  } else if (answerType === 'fill-blanks') {
+    isCorrect = answersMatch(sStr, expected);
+  } else {
+    isCorrect = answersMatch(sStr, expected);
+  }
+
+  return {
+    isCorrect,
+    expectedAnswer: expected,
+    submittedAnswer: sStr,
+  };
+}
+
+export const evaluateQuestionInstance = evaluateAnswerAgainstQuestion;
+
+function normalizeTrueFalse(val: string): 'true' | 'false' | null {
+  const norm = normalizeAnswer(val);
+  if (['true', 't', 'yes', '1', 'correct', 'right'].includes(norm)) return 'true';
+  if (['false', 'f', 'no', '0', 'incorrect', 'wrong'].includes(norm)) return 'false';
+  return null;
+}
+
+function evaluateTrueFalse(submitted: string, expected: string): boolean {
+  const normSub = normalizeTrueFalse(submitted);
+  const normExp = normalizeTrueFalse(expected);
+  if (normSub && normExp) {
+    return normSub === normExp;
+  }
+  return answersMatch(submitted, expected);
+}
+
+function evaluateMcq(submitted: string, expected: string, choices?: string[]): boolean {
+  if (answersMatch(submitted, expected)) return true;
+  const normSub = normalizeAnswer(submitted);
+  const normExp = normalizeAnswer(expected);
+  if (normSub === normExp) return true;
+
+  if (Array.isArray(choices) && choices.length > 0) {
+    const letters = ['a', 'b', 'c', 'd', 'e', 'f'];
+    const expIdx = letters.indexOf(normExp);
+    if (expIdx >= 0 && expIdx < choices.length) {
+      if (answersMatch(normSub, choices[expIdx])) return true;
+    }
+    const subIdx = letters.indexOf(normSub);
+    if (subIdx >= 0 && subIdx < choices.length) {
+      if (answersMatch(choices[subIdx], expected)) return true;
+    }
+  }
+
+  return false;
+}
+
+function evaluateMatching(submitted: string, expected: string): boolean {
+  if (answersMatch(submitted, expected)) return true;
+  const parsePairs = (raw: string): string[] => {
+    return normalizeAnswer(raw)
+      .split(',')
+      .map(p => p.replace(/->|:|=/g, '→').trim())
+      .filter(Boolean)
+      .sort();
+  };
+
+  const subPairs = parsePairs(submitted);
+  const expPairs = parsePairs(expected);
+
+  if (subPairs.length > 0 && subPairs.length === expPairs.length) {
+    return subPairs.every((pair, idx) => answersMatch(pair, expPairs[idx]));
   }
 
   return false;

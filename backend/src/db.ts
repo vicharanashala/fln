@@ -161,7 +161,8 @@ export interface Question {
   question_id: string;
   question: string;
   answer: string;
-  answer_type: 'text' | 'number' | 'choice';
+  expectedAnswer?: string;
+  answer_type: 'text' | 'number' | 'choice' | 'single-number' | 'fill-blanks' | 'mcq-4' | 'true-false' | 'matching' | 'trace' | string;
   choices?: string[];
   topic: string;
   subtopic: string;
@@ -169,6 +170,12 @@ export interface Question {
   source_level: number; // Mapping to mathematical level
   conceptId?: string; // Concept ID from 93-node framework (e.g. S1.1, S3.3)
   svgAsset?: string; // Standard pre-built SVG asset category
+  svgThemeId?: string;
+  svgVariantId?: string;
+  templateId?: string;
+  generationIntent?: string;
+  questionFamily?: QuestionFamily | string;
+  generatedParams?: Record<string, any>;
 }
 
 /**
