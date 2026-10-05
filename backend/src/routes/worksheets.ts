@@ -8,6 +8,7 @@ import { generateQuestionsForLevel } from '../levelGenerator';
 import * as levelsBackendClient from '../levelsBackendClient';
 import { ROOT_DIR } from '../config';
 import { recordStudentCycleLock } from '../paperLock';
+import { getAllPaperTypeConfigs, getClassPaperTypeConfig } from '../config/paperTypeConfig';
 
 /**
  * Shared pipeline: build a roster -> Levels_backend /api/generate-batch ->
@@ -499,5 +500,26 @@ export function registerWorksheetRoutes(app: express.Express) {
       console.error('Batch ZIP download failed:', err);
       res.status(502).json({ error: err.message });
     }
+  });
+
+  // Issue #593: Get paper configuration for all paper types or a specific requestType
+  app.get('/api/worksheets/paper-config', (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const configs = getAllPaperTypeConfigs();
+    res.json({ success: true, configs });
+  });
+
+  app.get('/api/worksheets/paper-config/:requestType', (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { requestType } = req.params;
+    const classNumberParam = req.query.classNumber;
+    const classNumber = classNumberParam ? parseInt(String(classNumberParam), 10) : undefined;
+
+    const config = getClassPaperTypeConfig(requestType, classNumber);
+    res.json({ success: true, config });
   });
 }
