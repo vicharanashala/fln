@@ -567,26 +567,32 @@ function buildSetData(setNum){
     '<div class="section-label">Section 1 — Place Value Blocks</div>'+makeSec(['S1'],allAnswers,true)+
     '<div class="section-label">Section 2 — Expanded Form</div>'+makeSec(['S2'],allAnswers,true)+
     '<div class="section-label">Section 3 — Compare Numbers</div>'+makeSec(['S3'],allAnswers,true)+
-    '<div class="section-label">Section 4 — Addition</div>'+makeSec(['S4'],allAnswers,true)+
-    '<div class="section-label">Section 5 — Subtraction</div>'+makeSec(['S5'],allAnswers,true)+
-    '<div class="section-label">Section 6 — Money</div>'+makeSec(['S6'],allAnswers,true);
+    '<div class="section-label">Section 4 — Addition</div>'+makeSec(['S4'],allAnswers,true);
 
   const p2body=
+    '<div class="section-label">Section 5 — Subtraction</div>'+makeSec(['S5'],allAnswers,true)+
+    '<div class="section-label">Section 6 — Money</div>'+makeSec(['S6'],allAnswers,true)+
     '<div class="section-label">Section 7 — Order Numbers</div>'+makeSec(['S7'],allAnswers,true)+
-    makeSec(['S8','S10'],allAnswers,false)+
-    '<div class="section-label">Section 9 — Division</div>'+makeSec(['S9'],allAnswers,true)+
-    makeSec(['S11','S12'],allAnswers,false);
+    makeSec(['S8'],allAnswers,false);
 
   const p3body=
+    '<div class="section-label">Section 9 — Division</div>'+makeSec(['S9'],allAnswers,true)+
+    makeSec(['S10','S11','S12'],allAnswers,false);
+
+  const p4body=
     '<div class="section-label">Section 13 — Pictograph</div>'+makeSec(['S13'],allAnswers,true)+
     '<div class="section-label">Section 14 — Multiplication &amp; Fact Family</div>'+makeSec(['S14'],allAnswers,true)+
-    makeSec(['S15','S16'],allAnswers,false)+
+    makeSec(['S15','S16'],allAnswers,false);
+
+  const p5body=
     '<div class="section-label">Section 17 — Choose the Operation</div>'+makeSec(['S17'],allAnswers,true);
 
   const pageHtml=
-    makePageWrapper(setNum,1,3,p1body,pageId,true)+
-    makePageWrapper(setNum,2,3,p2body,pageId,false)+
-    makePageWrapper(setNum,3,3,p3body,pageId,false);
+    makePageWrapper(setNum,1,5,p1body,pageId,true)+
+    makePageWrapper(setNum,2,5,p2body,pageId,false)+
+    makePageWrapper(setNum,3,5,p3body,pageId,false)+
+    makePageWrapper(setNum,4,5,p4body,pageId,false)+
+    makePageWrapper(setNum,5,5,p5body,pageId,false);
 
   return {pageHtml,answers:allAnswers,pageId};
 }

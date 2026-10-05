@@ -8430,13 +8430,20 @@ async function buildPdfBlob(idx){
   const {canvas:hc, heightMM:hh} = await renderEl(headerEl, PDF_CONTENT_W);
   pdf.addImage(hc.toDataURL('image/jpeg', 0.80),'JPEG',PDF_MARGIN_MM,y,PDF_CONTENT_W,hh);
   y += hh + 3;
+  const MAX_QUESTIONS_PER_PAGE = 4;
+  let qCountOnPage = 0;
   for(const el of sectionEls){
     const {canvas, heightMM} = await renderEl(el, PDF_CONTENT_W);
     let hMM = heightMM, wMM = PDF_CONTENT_W;
     if(hMM > PDF_CONTENT_H - PDF_MARGIN_MM){ const scale=(PDF_CONTENT_H-PDF_MARGIN_MM)/hMM; hMM*=scale; wMM*=scale; }
-    if(y + hMM > PDF_PAGE_H_MM - PDF_MARGIN_MM){ pdf.addPage(); y = PDF_MARGIN_MM; }
+    if((y + hMM > PDF_PAGE_H_MM - PDF_MARGIN_MM) || (qCountOnPage >= MAX_QUESTIONS_PER_PAGE)){
+      pdf.addPage();
+      y = PDF_MARGIN_MM;
+      qCountOnPage = 0;
+    }
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.80),'JPEG',PDF_MARGIN_MM,y,wMM,hMM);
     y += hMM + 4;
+    qCountOnPage++;
     first=false;
   }
   const setNum = idx+1;

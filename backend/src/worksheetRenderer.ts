@@ -8,6 +8,17 @@ export {
   generateAnswerSpaceCss,
 } from './answerSpaceRules';
 
+export {
+  MAX_QUESTIONS_PER_PAGE,
+  getQuestionHeightMm,
+  paginateQuestions,
+  paginateDOMBlocks,
+  type QuestionLayoutInput,
+  type PaginationOptions,
+  type PageAssignment,
+  type PaginationResult,
+} from './worksheetPagination';
+
 export interface RenderedResult {
   index: number;
   pdfBase64: string;

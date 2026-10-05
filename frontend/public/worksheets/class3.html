@@ -1058,33 +1058,30 @@ document.getElementById('printBtn').addEventListener('click',()=>window.print())
 function computeSlices(iw,ih,pw,ph,atomicBounds){
   const pxmm=iw/pw, maxH=Math.max(1,Math.round(ph*pxmm));
   atomicBounds=(atomicBounds||[]).slice().sort((a,b)=>a.bottom-b.bottom);
+  const MAX_QUESTIONS_PER_PAGE = 4;
 
-  // Safe cut points: very top, very bottom, and the bottom edge of every
-  // "atomic" (indivisible) question block — never the inside of one.
-  const safeSet=new Set([0, ih]);
-  atomicBounds.forEach(b=>{ if(b.bottom>0 && b.bottom<ih) safeSet.add(Math.round(b.bottom)); });
-  const safePoints=[...safeSet].sort((a,b)=>a-b);
-
-  function isInsideAtomic(y){
-    for(const b of atomicBounds){ if(y>b.top+0.5 && y<b.bottom-0.5) return true; }
-    return false;
-  }
-
-  const sl=[]; let y=0;
+  const sl=[]; let y=0; let boundIdx=0;
   while(y<ih){
     const idealEnd=Math.min(y+maxH, ih);
-    // Pick the largest safe break point that still fits on this page —
-    // this fills each page as fully as possible without cutting a question.
     let chosen=null;
-    for(let i=safePoints.length-1;i>=0;i--){
-      const p=safePoints[i];
-      if(p>y && p<=idealEnd){ chosen=p; break; }
+    let qCount=0;
+
+    for(let i=boundIdx; i<atomicBounds.length; i++){
+      const b=atomicBounds[i];
+      if(b.top>=y-1){
+        if(qCount>=MAX_QUESTIONS_PER_PAGE || b.bottom>idealEnd){
+          break;
+        }
+        chosen=Math.round(b.bottom);
+        qCount++;
+        boundIdx=i+1;
+      }
     }
-    if(chosen===null || isInsideAtomic(chosen)){
-      // Only happens if a single question is taller than a full page —
-      // unavoidable edge case; fall back to a plain page-height cut.
+
+    if(chosen===null || chosen<=y){
       chosen=idealEnd;
     }
+
     const h=chosen-y;
     sl.push({sy:y, sh:h, mh:h/pxmm});
     y=chosen;
@@ -1110,6 +1107,7 @@ async function buildPdfBlob(idx){
   // Locate every indivisible "question unit" on the page so pagination can
   // avoid cutting through the middle of one.
   const ATOMIC_SELECTOR=[
+    '.section',
     'tr',
     '.calcbox',
     '.mul-box',

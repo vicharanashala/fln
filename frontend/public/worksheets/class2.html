@@ -1264,29 +1264,35 @@ async function buildPdfBlobForSet(setIndex) {
   const pageHeightPx   = Math.round(usableHeightMM * canvasPxPerMM);
   const marginTopPx    = Math.round(PDF_MARGIN_MM   * canvasPxPerMM);
 
-  /* ── 7. Greedy packing: decide which canvas-px rows go on which PDF page ── */
-  // Each PDF page is represented as { startPx, endPx }
-  // startPx / endPx are absolute canvas-y coordinates to crop.
+  /* ── 7. Question-aware packing: decide which canvas-px rows go on which PDF page ── */
+  // Enforces Issue #594: Max 4 questions per physical page, never split a question block
+  const MAX_QUESTIONS_PER_PAGE = 4;
   const pages = [];   // [{ startPx, endPx }]
   let pageStartPx = 0;
   let cursorPx    = 0; // next block will start at or after this px
+  let qCountOnPage = 0;
 
   for (let i = 0; i < canvasBlocks.length; i++) {
     const blk = canvasBlocks[i];
+    const isQuestion = blockEls[i] && blockEls[i].classList.contains('section');
     const blkHeight = blk.bottom - blk.top;
 
     // How many canvas-px are already used on the current page?
     const usedPx = cursorPx - pageStartPx;
 
+    const wouldExceedCount = isQuestion && (qCountOnPage >= MAX_QUESTIONS_PER_PAGE);
+    const wouldExceedHeight = (usedPx + blkHeight > pageHeightPx) && (usedPx > 0);
+
     // Will this block fit on the current page?
-    if (usedPx + blkHeight <= pageHeightPx || usedPx === 0) {
-      // Fits (or it's the very first block on an empty page — always place it)
-      cursorPx = blk.bottom;
-    } else {
-      // Doesn't fit — close current page and start a new one
+    if (wouldExceedCount || wouldExceedHeight) {
+      // Doesn't fit or exceeds max 4 questions — close current page and start a new one
       pages.push({ startPx: pageStartPx, endPx: cursorPx });
       pageStartPx = blk.top;   // new page starts right at the top of this block
       cursorPx    = blk.bottom;
+      qCountOnPage = isQuestion ? 1 : 0;
+    } else {
+      cursorPx = blk.bottom;
+      if (isQuestion) qCountOnPage++;
     }
   }
   // Close the last page

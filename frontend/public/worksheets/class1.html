@@ -811,7 +811,7 @@ function buildWorksheet(setNum){
       '<div class="section">'+sections[1]+'</div>'+
       '<div class="section">'+sections[2]+'</div>'+
       '<div class="section">'+sections[3]+'</div>'+
-      '<div class="ws-footer">Class 1 · FLN Diagnostic Paper · Set '+setNum+' · Page 1 of 2</div>'+
+      '<div class="ws-footer">Class 1 · FLN Diagnostic Paper · Set '+setNum+' · Page 1 of 3</div>'+
       '<div class="ws-page-id">'+pid+'-P1</div>'+
     '</div></div>';
 
@@ -824,8 +824,7 @@ function buildWorksheet(setNum){
       '<div class="section">'+sections[5]+'</div>'+
       '<div class="section">'+sections[6]+'</div>'+
       '<div class="section">'+sections[7]+'</div>'+
-      '<div class="section">'+sections[8]+'</div>'+
-      '<div class="ws-footer">Class 1 · FLN Diagnostic Paper · Set '+setNum+' · Page 2 of 2</div>'+
+      '<div class="ws-footer">Class 1 · FLN Diagnostic Paper · Set '+setNum+' · Page 2 of 3</div>'+
       '<div class="ws-page-id">'+pid+'-P2</div>'+
     '</div></div>';
 
@@ -839,7 +838,7 @@ function buildWorksheet(setNum){
       '<div class="ws-page-id">'+pid+'-P3</div>'+
     '</div></div>';
 
-  const html = page1Html + page2Html;
+  const html = page1Html + page2Html + page3Html;
   return {html,answers,coordHintsByQ};
 }
 
