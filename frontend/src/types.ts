@@ -1,3 +1,6 @@
+import type { QuestionFamily } from '../../backend/src/types/questionTemplateParams';
+export type { QuestionFamily };
+
 export enum UserRole {
   SUPERADMIN = 'superadmin',
   ADMIN = 'admin',
@@ -395,7 +398,7 @@ export interface QuestionTemplate {
   subskills: string[];
   /** What the question should make the child do. An instruction, not a finished question. */
   generationIntent: string;
-  questionFamily: 'counting' | 'operation';
+  questionFamily: QuestionFamily;
   paramMode: 'structured' | 'legacy-free-text' | 'hybrid';
   /** Ids into the SVG manifest. The artwork lives in files, not in the database. */
   svgThemeIds: string[];

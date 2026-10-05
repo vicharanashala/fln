@@ -9,8 +9,22 @@ import type {
   ParamCatalog,
   ImportResult,
 } from '../../types';
+import type { QuestionFamily } from '../../../../backend/src/types/questionTemplateParams';
 
 const MAX_INTENT_CHARS = 2000;
+
+const QUESTION_FAMILY_LABELS: Record<QuestionFamily, string> = {
+  counting: 'Counting a picture',
+  operation: 'Number operation',
+  shape: 'Shapes & spatial',
+  pattern: 'Pattern completion',
+  comparison: 'Measurement & comparison',
+  classification: 'Classification & grouping',
+  sequencing: 'Sequencing & ordering',
+  vocabulary: 'Math vocabulary',
+  calendar: 'Calendar & time',
+  reasoning: 'Reasoning & riddles',
+};
 
 const EMPTY_PARAMS: QuestionTemplateParams = {
   numeralRange: null,
@@ -53,7 +67,7 @@ export const QuestionTemplatePanel: React.FC = () => {
   const [skills, setSkills] = useState<string[]>([]);
   const [subskills, setSubskills] = useState<string[]>([]);
   const [generationIntent, setGenerationIntent] = useState('');
-  const [questionFamily, setQuestionFamily] = useState<'counting' | 'operation'>('operation');
+  const [questionFamily, setQuestionFamily] = useState<QuestionFamily>('operation');
   const [svgThemeIds, setSvgThemeIds] = useState<string[]>([]);
   const [params, setParams] = useState<QuestionTemplateParams>(EMPTY_PARAMS);
   const [name, setName] = useState('');
@@ -580,9 +594,9 @@ export const QuestionTemplatePanel: React.FC = () => {
               <div className={labelCls}>Kind of question</div>
               <div className="mt-1 flex flex-wrap gap-2">
                 {(catalog?.questionFamily ?? ['counting', 'operation']).map(f => (
-                  <button key={f} type="button" onClick={() => { setQuestionFamily(f as 'counting' | 'operation'); setFormError(null); }}
+                  <button key={f} type="button" onClick={() => { setQuestionFamily(f as QuestionFamily); setFormError(null); }}
                     aria-pressed={questionFamily === f} className={chipCls(questionFamily === f)}>
-                    {f === 'counting' ? 'Counting a picture' : 'Number operation'}
+                    {QUESTION_FAMILY_LABELS[f as QuestionFamily] ?? f}
                   </button>
                 ))}
               </div>
