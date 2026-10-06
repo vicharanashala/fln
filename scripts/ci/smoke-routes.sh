@@ -57,7 +57,13 @@ login_retry() { # login_retry <email> — up to ~60s for the seed to finish
 }
 SUPER=$(login_retry superadmin@fln.org)
 TEACHER=$(login_retry teacher.ap_gnt_gnt_01_01.c2@fln.org)
-if [ -z "$SUPER" ] || [ -z "$TEACHER" ]; then echo "Login failed for a seeded demo account after 60s — the seed or auth is broken."; tail -20 "$LOG"; exit 1; fi
+if [ -z "$SUPER" ] || [ -z "$TEACHER" ]; then
+  echo "Login failed for a seeded demo account after 60s — the seed or auth is broken."
+  echo "Raw response from the server:"
+  curl -s -i --max-time 10 -X POST "$BASE/api/auth/login" -H 'Content-Type: application/json' \
+    -d "{\"email\":\"superadmin@fln.org\",\"password\":\"${SEED_DEMO_PASSWORD:-Fln@2026}\"}" | head -20
+  tail -20 "$LOG"; exit 1
+fi
 
 ROUTES=$(grep -rhoE "app\.get\('/api/[^':]*'" backend/src | sed "s/app.get('//; s/'$//" | sort -u)
 echo "probing $(echo "$ROUTES" | wc -l | tr -d ' ') routes as superadmin and teacher"
