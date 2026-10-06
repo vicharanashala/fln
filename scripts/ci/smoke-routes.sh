@@ -22,13 +22,17 @@ PORT="${SMOKE_PORT:-3999}"
 BASE="http://127.0.0.1:$PORT"
 BASELINE="$ROOT/scripts/ci/smoke-baseline.txt"
 LOG="$(mktemp)"
-CREATED_DB=0
-[ -f "$ROOT/backend/data/db.json" ] || CREATED_DB=1
+# Always start from a FRESH file-store seed, so a local run behaves exactly like
+# CI. A db.json left over from earlier local runs is moved aside and restored.
+DB="$ROOT/backend/data/db.json"
+STASH=""
+if [ -f "$DB" ]; then STASH="$DB.smoke-backup"; mv "$DB" "$STASH"; fi
 
 cleanup() {
   [ -n "${SERVER_PID:-}" ] && { kill "$SERVER_PID" 2>/dev/null; wait "$SERVER_PID" 2>/dev/null; }
   pkill -f "tsx src/index.ts" 2>/dev/null || true
-  [ $CREATED_DB -eq 1 ] && rm -f "$ROOT/backend/data/db.json"
+  rm -f "$DB"
+  [ -n "$STASH" ] && mv "$STASH" "$DB"
 }
 trap cleanup EXIT
 
@@ -56,9 +60,12 @@ login_retry() { # login_retry <email> — up to ~60s for the seed to finish
   echo "$t"
 }
 SUPER=$(login_retry superadmin@fln.org)
-TEACHER=$(login_retry teacher.ap_gnt_gnt_01_01.c2@fln.org)
+# A teacher account from the fresh file-store seed (the Mongo seed uses other
+# addresses, so the second is a fallback for a database that was seeded that way).
+TEACHER=$(login_retry gps-mt-001.t01@fln.org)
+[ -z "$TEACHER" ] && TEACHER=$(login_retry teacher.ap_gnt_gnt_01_01.c2@fln.org)
 if [ -z "$SUPER" ] || [ -z "$TEACHER" ]; then
-  echo "Login failed for a seeded demo account after 60s — the seed or auth is broken."
+  echo "Login failed after 60s (superadmin: ${SUPER:+ok}${SUPER:-FAILED}, teacher: ${TEACHER:+ok}${TEACHER:-FAILED}) — the seed or auth is broken."
   echo "Raw response from the server:"
   curl -s -i --max-time 10 -X POST "$BASE/api/auth/login" -H 'Content-Type: application/json' \
     -d "{\"email\":\"superadmin@fln.org\",\"password\":\"${SEED_DEMO_PASSWORD:-Fln@2026}\"}" | head -20
