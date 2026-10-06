@@ -1,0 +1,9 @@
+# Routes that already fail in a database-less boot on main. The check fails only
+# on routes NOT listed here. Remove a line as soon as the route is fixed.
+/api/curriculum/coverage         # needs seeded curriculumLevels (Mongo-only; unguarded this.mongoDb!)
+/api/curriculum/levels           # same
+/api/question-bank               # needs the seeded question bank (Mongo-only)
+/api/question-bank/legacy-levels # same
+/api/question-bank/progress      # same
+/api/question-templates/param-catalog # reads question-bank collections (Mongo-only)
+/api/me/mfa/factors              # vault module is not wired when there is no Mongo

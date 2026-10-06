@@ -109,6 +109,8 @@ ai-services/      Python pipeline  → evaluation / level placement
 
 ---
 
+> **Before you open a PR:** run `npm run check:pr`, and read [docs/PR_REVIEW_RULES.md](docs/PR_REVIEW_RULES.md) — it is how every PR is judged.
+
 ## 8. Common gotchas (you WILL hit these)
 
 | Symptom | Fix |

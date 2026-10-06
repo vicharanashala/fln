@@ -1,0 +1,54 @@
+name: PR checks
+
+# Does this change leave the repo working?
+#
+# Until now nothing ran on pull requests that could catch broken code: the
+# repo health check runs only AFTER a merge to main (and daily), and the PR
+# gate is deliberately comment-only and never runs PR code. This workflow
+# closes that gap.
+#
+# On `pull_request`, GitHub checks out the MERGE of the PR into main, so these
+# checks run against the code that would actually land — a fix that breaks a
+# file elsewhere shows up here, not on main afterwards. It runs with a
+# read-only token and no secrets, so it is safe for pull requests from forks.
+#
+# Everything is in scripts/ci/pr-checks.sh so it can be run locally too:
+#   npm run check:pr
+#
+# To make this a hard gate, mark "PR checks / verify" as a required status
+# check in Settings > Branches > main.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # the merge commit and its first parent (the base)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: npm ci   # fails if package-lock.json is out of step with package.json
+
+      - name: Run PR checks
+        run: bash scripts/ci/pr-checks.sh
