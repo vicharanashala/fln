@@ -35,10 +35,13 @@ trap cleanup EXIT
 (cd backend && env -u MONGODB_URI PORT="$PORT" NODE_ENV=development npx tsx src/index.ts >"$LOG" 2>&1) &
 SERVER_PID=$!
 
-for i in $(seq 1 60); do
-  curl -s -o /dev/null --max-time 2 "$BASE/" && break
+# "Port open" is not "ready": the server listens before its seed has finished,
+# so wait for its own "Server running" line, then retry the login until the
+# seeded accounts exist.
+for i in $(seq 1 90); do
+  grep -q "Server running on" "$LOG" && break
   sleep 1
-  if [ "$i" = 60 ]; then echo "Server did not start within 60s. Log:"; tail -30 "$LOG"; exit 1; fi
+  if [ "$i" = 90 ]; then echo "Server did not start within 90s. Log:"; tail -30 "$LOG"; exit 1; fi
 done
 echo "server up on $BASE"
 
@@ -47,9 +50,14 @@ login() {
     -d "{\"email\":\"$1\",\"password\":\"${SEED_DEMO_PASSWORD:-Fln@2026}\"}" \
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).token||"")}catch{console.log("")}})'
 }
-SUPER=$(login superadmin@fln.org)
-TEACHER=$(login teacher.ap_gnt_gnt_01_01.c2@fln.org)
-if [ -z "$SUPER" ] || [ -z "$TEACHER" ]; then echo "Login failed for a seeded demo account — the seed or auth is broken."; tail -20 "$LOG"; exit 1; fi
+login_retry() { # login_retry <email> — up to ~60s for the seed to finish
+  local t="" n
+  for n in $(seq 1 30); do t=$(login "$1"); [ -n "$t" ] && break; sleep 2; done
+  echo "$t"
+}
+SUPER=$(login_retry superadmin@fln.org)
+TEACHER=$(login_retry teacher.ap_gnt_gnt_01_01.c2@fln.org)
+if [ -z "$SUPER" ] || [ -z "$TEACHER" ]; then echo "Login failed for a seeded demo account after 60s — the seed or auth is broken."; tail -20 "$LOG"; exit 1; fi
 
 ROUTES=$(grep -rhoE "app\.get\('/api/[^':]*'" backend/src | sed "s/app.get('//; s/'$//" | sort -u)
 echo "probing $(echo "$ROUTES" | wc -l | tr -d ' ') routes as superadmin and teacher"
