@@ -6,6 +6,7 @@ import { getAuthUser } from '../auth';
 import { recordStudentCycleLock } from '../paperLock';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
+import { filterQuestionsForAssessmentMode } from '../utils/assessmentModeFilter';
 
 export function registerDiagnosticBulkRoutes(app: express.Express) {
   // Get active coordinators/administrators
@@ -878,6 +879,9 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
         // Limit to 12 questions for a reasonable diagnostic
         questions = questions.slice(0, 12);
       }
+
+      const { allowed: filteredQs } = filterQuestionsForAssessmentMode(questions, student);
+      questions = filteredQs;
 
       res.json({
         student,

@@ -210,3 +210,12 @@ export function getConceptForLevel(levelNumber: number): LevelConceptConfig | un
 export function getLevelForConcept(conceptId: string): LevelConceptConfig | undefined {
   return CONCEPT_TO_LEVEL[conceptId];
 }
+
+/**
+ * Returns true if the curriculum level belongs to Stage 3 ("Balvatika", Age 5-6).
+ */
+export function isBalvatikaStage(levelNumber: number): boolean {
+  const config = getConceptForLevel(levelNumber);
+  return config?.stage === 3;
+}
+

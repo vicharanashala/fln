@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { dbStore, UserRole, Student, Question, Worksheet, LevelWorksheet, WorksheetGenerationWindow, CYCLE_NAMES } from '../db';
 import { getAuthUser } from '../auth';
 import { generateQuestionsForLevel } from '../levelGenerator';
+import { filterQuestionsForAssessmentMode } from '../utils/assessmentModeFilter';
 import * as levelsBackendClient from '../levelsBackendClient';
 import { ROOT_DIR } from '../config';
 import { recordStudentCycleLock } from '../paperLock';
@@ -392,9 +393,10 @@ export function registerWorksheetRoutes(app: express.Express) {
 
     for (const student of classStudents) {
       const subLvl = student.currentSubLevel || 0;
-      const qs = generateQuestionsForLevel(student.currentLevel, subLvl);
+      const rawQs = generateQuestionsForLevel(student.currentLevel, subLvl);
+      const { allowed } = filterQuestionsForAssessmentMode(rawQs, student);
       // Map question IDs to be student-specific to prevent duplicate collisions
-      qs.forEach(q => {
+      allowed.forEach(q => {
         compiledQuestions.push({
           ...q,
           question_id: `${student.id}_${q.question_id}`,

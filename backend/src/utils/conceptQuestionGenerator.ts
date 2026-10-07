@@ -1,5 +1,6 @@
 import { Question } from '../db';
 import { getLevelForConcept, getConceptForLevel } from '../config/curriculumMap';
+import { BALVATIKA_CONCEPT_ASSESSMENT_MODES } from './assessmentModeFilter';
 
 function randomVal(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -236,7 +237,8 @@ export function generateQuestionsByConcept(conceptId: string, subLevel: number =
       difficulty: subLevel === 2 ? 'easy' : subLevel === 1 ? 'medium' : 'hard',
       source_level: currentLevelNumber,
       conceptId: conceptId,
-      svgAsset
+      svgAsset,
+      assessmentMode: BALVATIKA_CONCEPT_ASSESSMENT_MODES[conceptId] || 'written'
     });
   }
 
