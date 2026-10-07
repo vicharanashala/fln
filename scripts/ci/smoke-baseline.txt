@@ -5,5 +5,4 @@
 /api/question-bank               # needs the seeded question bank (Mongo-only)
 /api/question-bank/legacy-levels # same
 /api/question-bank/progress      # same
-/api/question-templates/param-catalog # reads question-bank collections (Mongo-only)
 /api/me/mfa/factors              # vault module is not wired when there is no Mongo
