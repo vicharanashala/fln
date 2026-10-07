@@ -988,6 +988,12 @@ export interface TeacherObservationRecord {
    */
   notYetAssessed: boolean;
 
+  /**
+   * How the child arrived at an answer during observation (fingers | counters | mental | written).
+   * EGMA strategy-observation metric. Added in #620.
+   */
+  strategyUsed?: 'fingers' | 'counters' | 'mental' | 'written';
+
   observedAt: string;
   createdAt: string;
   updatedAt: string;
