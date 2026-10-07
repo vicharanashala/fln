@@ -988,6 +988,12 @@ export interface TeacherObservationRecord {
    */
   notYetAssessed: boolean;
 
+  /**
+   * Whether the child noticed and corrected their own mistake during observation.
+   * Validated mastery signal per Clay's Running Records self-correction ratio. Added in #619.
+   */
+  selfCorrected?: boolean;
+
   observedAt: string;
   createdAt: string;
   updatedAt: string;
