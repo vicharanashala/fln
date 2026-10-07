@@ -27,6 +27,36 @@ read-only so rows authored before this model are not lost. New rows leave them
 empty and `paramMode` says which model a row was authored under, so nothing has
 to guess by sniffing for empty strings.
 
+## Bulk upload and the template ZIP
+
+Superadmins can open **Bulk upload CSV**, choose a **Template stage**, and click
+**Download template + references (ZIP)**. The default **All stages** includes the
+whole curriculum. Choosing **Balvatika** (the raw stage name **Pre-school 3**)
+currently includes levels **19–46**, with only their mapped skills and subskills.
+The dropdown and displayed level counts come from the backend level map.
+
+Extract the ZIP to find:
+
+| File | Purpose |
+|---|---|
+| `questions.csv` | Unchanged, header-only template to fill in |
+| `reference-levels-and-subskills.csv` | Selected levels and their skill/subskill codes, including the readable `stageName` |
+| `reference-svg-themes.csv` | All visual themes and available variants; these are not filtered by stage |
+| `reference-allowed-values.csv` | Allowed parameter values, deprecated ranges, limits and field dependencies |
+| `questions-example.csv` | One import-valid format example for the selected stage (or first stage when all are selected) |
+| `README.txt` | Instructions and the stage covered by the download |
+
+Adapt the example to the intended concept; it illustrates the CSV format, not
+pedagogically reviewed question content. Separate multiple values with `|`.
+**Upload only `questions.csv`**, not the ZIP or reference/example files, and use
+**Check the file** before importing. The importer and its existing validation
+are unchanged. Download again after updated curriculum/catalog data is deployed.
+
+The authenticated ZIP endpoint accepts an optional `?stage=Balvatika` (or raw
+stage name). An omitted or empty stage returns all stages; an unknown stage
+returns HTTP 400 and the valid stage names. Stage labels are generated from the
+canonical curriculum source, with snapshot drift checked by `npm run check:pr`.
+
 ## Where pictures are stored
 
 **No image file is stored in MongoDB.** There is no GridFS, no binary, and no

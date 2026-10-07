@@ -70,6 +70,8 @@ export const QuestionTemplatePanel: React.FC = () => {
 
   // CSV import
   const [showImport, setShowImport] = useState(false);
+  const [templateStage, setTemplateStage] = useState('');
+  const selectedTemplateStage = levelMap?.stages?.find(stage => stage.stage === templateStage);
   const [csvText, setCsvText] = useState('');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importing, setImporting] = useState(false);
@@ -360,12 +362,14 @@ export const QuestionTemplatePanel: React.FC = () => {
    */
   const downloadCsvTemplate = async () => {
     try {
-      const res = await apiFetch('/api/question-templates/csv-template.zip');
+      const res = await apiFetch('/api/question-templates/csv-template.zip'
+        + (templateStage ? '?stage=' + encodeURIComponent(templateStage) : ''));
       if (!res.ok) { setToast('Could not download the template and references.'); return; }
       const url = URL.createObjectURL(await res.blob());
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'question-authoring-template.zip';
+      const slug = selectedTemplateStage ? '-' + selectedTemplateStage.label.toLowerCase().replace(/\s+/g, '-') : '';
+      a.download = `question-authoring-template${slug}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -749,13 +753,29 @@ export const QuestionTemplatePanel: React.FC = () => {
       {/* CSV import */}
       {showImport && (
         <div className={cardCls}>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Bulk upload</h3>
+            <label className="text-sm text-zinc-600 dark:text-zinc-300">
+              Template stage
+              <select id="template-stage" value={templateStage} onChange={e => setTemplateStage(e.target.value)}
+                className="ml-2 rounded border border-zinc-300 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900">
+                <option value="">All stages</option>
+                {(levelMap?.stages ?? []).map(stage => (
+                  <option key={stage.stage} value={stage.stage}>{stage.label}</option>
+                ))}
+              </select>
+            </label>
             <button type="button" onClick={downloadCsvTemplate}
               className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
               Download template + references (ZIP)
             </button>
           </div>
+          {selectedTemplateStage && (
+            <p className="mb-2 text-sm text-zinc-600 dark:text-zinc-300">
+              {selectedTemplateStage.label}: levels {selectedTemplateStage.firstLevel}–{selectedTemplateStage.lastLevel}
+              {' '}({selectedTemplateStage.levelCount} levels)
+            </p>
+          )}
 
           <p className="text-sm text-zinc-600 dark:text-zinc-300">
             Every row is checked before anything is saved. If any row has a problem, nothing is imported and

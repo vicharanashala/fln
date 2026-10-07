@@ -32,6 +32,30 @@ export interface SkillInfo {
 
 const LEVELS = snapshot.levels as Record<string, Omit<LevelInfo, 'levelId'>>;
 const SKILLS = snapshot.skills as Record<string, Omit<SkillInfo, 'id'>>;
+const STAGE_LABELS: Record<string, string> = snapshot.stageLabels;
+
+export function listStages() {
+  const stages = new Map<string, {
+    stage: string; label: string; firstLevel: number; lastLevel: number; levelCount: number;
+  }>();
+  for (const level of Object.values(LEVELS).sort((a, b) => a.levelNumber - b.levelNumber)) {
+    const existing = stages.get(level.stage);
+    if (existing) {
+      existing.lastLevel = level.levelNumber;
+      existing.levelCount++;
+    } else {
+      stages.set(level.stage, { stage: level.stage, label: STAGE_LABELS[level.stage] ?? level.stage,
+        firstLevel: level.levelNumber, lastLevel: level.levelNumber, levelCount: 1 });
+    }
+  }
+  return [...stages.values()];
+}
+
+export function resolveStage(input: string): string | null {
+  const norm = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const wanted = norm(input);
+  return listStages().find(s => norm(s.stage) === wanted || norm(s.label) === wanted)?.stage ?? null;
+}
 
 /** Total number of FLN levels. Read from the snapshot rather than hardcoded as 93. */
 export const LEVEL_COUNT: number = snapshot.levelCount;
@@ -87,6 +111,7 @@ export function isSubskillUnderSkills(subskillId: string, skillIds: string[]): b
 export function buildLevelMapPayload() {
   return {
     levelCount: LEVEL_COUNT,
+    stages: listStages(),
     levels: Object.entries(LEVELS)
       .map(([levelId, l]) => ({ levelId, ...l }))
       .sort((a, b) => a.levelNumber - b.levelNumber),

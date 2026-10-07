@@ -1,6 +1,15 @@
 {
   "generatedFrom": "frontend/src/data/skillProgressionMap.ts",
   "levelCount": 109,
+  "stageLabels": {
+    "Pre-school 1": "Preschool 1",
+    "Pre-school 2": "Preschool 2",
+    "Pre-school 3": "Balvatika",
+    "Class 1": "Class 1",
+    "Class 2": "Class 2",
+    "Class 3": "Class 3",
+    "Class 4": "Class 4"
+  },
   "levels": {
     "L1": {
       "levelNumber": 1,

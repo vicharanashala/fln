@@ -18,7 +18,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -29,6 +29,7 @@ export interface SkillLevelMapSnapshot {
   /** Regeneration provenance — not used at runtime, but makes a stale file obvious. */
   generatedFrom: string;
   levelCount: number;
+  stageLabels: Record<string, string>;
   /** "L30" -> { levelNumber, capability, stage, skills: ["SK05","SK06"] } */
   levels: Record<string, {
     levelNumber: number;
@@ -52,7 +53,7 @@ async function build(): Promise<SkillLevelMapSnapshot> {
     process.exit(1);
   }
 
-  const mod = await import(skillMapPath);
+  const mod = await import(pathToFileURL(skillMapPath).href);
   const LEVEL_SKILL_MAP = mod.LEVEL_SKILL_MAP as Array<{
     levelId: string;
     levelNumber: number;
@@ -96,6 +97,7 @@ async function build(): Promise<SkillLevelMapSnapshot> {
   return {
     generatedFrom: 'frontend/src/data/skillProgressionMap.ts',
     levelCount: LEVEL_SKILL_MAP.length,
+    stageLabels: mod.STAGE_LABELS,
     levels,
     skills,
   };
@@ -113,7 +115,8 @@ async function main() {
       process.exit(1);
     }
     const existing = fs.readFileSync(OUTPUT_PATH, 'utf8');
-    if (existing !== serialized) {
+    // Git may check out CRLF on Windows; line endings are not curriculum drift.
+    if (existing.replace(/\r\n/g, '\n') !== serialized) {
       console.error(`DRIFT: ${path.relative(ROOT, OUTPUT_PATH)} is out of date with skillProgressionMap.ts.`);
       console.error('Run: npx tsx scripts/generate-skill-level-map.ts');
       process.exit(1);
