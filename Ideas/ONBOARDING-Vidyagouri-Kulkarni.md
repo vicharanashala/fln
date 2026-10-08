@@ -1,51 +1,130 @@
+# Onboarding Document — Vidyagouri Kulkarni
+
+---
+
 ## 1. What is FLN?
 
-FLN stands for Foundational Literacy and Numeracy. I understand it as the set of core learning abilities that children need before later schooling can build on them: understanding text and using basic mathematical ideas confidently. This project is trying to make the assessment side of that problem more practical for schools. Instead of treating a class as one uniform group, it records where an individual student is, gives the teacher a way to assess that student, and uses the result to guide the next worksheet or intervention.
+FLN stands for Foundational Literacy and Numeracy: the basic reading and mathematical skills children need for further learning. This project helps teachers understand each student's learning level and plan suitable assessments instead of treating every child in a class the same way.
 
-The repository's current product scope is narrower than the name suggests. The implemented assessment content is mathematics/numeracy for Classes 2–4; it does not currently evaluate literacy. That distinction matters to me because it keeps the claims around the application honest. The long-term goal is an FLN platform that can support a large educational hierarchy, but the present code is focused on a numeracy assessment and worksheet workflow.
+The current project focuses on mathematics, not literacy assessment. The README describes a stage-by-stage plan beginning with Balvatika, the year before Class 1, followed by Classes 1–3. Some assessment workflows are still being connected.
+
+---
 
 ## 2. What do you understand by FLN (as a system)?
 
-I see FLN as a role-scoped assessment system rather than just a worksheet generator. Students belong to schools and class groups, carry a current and target level, and accumulate level history and evaluation information. Teachers and volunteers work most directly with student rosters and assessment activity. School users oversee their school, while block, district, state, and superadmin users see increasingly broad operational views. The role hierarchy is represented in `backend/src/db.ts` and enforced by server-side authentication and route scoping.
+**Users:** Teachers and volunteers manage classroom activity. School, block, district, state and superadmin users oversee progressively broader areas.
 
-The normal data flow starts with student registration and class assignment. A teacher or volunteer can use the assessment and worksheet flows to generate material, print it, collect answers, and submit or scan the results. The backend stores worksheet and evaluation data, updates the student record through the evaluation process, and exposes role-scoped data to dashboards. School and administrative views roll the data upward from classroom scope to wider geographic scope. Ticketing, logbook, and access-restoration features support the operational side of that workflow.
+**Main entities:** Students, schools, class groups, curriculum levels, question templates, worksheets and evaluation records.
 
-I also understand that the worksheet flow is not purely a browser feature. The React application requests the Express API through `frontend/src/services/apiClient.ts`; the backend can render printable material with Puppeteer and worksheet templates from `frontend/public/worksheets/`. The Python code under `ai-services/` is the evaluation/OCR pipeline used by the backend, while Gemini integration has server-side fallbacks where an AI key is unavailable. This separation is important because scoring, identity, locks, and other domain decisions should remain server-authoritative.
+**Intended flow:** Register a student → prepare and print an assessment → collect and evaluate answers → update progress → plan the next intervention.
+
+The frontend communicates with the real backend API. Authentication, scoring and assessment decisions belong on the server. A curriculum entry does not mean its complete worksheet workflow is ready; the README identifies unfinished authoring-to-worksheet work under issue #486.
+
+---
 
 ## 3. Current State of the Repository — What Has Been Done So Far
 
-The repository is an npm-workspaces monorepo. The frontend in `frontend/` is a React 19 application built with Vite and Tailwind CSS. It uses role-specific dashboards, shared components, panel views, and `apiFetch()` rather than an in-browser mock. The development Vite server proxies `/api` requests to the Express backend, and production can serve the built frontend from the backend.
+**Tech stack:**
 
-The main backend in `backend/` is Node, Express, and TypeScript. Its routes are organized by domain under `backend/src/routes/`, with shared operations in services and persistence through `dbStore` in `backend/src/db.ts`. MongoDB is the primary persistence option when `MONGODB_URI` is configured; the local JSON store is the fallback for local development. I noted that this fallback is useful for a contributor getting started, but it is not intended as a concurrency-safe production database.
+- **Frontend:** React 19, TypeScript, Vite and Tailwind CSS.
+- **Backend:** Node.js, Express and TypeScript. A separate worksheet backend also exists under `backend/fln-backend/`.
+- **Database and authentication:** MongoDB, a local JSON fallback for development, signed JWTs and bcrypt password verification.
+- **Assessment tools:** Python evaluation/OCR code, Gemini integration and Puppeteer for printable output.
 
-Authentication has already been moved to signed JWTs with bcrypt password verification in `backend/src/auth.ts` and `backend/src/routes/auth.ts`. The defined roles are superadmin, admin, district admin, block admin, school, teacher, and volunteer. The current frontend routes its dashboard workspace based on the authenticated user in `frontend/src/App.tsx`; it does not need to recreate role or scoring rules in the client.
+**Existing implementation:** Student registration and bulk import, role-based dashboards, worksheet/PDF generation, evaluation routes, question authoring, tickets and logbooks. These components do not establish that every workflow is complete end-to-end.
 
-There is already substantial workflow coverage: student registration and bulk import, scoped class/student/school reads, worksheet and PDF generation, diagnostic and evaluation routes, tickets, logbook entries, curriculum/question-bank routes, and administrative recovery actions. `backend/src/paperGenerator.ts` and the worksheet templates support printable output. The `ai-services/` directory contains Python scripts and prompts for the separate evaluation pipeline. The project is also partway through a documented cleanup/migration: the real-backend cutover is complete, while some large frontend files and legacy cleanup targets remain.
+**Loading states:** `DashboardSkeleton`, `RosterSkeleton` and `EmptyStateCard` already serve all four dashboards through merged [PR #534](https://github.com/vicharanashala/fln/pull/534). They are not a pending contribution of mine.
+
+**Testing:** Frontend Vitest tests cover utilities and a simulated roster/pagination helper. Backend suites include focused browser checks. `npm run check:pr` runs type-checks, tests, builds and route smoke checks; `npm run lint` checks types only.
+
+---
 
 ## 4. Gaps Observed in the Code
 
-- **Dashboard loading and empty content — `frontend/src/components/dashboards/TeacherDashboard.tsx`, `VolunteerDashboard.tsx`, `SchoolDashboard.tsx`, and `AdminDashboard.tsx`.** Before the pending Task 2 work, Volunteer and School rendered their page structure before the initial class/student/school requests had settled, and an empty classroom list could look like an unexplained blank area. This matters because dashboard data arrives asynchronously; a teacher or principal should be able to distinguish loading from a genuinely empty assignment. The uncommitted Task 2 changes address this presentation gap with shared skeleton and empty-state components, but those changes still need review and visual verification.
+### Gap 1 — Approximate dashboard data
 
-- **Derived oversight values and hardcoded volunteer assignments — `frontend/src/components/dashboards/AdminDashboard.tsx`.** The overview currently calculates conducted exams as `scopedSchools.length * 3` and ingested sheets as `studentsCount * 2`. The same component defines a `preseededVolunteers` array rather than obtaining all assignment data from the API. These are visible administrative metrics, so approximations can misrepresent real operational progress or omit a legitimate volunteer assignment.
+**Where:** `frontend/src/components/dashboards/AdminDashboard.tsx`.
 
-- **Static learning recommendations presented as data-driven — `frontend/src/components/dashboards/SchoolDashboard.tsx`.** The “AI Concept-Focus Suggestions” panel contains fixed Class 2 and Class 3 messages, although its description says the content is derived from evaluations. That mismatch matters because a principal could interpret a demonstration message as evidence from their school's data. This should eventually be either backed by a scoped analytics endpoint or labelled clearly as an example until such data exists.
+**What:** Exam and sheet counts use `scopedSchools.length * 3` and `studentsCount * 2`. Volunteer assignments depend on a hardcoded `preseededVolunteers` list.
 
-- **Large frontend integration points — `frontend/src/components/RoleDashboards.tsx` and `frontend/src/components/PanelViews.tsx`.** Both files remain broad aggregation points for dashboard exports, shared display helpers, and panel routing/data wiring. The migration guidance identifies them as files to split carefully after the real-backend cutover. Their size and responsibility concentration make targeted changes harder to review and increase the chance that a role-specific UI change affects another panel.
+**Why it matters:** These values may not represent actual activity or all volunteer assignments.
 
-- **Limited automated behavior coverage for UI work — root `package.json` and the workspace `lint` scripts.** `npm run lint` runs TypeScript `tsc --noEmit`; it verifies types but does not exercise loading, empty-state, role-scoping, or worksheet user flows. The backend has focused checks and tests, but I did not find a standard frontend component or browser-test command. This matters for a dashboard change like mine because visual state and CTA behaviour need manual or future automated verification beyond a passing typecheck.
+### Gap 2 — Fixed learning suggestions
+
+**Where:** `frontend/src/components/dashboards/SchoolDashboard.tsx`.
+
+**What:** The “AI Concept-Focus Suggestions” panel displays fixed Class 2 and Class 3 messages while describing them as evaluation-based.
+
+**Why it matters:** School users could mistake example messages for findings about their students.
+
+### Gap 3 — Limited dashboard interaction tests
+
+**Where:** `frontend/src/components/TeacherRosterPagination.test.ts` and `frontend/src/utils/*.test.ts`.
+
+**What:** These tests cover helpers, not the four dashboards' rendering and navigation. Browser tests exist for other features.
+
+**Why it matters:** Passing helper tests does not confirm that dashboard states and user actions work correctly.
+
+---
 
 ## 5. Ideas for the Project
 
-My first priority would be to finish the dashboard UX work in small, reviewable steps: verify the Task 2 states against the live local backend in light and dark mode, and then add focused frontend tests once the project selects a testing approach. That would turn the loading/empty-state expectation from a visual convention into a regression check.
+### Idea 1 — Show actual administrative data
 
-For the administrative dashboard, I would replace derived counts and the local volunteer list with server-provided, role-scoped summary data. A compact backend route or an extension of an existing analytics route could return actual worksheet, submission, evaluation, and assignment counts. That would remove misleading calculations from the React component without moving business logic into the browser.
+**What:** Replace approximate counts and the hardcoded volunteer list.
 
-For the school suggestions panel, I would first define what evidence qualifies as a suggestion—such as class-scoped evaluation reports or concept-mastery aggregates—then expose only that data through the backend. Until then, I would prefer an explicit empty or unavailable state over fixed recommendations that appear personalized. Finally, I would follow the migration plan for the large UI files incrementally, extracting one stable feature at a time rather than doing a broad reorganization alongside feature work.
+**Why:** Give administrators reliable information.
+
+**How:** Return actual, role-scoped counts and assignments from the backend and display them in the dashboard.
+
+### Idea 2 — Make suggestions evidence-based
+
+**What:** Use school-specific evaluation data for learning suggestions.
+
+**Why:** Avoid presenting fixed messages as personalized advice.
+
+**How:** Agree on the required evidence, retrieve it through the backend, and show an unavailable state when data is insufficient.
+
+### Idea 3 — Test dashboard interactions
+
+**What:** Add rendering and navigation tests.
+
+**Why:** Catch problems that helper tests miss.
+
+**How:** Extend the existing tooling to test loading, empty and populated states, plus relevant navigation actions.
+
+These are proposals, not completed contributions. Each needs a listed issue and maintainer agreement before implementation.
+
+---
 
 ## 6. Your Contribution
 
-My implemented Task 2 contribution is limited to dashboard loading and empty-state presentation. I added three reusable UI components under `frontend/src/components/ui/`: `DashboardSkeleton.tsx` for a stable dashboard-level placeholder, `RosterSkeleton.tsx` for roster rows, and `EmptyStateCard.tsx` for a consistent title, description, and optional existing action.
+### Issue #592 — Template download with references
 
-I wired those components into the Teacher, Volunteer, School, and Admin dashboards. The Teacher dashboard now has a reusable loading view and standardized no-student/no-class guidance, while retaining its existing navigation to student registration. Volunteer and School dashboards now wait for their initial data and explain missing classrooms or rosters instead of silently rendering empty areas. The Admin dashboard now has an initial loading state and clearer empty messages for relevant overview collections. The additions use Tailwind pulse styling and dark-mode classes already used by the application.
+**PR:** [#652](https://github.com/vicharanashala/fln/pull/652), merged on 7 October 2026.
 
-This contribution does not change backend APIs, database models, authentication, role permissions, worksheet generation, or scoring logic. Its purpose is to make legitimate loading and zero-data conditions understandable, reduce layout movement during initial fetches, and give contributors a small shared UI foundation for similar dashboard states. Typechecking and production builds were run during the Task 2 implementation; browser-based visual verification of the new states remains a separate review step rather than a claim I am making here.
+**Change:** The original CSV provided headings without the reference values needed to fill it in. I added a superadmin-only ZIP containing the blank CSV, level/subskill references, SVG theme references and instructions. It uses existing curriculum/catalog data without changing the importer or writing to the database.
+
+**Key files:** `backend/src/services/questionTemplateDownload.ts`, `backend/src/routes/questionTemplates.ts` and `frontend/src/components/panels/QuestionTemplatePanel.tsx`.
+
+**Verification:** Six focused tests passed, covering authorization, ZIP contents, import compatibility, CSV safety, failure handling and browser download behavior. Type-checks and builds passed.
+
+### Issue #589 — Reusable SVG object library
+
+**PR:** [#653](https://github.com/vicharanashala/fln/pull/653), merged on 7 October 2026.
+
+**Change:** I added 28 monochrome SVG drawings under `frontend/public/assets/svg/questions/` and registered them in `manifest.json`. The catalog increased from 22 to 50 variants across 11 themes, preserving existing artwork and IDs. The selection algorithm was unchanged.
+
+**Verification:** Three focused tests passed: catalog/file validation, repeatable selection with the same catalog, and browser rendering/printing. Type-checks and builds passed. Identical selections across catalog versions and classroom suitability are not guaranteed by these tests.
+
+### Issue #687 — Stage-specific template ZIP
+
+**PR:** [#709](https://github.com/vicharanashala/fln/pull/709), open and not merged as of 8 October 2026.
+
+**Change:** Following reviewer feedback on #652, I added stage selection, filtered level/subskill references, allowed-value guidance and a separate example CSV. The blank import CSV and importer remain unchanged; SVG references are not filtered by stage.
+
+**Key files:** The template download service, route and panel above, curriculum snapshot files, and `docs/testing-687-stage-template-download.md`.
+
+**Verification:** All 11 focused tests and the full local `npm run check:pr` passed. I also completed manual acceptance testing. Examples validate the CSV format; they are not pedagogically reviewed content for every concept.
+
+These checks were completed during the respective implementations. My contributions improve authoring support and reusable assets; they do not change scoring, certification or complete the production worksheet pipeline.
