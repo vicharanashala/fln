@@ -8,6 +8,7 @@ import { CURRICULUM_MAPPING } from './config/curriculumMap';
 import type { StudentCycleLock } from './paperLock';
 import type { ScanQualityResult } from './scanQuality';
 import type { QuestionFamily } from './types/questionTemplateParams';
+import type { ErrorType } from './errorClassification';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -407,6 +408,66 @@ export interface AnswerSubmission {
    * submissions that do not need it, simply omit it.
    */
   questions?: Question[];
+}
+
+/**
+ * Evidence Model (#479): one row per question attempt, richer than
+ * `AnswerSubmission.answers`' bare string.
+ *
+ * Two attempts can both be correct and still not be equivalent evidence of
+ * whether a child can do a concept independently -- e.g. correct with zero
+ * hints on the first try vs. correct only after three hints and two tries.
+ * The architecture discussion is explicit that this has to be captured at
+ * the time, not reverse-engineered later from correct/incorrect alone --
+ * see `scaffoldingLevel`'s own comment.
+ *
+ * Deliberately a separate collection from `AnswerSubmission`, the same way
+ * `TeacherObservationRecord` (#617) is -- see that interface's comment for
+ * why a richer evidence record doesn't just get bolted onto the thing it's
+ * evidence about.
+ */
+export interface AttemptRecord {
+  id: string;
+  studentId: string;
+  questionId: string;
+  /** The worksheet/session this attempt belongs to, when one exists -- optional for the same reason `AnswerSubmission.questions` is: a live practice session may not be tied to a persisted Worksheet. */
+  worksheetId?: string;
+
+  answer: string;
+  isCorrect: boolean;
+  /** Seconds spent on this question, when the capture path can measure it. Optional: not every path can. */
+  timeTakenSeconds?: number;
+
+  hintsUsed: number;
+  attemptsBeforeSuccess: number;
+  /**
+   * 0 Independent · 1 Procedural prompt ("What operation do you need?") ·
+   * 2 Strategic prompt ("Can you first separate the tens and ones?") ·
+   * 3 Worked/example support · 4 Direct assistance (system guides step by
+   * step). A closed 0-4 scale, not free text, per #479's acceptance
+   * criteria. An `independenceScore`, if wanted downstream, is meant to be
+   * DERIVED from this + `attemptsBeforeSuccess` + `hintsUsed` -- not stored
+   * as its own separate field.
+   */
+  scaffoldingLevel: 0 | 1 | 2 | 3 | 4;
+  /** How the question was presented/answered (e.g. 'numeric', 'visual', 'verbal'). Left as an open string -- the architecture discussion names this field but, unlike scaffoldingLevel, doesn't define a closed vocabulary for it. */
+  representation?: string;
+
+  /**
+   * Required, not optional (#479 acceptance criteria) -- this is the join
+   * key to #459. Uses #459's own `ErrorType` values (unanswered,
+   * digit_reversal, decimal_place_shift, off_by_one, unclassified) so this
+   * actually joins to that data instead of drifting into a different
+   * vocabulary -- `EvaluationReport.rootCauses`' conceptual/careless/
+   * prerequisite categories are a different classification, not this one.
+   * 'none' is the one addition: it covers a fully correct attempt, which
+   * has no error to classify and isn't a value #459 itself produces.
+   */
+  errorType: ErrorType | 'none';
+
+  recordedAt: string;
+  /** teacherId/volunteerId who captured this attempt. */
+  recordedBy: string;
 }
 
 export type ConfidenceLevel = 'Very High' | 'High' | 'Moderate' | 'Low';
@@ -1098,6 +1159,7 @@ interface DatabaseSchema {
   studentCycleLocks: StudentCycleLock[];
   generationWindows: WorksheetGenerationWindow[];
   teacherObservationRecords: TeacherObservationRecord[];
+  attemptRecords: AttemptRecord[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -1129,6 +1191,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   studentCycleLocks: 'studentCycleLocks',
   generationWindows: 'generationWindows',
   teacherObservationRecords: 'teacher_observation_records',
+  attemptRecords: 'attempt_records',
 };
 
 /**
@@ -1346,6 +1409,15 @@ export class DBStore {
           console.log('Successfully ensured indexes on "evaluationReports" collection');
         } catch (e: any) {
           console.warn('Failed to ensure indexes on "evaluationReports" collection:', e.message);
+        }
+
+        // #479: getAttemptRecordsForStudent is the only read today, keyed
+        // by studentId.
+        try {
+          await db.collection('attempt_records').createIndex({ studentId: 1 });
+          console.log('Successfully ensured indexes on "attempt_records" collection');
+        } catch (e: any) {
+          console.warn('Failed to ensure indexes on "attempt_records" collection:', e.message);
         }
 
         for (const [key, collName] of Object.entries(COLLECTION_NAMES)) {
@@ -3177,6 +3249,30 @@ export class DBStore {
       { $set: record },
       { upsert: true }
     );
+    return record;
+  }
+
+  // --- Attempt Record Methods (Evidence Model, #479) ----------------------
+  // See AttemptRecord's own comment for what this captures and why it's a
+  // separate collection from answerSubmissions.
+
+  /** Every attempt one student has made; richest-evidence-first filtering/sorting is left to callers. */
+  async getAttemptRecordsForStudent(studentId: string): Promise<AttemptRecord[]> {
+    if (!this.mongoDb) return (this.data?.attemptRecords || []).filter(a => a.studentId === studentId);
+    return await this.mongoDb!.collection<AttemptRecord>('attempt_records').find({ studentId }).toArray();
+  }
+
+  /** Append-only -- an attempt is a historical fact, not something a later attempt should overwrite. */
+  async addAttemptRecord(record: AttemptRecord): Promise<AttemptRecord> {
+    if (!this.mongoDb) {
+      if (this.data) {
+        if (!this.data.attemptRecords) this.data.attemptRecords = [];
+        this.data.attemptRecords.push(record);
+        await this.save();
+      }
+      return record;
+    }
+    await this.mongoDb!.collection('attempt_records').insertOne(record);
     return record;
   }
 
@@ -5401,7 +5497,10 @@ export class DBStore {
       // Seeded empty on purpose, same reasoning as questionLogics above: a
       // teacher's observation of a real child is not something to fabricate
       // demo data for.
-      teacherObservationRecords: []
+      teacherObservationRecords: [],
+      // Same reasoning again -- a child's actual hints/scaffolding evidence
+      // isn't something to fabricate demo data for either.
+      attemptRecords: []
     };
   }
 }
