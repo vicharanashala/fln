@@ -1,11 +1,12 @@
-import { UserRole, WorksheetGenerationWindow } from './db';
+import { UserRole } from './identity.types';
+import type { WorksheetGenerationWindow } from './assessment.types';
 
 export function getGenerationWindowStatus(
   window: WorksheetGenerationWindow,
   userRole: UserRole,
   currentTime: Date
 ): 'active' | 'teacher-priority-ended' | 'school-priority-not-started' | 'expired' {
-  if (window.closed || currentTime >= new Date(window.end)){
+  if (window.closed || currentTime >= new Date(window.end)) {
     return 'expired';
   }
 

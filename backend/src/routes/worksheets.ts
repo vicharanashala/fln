@@ -2,7 +2,17 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
-import { dbStore, UserRole, Student, Question, Worksheet, LevelWorksheet, WorksheetGenerationWindow, CYCLE_NAMES } from '../db';
+import { dbStore , CYCLE_NAMES } from '../db';
+import { UserRole } from '../identity.types';
+import type { Student } from '../student.types';
+import type {
+  Question,
+} from '../curriculum.types';
+import type {
+  WorksheetGenerationWindow,
+  Worksheet,
+  LevelWorksheet,
+} from '../assessment.types';
 import { getAuthUser } from '../auth';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import * as levelsBackendClient from '../levelsBackendClient';
