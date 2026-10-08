@@ -47,6 +47,7 @@ import { registerMisconceptionRoutes } from './routes/misconceptions';
 import { registerCurriculumRoutes } from './routes/curriculum';
 import { registerQuestionBankRoutes } from './routes/questionBank';
 import { registerObservationRoutes } from './routes/observations';
+import { registerSkillEvolutionRoutes } from './routes/skillEvolution';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
@@ -264,6 +265,7 @@ registerStatsRoutes(app);
   registerCurriculumRoutes(app);
   registerQuestionBankRoutes(app);
   registerObservationRoutes(app);
+  registerSkillEvolutionRoutes(app);
 
   // --- Intervention Tracking & Best Practices Repository ---
 
