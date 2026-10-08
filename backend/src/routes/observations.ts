@@ -1,0 +1,146 @@
+import express from 'express';
+import { randomUUID } from 'crypto';
+import { dbStore, CYCLE_NAMES, TeacherObservationRecord, UserRole } from '../db';
+import { getAuthUser, canAccessStudent } from '../auth';
+
+const OBSERVATION_RATINGS = ['Proficient', 'Progressive', 'Beginner'] as const;
+const VALID_STRATEGIES = ['fingers', 'counters', 'mental', 'written'] as const;
+
+function isValidCycle(c: any): c is string {
+  return typeof c === 'string' && (CYCLE_NAMES as readonly string[]).includes(c);
+}
+
+export function registerObservationRoutes(app: express.Express) {
+  app.get('/api/observations/student/:studentId', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (user.role === UserRole.TEACHER && user.isBanned) {
+      return res.status(403).json({ error: 'Account suspended.' });
+    }
+
+    const { studentId } = req.params;
+    const { cycle } = req.query;
+    if (!isValidCycle(cycle)) {
+      return res.status(400).json({ error: 'Valid cycle query parameter required.' });
+    }
+
+    try {
+      const student = (await dbStore.getStudents()).find(s => s.id === studentId);
+      if (!student) return res.status(404).json({ error: 'Student not found.' });
+      if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
+
+      const records = await dbStore.getObservationRecordsForStudent(studentId, cycle);
+      return res.json(records);
+    } catch (error: any) {
+      console.error('[Observations] student records lookup failed:', error?.message || error);
+      return res.status(500).json({ error: 'Could not load observation records.' });
+    }
+  });
+
+  app.get('/api/observations/class/:classId', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (user.role === UserRole.TEACHER && user.isBanned) {
+      return res.status(403).json({ error: 'Account suspended.' });
+    }
+
+    const { classId } = req.params;
+    const { cycle } = req.query;
+    if (!isValidCycle(cycle)) {
+      return res.status(400).json({ error: 'Valid cycle query parameter required.' });
+    }
+
+    try {
+      const classGroup = (await dbStore.getClasses()).find(c => c.id === classId);
+      if (!classGroup) return res.status(404).json({ error: 'Class not found.' });
+
+      return res.json(await dbStore.getObservationRecordsForClass(classGroup.id, cycle));
+    } catch (error: any) {
+      console.error('[Observations] class records lookup failed:', error?.message || error);
+      return res.status(500).json({ error: 'Could not load observation records.' });
+    }
+  });
+
+  app.post('/api/observations', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (user.role === UserRole.TEACHER && user.isBanned) {
+      return res.status(403).json({ error: 'Account suspended.' });
+    }
+
+    const { studentId, conceptId, classId, cycle, rating, notYetAssessed, selfCorrected, strategyUsed } = req.body ?? {};
+
+    if (
+      typeof studentId !== 'string' || !studentId.trim() ||
+      typeof conceptId !== 'string' || !conceptId.trim() ||
+      typeof classId !== 'string' || !classId.trim() ||
+      !isValidCycle(cycle) ||
+      !(OBSERVATION_RATINGS as readonly unknown[]).includes(rating) ||
+      typeof notYetAssessed !== 'boolean'
+    ) {
+      return res.status(400).json({
+        error: 'Required fields: studentId, conceptId, classId, valid cycle, valid rating, and boolean notYetAssessed.'
+      });
+    }
+
+    if (selfCorrected !== undefined && typeof selfCorrected !== 'boolean') {
+      return res.status(400).json({ error: 'selfCorrected must be a boolean.' });
+    }
+
+    if (strategyUsed !== undefined && !(VALID_STRATEGIES as readonly unknown[]).includes(strategyUsed)) {
+      return res.status(400).json({ error: 'strategyUsed must be one of: fingers, counters, mental, written.' });
+    }
+
+    try {
+      const student = (await dbStore.getStudents()).find(s => s.id === studentId.trim());
+      if (!student) return res.status(404).json({ error: 'Student not found.' });
+      if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
+
+      const classGroup = (await dbStore.getClasses()).find(c => c.id === classId.trim());
+      if (!classGroup) return res.status(404).json({ error: 'Class not found.' });
+      if (
+        classGroup.schoolId !== student.schoolId ||
+        classGroup.className !== student.classGroup ||
+        classGroup.section !== student.section
+      ) {
+        return res.status(400).json({ error: 'The class does not match the student.' });
+      }
+
+      const existing = await dbStore.getObservationRecordsForStudent(student.id, cycle);
+      const priorRecord = existing.find(record => record.conceptId === conceptId.trim());
+      const now = new Date().toISOString();
+
+      const record: TeacherObservationRecord = {
+        id: priorRecord?.id ?? `obs_${randomUUID()}`,
+        studentId: student.id,
+        conceptId: conceptId.trim(),
+        teacherId: user.id,
+        teacherEmail: user.email,
+        schoolId: student.schoolId,
+        classId: classGroup.id,
+        cycle,
+        rating,
+        notYetAssessed,
+        ...(selfCorrected !== undefined
+          ? { selfCorrected }
+          : priorRecord?.selfCorrected !== undefined
+          ? { selfCorrected: priorRecord.selfCorrected }
+          : {}),
+        ...(strategyUsed !== undefined
+          ? { strategyUsed }
+          : priorRecord?.strategyUsed !== undefined
+          ? { strategyUsed: priorRecord.strategyUsed }
+          : {}),
+        observedAt: now,
+        createdAt: priorRecord?.createdAt ?? now,
+        updatedAt: now
+      };
+
+      const saved = await dbStore.upsertObservationRecord(record);
+      return res.json(saved);
+    } catch (error: any) {
+      console.error('[Observations] record save failed:', error?.message || error);
+      return res.status(500).json({ error: 'Could not save observation record.' });
+    }
+  });
+}

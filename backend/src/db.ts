@@ -1006,6 +1006,8 @@ export interface TeacherObservationRecord {
    * the two have different implications for follow-up.
    */
   notYetAssessed: boolean;
+  selfCorrected?: boolean;
+  strategyUsed?: 'fingers' | 'counters' | 'mental' | 'written';
 
   observedAt: string;
   createdAt: string;
