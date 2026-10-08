@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import { strict as assert } from 'node:assert';
-import { getGenerationWindowStatus } from '../generationWindowRules';
+import {
+  getGenerationWindowStatus,
+  getLatestGenerationWindow,
+  isWorksheetGenerationLocked
+} from '../generationWindowRules';
 import { WorksheetGenerationWindow, UserRole } from '../db';
 
 let passed = 0;
@@ -93,6 +97,7 @@ check('active window is accepted before expiry', () => {
 
   assert.equal(status, 'active');
 });
+
 check('restarted window is picked over expired one', () => {
   const expiredWindow = windowAt(61);
   const restartedWindow = {
@@ -102,16 +107,25 @@ check('restarted window is picked over expired one', () => {
 
   const windows = [expiredWindow, restartedWindow];
 
-  const latestWindow = windows
-    .sort(
-      (a, b) =>
-        new Date(b.start).getTime() - new Date(a.start).getTime()
-    )[0];
+  const latestWindow = getLatestGenerationWindow(windows);
 
-  assert.equal(latestWindow.start, restartedWindow.start);
+  assert.equal(latestWindow?.start, restartedWindow.start);
 });
+
+check('second-generation attempt is rejected (423 lock condition)', () => {
+  const lockedWorksheet = {
+    locks: { locked: true }
+  };
+  assert.equal(isWorksheetGenerationLocked(lockedWorksheet), true);
+
+  const unlockedWorksheet = {
+    locks: { locked: false }
+  };
+  assert.equal(isWorksheetGenerationLocked(unlockedWorksheet), false);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 
 if (failed > 0) {
   process.exit(1);
-}
+}

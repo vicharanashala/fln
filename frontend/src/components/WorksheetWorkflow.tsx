@@ -21,50 +21,50 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [generationWindow, setGenerationWindow] = useState<{
-  start: string;
-  teacherPriorityEnd: string;
-  end: string;
-  cycle: 'Baseline' | 'Mid-year' | 'End-of-year';
-  generatedByRole: string | null;
-  generatedByEmail: string | null;
-} | null>(null);
+    start: string;
+    teacherPriorityEnd: string;
+    end: string;
+    cycle: 'Baseline' | 'Mid-year' | 'End-of-year';
+    generatedByRole: string | null;
+    generatedByEmail: string | null;
+  } | null>(null);
 
   const [generationTimeLeft, setGenerationTimeLeft] = useState<number | null>(null);
   useEffect(() => {
-  const fetchGenerationWindow = async () => {
-    try {
-      const cycles: Array<'Baseline' | 'Mid-year' | 'End-of-year'> = [
-        'Baseline',
-        'Mid-year',
-        'End-of-year'
-      ];
+    const fetchGenerationWindow = async () => {
+      try {
+        const cycles: Array<'Baseline' | 'Mid-year' | 'End-of-year'> = [
+          'Baseline',
+          'Mid-year',
+          'End-of-year'
+        ];
 
-      for (const cycle of cycles) {
-        const res = await apiFetch(
-          `/api/worksheets/generation-window?classId=${classGroup.id}&cycle=${cycle}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
+        for (const cycle of cycles) {
+          const res = await apiFetch(
+            `/api/worksheets/generation-window?classId=${classGroup.id}&cycle=${cycle}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            }
+          );
+
+          if (res.ok) {
+            const data = await res.json();
+
+            if (new Date(data.end).getTime() > Date.now()) {
+              setGenerationWindow(data);
+              break;
             }
           }
-        );
-
-        if (res.ok) {
-          const data = await res.json();
-
-          if (new Date(data.end).getTime() > Date.now()) {
-            setGenerationWindow(data);
-            break;
-          }
         }
+      } catch (_) {
+        // No active generation window to restore.
       }
-    } catch (_) {
-      // No active generation window to restore.
-    }
-  };
+    };
 
-  fetchGenerationWindow();
-}, [classGroup.id, token]);
+    fetchGenerationWindow();
+  }, [classGroup.id, token]);
   useEffect(() => {
     if (!generationWindow) {
       setGenerationTimeLeft(null);
@@ -306,43 +306,48 @@ export const WorksheetWorkflow: React.FC<WorksheetWorkflowProps> = ({ classGroup
           )}
           <div className="flex flex-col items-center gap-3 pt-4">
             <div className="flex justify-center gap-3 flex-wrap">
+              <button
+                onClick={() => generateWorksheets('Baseline')}
+                disabled={
+                  loading ||
+                  (isSchool &&
+                    generationWindow !== null &&
+                    generationTimeLeft !== null &&
+                    generationTimeLeft > 30 * 60 * 1000)
+                }
+                className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-5 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
+              >
+                Generate Baseline Worksheets
+              </button>
 
-  <button
-    onClick={() => generateWorksheets('Baseline')}
-    disabled={loading}
-    className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-5 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
-  >
-    Generate Baseline Worksheets
-  </button>
+              <button
+                onClick={() => generateWorksheets('Mid-year')}
+                disabled={
+                  loading ||
+                  (isSchool &&
+                    generationWindow !== null &&
+                    generationTimeLeft !== null &&
+                    generationTimeLeft > 30 * 60 * 1000)
+                }
+                className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-5 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
+              >
+                Generate Mid-Year Worksheets
+              </button>
 
-  <button
-    onClick={() => generateWorksheets('Mid-year')}
-    disabled={
-      loading ||
-      (isSchool &&
-        generationWindow !== null &&
-        generationTimeLeft !== null &&
-        generationTimeLeft > 30 * 60 * 1000)
-    }
-    className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-5 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
-  >
-    Generate Mid-Year Worksheets
-  </button>
-
-  <button
-    onClick={() => generateWorksheets('End-of-year')}
-    disabled={
-      loading ||
-      (isSchool &&
-        generationWindow !== null &&
-        generationTimeLeft !== null &&
-        generationTimeLeft > 30 * 60 * 1000)
-    }
-    className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-5 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
-  >
-    Generate End-of-Year Worksheets
-  </button>
-</div>
+              <button
+                onClick={() => generateWorksheets('End-of-year')}
+                disabled={
+                  loading ||
+                  (isSchool &&
+                    generationWindow !== null &&
+                    generationTimeLeft !== null &&
+                    generationTimeLeft > 30 * 60 * 1000)
+                }
+                className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-sm py-2.5 px-5 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
+              >
+                Generate End-of-Year Worksheets
+              </button>
+            </div>
             <button
               onClick={() => setIsIframeModalOpen(true)}
               className="w-fit bg-white dark:bg-slate-800 hover:bg-zinc-50 dark:hover:bg-slate-700 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 font-medium text-sm py-2.5 px-5 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
