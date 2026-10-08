@@ -32,7 +32,8 @@
     "test:paper-lock": "tsx src/paperLock.test.ts",
     "test:competency-prerequisites": "tsx src/competencyPrerequisites.test.ts",
     "test:balvatika-stage": "tsx --test src/config/curriculumMap.test.ts",
-    "test:choice-error-tags": "tsx --test tests/choice-error-tags.test.ts"
+    "test:choice-error-tags": "tsx --test tests/choice-error-tags.test.ts",
+    "test:admin-principal-school": "tsx --test tests/admin-principal-school.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
