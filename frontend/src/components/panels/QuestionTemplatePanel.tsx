@@ -141,6 +141,25 @@ export const QuestionTemplatePanel: React.FC = () => {
   const hasAdd = params.operations.includes('add');
   const hasSubtract = params.operations.includes('subtract');
   const isFillBlanks = params.answerType === 'fill-blanks';
+  const isNumberFamily = questionFamily === 'operation' || questionFamily === 'counting';
+
+  const handleQuestionFamilyChange = (nextFamily: string) => {
+    setQuestionFamily(nextFamily as any);
+    setFormError(null);
+    const isNum = nextFamily === 'operation' || nextFamily === 'counting';
+    if (!isNum) {
+      setParams(prev => ({
+        ...prev,
+        numeralRange: null,
+        digitCount: null,
+        operations: [],
+        maxOperandCount: null,
+        carryBehavior: null,
+        borrowBehavior: null,
+        maxSumOrDifference: null,
+      }));
+    }
+  };
 
   const setParam = <K extends keyof QuestionTemplateParams>(key: K, value: QuestionTemplateParams[K]) => {
     setFormError(null);
@@ -595,9 +614,9 @@ export const QuestionTemplatePanel: React.FC = () => {
                 <div className={labelCls}>Kind of question</div>
                 <div className="mt-1 flex flex-wrap gap-2">
                   {(catalog?.questionFamily ?? ['counting', 'operation']).map(f => (
-                    <button key={f} type="button" onClick={() => { setQuestionFamily(f as 'counting' | 'operation'); setFormError(null); }}
+                    <button key={f} type="button" onClick={() => handleQuestionFamilyChange(f)}
                       aria-pressed={questionFamily === f} className={chipCls(questionFamily === f)}>
-                      {f === 'counting' ? 'Counting a picture' : 'Number operation'}
+                      {f === 'counting' ? 'Counting a picture' : f === 'operation' ? 'Number operation' : f}
                     </button>
                   ))}
                 </div>
@@ -621,42 +640,50 @@ export const QuestionTemplatePanel: React.FC = () => {
           <div className="space-y-2">
             <div className={labelCls}>Step 5 — Options (all optional)</div>
 
-            <Group id="numbers" title="Numbers and range"
-              summary={[params.numeralRange, params.digitCount].filter(Boolean).join(', ') || 'not set'}>
-              <EnumRow label="Number range" values={catalog?.numeralRange ?? []} value={params.numeralRange}
-                onPick={v => setParam('numeralRange', v)} />
-              <EnumRow label="Size of the numbers used" values={catalog?.digitCount ?? []} value={params.digitCount}
-                onPick={v => setParam('digitCount', v)} />
-            </Group>
+            {isNumberFamily ? (
+              <>
+                <Group id="numbers" title="Numbers and range"
+                  summary={[params.numeralRange, params.digitCount].filter(Boolean).join(', ') || 'not set'}>
+                  <EnumRow label="Number range" values={catalog?.numeralRange ?? []} value={params.numeralRange}
+                    onPick={v => setParam('numeralRange', v)} />
+                  <EnumRow label="Size of the numbers used" values={catalog?.digitCount ?? []} value={params.digitCount}
+                    onPick={v => setParam('digitCount', v)} />
+                </Group>
 
-            <Group id="operations" title="Operations"
-              summary={params.operations.length ? params.operations.join(', ') : 'not set'}>
-              <div>
-                <div className={labelCls}>Operations</div>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {(catalog?.operations ?? []).map(op => (
-                    <button key={op} type="button" onClick={() => toggleOperation(op)}
-                      aria-pressed={params.operations.includes(op)} className={chipCls(params.operations.includes(op))}>
-                      {op}
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  Leaving this empty means the operation has not been specified.
-                </p>
-              </div>
+                <Group id="operations" title="Operations"
+                  summary={params.operations.length ? params.operations.join(', ') : 'not set'}>
+                  <div>
+                    <div className={labelCls}>Operations</div>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {(catalog?.operations ?? []).map(op => (
+                        <button key={op} type="button" onClick={() => toggleOperation(op)}
+                          aria-pressed={params.operations.includes(op)} className={chipCls(params.operations.includes(op))}>
+                          {op}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      Leaving this empty means the operation has not been specified.
+                    </p>
+                  </div>
 
-              <EnumRow label="Numbers per sum" values={catalog?.maxOperandCount ?? []} value={params.maxOperandCount}
-                onPick={v => setParam('maxOperandCount', v)} disabled={!hasAdd && !hasSubtract}
-                hint="Pick add or subtract first." />
-              <EnumRow label="Carrying" values={catalog?.carryBehavior ?? []} value={params.carryBehavior}
-                onPick={v => setParam('carryBehavior', v)} disabled={!hasAdd} hint="Pick add first." />
-              <EnumRow label="Borrowing" values={catalog?.borrowBehavior ?? []} value={params.borrowBehavior}
-                onPick={v => setParam('borrowBehavior', v)} disabled={!hasSubtract} hint="Pick subtract first." />
-              <EnumRow label="Largest answer" values={catalog?.maxSumOrDifference ?? []} value={params.maxSumOrDifference}
-                onPick={v => setParam('maxSumOrDifference', v)} disabled={!hasAdd && !hasSubtract}
-                hint="Pick add or subtract first." />
-            </Group>
+                  <EnumRow label="Numbers per sum" values={catalog?.maxOperandCount ?? []} value={params.maxOperandCount}
+                    onPick={v => setParam('maxOperandCount', v)} disabled={!hasAdd && !hasSubtract}
+                    hint="Pick add or subtract first." />
+                  <EnumRow label="Carrying" values={catalog?.carryBehavior ?? []} value={params.carryBehavior}
+                    onPick={v => setParam('carryBehavior', v)} disabled={!hasAdd} hint="Pick add first." />
+                  <EnumRow label="Borrowing" values={catalog?.borrowBehavior ?? []} value={params.borrowBehavior}
+                    onPick={v => setParam('borrowBehavior', v)} disabled={!hasSubtract} hint="Pick subtract first." />
+                  <EnumRow label="Largest answer" values={catalog?.maxSumOrDifference ?? []} value={params.maxSumOrDifference}
+                    onPick={v => setParam('maxSumOrDifference', v)} disabled={!hasAdd && !hasSubtract}
+                    hint="Pick add or subtract first." />
+                </Group>
+              </>
+            ) : (
+              <p className="py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                No number options for this kind of question.
+              </p>
+            )}
 
             <Group id="answer" title="Answer shape"
               summary={[params.answerType, params.blankCount ? `${params.blankCount} blanks` : null].filter(Boolean).join(', ') || 'not set'}>
