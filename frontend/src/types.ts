@@ -524,6 +524,8 @@ export interface ImportResult {
   imported: number;
   rowsRead: number;
   wouldImport?: number;
+  wouldSkip?: number;
+  skippedIdentical?: number;
   errors: Array<{ row: number; error: string }>;
   error?: string;
   repeatedInFile?: Array<{ variantKey: string; count: number }>;

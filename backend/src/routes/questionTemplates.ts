@@ -565,6 +565,26 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
       });
     }
 
+    // Check against existing database templates and duplicate rows within the file
+    const existingTemplates = await dbStore.getQuestionTemplates(false);
+    const existingFingerprints = new Set(
+      existingTemplates.filter(t => !t.deletedAt).map(t => computeTemplateFingerprint(t))
+    );
+
+    const seenFingerprintsInFile = new Set<string>();
+    const toInsert: QuestionTemplate[] = [];
+    let skippedIdentical = 0;
+
+    for (const template of prepared) {
+      const fp = computeTemplateFingerprint(template);
+      if (existingFingerprints.has(fp) || seenFingerprintsInFile.has(fp)) {
+        skippedIdentical++;
+      } else {
+        seenFingerprintsInFile.add(fp);
+        toInsert.push(template);
+      }
+    }
+
     // Variations that already exist, and variations the file repeats within
     // itself. Both are reported, neither blocks the import.
     const withinFile = new Map<string, number>();
@@ -580,23 +600,44 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
         dryRun: true,
         imported: 0,
         rowsRead: dataRows.length,
-        wouldImport: prepared.length,
+        wouldImport: toInsert.length,
+        wouldSkip: skippedIdentical,
+        skippedIdentical,
         errors: [],
         repeatedInFile: [...withinFile.entries()].filter(([, n]) => n > 1).map(([key, n]) => ({ variantKey: key, count: n })),
         alreadyExists: existingKeys,
-        preview: prepared.slice(0, 10).map(t => ({ conceptId: t.conceptId, name: t.name, stem: t.stem })),
+        preview: toInsert.slice(0, 10).map(t => ({ conceptId: t.conceptId, name: t.name, stem: t.stem })),
       });
     }
 
-    await dbStore.addQuestionTemplates(prepared);
+    if (toInsert.length > 0) {
+      await dbStore.addQuestionTemplates(toInsert);
+    }
 
     res.status(201).json({
       dryRun: false,
-      imported: prepared.length,
+      imported: toInsert.length,
+      skippedIdentical,
+      total: dataRows.length,
       rowsRead: dataRows.length,
       errors: [],
       repeatedInFile: [...withinFile.entries()].filter(([, n]) => n > 1).map(([key, n]) => ({ variantKey: key, count: n })),
       alreadyExists: existingKeys,
     });
   });
+}
+
+export function computeTemplateFingerprint(t: {
+  variantKey: string;
+  generationIntent: string;
+  skills: string[];
+  subskills: string[];
+  questionFamily: string;
+  svgThemeIds: string[];
+}): string {
+  const intent = (t.generationIntent || '').trim();
+  const sortedSkills = [...(t.skills || [])].sort().join(',');
+  const sortedSubskills = [...(t.subskills || [])].sort().join(',');
+  const sortedThemes = [...(t.svgThemeIds || [])].sort().join(',');
+  return `${t.variantKey}|${intent}|${sortedSkills}|${sortedSubskills}|${t.questionFamily}|${sortedThemes}`;
 }
