@@ -103,21 +103,16 @@ test('Frontend types source: QuestionTemplate interface includes assessmentMode'
   );
 });
 
-test('Backend routes source: POST and PATCH handlers extract and forward assessmentMode', () => {
+test('Backend routes source: POST and PATCH handlers return 400 for unknown assessmentMode', () => {
   const src = readSource(BACKEND_ROUTE_SOURCE);
   assert.match(
     src,
-    /const\s+assessmentMode:\s*'written'\s*\|\s*'observed'\s*\|\s*'both'/,
-    'Backend route handlers must validate assessmentMode',
+    /const\s+ASSESSMENT_MODES\s*=\s*\['written',\s*'observed',\s*'both'\]/,
+    'Backend route source must define ASSESSMENT_MODES',
   );
   assert.match(
     src,
-    /req\.body\?\.\s*assessmentMode/,
-    'Backend route handlers must check req.body.assessmentMode',
-  );
-  assert.match(
-    src,
-    /updates:\s*Partial<QuestionTemplate>\s*=\s*\{[\s\S]*?assessmentMode,/,
-    'Backend PATCH updates must include assessmentMode',
+    /assessmentMode must be written, observed or both\./,
+    'Backend route source must return 400 error message for unknown assessmentMode',
   );
 });
