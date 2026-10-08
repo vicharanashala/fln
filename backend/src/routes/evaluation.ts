@@ -11,7 +11,7 @@ import { PYTHON_BIN, AI_SERVICES_DIR } from '../config';
 import { runCertificationEligibility } from '../services/certificationRecords';
 import { invalidateFingerprintCache } from './misconceptions';
 import { assignStudentToArchetype } from '../studentArchetypeService';
-import { CURRICULUM_MAPPING } from '../config/curriculumMap';
+import { CURRICULUM_MAPPING, MAX_LEVEL } from '../config/curriculumMap';
 import { directPrerequisites, describeConcept } from '../competencyPrerequisites';
 import { analyzeScanQuality } from '../scanQuality';
 import { calculateStandardAdvancement } from '../gradeLevelCalculator';
@@ -1102,8 +1102,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     await dbStore.updateStudent(student.id, {
       currentLevel: recommendedLevel,
       currentSubLevel: newSubLevel,
-      // Capped at 59, not 93: worksheet generation still throws UnknownLevelError above 59.
-      targetLevel: Math.min(59, recommendedLevel + 1),
+      targetLevel: Math.min(MAX_LEVEL, recommendedLevel + 1),
       levelHistory
     });
 
@@ -1339,8 +1338,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     // turning a score into a level.
     const classMatch = student.classGroup.match(/\d+/);
     const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
-    // Capped at 59, not 93: worksheet generation still throws UnknownLevelError above 59.
-    const recommendedLevel = Math.max(1, Math.min(59, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
+    const recommendedLevel = Math.max(1, Math.min(MAX_LEVEL, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
     const recommendedSubLevel = percentage >= 80 ? 0 : percentage >= 50 ? 1 : 2;
 
     const updatedReport = await dbStore.updateEvaluationReport(report.id, {
@@ -1367,7 +1365,7 @@ export function registerEvaluationRoutes(app: express.Express) {
       await dbStore.updateStudent(student.id, {
         currentLevel: recommendedLevel,
         currentSubLevel: recommendedSubLevel,
-        targetLevel: Math.min(59, recommendedLevel + 1),
+        targetLevel: Math.min(MAX_LEVEL, recommendedLevel + 1),
         levelHistory,
       });
     }
