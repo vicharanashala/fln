@@ -882,6 +882,14 @@ async function drawHalfPageChildObs(
   page.drawText('Maths Vocabulary (NCF-FS C-8.12):', { x: 35, y: y - 12, size: 9, font: fontBold });
   page.drawText('[  ] Demonstrated math vocabulary during observation', { x: 220, y: y - 12, size: 8.5, font });
 
+  y -= 25;
+
+  // Literacy Checklist Section (NCF-FS Foundational Literacy C-1..4 - Issue #628)
+  page.drawRectangle({ x: 30, y: y - 35, width: 535, height: 38, color: rgb(0.93, 0.96, 0.99), borderColor: rgb(0.3, 0.5, 0.7), borderWidth: 1 });
+  page.drawText('Literacy Checklist (NCF-FS Foundational Literacy C-1..4):', { x: 35, y: y - 12, size: 9, font: fontBold, color: rgb(0.1, 0.3, 0.5) });
+  page.drawText('[  ] Phonemic / Letter Sounds    [  ] Oral Expression & Vocabulary', { x: 35, y: y - 28, size: 8, font, color: rgb(0.2, 0.2, 0.2) });
+  page.drawText('[  ] Print Awareness & Tracking  [  ] Story Listening Comprehension', { x: 280, y: y - 28, size: 8, font, color: rgb(0.2, 0.2, 0.2) });
+
   const qrMeta = JSON.stringify({ type: 'OBSERVATION_CHILD', studentId: student.id, classId: args.classId, cycle: args.cycle });
   drawQrCode(page, qrMeta, 505, startY + 325, 55);
 }
