@@ -745,3 +745,143 @@ export async function renderWorksheetPdf({
     pdfUrl: `/output/${fileName}`
   };
 }
+
+export interface ObservationGridArgs {
+  classId: string;
+  className: string;
+  section: string;
+  cycle: string;
+  students: Array<{ id: string; name: string }>;
+  concepts?: string[];
+}
+
+export async function renderClassGridObservationPdf(args: ObservationGridArgs): Promise<{
+  fileName: string;
+  filePath: string;
+  pdfUrl: string;
+  pdfBuffer: Buffer;
+}> {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([842, 595]); // A4 Landscape
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const defaultConcepts = ['S3.1', 'S3.2', 'S3.3', 'S3.4', 'S3.5', 'S3.7'];
+  const conceptList = args.concepts && args.concepts.length > 0 ? args.concepts : defaultConcepts;
+
+  page.drawText('TEACHER OBSERVATION SHEET (CLASS GRID)', { x: 40, y: 560, size: 16, font: fontBold, color: rgb(0, 0, 0) });
+  page.drawText(`Class: ${args.className} - ${args.section} | Cycle: ${args.cycle} | Date: ${new Date().toISOString().split('T')[0]}`, { x: 40, y: 540, size: 11, font, color: rgb(0.3, 0.3, 0.3) });
+
+  let startX = 40;
+  let startY = 510;
+  const rowHeight = 25;
+  const colWidthName = 140;
+  const colWidthConcept = 75;
+  const colWidthVocab = 130;
+
+  page.drawRectangle({ x: startX, y: startY - rowHeight, width: colWidthName, height: rowHeight, color: rgb(0.9, 0.9, 0.9), borderColor: rgb(0, 0, 0), borderWidth: 1 });
+  page.drawText('Student Name', { x: startX + 5, y: startY - 17, size: 10, font: fontBold });
+
+  conceptList.forEach((c, idx) => {
+    const x = startX + colWidthName + idx * colWidthConcept;
+    page.drawRectangle({ x, y: startY - rowHeight, width: colWidthConcept, height: rowHeight, color: rgb(0.9, 0.9, 0.9), borderColor: rgb(0, 0, 0), borderWidth: 1 });
+    page.drawText(c, { x: x + 5, y: startY - 17, size: 9, font: fontBold });
+  });
+
+  const vocabX = startX + colWidthName + conceptList.length * colWidthConcept;
+  page.drawRectangle({ x: vocabX, y: startY - rowHeight, width: colWidthVocab, height: rowHeight, color: rgb(0.95, 0.95, 0.85), borderColor: rgb(0, 0, 0), borderWidth: 1 });
+  page.drawText('Maths Vocab (C-8.12)', { x: vocabX + 5, y: startY - 17, size: 9, font: fontBold });
+
+  let currentY = startY - rowHeight;
+  args.students.forEach((s) => {
+    currentY -= rowHeight;
+    page.drawRectangle({ x: startX, y: currentY, width: colWidthName, height: rowHeight, borderColor: rgb(0, 0, 0), borderWidth: 1 });
+    page.drawText(s.name.slice(0, 20), { x: startX + 5, y: currentY + 7, size: 9, font });
+
+    conceptList.forEach((_, idx) => {
+      const x = startX + colWidthName + idx * colWidthConcept;
+      page.drawRectangle({ x, y: currentY, width: colWidthConcept, height: rowHeight, borderColor: rgb(0, 0, 0), borderWidth: 1 });
+      page.drawText('[  ] P [  ] Pr [  ] B', { x: x + 4, y: currentY + 7, size: 7, font, color: rgb(0.4, 0.4, 0.4) });
+    });
+
+    page.drawRectangle({ x: vocabX, y: currentY, width: colWidthVocab, height: rowHeight, borderColor: rgb(0, 0, 0), borderWidth: 1 });
+    page.drawText('[  ] Observed', { x: vocabX + 10, y: currentY + 7, size: 8, font, color: rgb(0.4, 0.4, 0.4) });
+  });
+
+  const qrMeta = JSON.stringify({ type: 'OBSERVATION_GRID', classId: args.classId, cycle: args.cycle });
+  drawQrCode(page, qrMeta, 750, 510, 65);
+
+  const pdfBytes = await pdfDoc.save();
+  const pdfBuffer = Buffer.from(pdfBytes);
+  const fileName = `obs_grid_${args.classId}_${randomUUID().slice(0, 8)}.pdf`;
+  const filePath = path.join(OUTPUT_DIR, fileName);
+  fs.writeFileSync(filePath, pdfBuffer);
+
+  return { fileName, filePath, pdfUrl: `/output/${fileName}`, pdfBuffer };
+}
+
+export async function renderPerChildObservationPdf(args: ObservationGridArgs): Promise<{
+  fileName: string;
+  filePath: string;
+  pdfUrl: string;
+  pdfBuffer: Buffer;
+}> {
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const defaultConcepts = ['S3.1', 'S3.2', 'S3.3', 'S3.4', 'S3.5', 'S3.7'];
+  const conceptList = args.concepts && args.concepts.length > 0 ? args.concepts : defaultConcepts;
+
+  for (let i = 0; i < args.students.length; i += 2) {
+    const page = pdfDoc.addPage([595, 842]); // A4 Portrait
+
+    // Top Child (Half Page 1)
+    const s1 = args.students[i];
+    await drawHalfPageChildObs(page, s1, 440, args, conceptList, font, fontBold);
+
+    // Bottom Child (Half Page 2)
+    if (i + 1 < args.students.length) {
+      const s2 = args.students[i + 1];
+      page.drawLine({ start: { x: 20, y: 420 }, end: { x: 575, y: 420 }, thickness: 1, color: rgb(0.7, 0.7, 0.7) });
+      await drawHalfPageChildObs(page, s2, 20, args, conceptList, font, fontBold);
+    }
+  }
+
+  const pdfBytes = await pdfDoc.save();
+  const pdfBuffer = Buffer.from(pdfBytes);
+  const fileName = `obs_child_${args.classId}_${randomUUID().slice(0, 8)}.pdf`;
+  const filePath = path.join(OUTPUT_DIR, fileName);
+  fs.writeFileSync(filePath, pdfBuffer);
+
+  return { fileName, filePath, pdfUrl: `/output/${fileName}`, pdfBuffer };
+}
+
+async function drawHalfPageChildObs(
+  page: any,
+  student: { id: string; name: string },
+  startY: number,
+  args: ObservationGridArgs,
+  conceptList: string[],
+  font: any,
+  fontBold: any
+) {
+  page.drawText('TEACHER OBSERVATION SHEET — INDIVIDUAL CHILD', { x: 30, y: startY + 360, size: 12, font: fontBold });
+  page.drawText(`Student: ${student.name} (ID: ${student.id}) | Class: ${args.className}-${args.section} | Cycle: ${args.cycle}`, { x: 30, y: startY + 342, size: 10, font, color: rgb(0.3, 0.3, 0.3) });
+
+  let y = startY + 320;
+  conceptList.forEach((c) => {
+    page.drawRectangle({ x: 30, y: y - 18, width: 535, height: 22, borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 1 });
+    page.drawText(`Concept ${c}:`, { x: 35, y: y - 12, size: 9, font: fontBold });
+    page.drawText('[  ] Proficient (on own)   [  ] Progressive (some help)   [  ] Beginner (lots of help)', { x: 140, y: y - 12, size: 8.5, font, color: rgb(0.3, 0.3, 0.3) });
+    y -= 25;
+  });
+
+  // Fixed Maths Vocabulary Row
+  page.drawRectangle({ x: 30, y: y - 18, width: 535, height: 22, color: rgb(0.95, 0.95, 0.85), borderColor: rgb(0, 0, 0), borderWidth: 1 });
+  page.drawText('Maths Vocabulary (NCF-FS C-8.12):', { x: 35, y: y - 12, size: 9, font: fontBold });
+  page.drawText('[  ] Demonstrated math vocabulary during observation', { x: 220, y: y - 12, size: 8.5, font });
+
+  const qrMeta = JSON.stringify({ type: 'OBSERVATION_CHILD', studentId: student.id, classId: args.classId, cycle: args.cycle });
+  drawQrCode(page, qrMeta, 505, startY + 325, 55);
+}
