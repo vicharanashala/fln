@@ -1014,6 +1014,18 @@ export interface TeacherObservationRecord {
   updatedAt: string;
 }
 
+export interface RemediationLedger {
+  id: string;
+  studentId: string;
+  worksheetId: string;
+  evaluationReportId: string;
+  failedQuestionIds: string[];
+  status: 'pending' | 'completed' | 'failed';
+  triggeredAutomatically: boolean;
+  createdAt: string;
+  completedAt?: string;
+}
+
 /**
  * One row per FLN level in the canonical 93-level taxonomy.
  *
@@ -1098,6 +1110,7 @@ interface DatabaseSchema {
   studentCycleLocks: StudentCycleLock[];
   generationWindows: WorksheetGenerationWindow[];
   teacherObservationRecords: TeacherObservationRecord[];
+  remediationLedgers: RemediationLedger[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -1129,6 +1142,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   studentCycleLocks: 'studentCycleLocks',
   generationWindows: 'generationWindows',
   teacherObservationRecords: 'teacher_observation_records',
+  remediationLedgers: 'remediation_ledgers',
 };
 
 /**
@@ -3178,6 +3192,45 @@ export class DBStore {
       { upsert: true }
     );
     return record;
+  }
+
+  // --- Remediation Ledger Methods -------------------------------------------
+  async getRemediationLedgers(): Promise<RemediationLedger[]> {
+    if (!this.mongoDb) return this.data?.remediationLedgers || [];
+    return await this.mongoDb.collection<RemediationLedger>('remediation_ledgers').find({}).toArray();
+  }
+
+  async addRemediationLedger(ledger: RemediationLedger): Promise<RemediationLedger> {
+    if (!this.mongoDb) {
+      if (this.data) {
+        if (!this.data.remediationLedgers) this.data.remediationLedgers = [];
+        this.data.remediationLedgers.push(ledger);
+        await this.save();
+      }
+      return ledger;
+    }
+    await this.mongoDb.collection<RemediationLedger>('remediation_ledgers').insertOne(ledger);
+    if (this.data) {
+      if (!this.data.remediationLedgers) this.data.remediationLedgers = [];
+      this.data.remediationLedgers.push(ledger);
+    }
+    return ledger;
+  }
+
+  async updateRemediationLedger(id: string, updates: Partial<RemediationLedger>): Promise<RemediationLedger | null> {
+    if (!this.mongoDb) {
+      if (this.data && this.data.remediationLedgers) {
+        const idx = this.data.remediationLedgers.findIndex(l => l.id === id);
+        if (idx !== -1) {
+          this.data.remediationLedgers[idx] = { ...this.data.remediationLedgers[idx], ...updates };
+          await this.save();
+          return this.data.remediationLedgers[idx];
+        }
+      }
+      return null;
+    }
+    await this.mongoDb.collection<RemediationLedger>('remediation_ledgers').updateOne({ id }, { $set: updates });
+    return await this.mongoDb.collection<RemediationLedger>('remediation_ledgers').findOne({ id });
   }
 
   /**
@@ -5401,7 +5454,8 @@ export class DBStore {
       // Seeded empty on purpose, same reasoning as questionLogics above: a
       // teacher's observation of a real child is not something to fabricate
       // demo data for.
-      teacherObservationRecords: []
+      teacherObservationRecords: [],
+      remediationLedgers: []
     };
   }
 }
