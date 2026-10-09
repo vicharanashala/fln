@@ -594,6 +594,17 @@ export interface Certification {
   updatedAt: string;
 }
 
+export interface StudentReadinessRecord {
+  id: string;
+  studentId: string;
+  computedBand: string;
+  finalBand: string;
+  isOverridden: boolean;
+  overrideReason?: string;
+  confirmedByTeacherId: string;
+  confirmedAt: string;
+}
+
 export interface Ticket {
   id: string;
   userId: string;
@@ -1098,6 +1109,7 @@ interface DatabaseSchema {
   studentCycleLocks: StudentCycleLock[];
   generationWindows: WorksheetGenerationWindow[];
   teacherObservationRecords: TeacherObservationRecord[];
+  studentReadinessRecords?: StudentReadinessRecord[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -1129,6 +1141,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   studentCycleLocks: 'studentCycleLocks',
   generationWindows: 'generationWindows',
   teacherObservationRecords: 'teacher_observation_records',
+  studentReadinessRecords: 'student_readiness_records',
 };
 
 /**
@@ -2517,6 +2530,38 @@ export class DBStore {
     await this.mongoDb!.collection('worksheets').insertOne(ws);
     if (this.data) this.data.worksheets.push(ws);
     return ws;
+  }
+
+  async getReadinessRecordForStudent(studentId: string): Promise<StudentReadinessRecord | null> {
+    if (this.mongoDb) {
+      return await this.mongoDb.collection<StudentReadinessRecord>('student_readiness_records').findOne({ studentId });
+    }
+    return (this.data?.studentReadinessRecords || []).find(r => r.studentId === studentId) || null;
+  }
+
+  async saveReadinessRecord(record: StudentReadinessRecord): Promise<StudentReadinessRecord> {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('student_readiness_records').updateOne(
+        { studentId: record.studentId },
+        { $set: record },
+        { upsert: true }
+      );
+      if (this.data) {
+        if (!this.data.studentReadinessRecords) this.data.studentReadinessRecords = [];
+        const idx = this.data.studentReadinessRecords.findIndex(r => r.studentId === record.studentId);
+        if (idx !== -1) this.data.studentReadinessRecords[idx] = record;
+        else this.data.studentReadinessRecords.push(record);
+      }
+      return record;
+    }
+    if (this.data) {
+      if (!this.data.studentReadinessRecords) this.data.studentReadinessRecords = [];
+      const idx = this.data.studentReadinessRecords.findIndex(r => r.studentId === record.studentId);
+      if (idx !== -1) this.data.studentReadinessRecords[idx] = record;
+      else this.data.studentReadinessRecords.push(record);
+      await this.save();
+    }
+    return record;
   }
 
   async addStudentCycleLock(lock: StudentCycleLock) {
