@@ -366,7 +366,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               <div className="md:col-span-1 flex flex-col justify-end gap-2">
                 <div className="flex items-center gap-2">
                   <input
-                    type="checkbox"
+                    type="checkbox" aria-label="Urgent email"
                     checked={isUrgent}
                     onChange={(e) => setIsUrgent(e.target.checked)}
                     className="rounded border-zinc-300 text-red-600 focus:ring-red-500"
@@ -473,7 +473,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
               <div>
                 <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Administrative Role Tier</label>
-                <select
+                <select aria-label="Administrative Role Tier"
                   value={coordRole}
                   onChange={e => {
                     const selectedRole = e.target.value as UserRole;
@@ -600,7 +600,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">State</label>
-                <select
+                <select aria-label="State"
                   value={stateFilter}
                   onChange={(e) => {
                     setStateFilter(e.target.value);
@@ -617,7 +617,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               </div>
               <div>
                 <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">District</label>
-                <select
+                <select aria-label="District"
                   value={districtFilter}
                   onChange={(e) => {
                     setDistrictFilter(e.target.value);
@@ -633,7 +633,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
               </div>
               <div>
                 <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">School</label>
-                <select
+                <select aria-label="School"
                   value={schoolFilter}
                   onChange={(e) => setSchoolFilter(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"

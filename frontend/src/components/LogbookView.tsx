@@ -182,7 +182,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
           {/* 1. State Filter */}
           <div>
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">State Scope</label>
-            <select
+            <select aria-label="State Scope"
               value={selectedState}
               onChange={(e) => {
                 setSelectedState(e.target.value);
@@ -203,7 +203,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
           {/* 2. District Filter */}
           <div>
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">District Scope</label>
-            <select
+            <select aria-label="District Scope"
               value={selectedDistrict}
               onChange={(e) => {
                 setSelectedDistrict(e.target.value);
@@ -223,7 +223,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
           {/* 3. Block Filter */}
           <div>
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Block Scope</label>
-            <select
+            <select aria-label="Block Scope"
               value={selectedBlock}
               onChange={(e) => {
                 setSelectedBlock(e.target.value);
@@ -242,7 +242,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
           {/* 4. School Filter */}
           <div>
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">School Facility</label>
-            <select
+            <select aria-label="School Facility"
               value={selectedSchool}
               onChange={(e) => setSelectedSchool(e.target.value)}
               className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 focus:border-zinc-500 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium text-zinc-900 dark:text-white"
@@ -257,7 +257,7 @@ export const LogbookView: React.FC<LogbookViewProps> = ({ token, user }) => {
           {/* 5. Log Type Filter */}
           <div>
             <label className="block text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Activity Category</label>
-            <select
+            <select aria-label="Activity Category"
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
               className="w-full border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 focus:border-zinc-500 focus:bg-white dark:focus:bg-slate-800 outline-none font-medium text-zinc-900 dark:text-white"
