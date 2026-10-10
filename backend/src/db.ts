@@ -176,6 +176,42 @@ export interface Student {
   streak?: number;
 }
 
+export type SkillBeliefState =
+  | 'mastered'
+  | 'learning'
+  | 'struggling'
+  | 'unobserved'
+  | 'insufficient_recent_evidence';
+
+export interface LearnerSkillState {
+  id?: string;
+  studentId: string;
+  skillId: string;
+  state: SkillBeliefState;
+  confidence: number;
+  evidenceCount: number;
+  firstObservedAt?: string;
+  lastObservedAt?: string;
+  correctCount: number;
+  incorrectCount: number;
+  recentErrorPattern?: string;
+  lastAssessmentId?: string;
+  modelVersion?: string;
+  updatedAt: string;
+}
+
+export interface ModelRun {
+  id: string;
+  studentId: string;
+  skillId: string;
+  modelType: string;
+  modelVersion: string;
+  inputEvidenceCount: number;
+  outputState: SkillBeliefState;
+  parameters?: Record<string, any>;
+  createdAt: string;
+}
+
 export interface Question {
   question_id: string;
   question: string;
