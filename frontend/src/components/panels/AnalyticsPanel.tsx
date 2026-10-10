@@ -32,18 +32,22 @@ export const AnalyticsPanel: React.FC<{
   const title = isAdmin ? 'Geographical Analytics' : 'Performance Analytics';
   const desc = isAdmin ? 'Cross-regional performance metrics and benchmarking' : 'School-level performance data and trends';
 
-  const totalSchoolsCount = isPrincipal ? (currentUser.schoolId ? 1 : Math.min(schools.length, 1)) : schools.length;
   const scopedStudents = isPrincipal && currentUser.schoolId ? students.filter(s => s.schoolId === currentUser.schoolId) : students;
   const avgLevel = scopedStudents.length > 0 ? `L${Math.round(scopedStudents.reduce((a, s) => a + s.currentLevel, 0) / scopedStudents.length)}` : 'L0';
   const certRate = scopedStudents.length > 0 ? `${Math.round(scopedStudents.filter(s => s.currentLevel >= 5).length / scopedStudents.length * 100)}%` : '0%';
+
+  const totalSchoolsCount = (schoolsLoading || schoolsError) ? '—' : (isPrincipal ? (currentUser.schoolId ? (schools.some(s => s.id === currentUser.schoolId) ? 1 : 0) : Math.min(data.length, 1)) : data.length);
+  const totalStudentsVal = (schoolsLoading || schoolsError) ? '—' : scopedStudents.length;
+  const avgLevelVal = (schoolsLoading || schoolsError) ? '—' : avgLevel;
+  const certRateVal = (schoolsLoading || schoolsError) ? '—' : certRate;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard title="Total Schools" value={totalSchoolsCount} subtext={isPrincipal ? "Assigned facility" : "All facilities"} icon={SchoolIcon} />
-        <MetricCard title="Total Students" value={scopedStudents.length} subtext="Active roster" icon={Users} />
-        <MetricCard title="Avg FLN Level" value={avgLevel} subtext={isPrincipal ? "School average" : "System average"} icon={BarChart3} />
-        <MetricCard title="Certification Rate" value={certRate} subtext="Level 5+ benchmark" icon={Award} />
+        <MetricCard title="Total Students" value={totalStudentsVal} subtext="Active roster" icon={Users} />
+        <MetricCard title="Avg FLN Level" value={avgLevelVal} subtext={isPrincipal ? "School average" : "System average"} icon={BarChart3} />
+        <MetricCard title="Certification Rate" value={certRateVal} subtext="Level 5+ benchmark" icon={Award} />
       </div>
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
         <PageHeader title={title} desc={desc} icon={<BarChart3 className="h-5 w-5" />} />
