@@ -49,12 +49,12 @@ export function registerEvaluationRoutes(app: express.Express) {
   };
 
   // Admin endpoint: configure (or clear) a cloud OCR API key.
-  // Restricted to superadmin / admin roles. Returns {provider, configured}.
+  // Restricted to superadmin role only. Returns {provider, configured}.
   app.post('/api/icr/cloud-config', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    if (user.role !== 'superadmin' && user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin role required.' });
+    if (user.role !== UserRole.SUPERADMIN) {
+      return res.status(403).json({ error: 'Superadmin role required.' });
     }
     const { provider, apiKey } = req.body || {};
     // Single OCR model: ollama-gemma4. Other providers (google, aws,
