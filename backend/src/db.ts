@@ -1014,6 +1014,9 @@ export interface TeacherObservationRecord {
    */
   notYetAssessed: boolean;
 
+  domain?: 'numeracy' | 'literacy';
+  literacyChecklistItems?: string[];
+
   observedAt: string;
   createdAt: string;
   updatedAt: string;
