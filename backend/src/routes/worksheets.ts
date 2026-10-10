@@ -7,7 +7,7 @@ import { getAuthUser } from '../auth';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import * as levelsBackendClient from '../levelsBackendClient';
 import { ROOT_DIR } from '../config';
-import { recordStudentCycleLock } from '../paperLock';
+import { recordStudentCycleLock, StudentCycleLock, LockedPaperType, CycleName } from '../paperLock';
 import { getGenerationWindowStatus } from '../generationWindowRules';
 /**
  * Shared pipeline: build a roster -> Levels_backend /api/generate-batch ->
@@ -359,27 +359,13 @@ export function registerWorksheetRoutes(app: express.Express) {
       }
     }
 
-    // Check for Generation Lock (§13.2 R-11)
-    // The existing pairwise lock blocks DIFFERENT roles (Teacher↔School,
-    // Volunteer↔Block Admin). It does NOT block the same role from
-    // re-triggering — but that's the bug: a teacher who generated and
-    // printed 5 min ago can hit Generate again and overwrite their own
-    // paper. For Baseline / Mid-year / End-of-year cycles (per CLAUDE.md
-    // policy + SRS), one generation per (classId, cycle) is the rule.
-    // Remedial / Practice worksheets are NOT generated through this
-    // route; they go through /api/worksheets/generate-level-pdf.
     const existingWorksheets = await dbStore.getWorksheets();
-    const conflicting = existingWorksheets.find(w => w.classId === classId && w.cycle === cycle);
-        if (conflicting && conflicting.locks.locked) {
-      return res.status(423).json({
-        error: 'Worksheet generation is already locked for this class and assessment cycle.',
-        lockedByRole: conflicting.generatedByRole,
-        lockedByEmail: conflicting.generatedByEmail
-      });
-    }
-    
 
-    // Generate personalized questions for every student in the class
+    // Helper to map cycle name to LockedPaperType for per-student lock check (#674)
+    const paperType: LockedPaperType = (cycle.toLowerCase() === 'baseline' ? 'baseline' :
+      cycle.toLowerCase() === 'mid-year' ? 'mid-year' :
+      cycle.toLowerCase() === 'end-of-year' ? 'end-of-year' : 'diagnostic') as LockedPaperType;
+
     const students = await dbStore.getStudents();
     const classStudents = students.filter(s => s.classGroup === classObj.className && s.section === classObj.section && s.schoolId === classObj.schoolId);
 
@@ -387,10 +373,35 @@ export function registerWorksheetRoutes(app: express.Express) {
       return res.status(400).json({ error: 'No students found in this class roster.' });
     }
 
-    // Compile distinct personalized questions per student based on level and sub-level
-    const compiledQuestions: Question[] = [];
+    // Check per-student locks for this cycle (#674)
+    const existingLocks = await dbStore.getStudentCycleLocks();
+    const unlockedStudents: Student[] = [];
+    const locksToRecord: StudentCycleLock[] = [];
 
     for (const student of classStudents) {
+      const lockAttempt = recordStudentCycleLock(existingLocks, {
+        studentId: student.id,
+        paperType,
+        cycle: cycle as CycleName,
+        generatedByEmail: user.email,
+        generatedByRole: user.role
+      });
+      if (lockAttempt.ok) {
+        unlockedStudents.push(student);
+        locksToRecord.push(lockAttempt.lock);
+      }
+    }
+
+    if (unlockedStudents.length === 0) {
+      return res.status(423).json({
+        error: 'Worksheet generation is already locked for all students in this class for this assessment cycle.'
+      });
+    }
+
+    // Compile distinct personalized questions per unlocked student based on level and sub-level
+    const compiledQuestions: Question[] = [];
+
+    for (const student of unlockedStudents) {
       const subLvl = student.currentSubLevel || 0;
       const qs = generateQuestionsForLevel(student.currentLevel, subLvl);
       // Map question IDs to be student-specific to prevent duplicate collisions
@@ -456,14 +467,18 @@ export function registerWorksheetRoutes(app: express.Express) {
         examWindowEnd: examEnd.toISOString(),
         submissionWindowEnd: submissionEnd.toISOString()
       },
-            delayLogs: {
+      delayLogs: {
         delayedAttemptsCount: 0,
         submittingTeachers: []
       },
     };
-    
 
     await dbStore.addWorksheet(newWorksheet);
+
+    // Save student locks to store (#674)
+    for (const lock of locksToRecord) {
+      await dbStore.addStudentCycleLock(lock);
+    }
 
     await dbStore.updateGenerationWindow(generationWindow.id, {
       generatedByRole: user.role,
