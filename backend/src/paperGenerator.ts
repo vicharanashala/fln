@@ -152,12 +152,9 @@ export async function generateDiagnosticPaper({
   const classLevel = `CLASS_${classNumber}`;
   const results = await renderBatch(classLevel, students.length, onProgress, undefined, students);
 
-  // Extract questions from MongoDB Atlas if Class 2, or from masterJson
+  // Extract questions from masterJson
   let questions: Question[] = [];
-  if (classNumber === 2 && students[0] && (students[0].studentId || (students[0] as any).id)) {
-    const sId = students[0].studentId || (students[0] as any).id;
-    questions = await dbStore.getStudentAssignedQuestions(sId, 2);
-  } else if (results && results[0] && results[0].masterJson && results[0].masterJson.sections) {
+  if (results && results[0] && results[0].masterJson && results[0].masterJson.sections) {
     const sections = results[0].masterJson.sections;
     sections.forEach((sec: any, secIdx: number) => {
       if (Array.isArray(sec.items)) {
