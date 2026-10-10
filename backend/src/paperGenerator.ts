@@ -2,8 +2,15 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import type { PDFFont } from 'pdf-lib';
 import { randomUUID } from 'crypto';
 import { Question, dbStore } from './db';
+import { isBalvatikaStage } from './config/curriculumMap';
+import {
+  MIN_ANSWER_BOX_HEIGHT_PT,
+  MIN_FONT_SIZE_PT,
+  QUESTIONS_PER_PAGE_MAX,
+} from './config/worksheetLayoutRules';
 import { renderBatch } from './worksheetRenderer';
 import { mergeAndStamp } from './pdfMerge';
 import { drawQrCode } from './qrCode';
@@ -16,6 +23,64 @@ const __dirname = path.dirname(__filename);
 const OUTPUT_DIR = path.join(__dirname, '..', 'output');
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+}
+
+export function wrapTextToWidth(
+  text: string,
+  font: PDFFont,
+  fontSize: number,
+  maxWidth: number
+): string[] {
+  if (!Number.isFinite(maxWidth) || maxWidth <= 0) {
+    throw new RangeError('maxWidth must be a positive number');
+  }
+
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let currentLine = '';
+
+  const splitWord = (word: string): string[] => {
+    const segments: string[] = [];
+    let segment = '';
+
+    for (const character of Array.from(word)) {
+      const candidate = `${segment}${character}`;
+      if (font.widthOfTextAtSize(candidate, fontSize) <= maxWidth) {
+        segment = candidate;
+        continue;
+      }
+
+      if (!segment) {
+        throw new RangeError('maxWidth is narrower than a single character');
+      }
+
+      segments.push(segment);
+      segment = character;
+    }
+
+    if (segment) segments.push(segment);
+    return segments;
+  };
+
+  for (const word of words) {
+    const candidate = currentLine ? `${currentLine} ${word}` : word;
+    if (font.widthOfTextAtSize(candidate, fontSize) <= maxWidth) {
+      currentLine = candidate;
+      continue;
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+      currentLine = '';
+    }
+
+    const wordSegments = splitWord(word);
+    lines.push(...wordSegments.slice(0, -1));
+    currentLine = wordSegments.at(-1) ?? '';
+  }
+
+  if (currentLine) lines.push(currentLine);
+  return lines;
 }
 
 /**
@@ -617,11 +682,17 @@ export async function renderWorksheetPdf({
   const font = await merged.embedFont(StandardFonts.Helvetica);
   const boldFont = await merged.embedFont(StandardFonts.HelveticaBold);
 
-  const QUESTIONS_PER_PAGE = 7;
+  const defaultQuestionsPerPage = 7;
+  const defaultQuestionFontSize = 10.5;
+  const defaultAnswerBoxHeight = 24;
 
   for (let i = 0; i < studentsWithQuestions.length; i++) {
     const swq = studentsWithQuestions[i];
-    const totalPages = Math.max(1, Math.ceil(swq.questions.length / QUESTIONS_PER_PAGE));
+    const usesBalvatikaLayout = isBalvatikaStage(swq.currentLevel);
+    const questionsPerPage = usesBalvatikaLayout ? QUESTIONS_PER_PAGE_MAX : defaultQuestionsPerPage;
+    const questionFontSize = usesBalvatikaLayout ? MIN_FONT_SIZE_PT : defaultQuestionFontSize;
+    const answerBoxHeight = usesBalvatikaLayout ? MIN_ANSWER_BOX_HEIGHT_PT : defaultAnswerBoxHeight;
+    const totalPages = Math.max(1, Math.ceil(swq.questions.length / questionsPerPage));
 
     for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
       const page = merged.addPage([595.28, 841.89]);
@@ -698,31 +769,43 @@ export async function renderWorksheetPdf({
 
       // Draw student-specific personalized questions
       let currentY = height - 220;
-      const startQuestion = pageIndex * QUESTIONS_PER_PAGE;
-      const pageQuestions = swq.questions.slice(startQuestion, startQuestion + QUESTIONS_PER_PAGE);
+      const startQuestion = pageIndex * questionsPerPage;
+      const pageQuestions = swq.questions.slice(startQuestion, startQuestion + questionsPerPage);
+      const maxQuestionWidth = width - 100;
+      const lineHeight = questionFontSize * 1.3;
 
       pageQuestions.forEach((q, idx) => {
         const questionNumber = startQuestion + idx + 1;
+        const questionLines = wrapTextToWidth(
+          `Q${questionNumber}. [${q.topic}] ${q.question}`,
+          boldFont,
+          questionFontSize,
+          maxQuestionWidth
+        );
 
-        page.drawText(`Q${questionNumber}. [${q.topic}] ${q.question}`, {
-          x: 50,
-          y: currentY,
-          size: 10.5,
-          font: boldFont,
-          color: rgb(0.15, 0.15, 0.15),
+        questionLines.forEach((line, lineIndex) => {
+          page.drawText(line, {
+            x: 50,
+            y: currentY - lineIndex * lineHeight,
+            size: questionFontSize,
+            font: boldFont,
+            color: rgb(0.15, 0.15, 0.15),
+          });
         });
 
+        const textBlockHeight = questionLines.length * lineHeight;
+        const answerBoxY = currentY - textBlockHeight - answerBoxHeight;
         page.drawRectangle({
           x: 50,
-          y: currentY - 45,
+          y: answerBoxY,
           width: 150,
-          height: 24,
+          height: answerBoxHeight,
           color: rgb(1, 1, 1),
           borderColor: rgb(0.8, 0.8, 0.8),
           borderWidth: 1,
         });
 
-        currentY -= 80;
+        currentY -= textBlockHeight + answerBoxHeight + 30;
       });
 
       page.drawText(`Worksheet ID: ${worksheetId} - Page ${pageIndex + 1} of ${totalPages}`, {
