@@ -26,14 +26,14 @@ export const AnalyticsPanel: React.FC<{
   } else if (currentUser.role === UserRole.BLOCK_ADMIN) {
     data = schools.filter(s => s.blockCode === currentUser.blockCode);
   } else if (isPrincipal) {
-    data = currentUser.schoolId ? schools.filter(s => s.id === currentUser.schoolId) : schools.slice(0, 1);
+    data = currentUser.schoolId ? schools.filter(s => s.id === currentUser.schoolId) : [];
   }
 
   const title = isAdmin ? 'Geographical Analytics' : 'Performance Analytics';
   const desc = isAdmin ? 'Cross-regional performance metrics and benchmarking' : 'School-level performance data and trends';
 
-  const totalSchoolsCount = isPrincipal ? (currentUser.schoolId ? 1 : Math.min(schools.length, 1)) : schools.length;
-  const scopedStudents = isPrincipal && currentUser.schoolId ? students.filter(s => s.schoolId === currentUser.schoolId) : students;
+  const totalSchoolsCount = isPrincipal ? (currentUser.schoolId ? (schools.some(s => s.id === currentUser.schoolId) ? 1 : 0) : 0) : schools.length;
+  const scopedStudents = isPrincipal && currentUser.schoolId ? students.filter(s => s.schoolId === currentUser.schoolId) : (isPrincipal && !currentUser.schoolId ? [] : students);
   const avgLevel = scopedStudents.length > 0 ? `L${Math.round(scopedStudents.reduce((a, s) => a + s.currentLevel, 0) / scopedStudents.length)}` : 'L0';
   const certRate = scopedStudents.length > 0 ? `${Math.round(scopedStudents.filter(s => s.currentLevel >= 5).length / scopedStudents.length * 100)}%` : '0%';
 
@@ -71,8 +71,16 @@ export const AnalyticsPanel: React.FC<{
         ) : data.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center">
             <Inbox className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No school data available</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">No active school records found for the current user scope.</p>
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+              {isPrincipal && !currentUser.schoolId
+                ? 'No school is assigned to this account. Please contact your administrator.'
+                : 'No school data available'}
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+              {isPrincipal && !currentUser.schoolId
+                ? 'Please contact your system administrator to assign a school.'
+                : 'No active school records found for the current user scope.'}
+            </p>
           </div>
         ) : (
           <div className="space-y-3 mt-4">
