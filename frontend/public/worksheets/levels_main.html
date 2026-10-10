@@ -3650,14 +3650,21 @@ GENERATORS['angle-measure-protractor'] = (p,subIdx,qc,sid,sname) => {
 
 /* ---- Compare Angles: circle the larger angle ---- */
 GENERATORS['angle-compare-circle'] = (p,subIdx,qc,sid,sname) => {
-  const n = p.n || 5;
+  const requestedN = p.n || 5;
   const pool = p.pool || [20,30,40,50,60,70,90,100,110,120,130,140,150,160];
+  // A swapped pair (70 vs 110, then 110 vs 70) is the same comparison asked
+  // twice, so pairs are unique regardless of order: k distinct angles give
+  // k*(k-1)/2 of them. Cap there rather than let the retry loop spin forever.
+  const distinctAngles = new Set(pool).size;
+  const pairPool = distinctAngles*(distinctAngles-1)/2;
+  const n = Math.min(requestedN, pairPool);
+  const wasCapped = requestedN > pairPool;
   const usedPairs = new Set();
   let pairs = [];
   while (pairs.length < n) {
     let a=pick(pool), b=pick(pool);
     while(b===a) b=pick(pool);
-    const key = a+','+b;
+    const key = Math.min(a,b)+','+Math.max(a,b);
     if (usedPairs.has(key)) continue;
     usedPairs.add(key);
     pairs.push({a,b});
@@ -3674,7 +3681,10 @@ GENERATORS['angle-compare-circle'] = (p,subIdx,qc,sid,sname) => {
     </div>`;
     answers.push(makeAnsItem(qid,sid,sname,i+1,'circle-choice',correct,`circle the larger angle (${correct})`,ICR_DETECT_MAP['circle-choice']));
   });
-  return {html:`<p class="instr">Circle the larger angle in each pair.</p><div class="q-list">${rows}</div>`, answers};
+  const cappedNote = wasCapped
+    ? `<p class="instr" style="font-style:italic;">There are only ${pairPool} different comparisons in this set.</p>`
+    : '';
+  return {html:`<p class="instr">Circle the larger angle in each pair.</p>${cappedNote}<div class="q-list">${rows}</div>`, answers};
 };
 
 /* ---- Compare Angles: arrange smallest to largest ---- */
