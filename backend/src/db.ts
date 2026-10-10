@@ -147,6 +147,7 @@ export interface Student {
   currentLevel: number | null;
   currentSubLevel?: number | null;
   targetLevel: number | null;
+  strandLevels?: Record<string, number>;
   aadharMasked: string; // Masked identifier only; the plaintext Aadhaar is never stored in MongoDB.
   aadhaarTokenId?: string; // Opaque token returned by Aadhaar Vault.
   aadhaarIdentityId?: string; // Deterministic identity id used for duplicate detection.
