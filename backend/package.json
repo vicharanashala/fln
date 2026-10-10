@@ -33,6 +33,7 @@
     "test:competency-prerequisites": "tsx src/competencyPrerequisites.test.ts",
     "test:balvatika-stage": "tsx --test src/config/curriculumMap.test.ts",
     "test:choice-error-tags": "tsx --test tests/choice-error-tags.test.ts",
+    "test:analytics-scoping": "tsx --test tests/analytics-scoping.test.ts",
     "test:error-tags": "tsx src/__checks__/errorTags.check.ts"
   },
   "dependencies": {

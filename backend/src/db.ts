@@ -2223,7 +2223,12 @@ export class DBStore {
     let schoolIds: string[] | null = null;
     if (schoolFilter && Object.keys(schoolFilter).length > 0) {
       schoolIds = schools.filter(s => {
-        return Object.entries(schoolFilter).every(([k, v]) => (s as any)[k] === v);
+        return Object.entries(schoolFilter).every(([k, v]) => {
+          if (v && typeof v === 'object' && Array.isArray((v as any).$in)) {
+            return (v as any).$in.includes((s as any)[k]);
+          }
+          return (s as any)[k] === v;
+        });
       }).map(s => s.id);
     }
 
