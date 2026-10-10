@@ -18,7 +18,7 @@
   {
     "classNumber": 2,
     "level": 5,
-    "topic": "Shapes",
+    "topic": "Shapes & Spatial",
     "isMandatory": true,
     "meetsThreshold": "Satisfactory",
     "notes": "Shape recognition supports later geometry; Satisfactory acceptable at L5."
@@ -108,7 +108,7 @@
   {
     "classNumber": 4,
     "level": 5,
-    "topic": "Calendar and Time",
+    "topic": "Calendar & Time",
     "isMandatory": true,
     "meetsThreshold": "Satisfactory",
     "notes": "Reading hours and calendar arithmetic introduced in Class 4."

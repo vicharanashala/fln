@@ -51,7 +51,7 @@ const CLASS4_L5_TOPICS = [
   'Fractions',
   'Measurement',
   'Money',
-  'Calendar and Time',
+  'Calendar & Time',
   'Data Handling',
 ] as const;
 
@@ -170,7 +170,7 @@ async function main() {
     // 'Fractions' intentionally omitted
     'Measurement': 'Satisfactory',
     'Money': 'Strong',
-    'Calendar and Time': 'Satisfactory',
+    'Calendar & Time': 'Satisfactory',
     'Data Handling': 'Satisfactory',
   };
 

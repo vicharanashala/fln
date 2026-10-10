@@ -46,7 +46,7 @@ export async function runCertificationEligibilityForStudent(
   student: Student,
   evaluatedAt: string = new Date().toISOString()
 ): Promise<void> {
-  const conceptMastery = await dbStore.getLatestConceptMastery(student.id);
+  const conceptMastery = await dbStore.getMergedConceptMastery(student.id);
   if (!conceptMastery) {
     // Student has no EvaluationReports (race or new student). Nothing to decide.
     return;

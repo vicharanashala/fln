@@ -2692,13 +2692,28 @@ export class DBStore {
     return this.data?.competencyRequirements || [];
   }
 
-  /** Most recent conceptMastery for a student, from their latest EvaluationReport. */
-  async getLatestConceptMastery(studentId: string): Promise<Record<string, MasteryLevel> | null> {
+  /**
+   * conceptMastery merged across all of a student's EvaluationReports: each
+   * topic takes its verdict from the most recent report that assessed it.
+   *
+   * Reading only the latest report lost evidence: a ten-question diagnostic
+   * covers just the first ten levels of a class band, and a worksheet covers
+   * one level, so no single report holds every topic a class requires — and
+   * grading a worksheet after a diagnostic erased the diagnostic's topics.
+   * Old evidence does not expire here; see the PR for that open question.
+   */
+  async getMergedConceptMastery(studentId: string): Promise<Record<string, MasteryLevel> | null> {
     const reports = this.mongoDb
-      ? await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({ studentId }).sort({ timestamp: -1 }).limit(1).toArray()
-      : (this.data?.evaluationReports || []).filter(r => r.studentId === studentId).sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 1);
+      ? await this.mongoDb.collection<EvaluationReport>('evaluationReports').find({ studentId }).sort({ timestamp: -1 }).toArray()
+      : (this.data?.evaluationReports || []).filter(r => r.studentId === studentId).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
     if (reports.length === 0) return null;
-    return reports[0].conceptMastery;
+    const merged: Record<string, MasteryLevel> = {};
+    for (const report of reports) {
+      for (const [topic, mastery] of Object.entries(report.conceptMastery ?? {})) {
+        if (!(topic in merged)) merged[topic] = mastery;
+      }
+    }
+    return merged;
   }
 
   async getEvaluationReportById(id: string) {
