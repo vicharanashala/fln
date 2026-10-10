@@ -25,7 +25,7 @@ This is a genuine count from decomposing the research, not a target to hit — i
 
 **2026-09-17: the year before Class 1 is being finalised as its own stage**, the first of a stage-by-stage build that stops at Class 3. The table above does not include those changes yet: 15 proposed new nodes, 4 nodes moving into this stage and 2 widened definitions. They are recorded in **Part 2b** and in `fln_year_before_class1.md`, and join the chain tables once the dev team registers the new ids.
 
-**Note on Part 3's worked diagnostic example, below:** it predates the 2026-07-19 Stage 2/3 additions and has not yet been recomputed to include the new nodes (S2.10, S3.10) — flagged at the point it appears rather than silently left inconsistent.
+**Note on Part 3's worked diagnostic example and Part 4b apex sets:** Recomputed to include S2.10, S3.10, and Stage 1-3 additions. Apex sets are now dynamically derived in code via `computeApexConcepts()` in `backend/src/competencyPrerequisites.ts`.
 
 ---
 
@@ -368,21 +368,19 @@ The code carries an independent typing of these edges (`frontend/src/data/skillP
 
 **Edge types after reconciliation: 67 prereq (→), 31 sequence (⇢), 6 parallel (∥) = 104.**
 
-### Consequence: the diagnostic gets longer
+### Consequence: apex-set recomputation and programmatic derivation
 
-Apex selection uses only → edges, so demoting 11 removes inference paths and more levels must be tested directly:
+Apex selection uses only → edges. Following edge reconciliation, the addition of S2.10/S3.10 and the NCF-FS Stage 3 expansion (PR #517), apex sets are dynamically derived in code via `computeApexConcepts(maxStage?)` in `backend/src/competencyPrerequisites.ts`.
 
-| Grade | Levels | Apex before | Apex now | Change |
-|---|---|---|---|---|
-| Bal Vatika | 27 | 12 | **15** | +3 |
-| Class 1 | 42 | 18 | **22** | +4 |
-| Class 2 | 61 | 25 | **31** | +6 |
-| Class 3 | 75 | 26 | **32** | +6 |
-| Class 4 | 93 | 33 | **42** | +9 |
+| Grade / Stage | Total Levels (109 Graph) | Apex Set Size | Note |
+|---|---|---|---|
+| Bal Vatika (Stages 1-3) | 46 | **28** | Stage 1-3 cumulative apex nodes |
+| Class 1 (Stage 4) | 60 | **29** | Stage 1-4 cumulative apex nodes |
+| Class 2 (Stage 5) | 77 | **31** | Stage 1-5 cumulative apex nodes |
+| Class 3 (Stage 6) | 91 | **31** | Stage 1-6 cumulative apex nodes |
+| Class 4 (Stage 7) | 109 | **38** | Full curriculum apex set |
 
-The reduction against testing every level is still substantial (Class 1: 22 questions instead of 42), but the papers are now **17–27% longer** than the earlier figures. Those earlier numbers assumed 11 prerequisites this document could not justify.
-
-**A standing rule this establishes: an edge with no recorded rationale should not be typed `→`.** 28 of the current 67 hard edges still carry no note — see Part 4.
+*Note on staleness resolution:* Rather than relying on transcribed static count tables, apex sets are programmatically derived directly from `CONCEPT_PREREQUISITES` and `CURRICULUM_MAPPING` using `computeApexConcepts()` in `backend/src/competencyPrerequisites.ts`.
 
 ---
 

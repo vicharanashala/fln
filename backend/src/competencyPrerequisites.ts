@@ -27,7 +27,7 @@
  * invariants (known ids, no cycles) at runtime.
  */
 
-import { getLevelForConcept } from './config/curriculumMap';
+import { getLevelForConcept, CURRICULUM_MAPPING } from './config/curriculumMap';
 
 /**
  * "Alternative prerequisite pathways" — group-based prerequisite override,
@@ -499,4 +499,27 @@ export function validateConceptPrerequisites(): ConceptPrerequisiteReport {
     cycles,
     isValid: unknown.size === 0 && cycles.length === 0,
   };
+}
+
+/**
+ * Programmatically derives the apex node conceptIds for a given max stage (or all levels if maxStage is omitted).
+ * An apex node within scope is a concept node that has no dependents (out-degree 0 in dependency graph)
+ * among the nodes in that stage scope.
+ */
+export function computeApexConcepts(maxStage?: number): string[] {
+  const allConfigs = Object.values(CURRICULUM_MAPPING);
+  const scopedConfigs = maxStage !== undefined ? allConfigs.filter(c => c.stage <= maxStage) : allConfigs;
+  const scopedSet = new Set(scopedConfigs.map(c => c.conceptId));
+  const hasDependents = new Set<string>();
+
+  for (const config of scopedConfigs) {
+    const prereqs = CONCEPT_PREREQUISITES[config.conceptId] || [];
+    for (const p of prereqs) {
+      if (scopedSet.has(p)) {
+        hasDependents.add(p);
+      }
+    }
+  }
+
+  return scopedConfigs.filter(c => !hasDependents.has(c.conceptId)).map(c => c.conceptId);
 }
