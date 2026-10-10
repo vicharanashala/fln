@@ -46,10 +46,22 @@ export type RelationshipType =
 // 24 Core Skills (Spec §2: SK01-SK24)
 // ─────────────────────────────────────────────────────────────────────────────
 
+export type SubskillPrerequisiteType = 'entailment' | 'inherited' | 'empirical';
+
+export interface SubskillPrerequisite {
+  subskillId: string;
+  relationshipType?: RelationshipType;
+  prerequisiteType?: SubskillPrerequisiteType;
+  rationale?: string;
+}
+
 export interface Subskill {
   id: string;            // dotted: "SK01.01"
   name: string;
   observable: boolean;
+  prerequisites?: (string | SubskillPrerequisite)[];
+  prerequisiteType?: SubskillPrerequisiteType;
+  rationale?: string;
 }
 
 export interface CoreSkill {
@@ -101,14 +113,14 @@ export const CORE_SKILLS: CoreSkill[] = [
     definition: 'Producing number words in order to enumerate.',
     subskills: [
       { id: 'SK05.01', name: 'Rote counting to 10', observable: true },
-      { id: 'SK05.02', name: 'Count objects 1-3', observable: true },
-      { id: 'SK05.03', name: 'Count to 5', observable: true },
-      { id: 'SK05.04', name: 'Count to 10', observable: true },
-      { id: 'SK05.05', name: 'Count to 20', observable: true },
-      { id: 'SK05.06', name: 'Count to 50', observable: true },
-      { id: 'SK05.07', name: 'Count to 100', observable: true },
-      { id: 'SK05.08', name: 'Count forward from a given number', observable: true },
-      { id: 'SK05.09', name: 'Count backward', observable: true },
+      { id: 'SK05.02', name: 'Count objects 1-3', observable: true, prerequisites: [{ subskillId: 'SK05.01', prerequisiteType: 'entailment' }] },
+      { id: 'SK05.03', name: 'Count to 5', observable: true, prerequisites: [{ subskillId: 'SK05.02', prerequisiteType: 'entailment' }] },
+      { id: 'SK05.04', name: 'Count to 10', observable: true, prerequisites: [{ subskillId: 'SK05.03', prerequisiteType: 'entailment' }] },
+      { id: 'SK05.05', name: 'Count to 20', observable: true, prerequisites: [{ subskillId: 'SK05.04', prerequisiteType: 'entailment' }] },
+      { id: 'SK05.06', name: 'Count to 50', observable: true, prerequisites: [{ subskillId: 'SK05.05', prerequisiteType: 'entailment' }] },
+      { id: 'SK05.07', name: 'Count to 100', observable: true, prerequisites: [{ subskillId: 'SK05.06', prerequisiteType: 'entailment' }] },
+      { id: 'SK05.08', name: 'Count forward from a given number', observable: true, prerequisites: [{ subskillId: 'SK05.04', prerequisiteType: 'entailment' }] },
+      { id: 'SK05.09', name: 'Count backward', observable: true, prerequisites: [{ subskillId: 'SK05.04', prerequisiteType: 'entailment' }] },
     ]},
   { id: 'SK06', name: 'Cardinality', domain: 'Number Sense',
     definition: 'The last number said in a count tells how many.',
@@ -130,13 +142,13 @@ export const CORE_SKILLS: CoreSkill[] = [
     definition: 'Showing numerals, reading, writing, matching to quantity.',
     subskills: [
       { id: 'SK08.01', name: 'Recognize numerals 1-10', observable: true },
-      { id: 'SK08.02', name: 'Match numeral to quantity', observable: true },
-      { id: 'SK08.03', name: 'Represent quantity with objects', observable: true },
-      { id: 'SK08.04', name: 'Read numerals', observable: true },
-      { id: 'SK08.05', name: 'Write numerals', observable: true },
-      { id: 'SK08.06', name: 'Read/write numbers to 99', observable: true },
-      { id: 'SK08.07', name: 'Read/write three-digit numbers', observable: true },
-      { id: 'SK08.08', name: 'Read/write four-digit numbers', observable: true },
+      { id: 'SK08.02', name: 'Match numeral to quantity', observable: true, prerequisites: [{ subskillId: 'SK08.01', prerequisiteType: 'entailment' }] },
+      { id: 'SK08.03', name: 'Represent quantity with objects', observable: true, prerequisites: [{ subskillId: 'SK08.02', prerequisiteType: 'entailment' }] },
+      { id: 'SK08.04', name: 'Read numerals', observable: true, prerequisites: [{ subskillId: 'SK08.01', prerequisiteType: 'entailment' }] },
+      { id: 'SK08.05', name: 'Write numerals', observable: true, prerequisites: [{ subskillId: 'SK08.04', prerequisiteType: 'entailment' }] },
+      { id: 'SK08.06', name: 'Read/write numbers to 99', observable: true, prerequisites: [{ subskillId: 'SK08.05', prerequisiteType: 'entailment' }] },
+      { id: 'SK08.07', name: 'Read/write three-digit numbers', observable: true, prerequisites: [{ subskillId: 'SK08.06', prerequisiteType: 'entailment' }] },
+      { id: 'SK08.08', name: 'Read/write four-digit numbers', observable: true, prerequisites: [{ subskillId: 'SK08.07', prerequisiteType: 'entailment' }] },
       { id: 'SK08.09', name: 'Zero as "none"', observable: true },
     ]},
   { id: 'SK09', name: 'Number Comparison', domain: 'Number Sense',
@@ -190,15 +202,15 @@ export const CORE_SKILLS: CoreSkill[] = [
     definition: 'Combining to find the total.',
     subskills: [
       { id: 'SK13.01', name: 'Combine sets', observable: true },
-      { id: 'SK13.02', name: 'Concrete addition', observable: true },
-      { id: 'SK13.03', name: 'Single-digit addition', observable: true },
-      { id: 'SK13.04', name: 'Addition within 20', observable: true },
-      { id: 'SK13.05', name: 'Addition within 30', observable: true },
-      { id: 'SK13.06', name: 'Two-digit addition', observable: true },
-      { id: 'SK13.07', name: 'Addition with regrouping', observable: true },
-      { id: 'SK13.08', name: 'Three-digit addition', observable: true },
-      { id: 'SK13.09', name: 'Multi-digit addition', observable: true },
-      { id: 'SK13.10', name: 'Addition word problems', observable: true },
+      { id: 'SK13.02', name: 'Concrete addition', observable: true, prerequisites: [{ subskillId: 'SK13.01', prerequisiteType: 'entailment', rationale: 'Combining concrete sets precedes symbolic addition' }] },
+      { id: 'SK13.03', name: 'Single-digit addition', observable: true, prerequisites: [{ subskillId: 'SK13.02', prerequisiteType: 'entailment', rationale: 'Concrete addition leads to single-digit mental/written sums' }] },
+      { id: 'SK13.04', name: 'Addition within 20', observable: true, prerequisites: [{ subskillId: 'SK13.03', prerequisiteType: 'entailment' }] },
+      { id: 'SK13.05', name: 'Addition within 30', observable: true, prerequisites: [{ subskillId: 'SK13.04', prerequisiteType: 'entailment' }] },
+      { id: 'SK13.06', name: 'Two-digit addition', observable: true, prerequisites: [{ subskillId: 'SK13.05', prerequisiteType: 'entailment' }] },
+      { id: 'SK13.07', name: 'Addition with regrouping', observable: true, prerequisites: [{ subskillId: 'SK13.06', prerequisiteType: 'entailment', rationale: 'Basic 2-digit addition precedes 2-digit addition with carry/regrouping' }] },
+      { id: 'SK13.08', name: 'Three-digit addition', observable: true, prerequisites: [{ subskillId: 'SK13.07', prerequisiteType: 'entailment' }] },
+      { id: 'SK13.09', name: 'Multi-digit addition', observable: true, prerequisites: [{ subskillId: 'SK13.08', prerequisiteType: 'entailment' }] },
+      { id: 'SK13.10', name: 'Addition word problems', observable: true, prerequisites: [{ subskillId: 'SK13.03', prerequisiteType: 'entailment', rationale: 'Word problems require at least single-digit addition fluency' }] },
     ]},
   { id: 'SK14', name: 'Subtraction', domain: 'Number Operations',
     definition: 'Taking away or finding the difference.',
@@ -986,6 +998,21 @@ export function getSubSkillsForLevel(levelId: string): Subskill[] {
   const out: Subskill[] = [];
   for (const sk of skills) out.push(...sk.subskills);
   return out;
+}
+
+export function getSubskillPrerequisites(subskillId: string): SubskillPrerequisite[] {
+  for (const sk of CORE_SKILLS) {
+    for (const sub of sk.subskills) {
+      if (sub.id === subskillId && sub.prerequisites) {
+        return sub.prerequisites.map(p =>
+          typeof p === 'string'
+            ? { subskillId: p, prerequisiteType: sub.prerequisiteType || 'entailment' }
+            : { prerequisiteType: sub.prerequisiteType || 'entailment', ...p }
+        );
+      }
+    }
+  }
+  return [];
 }
 
 // Strand tint per core skill domain (Tailwind classes)
