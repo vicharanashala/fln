@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { dbStore, UserRole, School } from '../db';
 import { getAuthUser } from '../auth';
 import { generatePrincipalId } from '../idGenerator';
+import { STATES_UTS } from '../geoData';
 
 export function registerSchoolRoutes(app: express.Express) {
   app.get('/api/schools', async (req, res) => {
@@ -86,6 +87,14 @@ export function registerSchoolRoutes(app: express.Express) {
         (typeof body.addressLine2 === 'string' && body.addressLine2.trim().length > 200) ||
         (typeof body.landmark === 'string' && body.landmark.trim().length > 120)) {
       return res.status(400).json({ error: 'One or more school identity fields exceed the allowed length.' });
+    }
+    const stateInfo = STATES_UTS.find(state => state.code === stateCode.toUpperCase());
+    if (!stateInfo) return res.status(400).json({ error: 'Unknown state code.' });
+    if (!stateInfo.districts.some(district => district.code === districtCode.toUpperCase())) {
+      return res.status(400).json({ error: 'Unknown district for this state.' });
+    }
+    if (!/^[A-Z]+_\d+$/.test(blockCode.toUpperCase())) {
+      return res.status(400).json({ error: 'Block code must look like GNT_01.' });
     }
     if (!/^\d{6}$/.test(body.pinCode.trim())) return res.status(400).json({ error: 'PIN code must contain exactly 6 digits.' });
     if (udiseCode && !/^\d{11}$/.test(udiseCode)) return res.status(400).json({ error: 'UDISE code must contain exactly 11 digits.' });

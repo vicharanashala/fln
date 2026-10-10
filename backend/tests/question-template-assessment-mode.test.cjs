@@ -103,21 +103,48 @@ test('Frontend types source: QuestionTemplate interface includes assessmentMode'
   );
 });
 
-test('Backend routes source: POST and PATCH handlers extract and forward assessmentMode', () => {
+test('Backend routes source: POST and PATCH handlers return 400 for unknown assessmentMode', () => {
   const src = readSource(BACKEND_ROUTE_SOURCE);
   assert.match(
     src,
-    /const\s+assessmentMode:\s*'written'\s*\|\s*'observed'\s*\|\s*'both'/,
-    'Backend route handlers must validate assessmentMode',
+    /const\s+ASSESSMENT_MODES\s*=\s*\['written',\s*'observed',\s*'both'\]/,
+    'Backend route source must define ASSESSMENT_MODES',
   );
   assert.match(
     src,
-    /req\.body\?\.\s*assessmentMode/,
-    'Backend route handlers must check req.body.assessmentMode',
+    /assessmentMode must be written, observed or both\./,
+    'Backend route source must return 400 error message for unknown assessmentMode',
   );
+});
+
+test('Frontend QuestionTemplatePanel source: Mode filter and table use legacy fallback', () => {
+  const src = readSource(PANEL_SOURCE);
+
+  // Displayed mode uses fallback
   assert.match(
     src,
-    /updates:\s*Partial<QuestionTemplate>\s*=\s*\{[\s\S]*?assessmentMode,/,
-    'Backend PATCH updates must include assessmentMode',
+    /\{t\.assessmentMode\s*\?\?\s*'written'\}/,
+    'Table cell must display legacy questions as "written"',
+  );
+
+  // Filtering logic uses fallback
+  assert.match(
+    src,
+    /\(filterMode\s*===\s*''\s*\|\|\s*\(t\.assessmentMode\s*\?\?\s*'written'\)\s*===\s*filterMode\)/,
+    'Filter logic must match legacy questions as "written"',
+  );
+
+  // Filter options exist
+  assert.match(
+    src,
+    /aria-label="Filter by mode"[\s\S]*?<option[^>]*>written<\/option>[\s\S]*?<option[^>]*>observed<\/option>[\s\S]*?<option[^>]*>both<\/option>/,
+    'Filter must include written, observed, and both options',
+  );
+
+  // Table header exists
+  assert.match(
+    src,
+    /<th>Mode<\/th>|<th[^>]*>Mode<\/th>/,
+    'Table headers must include a Mode column',
   );
 });

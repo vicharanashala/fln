@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+// Keep the file-backed DB isolated from backend/data/db.json and import the
+// singleton only after the environment and working directory are configured.
 const originalCwd = process.cwd();
 const scratchDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fln-observations-test-'));
 fs.mkdirSync(path.join(scratchDir, 'data'), { recursive: true });
@@ -14,9 +16,9 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'observations-test-secret';
 process.env.SEED_DEMO_PASSWORD = 'TestPass@123';
 
-const { dbStore } = await import('../src/db.js');
-const { JWT_SECRET } = await import('../src/auth.js');
-const { registerObservationRoutes } = await import('../src/routes/observations.js');
+const { dbStore } = await import('../src/db');
+const { JWT_SECRET } = await import('../src/auth');
+const { registerObservationRoutes } = await import('../src/routes/observations');
 const express = (await import('express')).default;
 const jwt = (await import('jsonwebtoken')).default;
 
@@ -50,7 +52,7 @@ after(async () => {
   fs.rmSync(scratchDir, { recursive: true, force: true });
 });
 
-test('POST /api/observations accepts selfCorrected and strategyUsed and GET endpoints return them', async () => {
+test('observation records save, read by student/class, and upsert by student-concept-cycle', async () => {
   const recordInput = {
     studentId: 's1',
     conceptId: 'S3.12',
@@ -62,20 +64,37 @@ test('POST /api/observations accepts selfCorrected and strategyUsed and GET endp
     strategyUsed: 'fingers'
   };
 
-  const saveRes = await request('POST', '/api/observations', recordInput);
-  assert.equal(saveRes.status, 200);
-  assert.equal(saveRes.body.selfCorrected, true);
-  assert.equal(saveRes.body.strategyUsed, 'fingers');
+  const firstSave = await request('POST', '/api/observations', recordInput);
+  assert.equal(firstSave.status, 200);
+  assert.equal(firstSave.body.teacherId, 'u6');
+  assert.equal(firstSave.body.teacherEmail, teacherEmail);
+  assert.equal(firstSave.body.selfCorrected, true);
+  assert.equal(firstSave.body.strategyUsed, 'fingers');
 
   const studentRead = await request('GET', '/api/observations/student/s1?cycle=Baseline');
   assert.equal(studentRead.status, 200);
+  assert.equal(studentRead.body.length, 1);
+  assert.equal(studentRead.body[0].rating, 'Progressive');
   assert.equal(studentRead.body[0].selfCorrected, true);
   assert.equal(studentRead.body[0].strategyUsed, 'fingers');
 
   const classRead = await request('GET', '/api/observations/class/c1?cycle=Baseline');
   assert.equal(classRead.status, 200);
-  assert.equal(classRead.body[0].selfCorrected, true);
-  assert.equal(classRead.body[0].strategyUsed, 'fingers');
+  assert.equal(classRead.body.length, 1);
+  assert.equal(classRead.body[0].id, firstSave.body.id);
+
+  const persisted = JSON.parse(fs.readFileSync(path.join(scratchDir, 'data', 'db.json'), 'utf8'));
+  assert.equal(persisted.teacherObservationRecords.length, 1);
+
+  const secondSave = await request('POST', '/api/observations', { ...recordInput, rating: 'Proficient' });
+  assert.equal(secondSave.status, 200);
+  assert.equal(secondSave.body.id, firstSave.body.id);
+  assert.equal(secondSave.body.createdAt, firstSave.body.createdAt);
+
+  const afterUpdate = await request('GET', '/api/observations/student/s1?cycle=Baseline');
+  assert.equal(afterUpdate.status, 200);
+  assert.equal(afterUpdate.body.length, 1);
+  assert.equal(afterUpdate.body[0].rating, 'Proficient');
 });
 
 test('POST /api/observations returns 400 for invalid selfCorrected or strategyUsed', async () => {
@@ -142,4 +161,34 @@ test('POST /api/observations works without selfCorrected and strategyUsed for le
   assert.equal(saveRes.status, 200);
   assert.equal(saveRes.body.selfCorrected, undefined);
   assert.equal(saveRes.body.strategyUsed, undefined);
+});
+
+test('observation routes require authentication and validate the cycle', async () => {
+  const unauthenticated = await request('GET', '/api/observations/class/c1?cycle=Baseline', undefined, false);
+  assert.equal(unauthenticated.status, 401);
+
+  const invalidCycle = await request('GET', '/api/observations/student/s1?cycle=Invalid');
+  assert.equal(invalidCycle.status, 400);
+});
+
+test('banned teachers receive 403 from all observation routes', async () => {
+  await dbStore.updateUser('u6', { isBanned: true });
+  try {
+    const studentRead = await request('GET', '/api/observations/student/s1?cycle=Baseline');
+    const classRead = await request('GET', '/api/observations/class/c1?cycle=Baseline');
+    const write = await request('POST', '/api/observations', {
+      studentId: 's1',
+      conceptId: 'S3.12',
+      classId: 'c1',
+      cycle: 'Baseline',
+      rating: 'Progressive',
+      notYetAssessed: false
+    });
+
+    assert.equal(studentRead.status, 403);
+    assert.equal(classRead.status, 403);
+    assert.equal(write.status, 403);
+  } finally {
+    await dbStore.updateUser('u6', { isBanned: false });
+  }
 });
