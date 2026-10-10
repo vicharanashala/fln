@@ -11,20 +11,30 @@ const { execSync } = require('child_process');
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 test('REGRESSION (#554): check:level-notation-drift passes with zero drift', () => {
-  const output = execSync('npm run check:level-notation-drift', {
-    cwd: REPO_ROOT,
-    encoding: 'utf8',
-  });
-  assert.match(output, /OK — all 109 levels' sCode values match the reference crosswalk exactly/);
+  let output = '';
+  try {
+    output = execSync('npm run check:level-notation-drift', {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+    });
+  } catch (err) {
+    output = (err.stdout || '') + '\n' + (err.stderr || '');
+  }
+  assert.match(output, /OK — all 109 levels' sCode values match the reference crosswalk exactly/, `check:level-notation-drift failed. Output:\n${output}`);
 });
 
 test('REGRESSION (#554): repo-health-check script passes cleanly', () => {
-  const output = execSync('node scripts/repo-health-check.js', {
-    cwd: REPO_ROOT,
-    encoding: 'utf8',
-  });
+  let output = '';
+  try {
+    output = execSync('node scripts/repo-health-check.js', {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+    });
+  } catch (err) {
+    output = (err.stdout || '') + '\n' + (err.stderr || '');
+  }
   assert.match(output, /# Repo Health Check/);
-  assert.match(output, /All checks passed/);
+  assert.match(output, /All checks passed/, `repo-health-check failed. Output:\n${output}`);
 });
 
 test('REGRESSION (#554): fln_L_to_S_crosswalk.json maps all 109 levels L1..L109', () => {

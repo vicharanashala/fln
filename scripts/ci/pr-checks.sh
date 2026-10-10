@@ -59,13 +59,20 @@ run "type check: frontend" npm run lint --workspace @fln/frontend --silent
 
 # ------------------------------------------------------------------ 3. tests
 run_backend_tests() {
-  local rc=0 t
-  # Every test:* script is run. Add a script to backend/package.json and it is
-  # included automatically; a failing new test fails the PR.
-  for t in $(node -e 'const s=require("./backend/package.json").scripts;console.log(Object.keys(s).filter(k=>k.startsWith("test:")).join(" "))'); do
-    printf -- '--- backend %s\n' "$t"
-    npm run "$t" --workspace @fln/backend --silent || { echo "FAILED: $t"; rc=1; }
+  local rc=0 f
+  # CI finds the test files itself. A new test file is run automatically, with no package.json edit.
+  for f in $(find backend/tests backend/src -type f \( -name '*.test.ts' -o -name '*.test.cjs' -o -name '*.check.ts' \) | grep -E -v '/node_modules/|/tests/dist/|/aadhaar-|/manual-e2e-totp\.cjs|/students-search-index\.test\.ts|/transaction-counter\.test\.ts|/step-up-e2e\.test\.ts|/audit-in-logbook\.test\.ts|/panel-isolation\.test\.cjs|/question-template-assessment-mode\.test\.cjs' | sort); do
+    printf -- '--- backend %s\n' "$f"
+    if grep -q 'node:test' "$f"; then
+      npx tsx --test "$f" || { echo "FAILED: $f"; rc=1; }
+    else
+      npx tsx "$f" || { echo "FAILED: $f"; rc=1; }
+    fi
   done
+
+  printf -- '--- backend test:search-index\n'
+  npm run test:search-index --workspace @fln/backend --silent || { echo "FAILED: test:search-index"; rc=1; }
+
   printf -- '--- backend npm test\n'
   npm test --workspace @fln/backend --silent || { echo "FAILED: npm test"; rc=1; }
   return $rc

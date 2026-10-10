@@ -4,6 +4,10 @@ All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
 routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
 
+## 2026-10-09 — Automatic Backend Test Discovery in CI
+
+- **`test(ci)`: discover backend tests automatically in CI (#759)** — updated `scripts/ci/pr-checks.sh` to dynamically discover and execute all backend test files using `find` instead of relying on manual `package.json` mappings. The script natively parses files for `node:test` to select the proper execution runner (`tsx` vs `tsx --test`) and actively excludes duplicate files covered downstream by `npm test`.
+
 ## 2026-10-03 — Repo Health Check & Level-Notation Alignment
 
 - **`fix(curriculum)`: synchronize 109-level L-to-S notation crosswalk (#554)** — updated `Research/fln_L_to_S_crosswalk.json` to cover all 109 levels (`L1`–`L109` mapped to `S1.1`–`S7.18`) matching `frontend/src/data/skillProgressionMap.ts` and `POSITION_TO_SCODE`, resolving drift reported by `npm run check:level-notation-drift`. Updated `scripts/check-level-notation-drift.ts` for Windows ESM URL compatibility using `pathToFileURL`.
