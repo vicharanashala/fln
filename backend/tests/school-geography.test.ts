@@ -106,3 +106,18 @@ test('accepts a correctly formatted new block code', async () => {
   assert.equal(response.status, 200);
   assert.equal(response.json.blockCode, 'GNT_09');
 });
+
+test('rejects a block code that does not start with the district code', async () => {
+  const before = (await dbStore.getSchools()).length;
+  const response = await postSchool(schoolBody({ districtCode: 'GNT', blockCode: 'CHN_12' }));
+  assert.equal(response.status, 400);
+  assert.equal(response.json.error, 'Block code must start with the district code, for example GNT_01.');
+  assert.equal((await dbStore.getSchools()).length, before);
+});
+
+test('accepts a block code that starts with the district code', async () => {
+  const response = await postSchool(schoolBody({ districtCode: 'GNT', blockCode: 'GNT_01' }));
+  assert.equal(response.status, 200);
+  assert.equal(response.json.blockCode, 'GNT_01');
+});
+

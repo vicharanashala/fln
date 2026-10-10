@@ -41,13 +41,29 @@ function digitsOnly(n: number): string {
  * Classify a single wrong answer. `submitted`/`expected` are the raw values
  * exactly as `answersMatch` receives them elsewhere — this function does its
  * own normalizing rather than assuming the caller already did.
+ *
+ * If `question.choiceErrorTags` exists and contains a mapping for the submitted
+ * choice, that tagged error is recorded directly (#627).
  */
-export function classifyErrorType(submitted: unknown, expected: unknown): ErrorType {
+export function classifyErrorType(
+  submitted: unknown,
+  expected: unknown,
+  question?: { choiceErrorTags?: Record<string, string> }
+): ErrorType | string {
   const s = normalizeAnswer(submitted);
-  const e = normalizeAnswer(expected);
-
   if (s === '') return 'unanswered';
 
+  const tags = question?.choiceErrorTags;
+  if (tags) {
+    const rawSubmitted = String(submitted ?? '').trim();
+    for (const key of [rawSubmitted, s]) {
+      if (key && Object.prototype.hasOwnProperty.call(tags, key) && typeof tags[key] === 'string' && tags[key]) {
+        return tags[key];
+      }
+    }
+  }
+
+  const e = normalizeAnswer(expected);
   const sn = asNumber(s);
   const en = asNumber(e);
   if (sn === null || en === null) return 'unclassified';

@@ -437,6 +437,8 @@ export interface QuestionTemplate {
   name: string;
   variantKey: string;
   tags: string[];
+  /** Optional canonical Balvatika error tag (Issue #626). */
+  errorTag?: string;
   source: 'form' | 'csv';
   createdBy: string;
   createdByEmail: string;

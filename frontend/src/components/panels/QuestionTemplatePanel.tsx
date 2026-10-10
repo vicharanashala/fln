@@ -59,6 +59,9 @@ export const QuestionTemplatePanel: React.FC = () => {
   const [params, setParams] = useState<QuestionTemplateParams>(EMPTY_PARAMS);
   const [name, setName] = useState('');
   const [tagsText, setTagsText] = useState('');
+  const [errorTag, setErrorTag] = useState('');
+  const [errorTagTopic, setErrorTagTopic] = useState('counting');
+  const [errorTagOptions, setErrorTagOptions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -116,6 +119,23 @@ export const QuestionTemplatePanel: React.FC = () => {
     const t = setTimeout(() => setToast(null), 5000);
     return () => clearTimeout(t);
   }, [toast]);
+
+  useEffect(() => {
+    if (!errorTagTopic) {
+      setErrorTagOptions([]);
+      return;
+    }
+    let cancelled = false;
+    apiFetch(`/api/error-tags?topic=${encodeURIComponent(errorTagTopic)}`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!cancelled && data?.tags) {
+          setErrorTagOptions(data.tags);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [errorTagTopic]);
 
   const selectedLevel = useMemo(
     () => (level === '' ? undefined : levelMap?.levels.find(l => l.levelNumber === level)),
@@ -232,6 +252,7 @@ export const QuestionTemplatePanel: React.FC = () => {
     setParams(EMPTY_PARAMS);
     setName('');
     setTagsText('');
+    setErrorTag('');
     setFormError(null);
     setDuplicateWarning(null);
   };
@@ -260,6 +281,7 @@ export const QuestionTemplatePanel: React.FC = () => {
     });
     setName(t.name);
     setTagsText(t.tags.join(', '));
+    setErrorTag(t.errorTag ?? '');
     setFormError(null);
     setDuplicateWarning(null);
     setOpenGroup({ numbers: true, operations: true, answer: true, subject: true });
@@ -291,6 +313,8 @@ export const QuestionTemplatePanel: React.FC = () => {
         ...params,
         name: name.trim(),
         tags: tagsText.split(',').map(s => s.trim()).filter(Boolean),
+        errorTag: errorTag || undefined,
+        topic: errorTagTopic || undefined,
       };
 
       const res = editingId
@@ -753,6 +777,26 @@ export const QuestionTemplatePanel: React.FC = () => {
               <label htmlFor="qt-tags" className={labelCls}>Tags (optional, comma separated)</label>
               <input id="qt-tags" value={tagsText} className={inputCls} onChange={e => setTagsText(e.target.value)}
                 placeholder="e.g. baseline, revision" />
+            </div>
+            <div>
+              <label htmlFor="qt-error-topic" className={labelCls}>Error Tag Topic</label>
+              <select id="qt-error-topic" value={errorTagTopic} className={inputCls}
+                onChange={e => { setErrorTagTopic(e.target.value); setErrorTag(''); }}>
+                <option value="counting">Counting</option>
+                <option value="shapes">Shapes</option>
+                <option value="patterns">Patterns</option>
+                <option value="literacy">Literacy</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="qt-error-tag" className={labelCls}>Error Tag (optional)</label>
+              <select id="qt-error-tag" value={errorTag} className={inputCls}
+                onChange={e => setErrorTag(e.target.value)}>
+                <option value="">None</option>
+                {errorTagOptions.map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
             </div>
           </div>
 

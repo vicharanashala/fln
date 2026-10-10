@@ -33,7 +33,8 @@
     "test:competency-prerequisites": "tsx src/competencyPrerequisites.test.ts",
     "test:balvatika-stage": "tsx --test src/config/curriculumMap.test.ts",
     "test:choice-error-tags": "tsx --test tests/choice-error-tags.test.ts",
-    "test:concept-mastery": "tsx --test tests/concept-mastery-diagnostic.test.ts"
+    "test:concept-mastery": "tsx --test tests/concept-mastery-diagnostic.test.ts",
+    "test:error-tags": "tsx src/__checks__/errorTags.check.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

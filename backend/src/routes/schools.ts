@@ -96,6 +96,9 @@ export function registerSchoolRoutes(app: express.Express) {
     if (!/^[A-Z]+_\d+$/.test(blockCode.toUpperCase())) {
       return res.status(400).json({ error: 'Block code must look like GNT_01.' });
     }
+    if (!blockCode.toUpperCase().startsWith(`${districtCode.toUpperCase()}_`)) {
+      return res.status(400).json({ error: 'Block code must start with the district code, for example GNT_01.' });
+    }
     if (!/^\d{6}$/.test(body.pinCode.trim())) return res.status(400).json({ error: 'PIN code must contain exactly 6 digits.' });
     if (udiseCode && !/^\d{11}$/.test(udiseCode)) return res.status(400).json({ error: 'UDISE code must contain exactly 11 digits.' });
     if (governmentSchoolCode.length > 40) return res.status(400).json({ error: 'Government school code must be 40 characters or fewer.' });

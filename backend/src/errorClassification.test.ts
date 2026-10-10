@@ -57,5 +57,22 @@ test('operand concatenation is not claimed by this classifier', () => is('56', '
 test('unrelated numbers', () => is('99', '3', 'unclassified'));
 test('non-numeric strings are never coerced into a numeric pattern', () => is('seven', 'seven apples', 'unclassified'));
 
+console.log('\nchoiceErrorTags lookup (#627)');
+test('tagged choice distractor returns mapped misconception errorTag', () => {
+  const q = { choiceErrorTags: { 'Option B': 'misconception_spatial_rotation', 'Option C': 'misconception_side_counting' } };
+  assert.strictEqual(classifyErrorType('Option B', 'Option A', q), 'misconception_spatial_rotation');
+  assert.strictEqual(classifyErrorType('Option C', 'Option A', q), 'misconception_side_counting');
+});
+
+test('untagged choice or question with no choiceErrorTags does not crash and falls through', () => {
+  const qWithTags = { choiceErrorTags: { 'Option B': 'misconception_tag_1' } };
+  assert.strictEqual(classifyErrorType('Option D', 'Option A', qWithTags), 'unclassified');
+  assert.strictEqual(classifyErrorType('constructor', 'Option A', qWithTags), 'unclassified');
+
+  const qWithoutTags = {};
+  assert.strictEqual(classifyErrorType('Option B', 'Option A', qWithoutTags), 'unclassified');
+  assert.strictEqual(classifyErrorType('8', '7', qWithoutTags), 'off_by_one');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
