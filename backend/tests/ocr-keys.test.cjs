@@ -12,7 +12,13 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const scratchDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fln-ocr-keys-test-'));
 const dataDir = path.join(scratchDir, 'data');
 fs.mkdirSync(dataDir, { recursive: true });
-fs.copyFileSync(path.join(REPO_ROOT, 'backend', 'data', 'db.json'), path.join(dataDir, 'db.json'));
+
+const sourceDb = path.join(REPO_ROOT, 'backend', 'data', 'db.json');
+if (fs.existsSync(sourceDb)) {
+  fs.copyFileSync(sourceDb, path.join(dataDir, 'db.json'));
+} else {
+  fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({}));
+}
 
 let server;
 let baseUrl;
@@ -48,7 +54,7 @@ test.before(async () => {
           const data = await res.json();
           token = data.token;
           resolve();
-        } catch(e) {
+        } catch (e) {
           reject(e);
         }
       }
