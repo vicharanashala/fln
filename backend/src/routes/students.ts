@@ -13,7 +13,9 @@ import { resolvePrerequisites, describeConcept, directPrerequisites } from '../c
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
 import { tokenizeAadhaar, formatAadhaarMask, AadhaarVaultTokenizeResult } from '../aadhaarVault';
+import { randomUUID } from 'crypto';
 import { generateStudentId } from '../idGenerator';
+import { computeClass1ReadinessBand, ReadinessBand } from '../services/readinessBand';
 
 // ─── Response hygiene (Phase 2 hardening) ───────────────────────────────────
 // Vault references are internal-only: MongoDB and the internal Student model
@@ -1465,4 +1467,78 @@ export function registerStudentRoutes(app: express.Express) {
 
   app.post('/api/students/:id/diagnostic/submit', submitDiagnostic('diagnostic'));
   app.post('/api/students/:id/baseline/submit', submitDiagnostic('baseline'));
+
+  app.get('/api/students/:id/readiness-band', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const student = await dbStore.getStudentById(req.params.id);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
+
+    const readinessResult = await computeClass1ReadinessBand(student.id);
+
+    // Parent view per NCF-FS §6.1.1(h): no band shown, areas to improve only
+    if ((user.role as string) === 'parent') {
+      return res.json({
+        band: null,
+        percentOnTrack: readinessResult?.percentOnTrack ?? 0,
+        areasToImprove: readinessResult?.areasToImprove ?? [],
+        message: 'No readiness band shown to parents per NCF-FS §6.1.1(h)'
+      });
+    }
+
+    const savedRecord = await dbStore.getReadinessRecordForStudent(student.id);
+
+    return res.json({
+      studentId: student.id,
+      computedBand: readinessResult?.band ?? null,
+      finalBand: savedRecord ? savedRecord.finalBand : (readinessResult?.band ?? null),
+      isOverridden: savedRecord ? savedRecord.isOverridden : false,
+      overrideReason: savedRecord?.overrideReason ?? null,
+      percentOnTrack: readinessResult?.percentOnTrack ?? 0,
+      areasToImprove: readinessResult?.areasToImprove ?? [],
+      unassessedConcepts: readinessResult?.unassessedConcepts ?? [],
+      confirmedAt: savedRecord?.confirmedAt ?? null,
+      confirmedByTeacherId: savedRecord?.confirmedByTeacherId ?? null
+    });
+  });
+
+  app.post('/api/students/:id/readiness-band', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if ((user.role as string) === 'parent') {
+      return res.status(403).json({ error: 'Parents cannot confirm or override readiness bands.' });
+    }
+
+    const student = await dbStore.getStudentById(req.params.id);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
+
+    const { finalBand, overrideReason } = req.body ?? {};
+    const validBands: ReadinessBand[] = ['Ready for Class 1', 'Almost ready', 'Needs support before Class 1', 'Incomplete'];
+    if (!finalBand || !validBands.includes(finalBand)) {
+      return res.status(400).json({ error: `finalBand must be one of: ${validBands.join(', ')}` });
+    }
+
+    const computedResult = await computeClass1ReadinessBand(student.id);
+    if (!computedResult) {
+      return res.status(400).json({ error: 'Student is not in Balvatika stage.' });
+    }
+
+    const isOverridden = finalBand !== computedResult.band;
+    const record = {
+      id: `readiness_${randomUUID()}`,
+      studentId: student.id,
+      computedBand: computedResult.band,
+      finalBand,
+      isOverridden,
+      overrideReason: isOverridden ? String(overrideReason || '').trim() : undefined,
+      confirmedByTeacherId: user.id,
+      confirmedAt: new Date().toISOString()
+    };
+
+    await dbStore.saveReadinessRecord(record);
+    return res.json({ success: true, record });
+  });
 }
