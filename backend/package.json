@@ -25,6 +25,7 @@
     "test:school-geography": "tsx --test tests/school-geography.test.ts",
     "test:panel-isolation": "tsx --test tests/panel-isolation.test.cjs",
     "test:assessment-mode": "node tests/question-template-assessment-mode.test.cjs",
+    "test:ocr-keys": "node tests/ocr-keys.test.cjs",
     "test:roster-filters": "tsx --test tests/roster-filters-persistence.test.cjs",
     "audit:aadhaar": "tsx scripts/audit-aadhaar-at-rest.ts",
     "test:answer-matching": "tsx src/answerMatching.test.ts",

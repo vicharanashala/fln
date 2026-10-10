@@ -820,7 +820,7 @@ export function registerStudentRoutes(app: express.Express) {
         positional[key] = String(value);
         continue;
       }
-      const posMatch = /^Q(\d+)$/i.exec(key.trim());
+      const posMatch = /^q_?(\d+)$/i.exec(key.trim());
       const q = posMatch ? questions[parseInt(posMatch[1], 10) - 1] : undefined;
       if (q) {
         positional[q.question_id] = String(value);
@@ -845,7 +845,7 @@ export function registerStudentRoutes(app: express.Express) {
               positional[key] = String(value);
               continue;
             }
-            const posMatch = /^Q(\d+)$/i.exec(key.trim());
+            const posMatch = /^q_?(\d+)$/i.exec(key.trim());
             const q = posMatch ? akQuestions[parseInt(posMatch[1], 10) - 1] : undefined;
             if (q) {
               positional[q.question_id || q.qid || ''] = String(value);
@@ -868,7 +868,7 @@ export function registerStudentRoutes(app: express.Express) {
     }
     if (Object.keys(positional).length === 0) {
       return res.status(400).json({
-        error: `None of the ${Object.keys(answers).length} answer key(s) match this student's paper. Expected question ids like "${questions[0].question_id}" or positions "Q1".."Q${questions.length}".`
+        error: `None of the ${Object.keys(answers).length} answer key(s) match this student's paper. Expected question ids like "${questions[0].question_id}" or positions "Q1".."Q${questions.length}" (or "q_1".."q_${questions.length}").`
       });
     }
     if (remapped > 0) console.log(`[baseline] remapped ${remapped} positional answer key(s) for ${student.id}`);
