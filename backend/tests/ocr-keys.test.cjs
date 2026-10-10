@@ -21,7 +21,7 @@ let token;
 test.before(async () => {
   return new Promise((resolve, reject) => {
     const env = Object.assign({}, process.env, {
-      PORT: 3016,
+      PORT: 3015,
       MONGODB_URI: '',
       JWT_SECRET: 'test-secret',
       NODE_ENV: 'test'
@@ -38,7 +38,7 @@ test.before(async () => {
     server.stdout.on('data', async (d) => {
       stdoutBuf += d.toString();
       if (stdoutBuf.includes('Server running') && !baseUrl) {
-        baseUrl = 'http://localhost:3016';
+        baseUrl = 'http://localhost:3015';
         try {
           const res = await fetch(`${baseUrl}/api/auth/login`, {
             method: 'POST',
