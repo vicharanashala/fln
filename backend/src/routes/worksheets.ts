@@ -394,7 +394,7 @@ export function registerWorksheetRoutes(app: express.Express) {
     for (const student of classStudents) {
       const subLvl = student.currentSubLevel || 0;
       const rawQs = generateQuestionsForLevel(student.currentLevel, subLvl);
-      const { allowed } = filterQuestionsForAssessmentMode(rawQs, student);
+      const { allowed } = await filterQuestionsForAssessmentMode(rawQs, student);
       // Map question IDs to be student-specific to prevent duplicate collisions
       allowed.forEach(q => {
         compiledQuestions.push({

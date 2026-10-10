@@ -833,6 +833,10 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
         questions = (singleKey?.questions && singleKey.questions.length > 0)
           ? singleKey.questions as Question[]
           : result.questions;
+
+        const { allowed: filteredQs } = await filterQuestionsForAssessmentMode(questions, student);
+        questions = filteredQs;
+
         if (singleKey) {
           const keyItem = singleKey;
           await dbStore.addDiagnosticAnswerKey({
@@ -850,14 +854,6 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
             answerRegions: keyItem.answerRegions || [],
             createdAt: new Date().toISOString()
           });
-          // Point the student at the paper that was just printed for them.
-          //
-          // Grading resolves questions through students.assignedDiagnosticQuestions
-          // (db.ts tier 2) whenever no jobId is supplied — which is the case for
-          // every scan upload. Without this the student keeps whatever paper was
-          // assigned before, the stored answer regions key off the new paper's
-          // question ids, the two share no ids at all, and a perfectly legible
-          // scan yields zero answers. The bulk path has always done this.
           await dbStore.assignDiagnosticPaperToStudent(student.id, questions);
         }
       } catch (err: any) {
@@ -878,10 +874,9 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
         }
         // Limit to 12 questions for a reasonable diagnostic
         questions = questions.slice(0, 12);
+        const { allowed: filteredQs } = await filterQuestionsForAssessmentMode(questions, student);
+        questions = filteredQs;
       }
-
-      const { allowed: filteredQs } = filterQuestionsForAssessmentMode(questions, student);
-      questions = filteredQs;
 
       res.json({
         student,
