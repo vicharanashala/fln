@@ -99,6 +99,28 @@ test('observation routes require authentication and validate the cycle', async (
   assert.equal(invalidCycle.status, 400);
 });
 
+test('observation writes accept valid concepts and reject unknown or oversized IDs', async () => {
+  const baseInput = {
+    studentId: 's1',
+    classId: 'c1',
+    cycle: 'Baseline',
+    rating: 'Progressive',
+    notYetAssessed: false
+  };
+
+  const valid = await request('POST', '/api/observations', { ...baseInput, conceptId: 'S3.12' });
+  assert.equal(valid.status, 200);
+  assert.equal(valid.body.conceptId, 'S3.12');
+
+  const unknown = await request('POST', '/api/observations', { ...baseInput, conceptId: 'ZZ9.9' });
+  assert.equal(unknown.status, 400);
+  assert.equal(unknown.body.error, 'Unknown conceptId.');
+
+  const oversized = await request('POST', '/api/observations', { ...baseInput, conceptId: 'S'.repeat(5000) });
+  assert.equal(oversized.status, 400);
+  assert.equal(oversized.body.error, 'Unknown conceptId.');
+});
+
 test('banned teachers receive 403 from all observation routes', async () => {
   await dbStore.updateUser('u6', { isBanned: true });
   try {
