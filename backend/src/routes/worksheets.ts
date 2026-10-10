@@ -9,6 +9,8 @@ import * as levelsBackendClient from '../levelsBackendClient';
 import { ROOT_DIR } from '../config';
 import { recordStudentCycleLock } from '../paperLock';
 import { getGenerationWindowStatus } from '../generationWindowRules';
+import { isBalvatikaStage } from '../config/curriculumMap';
+import { renderClassGridObservationPdf, renderPerChildObservationPdf } from '../paperGenerator';
 /**
  * Shared pipeline: build a roster -> Levels_backend /api/generate-batch ->
  * poll /api/batch-status -> /api/download-batch (zip) -> unpack
@@ -462,6 +464,31 @@ export function registerWorksheetRoutes(app: express.Express) {
       },
     };
     
+
+    // Generate printed teacher observation sheets if Balvatika class (#618)
+    if (classStudents.some(s => isBalvatikaStage(s.currentLevel))) {
+      try {
+        const studentRoster = classStudents.map(s => ({ id: s.id, name: s.name }));
+        const gridPdf = await renderClassGridObservationPdf({
+          classId,
+          className: classObj.className,
+          section: classObj.section,
+          cycle,
+          students: studentRoster
+        });
+        const childPdf = await renderPerChildObservationPdf({
+          classId,
+          className: classObj.className,
+          section: classObj.section,
+          cycle,
+          students: studentRoster
+        });
+        (newWorksheet as any).observationGridPdfUrl = gridPdf.pdfUrl;
+        (newWorksheet as any).observationPerChildPdfUrl = childPdf.pdfUrl;
+      } catch (err) {
+        console.error('[paperGenerator] Failed to render observation PDFs:', err);
+      }
+    }
 
     await dbStore.addWorksheet(newWorksheet);
 
