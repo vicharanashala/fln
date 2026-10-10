@@ -504,8 +504,32 @@ async function main() {
   const studentsResult = await db.collection('students').insertMany(allStudents);
   console.log(`  students:       ${studentsResult.insertedCount} inserted`);
 
-  const questionsResult = await db.collection('questions').insertMany([...SEED_QUESTIONS, ...questionBankSeed]);
+  const questionBankQuestions = Array.isArray(questionBankSeed)
+    ? questionBankSeed
+    : (Array.isArray((questionBankSeed as { questions?: Array<Record<string, unknown>> }).questions)
+      ? (questionBankSeed as { questions: Array<Record<string, unknown>> }).questions
+      : []);
+
+  const questionBankSubskills = questionBankQuestions.flatMap((q: any) => {
+    const questionId = q?.question_id;
+    const subskills = Array.isArray(q?.subskills) ? q.subskills : [];
+    return subskills.map((subskillId: string) => ({
+      question_id: questionId,
+      subskill_id: subskillId,
+      context: q?.context ?? null,
+      difficulty: q?.difficulty ?? null,
+      source_level: q?.source_level ?? null,
+      representation: q?.representation ?? null,
+    }));
+  });
+
+  const questionsResult = await db.collection('questions').insertMany([...SEED_QUESTIONS, ...questionBankQuestions]);
   console.log(`  questions:      ${questionsResult.insertedCount} inserted`);
+
+  if (questionBankSubskills.length > 0) {
+    const questionSubskillsResult = await db.collection('question_subskills').insertMany(questionBankSubskills);
+    console.log(`  question_subskills: ${questionSubskillsResult.insertedCount} inserted`);
+  }
 
   // ════════════════════════════════════════════
   // 4. SUMMARY
@@ -527,7 +551,8 @@ async function main() {
   console.log(`    Principals:   ${allSchools.length}`);
   console.log(`    Teachers:     ${allClasses.length}`);
   console.log(`    Volunteers:   ${allUsers.filter((u) => u.role === UserRole.VOLUNTEER).length}`);
-  console.log(`  Questions:      ${SEED_QUESTIONS.length + questionBankSeed.length}`);
+  console.log(`  Questions:      ${SEED_QUESTIONS.length + questionBankQuestions.length}`);
+  console.log(`  Question subskills: ${questionBankSubskills.length}`);
   console.log('========================================\n');
 
   await client.close();

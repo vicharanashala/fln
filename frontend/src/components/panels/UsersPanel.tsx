@@ -52,7 +52,7 @@ export const UsersPanel: React.FC<{ usersList: any[] }> = ({ usersList }) => {
         <div className="flex flex-wrap gap-3 items-end">
           <div>
             <label className="block text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Role</label>
-            <select value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[160px]">
+            <select aria-label="Role" value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)} className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-w-[160px]">
               <option value="all">All Roles</option>
               {roleOrder.filter(r => roleCounts[r] > 0).map(r => (
                 <option key={r} value={r}>{roleFilterLabel(r)} ({roleCounts[r]})</option>
