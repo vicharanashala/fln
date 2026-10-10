@@ -43,7 +43,7 @@ interface PanelViewsProps {
 
 export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectView }) => {
   const {
-    students, studentsLoading, schools, usersList, reportsList, worksheetsList, teachersList,
+    students, studentsLoading, schools, schoolsLoading, schoolsError, refreshSchools, usersList, reportsList, worksheetsList, teachersList,
     getDistrictStats, getBlockStats, updateStudentLocally, refreshStudents,
   } = usePanelData(token, currentUser, activePanel);
 
@@ -114,7 +114,7 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
   if (panel === 'content') return <ContentPanel />;
 
-  if (panel === 'analytics') return <AnalyticsPanel currentUser={currentUser} schools={schools} students={students} getDistrictStats={getDistrictStats} getBlockStats={getBlockStats} />;
+  if (panel === 'analytics') return <AnalyticsPanel currentUser={currentUser} schools={schools} schoolsLoading={schoolsLoading} schoolsError={schoolsError} onRetrySchools={refreshSchools} students={students} getDistrictStats={getDistrictStats} getBlockStats={getBlockStats} />;
 
   if (panel === 'system_settings') return <SystemSettingsPanel />;
   if (panel === 'question_bank') return <QuestionBankPanel currentUser={currentUser} token={token} />;

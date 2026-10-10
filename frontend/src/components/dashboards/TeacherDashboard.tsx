@@ -401,7 +401,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, token,
                   }
                 ];
                 return (
-                  <Table data={classStudents} columns={studentColumns} searchPlaceholder="Search roster by name..." searchKey="name" />
+                  <Table key={activeClassFilter ?? 'all'} data={classStudents} columns={studentColumns} searchPlaceholder="Search roster by name..." searchKey="name" />
                 );
               })()}
             </div>

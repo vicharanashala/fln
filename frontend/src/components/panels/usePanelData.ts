@@ -32,14 +32,32 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
   // empty state instead.
   const [studentsLoading, setStudentsLoading] = useState(true);
   const [apiSchools, setApiSchools] = useState<School[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(true);
+  const [schoolsError, setSchoolsError] = useState<string | null>(null);
   const [apiUsers, setApiUsers] = useState<any[]>([]);
   const [apiReports, setApiReports] = useState<EvaluationReport[]>([]);
   const [apiWorksheets, setApiWorksheets] = useState<Worksheet[]>([]);
   const [apiTeachers, setApiTeachers] = useState<any[]>([]);
 
-  useEffect(() => {
+  const fetchSchools = () => {
+    setSchoolsLoading(true);
+    setSchoolsError(null);
     const headers = { 'Authorization': `Bearer ${token}` };
-    apiFetch('/api/schools', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiSchools(d); }).catch(() => { });
+    apiFetch('/api/schools', { headers })
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        if (Array.isArray(d)) setApiSchools(d);
+      })
+      .catch(err => {
+        setSchoolsError(err?.message || 'Failed to load school data');
+      })
+      .finally(() => setSchoolsLoading(false));
+  };
+
+  useEffect(() => {
+    fetchSchools();
+    const headers = { 'Authorization': `Bearer ${token}` };
     apiFetch('/api/admin/coordinators', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiUsers(d); }).catch(() => { });
     apiFetch('/api/evaluation/reports', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiReports(d); }).catch(() => { });
     apiFetch('/api/worksheets', { headers }).then(r => r.json()).then(d => { if (Array.isArray(d)) setApiWorksheets(d); }).catch(() => { });
@@ -52,21 +70,10 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
   // 86,400 records nationally for Superadmin — so skip it entirely on the
   // handful of Superadmin-only panels that never read `students` at all
   // (verified by grepping for the identifier in each branch below).
-  //
-  // The backend caps the default response at 1000 rows (see
-  // `DEFAULT_LIMIT` in backend/src/routes/students.ts). Any panel that
-  // searches / filters the list client-side (e.g. Aadhaar Reveal) needs
-  // the full set, otherwise a student outside the first 1000 is invisible
-  // to in-browser search. We opt in to the full payload via `?all=1` for
-  // roles whose scope can exceed 1000 — i.e. the admin tiers. Teachers,
-  // school admins, and volunteers see ≤ their single school / assigned
-  // schools and stay on the capped default.
-  const wantsAllStudents =
-    currentUser.role === UserRole.SUPERADMIN ||
-    currentUser.role === UserRole.ADMIN ||
-    currentUser.role === UserRole.DISTRICT_ADMIN ||
-    currentUser.role === UserRole.BLOCK_ADMIN;
-  const studentsUrl = wantsAllStudents ? '/api/students?all=1' : '/api/students';
+  // Opt in to the full role-scoped roster via `?all=1` for all roles.
+  // The backend defaults `GET /api/students` to DEFAULT_LIMIT = 10 unless `?all=1` is set;
+  // fetching `?all=1` ensures teachers, volunteers, and admins see their full roster.
+  const studentsUrl = '/api/students?all=1';
 
   useEffect(() => {
     if (apiStudents.length > 0) return;
@@ -138,7 +145,7 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
   };
 
   return {
-    students, studentsLoading, schools, usersList, reportsList, worksheetsList, teachersList,
+    students, studentsLoading, schools, schoolsLoading, schoolsError, refreshSchools: fetchSchools, usersList, reportsList, worksheetsList, teachersList,
     getDistrictStats, getBlockStats, updateStudentLocally, refreshStudents,
   };
 }

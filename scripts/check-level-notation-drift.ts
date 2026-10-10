@@ -19,7 +19,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -34,7 +34,7 @@ async function main() {
   const referenceMap = crosswalk.L_to_S;
 
   const skillMapPath = path.join(ROOT, 'frontend', 'src', 'data', 'skillProgressionMap.ts');
-  const { LEVEL_SKILL_MAP } = await import(skillMapPath);
+  const { LEVEL_SKILL_MAP } = await import(pathToFileURL(skillMapPath).href);
 
   const problems: string[] = [];
 
