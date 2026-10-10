@@ -15,6 +15,7 @@ import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { directPrerequisites, describeConcept } from '../competencyPrerequisites';
 import { analyzeScanQuality } from '../scanQuality';
 import { calculateStandardAdvancement } from '../gradeLevelCalculator';
+import { triggerAutoRemediation, startOrRetryRemediation } from '../services/remediationLedgerService';
 
 export function registerEvaluationRoutes(app: express.Express) {
 
@@ -1080,6 +1081,13 @@ export function registerEvaluationRoutes(app: express.Express) {
 
     await dbStore.addEvaluationReport(report);
 
+    // Automatically trigger remediation ledger if questions were failed (#678)
+    try {
+      await triggerAutoRemediation(report);
+    } catch (err) {
+      console.error('[remediation] Failed to trigger auto-remediation:', err);
+    }
+
     // Fire-and-forget: re-evaluate certification eligibility.
     runCertificationEligibility(student);
     try {
@@ -1373,5 +1381,23 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
 
     res.json({ report: updatedReport, levelChanged });
+  });
+
+  // Manual trigger / retry endpoint for remediation (#678)
+  app.post('/api/remediation/start', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { studentId, worksheetId, forceRetry } = req.body;
+    if (!studentId || !worksheetId) {
+      return res.status(400).json({ error: 'studentId and worksheetId are required.' });
+    }
+
+    try {
+      const ledger = await startOrRetryRemediation(studentId, worksheetId, !!forceRetry);
+      return res.json(ledger);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Failed to start remediation' });
+    }
   });
 }
