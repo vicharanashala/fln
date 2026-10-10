@@ -1129,16 +1129,30 @@ export function registerStudentRoutes(app: express.Express) {
       levelHistory
     });
 
-    // Concept mastery by broad topic band. Coarse (four fixed bands keyed to
-    // recommendedLevel thresholds) rather than derived from which questions
-    // were actually missed — a real per-topic breakdown needs #413's error
-    // clustering, not something to fake here in the meantime.
-    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {
-      'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
-      'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
-      'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
-      'Operations': recommendedLevel >= 12 ? 'Strong' : 'Needs Practice'
-    };
+    // Concept mastery per strand, from how the student actually did on this
+    // paper's questions in that strand: >= 80% correct is Strong, >= 60% is
+    // Satisfactory, anything lower is Needs Practice. (It used to compare
+    // recommendedLevel against four fixed thresholds that every class's level
+    // range now exceeds, so every strand came out Strong regardless of score —
+    // #577.)
+    const strandOf = (r: (typeof questionResults)[number]) =>
+      CURRICULUM_MAPPING[r.sourceLevel]?.strand
+      || (r.q.conceptId ? describeConcept(r.q.conceptId)?.strand : undefined)
+      || r.q.topic
+      || 'General Mathematics';
+    const strandOutcomes = new Map<string, { correct: number; total: number }>();
+    for (const r of questionResults) {
+      const strand = strandOf(r);
+      const o = strandOutcomes.get(strand) ?? { correct: 0, total: 0 };
+      o.total += 1;
+      if (r.isCorrect) o.correct += 1;
+      strandOutcomes.set(strand, o);
+    }
+    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {};
+    for (const [strand, { correct, total }] of strandOutcomes) {
+      const pct = total > 0 ? (correct / total) * 100 : 0;
+      conceptMastery[strand] = pct >= 80 ? 'Strong' : pct >= 60 ? 'Satisfactory' : 'Needs Practice';
+    }
 
     // Persist what the child actually wrote, alongside the verdict.
     //
@@ -1224,24 +1238,19 @@ export function registerStudentRoutes(app: express.Express) {
 
     // A concept counts as failed only when the student got none of its
     // questions right. Per-question correctness is the only source of truth
-    // here — deliberately NOT the heuristic conceptMastery above, which is
-    // derived from recommendedLevel thresholds and can flag a concept as weak
-    // even when every question was answered correctly.
+    // here — conceptMastery above is per strand, which is coarser than the
+    // per-concept grouping a failed concept needs.
     const failedConceptIds: string[] = [];
     for (const [conceptId, { correct }] of conceptOutcomes) {
       if (correct === 0) failedConceptIds.push(conceptId);
     }
 
-    // Override conceptMastery for the PASS case. The level-threshold heuristic
-    // above would otherwise mark every strand as "Needs Practice" because the
-    // student is placed at Level 2 — which directly contradicts the
-    // demonstrated mastery.
+    // PASS case: every strand on the paper is Strong. Per-strand scoring
+    // already gives 100% everywhere here; this keeps the guarantee explicit
+    // and uses the same strandOf() so the keys always match.
     if (allCorrect) {
       for (const r of questionResults) {
-        const cfg = CURRICULUM_MAPPING[r.q.source_level || 0];
-        if (cfg?.strand) {
-          conceptMastery[cfg.strand] = 'Strong';
-        }
+        conceptMastery[strandOf(r)] = 'Strong';
       }
     }
 
