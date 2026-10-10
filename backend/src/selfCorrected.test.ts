@@ -1,5 +1,16 @@
 import assert from 'node:assert';
-import { dbStore, TeacherObservationRecord } from './db';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+const originalCwd = process.cwd();
+const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'fln-selfcorrected-'));
+fs.mkdirSync(path.join(scratch, 'data'));
+process.chdir(scratch);
+delete process.env.MONGODB_URI;
+
+const { dbStore } = await import('./db');
+import type { TeacherObservationRecord } from './db';
 
 async function testSelfCorrectedField() {
   console.log('Running selfCorrected.test.ts...');
@@ -47,9 +58,15 @@ async function testSelfCorrectedField() {
   assert.strictEqual(classRecords[0].selfCorrected, false);
 
   console.log('selfCorrected.test.ts passed successfully!');
+  process.chdir(originalCwd);
+  fs.rmSync(scratch, { recursive: true, force: true });
 }
 
 testSelfCorrectedField().catch(err => {
   console.error(err);
+  try {
+    process.chdir(originalCwd);
+    fs.rmSync(scratch, { recursive: true, force: true });
+  } catch {}
   process.exit(1);
 });
