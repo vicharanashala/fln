@@ -2013,8 +2013,17 @@ export class DBStore {
       let qDoc: any = null;
       if (this.mongoDb) {
         try {
+          const targetConceptId = CURRICULUM_MAPPING[lvl]?.conceptId;
           const docs = await this.mongoDb.collection('questionBank').aggregate([
-            { $match: { level: lvl } },
+            {
+              $match: {
+                $or: [
+                  { mappedLevel: lvl },
+                  ...(targetConceptId ? [{ conceptId: targetConceptId }] : []),
+                  { level: lvl }
+                ]
+              }
+            },
             { $sample: { size: 1 } }
           ]).toArray();
           if (docs && docs.length > 0) qDoc = docs[0];
