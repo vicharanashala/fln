@@ -1083,9 +1083,9 @@ interface KPICardProps {
 
 const KPICard: React.FC<KPICardProps> = ({ title, value, subtext, icon: Icon, badge, badgeType = 'neutral' }) => {
   return (
-    <div className="p-3.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col justify-between space-y-2 hover:border-indigo-400/50 transition-all">
+    <div className="p-3.5 bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-2 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-400 hover:shadow-md">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
           {title}
         </span>
         <div className="p-1.5 bg-indigo-50 dark:bg-indigo-950/50 rounded-lg text-indigo-600 dark:text-indigo-400">
