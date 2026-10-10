@@ -4,6 +4,7 @@ import { dbStore, CYCLE_NAMES, TeacherObservationRecord, UserRole } from '../db'
 import { canAccessStudent, getAuthUser } from '../auth';
 
 const OBSERVATION_RATINGS = ['Proficient', 'Progressive', 'Beginner'] as const;
+const VALID_STRATEGIES = ['fingers', 'counters', 'mental', 'written'] as const;
 
 function isValidCycle(cycle: unknown): cycle is typeof CYCLE_NAMES[number] {
   return typeof cycle === 'string' && (CYCLE_NAMES as readonly string[]).includes(cycle);
@@ -71,7 +72,7 @@ export function registerObservationRoutes(app: express.Express) {
       return res.status(403).json({ error: 'Account suspended.' });
     }
 
-    const { studentId, conceptId, classId, cycle, rating, notYetAssessed } = req.body ?? {};
+    const { studentId, conceptId, classId, cycle, rating, notYetAssessed, selfCorrected, strategyUsed } = req.body ?? {};
     if (
       typeof studentId !== 'string' || !studentId.trim() ||
       typeof conceptId !== 'string' || !conceptId.trim() ||
@@ -83,6 +84,14 @@ export function registerObservationRoutes(app: express.Express) {
       return res.status(400).json({
         error: 'Required fields: studentId, conceptId, classId, valid cycle, valid rating, and boolean notYetAssessed.'
       });
+    }
+
+    if (selfCorrected !== undefined && typeof selfCorrected !== 'boolean') {
+      return res.status(400).json({ error: 'selfCorrected must be a boolean.' });
+    }
+
+    if (strategyUsed !== undefined && !(VALID_STRATEGIES as readonly unknown[]).includes(strategyUsed)) {
+      return res.status(400).json({ error: 'strategyUsed must be one of: fingers, counters, mental, written.' });
     }
 
     try {
@@ -103,6 +112,7 @@ export function registerObservationRoutes(app: express.Express) {
       const existing = await dbStore.getObservationRecordsForStudent(student.id, cycle);
       const priorRecord = existing.find(record => record.conceptId === conceptId.trim());
       const now = new Date().toISOString();
+
       const record: TeacherObservationRecord = {
         id: priorRecord?.id ?? `obs_${randomUUID()}`,
         studentId: student.id,
@@ -114,6 +124,16 @@ export function registerObservationRoutes(app: express.Express) {
         cycle,
         rating,
         notYetAssessed,
+        ...(selfCorrected !== undefined
+          ? { selfCorrected }
+          : priorRecord?.selfCorrected !== undefined
+          ? { selfCorrected: priorRecord.selfCorrected }
+          : {}),
+        ...(strategyUsed !== undefined
+          ? { strategyUsed }
+          : priorRecord?.strategyUsed !== undefined
+          ? { strategyUsed: priorRecord.strategyUsed }
+          : {}),
         observedAt: now,
         createdAt: priorRecord?.createdAt ?? now,
         updatedAt: now

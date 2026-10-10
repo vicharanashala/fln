@@ -59,18 +59,24 @@ test('observation records save, read by student/class, and upsert by student-con
     classId: 'c1',
     cycle: 'Baseline',
     rating: 'Progressive',
-    notYetAssessed: false
+    notYetAssessed: false,
+    selfCorrected: true,
+    strategyUsed: 'fingers'
   };
 
   const firstSave = await request('POST', '/api/observations', recordInput);
   assert.equal(firstSave.status, 200);
   assert.equal(firstSave.body.teacherId, 'u6');
   assert.equal(firstSave.body.teacherEmail, teacherEmail);
+  assert.equal(firstSave.body.selfCorrected, true);
+  assert.equal(firstSave.body.strategyUsed, 'fingers');
 
   const studentRead = await request('GET', '/api/observations/student/s1?cycle=Baseline');
   assert.equal(studentRead.status, 200);
   assert.equal(studentRead.body.length, 1);
   assert.equal(studentRead.body[0].rating, 'Progressive');
+  assert.equal(studentRead.body[0].selfCorrected, true);
+  assert.equal(studentRead.body[0].strategyUsed, 'fingers');
 
   const classRead = await request('GET', '/api/observations/class/c1?cycle=Baseline');
   assert.equal(classRead.status, 200);
@@ -89,6 +95,72 @@ test('observation records save, read by student/class, and upsert by student-con
   assert.equal(afterUpdate.status, 200);
   assert.equal(afterUpdate.body.length, 1);
   assert.equal(afterUpdate.body[0].rating, 'Proficient');
+});
+
+test('POST /api/observations returns 400 for invalid selfCorrected or strategyUsed', async () => {
+  const baseInput = {
+    studentId: 's1',
+    conceptId: 'S3.12',
+    classId: 'c1',
+    cycle: 'Baseline',
+    rating: 'Progressive',
+    notYetAssessed: false
+  };
+
+  const badSelfCorrected = await request('POST', '/api/observations', {
+    ...baseInput,
+    selfCorrected: 'yes'
+  });
+  assert.equal(badSelfCorrected.status, 400);
+
+  const badStrategy = await request('POST', '/api/observations', {
+    ...baseInput,
+    strategyUsed: 'guessing'
+  });
+  assert.equal(badStrategy.status, 400);
+});
+
+test('POST /api/observations preserves previous selfCorrected/strategyUsed when omitted in update', async () => {
+  const baseInput = {
+    studentId: 's1',
+    conceptId: 'S3.12',
+    classId: 'c1',
+    cycle: 'Baseline',
+    rating: 'Progressive',
+    notYetAssessed: false
+  };
+
+  const initialSave = await request('POST', '/api/observations', {
+    ...baseInput,
+    selfCorrected: true,
+    strategyUsed: 'mental'
+  });
+  assert.equal(initialSave.status, 200);
+
+  const updateNoFields = await request('POST', '/api/observations', {
+    ...baseInput,
+    rating: 'Proficient'
+  });
+  assert.equal(updateNoFields.status, 200);
+  assert.equal(updateNoFields.body.rating, 'Proficient');
+  assert.equal(updateNoFields.body.selfCorrected, true);
+  assert.equal(updateNoFields.body.strategyUsed, 'mental');
+});
+
+test('POST /api/observations works without selfCorrected and strategyUsed for legacy requests', async () => {
+  const legacyInput = {
+    studentId: 's2',
+    conceptId: 'S3.15',
+    classId: 'c1',
+    cycle: 'Baseline',
+    rating: 'Beginner',
+    notYetAssessed: false
+  };
+
+  const saveRes = await request('POST', '/api/observations', legacyInput);
+  assert.equal(saveRes.status, 200);
+  assert.equal(saveRes.body.selfCorrected, undefined);
+  assert.equal(saveRes.body.strategyUsed, undefined);
 });
 
 test('observation routes require authentication and validate the cycle', async () => {
