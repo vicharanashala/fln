@@ -21,16 +21,24 @@ let token;
 test.before(async () => {
   return new Promise((resolve, reject) => {
     const env = Object.assign({}, process.env, {
-      PORT: 3015,
+      PORT: 3016,
       MONGODB_URI: '',
-      JWT_SECRET: 'test-secret'
+      JWT_SECRET: 'test-secret',
+      NODE_ENV: 'test'
     });
 
-    server = spawn('node', [path.resolve(REPO_ROOT, 'node_modules/tsx/dist/cli.mjs'), path.resolve(REPO_ROOT, 'backend/src/index.ts')], { cwd: scratchDir, env });
+    let tsxBin = path.resolve(REPO_ROOT, 'node_modules/tsx/dist/cli.mjs');
+    if (!fs.existsSync(tsxBin)) {
+      tsxBin = path.resolve(REPO_ROOT, 'backend/node_modules/tsx/dist/cli.mjs');
+    }
 
+    server = spawn('node', [tsxBin, path.resolve(REPO_ROOT, 'backend/src/index.ts')], { cwd: scratchDir, env });
+
+    let stdoutBuf = '';
     server.stdout.on('data', async (d) => {
-      if (d.toString().includes('Server running')) {
-        baseUrl = 'http://localhost:3015';
+      stdoutBuf += d.toString();
+      if (stdoutBuf.includes('Server running') && !baseUrl) {
+        baseUrl = 'http://localhost:3016';
         try {
           const res = await fetch(`${baseUrl}/api/auth/login`, {
             method: 'POST',
@@ -47,6 +55,12 @@ test.before(async () => {
     });
 
     server.stderr.on('data', d => console.error(d.toString()));
+
+    server.on('exit', (code) => {
+      if (!baseUrl) {
+        reject(new Error(`Server crashed during boot with code ${code}. STDOUT: ${stdoutBuf}`));
+      }
+    });
   });
 });
 
