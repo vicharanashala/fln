@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronDown, ChevronUp, ChevronsUpDown, Download, Search, SlidersHorizontal } from 'lucide-react';
 
 export interface Column<T> {
@@ -95,10 +95,18 @@ export function Table<T extends Record<string, any>>({
 
   // Pagination calculations
   const totalPages = Math.ceil(processedData.length / rowsPerPage) || 1;
+  const safePage = currentPage > totalPages ? 1 : currentPage;
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [currentPage, totalPages]);
+
   const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * rowsPerPage;
+    const start = (safePage - 1) * rowsPerPage;
     return processedData.slice(start, start + rowsPerPage);
-  }, [processedData, currentPage, rowsPerPage]);
+  }, [processedData, safePage, rowsPerPage]);
 
   // Build a windowed page list (first, last, current +/- 1) with '...' gaps,
   // so wide datasets don't render one button per page (was 645 buttons at 6450 rows).
@@ -107,7 +115,7 @@ export function Table<T extends Record<string, any>>({
     const pages: (number | 'ellipsis')[] = [];
     const range: number[] = [];
 
-    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+    for (let i = Math.max(2, safePage - delta); i <= Math.min(totalPages - 1, safePage + delta); i++) {
       range.push(i);
     }
 
@@ -118,7 +126,7 @@ export function Table<T extends Record<string, any>>({
     if (totalPages > 1) pages.push(totalPages);
 
     return pages;
-  }, [currentPage, totalPages]);
+  }, [safePage, totalPages]);
 
   const handleFilterChange = (key: string, value: string) => {
     setActiveFilters(prev => ({ ...prev, [key]: value }));
@@ -295,16 +303,16 @@ export function Table<T extends Record<string, any>>({
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
           <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
-            Showing <strong className="text-slate-800 dark:text-slate-200">{((currentPage - 1) * rowsPerPage) + 1}</strong> to{' '}
+            Showing <strong className="text-slate-800 dark:text-slate-200">{((safePage - 1) * rowsPerPage) + 1}</strong> to{' '}
             <strong className="text-slate-800 dark:text-slate-200">
-              {Math.min(currentPage * rowsPerPage, processedData.length)}
+              {Math.min(safePage * rowsPerPage, processedData.length)}
             </strong>{' '}
             of <strong className="text-slate-800 dark:text-slate-200">{processedData.length}</strong> records
           </span>
           <div className="flex gap-1.5">
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
+              disabled={safePage === 1}
               className="px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold cursor-pointer dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
             >
               Previous
@@ -322,7 +330,7 @@ export function Table<T extends Record<string, any>>({
                   key={item}
                   onClick={() => setCurrentPage(item)}
                   className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition cursor-pointer ${
-                    currentPage === item
+                    safePage === item
                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800'
                   }`}
@@ -333,7 +341,7 @@ export function Table<T extends Record<string, any>>({
             )}
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
+              disabled={safePage === totalPages}
               className="px-3 py-1.5 text-xs border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold cursor-pointer dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
             >
               Next

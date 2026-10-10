@@ -529,7 +529,7 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
           </div>
         )}
 
-        <EmptyStudents students={visibleStudents} loading={studentsLoading} />
+        <EmptyStudents key={activeTab} students={visibleStudents} loading={studentsLoading} />
 
         {!studentsLoading && isTeacherOrVolunteer && visibleClassTabs.map(c => {
           const classStudents = students.filter(
