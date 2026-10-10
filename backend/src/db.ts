@@ -1009,6 +1009,18 @@ export interface TeacherObservationRecord {
    */
   notYetAssessed: boolean;
 
+  /**
+   * Whether the child corrected their own mistake during observation.
+   * Self-correction tracking for formative assessment. Added in #619.
+   */
+  selfCorrected?: boolean;
+
+  /**
+   * How the child arrived at an answer during observation (fingers | counters | mental | written).
+   * EGMA strategy-observation metric. Added in #620.
+   */
+  strategyUsed?: 'fingers' | 'counters' | 'mental' | 'written';
+
   observedAt: string;
   createdAt: string;
   updatedAt: string;
