@@ -1,3 +1,4 @@
+import { LEVEL_SKILL_MAP } from '../../data/skillProgressionMap';
 //this directory has been splitted from frontend/src/components/RoleDashboards.tsx for easy deployment
 import React, { useState } from 'react';
 
@@ -130,7 +131,7 @@ export const FLNLevelReferenceModal: React.FC<{ isOpen: boolean; onClose: () => 
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 rounded-t-2xl">
           <div>
             <h2 className="text-xl font-display font-semibold text-zinc-900 dark:text-white">📖 FLN Levels Framework Reference</h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Explore details of the 93 curriculum levels spanning Preschool 1 to Class 4</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Explore details of the {LEVEL_SKILL_MAP.length} curriculum levels spanning Preschool 1 to Class 4</p>
           </div>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-650 text-sm font-semibold border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-slate-900 hover:bg-zinc-100 dark:hover:bg-zinc-700 p-2 rounded-lg">Close</button>
         </div>

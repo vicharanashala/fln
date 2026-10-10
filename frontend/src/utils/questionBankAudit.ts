@@ -1,3 +1,5 @@
+import { LEVEL_SKILL_MAP } from '../data/skillProgressionMap';
+
 export type IssueCategory =
   | 'MISSING_TEXT'
   | 'MISSING_ANSWER'
@@ -223,7 +225,7 @@ export function runQuestionBankAudit(questions: any[]): AuditResult {
       level === null ||
       !Number.isInteger(level) ||
       level < 1 ||
-      level > 93
+      level > LEVEL_SKILL_MAP.length
     ) {
       addIssue(
         q,

@@ -1,3 +1,4 @@
+import { LEVEL_SKILL_MAP } from '../../data/skillProgressionMap';
 // Extracted from frontend/src/components/PanelViews.tsx (issue #144, PR 3).
 import React from 'react';
 import { Student, User, UserRole } from '../../types';
@@ -23,7 +24,7 @@ export const PerformancePanel: React.FC<{ students: Student[]; currentUser: User
             <div className="space-y-2">{topStudents.map(s => (
               <div key={s.id} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-700 rounded-lg">
                 <div className="flex items-center gap-3"><span className="text-sm font-semibold">{s.name}</span><span className="text-xs text-slate-400 dark:text-slate-500">{s.classGroup}</span></div>
-                <div className="flex items-center gap-4"><div className="w-32 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / 93) * 100}%` }} /></div><span className="font-mono font-bold text-sm">L{s.currentLevel}</span></div>
+                <div className="flex items-center gap-4"><div className="w-32 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.currentLevel / LEVEL_SKILL_MAP.length) * 100}%` }} /></div><span className="font-mono font-bold text-sm">L{s.currentLevel}</span></div>
               </div>
             ))}</div>
           </div>

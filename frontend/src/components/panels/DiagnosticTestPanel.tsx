@@ -1,3 +1,4 @@
+import { LEVEL_SKILL_MAP } from '../../data/skillProgressionMap';
 // Issue #175: rebuild — CSV upload (feeds #178's real bulk-import endpoint),
 // then the existing BulkDiagnosticWorkflow (reused as-is, not rewritten —
 // it already calls the real POST /api/diagnostic/bulk route). Pending/
@@ -193,7 +194,7 @@ export const DiagnosticTestPanel: React.FC<DiagnosticTestPanelProps> = ({ studen
               onClick={() => setShowLevelRef(true)}
               className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-mono text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
             >
-              📖 93 FLN Framework
+              FLN {LEVEL_SKILL_MAP.length} Framework
             </button>
             <button
               onClick={() => { setShowCsvImport(!showCsvImport); setCsvResults(null); setCsvError(''); }}

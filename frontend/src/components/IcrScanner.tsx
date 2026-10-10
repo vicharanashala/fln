@@ -1,3 +1,4 @@
+import { LEVEL_SKILL_MAP } from '../data/skillProgressionMap';
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { Student, ClassGroup, EvaluationReport, User } from '../types';
@@ -2205,7 +2206,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                 <div className="text-xs font-mono opacity-90">
                   {report.recommendedSubLevel === 2 ? 'Remedial'
                     : report.recommendedSubLevel === 1 ? 'Easier'
-                    : 'Mastery'} · target L{Math.min(93, (report.recommendedLevel ?? 1) + 1)}
+                    : 'Mastery'} · target L{Math.min(LEVEL_SKILL_MAP.length, (report.recommendedLevel ?? 1) + 1)}
                 </div>
               </div>
 

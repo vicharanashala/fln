@@ -1,3 +1,4 @@
+import { LEVEL_SKILL_MAP } from '../../data/skillProgressionMap';
 // Extracted from frontend/src/components/PanelViews.tsx (issue #144, PR 8).
 // The final panel in the split — 539 lines, the largest in the codebase.
 // Owns saveProfile(), the only call site of usePanelData's
@@ -263,8 +264,8 @@ export const StudentProfilePanel: React.FC<{
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3">
                 <h3 className="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Class Comparison</h3>
                 <div className="space-y-3">
-                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500 dark:text-slate-400">This Student</span><span className="font-bold text-indigo-600">L{s.currentLevel}</span></div><div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${(s.currentLevel / 93) * 100}%` }} /></div></div>
-                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500 dark:text-slate-400">Class Average ({classStudents.length} students)</span><span className="font-bold text-slate-700 dark:text-slate-200">L{classAvg}</span></div><div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-slate-500 rounded-full transition-all" style={{ width: `${(classAvg / 93) * 100}%` }} /></div></div>
+                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500 dark:text-slate-400">This Student</span><span className="font-bold text-indigo-600">L{s.currentLevel}</span></div><div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${(s.currentLevel / LEVEL_SKILL_MAP.length) * 100}%` }} /></div></div>
+                  <div><div className="flex justify-between text-sm mb-1"><span className="text-slate-500 dark:text-slate-400">Class Average ({classStudents.length} students)</span><span className="font-bold text-slate-700 dark:text-slate-200">L{classAvg}</span></div><div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-slate-500 rounded-full transition-all" style={{ width: `${(classAvg / LEVEL_SKILL_MAP.length) * 100}%` }} /></div></div>
                   <div className={`p-2 rounded-lg text-xs font-medium text-center ${s.currentLevel > classAvg ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : s.currentLevel === classAvg ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300'}`}>
                     {s.currentLevel > classAvg ? `↑ ${s.currentLevel - classAvg} levels above class average` : s.currentLevel === classAvg ? 'At class average' : `↓ ${classAvg - s.currentLevel} levels below class average`}
                   </div>
@@ -429,7 +430,7 @@ export const StudentProfilePanel: React.FC<{
                   {weakAreas.length > 0 ? weakAreas.map(topic => (
                     <div key={topic} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />Additional practice recommended for <strong>{topic}</strong></div>
                   )) : reports.length > 0 ? <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />All skills at expected level — no focus areas needed</div> : <div className="text-sm text-slate-500 dark:text-slate-400">Complete a diagnostic assessment to generate recommendations.</div>}
-                  {s.currentLevel < 93 && <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Next milestone: <strong>Level {Math.min(93, s.currentLevel + 1)}</strong></div>}
+                  {s.currentLevel < LEVEL_SKILL_MAP.length && <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-800"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />Next milestone: <strong>Level {Math.min(LEVEL_SKILL_MAP.length, s.currentLevel + 1)}</strong></div>}
                 </div>
               </div>
             </div>
