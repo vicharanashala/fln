@@ -14,6 +14,7 @@ import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { computeStudentDisplayId } from '../displayId';
 import { tokenizeAadhaar, formatAadhaarMask, AadhaarVaultTokenizeResult } from '../aadhaarVault';
 import { generateStudentId } from '../idGenerator';
+import { getRecurringErrorsForStudent, getRecurringErrorForConcept } from '../services/recurringError';
 
 // ─── Response hygiene (Phase 2 hardening) ───────────────────────────────────
 // Vault references are internal-only: MongoDB and the internal Student model
@@ -1465,4 +1466,22 @@ export function registerStudentRoutes(app: express.Express) {
 
   app.post('/api/students/:id/diagnostic/submit', submitDiagnostic('diagnostic'));
   app.post('/api/students/:id/baseline/submit', submitDiagnostic('baseline'));
+
+  app.get('/api/students/:id/recurring-errors', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const student = await dbStore.getStudentById(req.params.id);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+    if (!canAccessStudent(user, student)) return res.status(403).json({ error: 'Forbidden.' });
+
+    const { conceptId } = req.query;
+    if (typeof conceptId === 'string' && conceptId.trim()) {
+      const result = await getRecurringErrorForConcept(student.id, conceptId.trim());
+      return res.json(result);
+    }
+
+    const results = await getRecurringErrorsForStudent(student.id);
+    return res.json(results);
+  });
 }
