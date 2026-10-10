@@ -536,6 +536,7 @@ export interface ImportResult {
 /** Payload of `GET /api/question-logics/level-map` — drives the cascading dropdowns. */
 export interface LevelMapPayload {
   levelCount: number;
+  stages: Array<{ stage: string; label: string; firstLevel: number; lastLevel: number; levelCount: number }>;
   levels: Array<{
     levelId: string;
     levelNumber: number;

@@ -52,6 +52,7 @@ check_conflict_markers() {
   return $bad
 }
 run "conflict markers" check_conflict_markers
+run "skill/level snapshot drift" npx tsx scripts/generate-skill-level-map.ts --check
 
 # ----------------------------------------------------------- 2. type checks
 run "type check: backend"  npm run lint --workspace @fln/backend  --silent

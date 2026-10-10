@@ -2,7 +2,7 @@ import express from 'express';
 import { randomUUID } from 'crypto';
 import { dbStore, QuestionTemplate } from '../db';
 import { requireSuperadmin } from './superadminGuard';
-import { getLevel, isSkillMappedToLevel, isSubskillUnderSkills, buildLevelMapPayload, LEVEL_COUNT } from '../config/skillLevelMap';
+import { getLevel, isSkillMappedToLevel, isSubskillUnderSkills, buildLevelMapPayload, LEVEL_COUNT, listStages, resolveStage } from '../config/skillLevelMap';
 import { getLevelForConcept } from '../config/curriculumMap';
 import {
   QuestionTemplateParams,
@@ -320,9 +320,18 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
   app.get('/api/question-templates/csv-template.zip', async (req, res, next) => {
     if (!requireSuperadmin(req, res, SUBJECT)) return;
     try {
-      const archive = await buildQuestionTemplateDownload(CSV_COLUMNS, buildLevelMapPayload(), listThemes());
+      const raw = req.query.stage;
+      let stage: string | undefined;
+      if (raw !== undefined && raw !== '') {
+        stage = typeof raw === 'string' ? resolveStage(raw) ?? undefined : undefined;
+        if (!stage) return res.status(400).json({
+          error: 'Unknown stage.', validStages: listStages().map(s => s.label),
+        });
+      }
+      const archive = await buildQuestionTemplateDownload(CSV_COLUMNS, buildLevelMapPayload(), listThemes(), { stage });
+      const slug = stage ? '-' + listStages().find(s => s.stage === stage)!.label.toLowerCase().replace(/\s+/g, '-') : '';
       res.setHeader('Cache-Control', 'no-store');
-      res.attachment('question-authoring-template.zip').type('application/zip').send(archive);
+      res.attachment(`question-authoring-template${slug}.zip`).type('application/zip').send(archive);
     } catch (error) {
       next(error);
     }
