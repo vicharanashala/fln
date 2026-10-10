@@ -26,7 +26,7 @@ test.before(async () => {
       JWT_SECRET: 'test-secret'
     });
 
-    server = spawn('node', [path.resolve(REPO_ROOT, 'backend/dist/server.cjs')], { cwd: scratchDir, env });
+    server = spawn('node', [path.resolve(REPO_ROOT, 'node_modules/tsx/dist/cli.mjs'), path.resolve(REPO_ROOT, 'backend/src/index.ts')], { cwd: scratchDir, env });
 
     server.stdout.on('data', async (d) => {
       if (d.toString().includes('Server running')) {
