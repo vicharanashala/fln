@@ -80,11 +80,10 @@ evaluation_metrics/
 - Falls back to template report if API fails
 - Output: `.txt` report card
 
-### Step 4 — Personalized Exam (`personalized_evaluation_pipeline.py`)
-- Checks if child failed (FLN status = fail)
-- Collects exact failed questions + new-level questions from target phrase
-- Generates personalized exam + blank response template
-- No API calls — pure local logic
+### Step 4 — Personalized Exam (`personalized_evaluation_pipeline.py`) — **RETIRED / DEPRECATED (#458)**
+- **Status:** Retired. This standalone Python script ran on a legacy `class_N` / `phrase_1/2/3` flat-file schema disconnected from MongoDB.
+- **Production Replacement:** Remediation planning and personalized exam generation are implemented by `remediationPlanService` (`backend/src/services/remediationPlanService.ts`) and `errorClassification.ts` in the Express backend using the 93-level concept taxonomy.
+- Preserved for historical/reference logic only.
 
 ---
 
