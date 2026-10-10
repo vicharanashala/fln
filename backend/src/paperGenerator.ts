@@ -617,113 +617,123 @@ export async function renderWorksheetPdf({
   const font = await merged.embedFont(StandardFonts.Helvetica);
   const boldFont = await merged.embedFont(StandardFonts.HelveticaBold);
 
+  const QUESTIONS_PER_PAGE = 7;
+
   for (let i = 0; i < studentsWithQuestions.length; i++) {
     const swq = studentsWithQuestions[i];
-    const page = merged.addPage([595.28, 841.89]);
-    const { width, height } = page.getSize();
+    const totalPages = Math.max(1, Math.ceil(swq.questions.length / QUESTIONS_PER_PAGE));
 
-    page.drawRectangle({
-      x: 0,
-      y: height - 15,
-      width: width,
-      height: 15,
-      color: rgb(0.06, 0.48, 0.35), // Green theme for general worksheet
-    });
-
-    page.drawText(`PERSONALIZED FLN MATHEMATICS WORKSHEET`, {
-      x: 50,
-      y: height - 60,
-      size: 15,
-      font: boldFont,
-      color: rgb(0.06, 0.48, 0.35),
-    });
-
-    page.drawText(`CLASS: ${className} - Section ${section} | CYCLE: ${cycle}`, {
-      x: 50,
-      y: height - 80,
-      size: 10,
-      font: boldFont,
-      color: rgb(0.4, 0.45, 0.5),
-    });
-
-    // Student Info Card
-    page.drawRectangle({
-      x: 50,
-      y: height - 150,
-      width: width - 100,
-      height: 50,
-      color: rgb(0.96, 0.98, 0.97),
-      borderColor: rgb(0.85, 0.9, 0.87),
-      borderWidth: 1,
-    });
-
-    page.drawText(`STUDENT: ${swq.name.toUpperCase()}`, {
-      x: 65,
-      y: height - 125,
-      size: 10,
-      font: boldFont,
-      color: rgb(0.05, 0.2, 0.15),
-    });
-
-    page.drawText(`FLN PLACEMENT: Level ${swq.currentLevel}.${swq.currentSubLevel}`, {
-      x: 65,
-      y: height - 140,
-      size: 8.5,
-      font: font,
-      color: rgb(0.4, 0.45, 0.5),
-    });
-
-    page.drawText(`DATE: ${new Date().toLocaleDateString()}`, {
-      x: width - 200,
-      y: height - 125,
-      size: 8.5,
-      font: font,
-      color: rgb(0.4, 0.45, 0.5),
-    });
-
-    drawQrCode(page, {
-      studentName: swq.name,
-      studentId: swq.studentId,
-      className,
-      section,
-      currentLevel: swq.currentLevel,
-      currentSubLevel: swq.currentSubLevel,
-      worksheetId,
-    }, width - 105, height - 150, 45);
-
-    // Draw student-specific personalized questions
-    let currentY = height - 220;
-    swq.questions.slice(0, 4).forEach((q, idx) => {
-      page.drawText(`Q${idx + 1}. [${q.topic}] ${q.question}`, {
-        x: 50,
-        y: currentY,
-        size: 10.5,
-        font: boldFont,
-        color: rgb(0.15, 0.15, 0.15),
-      });
+    for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+      const page = merged.addPage([595.28, 841.89]);
+      const { width, height } = page.getSize();
 
       page.drawRectangle({
+        x: 0,
+        y: height - 15,
+        width: width,
+        height: 15,
+        color: rgb(0.06, 0.48, 0.35), // Green theme for general worksheet
+      });
+
+      page.drawText(`PERSONALIZED FLN MATHEMATICS WORKSHEET`, {
         x: 50,
-        y: currentY - 45,
-        width: 150,
-        height: 24,
-        color: rgb(1, 1, 1),
-        borderColor: rgb(0.8, 0.8, 0.8),
+        y: height - 60,
+        size: 15,
+        font: boldFont,
+        color: rgb(0.06, 0.48, 0.35),
+      });
+
+      page.drawText(`CLASS: ${className} - Section ${section} | CYCLE: ${cycle}`, {
+        x: 50,
+        y: height - 80,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.4, 0.45, 0.5),
+      });
+
+      // Student Info Card
+      page.drawRectangle({
+        x: 50,
+        y: height - 150,
+        width: width - 100,
+        height: 50,
+        color: rgb(0.96, 0.98, 0.97),
+        borderColor: rgb(0.85, 0.9, 0.87),
         borderWidth: 1,
       });
 
-      currentY -= 80;
-    });
+      page.drawText(`STUDENT: ${swq.name.toUpperCase()}`, {
+        x: 65,
+        y: height - 125,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.05, 0.2, 0.15),
+      });
 
-    page.drawText(`Worksheet ID: ${worksheetId} · Page 1 of 1`, {
-      x: 50,
-      y: 40,
-      size: 7.5,
-      font: font,
-      color: rgb(0.6, 0.6, 0.6),
-    });
+      page.drawText(`FLN PLACEMENT: Level ${swq.currentLevel}.${swq.currentSubLevel}`, {
+        x: 65,
+        y: height - 140,
+        size: 8.5,
+        font: font,
+        color: rgb(0.4, 0.45, 0.5),
+      });
+
+      page.drawText(`DATE: ${new Date().toLocaleDateString()}`, {
+        x: width - 200,
+        y: height - 125,
+        size: 8.5,
+        font: font,
+        color: rgb(0.4, 0.45, 0.5),
+      });
+
+      drawQrCode(page, {
+        studentName: swq.name,
+        studentId: swq.studentId,
+        className,
+        section,
+        currentLevel: swq.currentLevel,
+        currentSubLevel: swq.currentSubLevel,
+        worksheetId,
+      }, width - 105, height - 150, 45);
+
+      // Draw student-specific personalized questions
+      let currentY = height - 220;
+      const startQuestion = pageIndex * QUESTIONS_PER_PAGE;
+      const pageQuestions = swq.questions.slice(startQuestion, startQuestion + QUESTIONS_PER_PAGE);
+
+      pageQuestions.forEach((q, idx) => {
+        const questionNumber = startQuestion + idx + 1;
+
+        page.drawText(`Q${questionNumber}. [${q.topic}] ${q.question}`, {
+          x: 50,
+          y: currentY,
+          size: 10.5,
+          font: boldFont,
+          color: rgb(0.15, 0.15, 0.15),
+        });
+
+        page.drawRectangle({
+          x: 50,
+          y: currentY - 45,
+          width: 150,
+          height: 24,
+          color: rgb(1, 1, 1),
+          borderColor: rgb(0.8, 0.8, 0.8),
+          borderWidth: 1,
+        });
+
+        currentY -= 80;
+      });
+
+      page.drawText(`Worksheet ID: ${worksheetId} - Page ${pageIndex + 1} of ${totalPages}`, {
+        x: 50,
+        y: 40,
+        size: 7.5,
+        font: font,
+        color: rgb(0.6, 0.6, 0.6),
+      });
+    }
   }
-
   const mergedBuffer = Buffer.from(await merged.save());
   const fileName = `worksheet_${worksheetId}_${randomUUID()}.pdf`;
   const filePath = path.join(OUTPUT_DIR, fileName);
