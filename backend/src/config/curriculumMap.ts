@@ -196,7 +196,12 @@ const CONCEPT_TO_LEVEL: Record<string, LevelConceptConfig> = {};
 for (const config of Object.values(CURRICULUM_MAPPING)) {
   CONCEPT_TO_LEVEL[config.conceptId] = config;
 }
-
+/**
+ * Check whether a Curriculum Level belongs to Balvatika (Stage 3)
+ */
+export function isBalvatikaStage(level: number): boolean {
+  return CURRICULUM_MAPPING[level]?.stage === 3;
+}
 /**
  * Get Level configuration by Curriculum Level Number
  */

@@ -46,6 +46,23 @@ export interface School {
   strength?: string;
   teachersCount: number;
   isAccessLocked?: boolean;
+  villageCity?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  landmark?: string;
+  pinCode?: string;
+  udiseCode?: string;
+  governmentSchoolCode?: string;
+  schoolType?: string;
+  managementType?: string;
+  email?: string;
+  phone?: string;
+  establishmentYear?: number;
+  initialClasses?: string[];
+  principalId?: string;
+  status?: 'active' | 'pending' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ClassGroup {
@@ -95,6 +112,7 @@ export interface Question {
   answer: string;
   answer_type: 'text' | 'number' | 'choice';
   choices?: string[];
+  choiceErrorTags?: Record<string, string>;
   topic: string;
   subtopic: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -393,6 +411,7 @@ export interface QuestionTemplate {
   levelName: string;
   skills: string[];
   subskills: string[];
+  assessmentMode?: 'written' | 'observed' | 'both';
   /** What the question should make the child do. An instruction, not a finished question. */
   generationIntent: string;
   questionFamily: 'counting' | 'operation';
@@ -482,6 +501,7 @@ export interface ParamCatalog {
   numeralRange: string[];
   deprecatedNumeralRange?: string[];
   questionFamily?: string[];
+  assessmentMode?: string[];
   svgThemes?: SvgTheme[];
   generationIntent?: { minChars: number; maxChars: number };
   maxSvgThemes?: number;

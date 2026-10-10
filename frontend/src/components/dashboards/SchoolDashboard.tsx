@@ -78,6 +78,13 @@ export const SchoolDashboard: React.FC<DashboardProps> = ({ user, token }) => {
           {school ? school.name : (user.schoolId ?? 'Loading…')}
           {user.schoolId && <span className="ml-1 text-zinc-400 dark:text-zinc-500">(ID: {user.schoolId})</span>}
         </p>
+        {school && (school.addressLine1 || school.villageCity || school.pinCode || school.udiseCode || school.governmentSchoolCode) && (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            {[school.addressLine1, school.addressLine2, school.landmark && `Near ${school.landmark}`, school.villageCity, school.pinCode].filter(Boolean).join(', ')}
+            {school.udiseCode && <span className="ml-2">· UDISE {school.udiseCode}</span>}
+            {!school.udiseCode && school.governmentSchoolCode && <span className="ml-2">· Government code {school.governmentSchoolCode}</span>}
+          </p>
+        )}
       </div>
 
       <TicketSubmission token={token} userRole={user.role} />

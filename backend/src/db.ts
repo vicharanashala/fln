@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcrypt';
@@ -17,12 +18,13 @@ const DB_FILE = path.resolve(DB_DIR, 'db.json');
 // Load seed competency requirements (SRS R-7). Falls back to [] if the file
 // is missing — server still boots, but eligibility decisions will be empty
 // (cert rows never transition to 'active' until seed data is restored).
-function getSeedCompetencyRequirements(): CompetencyRequirement[] {
+export function getSeedCompetencyRequirements(): CompetencyRequirement[] {
   try {
     const seedPath = path.resolve(__dirname, 'data', 'competencyRequirements.seed.json');
-    const raw = require('fs').readFileSync(seedPath, 'utf-8');
+    const raw = readFileSync(seedPath, 'utf-8');
     return JSON.parse(raw) as CompetencyRequirement[];
-  } catch {
+  } catch (err) {
+    console.error('Failed to load seed competency requirements:', err);
     return [];
   }
 }
@@ -107,6 +109,23 @@ export interface School {
   strength: 'high' | 'low'; // High-strength vs. Low-strength (§1.2)
   teachersCount: number;
   isAccessLocked?: boolean;
+  villageCity?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  landmark?: string;
+  pinCode?: string;
+  udiseCode?: string;
+  governmentSchoolCode?: string;
+  schoolType?: string;
+  managementType?: string;
+  email?: string;
+  phone?: string;
+  establishmentYear?: number;
+  initialClasses?: string[];
+  principalId?: string;
+  status?: 'active' | 'pending' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ClassGroup {
@@ -163,6 +182,8 @@ export interface Question {
   answer: string;
   answer_type: 'text' | 'number' | 'choice';
   choices?: string[];
+  /** Optional mapping from an exact choice string to its error tag. */
+  choiceErrorTags?: Record<string, string>;
   topic: string;
   subtopic: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -2296,15 +2317,11 @@ export class DBStore {
   // --- Write / Update Helpers ---
 
   async addUser(user: User) {
-    if (!this.mongoDb) {
-      if (this.data) {
-        this.data.users.push(user);
-        await this.save();
-      }
-      return user;
+    if (this.mongoDb) await this.mongoDb.collection('users').insertOne(user);
+    if (this.data) {
+      this.data.users.push(user);
+      if (!this.mongoDb) await this.save();
     }
-    await this.mongoDb!.collection('users').insertOne(user);
-    if (this.data) this.data.users.push(user);
     return user;
   }
 
@@ -2427,6 +2444,31 @@ export class DBStore {
         this.data.classes.push(newClass);
       }
       if (!this.mongoDb) await this.save();
+    }
+  }
+
+  async ensureClassesExist(schoolId: string, classNames: string[], section: string, teacherId: string) {
+    const classes: ClassGroup[] = classNames.map(className => ({
+      id: 'c_' + schoolId + '_' + className.replace(/\s+/g, '') + '_' + section,
+      schoolId,
+      className,
+      section,
+      teacherId,
+    }));
+    if (this.mongoDb && classes.length > 0) {
+      await this.mongoDb.collection<ClassGroup>('classes').bulkWrite(classes.map(cls => ({
+        updateOne: {
+          filter: { id: cls.id },
+          update: { $setOnInsert: cls },
+          upsert: true,
+        },
+      })));
+    }
+    if (this.data) {
+      for (const cls of classes) {
+        if (!this.data.classes.some(existing => existing.id === cls.id)) this.data.classes.push(cls);
+      }
+      if (!this.mongoDb && classes.length > 0) await this.save();
     }
   }
 
@@ -2751,15 +2793,11 @@ export class DBStore {
   }
 
   async addSchool(school: School) {
-    if (!this.mongoDb) {
-      if (this.data) {
-        this.data.schools.push(school);
-        await this.save();
-      }
-      return school;
+    if (this.mongoDb) await this.mongoDb.collection('schools').insertOne(school);
+    if (this.data) {
+      this.data.schools.push(school);
+      if (!this.mongoDb) await this.save();
     }
-    await this.mongoDb!.collection('schools').insertOne(school);
-    if (this.data) this.data.schools.push(school);
     return school;
   }
 

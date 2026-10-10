@@ -45,12 +45,14 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
   const [coordinatorsList, setCoordinatorsList] = useState<User[]>([]);
 
   // School onboarding state
-  const [newSchoolId, setNewSchoolId] = useState('');
-  const [newSchoolName, setNewSchoolName] = useState('');
-  const [newSchoolState, setNewSchoolState] = useState('PB');
-  const [newSchoolDistrict, setNewSchoolDistrict] = useState('');
-  const [newSchoolBlock, setNewSchoolBlock] = useState('');
-  const [newSchoolStrength, setNewSchoolStrength] = useState<'high' | 'low'>('low');
+  const [newSchool, setNewSchool] = useState({
+    id: '', name: '', stateCode: 'PB', districtCode: '', blockCode: '', villageCity: '',
+    addressLine1: '', addressLine2: '', landmark: '', pinCode: '', udiseCode: '', governmentSchoolCode: '',
+    schoolType: 'Primary', managementType: 'Government', email: '', phone: '',
+    establishmentYear: '', strength: 'low' as 'high' | 'low', status: 'active' as 'active' | 'pending' | 'inactive',
+    initialClasses: ['Class 2', 'Class 3', 'Class 4'],
+    principalName: '', principalEmail: '', principalPassword: '', principalPhone: ''
+  });
   const [schoolSuccess, setSchoolSuccess] = useState('');
   const [schoolError, setSchoolError] = useState('');
 
@@ -216,6 +218,10 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
     e.preventDefault();
     setSchoolError('');
     setSchoolSuccess('');
+    if (!newSchool.udiseCode.trim() && !newSchool.governmentSchoolCode.trim()) {
+      setSchoolError('Enter a UDISE code or government school code.');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -226,22 +232,34 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          id: newSchoolId,
-          name: newSchoolName,
-          stateCode: newSchoolState,
-          districtCode: newSchoolDistrict,
-          blockCode: newSchoolBlock,
-          strength: newSchoolStrength
+          id: newSchool.id,
+          name: newSchool.name,
+          stateCode: newSchool.stateCode,
+          districtCode: newSchool.districtCode,
+          blockCode: newSchool.blockCode,
+          villageCity: newSchool.villageCity,
+          addressLine1: newSchool.addressLine1,
+          addressLine2: newSchool.addressLine2,
+          landmark: newSchool.landmark,
+          pinCode: newSchool.pinCode,
+          udiseCode: newSchool.udiseCode,
+          governmentSchoolCode: newSchool.governmentSchoolCode,
+          schoolType: newSchool.schoolType,
+          managementType: newSchool.managementType,
+          email: newSchool.email,
+          phone: newSchool.phone,
+          establishmentYear: Number(newSchool.establishmentYear),
+          initialClasses: newSchool.initialClasses,
+          strength: newSchool.strength,
+          status: newSchool.status,
+          principal: { name: newSchool.principalName, email: newSchool.principalEmail, password: newSchool.principalPassword, phone: newSchool.principalPhone }
         })
       });
 
       const data = await res.json();
       if (res.ok) {
-        setSchoolSuccess(`Successfully onboarded school: ${newSchoolName} (${newSchoolId.toUpperCase()})`);
-        setNewSchoolId('');
-        setNewSchoolName('');
-        setNewSchoolDistrict('');
-        setNewSchoolBlock('');
+        setSchoolSuccess(`Successfully onboarded school: ${newSchool.name} (${newSchool.id.toUpperCase()})`);
+        setNewSchool({ id: '', name: '', stateCode: 'PB', districtCode: '', blockCode: '', villageCity: '', addressLine1: '', addressLine2: '', landmark: '', pinCode: '', udiseCode: '', governmentSchoolCode: '', schoolType: 'Primary', managementType: 'Government', email: '', phone: '', establishmentYear: '', strength: 'low', status: 'active', initialClasses: ['Class 2', 'Class 3', 'Class 4'], principalName: '', principalEmail: '', principalPassword: '', principalPhone: '' });
         // Refresh school list
         const schRes = await apiFetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } });
         const schData = await schRes.json();
@@ -389,6 +407,79 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
 
       {activeTab === 'coordinators' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <section className="lg:col-span-3 bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 shadow-sm space-y-4">
+            <div>
+              <h3 className="text-lg font-display font-medium text-zinc-900 dark:text-white">Onboard a School</h3>
+              <p className="text-xs text-zinc-500 mt-1">Create the school identity, principal account, and initial classes.</p>
+            </div>
+            {schoolSuccess && <div role="status" className="p-3 text-xs bg-green-50 text-green-800 rounded border border-green-200">{schoolSuccess}</div>}
+            {schoolError && <div role="alert" className="p-3 text-xs bg-red-50 text-red-800 rounded border border-red-200">{schoolError}</div>}
+            <form onSubmit={handleOnboardSchool} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {([
+                  ['id', 'School ID'], ['name', 'School name'], ['stateCode', 'State code'],
+                  ['districtCode', 'District code'], ['blockCode', 'Sub-district / block'], ['villageCity', 'Village / city'],
+                  ['addressLine1', 'Address line 1'], ['addressLine2', 'Address line 2'], ['landmark', 'Landmark'],
+                  ['pinCode', 'PIN code'], ['udiseCode', 'UDISE code'], ['governmentSchoolCode', 'Government school code'], ['email', 'School email'],
+                  ['phone', 'School phone'], ['establishmentYear', 'Establishment year']
+                ] as const).map(([field, label]) => (
+                  <label key={field} className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                    {label}{['addressLine2', 'landmark', 'udiseCode', 'governmentSchoolCode'].includes(field) ? ' (optional)' : ''}
+                    <input
+                      type={field === 'email' ? 'email' : field === 'establishmentYear' ? 'number' : 'text'}
+                      value={String(newSchool[field])}
+                      onChange={e => setNewSchool(prev => ({ ...prev, [field]: e.target.value }))}
+                      required={!['addressLine2', 'landmark', 'udiseCode', 'governmentSchoolCode'].includes(field)}
+                      min={field === 'establishmentYear' ? 1800 : undefined}
+                      max={field === 'establishmentYear' ? new Date().getFullYear() : undefined}
+                      pattern={field === 'pinCode' ? '[0-9]{6}' : field === 'udiseCode' ? '[0-9]{11}' : undefined}
+                      maxLength={field === 'pinCode' ? 6 : field === 'udiseCode' ? 11 : undefined}
+                      className="mt-1 w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                    />
+                  </label>
+                ))}
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">School type
+                  <select value={newSchool.schoolType} onChange={e => setNewSchool(prev => ({ ...prev, schoolType: e.target.value }))} className="mt-1 w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800"><option>Primary</option><option>Middle</option><option>Secondary</option><option>Higher Secondary</option><option>Other</option></select>
+                </label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Management type
+                  <select value={newSchool.managementType} onChange={e => setNewSchool(prev => ({ ...prev, managementType: e.target.value }))} className="mt-1 w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800"><option>Government</option><option>Government aided</option><option>Private</option><option>Other</option></select>
+                </label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Status
+                  <select value={newSchool.status} onChange={e => setNewSchool(prev => ({ ...prev, status: e.target.value as 'active' | 'pending' | 'inactive' }))} className="mt-1 w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800"><option value="active">Active</option><option value="pending">Pending</option><option value="inactive">Inactive</option></select>
+                </label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Strength
+                  <select value={newSchool.strength} onChange={e => setNewSchool(prev => ({ ...prev, strength: e.target.value as 'high' | 'low' }))} className="mt-1 w-full text-sm border border-zinc-200 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800"><option value="low">Low</option><option value="high">High</option></select>
+                </label>
+              </div>
+              <p className="-mt-3 text-[11px] text-zinc-500">Provide either the 11-digit UDISE code or a government school code.</p>
+              <fieldset className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-3">
+                <legend className="px-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300">Initial grades / classes</legend>
+                <div className="flex flex-wrap gap-x-5 gap-y-2">
+                  {Array.from({ length: 12 }, (_, index) => `Class ${index + 1}`).map(className => (
+                    <label key={className} className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                      <input type="checkbox" checked={newSchool.initialClasses.includes(className)} onChange={e => setNewSchool(prev => ({ ...prev, initialClasses: e.target.checked ? [...prev.initialClasses, className] : prev.initialClasses.filter(value => value !== className) }))} />{className}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-3">
+                <legend className="px-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300">Principal account</legend>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  {([
+                    ['principalName', 'Principal full name', 'text'], ['principalEmail', 'Principal email', 'email'],
+                    ['principalPhone', 'Principal phone (optional)', 'tel'], ['principalPassword', 'Initial password', 'password']
+                  ] as const).map(([field, label, type]) => (
+                    <label key={field} className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{label}
+                      <input type={type} value={newSchool[field]} onChange={e => setNewSchool(prev => ({ ...prev, [field]: e.target.value }))} required={field !== 'principalPhone'} minLength={field === 'principalPassword' ? 8 : undefined} autoComplete={field === 'principalPassword' ? 'new-password' : undefined} className="mt-1 w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white" />
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-2 text-[11px] text-zinc-500">Password must include an uppercase letter, a number, and a special character.</p>
+              </fieldset>
+              <button type="submit" disabled={loading || newSchool.initialClasses.length === 0} className="bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 font-medium text-sm py-2.5 px-4 rounded-lg">{loading ? 'Onboarding…' : 'Create school and principal'}</button>
+            </form>
+          </section>
+
           {/* Admin registration form */}
           <div className="lg:col-span-1 bg-white border border-zinc-200 rounded-xl p-5 shadow-sm h-fit space-y-4">
             <h3 className="text-lg font-display font-medium text-zinc-900 flex items-center gap-2">
@@ -640,7 +731,7 @@ export const SuperadminDashboard: React.FC<DashboardProps> = ({ user, token }) =
                 >
                   <option value="">All schools</option>
                   {schoolFilterOptions.map(id => (
-                    <option key={id} value={id}>{schoolNameById[id] ? `${schoolNameById[id]} (${id})` : id}</option>
+                    <option key={id} value={id}>{schools.find(s => s.id === id)?.name || schoolNameById[id] || id}{schools.find(s => s.id === id)?.villageCity ? ` — ${schools.find(s => s.id === id)?.villageCity}` : ''} ({id})</option>
                   ))}
                 </select>
               </div>
