@@ -26,6 +26,7 @@ const MAX_TAGS = 20;
 const MAX_TAG_CHARS = 40;
 /** Cap on one import. Large enough for a curriculum batch, small enough to stay a single round trip. */
 const MAX_IMPORT_ROWS = 1000;
+const ASSESSMENT_MODES = ['written', 'observed', 'both'] as const;
 
 const SUBJECT = 'question templates';
 
@@ -346,10 +347,11 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     const tags = normalizeTags(req.body?.tags);
     const name: string = (req.body?.name ?? '').trim();
 
-    const assessmentMode: 'written' | 'observed' | 'both' =
-      req.body?.assessmentMode && ['written', 'observed', 'both'].includes(req.body.assessmentMode)
-        ? req.body.assessmentMode
-        : 'written';
+    const rawMode = req.body?.assessmentMode;
+    if (rawMode !== undefined && !(ASSESSMENT_MODES as readonly unknown[]).includes(rawMode)) {
+      return res.status(400).json({ error: 'assessmentMode must be written, observed or both.' });
+    }
+    const assessmentMode: 'written' | 'observed' | 'both' = rawMode ?? 'written';
 
     const problem = validateTemplate(conceptId, skills, subskills, generationIntent, questionFamily, svgThemeIds, answerSpec, params, tags, name);
     if (problem) return res.status(400).json({ error: problem });
@@ -411,10 +413,12 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     }
 
     const concept = getLevelForConcept(conceptId)!;
+    const rawMode = req.body?.assessmentMode;
+    if (rawMode !== undefined && !(ASSESSMENT_MODES as readonly unknown[]).includes(rawMode)) {
+      return res.status(400).json({ error: 'assessmentMode must be written, observed or both.' });
+    }
     const assessmentMode: 'written' | 'observed' | 'both' =
-      req.body?.assessmentMode && ['written', 'observed', 'both'].includes(req.body.assessmentMode)
-        ? req.body.assessmentMode
-        : (current.assessmentMode ?? 'written');
+      rawMode ?? (current.assessmentMode ?? 'written');
 
     // The name is the author's once they have edited it, so it is only
     // re-derived when the caller explicitly asks or has left it empty.
