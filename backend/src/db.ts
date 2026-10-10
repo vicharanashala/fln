@@ -1019,6 +1019,22 @@ export interface TeacherObservationRecord {
   updatedAt: string;
 }
 
+export interface RemediationGap {
+  conceptId: string;
+  depth: number;
+  prerequisiteProbes: string[];
+}
+
+export interface RemediationPlan {
+  id: string;
+  studentId: string;
+  targetConceptId: string;
+  orderedGaps: RemediationGap[];
+  deepestGapConceptId: string;
+  rationale: string;
+  createdAt: string;
+}
+
 /**
  * One row per FLN level in the canonical 93-level taxonomy.
  *
@@ -1103,6 +1119,7 @@ interface DatabaseSchema {
   studentCycleLocks: StudentCycleLock[];
   generationWindows: WorksheetGenerationWindow[];
   teacherObservationRecords: TeacherObservationRecord[];
+  remediationPlans: RemediationPlan[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -1134,6 +1151,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   studentCycleLocks: 'studentCycleLocks',
   generationWindows: 'generationWindows',
   teacherObservationRecords: 'teacher_observation_records',
+  remediationPlans: 'remediation_plans',
 };
 
 /**
@@ -3183,6 +3201,29 @@ export class DBStore {
       { upsert: true }
     );
     return record;
+  }
+
+  // --- Remediation Plan Methods ----------------------------------------------
+  async getRemediationPlans(): Promise<RemediationPlan[]> {
+    if (!this.mongoDb) return this.data?.remediationPlans || [];
+    return await this.mongoDb.collection<RemediationPlan>('remediation_plans').find({}).toArray();
+  }
+
+  async addRemediationPlan(plan: RemediationPlan): Promise<RemediationPlan> {
+    if (!this.mongoDb) {
+      if (this.data) {
+        if (!this.data.remediationPlans) this.data.remediationPlans = [];
+        this.data.remediationPlans.push(plan);
+        await this.save();
+      }
+      return plan;
+    }
+    await this.mongoDb.collection<RemediationPlan>('remediation_plans').insertOne(plan);
+    if (this.data) {
+      if (!this.data.remediationPlans) this.data.remediationPlans = [];
+      this.data.remediationPlans.push(plan);
+    }
+    return plan;
   }
 
   /**
@@ -5406,7 +5447,8 @@ export class DBStore {
       // Seeded empty on purpose, same reasoning as questionLogics above: a
       // teacher's observation of a real child is not something to fabricate
       // demo data for.
-      teacherObservationRecords: []
+      teacherObservationRecords: [],
+      remediationPlans: []
     };
   }
 }
