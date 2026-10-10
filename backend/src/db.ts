@@ -2805,6 +2805,46 @@ export class DBStore {
     return school;
   }
 
+  async deleteSchool(id: string): Promise<boolean> {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('schools').deleteOne({ id });
+    }
+    if (this.data) {
+      const idx = this.data.schools.findIndex(s => s.id === id);
+      if (idx !== -1) {
+        this.data.schools.splice(idx, 1);
+        if (!this.mongoDb) await this.save();
+      }
+    }
+    return true;
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('users').deleteOne({ id });
+    }
+    if (this.data) {
+      const idx = this.data.users.findIndex(u => u.id === id);
+      if (idx !== -1) {
+        this.data.users.splice(idx, 1);
+        if (!this.mongoDb) await this.save();
+      }
+    }
+    return true;
+  }
+
+  async deleteClassesForSchool(schoolId: string): Promise<number> {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('classes').deleteMany({ schoolId });
+    }
+    if (this.data) {
+      const initialLen = this.data.classes.length;
+      this.data.classes = this.data.classes.filter(c => c.schoolId !== schoolId);
+      if (!this.mongoDb && this.data.classes.length !== initialLen) await this.save();
+    }
+    return 0;
+  }
+
   async addLog(log: LogEntry) {
     // Phase 2 hardening fix: guard the Mongo write like addStudent() does.
     // Previously `this.mongoDb!` crashed here whenever MongoDB was absent
