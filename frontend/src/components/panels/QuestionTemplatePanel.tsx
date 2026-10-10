@@ -59,6 +59,9 @@ export const QuestionTemplatePanel: React.FC = () => {
   const [params, setParams] = useState<QuestionTemplateParams>(EMPTY_PARAMS);
   const [name, setName] = useState('');
   const [tagsText, setTagsText] = useState('');
+  const [errorTag, setErrorTag] = useState('');
+  const [errorTagTopic, setErrorTagTopic] = useState('counting');
+  const [errorTagOptions, setErrorTagOptions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -80,6 +83,7 @@ export const QuestionTemplatePanel: React.FC = () => {
   const [filterLevel, setFilterLevel] = useState<number | ''>('');
   const [filterSkill, setFilterSkill] = useState('');
   const [filterTag, setFilterTag] = useState('');
+  const [filterMode, setFilterMode] = useState('');
 
   const loadAll = async () => {
     try {
@@ -118,6 +122,23 @@ export const QuestionTemplatePanel: React.FC = () => {
     return () => clearTimeout(t);
   }, [toast]);
 
+  useEffect(() => {
+    if (!errorTagTopic) {
+      setErrorTagOptions([]);
+      return;
+    }
+    let cancelled = false;
+    apiFetch(`/api/error-tags?topic=${encodeURIComponent(errorTagTopic)}`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!cancelled && data?.tags) {
+          setErrorTagOptions(data.tags);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [errorTagTopic]);
+
   const selectedLevel = useMemo(
     () => (level === '' ? undefined : levelMap?.levels.find(l => l.levelNumber === level)),
     [level, levelMap]
@@ -143,6 +164,25 @@ export const QuestionTemplatePanel: React.FC = () => {
   const hasAdd = params.operations.includes('add');
   const hasSubtract = params.operations.includes('subtract');
   const isFillBlanks = params.answerType === 'fill-blanks';
+  const isNumberFamily = questionFamily === 'operation' || questionFamily === 'counting';
+
+  const handleQuestionFamilyChange = (nextFamily: string) => {
+    setQuestionFamily(nextFamily as any);
+    setFormError(null);
+    const isNum = nextFamily === 'operation' || nextFamily === 'counting';
+    if (!isNum) {
+      setParams(prev => ({
+        ...prev,
+        numeralRange: null,
+        digitCount: null,
+        operations: [],
+        maxOperandCount: null,
+        carryBehavior: null,
+        borrowBehavior: null,
+        maxSumOrDifference: null,
+      }));
+    }
+  };
 
   const setParam = <K extends keyof QuestionTemplateParams>(key: K, value: QuestionTemplateParams[K]) => {
     setFormError(null);
@@ -214,6 +254,7 @@ export const QuestionTemplatePanel: React.FC = () => {
     setParams(EMPTY_PARAMS);
     setName('');
     setTagsText('');
+    setErrorTag('');
     setFormError(null);
     setDuplicateWarning(null);
   };
@@ -242,6 +283,7 @@ export const QuestionTemplatePanel: React.FC = () => {
     });
     setName(t.name);
     setTagsText(t.tags.join(', '));
+    setErrorTag(t.errorTag ?? '');
     setFormError(null);
     setDuplicateWarning(null);
     setOpenGroup({ numbers: true, operations: true, answer: true, subject: true });
@@ -273,6 +315,8 @@ export const QuestionTemplatePanel: React.FC = () => {
         ...params,
         name: name.trim(),
         tags: tagsText.split(',').map(s => s.trim()).filter(Boolean),
+        errorTag: errorTag || undefined,
+        topic: errorTagTopic || undefined,
       };
 
       const res = editingId
@@ -388,8 +432,9 @@ export const QuestionTemplatePanel: React.FC = () => {
   const visibleTemplates = useMemo(() => templates.filter(t =>
     (filterLevel === '' || t.levelNumber === filterLevel) &&
     (filterSkill === '' || t.skills.includes(filterSkill)) &&
-    (filterTag === '' || t.tags.includes(filterTag))
-  ), [templates, filterLevel, filterSkill, filterTag]);
+    (filterTag === '' || t.tags.includes(filterTag)) &&
+    (filterMode === '' || (t.assessmentMode ?? 'written') === filterMode)
+  ), [templates, filterLevel, filterSkill, filterTag, filterMode]);
 
   if (loading) {
     return <div className="p-6 text-zinc-500 dark:text-zinc-400">Loading questions…</div>;
@@ -599,9 +644,9 @@ export const QuestionTemplatePanel: React.FC = () => {
                 <div className={labelCls}>Kind of question</div>
                 <div className="mt-1 flex flex-wrap gap-2">
                   {(catalog?.questionFamily ?? ['counting', 'operation']).map(f => (
-                    <button key={f} type="button" onClick={() => { setQuestionFamily(f as 'counting' | 'operation'); setFormError(null); }}
+                    <button key={f} type="button" onClick={() => handleQuestionFamilyChange(f)}
                       aria-pressed={questionFamily === f} className={chipCls(questionFamily === f)}>
-                      {f === 'counting' ? 'Counting a picture' : 'Number operation'}
+                      {f === 'counting' ? 'Counting a picture' : f === 'operation' ? 'Number operation' : f}
                     </button>
                   ))}
                 </div>
@@ -625,42 +670,50 @@ export const QuestionTemplatePanel: React.FC = () => {
           <div className="space-y-2">
             <div className={labelCls}>Step 5 — Options (all optional)</div>
 
-            <Group id="numbers" title="Numbers and range"
-              summary={[params.numeralRange, params.digitCount].filter(Boolean).join(', ') || 'not set'}>
-              <EnumRow label="Number range" values={catalog?.numeralRange ?? []} value={params.numeralRange}
-                onPick={v => setParam('numeralRange', v)} />
-              <EnumRow label="Size of the numbers used" values={catalog?.digitCount ?? []} value={params.digitCount}
-                onPick={v => setParam('digitCount', v)} />
-            </Group>
+            {isNumberFamily ? (
+              <>
+                <Group id="numbers" title="Numbers and range"
+                  summary={[params.numeralRange, params.digitCount].filter(Boolean).join(', ') || 'not set'}>
+                  <EnumRow label="Number range" values={catalog?.numeralRange ?? []} value={params.numeralRange}
+                    onPick={v => setParam('numeralRange', v)} />
+                  <EnumRow label="Size of the numbers used" values={catalog?.digitCount ?? []} value={params.digitCount}
+                    onPick={v => setParam('digitCount', v)} />
+                </Group>
 
-            <Group id="operations" title="Operations"
-              summary={params.operations.length ? params.operations.join(', ') : 'not set'}>
-              <div>
-                <div className={labelCls}>Operations</div>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {(catalog?.operations ?? []).map(op => (
-                    <button key={op} type="button" onClick={() => toggleOperation(op)}
-                      aria-pressed={params.operations.includes(op)} className={chipCls(params.operations.includes(op))}>
-                      {op}
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  Leaving this empty means the operation has not been specified.
-                </p>
-              </div>
+                <Group id="operations" title="Operations"
+                  summary={params.operations.length ? params.operations.join(', ') : 'not set'}>
+                  <div>
+                    <div className={labelCls}>Operations</div>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {(catalog?.operations ?? []).map(op => (
+                        <button key={op} type="button" onClick={() => toggleOperation(op)}
+                          aria-pressed={params.operations.includes(op)} className={chipCls(params.operations.includes(op))}>
+                          {op}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      Leaving this empty means the operation has not been specified.
+                    </p>
+                  </div>
 
-              <EnumRow label="Numbers per sum" values={catalog?.maxOperandCount ?? []} value={params.maxOperandCount}
-                onPick={v => setParam('maxOperandCount', v)} disabled={!hasAdd && !hasSubtract}
-                hint="Pick add or subtract first." />
-              <EnumRow label="Carrying" values={catalog?.carryBehavior ?? []} value={params.carryBehavior}
-                onPick={v => setParam('carryBehavior', v)} disabled={!hasAdd} hint="Pick add first." />
-              <EnumRow label="Borrowing" values={catalog?.borrowBehavior ?? []} value={params.borrowBehavior}
-                onPick={v => setParam('borrowBehavior', v)} disabled={!hasSubtract} hint="Pick subtract first." />
-              <EnumRow label="Largest answer" values={catalog?.maxSumOrDifference ?? []} value={params.maxSumOrDifference}
-                onPick={v => setParam('maxSumOrDifference', v)} disabled={!hasAdd && !hasSubtract}
-                hint="Pick add or subtract first." />
-            </Group>
+                  <EnumRow label="Numbers per sum" values={catalog?.maxOperandCount ?? []} value={params.maxOperandCount}
+                    onPick={v => setParam('maxOperandCount', v)} disabled={!hasAdd && !hasSubtract}
+                    hint="Pick add or subtract first." />
+                  <EnumRow label="Carrying" values={catalog?.carryBehavior ?? []} value={params.carryBehavior}
+                    onPick={v => setParam('carryBehavior', v)} disabled={!hasAdd} hint="Pick add first." />
+                  <EnumRow label="Borrowing" values={catalog?.borrowBehavior ?? []} value={params.borrowBehavior}
+                    onPick={v => setParam('borrowBehavior', v)} disabled={!hasSubtract} hint="Pick subtract first." />
+                  <EnumRow label="Largest answer" values={catalog?.maxSumOrDifference ?? []} value={params.maxSumOrDifference}
+                    onPick={v => setParam('maxSumOrDifference', v)} disabled={!hasAdd && !hasSubtract}
+                    hint="Pick add or subtract first." />
+                </Group>
+              </>
+            ) : (
+              <p className="py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                No number options for this kind of question.
+              </p>
+            )}
 
             <Group id="answer" title="Answer shape"
               summary={[params.answerType, params.blankCount ? `${params.blankCount} blanks` : null].filter(Boolean).join(', ') || 'not set'}>
@@ -728,6 +781,26 @@ export const QuestionTemplatePanel: React.FC = () => {
               <label htmlFor="qt-tags" className={labelCls}>Tags (optional, comma separated)</label>
               <input id="qt-tags" value={tagsText} className={inputCls} onChange={e => setTagsText(e.target.value)}
                 placeholder="e.g. baseline, revision" />
+            </div>
+            <div>
+              <label htmlFor="qt-error-topic" className={labelCls}>Error Tag Topic</label>
+              <select id="qt-error-topic" value={errorTagTopic} className={inputCls}
+                onChange={e => { setErrorTagTopic(e.target.value); setErrorTag(''); }}>
+                <option value="counting">Counting</option>
+                <option value="shapes">Shapes</option>
+                <option value="patterns">Patterns</option>
+                <option value="literacy">Literacy</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="qt-error-tag" className={labelCls}>Error Tag (optional)</label>
+              <select id="qt-error-tag" value={errorTag} className={inputCls}
+                onChange={e => setErrorTag(e.target.value)}>
+                <option value="">None</option>
+                {errorTagOptions.map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -860,6 +933,13 @@ export const QuestionTemplatePanel: React.FC = () => {
               <option value="">All tags</option>
               {allTags.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
+            <select aria-label="Filter by mode" value={filterMode} onChange={e => setFilterMode(e.target.value)}
+              className="rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-2 py-1.5 text-sm text-zinc-900 dark:text-white">
+              <option value="">All modes</option>
+              <option value="written">written</option>
+              <option value="observed">observed</option>
+              <option value="both">both</option>
+            </select>
           </div>
         </div>
 
@@ -878,6 +958,7 @@ export const QuestionTemplatePanel: React.FC = () => {
                   <th className="py-2 pr-3 font-medium">Name</th>
                   <th className="py-2 pr-3 font-medium">What it asks for</th>
                   <th className="py-2 pr-3 font-medium">Skills</th>
+                  <th className="py-2 pr-3 font-medium">Mode</th>
                   <th className="py-2 pr-3 font-medium">Tags</th>
                   <th className="py-2 pr-3 font-medium">Created by</th>
                   <th className="py-2 font-medium">Actions</th>
@@ -895,6 +976,11 @@ export const QuestionTemplatePanel: React.FC = () => {
                       {(() => { const v = t.generationIntent || t.stem || ''; return v.length > 70 ? `${v.slice(0, 70)}…` : v; })()}
                     </td>
                     <td className="py-3 pr-3 text-zinc-600 dark:text-zinc-300">{t.skills.join(', ')}</td>
+                    <td className="py-3 pr-3">
+                      <span className="inline-flex items-center rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                        {t.assessmentMode ?? 'written'}
+                      </span>
+                    </td>
                     <td className="py-3 pr-3 text-zinc-500 dark:text-zinc-400">{t.tags.length ? t.tags.join(', ') : '—'}</td>
                     <td className="py-3 pr-3 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
                       {t.createdByEmail}

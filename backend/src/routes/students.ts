@@ -82,7 +82,7 @@ function readPipelineDetail(
         error: String(answers?.[q.question_id] ?? ''),
         topic: q.topic || 'Unclassified',
         flnLevel: Number(q.source_level ?? 0),
-        errorType: overallType ?? classifyErrorType(answers?.[q.question_id], q.answer),
+        errorType: overallType ?? classifyErrorType(answers?.[q.question_id], q.answer, q),
         analysis: overallAnalysis
       }));
   }
