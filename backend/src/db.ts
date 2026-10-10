@@ -1019,6 +1019,44 @@ export interface TeacherObservationRecord {
   updatedAt: string;
 }
 
+export interface RemediationGap {
+  conceptId: string;
+  depth: number;
+  prerequisiteProbes: string[];
+}
+
+export interface RemediationPlan {
+  id: string;
+  studentId: string;
+  targetConceptId: string;
+  orderedGaps: RemediationGap[];
+  deepestGapConceptId: string;
+  rationale: string;
+  createdAt: string;
+}
+
+export interface RemedialBlueprintStageItem {
+  questionId: string;
+  conceptId: string;
+  questionText: string;
+  answer: string;
+  isApprovedBank: boolean;
+  flaggedForReview: boolean;
+  stepByStepSolution?: string;
+}
+
+export interface RemedialBlueprint {
+  id: string;
+  planId: string;
+  studentId: string;
+  stages: {
+    supportedExample: RemedialBlueprintStageItem;
+    focusedPractice: RemedialBlueprintStageItem[];
+    mixedTransferItem: RemedialBlueprintStageItem;
+  };
+  createdAt: string;
+}
+
 /**
  * One row per FLN level in the canonical 93-level taxonomy.
  *
@@ -1103,6 +1141,8 @@ interface DatabaseSchema {
   studentCycleLocks: StudentCycleLock[];
   generationWindows: WorksheetGenerationWindow[];
   teacherObservationRecords: TeacherObservationRecord[];
+  remediationPlans: RemediationPlan[];
+  remedialBlueprints: RemedialBlueprint[];
 }
 
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
@@ -1134,6 +1174,8 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   studentCycleLocks: 'studentCycleLocks',
   generationWindows: 'generationWindows',
   teacherObservationRecords: 'teacher_observation_records',
+  remediationPlans: 'remediation_plans',
+  remedialBlueprints: 'remedial_blueprints',
 };
 
 /**
@@ -3185,6 +3227,52 @@ export class DBStore {
     return record;
   }
 
+  // --- Remediation Plan Methods ----------------------------------------------
+  async getRemediationPlans(): Promise<RemediationPlan[]> {
+    if (!this.mongoDb) return this.data?.remediationPlans || [];
+    return await this.mongoDb.collection<RemediationPlan>('remediation_plans').find({}).toArray();
+  }
+
+  async addRemediationPlan(plan: RemediationPlan): Promise<RemediationPlan> {
+    if (!this.mongoDb) {
+      if (this.data) {
+        if (!this.data.remediationPlans) this.data.remediationPlans = [];
+        this.data.remediationPlans.push(plan);
+        await this.save();
+      }
+      return plan;
+    }
+    await this.mongoDb.collection<RemediationPlan>('remediation_plans').insertOne(plan);
+    if (this.data) {
+      if (!this.data.remediationPlans) this.data.remediationPlans = [];
+      this.data.remediationPlans.push(plan);
+    }
+    return plan;
+  }
+
+  // --- Remedial Blueprint Methods -------------------------------------------
+  async getRemedialBlueprints(): Promise<RemedialBlueprint[]> {
+    if (!this.mongoDb) return this.data?.remedialBlueprints || [];
+    return await this.mongoDb.collection<RemedialBlueprint>('remedial_blueprints').find({}).toArray();
+  }
+
+  async addRemedialBlueprint(bp: RemedialBlueprint): Promise<RemedialBlueprint> {
+    if (!this.mongoDb) {
+      if (this.data) {
+        if (!this.data.remedialBlueprints) this.data.remedialBlueprints = [];
+        this.data.remedialBlueprints.push(bp);
+        await this.save();
+      }
+      return bp;
+    }
+    await this.mongoDb.collection<RemedialBlueprint>('remedial_blueprints').insertOne(bp);
+    if (this.data) {
+      if (!this.data.remedialBlueprints) this.data.remedialBlueprints = [];
+      this.data.remedialBlueprints.push(bp);
+    }
+    return bp;
+  }
+
   /**
    * Insert a validated batch in one round trip.
    *
@@ -3333,8 +3421,11 @@ export class DBStore {
     if (opts.level !== undefined) filter.level = opts.level;
     if (opts.sectionType) filter.sectionType = opts.sectionType;
     if (opts.status) filter.reviewStatus = opts.status;
-    if (opts.mappedLevel !== undefined) filter.mappedLevel = opts.mappedLevel;
-    const coll = this.mongoDb!.collection<QuestionBankEntry>('questionBank');
+    if (!this.mongoDb) {
+      const items = this.data?.questionBank || [];
+      return { items, total: items.length };
+    }
+    const coll = this.mongoDb.collection<QuestionBankEntry>('questionBank');
     const [items, total] = await Promise.all([
       coll.find(filter).sort({ level: 1, section: 1, questionNumber: 1 })
         .skip(opts.skip || 0).limit(opts.limit || 50).toArray(),
@@ -5406,7 +5497,9 @@ export class DBStore {
       // Seeded empty on purpose, same reasoning as questionLogics above: a
       // teacher's observation of a real child is not something to fabricate
       // demo data for.
-      teacherObservationRecords: []
+      teacherObservationRecords: [],
+      remediationPlans: [],
+      remedialBlueprints: []
     };
   }
 }
