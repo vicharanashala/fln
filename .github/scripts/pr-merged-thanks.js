@@ -47,9 +47,8 @@ module.exports = async function run({ github, context, core }) {
     MARKER,
     `Hi @${pr.user.login} 👋 thank you so much for your contribution 🌟 PR #${number} has been merged 🎉${closedLine}`,
     '',
-    'We really appreciate your effort and your patience with the review 💛 We hope you will pick up another issue soon, and we are always glad to help.',
+    'We hope to see more of your work 💛',
     '',
-    'Best regards,',
     'Team Vicharanashala',
   ].join('\n');
 
