@@ -1,0 +1,45 @@
+name: Parikshak merge thank-you
+
+# Posts one short thank-you comment when a PR is merged. Comment-only: it never
+# approves, merges, closes or edits anything. Runs with pull_request_target so
+# fork PRs work, which is why it never checks out or runs the PR's own code,
+# only the script from the base branch. See .github/scripts/pr-merged-thanks.js.
+
+on:
+  pull_request_target:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Merged PR number (for manual testing)"
+        required: true
+      dry_run:
+        description: "true = log the comment instead of posting it"
+        required: false
+        default: "true"
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  thanks:
+    # On a real event, only merged PRs (closed without merge is skipped).
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the script from the base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: |
+            .github/scripts/pr-merged-thanks.js
+          sparse-checkout-cone-mode: false
+
+      - name: Post thank-you comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = require('${{ github.workspace }}/.github/scripts/pr-merged-thanks.js');
+            await run({ github, context, core });
