@@ -75,15 +75,27 @@ export function registerAdminRoutes(app: express.Express) {
       }
     }
 
-    // Issue #450: New principals and teachers automatically inherit geographic scope from their school
+    // Issue #450 / #442: New principals, teachers, and volunteers inherit geographic scope from their school
     const primarySchoolId = schoolId || (normalizedAssignedSchools && normalizedAssignedSchools.length > 0 ? normalizedAssignedSchools[0] : undefined);
     if (primarySchoolId) {
       const targetSchool = schools.find(s => s.id.toLowerCase() === String(primarySchoolId).toLowerCase());
-      if (targetSchool) {
-        resolvedState = resolvedState || targetSchool.stateCode;
-        resolvedDistrict = resolvedDistrict || targetSchool.districtCode;
-        resolvedBlock = resolvedBlock || targetSchool.blockCode;
+      if (!targetSchool) {
+        return res.status(400).json({ error: 'Assigned school does not exist.' });
       }
+
+      if (resolvedState && resolvedState !== targetSchool.stateCode.toUpperCase()) {
+        return res.status(400).json({ error: 'Geographic state does not match the assigned school.' });
+      }
+      if (resolvedDistrict && resolvedDistrict !== targetSchool.districtCode.toUpperCase()) {
+        return res.status(400).json({ error: 'Geographic district does not match the assigned school.' });
+      }
+      if (resolvedBlock && resolvedBlock !== targetSchool.blockCode.toUpperCase()) {
+        return res.status(400).json({ error: 'Geographic block does not match the assigned school.' });
+      }
+
+      resolvedState = targetSchool.stateCode;
+      resolvedDistrict = targetSchool.districtCode;
+      resolvedBlock = targetSchool.blockCode;
     }
 
     const newUser: User = {

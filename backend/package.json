@@ -36,6 +36,8 @@
     "test:competency-prerequisites": "tsx src/competencyPrerequisites.test.ts",
     "test:balvatika-stage": "tsx --test src/config/curriculumMap.test.ts",
     "test:choice-error-tags": "tsx --test tests/choice-error-tags.test.ts",
+    "test:admin-principal-school": "tsx --test tests/admin-principal-school.test.ts",
+    "test:error-tags": "tsx src/__checks__/errorTags.check.ts",
     "test:error-tags": "tsx src/__checks__/errorTags.check.ts",
     "test:attempts": "tsx --test tests/attempt-records.test.ts",
     "test:class-level-range": "tsx --test tests/class-level-range.test.ts",
