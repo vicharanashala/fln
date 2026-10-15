@@ -206,9 +206,11 @@ export function registerMisconceptionRoutes(app: express.Express) {
       if (!aId || !bId) {
         const best = analysis.collisions[0];
         if (!best) {
-          return res.status(404).json({
-            error: 'No two children in this cohort share a score across different archetypes.',
-            reason: 'NO_COLLISION'
+          return res.json({
+            left: null,
+            right: null,
+            reason: 'NO_COLLISION',
+            message: 'No two children in this cohort share a score across different archetypes.'
           });
         }
         aId = best.a;

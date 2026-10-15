@@ -611,10 +611,15 @@ const MisconceptionFingerprint: React.FC<Props> = ({ token, classGroup: fixedCla
           }
           setCompare(null);
         } else {
-          const payload: ComparePayload = await cmpRes.json();
-          setCompare(payload);
-          setLeftId(payload.left.fingerprint.studentId);
-          setRightId(payload.right.fingerprint.studentId);
+          const payload: any = await cmpRes.json();
+          if (payload.reason === 'NO_COLLISION') {
+            setNoCollision(true);
+            setCompare(null);
+          } else {
+            setCompare(payload as ComparePayload);
+            setLeftId(payload.left.fingerprint.studentId);
+            setRightId(payload.right.fingerprint.studentId);
+          }
         }
 
         if (cohortRes.ok) setCohort(await cohortRes.json());
