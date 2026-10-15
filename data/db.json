@@ -3355,5 +3355,2809 @@
       "createdAt": "2026-07-03T08:00:00Z"
     }
   ],
-  "diagnosticAnswerKeys": []
+  "diagnosticAnswerKeys": [],
+  "questionTemplates": [
+    {
+      "id": "QB-001",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.01"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Count the stars: ***\nChoices: 2 | 3 | 4 | 5",
+      "answerSpec": "3",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-001: Number Sense - Counting up to 3",
+      "variantKey": "pilot-sk13:QB-001",
+      "tags": [
+        "pilot-sk13",
+        "representation-pictorial",
+        "context-direct",
+        "difficulty-1",
+        "source-level-1"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-002",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.02"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Complete the equation: 3 + __ = 7.\nChoices: 2 | 3 | 4 | 5",
+      "answerSpec": "4",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-002: Number Operations - Concrete addition",
+      "variantKey": "pilot-sk13:QB-002",
+      "tags": [
+        "pilot-sk13",
+        "representation-equation_completion",
+        "context-direct",
+        "difficulty-1",
+        "source-level-2"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-003",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.04"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "On a number line, start at 8 and jump 7 spaces to the right. Where do you land?\nChoices: 13 | 14 | 15 | 16",
+      "answerSpec": "15",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-003: Number Operations - Addition within 20",
+      "variantKey": "pilot-sk13:QB-003",
+      "tags": [
+        "pilot-sk13",
+        "representation-number_line",
+        "context-direct",
+        "difficulty-1",
+        "source-level-3"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-004",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.01"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What number comes after 4?\nChoices: 3 | 4 | 5 | 6",
+      "answerSpec": "5",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-004: Number Sense - Forward counting to 5",
+      "variantKey": "pilot-sk13:QB-004",
+      "tags": [
+        "pilot-sk13",
+        "representation-symbolic",
+        "context-direct",
+        "difficulty-1",
+        "source-level-4"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-005",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.02"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Which number completes 5 + __ = 9?\nChoices: 3 | 4 | 5 | 6",
+      "answerSpec": "4",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-005: Number Operations - Concrete addition",
+      "variantKey": "pilot-sk13:QB-005",
+      "tags": [
+        "pilot-sk13",
+        "representation-equation_completion",
+        "context-direct",
+        "difficulty-1",
+        "source-level-7"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-006",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.02"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Complete the equation: 6 + __ = 10.\nChoices: 3 | 4 | 5 | 6",
+      "answerSpec": "4",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-006: Number Operations - Concrete addition",
+      "variantKey": "pilot-sk13:QB-006",
+      "tags": [
+        "pilot-sk13",
+        "representation-equation_completion",
+        "context-direct",
+        "difficulty-1",
+        "source-level-9"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-007",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.03"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What is 4 + 3?\nChoices: 6 | 7 | 8 | 9",
+      "answerSpec": "7",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-007: Number Operations - Addition within 9",
+      "variantKey": "pilot-sk13:QB-007",
+      "tags": [
+        "pilot-sk13",
+        "representation-concrete",
+        "context-direct",
+        "difficulty-1",
+        "source-level-10"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-008",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.05"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "There are 5 birds. 2 more arrive. How many birds are there?",
+      "answerSpec": "7",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-008: Number Operations - Addition word problem within 9",
+      "variantKey": "pilot-sk13:QB-008",
+      "tags": [
+        "pilot-sk13",
+        "representation-verbal",
+        "context-real_world",
+        "difficulty-2",
+        "source-level-10"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-009",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.06"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Use a place-value chart to add 23 and 14. What is the total?\nChoices: 27 | 37 | 47 | 57",
+      "answerSpec": "37",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-009: Number Operations - Two-digit addition",
+      "variantKey": "pilot-sk13:QB-009",
+      "tags": [
+        "pilot-sk13",
+        "representation-place_value_chart",
+        "context-direct",
+        "difficulty-1",
+        "source-level-10"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-010",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.07"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Decompose 28 as 20 + 8, then add 17. What is 28 + 17?\nChoices: 35 | 45 | 55 | 65",
+      "answerSpec": "45",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-010: Number Operations - Addition with regrouping",
+      "variantKey": "pilot-sk13:QB-010",
+      "tags": [
+        "pilot-sk13",
+        "representation-decomposition",
+        "context-direct",
+        "difficulty-1",
+        "source-level-6"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-011",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.01"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "How many stars are there: *****?\nChoices: 4 | 5 | 6 | 7",
+      "answerSpec": "5",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-011: Number Sense - Counting up to 10",
+      "variantKey": "pilot-sk13:QB-011",
+      "tags": [
+        "pilot-sk13",
+        "representation-pictorial",
+        "context-direct",
+        "difficulty-1",
+        "source-level-2"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-012",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.02"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Which number completes 8 + __ = 13?\nChoices: 4 | 5 | 6 | 7",
+      "answerSpec": "5",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-012: Number Operations - Concrete addition",
+      "variantKey": "pilot-sk13:QB-012",
+      "tags": [
+        "pilot-sk13",
+        "representation-equation_completion",
+        "context-direct",
+        "difficulty-1",
+        "source-level-3"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-013",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.03"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What is 2 + 5?\nChoices: 6 | 7 | 8 | 9",
+      "answerSpec": "7",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-013: Number Operations - Addition within 10",
+      "variantKey": "pilot-sk13:QB-013",
+      "tags": [
+        "pilot-sk13",
+        "representation-concrete",
+        "context-direct",
+        "difficulty-1",
+        "source-level-7"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-014",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.04"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "On a number line, start at 6 and jump 9 spaces to the right. Where do you land?\nChoices: 13 | 14 | 15 | 16",
+      "answerSpec": "15",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-014: Number Operations - Addition within 20",
+      "variantKey": "pilot-sk13:QB-014",
+      "tags": [
+        "pilot-sk13",
+        "representation-number_line",
+        "context-direct",
+        "difficulty-1",
+        "source-level-8"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-015",
+      "conceptId": "S7.2",
+      "levelNumber": 93,
+      "levelName": "Large Number Operations & Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.09"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "A student says 246 + 137 = 373. Which place was not added correctly?\nChoices: The ones place | The tens place | The hundreds place | No place",
+      "answerSpec": "The ones place",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-015: Number Operations - Multi-digit addition",
+      "variantKey": "pilot-sk13:QB-015",
+      "tags": [
+        "pilot-sk13",
+        "representation-error_analysis",
+        "context-direct",
+        "difficulty-1",
+        "source-level-9"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-016",
+      "conceptId": "S7.3",
+      "levelNumber": 94,
+      "levelName": "Complex Multi-Digit Word Problems",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.10"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Half of one whole is written as what fraction?\nChoices: 1/2 | 1/3 | 1/4",
+      "answerSpec": "1/2",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-016: Fractions - Half and whole",
+      "variantKey": "pilot-sk13:QB-016",
+      "tags": [
+        "pilot-sk13",
+        "representation-pictorial",
+        "context-direct",
+        "difficulty-1",
+        "source-level-10"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-017",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.05"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "There are 6 flowers. 3 more are picked. How many flowers are there?\nChoices: 8 | 9 | 10 | 11",
+      "answerSpec": "9",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-017: Number Operations - Addition word problem within 10",
+      "variantKey": "pilot-sk13:QB-017",
+      "tags": [
+        "pilot-sk13",
+        "representation-verbal",
+        "context-real_world",
+        "difficulty-1",
+        "source-level-10"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-018",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.03"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "There are 3 red blocks and 4 blue blocks. How many blocks altogether?",
+      "answerSpec": "7",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-018: Number Operations - Combine collections to 10",
+      "variantKey": "pilot-sk13:QB-018",
+      "tags": [
+        "pilot-sk13",
+        "representation-concrete",
+        "context-real_world",
+        "difficulty-1",
+        "source-level-12"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-019",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.01"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What number is between 13 and 15?\nChoices: 12 | 13 | 14 | 15",
+      "answerSpec": "14",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-019: Number Sense - Between numbers 11 to 30",
+      "variantKey": "pilot-sk13:QB-019",
+      "tags": [
+        "pilot-sk13",
+        "representation-symbolic",
+        "context-direct",
+        "difficulty-1",
+        "source-level-15"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-020",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.02"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Which equation shows the missing addend in 20 + __ = 26?\nChoices: 20 + 4 = 26 | 20 + 5 = 26 | 20 + 6 = 26 | 20 + 7 = 26",
+      "answerSpec": "20 + 6 = 26",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-020: Number Operations - Concrete addition",
+      "variantKey": "pilot-sk13:QB-020",
+      "tags": [
+        "pilot-sk13",
+        "representation-equation_completion",
+        "context-direct",
+        "difficulty-1",
+        "source-level-12"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-021",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.06"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Use a place-value chart to add 36 and 12. What is the total?\nChoices: 38 | 48 | 58 | 68",
+      "answerSpec": "48",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-021: Number Operations - Two-digit addition",
+      "variantKey": "pilot-sk13:QB-021",
+      "tags": [
+        "pilot-sk13",
+        "representation-place_value_chart",
+        "context-direct",
+        "difficulty-1",
+        "source-level-21"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-022",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.04"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "A number-line jump starts at 9 and moves 6 spaces right. What addition does it show?\nChoices: 9 + 5 = 14 | 9 + 6 = 15 | 9 + 7 = 16 | 6 + 6 = 12",
+      "answerSpec": "9 + 6 = 15",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-022: Number Operations - Addition within 20",
+      "variantKey": "pilot-sk13:QB-022",
+      "tags": [
+        "pilot-sk13",
+        "representation-number_line",
+        "context-direct",
+        "difficulty-2",
+        "source-level-18"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-023",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.05"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What is 14 + 9?",
+      "answerSpec": "23",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-023: Number Operations - Addition within 30",
+      "variantKey": "pilot-sk13:QB-023",
+      "tags": [
+        "pilot-sk13",
+        "representation-symbolic",
+        "context-direct",
+        "difficulty-2",
+        "source-level-16"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-024",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.06"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Use a place-value chart to add 47 and 28. What is the total?",
+      "answerSpec": "75",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-024: Number Operations - Two-digit addition",
+      "variantKey": "pilot-sk13:QB-024",
+      "tags": [
+        "pilot-sk13",
+        "representation-place_value_chart",
+        "context-direct",
+        "difficulty-2",
+        "source-level-17"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-025",
+      "conceptId": "S7.2",
+      "levelNumber": 93,
+      "levelName": "Large Number Operations & Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.09"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "A student says 358 + 247 = 595. Which place was not added correctly?\nChoices: The ones place | The tens place | The hundreds place | No place",
+      "answerSpec": "The ones place",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-025: Number Operations - Multi-digit addition",
+      "variantKey": "pilot-sk13:QB-025",
+      "tags": [
+        "pilot-sk13",
+        "representation-error_analysis",
+        "context-direct",
+        "difficulty-1",
+        "source-level-20"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-026",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.07"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Decompose 46 as 40 + 6, then add 27. What is 46 + 27?\nChoices: 63 | 73 | 83 | 93",
+      "answerSpec": "73",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-026: Number Operations - Addition with regrouping",
+      "variantKey": "pilot-sk13:QB-026",
+      "tags": [
+        "pilot-sk13",
+        "representation-decomposition",
+        "context-direct",
+        "difficulty-1",
+        "source-level-22"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-027",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.07"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Break apart 58 as 50 + 8, then add 36. What is 58 + 36?\nChoices: 84 | 94 | 104 | 114",
+      "answerSpec": "94",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-027: Number Operations - Addition with regrouping",
+      "variantKey": "pilot-sk13:QB-027",
+      "tags": [
+        "pilot-sk13",
+        "representation-decomposition",
+        "context-direct",
+        "difficulty-2",
+        "source-level-20"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-028",
+      "conceptId": "S6.5",
+      "levelNumber": 82,
+      "levelName": "3-Digit Addition & Subtraction Problems",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.08"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "How many groups of 2 are in 10?\nChoices: 3 | 4 | 5 | 6",
+      "answerSpec": "5",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-028: Number Operations - Multiplication and grouping",
+      "variantKey": "pilot-sk13:QB-028",
+      "tags": [
+        "pilot-sk13",
+        "representation-concrete",
+        "context-direct",
+        "difficulty-1",
+        "source-level-22"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-029",
+      "conceptId": "S7.3",
+      "levelNumber": 94,
+      "levelName": "Complex Multi-Digit Word Problems",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.10"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Which fraction is larger: 1/2 or 1/4?\nChoices: 1/2 | 1/4",
+      "answerSpec": "1/2",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-029: Fractions - Compare halves and quarters",
+      "variantKey": "pilot-sk13:QB-029",
+      "tags": [
+        "pilot-sk13",
+        "representation-pictorial",
+        "context-direct",
+        "difficulty-2",
+        "source-level-22"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-030",
+      "conceptId": "S7.2",
+      "levelNumber": 93,
+      "levelName": "Large Number Operations & Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.09"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "A student says 1,205 + 398 = 1,503. Which place was not added correctly?\nChoices: The ones place | The tens place | The hundreds place | The thousands place",
+      "answerSpec": "The ones place",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-030: Number Operations - Multi-digit addition",
+      "variantKey": "pilot-sk13:QB-030",
+      "tags": [
+        "pilot-sk13",
+        "representation-error_analysis",
+        "context-direct",
+        "difficulty-1",
+        "source-level-24"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-031",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.01"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What number comes after 69?",
+      "answerSpec": "70",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-031: Number Sense - Number sequence to 100",
+      "variantKey": "pilot-sk13:QB-031",
+      "tags": [
+        "pilot-sk13",
+        "representation-symbolic",
+        "context-direct",
+        "difficulty-1",
+        "source-level-24"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-032",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.02"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Which number completes 40 + __ = 84?\nChoices: 34 | 44 | 54 | 64",
+      "answerSpec": "44",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-032: Number Operations - Concrete addition",
+      "variantKey": "pilot-sk13:QB-032",
+      "tags": [
+        "pilot-sk13",
+        "representation-equation_completion",
+        "context-direct",
+        "difficulty-1",
+        "source-level-25"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-033",
+      "conceptId": "S7.3",
+      "levelNumber": 94,
+      "levelName": "Complex Multi-Digit Word Problems",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.10"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What is one-half of 10?\nChoices: 2 | 5 | 8 | 10",
+      "answerSpec": "5",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-033: Fractions - Find one-half of a quantity",
+      "variantKey": "pilot-sk13:QB-033",
+      "tags": [
+        "pilot-sk13",
+        "representation-concrete",
+        "context-direct",
+        "difficulty-1",
+        "source-level-28"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-034",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.05"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What is 47 + 28?",
+      "answerSpec": "75",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-034: Number Operations - Addition with carrying within 100",
+      "variantKey": "pilot-sk13:QB-034",
+      "tags": [
+        "pilot-sk13",
+        "representation-symbolic",
+        "context-direct",
+        "difficulty-2",
+        "source-level-26"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-035",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.06"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Use a place-value chart to add 64 and 29. What is the total?",
+      "answerSpec": "93",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-035: Number Operations - Two-digit addition",
+      "variantKey": "pilot-sk13:QB-035",
+      "tags": [
+        "pilot-sk13",
+        "representation-place_value_chart",
+        "context-direct",
+        "difficulty-2",
+        "source-level-27"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-036",
+      "conceptId": "S6.5",
+      "levelNumber": 82,
+      "levelName": "3-Digit Addition & Subtraction Problems",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.08"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "There are 24 mangoes shared equally among 4 children. How many does each child get?",
+      "answerSpec": "6",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-036: Number Operations - Division as equal sharing",
+      "variantKey": "pilot-sk13:QB-036",
+      "tags": [
+        "pilot-sk13",
+        "representation-verbal",
+        "context-real_world",
+        "difficulty-2",
+        "source-level-31"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-037",
+      "conceptId": "S6.5",
+      "levelNumber": 82,
+      "levelName": "3-Digit Addition & Subtraction Problems",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.08"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "How many groups of 3 are in 12?",
+      "answerSpec": "4",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-037: Number Operations - Multiplication and grouping",
+      "variantKey": "pilot-sk13:QB-037",
+      "tags": [
+        "pilot-sk13",
+        "representation-concrete",
+        "context-direct",
+        "difficulty-2",
+        "source-level-30"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-038",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.07"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Decompose 67 as 60 + 7, then add 58. What is 67 + 58?",
+      "answerSpec": "125",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-038: Number Operations - Addition with regrouping",
+      "variantKey": "pilot-sk13:QB-038",
+      "tags": [
+        "pilot-sk13",
+        "representation-decomposition",
+        "context-direct",
+        "difficulty-2",
+        "source-level-34"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-039",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.01"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What number comes before 50?",
+      "answerSpec": "49",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-039: Number Sense - Number sequence to 100",
+      "variantKey": "pilot-sk13:QB-039",
+      "tags": [
+        "pilot-sk13",
+        "representation-symbolic",
+        "context-direct",
+        "difficulty-2",
+        "source-level-36"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-040",
+      "conceptId": "S3.14",
+      "levelNumber": 31,
+      "levelName": "Combines Groups to 9 (Object-Based, No Symbol)",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.02"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Which number completes 27 + __ = 43?\nChoices: 14 | 15 | 16 | 17",
+      "answerSpec": "16",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-040: Number Operations - Concrete addition",
+      "variantKey": "pilot-sk13:QB-040",
+      "tags": [
+        "pilot-sk13",
+        "representation-equation_completion",
+        "context-direct",
+        "difficulty-1",
+        "source-level-34"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-041",
+      "conceptId": "S7.3",
+      "levelNumber": 94,
+      "levelName": "Complex Multi-Digit Word Problems",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.10"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What is 1/3 of 12?",
+      "answerSpec": "4",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-041: Fractions - Find one-third of a quantity",
+      "variantKey": "pilot-sk13:QB-041",
+      "tags": [
+        "pilot-sk13",
+        "representation-symbolic",
+        "context-direct",
+        "difficulty-2",
+        "source-level-45"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-042",
+      "conceptId": "S7.2",
+      "levelNumber": 93,
+      "levelName": "Large Number Operations & Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.09"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "A student says 2,436 + 1,785 = 4,111. Which place was not added correctly?\nChoices: The ones place | The tens place | The hundreds place | The thousands place",
+      "answerSpec": "The ones place",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-042: Number Operations - Multi-digit addition",
+      "variantKey": "pilot-sk13:QB-042",
+      "tags": [
+        "pilot-sk13",
+        "representation-error_analysis",
+        "context-direct",
+        "difficulty-2",
+        "source-level-39"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-043",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.03"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What is 6 + 8?",
+      "answerSpec": "14",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-043: Number Operations - Addition within 20",
+      "variantKey": "pilot-sk13:QB-043",
+      "tags": [
+        "pilot-sk13",
+        "representation-concrete",
+        "context-direct",
+        "difficulty-2",
+        "source-level-42"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-044",
+      "conceptId": "S4.6",
+      "levelNumber": 52,
+      "levelName": "Single-Digit Addition",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.04"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "On a number line, start at 11 and jump 8 spaces to the right. Where do you land?\nChoices: 17 | 18 | 19 | 20",
+      "answerSpec": "19",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-044: Number Operations - Addition within 20",
+      "variantKey": "pilot-sk13:QB-044",
+      "tags": [
+        "pilot-sk13",
+        "representation-number_line",
+        "context-direct",
+        "difficulty-1",
+        "source-level-47"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-045",
+      "conceptId": "S6.5",
+      "levelNumber": 82,
+      "levelName": "3-Digit Addition & Subtraction Problems",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.08"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "What is 326 + 489?",
+      "answerSpec": "815",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-045: Number Operations - Three-digit addition with regrouping",
+      "variantKey": "pilot-sk13:QB-045",
+      "tags": [
+        "pilot-sk13",
+        "representation-symbolic",
+        "context-direct",
+        "difficulty-3",
+        "source-level-36"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-046",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.06"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Use a place-value chart to add 64 and 28. What is the total?",
+      "answerSpec": "92",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-046: Number Operations - Two-digit addition",
+      "variantKey": "pilot-sk13:QB-046",
+      "tags": [
+        "pilot-sk13",
+        "representation-place_value_chart",
+        "context-direct",
+        "difficulty-3",
+        "source-level-37"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-047",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.07"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Decompose 275 as 200 + 75, then add 168. What is 275 + 168?",
+      "answerSpec": "443",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-047: Number Operations - Addition with regrouping",
+      "variantKey": "pilot-sk13:QB-047",
+      "tags": [
+        "pilot-sk13",
+        "representation-decomposition",
+        "context-direct",
+        "difficulty-3",
+        "source-level-46"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-048",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.06"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Use a place-value chart to add 32 and 14. What is the total?",
+      "answerSpec": "46",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-048: Number Operations - Two-digit addition",
+      "variantKey": "pilot-sk13:QB-048",
+      "tags": [
+        "pilot-sk13",
+        "representation-place_value_chart",
+        "context-direct",
+        "difficulty-2",
+        "source-level-43"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-049",
+      "conceptId": "S5.4",
+      "levelNumber": 64,
+      "levelName": "2-Digit Addition with Regrouping",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.07"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "Decompose 486 as 400 + 86, then add 275. What is 486 + 275?",
+      "answerSpec": "761",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-049: Number Operations - Addition with regrouping",
+      "variantKey": "pilot-sk13:QB-049",
+      "tags": [
+        "pilot-sk13",
+        "representation-decomposition",
+        "context-direct",
+        "difficulty-3",
+        "source-level-50"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    },
+    {
+      "id": "QB-050",
+      "conceptId": "S6.5",
+      "levelNumber": 82,
+      "levelName": "3-Digit Addition & Subtraction Problems",
+      "skills": [
+        "SK13"
+      ],
+      "subskills": [
+        "SK13.08"
+      ],
+      "assessmentMode": "written",
+      "generationIntent": "",
+      "questionFamily": "operation",
+      "paramMode": "legacy-free-text",
+      "svgThemeIds": [],
+      "stem": "How many groups of 4 are in 20?",
+      "answerSpec": "5",
+      "numeralRange": null,
+      "digitCount": null,
+      "operations": [],
+      "maxOperandCount": null,
+      "carryBehavior": null,
+      "borrowBehavior": null,
+      "maxSumOrDifference": null,
+      "answerType": null,
+      "blankCount": null,
+      "questionCount": 1,
+      "subjectCategory": null,
+      "name": "QB-050: Number Operations - Multiplication and grouping",
+      "variantKey": "pilot-sk13:QB-050",
+      "tags": [
+        "pilot-sk13",
+        "representation-concrete",
+        "context-direct",
+        "difficulty-2",
+        "source-level-42"
+      ],
+      "source": "seed",
+      "createdBy": "system-seed",
+      "createdByEmail": "system-seed@fln.internal",
+      "createdAt": "2026-10-02T11:20:02.358Z",
+      "updatedAt": "2026-10-02T11:20:02.358Z",
+      "updatedBy": "system-seed",
+      "updatedByEmail": "system-seed@fln.internal",
+      "deletedAt": null,
+      "deletedBy": null
+    }
+  ],
+  "questionSkills": [
+    {
+      "question_id": "QB-001",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-001",
+      "skill_id": "SK13.01"
+    },
+    {
+      "question_id": "QB-002",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-002",
+      "skill_id": "SK13.02"
+    },
+    {
+      "question_id": "QB-003",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-003",
+      "skill_id": "SK13.04"
+    },
+    {
+      "question_id": "QB-004",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-004",
+      "skill_id": "SK13.01"
+    },
+    {
+      "question_id": "QB-005",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-005",
+      "skill_id": "SK13.02"
+    },
+    {
+      "question_id": "QB-006",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-006",
+      "skill_id": "SK13.02"
+    },
+    {
+      "question_id": "QB-007",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-007",
+      "skill_id": "SK13.03"
+    },
+    {
+      "question_id": "QB-008",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-008",
+      "skill_id": "SK13.05"
+    },
+    {
+      "question_id": "QB-009",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-009",
+      "skill_id": "SK13.06"
+    },
+    {
+      "question_id": "QB-010",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-010",
+      "skill_id": "SK13.07"
+    },
+    {
+      "question_id": "QB-011",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-011",
+      "skill_id": "SK13.01"
+    },
+    {
+      "question_id": "QB-012",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-012",
+      "skill_id": "SK13.02"
+    },
+    {
+      "question_id": "QB-013",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-013",
+      "skill_id": "SK13.03"
+    },
+    {
+      "question_id": "QB-014",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-014",
+      "skill_id": "SK13.04"
+    },
+    {
+      "question_id": "QB-015",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-015",
+      "skill_id": "SK13.09"
+    },
+    {
+      "question_id": "QB-016",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-016",
+      "skill_id": "SK13.10"
+    },
+    {
+      "question_id": "QB-017",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-017",
+      "skill_id": "SK13.05"
+    },
+    {
+      "question_id": "QB-018",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-018",
+      "skill_id": "SK13.03"
+    },
+    {
+      "question_id": "QB-019",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-019",
+      "skill_id": "SK13.01"
+    },
+    {
+      "question_id": "QB-020",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-020",
+      "skill_id": "SK13.02"
+    },
+    {
+      "question_id": "QB-021",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-021",
+      "skill_id": "SK13.06"
+    },
+    {
+      "question_id": "QB-022",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-022",
+      "skill_id": "SK13.04"
+    },
+    {
+      "question_id": "QB-023",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-023",
+      "skill_id": "SK13.05"
+    },
+    {
+      "question_id": "QB-024",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-024",
+      "skill_id": "SK13.06"
+    },
+    {
+      "question_id": "QB-025",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-025",
+      "skill_id": "SK13.09"
+    },
+    {
+      "question_id": "QB-026",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-026",
+      "skill_id": "SK13.07"
+    },
+    {
+      "question_id": "QB-027",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-027",
+      "skill_id": "SK13.07"
+    },
+    {
+      "question_id": "QB-028",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-028",
+      "skill_id": "SK13.08"
+    },
+    {
+      "question_id": "QB-029",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-029",
+      "skill_id": "SK13.10"
+    },
+    {
+      "question_id": "QB-030",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-030",
+      "skill_id": "SK13.09"
+    },
+    {
+      "question_id": "QB-031",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-031",
+      "skill_id": "SK13.01"
+    },
+    {
+      "question_id": "QB-032",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-032",
+      "skill_id": "SK13.02"
+    },
+    {
+      "question_id": "QB-033",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-033",
+      "skill_id": "SK13.10"
+    },
+    {
+      "question_id": "QB-034",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-034",
+      "skill_id": "SK13.05"
+    },
+    {
+      "question_id": "QB-035",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-035",
+      "skill_id": "SK13.06"
+    },
+    {
+      "question_id": "QB-036",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-036",
+      "skill_id": "SK13.08"
+    },
+    {
+      "question_id": "QB-037",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-037",
+      "skill_id": "SK13.08"
+    },
+    {
+      "question_id": "QB-038",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-038",
+      "skill_id": "SK13.07"
+    },
+    {
+      "question_id": "QB-039",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-039",
+      "skill_id": "SK13.01"
+    },
+    {
+      "question_id": "QB-040",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-040",
+      "skill_id": "SK13.02"
+    },
+    {
+      "question_id": "QB-041",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-041",
+      "skill_id": "SK13.10"
+    },
+    {
+      "question_id": "QB-042",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-042",
+      "skill_id": "SK13.09"
+    },
+    {
+      "question_id": "QB-043",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-043",
+      "skill_id": "SK13.03"
+    },
+    {
+      "question_id": "QB-044",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-044",
+      "skill_id": "SK13.04"
+    },
+    {
+      "question_id": "QB-045",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-045",
+      "skill_id": "SK13.08"
+    },
+    {
+      "question_id": "QB-046",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-046",
+      "skill_id": "SK13.06"
+    },
+    {
+      "question_id": "QB-047",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-047",
+      "skill_id": "SK13.07"
+    },
+    {
+      "question_id": "QB-048",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-048",
+      "skill_id": "SK13.06"
+    },
+    {
+      "question_id": "QB-049",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-049",
+      "skill_id": "SK13.07"
+    },
+    {
+      "question_id": "QB-050",
+      "skill_id": "SK13"
+    },
+    {
+      "question_id": "QB-050",
+      "skill_id": "SK13.08"
+    }
+  ]
 }

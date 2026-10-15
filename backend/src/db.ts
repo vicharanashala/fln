@@ -2781,7 +2781,7 @@ export class DBStore {
     if (this.mongoDb) {
       const result = await this.mongoDb.collection<Certification>('certifications').findOneAndUpdate(
         { id: certId, version: expectedVersion },
-        { $set: updates },
+        { $set: updates, $inc: { version: 1 } },
         { returnDocument: 'after' }
       );
       return result || null;
@@ -2789,7 +2789,7 @@ export class DBStore {
     if (this.data) {
       const idx = this.data.certifications.findIndex(c => c.id === certId && c.version === expectedVersion);
       if (idx === -1) return null;
-      this.data.certifications[idx] = { ...this.data.certifications[idx], ...updates };
+      this.data.certifications[idx] = { ...this.data.certifications[idx], ...updates, version: this.data.certifications[idx].version + 1 };
       await this.save();
       return this.data.certifications[idx];
     }
