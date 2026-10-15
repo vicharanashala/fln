@@ -34,6 +34,20 @@ type SchoolArea = { stateCode?: string; districtCode?: string; blockCode?: strin
 
 const same = (a: unknown, b: unknown) => String(a ?? '').trim().toUpperCase() === String(b ?? '').trim().toUpperCase();
 
+// School ids look like AP_GNT_GNT_01_01, so a state owns "AP_", a district "AP_GNT_"
+// and a block "AP_GNT_GNT_01_". Returns null for other roles or an account with no code.
+export function schoolIdPrefixForUser(user: User): string | null {
+  const st = (user.stateCode || '').toUpperCase();
+  const di = (user.districtCode || '').toUpperCase();
+  const bl = (user.blockCode || '').toUpperCase();
+  switch (user.role) {
+    case UserRole.ADMIN: return st ? `${st}_` : null;
+    case UserRole.DISTRICT_ADMIN: return st && di ? `${st}_${di}_` : null;
+    case UserRole.BLOCK_ADMIN: return st && di && bl ? `${st}_${di}_${bl}_` : null;
+    default: return null;
+  }
+}
+
 // Is this school inside the area a state, district or block admin looks after?
 // The admin's own code is required (an account with none sees nothing), and when
 // the account also carries its parent codes they must match too, so a district

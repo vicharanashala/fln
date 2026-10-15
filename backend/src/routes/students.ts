@@ -1,7 +1,7 @@
 import express from 'express';
 import { dbStore, UserRole, Student, Question, AnswerSubmission, EvaluationReport, EvaluationReasoning, CYCLE_NAMES } from '../db';
 import { answersMatch, matchesChoiceLetter } from '../answerMatching';
-import { getAuthUser, canAccessStudent, adminAreaIncludesSchool } from '../auth';
+import { getAuthUser, canAccessStudent, adminAreaIncludesSchool, schoolIdPrefixForUser } from '../auth';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import { evaluateAIDiagnostic } from '../gemini';
@@ -257,8 +257,9 @@ export function registerStudentRoutes(app: express.Express) {
     const isVolunteer = actingUser.role === UserRole.VOLUNTEER;
     const assigned = Array.isArray(actingUser.assignedSchools) ? actingUser.assignedSchools : [];
     let schoolId: string | undefined;
-    if (actingUser.role === UserRole.SUPERADMIN && data.schoolId) {
+    if ((actingUser.role === UserRole.SUPERADMIN || actingUser.role === UserRole.ADMIN) && data.schoolId) {
       schoolId = String(data.schoolId).trim();
+      if (!(await dbStore.getSchools()).some(sc => sc.id === schoolId)) return { error: `Unknown school "${schoolId}".` };
     } else if (actingUser.schoolId) {
       schoolId = actingUser.schoolId;
     } else if (isVolunteer) {
@@ -433,8 +434,21 @@ export function registerStudentRoutes(app: express.Express) {
     // inside `createStudentFromData` after the schoolId is resolved.
     const existingAadhars = new Set<string>();
 
+    let targetSchool: string | undefined = req.body.schoolId || user.schoolId;
+    if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
+      targetSchool = user.schoolId;
+    } else if (user.role === UserRole.ADMIN) {
+      const prefix = schoolIdPrefixForUser(user);
+      const schoolObj = targetSchool ? await dbStore.getSchoolById(String(targetSchool)) : undefined;
+      const matchesArea = schoolObj ? adminAreaIncludesSchool(user, schoolObj) : false;
+      const matchesPrefix = prefix ? String(targetSchool || '').toUpperCase().startsWith(prefix) : false;
+      if (!prefix || (!matchesArea && !matchesPrefix)) {
+        return res.status(403).json({ error: 'School is outside your state.' });
+      }
+    }
+
     const result = await createStudentFromData(
-      { ...req.body, schoolId: req.body.schoolId || user.schoolId },
+      { ...req.body, schoolId: targetSchool },
       user,
       existingAadhars,
     );
@@ -488,10 +502,15 @@ export function registerStudentRoutes(app: express.Express) {
     // processed. The school-scoped DB check lives inside
     // `createStudentFromData` and is per-row.
     const aadharsInBatch = rows.flatMap(r => {
+      if (!r || typeof r !== 'object' || Array.isArray(r)) return [];
       const raw = String(r.aadharNumber).replace(/[^0-9]/g, '');
       return raw ? [raw, formatAadhaarMask(raw)] : [];
     });
     const existingAadhars = new Set<string>(aadharsInBatch);
+
+    const allSchools = await dbStore.getSchools();
+    const knownSchoolIds = new Set<string>(allSchools.map(s => String(s.id)));
+    const schoolMap = new Map(allSchools.map(s => [String(s.id), s]));
 
     const results: {
       row: number; status: 'created' | 'failed'; name?: string; id?: string; reason?: string;
@@ -502,9 +521,33 @@ export function registerStudentRoutes(app: express.Express) {
 
     for (let i = 0; i < rows.length; i++) {
       const rowData = rows[i];
+      if (!rowData || typeof rowData !== 'object' || Array.isArray(rowData)) {
+        failed++;
+        results.push({ row: i + 1, status: 'failed', name: '', reason: 'Row must be an object with student fields.' });
+        continue;
+      }
+      let targetSchool: string | undefined = rowData.schoolId || user.schoolId;
+      if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL) {
+        targetSchool = user.schoolId;
+      } else if (user.role === UserRole.ADMIN) {
+        const prefix = schoolIdPrefixForUser(user);
+        const schoolObj = targetSchool ? schoolMap.get(String(targetSchool)) : undefined;
+        const matchesArea = schoolObj ? adminAreaIncludesSchool(user, schoolObj) : false;
+        const matchesPrefix = prefix ? String(targetSchool || '').toUpperCase().startsWith(prefix) : false;
+        if (!prefix || !targetSchool || (!matchesArea && !matchesPrefix)) {
+          failed++;
+          results.push({ row: i + 1, status: 'failed', name: String(rowData.name || ''), reason: 'School is outside your state.' });
+          continue;
+        }
+      }
+      if (user.role !== UserRole.VOLUNTEER && (!targetSchool || !knownSchoolIds.has(String(targetSchool)))) {
+        failed++;
+        results.push({ row: i + 1, status: 'failed', name: String(rowData.name || ''), reason: 'Unknown school.' });
+        continue;
+      }
       const enriched = {
         ...rowData,
-        schoolId: rowData.schoolId || user.schoolId,
+        schoolId: targetSchool,
       };
 
       // Stash the current row's Aadhaars out of the batch set so
@@ -523,7 +566,7 @@ export function registerStudentRoutes(app: express.Express) {
 
       if ('error' in outcome) {
         failed++;
-        results.push({ row: i + 1, status: 'failed', name: rowData.name || '', reason: outcome.error });
+        results.push({ row: i + 1, status: 'failed', name: String(rowData.name || ''), reason: outcome.error });
       } else {
         created++;
         results.push({ row: i + 1, status: 'created', name: outcome.student.name, id: outcome.student.id });

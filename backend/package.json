@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit",
     "test:fingerprint": "tsx src/misconceptionFingerprint.test.ts",
     "test:question-template-download": "tsx --test tests/question-template-download.test.ts",
+    "test:bulk-import-validation": "tsx --test tests/bulk-import-validation.test.ts",
     "test:observations": "tsx --test tests/observations.test.ts",
     "seed": "tsx src/seed.ts",
     "seed:html": "tsx src/seedLevelHtml.ts",
