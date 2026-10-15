@@ -1316,11 +1316,37 @@ export function registerEvaluationRoutes(app: express.Express) {
       });
     }
 
+    // Allowed errorType values: deterministic classifier ErrorType values plus
+    // pedagogical labels from teacher human diagnosis (#459).
+    const ALLOWED_ERROR_TYPES = new Set([
+      'unanswered',
+      'digit_reversal',
+      'decimal_place_shift',
+      'off_by_one',
+      'unclassified',
+      'conceptual',
+      'careless',
+      'prerequisite',
+    ]);
+
     const { corrections } = req.body as {
-      corrections: { questionId: string; isCorrect: boolean; correctedAnswer?: string }[];
+      corrections: {
+        questionId: string;
+        isCorrect: boolean;
+        correctedAnswer?: string;
+        errorType?: string;
+      }[];
     };
     if (!Array.isArray(corrections) || corrections.length === 0) {
       return res.status(400).json({ error: '`corrections` must be a non-empty array.' });
+    }
+
+    for (const c of corrections) {
+      if (c.errorType !== undefined && !ALLOWED_ERROR_TYPES.has(c.errorType)) {
+        return res.status(400).json({
+          error: `Invalid errorType "${c.errorType}". Must be one of: ${Array.from(ALLOWED_ERROR_TYPES).join(', ')}`,
+        });
+      }
     }
 
     const knownIds = new Set(report.questionResults.map(q => q.questionId));
@@ -1363,6 +1389,15 @@ export function registerEvaluationRoutes(app: express.Express) {
         const answersForAnalysis: { [questionId: string]: string } = {};
         for (const q of updatedQuestionResults) answersForAnalysis[q.questionId] = q.submittedAnswer;
         updatedRootCauses = computeRootCauseAnalysis({}, matchedQuestions, answersForAnalysis).rootCauses ?? [];
+
+        // #459: teacher-supplied errorType wins over deterministic classifier
+        // for still-wrong questions that have a teacher diagnostic label.
+        if (updatedRootCauses.length > 0) {
+          updatedRootCauses = updatedRootCauses.map(rc => {
+            const correction = correctionMap.get(rc.questionId);
+            return correction?.errorType ? { ...rc, errorType: correction.errorType as any } : rc;
+          });
+        }
       }
     } catch (error) {
       console.error('[override] Failed to recompute rootCauses after correction:', error);
