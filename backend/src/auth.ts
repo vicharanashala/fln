@@ -54,6 +54,19 @@ export function adminAreaIncludesSchool(user: User, school: SchoolArea): boolean
   }
 }
 
+export function schoolIdPrefixForUser(user: User): string | null {
+  if (user.role === UserRole.ADMIN && user.stateCode) {
+    return user.stateCode.toUpperCase() + '_';
+  }
+  if (user.role === UserRole.DISTRICT_ADMIN && user.districtCode) {
+    return user.districtCode.toUpperCase() + '_';
+  }
+  if (user.role === UserRole.BLOCK_ADMIN && user.blockCode) {
+    return user.blockCode.toUpperCase() + '_';
+  }
+  return null;
+}
+
 // Authorization check for by-ID student endpoints (PATCH/diagnostic/diagnostic-submit,
 // certification, observations, Aadhaar reveal). Mirrors the scoping applied to
 // GET /api/students' list filtering, so nobody can act on a student outside their own

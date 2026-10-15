@@ -1,6 +1,6 @@
 import express from 'express';
 import { dbStore, UserRole, MisconceptionCluster } from '../db';
-import { getAuthUser } from '../auth';
+import { getAuthUser, schoolIdPrefixForUser, canAccessStudent } from '../auth';
 import {
   analyseCohort,
   proposeErrorCategories,
@@ -96,6 +96,22 @@ function getCohortAnalysis(classGroup?: string, schoolId?: string): Promise<Coho
   return pending;
 }
 
+// A teacher or school account may only analyse its own school; a state / district / block admin
+// only schools inside its area. The `schoolId` query value is a request, not an authorisation.
+function resolveCohortSchool(user: any, requested?: string): { schoolId?: string; error?: string; status?: number } {
+  if (user.role === UserRole.TEACHER || user.role === UserRole.SCHOOL || user.role === UserRole.VOLUNTEER) {
+    const own = user.role === UserRole.VOLUNTEER ? (user.assignedSchools || []) : [user.schoolId];
+    if (requested && !own.includes(requested)) return { error: 'Forbidden: school outside your scope.', status: 403 };
+    return { schoolId: requested || own[0] };
+  }
+  const prefix = schoolIdPrefixForUser(user);
+  if (prefix) {
+    if (!requested) return { error: 'schoolId is required for your role.', status: 400 };
+    if (!requested.toUpperCase().startsWith(prefix)) return { error: 'Forbidden: school outside your scope.', status: 403 };
+  }
+  return { schoolId: requested };
+}
+
 export function registerMisconceptionRoutes(app: express.Express) {
   // Whole-cohort view: discovered archetypes, membership, and score collisions.
   app.get('/api/misconceptions/cohort', async (req, res) => {
@@ -103,8 +119,9 @@ export function registerMisconceptionRoutes(app: express.Express) {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
     try {
       const classGroup = (req.query.classGroup as string) || undefined;
-      const schoolId = (req.query.schoolId as string) || undefined;
-      const analysis = await getCohortAnalysis(classGroup, schoolId);
+      const scoped = resolveCohortSchool(user, (req.query.schoolId as string) || undefined);
+      if (scoped.error) return res.status(scoped.status || 403).json({ error: scoped.error });
+      const analysis = await getCohortAnalysis(classGroup, scoped.schoolId);
       res.json(analysis);
     } catch (error: any) {
       console.error('[MisconceptionFingerprint] cohort analysis failed:', error?.message || error);
@@ -123,8 +140,9 @@ export function registerMisconceptionRoutes(app: express.Express) {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
     try {
       const classGroup = (req.query.classGroup as string) || undefined;
-      const schoolId = (req.query.schoolId as string) || undefined;
-      const analysis = await getCohortAnalysis(classGroup, schoolId);
+      const scoped = resolveCohortSchool(user, (req.query.schoolId as string) || undefined);
+      if (scoped.error) return res.status(scoped.status || 403).json({ error: scoped.error });
+      const analysis = await getCohortAnalysis(classGroup, scoped.schoolId);
       const proposals = await proposeErrorCategories(analysis.residue, classGroup ?? 'this class');
       res.json({
         unclassifiedCount: analysis.unclassifiedCount,
@@ -147,6 +165,7 @@ export function registerMisconceptionRoutes(app: express.Express) {
       const students = await dbStore.getStudents();
       const student = students.find(s => s.id === req.params.studentId);
       if (!student) return res.status(404).json({ error: 'Student not found.' });
+      if (!(await canAccessStudent(user, student))) return res.status(403).json({ error: 'Forbidden.' });
 
       const analysis = await getCohortAnalysis(student.classGroup, student.schoolId);
       const fingerprint = analysis.fingerprints.find(f => f.studentId === student.id);
@@ -197,8 +216,9 @@ export function registerMisconceptionRoutes(app: express.Express) {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
     try {
       const classGroup = (req.query.classGroup as string) || undefined;
-      const schoolId = (req.query.schoolId as string) || undefined;
-      const analysis = await getCohortAnalysis(classGroup, schoolId);
+      const scoped = resolveCohortSchool(user, (req.query.schoolId as string) || undefined);
+      if (scoped.error) return res.status(scoped.status || 403).json({ error: scoped.error });
+      const analysis = await getCohortAnalysis(classGroup, scoped.schoolId);
 
       let aId = req.query.a as string | undefined;
       let bId = req.query.b as string | undefined;
