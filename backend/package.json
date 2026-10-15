@@ -13,6 +13,7 @@
     "test:fingerprint": "tsx src/misconceptionFingerprint.test.ts",
     "test:question-template-download": "tsx --test tests/question-template-download.test.ts",
     "test:observations": "tsx --test tests/observations.test.ts",
+    "test:file-store-fallback": "tsx --test tests/file-store-fallback.test.ts",
     "seed": "tsx src/seed.ts",
     "seed:html": "tsx src/seedLevelHtml.ts",
     "seed:levels": "tsx src/seedCurriculumLevels.ts",
