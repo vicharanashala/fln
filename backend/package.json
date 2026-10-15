@@ -50,7 +50,9 @@
     "test:svg-pdf": "tsx --test tests/svg-pdf.test.ts",
     "test:concept-worksheet": "tsx --test tests/concept-worksheet.test.ts",
     "test:template-renderer": "tsx src/services/questionTemplateRenderer.test.ts",
-    "test:evaluation-override": "tsx --test tests/evaluation-override.test.ts"
+    "test:evaluation-override": "tsx --test tests/evaluation-override.test.ts",
+    "test:skill-evolution": "tsx src/skillEvolution.test.ts",
+    "test:skill-evolution-routes": "tsx --test tests/skill-evolution-route.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
