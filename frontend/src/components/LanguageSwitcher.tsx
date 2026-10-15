@@ -36,7 +36,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ variant = 'a
         aria-label={t('language.select')}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`flex items-center gap-1.5 text-[10px] md:text-xs font-bold transition hover:underline ${
+        className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 text-[10px] md:min-h-0 md:min-w-0 md:text-xs font-bold transition hover:underline ${
           isDark
             ? 'text-gray-300 hover:text-white'
             : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -60,7 +60,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ variant = 'a
                 void i18n.changeLanguage(option.code);
                 setOpen(false);
               }}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-left"
+              className="w-full min-h-[44px] md:min-h-0 flex items-center justify-between px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-left"
             >
               <span>{option.nativeLabel}</span>
               {option.code === current && <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
