@@ -241,8 +241,12 @@ async function startServer() {
   console.log(`[competencyPrerequisites] prerequisite graph OK — ${prereqReport.totalConceptsWithPrerequisites} concepts, ${prereqReport.totalEdges} edges, 0 unknown ids, 0 cycles`);
 
   const app = express();
-  app.use(express.json({ limit: '100mb' }));
-  app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
+  // Large bodies only where a scan or a bulk file is uploaded.
+  const LARGE_BODY_PATHS = ['/api/icr/check-quality', '/api/icr/evaluate-cloud', '/api/icr/evaluate-bulk', '/api/students/bulk-import'];
+  app.use(LARGE_BODY_PATHS, express.json({ limit: '100mb' }));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ limit: '1mb', extended: true }));
 
   // Serve Puppeteer output PDF sheets statically
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
