@@ -254,7 +254,7 @@ export const WorksheetsPanel: React.FC<WorksheetsPanelProps> = ({
             <PageHeader title="Level-Wise Paper Generator" desc="Generate personalized level-wise question PDFs for placed students via the Levels_backend batch pipeline" />
             <div className="flex items-center gap-2 shrink-0">
               {classes.length > 1 && (
-                <select
+                <select aria-label="Class"
                   value={activeClass?.id ?? ''}
                   onChange={(e) => {
                     const next = classes.find(c => c.id === e.target.value);
