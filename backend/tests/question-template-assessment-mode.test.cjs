@@ -148,3 +148,27 @@ test('Frontend QuestionTemplatePanel source: Mode filter and table use legacy fa
     'Table headers must include a Mode column',
   );
 });
+
+test('Frontend QuestionTemplatePanel source: Existing questions table renders Mode header, badge cell with fallback, and mode filter', () => {
+  const src = readSource(PANEL_SOURCE);
+  assert.match(
+    src,
+    /<th\s+className="[^"]*">Mode<\/th>/,
+    'Table header must render Mode column',
+  );
+  assert.match(
+    src,
+    /const\s+mode\s*=\s*t\.assessmentMode\s*\?\?\s*'written';/,
+    'Table cell must fall back to "written" when template has no assessmentMode',
+  );
+  assert.match(
+    src,
+    /aria-label="Filter by mode"/,
+    'Existing questions section must include Filter by mode dropdown',
+  );
+  assert.match(
+    src,
+    /filterAssessmentMode\s*===\s*''\s*\|\|\s*\(t\.assessmentMode\s*\?\?\s*'written'\)\s*===\s*filterAssessmentMode/,
+    'visibleTemplates must filter by filterAssessmentMode with fallback to written',
+  );
+});
