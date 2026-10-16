@@ -15,6 +15,9 @@ interface Props {
   /** Optional label shown in the error card so the user can tell which
    *  panel broke (e.g. "Aadhaar Reveal"). Defaults to "this view". */
   label?: string;
+  /** Optional fallback title — kept for callers that pass `fallbackTitle`
+   *  instead of `label`. When both are provided, `label` wins. */
+  fallbackTitle?: string;
 }
 
 interface State {
@@ -47,6 +50,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
     const { error } = this.state;
     if (!error) return this.props.children;
 
+    const heading = this.props.label
+      ? `${this.props.label} crashed`
+      : this.props.fallbackTitle
+        ? this.props.fallbackTitle
+        : 'This view crashed';
+
     return (
       <div
         role="alert"
@@ -56,7 +65,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <h2 className="text-sm font-semibold text-red-900 dark:text-red-200">
-              {this.props.label ? `${this.props.label} crashed` : 'This view crashed'}
+              {heading}
             </h2>
             <p className="mt-1 text-xs text-red-800 dark:text-red-300 break-words">
               {error.message || 'An unexpected error occurred while rendering.'}

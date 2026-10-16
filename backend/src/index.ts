@@ -46,8 +46,21 @@ import { registerCertificationRoutes } from './routes/certification';
 import { registerMisconceptionRoutes } from './routes/misconceptions';
 import { registerCurriculumRoutes } from './routes/curriculum';
 import { registerQuestionBankRoutes } from './routes/questionBank';
+import { registerFlagRoutes } from './routes/flags';
+import { registerQuestionFlagRoutes } from './routes/questionFlags';
 import { registerErrorTagsRoutes } from './routes/errorTags';
 import { registerObservationRoutes } from './routes/observations';
+import { sanitizeInput } from './middleware/sanitize';
+import { validate } from './middleware/validate';
+import {
+  ticketCreateSchema,
+  ticketResolveSchema,
+  announcementCreateSchema,
+  studentRegisterSchema,
+  evaluationSubmitSchema,
+} from './middleware/validate';
+import { writeRateLimiter, readRateLimiter } from './middleware/rateLimit';
+import { errorHandler, ApiError } from './middleware/errorHandler';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
@@ -241,8 +254,15 @@ async function startServer() {
   console.log(`[competencyPrerequisites] prerequisite graph OK — ${prereqReport.totalConceptsWithPrerequisites} concepts, ${prereqReport.totalEdges} edges, 0 unknown ids, 0 cycles`);
 
   const app = express();
+  app.set('trust proxy', 'loopback');
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
+  // Sanitize all incoming request bodies and query params: strips MongoDB
+  // operator keys ($-prefixed) to prevent operator injection, and HTML-escapes
+  // string values to prevent stored XSS. Mounted globally so every route
+  // benefits without per-route changes.
+  app.use(sanitizeInput);
 
   // Serve Puppeteer output PDF sheets statically
   app.use('/output', express.static(path.join(ROOT_DIR, 'output')));
@@ -250,10 +270,23 @@ async function startServer() {
 
   // --- API Endpoints ---
 
-registerStatsRoutes(app);
+  // Health check endpoint (no auth required)
+  app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() });
+  });
+
+  // General rate limiting for all API routes. Auth's login endpoint has its
+  // own stricter authRateLimiter; this is a defense-in-depth layer for every
+  // other endpoint.
+  app.use('/api', readRateLimiter);
+
+  registerStatsRoutes(app);
 
   registerAuthRoutes(app);
+  // Mutating endpoints get a stricter write limiter.
+  app.use('/api/announcements', writeRateLimiter);
   registerAnnouncementRoutes(app);
+  app.use('/api/tickets', writeRateLimiter);
   registerTicketRoutes(app);
   registerLogbookRoutes(app);
 
@@ -296,20 +329,27 @@ registerStatsRoutes(app);
   registerErrorTagsRoutes(app);
   registerObservationRoutes(app);
 
+  // Student level auto-flag & review queue (SRS: 50%+ fail an easy question).
+  registerFlagRoutes(app);
+
+  // Question-level auto-flag & curriculum review queue (SRS R-15).
+  app.use('/api/question-flags', writeRateLimiter);
+  registerQuestionFlagRoutes(app);
+
   // --- Intervention Tracking & Best Practices Repository ---
 
   // Create a new intervention
   registerInterventionRoutes(app);
   registerBestPracticeRoutes(app);
 
-  // Any /api/* path that reached here matched no registered route. Answer
-  // with a real 404 now, before the dev-only Vite middleware below — that
-  // middleware inherits frontend/vite.config.ts's /api proxy (targeting this
-  // same server), which otherwise proxies unmatched /api/* requests back to
-  // itself indefinitely (#563).
-  app.use('/api', (_req, res) => {
-    res.status(404).json({ error: 'Not found' });
+  // Catch-all: any unmatched API route gets a proper 404 instead of hanging
+  app.use('/api/*', (_req, res) => {
+    res.status(404).json({ error: 'Endpoint not found' });
   });
+
+  // Standardized error handler — mounted LAST, after all routes. Converts
+  // thrown errors into predictable JSON responses without leaking internals.
+  app.use(errorHandler);
 
   // In development, serve the frontend using Vite development middleware.
   // In production, serve the built frontend bundle (frontend/dist).

@@ -5,8 +5,10 @@ import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
   School, GraduationCap, MapPin, BarChart3, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home, Award,
-  Fingerprint, Ticket as TicketIcon, ScrollText
+  Fingerprint, FileText,
+  Ticket as TicketIcon, ScrollText
 } from 'lucide-react';
+import { StudentSearch } from './StudentSearch';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { TicketModal } from './tickets/TicketModal';
 import { LogbookModal } from './LogbookModal';
@@ -25,6 +27,8 @@ interface LayoutProps {
   onRoleSwitch: (role: UserRole) => void;
   activeView: string;
   onSelectView: (view: string) => void;
+  onSelectPanel: (panel: string) => void;
+  onSelectStudent: (id: string) => void;
   notifications: Announcement[];
   onMarkNotificationRead: (id: string) => void;
   onClearNotifications: () => void;
@@ -41,6 +45,8 @@ export const Layout: React.FC<LayoutProps> = ({
   onRoleSwitch,
   activeView,
   onSelectView,
+  onSelectPanel,
+  onSelectStudent,
   notifications,
   onMarkNotificationRead,
   onClearNotifications,
@@ -104,7 +110,17 @@ export const Layout: React.FC<LayoutProps> = ({
     document.documentElement.style.fontSize = `${fontSize}%`;
   }, []);
 
-  const collapsed = false;
+React.useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('fln_dark_mode', String(isDark));
+  }, [isDark]);
+
+  const collapsed = sidebarCollapsed;
 
   // Mirrors GET /api/logbook authorization: only admin-tier roles may read the
   // audit trail (teacher/volunteer/school receive 403), so hide the action for them.
@@ -155,7 +171,10 @@ export const Layout: React.FC<LayoutProps> = ({
           icon: GraduationCap,
           subItems: [
             { name: 'Student List', view: 'student_list' },
-            { name: 'Student Profile', view: 'student_profile' }
+            { name: 'Student Profile', view: 'student_profile' },
+            { name: 'Flagged Students', view: 'flagged_students' },
+            { name: 'Performance', view: 'performance' },
+            { name: 'Report Card', view: 'report_card' }
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
@@ -186,7 +205,9 @@ export const Layout: React.FC<LayoutProps> = ({
           subItems: [
             { name: 'Student List', view: 'student_list' },
             { name: 'Student Profile', view: 'student_profile' },
-            { name: 'Performance', view: 'performance' }
+            { name: 'Flagged Students', view: 'flagged_students' },
+            { name: 'Performance', view: 'performance' },
+            { name: 'Report Card', view: 'report_card' }
           ]
         });
         list.push({ name: 'Worksheets', view: 'worksheets', icon: ClipboardList });
@@ -195,6 +216,7 @@ export const Layout: React.FC<LayoutProps> = ({
       case UserRole.SCHOOL:
         list.push({ name: 'Teachers', view: 'teachers', icon: Users });
         list.push({ name: 'Students', view: 'students', icon: GraduationCap });
+        list.push({ name: 'Flagged Students', view: 'flagged_students', icon: ShieldAlert });
         list.push({ name: 'Performance', view: 'performance', icon: BarChart3 });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
         break;
@@ -225,6 +247,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Aadhaar Reveal', view: 'aadhaar_reveal', icon: ShieldCheck });
         list.push({ name: 'Security', view: 'security', icon: KeyRound });
         list.push({ name: 'Certification Reviews', view: 'certification_reviews', icon: Award });
+        list.push({ name: 'Question Flag Review', view: 'question_flag_review', icon: ShieldAlert });
         break;
 
       case UserRole.SUPERADMIN:
@@ -239,6 +262,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Security', view: 'security', icon: KeyRound });
         list.push({ name: 'Audit Logs', view: 'logbook', icon: ShieldCheck });
         list.push({ name: 'Certification Reviews', view: 'certification_reviews', icon: Award });
+        list.push({ name: 'Question Flag Review', view: 'question_flag_review', icon: ShieldAlert });
         break;
     }
 
@@ -354,6 +378,9 @@ export const Layout: React.FC<LayoutProps> = ({
           {/* Language Switcher — dashboard chrome labels remain English for now;
               the landing page hero/stats/vision copy is already routed through t(). */}
           <LanguageSwitcher />
+
+{/* Global Student Search */}
+          <StudentSearch token={token} onSelectStudent={(id) => { onSelectStudent(id); onSelectPanel('student_profile'); }} />
 
           {/* Dynamic Database Storage Status */}
           <button
@@ -710,7 +737,7 @@ export const Layout: React.FC<LayoutProps> = ({
       {showDbModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="w-full max-w-xl rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-150">
-            
+
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${dbStatus?.connected ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'}`}>
@@ -733,11 +760,70 @@ export const Layout: React.FC<LayoutProps> = ({
                 <span className="px-2 py-0.5 rounded text-[10px] uppercase font-mono font-bold border border-current">{dbStatus?.connected ? 'Connected' : 'Offline Mode'}</span>
               </div>
               <p className="text-[11px] opacity-90">
-                {dbStatus?.connected 
+                {dbStatus?.connected
                   ? 'Your app is directly reading and writing live data from your MongoDB Atlas cloud database.'
                   : 'Remote MongoDB Atlas timed out or IP was not whitelisted. System is automatically running on local file DB fallback (data/db.json).'}
               </p>
             </div>
+
+            {/* Live Connect Input Form */}
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!customUri.trim()) return;
+              setDbConnecting(true);
+              setDbConnectMsg(null);
+              try {
+                const res = await apiFetch('/api/db-config', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ mongodbUri: customUri.trim() })
+                });
+                const data = await res.json();
+                if (data.success) {
+                  setDbConnectMsg({ success: true, text: 'Successfully connected to MongoDB Atlas!' });
+                  setDbStatus({ connected: true, mode: 'MongoDB Atlas' });
+                } else {
+                  setDbConnectMsg({ success: false, text: data.error || 'Connection failed. Verify IP Whitelist in Atlas.' });
+                }
+              } catch (_) {
+                setDbConnectMsg({ success: false, text: 'Failed to reach server endpoint.' });
+              } finally {
+                setDbConnecting(false);
+              }
+            }} className="space-y-3 pt-2">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                Connect New MongoDB Atlas Connection String:
+              </label>
+              <input
+                type="text"
+                value={customUri}
+                onChange={(e) => setCustomUri(e.target.value)}
+                placeholder="mongodb+srv://user:password@cluster.mongodb.net/fln"
+                className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+              {dbConnectMsg && (
+                <div className={`p-2.5 rounded text-xs border font-medium ${dbConnectMsg.success ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+                  {dbConnectMsg.text}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDbModal(false)}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={dbConnecting || !customUri.trim()}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition"
+                >
+                  {dbConnecting ? 'Connecting...' : 'Connect to MongoDB'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

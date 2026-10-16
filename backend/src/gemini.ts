@@ -615,16 +615,8 @@ export async function evaluateAIWorksheet(
   level: number
 ): Promise<{
   score: number;
-  total: number;
-  conceptMastery: {
-    [topic: string]: 'Strong' | 'Needs Practice' | 'Satisfactory';
-  };
+  recommendedLevel: number;
   narrative: string;
-  evaluatedQuestions: {
-    id: string;
-    isCorrect: boolean;
-    topic: string;
-  }[];
 }> {
   try {
     const prompt = `Student: ${studentName} (Current Level: ${level})

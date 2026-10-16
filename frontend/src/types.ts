@@ -93,6 +93,20 @@ export interface Student {
   displayId?: string;
   levelHistory: { level: number; subLevel?: number; date: string; reason: string }[];
   streak: number;
+  /**
+   * Auto-flag raised when a student fails >= 50% of "easy" questions on an
+   * evaluation (backend auto-flag). Populated by GET /api/flags.
+   */
+  levelFlag?: {
+    flagged: boolean;
+    reason: string;
+    flaggedAt: string;
+    flaggedBy?: string;
+    reviewed: boolean;
+    reviewedBy?: string;
+    reviewedAt?: string;
+    reviewNote?: string;
+  };
   gender?: 'Male' | 'Female' | 'Other';
   dob?: string;
   guardianName?: string;
@@ -614,6 +628,23 @@ export interface QuestionBankEntry {
   reviewedBy?: string;
   reviewedAt?: string;
   reviewNote?: string;
+  /**
+   * System auto-flag raised when 50%+ of students consistently fail an
+   * "easy"-tagged question (SRS R-15). Set by the backend at evaluation
+   * time; cleared or confirmed by a superadmin through
+   * POST /api/question-flags/:questionId/review.
+   */
+  questionFlag?: {
+    flagged: boolean;
+    reason: string;
+    flaggedAt: string;
+    flaggedBy: string;
+    reviewed: boolean;
+    reviewedBy?: string;
+    reviewedAt?: string;
+    reviewNote?: string;
+    reviewAction?: 'dismiss' | 'revise' | 'keep';
+  };
 }
 
 export interface QuestionBankProgress {
