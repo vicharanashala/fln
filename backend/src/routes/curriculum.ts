@@ -3,10 +3,10 @@ import { dbStore } from '../db';
 import { getAuthUser } from '../auth';
 
 /**
- * Read-only access to the 93-level curriculum.
+ * Read-only access to the 109-level curriculum.
  *
  * PR #408 seeded `curriculumLevels` and added accessors on `dbStore`, but never
- * exposed them over HTTP — so the 93 levels existed in the database and nothing
+ * exposed them over HTTP — so the 109 levels existed in the database and nothing
  * on the site could read them. Every level list in the UI was still built from
  * a hand-authored table. This is the route that lets those surfaces read the
  * real thing.
@@ -48,7 +48,7 @@ function contentStatusOf(level: { legacyLevel59: number | null; hasStaticHtml: b
 }
 
 export function registerCurriculumRoutes(app: express.Express) {
-  /** All 93 levels, ascending, each with its derived content status. */
+  /** All 109 levels, ascending, each with its derived content status. */
   app.get('/api/curriculum/levels', async (req, res) => {
     if (!getAuthUser(req)) return res.status(401).json({ error: 'Unauthorized' });
     try {
@@ -85,7 +85,7 @@ export function registerCurriculumRoutes(app: express.Express) {
     }
   });
 
-  /** One level by its 1-93 number. */
+  /** One level by its 1-109 number. */
   app.get('/api/curriculum/levels/:levelNumber', async (req, res) => {
     if (!getAuthUser(req)) return res.status(401).json({ error: 'Unauthorized' });
     const levelNumber = Number(req.params.levelNumber);
@@ -96,7 +96,7 @@ export function registerCurriculumRoutes(app: express.Express) {
       const level = await dbStore.getCurriculumLevel(levelNumber);
       if (!level) {
         return res.status(404).json({
-          error: `No curriculum level ${levelNumber}. The curriculum defines levels 1-93; ` +
+          error: `No curriculum level ${levelNumber}. The curriculum defines levels 1-109; ` +
             `run "npm run seed:levels" if the collection is empty.`,
         });
       }
