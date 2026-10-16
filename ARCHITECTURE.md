@@ -29,7 +29,7 @@ flowchart TB
             R_Students["students.ts · CRUD, bulk-import"]
             R_Worksheets["worksheets.ts · PDF generation, print"]
             R_Eval["evaluation.ts · ICR scoring, overrides"]
-            R_Curriculum["curriculum.ts · 93-level taxonomy"]
+            R_Curriculum["curriculum.ts · 109-level taxonomy"]
             R_Authoring["questionTemplates.ts · questionLogics.ts"]
             R_Other["tickets.ts · admin.ts · stats.ts · misconceptions.ts"]
         end
@@ -94,7 +94,7 @@ The FLN platform models a hierarchical educational administration workflow with 
 
 ```mermaid
 flowchart TD
-    SA["Superadmin — National Governance<br/>Curriculum taxonomy (93 levels) · Question authoring · Calendar"]
+    SA["Superadmin — National Governance<br/>Curriculum taxonomy (109 levels) · Question authoring · Calendar"]
     A["State Admin — State / UT Level<br/>Regional compliance · Macro transitions"]
     DA["District Admin — District Level<br/>District performance · Resource allocation"]
     BA["Block Admin — Block Level<br/>School coordination · Volunteer assignments"]
@@ -131,7 +131,7 @@ flowchart LR
     --> Scan["4. Optical Ingestion<br/>Mobile camera / flatbed scan<br/>Multi-page PDF / JPEG"]
     --> OCR["5. Vision & AI Pipeline<br/>Perspective warp · TrOCR<br/>Gemini diagnostic reasoning"]
     --> Override["6. Teacher Verification<br/>Optional review drawer<br/>Score & answer overrides"]
-    --> Mastery["7. Mastery & Remediation<br/>Update 93-level progression<br/>Fingerprint misconceptions<br/>Generate practice worksheets"]
+    --> Mastery["7. Mastery & Remediation<br/>Update 109-level progression<br/>Fingerprint misconceptions<br/>Generate practice worksheets"]
     --> Dash["8. Analytics Rollup<br/>Class → School → National"]
 
     Mastery -.->|"Informs next cycle"| Diag
@@ -156,7 +156,7 @@ fln/
 │   │   │   ├── dashboards/    # Dedicated dashboards (Teacher, Volunteer, School, Admin, Superadmin)
 │   │   │   └── panels/        # Functional subpanels (Students, Curriculum, Question Review, etc.)
 │   │   ├── services/          # apiClient.ts (apiFetch, withBase), simulatedAnswers.ts
-│   │   ├── data/              # Canonical skillProgressionMap.ts (93 levels)
+│   │   ├── data/              # Canonical skillProgressionMap.ts (109 levels)
 │   │   └── types.ts           # Shared TypeScript interfaces
 │   └── public/
 │       ├── assets/            # Question SVG themes and manifest
@@ -168,7 +168,7 @@ fln/
 │   │   │   ├── students.ts    # Student profiles, class scoping, bulk import
 │   │   │   ├── worksheets.ts  # Worksheet compilation, paper generation, ZIP packaging
 │   │   │   ├── evaluation.ts  # ICR scanning routes, score overrides, diagnostic reports
-│   │   │   ├── curriculum.ts  # 93-level curriculum queries, coverage metrics
+│   │   │   ├── curriculum.ts  # 109-level curriculum queries, coverage metrics
 │   │   │   └── ...            # questionTemplates, tickets, admin, stats, misconceptions
 │   │   ├── db.ts              # dbStore data access layer (native MongoDB + local db.json fallback)
 │   │   ├── paperGenerator.ts  # Puppeteer PDF compiler with fiducial coordinates

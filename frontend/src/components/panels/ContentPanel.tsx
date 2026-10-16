@@ -9,7 +9,7 @@ import { BookMarked } from 'lucide-react';
 import { FLN_LEVELS_LIST } from '../RoleDashboards';
 
 export const ContentPanel: React.FC = () => {
-    // Render the full 93-level FLN framework as cards, grouped by class
+    // Render the full 109-level FLN framework as cards, grouped by class
     // (Preschool 1/2/3 + Class 1/2/3/4). All data comes from
     // FLN_LEVELS_LIST in RoleDashboards — no backend fetch needed since
     // the worksheet HTML is generated on demand by the worksheet engine

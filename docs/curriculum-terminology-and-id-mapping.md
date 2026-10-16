@@ -10,7 +10,7 @@
 
 Historically, the FLN platform suffered from multiple disconnected ways of identifying learning competencies:
 1. **Legacy 1–59 numbering**: Rooted in the early standalone HTML worksheet engine (`levels_main.html`).
-2. **Current 1–93 numbering**: Display levels defined in `frontend/src/data/skillProgressionMap.ts`.
+2. **Current 1–109 numbering**: Display levels defined in `frontend/src/data/skillProgressionMap.ts`.
 3. **Research S-codes**: Pedagogical stage-notations (`S1.1` through `S7.18`) authored in `Research/fln_proposed_levels.md`.
 4. **Ad-hoc `subLevel` markers**: Ambiguous numeric flags (`0`, `1`, `2`) attached to evaluation reports without standard semantics.
 
@@ -33,7 +33,7 @@ To avoid ambiguity across pedagogical and engineering teams, the following 11 te
 |---|---|---|---|
 | **1** | **Curriculum Version** | A frozen, reproducible release of the curriculum taxonomy (e.g., `FLN-2026.1`, `v1`). All concept aliases belong to a specific curriculum version. | `curriculumVersion: string` on `CurriculumLevel` |
 | **2** | **Concept** | The atomic, indivisible competency unit assessed by the platform (e.g., *Counting to 5 with Cardinality*). Keyed by an immutable primary key. | `conceptId: string` (UUID / ObjectId) |
-| **3** | **Level Number** | The current ordered sequence index (1–93) used for display in teacher dashboards, student profiles, and progress charts. Mutable across curriculum releases. | `levelNumber: number` (1..93) |
+| **3** | **Level Number** | The current ordered sequence index (1–109) used for display in teacher dashboards, student profiles, and progress charts. Mutable across curriculum releases. | `levelNumber: number` (1..93) |
 | **4** | **Strand** | High-level mathematical domain grouping related concepts (e.g., *Number Sense*, *Operations*, *Measurement*, *Geometry*, *Patterns*, *Data Handling*). Derived from core skills. | `strand: string` |
 | **5** | **Question** | A concrete assessment prompt or task presented to a student on a worksheet or screen with an expected solution. | `Question` interface in `backend/src/db.ts` |
 | **6** | **Template** | A parameterized generator definition specifying constraints, numeral ranges, operations, and SVG artwork themes from which questions are synthesized. | `QuestionTemplate` in `routes/questionTemplates.ts` |
@@ -56,7 +56,7 @@ The single queryable source of truth for the curriculum is the `curriculumLevels
 | `concept_id` / `conceptId` | `string` (UUID) | Yes | **Permanent identity**. Immutable primary key generated once upon initial insertion ($setOnInsert). |
 | `taxonomy_version` / `curriculumVersion` | `string` | Yes | Curriculum release identifier (e.g. `FLN-2026.1`, `v1`). |
 | `s_code` / `sCode` | `string` | Yes | Human-readable pedagogical research code (e.g. `S1.1`, `S3.4`, `S7.18`). |
-| `level_number` / `levelNumber` | `integer` (1–93) | Yes | Current ordered display sequence index. Mutable alias. |
+| `level_number` / `levelNumber` | `integer` (1–109) | Yes | Current ordered display sequence index. Mutable alias. |
 | `title` / `capability` | `string` | Yes | Pedagogical competency title (e.g. *One-to-One Correspondence*). |
 | `strand` | `string` | Yes | Mathematical strand derived from primary skill domains. |
 | `stage` / `class_band` | `string` | Yes | Educational stage (`Bal Vatika 1`, `Bal Vatika 2`, `Bal Vatika 3`, `Class 1`, `Class 2`, `Class 3`, `Class 4`). |
@@ -77,7 +77,7 @@ Earlier attempts to reconcile legacy 59-level content with the 93-level curricul
 2. **1-to-Many Pedagogical Overlaps**: Multiple 93-space levels legitimately draw from the same legacy level tasks rather than conforming to clean 1:1 level mappings. Attempting to force a rigid sequential crosswalk obscured this reality.
 
 ### Live Architecture: Tagging Content Instead of Mapping Levels
-Instead of mapping *levels to levels*, the platform tags **individual questions directly to canonical 93-level concept IDs** (`conceptId`), allowing the legacy 59 numbering space to be cleanly phased out:
+Instead of mapping *levels to levels*, the platform tags **individual questions directly to canonical 109-level concept IDs** (`conceptId`), allowing the legacy 59 numbering space to be cleanly phased out:
 
 * **Stored Questions (Legacy Levels 22–59)**: The 1,202 concrete questions in `data/questionBank.json` carry stable, deterministic IDs (`questionId` derived from `(level, section, questionNumber)`). Through the Superadmin Question Review workflow (`frontend/src/components/panels/QuestionReviewPanel.tsx` and `backend/src/routes/questionBank.ts`), reviewers assign individual items or entire sections directly to their target 93-level `conceptId`. When mapped, the question inherits that immutable concept identity, linking directly to student assessment evidence.
 * **Procedural Generators (Legacy Levels 1–21)**: For early levels backed by procedural generators rather than static question bank items, the level itself is mapped once at the generator boundary.
@@ -118,7 +118,7 @@ To ensure clear architectural boundaries and avoid duplicated curriculum definit
 
 | Subsystem | File & Location | Architectural Responsibility |
 |---|---|---|
-| **Taxonomy Definition** | `frontend/src/data/skillProgressionMap.ts` | **Canonical source of truth** for skills, subskills, and the 93 level nodes. |
+| **Taxonomy Definition** | `frontend/src/data/skillProgressionMap.ts` | **Canonical source of truth** for skills, subskills, and the 109 level nodes. |
 | **Server Snapshot** | `backend/src/data/skillLevelMap.json` | Generated build artifact mirror of the frontend skill progression map. |
 | **Drift Verification** | `scripts/generate-skill-level-map.ts` | CI verification script; enforces zero drift between frontend and backend maps (`--check`). |
 | **Database Model** | `backend/src/db.ts` (`curriculumLevels`) | Persistence collection keyed by immutable `conceptId`. |
@@ -126,7 +126,7 @@ To ensure clear architectural boundaries and avoid duplicated curriculum definit
 | **Curriculum API** | `backend/src/routes/curriculum.ts` | Authenticated read endpoints (`/api/curriculum/levels`, `/api/curriculum/coverage`). |
 | **Prerequisites Engine** | `backend/src/competencyPrerequisites.ts` | Dependency graph, prerequisite resolution, and mastery advancement logic. |
 | **Question Authoring** | `backend/src/routes/questionTemplates.ts` & `questionLogics.ts` | Superadmin question generation intent and constraint authoring per level. |
-| **Question Review** | `backend/src/routes/questionBank.ts` & `QuestionReviewPanel.tsx` | Mapping legacy worksheet questions to 93-level concept identities. |
+| **Question Review** | `backend/src/routes/questionBank.ts` & `QuestionReviewPanel.tsx` | Mapping legacy worksheet questions to 109-level concept identities. |
 | **Worksheet Engine** | `backend/src/levelGenerator.ts` & `levels_main.html` | Dynamic question synthesis and paper rendering engines. |
 | **Misconception Logic** | `backend/src/misconceptionFingerprint.ts` | Deterministic misconception mapping, archetype classification, and diagnostic clustering. |
 
