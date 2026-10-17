@@ -293,7 +293,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
               Time Horizon
             </label>
-            <select
+            <select aria-label="Time Horizon"
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value as any)}
               className="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
@@ -310,7 +310,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
               State Jurisdiction
             </label>
-            <select
+            <select aria-label="State Jurisdiction"
               value={stateCode}
               onChange={(e) => setStateCode(e.target.value)}
               className="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
@@ -360,7 +360,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
               School Type
             </label>
-            <select
+            <select aria-label="School Type"
               value={schoolType}
               onChange={(e) => setSchoolType(e.target.value)}
               className="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
@@ -377,7 +377,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
               Education Board
             </label>
-            <select
+            <select aria-label="Education Board"
               value={board}
               onChange={(e) => setBoard(e.target.value)}
               className="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
@@ -425,7 +425,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
               Grade Band
             </label>
-            <select
+            <select aria-label="Grade Band"
               value={grade}
               onChange={(e) => setGrade(e.target.value)}
               className="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
@@ -447,7 +447,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
             <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
               Operational Status
             </label>
-            <select
+            <select aria-label="Operational Status"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
@@ -989,6 +989,7 @@ export const SuperAdminExecutiveDashboard: React.FC<SuperAdminDashboardProps> = 
                       State Filter:
                     </label>
                     <select
+                      aria-label="State Filter"
                       value={schoolStateFilter}
                       onChange={(e) => setSchoolStateFilter(e.target.value)}
                       className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
