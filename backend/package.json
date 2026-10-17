@@ -26,6 +26,7 @@
     "test:search-index": "tsx --test tests/students-search-index.test.ts",
     "test:student-create": "tsx --test tests/create-student-from-data.test.ts",
     "test:school-geography": "tsx --test tests/school-geography.test.ts",
+    "test:school-onboarding": "tsx --test tests/school-onboarding.test.ts",
     "test:panel-isolation": "tsx --test tests/panel-isolation.test.cjs",
     "test:assessment-mode": "node tests/question-template-assessment-mode.test.cjs",
     "test:roster-filters": "tsx --test tests/roster-filters-persistence.test.cjs",
