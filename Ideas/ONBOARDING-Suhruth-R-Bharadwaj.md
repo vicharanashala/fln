@@ -1,7 +1,7 @@
 
 # FLN Project Onboarding Document
 
-**Contributor:** Lenovo  
+**Contributor:** Suhruth 
 **Date:** October 18, 2026  
 **Repository:** [vicharanashala/fln](https://github.com/vicharanashala/fln)   
 
