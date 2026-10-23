@@ -163,7 +163,7 @@ The **server + Python side is the asset.** It is more complete and closer to the
 - **Correct server-side governance logic** (this is the SRS work, done right): pairwise generation lock `index.ts:721-744`; delayed-attempt ban after 3, school lockout `index.ts:1019-1045`; timing-window sequencing `index.ts:770-815`; Aadhaar masking for non-superadmin `index.ts:314-320,346-356`; role-scoped data filtering `index.ts:171,300-330`; revive/restore `index.ts:1205,1251`. The docs in `mvp/docs/` accurately describe this behavior.
 - **~30 real REST endpoints** in `server/index.ts` covering auth, students, worksheets, diagnostics, evaluation, analytics, admin, bulk jobs.
 - **Frontend UI shell** — the React dashboards, landing page, login, charts, and workflow components are a genuinely usable, polished UI. Worth keeping as the presentation layer once wired to the real API. Cleanest, most reusable pieces (good refactor templates): `Layout.tsx` (role-driven nav shell), `LogbookPanel.tsx`, `BulkDiagnosticWorkflow.tsx` (proper validation + polling cleanup), `AssessmentCalendar.tsx`, `TicketSubmission.tsx`, and the shared primitives `Table`/`MetricCard`/`Form`/`SvgLibraryResolver`/`WorksheetIframeModal`.
-- **Curriculum/exam data** — `evaluation_metrics/questions/`, `syllabus/`, `prompts/`, and `mvp/docs/FLN_Levels_Complete_Data.md` are real content assets.
+- **Curriculum/exam data** — `evaluation_metrics/questions/`, `syllabus/`, `prompts/`, and `mvp/Research/01-original-59-levels/FLN_Levels_Complete_Data.md` are real content assets.
 
 **Don't keep / retire:**
 - `src/mock/fetchInterceptor.ts`, `src/mock/dbStore.ts` — the fake backend (delete once frontend calls the real server).

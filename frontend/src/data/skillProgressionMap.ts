@@ -352,7 +352,7 @@ export interface LevelSkillMapping {
   levelNumber: number;
   /**
    * The same level's identifier in the research docs' S-notation
-   * (`Research/fln_level_networks.md`, `Research/fln_proposed_levels.md`),
+   * (`Research/02-93-levels/framework-build/fln_level_networks.md`, `Research/02-93-levels/framework-build/fln_proposed_levels.md`),
    * e.g. "S3.5". Derived, not hand-maintained — see sCodeFor() below.
    * Issue #280: this is the "make the mapping available to the code" ask.
    * Which notation is canonical long-term is a separate, deliberate naming
@@ -419,7 +419,7 @@ export interface Prerequisite {
 // 10, 15, 19, 14, 18 -> 93 before this sync). Both stageFor() and sCodeFor()
 // derive from this same array so the two notations can't drift relative to
 // each other by construction. Synchronized and verified against
-// Research/fln_L_to_S_crosswalk.json via scripts/check-level-notation-drift.ts
+// Research/02-93-levels/crosswalks/fln_L_to_S_crosswalk.json via scripts/check-level-notation-drift.ts
 // across all 109 levels.
 const STAGE_CUMULATIVE_BOUNDARIES = [8, 18, 46, 60, 77, 91, 109] as const;
 

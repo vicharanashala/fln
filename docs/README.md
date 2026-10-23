@@ -2,6 +2,10 @@
 
 This directory documents the complete teacher workflow in the FLN Assessment Portal.
 
+## Start here: the curriculum
+
+[`Research/03-109-levels/`](../Research/03-109-levels/README.md) lists all 109 levels, 24 skills and 183 subskills (readable tables plus a CSV).
+
 ## Files
 
 | File | Description |

@@ -1,14 +1,14 @@
 // Issue #280 ask #2: fails when the two level-numbering systems disagree.
 //
 // The project has two graphs of the same 93 levels:
-//   - S-notation (S1.1-S7.18)  — Research/fln_level_networks.md, Research/fln_proposed_levels.md
+//   - S-notation (S1.1-S7.18)  — Research/02-93-levels/framework-build/fln_level_networks.md, Research/02-93-levels/framework-build/fln_proposed_levels.md
 //   - L-notation (L1-L93)      — frontend/src/data/skillProgressionMap.ts
 //
 // L(n) is defined as the n-th S-code in stage-then-index order (deterministic,
 // no judgement involved) and is now computed directly in skillProgressionMap.ts
 // (see LevelSkillMapping.sCode / sCodeFor()) rather than hand-maintained. This
 // script is the automated version of the manual comparison that originally
-// surfaced the drift documented in Research/fln_L_to_S_crosswalk.md — it
+// surfaced the drift documented in Research/02-93-levels/crosswalks/fln_L_to_S_crosswalk.md — it
 // checks that the *reference* crosswalk file (the machine-readable record of
 // what the mapping is supposed to be) and the *code's* computed mapping still
 // agree, so a future edit to either one can't silently drift from the other
@@ -25,7 +25,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
 async function main() {
-  const crosswalkPath = path.join(ROOT, 'Research', 'fln_L_to_S_crosswalk.json');
+  const crosswalkPath = path.join(ROOT, 'Research', '02-93-levels', 'crosswalks', 'fln_L_to_S_crosswalk.json');
   if (!fs.existsSync(crosswalkPath)) {
     console.error(`Reference crosswalk not found at ${crosswalkPath} — nothing to check against.`);
     process.exit(1);
@@ -60,7 +60,7 @@ async function main() {
     console.error(`Level-notation drift found (${problems.length} problem(s)):\n`);
     for (const p of problems) console.error('  - ' + p);
     console.error(
-      '\nEither the reference crosswalk (Research/fln_L_to_S_crosswalk.json) or the ' +
+      '\nEither the reference crosswalk (Research/02-93-levels/crosswalks/fln_L_to_S_crosswalk.json) or the ' +
       'sCode computation in frontend/src/data/skillProgressionMap.ts has drifted from ' +
       'the other. Fix whichever one is wrong before merging.'
     );

@@ -664,9 +664,38 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     const withinFile = new Map<string, number>();
     for (const t of prepared) withinFile.set(t.variantKey, (withinFile.get(t.variantKey) ?? 0) + 1);
     const existingKeys: string[] = [];
+
+    const clean = (s: string) => (s ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const fingerprint = (t: QuestionTemplate) => JSON.stringify([
+      t.variantKey,
+      clean(t.generationIntent),
+      [...(t.skills ?? [])].sort(),
+      [...(t.subskills ?? [])].sort(),
+      t.questionFamily,
+      [...(t.svgThemeIds ?? [])].sort(),
+    ]);
+
+    const existingFingerprints = new Set<string>();
     for (const key of withinFile.keys()) {
       const siblings = await dbStore.getQuestionTemplatesByVariantKey(key);
-      if (siblings.length > 0) existingKeys.push(key);
+      if (siblings.length > 0) {
+        existingKeys.push(key);
+        for (const s of siblings) {
+          existingFingerprints.add(fingerprint(s));
+        }
+      }
+    }
+
+    const toAdd: QuestionTemplate[] = [];
+    let skippedIdentical = 0;
+    for (const t of prepared) {
+      const fp = fingerprint(t);
+      if (existingFingerprints.has(fp)) {
+        skippedIdentical++;
+      } else {
+        existingFingerprints.add(fp);
+        toAdd.push(t);
+      }
     }
 
     if (dryRun) {
@@ -674,19 +703,24 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
         dryRun: true,
         imported: 0,
         rowsRead: dataRows.length,
-        wouldImport: prepared.length,
+        wouldImport: toAdd.length,
+        wouldSkip: skippedIdentical,
+        skippedIdentical,
         errors: [],
         repeatedInFile: [...withinFile.entries()].filter(([, n]) => n > 1).map(([key, n]) => ({ variantKey: key, count: n })),
         alreadyExists: existingKeys,
-        preview: prepared.slice(0, 10).map(t => ({ conceptId: t.conceptId, name: t.name, stem: t.stem })),
+        preview: toAdd.slice(0, 10).map(t => ({ conceptId: t.conceptId, name: t.name, stem: t.stem })),
       });
     }
 
-    await dbStore.addQuestionTemplates(prepared);
+    if (toAdd.length > 0) {
+      await dbStore.addQuestionTemplates(toAdd);
+    }
 
     res.status(201).json({
       dryRun: false,
-      imported: prepared.length,
+      imported: toAdd.length,
+      skippedIdentical,
       rowsRead: dataRows.length,
       errors: [],
       repeatedInFile: [...withinFile.entries()].filter(([, n]) => n > 1).map(([key, n]) => ({ variantKey: key, count: n })),

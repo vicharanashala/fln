@@ -2327,7 +2327,12 @@ export class DBStore {
     let schoolIds: string[] | null = null;
     if (schoolFilter && Object.keys(schoolFilter).length > 0) {
       schoolIds = schools.filter(s => {
-        return Object.entries(schoolFilter).every(([k, v]) => (s as any)[k] === v);
+        return Object.entries(schoolFilter).every(([k, v]) => {
+          if (v && typeof v === 'object' && Array.isArray((v as any).$in)) {
+            return (v as any).$in.includes((s as any)[k]);
+          }
+          return (s as any)[k] === v;
+        });
       }).map(s => s.id);
     }
 
@@ -3497,6 +3502,22 @@ export class DBStore {
     limit?: number;
     skip?: number;
   } = {}) {
+    if (!this.mongoDb) {
+      let items = (this.data?.questionBank || []).slice();
+      if (opts.level !== undefined) items = items.filter(e => e.level === opts.level);
+      if (opts.sectionType) items = items.filter(e => e.sectionType === opts.sectionType);
+      if (opts.status) items = items.filter(e => e.reviewStatus === opts.status);
+      if (opts.mappedLevel !== undefined) items = items.filter(e => e.mappedLevel === opts.mappedLevel);
+      const total = items.length;
+      items.sort((a, b) => {
+        if (a.level !== b.level) return a.level - b.level;
+        if (a.section !== b.section) return (a.section < b.section ? -1 : 1);
+        return a.questionNumber - b.questionNumber;
+      });
+      const skip = opts.skip || 0;
+      const limit = opts.limit || 50;
+      return { items: items.slice(skip, skip + limit), total };
+    }
     const filter: any = {};
     if (opts.level !== undefined) filter.level = opts.level;
     if (opts.sectionType) filter.sectionType = opts.sectionType;
@@ -3512,6 +3533,9 @@ export class DBStore {
   }
 
   async getQuestionBankEntry(questionId: string) {
+    if (!this.mongoDb) {
+      return (this.data?.questionBank || []).find(e => e.questionId === questionId);
+    }
     return (await this.mongoDb!.collection<QuestionBankEntry>('questionBank')
       .findOne({ questionId })) || undefined;
   }
@@ -3524,6 +3548,14 @@ export class DBStore {
     reviewedBy: string;
     reviewNote?: string;
   }) {
+    if (!this.mongoDb) {
+      const entry = (this.data?.questionBank || []).find(e => e.questionId === questionId);
+      if (entry) {
+        Object.assign(entry, patch, { reviewedAt: new Date().toISOString() });
+        await this.save();
+      }
+      return entry;
+    }
     const coll = this.mongoDb!.collection<QuestionBankEntry>('questionBank');
     await coll.updateOne({ questionId }, {
       $set: { ...patch, reviewedAt: new Date().toISOString() } as any,
@@ -3538,6 +3570,22 @@ export class DBStore {
     reviewStatus: 'untagged' | 'mapped' | 'retired';
     reviewedBy: string;
   }) {
+    if (!this.mongoDb) {
+      const list = (this.data?.questionBank || []).filter(e => {
+        if (e.level !== filter.level) return false;
+        if (filter.section && e.section !== filter.section) return false;
+        if (filter.sectionType && e.sectionType !== filter.sectionType) return false;
+        return true;
+      });
+      const now = new Date().toISOString();
+      for (const entry of list) {
+        Object.assign(entry, patch, { reviewedAt: now });
+      }
+      if (list.length > 0) {
+        await this.save();
+      }
+      return { matched: list.length, modified: list.length };
+    }
     const q: any = { level: filter.level };
     if (filter.section) q.section = filter.section;
     if (filter.sectionType) q.sectionType = filter.sectionType;
@@ -3555,6 +3603,39 @@ export class DBStore {
    * mapped level-to-level instead.
    */
   async getQuestionBankProgress() {
+    if (!this.mongoDb) {
+      const list = this.data?.questionBank || [];
+      const total = list.length;
+      const mapped = list.filter(e => e.reviewStatus === 'mapped').length;
+      const retired = list.filter(e => e.reviewStatus === 'retired').length;
+      const untagged = list.filter(e => e.reviewStatus === 'untagged').length;
+      const levels = Array.from(new Set(list.map(e => e.level))).sort((a, b) => a - b);
+      const targetLevelsCovered = Array.from(new Set(
+        list
+          .filter(e => e.reviewStatus === 'mapped' && typeof e.mappedLevel === 'number')
+          .map(e => e.mappedLevel as number)
+      )).sort((a, b) => a - b);
+      const byLevelMap = new Map<number, { total: number; mapped: number; retired: number }>();
+      for (const e of list) {
+        let stat = byLevelMap.get(e.level);
+        if (!stat) {
+          stat = { total: 0, mapped: 0, retired: 0 };
+          byLevelMap.set(e.level, stat);
+        }
+        stat.total++;
+        if (e.reviewStatus === 'mapped') stat.mapped++;
+        if (e.reviewStatus === 'retired') stat.retired++;
+      }
+      const byLevel = Array.from(byLevelMap.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([level, stats]) => ({ level, ...stats }));
+      return {
+        total, mapped, retired, untagged,
+        legacyLevelsInBank: levels,
+        targetLevelsCovered,
+        byLevel,
+      };
+    }
     const coll = this.mongoDb!.collection<QuestionBankEntry>('questionBank');
     const [total, mapped, retired, untagged, levels, targets] = await Promise.all([
       coll.countDocuments({}),
@@ -3582,17 +3663,26 @@ export class DBStore {
   }
 
   async getCurriculumLevels() {
+    if (!this.mongoDb) {
+      return [...(this.data?.curriculumLevels || [])].sort((a, b) => a.levelNumber - b.levelNumber);
+    }
     return await this.mongoDb!.collection<CurriculumLevel>('curriculumLevels')
       .find({}).sort({ levelNumber: 1 }).toArray();
   }
 
   async getCurriculumLevel(levelNumber: number) {
+    if (!this.mongoDb) {
+      return (this.data?.curriculumLevels || []).find(l => l.levelNumber === levelNumber);
+    }
     return (await this.mongoDb!.collection<CurriculumLevel>('curriculumLevels')
       .findOne({ levelNumber })) || undefined;
   }
 
   /** Look a level up by its permanent identity rather than by its position. */
   async getCurriculumLevelByConceptId(conceptId: string) {
+    if (!this.mongoDb) {
+      return (this.data?.curriculumLevels || []).find(l => l.conceptId === conceptId);
+    }
     return (await this.mongoDb!.collection<CurriculumLevel>('curriculumLevels')
       .findOne({ conceptId })) || undefined;
   }
@@ -3605,6 +3695,9 @@ export class DBStore {
    * the last such call site is gone, this method and `legacyLevel59` go with it.
    */
   async getCurriculumLevelByLegacy59(legacyLevel59: number) {
+    if (!this.mongoDb) {
+      return (this.data?.curriculumLevels || []).find(l => l.legacyLevel59 === legacyLevel59);
+    }
     return (await this.mongoDb!.collection<CurriculumLevel>('curriculumLevels')
       .findOne({ legacyLevel59 })) || undefined;
   }
@@ -3617,6 +3710,23 @@ export class DBStore {
    * landed.
    */
   async setCurriculumLegacyMapping(levelNumber: number | null, legacyLevel59: number) {
+    if (!this.mongoDb) {
+      const list = this.data?.curriculumLevels || [];
+      for (const l of list) {
+        if (l.legacyLevel59 === legacyLevel59) {
+          l.legacyLevel59 = null;
+        }
+      }
+      if (levelNumber !== null) {
+        const target = list.find(l => l.levelNumber === levelNumber);
+        if (target) {
+          target.legacyLevel59 = legacyLevel59;
+          target.updatedAt = new Date().toISOString();
+        }
+      }
+      await this.save();
+      return;
+    }
     const coll = this.mongoDb!.collection<CurriculumLevel>('curriculumLevels');
     // Only one 93-space level may claim a given legacy id.
     await coll.updateMany({ legacyLevel59 }, { $set: { legacyLevel59: null } });

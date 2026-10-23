@@ -2,7 +2,7 @@
 Generator for FLN proposed-level question papers (Class 1, Stages 4.x).
 
 Inputs:
-  - Research/fln_proposed_levels.md   (level structure, objectives, topics)
+  - Research/02-93-levels/framework-build/fln_proposed_levels.md   (level structure, objectives, topics)
   - ai-services/syllabus/class_1/class_1_syllabus_phrase{1,2,3}.json (subtopic detail)
 
 Output:

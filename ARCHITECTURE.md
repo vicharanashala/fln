@@ -182,5 +182,5 @@ fln/
 ├── docs/                      # Technical documentation, ADRs, and task specifications
 │   ├── adr/                   # Architecture Decision Records (e.g. 001-backend-structure.md)
 │   └── intern-dashboard-tasks.md # Scoped intern tasks
-└── Research/                  # Pedagogical frameworks and 59→93 level crosswalk data
+└── Research/                  # Curriculum research by era: 01 (59 levels), 02 (93), 03 (109, current), 04 (background)
 ```

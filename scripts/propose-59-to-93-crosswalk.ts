@@ -1,8 +1,8 @@
 // Produces a DRAFT 59 -> 93 crosswalk for the pedagogy team to review.
 //
 //   npx tsx scripts/propose-59-to-93-crosswalk.ts
-//     -> writes Research/fln_59_to_93_crosswalk.PROPOSED.md   (review this)
-//     -> writes Research/fln_59_to_93_crosswalk.PROPOSED.json  (mechanical draft)
+//     -> writes Research/02-93-levels/crosswalks/fln_59_to_93_crosswalk.PROPOSED.md   (review this)
+//     -> writes Research/02-93-levels/crosswalks/fln_59_to_93_crosswalk.PROPOSED.json  (mechanical draft)
 //
 // This script does NOT decide the mapping. It matches the 59 worksheet-engine
 // level titles against the 93-level capability names by token overlap and ranks
@@ -28,8 +28,8 @@ const ROOT = path.resolve(__dirname, '..');
 
 const ENGINE = path.join(ROOT, 'frontend', 'public', 'worksheets', 'levels_main.html');
 const SKILL_MAP = path.join(ROOT, 'frontend', 'src', 'data', 'skillProgressionMap.ts');
-const OUT_MD = path.join(ROOT, 'Research', 'fln_59_to_93_crosswalk.PROPOSED.md');
-const OUT_JSON = path.join(ROOT, 'Research', 'fln_59_to_93_crosswalk.PROPOSED.json');
+const OUT_MD = path.join(ROOT, 'Research', '02-93-levels', 'crosswalks', 'fln_59_to_93_crosswalk.PROPOSED.md');
+const OUT_JSON = path.join(ROOT, 'Research', '02-93-levels', 'crosswalks', 'fln_59_to_93_crosswalk.PROPOSED.json');
 
 const STOP = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'by', 'with', 'through', 'for']);
 
@@ -117,7 +117,7 @@ async function main() {
   md.push('');
   md.push('## Sign-off');
   md.push('');
-  md.push('When reviewed, save the corrected mapping as `Research/fln_59_to_93_crosswalk.json`');
+  md.push('When reviewed, save the corrected mapping as `Research/02-93-levels/crosswalks/fln_59_to_93_crosswalk.json`');
   md.push('in the shape `{ "legacy59_to_level": { "1": 4, "2": 7, ... } }`. Omit any legacy');
   md.push('level that should not carry forward. `npm run seed:levels` reads that file only.');
   md.push('');

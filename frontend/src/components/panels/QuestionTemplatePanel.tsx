@@ -905,10 +905,18 @@ export const QuestionTemplatePanel: React.FC = () => {
               {importResult.dryRun && importResult.errors.length === 0 && (
                 <div className="rounded-md border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-emerald-800 dark:text-emerald-300">
                   {importResult.wouldImport} row(s) are ready to import.
+                  {(importResult.wouldSkip ?? 0) > 0 &&
+                    ` ${importResult.wouldSkip} row(s) are identical to existing templates and will be skipped.`}
                   {(importResult.alreadyExists?.length ?? 0) > 0 &&
                     ` ${importResult.alreadyExists!.length} of them repeat a variation that already exists.`}
                   {(importResult.repeatedInFile?.length ?? 0) > 0 &&
                     ` ${importResult.repeatedInFile!.length} variation(s) appear more than once in this file.`}
+                </div>
+              )}
+              {!importResult.dryRun && importResult.errors.length === 0 && importResult.imported !== undefined && (
+                <div className="rounded-md border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-emerald-800 dark:text-emerald-300">
+                  {importResult.imported} template(s) imported.
+                  {(importResult.skippedIdentical ?? 0) > 0 && ` ${importResult.skippedIdentical} skipped as identical.`}
                 </div>
               )}
             </div>

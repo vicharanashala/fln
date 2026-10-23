@@ -4,23 +4,52 @@ A large-scale, personalized assessment system that helps teachers measure, track
 
 > **Current build scope: Mathematics only.** "FLN" names the policy problem this project is built to eventually address in full (see [SRS.md](SRS.md)), but nothing here evaluates literacy today — every level, question, and evaluation path in this repo is numeracy. Don't read the sections below as literacy features that already exist.
 >
+> **Curriculum:** 109 levels, 24 skills, 183 subskills. See [where to find it](#curriculum-status-and-where-to-find-it).
+>
 > **Build order pivoted 2026-09-17 to stage-by-stage, not all-classes-at-once:** Balvatika (the year before Class 1) → Class 1 → Class 2 → Class 3, each stage frozen before the next starts. Class 4/5 are explicitly deferred to Tenali, not built here. Balvatika's 29 curriculum levels and their question-content (`generationIntent`) rows are already authored and seeded in the database, and the generation pipeline now consumes them — `levelGenerator` queries the level's approved `questionTemplates` and renders intent → wording, numbers and answer (`backend/src/services/questionTemplateRenderer.ts`, issue #486), falling back to the legacy generators for concepts with no approved templates. Don't assume a level existing in `curriculumMap.ts` means a student can be assessed on it end-to-end.
 
 ---
 
 ## Table of Contents
+- [Curriculum Status and Where to Find It](#curriculum-status-and-where-to-find-it)
 - [What is FLN?](#what-is-fln)
 - [Why FLN Matters](#why-fln-matters)
 - [Initiatives](#initiatives)
 - [What This Software Does](#what-this-software-does)
 - [How It Works (Workflow)](#how-it-works-workflow)
-- [The Level Framework](#the-level-framework)
+- [The Level Framework (109 levels)](#the-level-framework)
 - [Where This Is Headed](#where-this-is-headed)
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
 - [Contribution Guidelines](#contribution-guidelines)
 - [Branching & PR Convention](#branching--pr-convention)
 - [License](#license)
+
+---
+
+## Curriculum Status and Where to Find It
+
+**The platform currently covers 109 levels** (Preschool 1 to Class 4), built from 24 skills and 183 subskills. The count has moved twice: 59 levels, then 93, now 109. If you are working on the platform, these are the places to look:
+
+| I want to... | Go to |
+|---|---|
+| See all 109 levels, skills and subskills | [`Research/03-109-levels/`](Research/03-109-levels/README.md): [all levels](Research/03-109-levels/all-levels.md), [skills and subskills](Research/03-109-levels/skills-and-subskills.md), [CSV for Excel/Sheets](Research/03-109-levels/levels-and-subskills.csv) |
+| Understand the Balvatika stage (levels 19-46), the one being built now | [`Research/03-109-levels/fln_year_before_class1.md`](Research/03-109-levels/fln_year_before_class1.md) |
+| Read about the earlier 93-level version and how the framework was derived | [`Research/02-93-levels/`](Research/02-93-levels/README.md) |
+| Read about the original 59 levels (legacy worksheet engine) | [`Research/01-original-59-levels/`](Research/01-original-59-levels/README.md) |
+| Read the policy, theory and national data behind the curriculum | [`Research/04-background-research/`](Research/04-background-research/README.md) |
+| See how levels connect (AND/OR prerequisites) | [`docs/skill-graph/`](docs/skill-graph/README.md) |
+| Learn the ID rules (level number, S-code, skill ID) | [`docs/curriculum-terminology-and-id-mapping.md`](docs/curriculum-terminology-and-id-mapping.md) |
+| Find the level data in code | `backend/src/data/skillLevelMap.json` (source of truth), `backend/src/config/curriculumMap.ts`, `frontend/src/data/skillProgressionMap.ts` |
+
+| Stage | Levels |
+|---|---|
+| Preschool 1 / Preschool 2 | 1-8 / 9-18 |
+| Balvatika (year before Class 1) | 19-46 |
+| Class 1 / Class 2 / Class 3 | 47-60 / 61-77 / 78-91 |
+| Class 4 (outside the MVP) | 92-109 |
+
+The level list files in `Research/03-109-levels/` are generated from `skillLevelMap.json`. Change the JSON, then run `node scripts/export-levels-docs.js`; do not edit the generated files by hand. Start with the [Research index](Research/README.md) if you are new.
 
 ---
 
@@ -79,6 +108,8 @@ The platform is built around **personalized, student-specific assessment**, not 
 8. Cycle repeats until the student clears the grade-level FLN qualifier.
 
 ## The Level Framework
+
+> **Looking for the list of levels and subskills?** See [Curriculum Status and Where to Find It](#curriculum-status-and-where-to-find-it) above.
 
 Every question, worksheet, and diagnostic is pinned to one of **109 curriculum levels** (`backend/src/config/curriculumMap.ts`), each mapped to a stage, age group, and a concept ID (`S1.1`–`S7.18`). The count has moved twice: an older 59-level numbering was replaced by 93, which grew to 109 when the year before Class 1 was finalised against NCF-FS 2022 (PR #517). The migration is still in progress, and the most recently added levels have had the least real-world testing.
 

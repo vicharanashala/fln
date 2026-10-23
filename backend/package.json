@@ -12,7 +12,9 @@
     "lint": "tsc --noEmit",
     "test:fingerprint": "tsx src/misconceptionFingerprint.test.ts",
     "test:question-template-download": "tsx --test tests/question-template-download.test.ts",
+    "test:question-template-import": "tsx --test tests/question-template-import.test.ts",
     "test:observations": "tsx --test tests/observations.test.ts",
+    "test:file-store-fallback": "tsx --test tests/file-store-fallback.test.ts",
     "seed": "tsx src/seed.ts",
     "seed:html": "tsx src/seedLevelHtml.ts",
     "seed:levels": "tsx src/seedCurriculumLevels.ts",
@@ -26,6 +28,7 @@
     "test:search-index": "tsx --test tests/students-search-index.test.ts",
     "test:student-create": "tsx --test tests/create-student-from-data.test.ts",
     "test:school-geography": "tsx --test tests/school-geography.test.ts",
+    "test:school-onboarding": "tsx --test tests/school-onboarding.test.ts",
     "test:panel-isolation": "tsx --test tests/panel-isolation.test.cjs",
     "test:assessment-mode": "node tests/question-template-assessment-mode.test.cjs",
     "test:roster-filters": "tsx --test tests/roster-filters-persistence.test.cjs",
@@ -36,6 +39,7 @@
     "test:competency-prerequisites": "tsx src/competencyPrerequisites.test.ts",
     "test:balvatika-stage": "tsx --test src/config/curriculumMap.test.ts",
     "test:choice-error-tags": "tsx --test tests/choice-error-tags.test.ts",
+    "test:analytics-scoping": "tsx --test tests/analytics-scoping.test.ts",
     "test:error-tags": "tsx src/__checks__/errorTags.check.ts",
     "test:attempts": "tsx --test tests/attempt-records.test.ts",
     "test:class-level-range": "tsx --test tests/class-level-range.test.ts",
@@ -51,7 +55,8 @@
     "test:concept-worksheet": "tsx --test tests/concept-worksheet.test.ts",
     "test:template-renderer": "tsx src/services/questionTemplateRenderer.test.ts",
     "test:evaluation-override": "tsx --test tests/evaluation-override.test.ts",
-    "test:request-body-limits": "tsx --test tests/request-body-limits.test.ts tests/request-body-uploads.test.ts"
+    "test:request-body-limits": "tsx --test tests/request-body-limits.test.ts tests/request-body-uploads.test.ts",
+    "test:icr-cloud-config": "tsx --test tests/icr-cloud-config.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

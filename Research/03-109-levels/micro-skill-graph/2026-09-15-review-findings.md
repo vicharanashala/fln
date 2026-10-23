@@ -2,7 +2,7 @@
 
 Pavani and Amritha reviewed the FLN Micro-Skill Prerequisite Graph (`fln-micro-skill-graph.html`, in this same folder) and sent back a list of corrections. This document records what was checked, what was decided, and — for the items still open — the actual curriculum evidence gathered so the next reviewer isn't starting from zero. It supersedes chat history as the citable record of this review pass.
 
-**Companion reading:** `Research/fln_level_networks.md` (the original graph-structure design rationale) and `docs/question-authoring-and-assets.md` (why artwork/markup lives in files, not inline). The graph itself is the visualization; this file is why it changed.
+**Companion reading:** `Research/02-93-levels/framework-build/fln_level_networks.md` (the original graph-structure design rationale) and `docs/question-authoring-and-assets.md` (why artwork/markup lives in files, not inline). The graph itself is the visualization; this file is why it changed.
 
 ---
 
