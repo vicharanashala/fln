@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PDFDocument } from 'pdf-lib';
 
 // Isolate DB from the real repository data.
@@ -159,7 +160,7 @@ async function post(body: unknown, email: string | null = 'gps-mt-001.t01@fln.or
     body: JSON.stringify(body),
   });
   let json: any = null; try { json = await res.json(); } catch { /* not json */ }
-  if (json?.pdfUrl) keep(path.join(path.dirname(fs.realpathSync(new URL('../src/paperGenerator.ts', import.meta.url).pathname)), '..', json.pdfUrl.replace(/^\//, '')));
+  if (json?.pdfUrl) keep(path.join(path.dirname(fs.realpathSync(fileURLToPath(new URL('../src/paperGenerator.ts', import.meta.url)))), '..', json.pdfUrl.replace(/^\//, '')));
   return { status: res.status, json };
 }
 const good = { conceptIds: ['S3.4'], questionsPerConcept: 3, className: 'Balvatika', section: 'A' };
