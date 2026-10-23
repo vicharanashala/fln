@@ -4,7 +4,7 @@ import { apiFetch } from './services/apiClient';
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { Announcement, User, UserRole } from './types';
 import CoordinatorRegistration from './pages/CoordinatorRegistration';
@@ -25,6 +25,8 @@ import { PanelViews } from './components/PanelViews';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MisconceptionFingerprint from './components/MisconceptionFingerprint';
 import { Bell, Settings, ShieldCheck } from 'lucide-react';
+import { SessionTimeout } from './components/SessionTimeout';
+import { KeyboardShortcuts, useKeyboardShortcuts } from './components/KeyboardShortcuts';
 
 export default function App() {
   const navigate = useNavigate();
@@ -33,7 +35,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem('fln_theme');
       if (saved) return saved === 'dark';
-      return document.documentElement.classList.contains('dark') || 
+      return document.documentElement.classList.contains('dark') ||
              window.matchMedia('(prefers-color-scheme: dark)').matches;
     } catch {
       return false;
@@ -54,6 +56,10 @@ export default function App() {
   const [activePanel, setActivePanel] = useState<string>('workspace');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
+  useKeyboardShortcuts(() => setShowShortcuts(p => !p));
 
   const triggerToast = (msg: string) => {
     setToast(msg);
@@ -130,22 +136,22 @@ export default function App() {
 
   const handleClearNotifications = () => setAnnouncements([]);
 
-  const handleNavigateHome = () => {
+const handleNavigateHome = () => {
     setCurrentView('home');
     navigate('/');
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setToken(null);
     setCurrentUser(null);
     setActivePanel('workspace');
     localStorage.removeItem('fln_token');
     setCurrentView('home');
     navigate('/');
-  };
+  }, [navigate]);
 
   const renderRoleWorkspace = () => {
-    // token is required by DashboardProps — without it the dashboards send
+    // token is required by DashboardProps â€” without it the dashboards send
     // "Bearer undefined" and every data fetch 401s.
     if (!currentUser || !token) return null;
 
@@ -191,6 +197,8 @@ export default function App() {
                 onRoleSwitch={handleRoleSwitch}
                 activeView={activePanel}
                 onSelectView={setActivePanel}
+                onSelectPanel={setActivePanel}
+                onSelectStudent={setSelectedStudentId}
                 notifications={announcements}
                 onMarkNotificationRead={handleMarkNotificationRead}
                 onClearNotifications={handleClearNotifications}
@@ -202,7 +210,7 @@ export default function App() {
                 {activeUrgentAnnouncements.length > 0 && (
                   <div className="mb-6 flex items-center justify-between rounded-xl border border-amber-700 bg-amber-600 px-6 py-2.5 text-xs font-medium text-white shadow-sm">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold">⚠️ CRITICAL ALERT:</span>
+                      <span className="font-mono font-bold">âš ï¸ CRITICAL ALERT:</span>
                       <span>{activeUrgentAnnouncements[0].message}</span>
                     </div>
                     <span className="rounded bg-amber-800/40 px-2 py-0.5 text-[10px] font-mono uppercase text-amber-200">Escalated</span>
@@ -288,7 +296,7 @@ export default function App() {
                           </label>
                           <label className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-350 cursor-pointer">
                             <input type="checkbox" className="rounded border-slate-300 text-indigo-650 dark:border-slate-700 dark:bg-slate-800 dark:text-indigo-500 focus:ring-indigo-550 dark:focus:ring-indigo-650 dark:focus:ring-offset-slate-900" />
-                            <span>Audio voice narration on hover (SLA §2.3)</span>
+                            <span>Audio voice narration on hover (SLA Â§2.3)</span>
                           </label>
                         </div>
                       </div>
@@ -296,9 +304,9 @@ export default function App() {
                   </div>
                 )}
 
-                {!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'misconceptions'].includes(activePanel) && (
-                  <ErrorBoundary label={activePanel}>
-                    <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectView={setActivePanel} />
+{!['workspace', 'logbook', 'tickets', 'calendar', 'settings', 'notifications', 'misconceptions'].includes(activePanel) && (
+                  <ErrorBoundary label={activePanel} fallbackTitle="Panel Error">
+                    <PanelViews activePanel={activePanel} currentUser={currentUser} token={token} onSelectView={setActivePanel} onSelectPanel={setActivePanel} selectedStudentId={selectedStudentId} />
                   </ErrorBoundary>
                 )}
 
@@ -312,6 +320,11 @@ export default function App() {
                 )}
               </Layout>
             )}
+
+            {currentView === 'dashboard' && currentUser && token && (
+              <SessionTimeout timeoutMinutes={30} warningMinutes={5} onLogout={handleLogout} />
+            )}
+            <KeyboardShortcuts visible={showShortcuts} onClose={() => setShowShortcuts(false)} />
           </div>
         }
       />

@@ -7,6 +7,8 @@ import { TestHistoryPanel } from './panels/TestHistoryPanel';
 import { WorksheetTemplatesPanel } from './panels/WorksheetTemplatesPanel';
 import { SystemSettingsPanel } from './panels/SystemSettingsPanel';
 import { StudentListPanel } from './panels/StudentListPanel';
+import { FlaggedStudentsPanel } from './panels/FlaggedStudentsPanel';
+import { QuestionFlagReviewPanel } from './panels/QuestionFlagReviewPanel';
 import { AadhaarRevealPanel } from './panels/AadhaarRevealPanel';
 import { SecurityPanel } from './panels/SecurityPanel';
 import { DiagnosticTestPanel } from './panels/DiagnosticTestPanel';
@@ -26,6 +28,9 @@ import { StudentProfilePanel } from './panels/StudentProfilePanel';
 import { QuestionBankPanel } from './panels/QuestionBankPanel';
 import { PageHeader } from './panels/PanelShared';
 import { CertificationReviewPanel } from './CertificationReviewPanel';
+import { ReportCardView } from './ReportCardView';
+import { NotFoundView } from './NotFoundView';
+import { SystemHealthPanel } from './SystemHealthPanel';
 
 interface PanelViewsProps {
   activePanel: string;
@@ -39,9 +44,20 @@ interface PanelViewsProps {
    * (where the sub-flow is never reached) don't need to thread it.
    */
   onSelectView?: (view: string) => void;
+  onSelectPanel?: (panel: string) => void;
+  selectedStudentId?: string | null;
 }
 
-export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectView }) => {
+const CONTENT_ITEMS = [
+  { id: 'c1', title: 'Number Line 1-10', type: 'Visual Aid', level: 'L1-L4', language: 'English, Punjabi', status: 'Approved' },
+  { id: 'c2', title: 'Addition with Objects', type: 'Lesson Plan', level: 'L7-L12', language: 'English, Hindi', status: 'Approved' },
+  { id: 'c3', title: 'Place Value Chart', type: 'Poster', level: 'L24-L30', language: 'English, Punjabi', status: 'Draft' },
+  { id: 'c4', title: 'Multiplication Tables Song', type: 'Audio', level: 'L36-L41', language: 'English', status: 'Review' },
+  { id: 'c5', title: 'Fraction Pizza Activity', type: 'Worksheet', level: 'L45-L48', language: 'English, Hindi', status: 'Approved' },
+  { id: 'c6', title: 'Money Math Games', type: 'Activity', level: 'L46-L48', language: 'English', status: 'Draft' },
+];
+
+export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser, token, onSelectView, onSelectPanel, selectedStudentId }) => {
   const {
     students, studentsLoading, schools, schoolsLoading, schoolsError, refreshSchools, usersList, reportsList, worksheetsList, teachersList,
     getDistrictStats, getBlockStats, updateStudentLocally, refreshStudents,
@@ -59,6 +75,18 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
         token={token}
         refreshStudents={refreshStudents}
       />
+    );
+  }
+
+  if (panel === 'flagged_students') {
+    return (
+      <FlaggedStudentsPanel currentUser={currentUser} token={token} />
+    );
+  }
+
+  if (panel === 'question_flag_review') {
+    return (
+      <QuestionFlagReviewPanel token={token} />
     );
   }
 
@@ -154,6 +182,28 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
     );
   }
 
-  // Fallback for any unmatched panel — renders the roles workspace (dashboard) as the content
-  return null;
+  // ===================== FEATURE PANELS =====================
+  if (panel === 'report_card') {
+    const sel = selectedStudentId ?? students[0]?.id;
+    const s = students.find(x => x.id === sel);
+    if (!s) return <NotFoundView onNavigateHome={() => onSelectPanel?.('workspace')} />;
+    const reports = reportsList.filter(r => r.studentId === s.id);
+    const studentSchool = schools.find(sch => sch.id === s.schoolId);
+    return (
+      <ReportCardView
+        student={s}
+        reports={reports}
+        schoolName={studentSchool?.name || 'Government Primary School'}
+        onBack={() => onSelectPanel?.('student_profile')}
+      />
+    );
+  }
+
+  if (panel === 'system_health') {
+    return <SystemHealthPanel token={token} />;
+  }
+
+  // Fallback for any unmatched panel — show the feature's 404 view
+  // instead of rendering blank content.
+  return <NotFoundView onNavigateHome={() => onSelectPanel?.('workspace')} />;
 };

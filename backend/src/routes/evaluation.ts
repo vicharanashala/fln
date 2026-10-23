@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import { randomUUID } from 'crypto';
 import { PDFDocument } from 'pdf-lib';
-import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_NAMES, dedupeQuestionsById } from '../db';
+import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_NAMES, dedupeQuestionsById, QuestionBankEntry } from '../db';
 import { getAuthUser, canAccessStudent } from '../auth';
 import { evaluateAIWorksheet } from '../gemini';
 import { PYTHON_BIN, AI_SERVICES_DIR } from '../config';
@@ -14,9 +14,12 @@ import { assignStudentToArchetype } from '../studentArchetypeService';
 import { CURRICULUM_MAPPING } from '../config/curriculumMap';
 import { directPrerequisites, describeConcept } from '../competencyPrerequisites';
 import { analyzeScanQuality } from '../scanQuality';
-import { calculateStandardAdvancement } from '../gradeLevelCalculator';
-import { computeRootCauseAnalysis } from '../rootCauseAnalysis';
-import { matchesChoiceLetter } from '../answerMatching';
+import { MAX_FLN_LEVEL } from '../config/constants';
+import {
+  detectQuestionFlags,
+  QUESTION_AUTOFLAG_THRESHOLD,
+  QUESTION_AUTOFLAG_MIN_STUDENTS,
+} from '../services/questionFlagService';
 
 export function registerEvaluationRoutes(app: express.Express) {
 
@@ -1115,9 +1118,102 @@ export function registerEvaluationRoutes(app: express.Express) {
       currentLevel: recommendedLevel,
       currentSubLevel: newSubLevel,
       // Capped at 59, not 93: worksheet generation still throws UnknownLevelError above 59.
-      targetLevel: Math.min(59, recommendedLevel + 1),
+      targetLevel: Math.min(MAX_FLN_LEVEL, evaluation.recommendedLevel + 1),
       levelHistory
     });
+
+    // Auto-flag: SRS "level auto-flag — 50%+ fail an easy question".
+    // If the student failed half or more of the easy questions on this
+    // evaluation, raise a flag so a teacher can review and intervene.
+    try {
+      const easyQuestions = studentQuestions.filter((q) => q.difficulty === 'easy');
+      if (easyQuestions.length > 0) {
+        let failedEasy = 0;
+        for (const q of easyQuestions) {
+          const submitted = (answers[q.question_id] || '').trim().toLowerCase();
+          const correct = q.answer.trim().toLowerCase();
+          if (submitted !== correct) failedEasy++;
+        }
+        const failRate = failedEasy / easyQuestions.length;
+        if (failRate >= 0.5) {
+          await dbStore.updateStudent(student.id, {
+            levelFlag: {
+              flagged: true,
+              reason: `Failed ${Math.round(failRate * 100)}% of easy questions (${failedEasy}/${easyQuestions.length}) on ${ws.cycle} evaluation`,
+              flaggedAt: now.toISOString(),
+              flaggedBy: user.email,
+              reviewed: false,
+            },
+          });
+        }
+      }
+    } catch (_e) {
+      // Auto-flag is best-effort; never block an evaluation on it.
+    }
+
+    // Question-level auto-flag: SRS R-15 — if 50%+ of students consistently
+    // fail an "easy"-tagged question, flag it for core-team review.
+    // Runs incrementally on each submission: checks every easy question the
+    // student answered (passed or failed), because any submission changes the
+    // distinct-student denominator, which can push the failure rate across
+    // the 50% threshold. Best-effort; never blocks an evaluation.
+    try {
+      const easyQuestions = studentQuestions.filter(q => q.difficulty === 'easy');
+
+      if (easyQuestions.length > 0) {
+        const { items: questionBank } = await dbStore.getQuestionBank();
+        const questionBankById = new Map<string, QuestionBankEntry>();
+        for (const q of questionBank) questionBankById.set(q.questionId, q);
+
+        for (const q of easyQuestions) {
+          const reports = await dbStore.getEvaluationReportsForQuestion(q.question_id);
+
+          // Count distinct students who attempted and failed this question
+          const attemptingStudents = new Set<string>();
+          const failingStudents = new Set<string>();
+          for (const r of reports) {
+            const qr = r.questionResults?.find(qr => qr.questionId === q.question_id);
+            if (!qr) continue;
+            attemptingStudents.add(r.studentId);
+            const isCorrect = qr.isCorrect ?? false;
+            const correctAnswer = (qr.correctAnswer ?? '').trim();
+            const submittedAnswer = (qr.submittedAnswer ?? '').trim();
+            const isBlankButRequired =
+              !submittedAnswer && correctAnswer && correctAnswer.length > 0;
+            if (!isCorrect || isBlankButRequired) {
+              failingStudents.add(r.studentId);
+            }
+          }
+
+          const attemptingCount = attemptingStudents.size;
+          const failingCount = failingStudents.size;
+          if (attemptingCount >= QUESTION_AUTOFLAG_MIN_STUDENTS) {
+            const failRate = failingCount / attemptingCount;
+            const shouldFlag = failRate >= QUESTION_AUTOFLAG_THRESHOLD;
+            const existing = questionBankById.get(q.question_id);
+            const currentlyFlagged = Boolean(existing?.questionFlag?.flagged);
+            const alreadyReviewed = Boolean(existing?.questionFlag?.reviewed);
+
+            if (shouldFlag && !currentlyFlagged) {
+              await dbStore.updateQuestionBankFlag(q.question_id, {
+                flagged: true,
+                reason: `Failed ${Math.round(failRate * 100)}% of ${attemptingCount} student(s) (${failingCount} failing) on easy question`,
+                flaggedAt: now.toISOString(),
+                flaggedBy: 'system (auto-flag)',
+                reviewed: false,
+              });
+            } else if (!shouldFlag && currentlyFlagged && !alreadyReviewed) {
+              await dbStore.updateQuestionBankFlag(q.question_id, {
+                ...existing!.questionFlag,
+                flagged: false,
+              });
+            }
+          }
+        }
+      }
+    } catch (_e) {
+      // Question-level auto-flag is best-effort; never block an evaluation on it.
+    }
 
     // Logging & escalation updates if delayed
     if (isDelayed) {
@@ -1376,7 +1472,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     const classMatch = student.classGroup.match(/\d+/);
     const classNumber = classMatch ? parseInt(classMatch[0], 10) : 1;
     // Capped at 59, not 93: worksheet generation still throws UnknownLevelError above 59.
-    const recommendedLevel = Math.max(1, Math.min(59, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
+    const recommendedLevel = Math.max(1, Math.min(MAX_FLN_LEVEL, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
     const recommendedSubLevel = percentage >= 80 ? 0 : percentage >= 50 ? 1 : 2;
 
     const updatedReport = await dbStore.updateEvaluationReport(report.id, {
@@ -1421,7 +1517,7 @@ export function registerEvaluationRoutes(app: express.Express) {
       await dbStore.updateStudent(student.id, {
         currentLevel: recommendedLevel,
         currentSubLevel: recommendedSubLevel,
-        targetLevel: Math.min(59, recommendedLevel + 1),
+        targetLevel: Math.min(MAX_FLN_LEVEL, recommendedLevel + 1),
         levelHistory,
       });
     }
