@@ -4,6 +4,7 @@ import { dbStore, UserRole, User } from '../db';
 import { getAuthUser, sanitizeUser, requireSuperadmin } from '../auth';
 import {
   generateAdminId,
+  generateTeacherId,
   generateDistrictAdminId,
   generateBlockAdminId,
   generatePrincipalId,
@@ -23,6 +24,9 @@ function generateIdForRole(role: UserRole): string {
 
     case UserRole.SCHOOL:
       return generatePrincipalId();
+
+    case UserRole.TEACHER:
+      return generateTeacherId();
 
     case UserRole.VOLUNTEER:
       return generateVolunteerId();
@@ -45,6 +49,22 @@ export function registerAdminRoutes(app: express.Express) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
 
+    const CREATABLE_ROLES = [
+      UserRole.ADMIN,
+      UserRole.DISTRICT_ADMIN,
+      UserRole.BLOCK_ADMIN,
+      UserRole.SCHOOL,
+      UserRole.TEACHER,
+      UserRole.VOLUNTEER,
+    ];
+
+    if (!CREATABLE_ROLES.includes(role as UserRole)) {
+      return res.status(400).json({
+        error: `Unsupported role "${role}". Allowed: ${CREATABLE_ROLES.join(', ')}.`,
+      });
+    }
+
+  try {
     // Verify Password complexity (§3.2 A-3)
     const hasUppercase = /[A-Z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
@@ -115,7 +135,11 @@ export function registerAdminRoutes(app: express.Express) {
       details: `Superadmin created account: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
     });
 
-    res.json(newUser);
+    res.json(sanitizeUser(newUser));
+    } catch (err: any) {
+      console.error('[admin/create] failed:', err?.message || err);
+      res.status(500).json({ error: 'Could not create the account.' });
+    }
   });
 
   app.get('/api/admin/coordinators', async (req, res) => {
