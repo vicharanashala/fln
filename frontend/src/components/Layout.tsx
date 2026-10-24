@@ -382,7 +382,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
           {/* Notifications bell */}
           <div className="relative">
-            <button
+            <button aria-label="Notifications"
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative rounded-lg p-2 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 text-slate-505 hover:bg-slate-100 transition dark:text-slate-400 dark:hover:bg-slate-800"
             >
@@ -456,7 +456,7 @@ export const Layout: React.FC<LayoutProps> = ({
             </div>
             <div className="hidden flex-col sm:flex">
               <span className="text-xs font-bold text-slate-900 dark:text-white">{currentUser.name}</span>
-              <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wide dark:text-slate-500">
+              <span className="text-[11px] font-mono text-slate-600 uppercase tracking-wide dark:text-slate-400">
                 {currentUser.role.replace('_', ' ')}
               </span>
             </div>
@@ -535,7 +535,7 @@ export const Layout: React.FC<LayoutProps> = ({
           <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
             {/* Pinned shortcuts header */}
             {!collapsed && pinnedItems.length > 0 && (
-              <div className="px-3 py-1 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest block mb-1 dark:text-slate-500">
+              <div className="px-3 py-1 text-[11px] font-mono font-bold text-slate-600 uppercase tracking-widest block mb-1 dark:text-slate-400">
                 📌 Pinned Views
               </div>
             )}
@@ -608,7 +608,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
           {/* Support Branding Footer */}
           <div className="border-t border-slate-200 p-4 dark:border-slate-700">
-            <div className={`flex items-center gap-2 px-2 text-[10px] font-semibold text-slate-450 ${collapsed ? 'justify-center' : ''} dark:text-slate-500`}>
+            <div className={`flex items-center gap-2 px-2 text-[10px] font-semibold text-slate-600 ${collapsed ? 'justify-center' : ''} dark:text-slate-400`}>
               <HelpCircle className="h-4 w-4 text-slate-400 shrink-0 dark:text-slate-500" />
               {!collapsed && <span>IIT Ropar VLED Labs</span>}
             </div>
