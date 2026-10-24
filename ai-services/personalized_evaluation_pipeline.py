@@ -1,18 +1,20 @@
 """
-Personalized Evaluation Pipeline
+RETIRED / DEPRECATED (Issue #458)
 
-Checks existing evaluation reports for a student's class/phrase exam.
-If the child failed, generates a personalized next-phrase exam:
+This script is retired and preserved for reference only. It runs on a legacy,
+standalone `class_N` + `phrase_1/2/3` flat-file data model that is disconnected
+from the platform's production MongoDB database and 93-level concept taxonomy.
 
-  1. Reuses the EXACT same questions the child got wrong
-  2. PLUS questions for NEW subtopics/levels present in the target
-     phrase's syllabus but NOT in the current phrase's syllabus
-  3. If syllabi are identical (e.g. class_1 phrase_3 -> class_2 phrase_1),
-     only the failed questions are included
+Production remediation planning and personalized worksheet generation are
+handled by `remediationPlanService` in the Node backend
+(`backend/src/services/remediationPlanService.ts`) and `errorClassification.ts`.
+
+Do not invoke or patch this script for live production evaluation.
 """
 
 import json
 import sys
+import warnings
 from pathlib import Path
 from datetime import datetime
 
@@ -127,9 +129,16 @@ def get_questions_for_subtopic_names(question_bank, subtopic_names):
 
 
 def run_pipeline(student_id, class_num, phrase, student_name=None):
+    warnings.warn(
+        "personalized_evaluation_pipeline.py is retired and disconnected from MongoDB. "
+        "Use backend remediationPlanService instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     print("=" * 70)
-    print(f"PERSONALIZED EVALUATION PIPELINE")
+    print("PERSONALIZED EVALUATION PIPELINE (RETIRED / DEPRECATED — ISSUE #458)")
     print(f"Student: {student_id} | Class {class_num} | {phrase}")
+    print("Notice: Production backend uses remediationPlanService & errorClassification.ts")
     print("=" * 70)
 
     # --- Load existing reports ---
