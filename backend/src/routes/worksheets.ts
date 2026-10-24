@@ -7,7 +7,7 @@ import { getAuthUser } from '../auth';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import * as levelsBackendClient from '../levelsBackendClient';
 import { ROOT_DIR } from '../config';
-import { getLevelForConcept } from '../config/curriculumMap';
+import { getLevelForConcept, isBalvatikaStage } from '../config/curriculumMap';
 import { PAPER_TYPE_CONFIG, getPaperTypeConfig, spreadQuestionCount } from '../config/paperTypeConfig';
 import { recordStudentCycleLock } from '../paperLock';
 import {
@@ -15,6 +15,7 @@ import {
   getLatestGenerationWindow,
   isWorksheetGenerationLocked
 } from '../generationWindowRules';
+import { getAssessmentModesByConcept, prepareQuestionsForStudent } from '../services/assessmentMode';
 /**
  * Shared pipeline: build a roster -> Levels_backend /api/generate-batch ->
  * poll /api/batch-status -> /api/download-batch (zip) -> unpack
@@ -374,12 +375,29 @@ export function registerWorksheetRoutes(app: express.Express) {
       return res.status(400).json({ error: 'No students found in this class roster.' });
     }
 
-    // Compile distinct personalized questions per student based on level and sub-level
+    // Compile distinct personalized questions per student based on level and sub-level.
+    // Assessment mode is resolved from the authored question templates on the
+    // server; this is the backstop for callers that bypass the authoring UI.
     const compiledQuestions: Question[] = [];
+    const skippedStudents: Array<{ studentId: string; studentName: string; level: number; reason: string }> = [];
+    const assessmentModes = await getAssessmentModesByConcept();
 
     for (const student of classStudents) {
       const subLvl = student.currentSubLevel || 0;
-      const qs = await generateQuestionsForLevel(student.currentLevel, subLvl);
+      const qs = prepareQuestionsForStudent(
+        await generateQuestionsForLevel(student.currentLevel, subLvl),
+        student,
+        assessmentModes,
+      );
+      if (qs.length === 0) {
+        skippedStudents.push({
+          studentId: student.id,
+          studentName: student.name,
+          level: student.currentLevel,
+          reason: 'No observed or both-mode question is available for this Balvatika level.',
+        });
+        continue;
+      }
       // Map question IDs to be student-specific to prevent duplicate collisions
       qs.forEach(q => {
         compiledQuestions.push({
@@ -387,6 +405,13 @@ export function registerWorksheetRoutes(app: express.Express) {
           question_id: `${student.id}_${q.question_id}`,
           question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
         });
+      });
+    }
+
+    if (compiledQuestions.length === 0) {
+      return res.status(400).json({
+        error: 'No worksheet generated: none of the selected students has an eligible question. Add an observed or both-mode question template for the Balvatika levels and try again.',
+        skippedStudents,
       });
     }
 
@@ -469,7 +494,7 @@ export function registerWorksheetRoutes(app: express.Express) {
       details: `Generated personalized worksheets for ${classObj.className} ${classObj.section}. Locked pairwise role.`
     });
 
-    res.json(newWorksheet);
+    res.json({ ...newWorksheet, skippedStudents });
   });
 
   // Generate printable PDF for an existing worksheet (connects 93 FLN levels with diagnostic pipeline)
@@ -491,7 +516,7 @@ export function registerWorksheetRoutes(app: express.Express) {
       s => s.classGroup === ws.className && s.section === ws.section && s.schoolId === ws.schoolId
     );
 
-    const studentsWithQuestions = classStudents.map(s => {
+    const worksheetStudents = classStudents.map(s => {
       const studentQuestions = ws.questions.filter(q => q.question_id.startsWith(s.id + '_'));
       return {
         studentId: s.id,
@@ -500,10 +525,22 @@ export function registerWorksheetRoutes(app: express.Express) {
         currentSubLevel: s.currentSubLevel || 0,
         questions: studentQuestions
       };
-    }).filter(s => s.questions.length > 0);
+    });
+    const studentsWithQuestions = worksheetStudents.filter(s => s.questions.length > 0);
+    const skippedStudents = worksheetStudents
+      .filter(s => s.questions.length === 0)
+      .map(s => ({
+        studentId: s.studentId,
+        studentName: s.name,
+        level: s.currentLevel,
+        reason: 'No eligible question is stored for this student in the worksheet.',
+      }));
 
     if (studentsWithQuestions.length === 0) {
-      return res.status(400).json({ error: 'No student questions found in this worksheet.' });
+      return res.status(400).json({
+        error: 'No worksheet PDF generated: every student in this worksheet has no eligible question.',
+        skippedStudents,
+      });
     }
 
     try {
@@ -515,7 +552,7 @@ export function registerWorksheetRoutes(app: express.Express) {
         cycle: ws.cycle,
         studentsWithQuestions
       });
-      res.json({ success: true, pdfUrl: result.pdfUrl });
+      res.json({ success: true, pdfUrl: result.pdfUrl, skippedStudents });
     } catch (err: any) {
       console.error('Worksheet PDF generation failed:', err);
       res.status(500).json({ success: false, error: err.message });
@@ -648,6 +685,27 @@ export function registerWorksheetRoutes(app: express.Express) {
         return res.status(400).json({ error: 'Student has not completed their diagnostic test.' });
       }
 
+      let balvatikaQuestions: Question[] | null = null;
+      if (isBalvatikaStage(student.currentLevel)) {
+        const assessmentModes = await getAssessmentModesByConcept();
+        balvatikaQuestions = prepareQuestionsForStudent(
+          await generateQuestionsForLevel(student.currentLevel, student.currentSubLevel || 0),
+          student,
+          assessmentModes,
+        );
+        if (balvatikaQuestions.length === 0) {
+          return res.status(400).json({
+            error: `No worksheet generated for ${student.name}: Balvatika level ${student.currentLevel} has no observed or both-mode question.`,
+            skippedStudents: [{
+              studentId: student.id,
+              studentName: student.name,
+              level: student.currentLevel,
+              reason: 'No observed or both-mode question is available for this Balvatika level.',
+            }],
+          });
+        }
+      }
+
       // Per-student generation lock. This route renders a personalized
       // worksheet PDF for a single student. It is treated as the
       // diagnostic-level paper for the current academic year
@@ -676,6 +734,27 @@ export function registerWorksheetRoutes(app: express.Express) {
       await dbStore.addStudentCycleLock(lockAttempt.lock);
 
       try {
+        // Levels_backend has no assessment-mode contract. Keep Balvatika papers
+        // on this server so a direct call cannot bypass the written-item gate.
+        if (balvatikaQuestions) {
+          const questions = balvatikaQuestions;
+          const { renderWorksheetPdf } = await import('../paperGenerator');
+          const worksheetId = `level_${student.id}_${Date.now()}`;
+          const result = await renderWorksheetPdf({
+            worksheetId,
+            className: student.classGroup,
+            section: student.section,
+            cycle: 'Baseline',
+            studentsWithQuestions: [{
+              studentId: student.id,
+              name: student.name,
+              currentLevel: student.currentLevel,
+              currentSubLevel: student.currentSubLevel || 0,
+              questions,
+            }],
+          });
+          return res.json({ success: true, pdfUrl: result.pdfUrl, assessmentModeEnforced: true });
+        }
         const generated = await generateLevelWorksheetsViaLevelsBackend([student]);
         if (generated.length === 0) {
           throw new Error('Levels_backend returned no files for this student.');
@@ -734,23 +813,89 @@ export function registerWorksheetRoutes(app: express.Express) {
         return res.status(400).json({ error: 'No eligible (placed) students in this request.', skipped });
       }
 
-      const generated = await generateLevelWorksheetsViaLevelsBackend(targets, { includeBatchId: true });
+      const standardTargets = targets.filter(student => !isBalvatikaStage(student.currentLevel));
+      const balvatikaTargets = targets.filter(student => isBalvatikaStage(student.currentLevel));
+      const skippedStudents: Array<{ studentId: string; studentName: string; level: number; reason: string }> = [];
+      const balvatikaQuestions = new Map<string, Question[]>();
+      if (balvatikaTargets.length > 0) {
+        const assessmentModes = await getAssessmentModesByConcept();
+        for (const student of balvatikaTargets) {
+          const questions = prepareQuestionsForStudent(
+            await generateQuestionsForLevel(student.currentLevel, student.currentSubLevel || 0),
+            student,
+            assessmentModes,
+          );
+          if (questions.length === 0) {
+            skippedStudents.push({
+              studentId: student.id,
+              studentName: student.name,
+              level: student.currentLevel,
+              reason: 'No observed or both-mode question is available for this Balvatika level.',
+            });
+          } else {
+            balvatikaQuestions.set(student.id, questions);
+          }
+        }
+      }
+
+      if (standardTargets.length === 0 && balvatikaQuestions.size === 0) {
+        return res.status(400).json({
+          error: 'No worksheets generated: every eligible student has no question available for their current Balvatika level.',
+          skipped,
+          skippedStudents,
+        });
+      }
+
+      let generated: Array<{ studentId: string; studentName: string; batchId: string; sublevelId: string; setNum: number; pdfUrl: string }> = [];
+      if (standardTargets.length > 0) {
+        generated = await generateLevelWorksheetsViaLevelsBackend(standardTargets, { includeBatchId: true });
+      }
+      if (balvatikaQuestions.size > 0) {
+        const { renderWorksheetPdf } = await import('../paperGenerator');
+        for (const student of balvatikaTargets) {
+          const questions = balvatikaQuestions.get(student.id);
+          if (!questions) continue;
+          const worksheetId = `level_${student.id}_${Date.now()}`;
+          const result = await renderWorksheetPdf({
+            worksheetId,
+            className: student.classGroup,
+            section: student.section,
+            cycle: 'Baseline',
+            studentsWithQuestions: [{
+              studentId: student.id,
+              name: student.name,
+              currentLevel: student.currentLevel,
+              currentSubLevel: student.currentSubLevel || 0,
+              questions,
+            }],
+          });
+          generated.push({
+            studentId: student.id,
+            studentName: student.name,
+            batchId: '',
+            sublevelId: `${student.currentLevel}.${student.currentSubLevel || 0}`,
+            setNum: 1,
+            pdfUrl: result.pdfUrl,
+          });
+        }
+      }
 
       const results = generated.map(g => ({
         studentId: g.studentId,
         studentName: g.studentName,
         sublevelId: g.sublevelId,
         setNum: g.setNum,
-        pdfUrl: g.pdfUrl
+        pdfUrl: g.pdfUrl,
       }));
 
       res.json({
         success: true,
         batchId: generated[0]?.batchId || null,
-        studentsProcessed: targets.length,
+        studentsProcessed: generated.length,
         totalFiles: generated.length,
         results,
-        skipped
+        skipped,
+        skippedStudents
       });
     } catch (err: any) {
       console.error('Level-wise batch generation failed:', err);
