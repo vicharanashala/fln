@@ -33,6 +33,8 @@ import {
   CertificationReviewError,
   countActiveCertificationsFromMemory,
   buildPerSchoolStats,
+  updateCertificationIfVersion,   // ASSUMED name
+  getReviewQueueForAdmin,         // ASSUMED name
 } from '../services/certificationRecords';
 import {
   getAdminEmails,
@@ -55,6 +57,17 @@ let failed = 0;
 function check(name: string, fn: () => void) {
   try {
     fn();
+    console.log(`  ✓ ${name}`);
+    passed++;
+  } catch (err) {
+    console.error(`  ✗ ${name}`);
+    console.error('    ', err instanceof Error ? err.message : String(err));
+    failed++;
+  }
+}
+async function checkAsync(name: string, fn: () => Promise<void>) {
+  try {
+    await fn();
     console.log(`  ✓ ${name}`);
     passed++;
   } catch (err) {
@@ -391,6 +404,50 @@ check('buildEmailPayload includes cert id, student id, and reason', () => {
     payload.body.includes('POST /api/certification/review/'),
     'body must include the review endpoint'
   );
+});
+
+console.log('\nstate-admin review queue scoping');
+
+check('state admin does not see certs of students from another state', () => {
+  const schools: School[] = [
+    { id: 'sch_pb', name: 'PB School', stateCode: 'PB', districtCode: 'LDH', blockCode: 'LDH-01', strength: 'high', teachersCount: 5 },
+    { id: 'sch_mh', name: 'MH School', stateCode: 'MH', districtCode: 'PUN', blockCode: 'PUN-01', strength: 'high', teachersCount: 5 },
+  ];
+  const students: Student[] = [
+    { id: 'st_pb', name: 'PB Kid', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'sch_pb', currentLevel: 5, targetLevel: 5, aadharMasked: 'XXXX', levelHistory: [] },
+    { id: 'st_mh', name: 'MH Kid', age: 8, classGroup: 'Class 3', section: 'A', schoolId: 'sch_mh', currentLevel: 5, targetLevel: 5, aadharMasked: 'XXXX', levelHistory: [] },
+  ];
+  const certs: Certification[] = ['st_pb', 'st_mh'].map((studentId, i) => ({
+    ...makeReviewNeededCert(),
+    id: `cert_scope_${i}`,
+    studentId,
+    certificateId: `CERT-${studentId}-3`,
+  }));
+
+  // ASSUMED signature: (admin, students, certs, schools) -> Certification[]
+  const queue = getReviewQueueForAdmin(
+    { id: 'sa_pb', email: 'sa@pb.org', role: 'state_admin', stateCode: 'PB' },
+    students, certs, schools
+  );
+
+  assert.deepEqual(queue.map(c => c.studentId), ['st_pb']);
+  assert.equal(queue.some(c => c.studentId === 'st_mh'), false, 'other-state cert leaked into queue');
+});
+
+console.log('\noptimistic-lock update');
+
+await checkAsync('updateCertificationIfVersion: same expectedVersion → record, then null', async () => {
+  const cert = makeReviewNeededCert(); // version 3
+  // If this is DB-backed, seed `cert` first (e.g. insert it) so the update has a row to hit.
+
+  // ASSUMED signature: (id, expectedVersion, patch) -> Promise<Certification | null>
+  const first = await updateCertificationIfVersion(cert.id, 3, { status: 'active' });
+  assert.notEqual(first, null, 'first update should succeed');
+  assert.equal(first!.status, 'active');
+  assert.equal(first!.version, 4);
+
+  const second = await updateCertificationIfVersion(cert.id, 3, { status: 'revoked' });
+  assert.equal(second, null, 'second update with stale version must return null');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
