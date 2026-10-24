@@ -25,9 +25,14 @@ import { readVariantSvg } from './svgAssetCatalog';
 import type { ResolvedQuestion } from './services/worksheetContent';
 import JSZip from 'jszip';
 
+import fontkit from '@pdf-lib/fontkit';
+
 // Resolve __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const FONT_DIR = path.resolve(__dirname, '../assets/fonts');
+const hasDevanagari = (text: string) => /[ऀ-ॿ]/.test(text);
 
 const OUTPUT_DIR = path.join(__dirname, '..', 'output');
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -722,8 +727,12 @@ export async function renderWorksheetPdf({
   }>;
 }): Promise<WorksheetPdfResult> {
   const merged = await PDFDocument.create();
+  merged.registerFontkit(fontkit);
   const font = await merged.embedFont(StandardFonts.Helvetica);
   const boldFont = await merged.embedFont(StandardFonts.HelveticaBold);
+  const devaFont = await merged.embedFont(fs.readFileSync(path.join(FONT_DIR, 'NotoSansDevanagari-Regular.ttf')), { subset: true });
+  const devaBold = await merged.embedFont(fs.readFileSync(path.join(FONT_DIR, 'NotoSansDevanagari-Bold.ttf')), { subset: true });
+  const fontFor = (text: string, bold = false) => hasDevanagari(text) ? (bold ? devaBold : devaFont) : (bold ? boldFont : font);
 
   const defaultQuestionsPerPage = 7;
   const defaultQuestionFontSize = 10.5;
@@ -742,13 +751,15 @@ export async function renderWorksheetPdf({
     // does not fit in the space left goes to the next page instead of
     // running past the footer.
     const blocks = swq.questions.map((q, index) => {
+      const qText = `Q${index + 1}. [${q.topic}] ${q.question}`;
+      const qFont = fontFor(qText, true);
       const lines = wrapTextToWidth(
-        `Q${index + 1}. [${q.topic}] ${q.question}`,
-        boldFont,
+        qText,
+        qFont,
         questionFontSize,
         maxQuestionWidth
       );
-      return { q, lines, height: lines.length * lineHeight + answerBoxHeight };
+      return { q, lines, font: qFont, height: lines.length * lineHeight + answerBoxHeight };
     });
     const pagePlan = planQuestionPages(blocks.map(b => b.height), {
       maxPerPage: questionsPerPage,
@@ -800,7 +811,7 @@ export async function renderWorksheetPdf({
         x: 65,
         y: height - 125,
         size: 10,
-        font: boldFont,
+        font: fontFor(swq.name, true),
         color: rgb(0.05, 0.2, 0.15),
       });
 
@@ -842,7 +853,7 @@ export async function renderWorksheetPdf({
             x: 50,
             y: currentY - lineIndex * lineHeight,
             size: questionFontSize,
-            font: boldFont,
+            font: block.font,
             color: rgb(0.15, 0.15, 0.15),
           });
         });
