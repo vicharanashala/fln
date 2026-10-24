@@ -1062,6 +1062,7 @@ export function registerEvaluationRoutes(app: express.Express) {
       id: 'rep_' + student.id + '_' + Date.now(),
       studentId,
       worksheetId,
+      cycle: ws.cycle,
       score: evaluation.score,
       totalQuestions: studentQuestions.length,
       conceptMastery: evaluation.conceptMastery,
@@ -1093,7 +1094,10 @@ export function registerEvaluationRoutes(app: express.Express) {
     await dbStore.addEvaluationReport(report);
 
     // Fire-and-forget: re-evaluate certification eligibility.
-    runCertificationEligibility(student);
+    // Issue #845: only End-of-year worksheets may create or flag a certificate.
+    if (ws.cycle === 'End-of-year') {
+      runCertificationEligibility(student);
+    }
     try {
       await assignStudentToArchetype(studentId);
     } catch (error) {

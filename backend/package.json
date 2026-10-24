@@ -56,6 +56,8 @@
     "test:concept-worksheet": "tsx --test tests/concept-worksheet.test.ts",
     "test:template-renderer": "tsx src/services/questionTemplateRenderer.test.ts",
     "test:evaluation-override": "tsx --test tests/evaluation-override.test.ts",
+    "test:cert-eoy": "tsx --test tests/certification-end-of-year.test.ts",
+    "test:ncf-competencies": "tsx --test tests/ncf-competencies.test.ts",
     "test:icr-cloud-config": "tsx --test tests/icr-cloud-config.test.ts"
   },
   "dependencies": {

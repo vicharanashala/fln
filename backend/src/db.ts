@@ -559,6 +559,8 @@ export interface EvaluationReport {
   id: string;
   studentId: string;
   worksheetId: string;
+  /** Assessment cycle that produced this report (absent on legacy/diagnostic reports). */
+  cycle?: CycleName;
   score: number;
   totalQuestions: number;
   totalCorrect?: number;
