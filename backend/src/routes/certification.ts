@@ -147,7 +147,19 @@ export function registerCertificationRoutes(app: express.Express) {
       return res.status(403).json({ error: 'Forbidden: insufficient privileges for queue view.' });
     }
     const all = await dbStore.getCertifications();
-    const filtered = status ? all.filter(c => c.status === status) : all;
+    let filtered = status ? all.filter(c => c.status === status) : all;
+    // A state admin only sees certifications of students inside their own area.
+    if (user.role !== UserRole.SUPERADMIN) {
+      const students = await dbStore.getStudentsByIds([...new Set(filtered.map(c => c.studentId))]);
+      const byId = new Map(students.map(s => [s.id, s]));
+      const stateSchoolIds = user.role === UserRole.ADMIN
+        ? new Set((await dbStore.getSchools()).filter(s => s.stateCode === user.stateCode).map(s => s.id))
+        : undefined;
+      filtered = filtered.filter(c => {
+        const st = byId.get(c.studentId);
+        return !!st && canAccessStudent(user, st) && (!stateSchoolIds || stateSchoolIds.has(st.schoolId));
+      });
+    }
     res.json(filtered);
   });
 }
