@@ -32,6 +32,7 @@
     "test:school-onboarding": "tsx --test tests/school-onboarding.test.ts",
     "test:panel-isolation": "tsx --test tests/panel-isolation.test.cjs",
     "test:assessment-mode": "node tests/question-template-assessment-mode.test.cjs",
+    "test:assessment-mode-config": "tsx --test tests/assessment-mode.test.ts",
     "test:roster-filters": "tsx --test tests/roster-filters-persistence.test.cjs",
     "audit:aadhaar": "tsx scripts/audit-aadhaar-at-rest.ts",
     "test:answer-matching": "tsx src/answerMatching.test.ts",
