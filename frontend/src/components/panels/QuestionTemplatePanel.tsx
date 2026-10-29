@@ -990,10 +990,21 @@ export const QuestionTemplatePanel: React.FC = () => {
                       {(() => { const v = t.generationIntent || t.stem || ''; return v.length > 70 ? `${v.slice(0, 70)}…` : v; })()}
                     </td>
                     <td className="py-3 pr-3 text-zinc-600 dark:text-zinc-300">{t.skills.join(', ')}</td>
-                    <td className="py-3 pr-3">
-                      <span className="inline-flex items-center rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                        {t.assessmentMode ?? 'written'}
-                      </span>
+                    <td className="py-3 pr-3 whitespace-nowrap">
+                      {(() => {
+                        const mode = t.assessmentMode ?? 'written';
+                        const modeBadgeCls =
+                          mode === 'observed'
+                            ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                            : mode === 'both'
+                            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700';
+                        return (
+                          <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${modeBadgeCls}`}>
+                            {t.assessmentMode ?? 'written'}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="py-3 pr-3 text-zinc-500 dark:text-zinc-400">{t.tags.length ? t.tags.join(', ') : '—'}</td>
                     <td className="py-3 pr-3 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
