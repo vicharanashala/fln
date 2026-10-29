@@ -27,7 +27,7 @@ const MAX_TAGS = 20;
 const MAX_TAG_CHARS = 40;
 /** Cap on one import. Large enough for a curriculum batch, small enough to stay a single round trip. */
 const MAX_IMPORT_ROWS = 1000;
-const ASSESSMENT_MODES = ['written', 'observed', 'both'] as const;
+export const ASSESSMENT_MODES = ['written', 'observed', 'both'] as const;
 
 const SUBJECT = 'question templates';
 

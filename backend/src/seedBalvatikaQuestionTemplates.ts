@@ -36,20 +36,18 @@ import 'dotenv/config';
 import { MongoClient } from 'mongodb';
 import { randomUUID } from 'crypto';
 
-const MONGO_URI = process.env.MONGODB_URI;
-if (!MONGO_URI) {
-  console.error('MONGODB_URI is not set. Refusing to guess a connection string.');
-  process.exit(1);
-}
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { ASSESSMENT_MODES } from './routes/questionTemplates';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
-interface SeedRow {
+export interface SeedRow {
   conceptId: string;
   skills: string[];
   subskills: string[];
   questionFamily: string;
-  assessmentMode: 'written' | 'observed' | 'both';
+  assessmentMode?: 'written' | 'observed' | 'both';
   generationIntent: string;
   svgThemeIds: string[];
   subjectCategory: string | null;
@@ -66,7 +64,24 @@ interface SeedRow {
 // (learning action + visual behaviour + how the answer is given, no
 // specific numbers/objects, per QuestionTemplate.generationIntent's own
 // documented contract).
-const ROWS: SeedRow[] = [
+/**
+ * Resolves the assessment mode for a seeded question template row.
+ * - Preserves existing question's intended assessment mode if set (does not silently overwrite).
+ * - Accepts 'written', 'observed', and 'both'.
+ * - Missing or invalid values default to 'written'.
+ */
+export function resolveSeedAssessmentMode(
+  existingMode?: string | null,
+  rowMode?: string | null
+): 'written' | 'observed' | 'both' {
+  const candidate = (existingMode ?? rowMode ?? '').trim().toLowerCase();
+  if ((ASSESSMENT_MODES as readonly string[]).includes(candidate)) {
+    return candidate as 'written' | 'observed' | 'both';
+  }
+  return 'written';
+}
+
+export const ROWS: SeedRow[] = [
   { conceptId: 'S1.8', skills: ['SK03'], subskills: [], questionFamily: 'sequencing', assessmentMode: 'both',
     generationIntent: 'Show 3-4 pictures of a familiar daily routine (waking up, brushing teeth, eating breakfast, going to school) in scrambled order. The child arranges or numbers them in the correct sequence.',
     svgThemeIds: [], subjectCategory: null, name: 'Daily Routine Sequencing' },
@@ -185,7 +200,12 @@ const ROWS: SeedRow[] = [
 ];
 
 async function main() {
-  const client = new MongoClient(MONGO_URI!);
+  const MONGO_URI = process.env.MONGODB_URI;
+  if (!MONGO_URI) {
+    console.error('MONGODB_URI is not set. Refusing to guess a connection string.');
+    process.exit(1);
+  }
+  const client = new MongoClient(MONGO_URI);
   await client.connect();
   const db = client.db();
   const coll = db.collection('questionTemplates');
@@ -198,6 +218,7 @@ async function main() {
   for (const row of ROWS) {
     const existing = await coll.findOne({ conceptId: row.conceptId, source: 'seed:balvatika' });
     const id = existing?.id ?? ('qtpl_' + randomUUID().slice(0, 8));
+    const assessmentMode = resolveSeedAssessmentMode(existing?.assessmentMode, row.assessmentMode);
 
     const doc = {
       id,
@@ -208,7 +229,7 @@ async function main() {
       // never requires re-running this seed.
       skills: row.skills,
       subskills: row.subskills,
-      assessmentMode: row.assessmentMode,
+      assessmentMode,
       generationIntent: row.generationIntent,
       questionFamily: row.questionFamily,
       paramMode: 'structured',
@@ -253,7 +274,14 @@ async function main() {
   await client.close();
 }
 
-main().catch(err => {
-  console.error('Seed failed:', err);
-  process.exit(1);
-});
+const isDirectRun =
+  Boolean(process.argv[1]) &&
+  path.resolve(process.argv[1]).toLowerCase() ===
+    path.resolve(fileURLToPath(import.meta.url)).toLowerCase();
+
+if (isDirectRun) {
+  main().catch(err => {
+    console.error('Seed failed:', err);
+    process.exit(1);
+  });
+}
