@@ -1,7 +1,7 @@
 [
   {
     "classNumber": 2,
-    "level": 5,
+    "level": 77,
     "topic": "Number Sense",
     "isMandatory": true,
     "meetsThreshold": "Strong",
@@ -9,7 +9,7 @@
   },
   {
     "classNumber": 2,
-    "level": 5,
+    "level": 77,
     "topic": "Number Operations",
     "isMandatory": true,
     "meetsThreshold": "Strong",
@@ -17,30 +17,30 @@
   },
   {
     "classNumber": 2,
-    "level": 5,
+    "level": 77,
     "topic": "Shapes",
     "isMandatory": true,
     "meetsThreshold": "Satisfactory",
-    "notes": "Shape recognition supports later geometry; Satisfactory acceptable at L5."
+    "notes": "Shape recognition supports later geometry; Satisfactory acceptable at L77."
   },
   {
     "classNumber": 2,
-    "level": 5,
+    "level": 77,
     "topic": "Patterns",
     "isMandatory": true,
     "meetsThreshold": "Satisfactory",
-    "notes": "Pattern completion is a supporting skill; Satisfactory acceptable at L5."
+    "notes": "Pattern completion is a supporting skill; Satisfactory acceptable at L77."
   },
   {
     "classNumber": 3,
-    "level": 5,
+    "level": 91,
     "topic": "Number Sense",
     "isMandatory": true,
     "meetsThreshold": "Strong"
   },
   {
     "classNumber": 3,
-    "level": 5,
+    "level": 91,
     "topic": "Number Operations",
     "isMandatory": true,
     "meetsThreshold": "Strong",
@@ -48,7 +48,7 @@
   },
   {
     "classNumber": 3,
-    "level": 5,
+    "level": 91,
     "topic": "Fractions",
     "isMandatory": true,
     "meetsThreshold": "Satisfactory",
@@ -56,14 +56,14 @@
   },
   {
     "classNumber": 3,
-    "level": 5,
+    "level": 91,
     "topic": "Measurement",
     "isMandatory": true,
     "meetsThreshold": "Satisfactory"
   },
   {
     "classNumber": 3,
-    "level": 5,
+    "level": 91,
     "topic": "Money",
     "isMandatory": true,
     "meetsThreshold": "Strong",

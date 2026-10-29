@@ -320,12 +320,12 @@ test('Revoked certificate handling: End-of-year logs audit event and does not ov
     id: 'cert_revoked_test_1',
     studentId: revokedStudentId,
     classNumber: 3,
-    level: 5,
+    level: 91,
     decisionSnapshot: {
       outcome: 'not_eligible',
       evaluatedAt: now,
       classNumber: 3,
-      level: 5,
+      level: 91,
       metTopics: [],
       missingTopics: [],
       unassessedTopics: [],
@@ -429,7 +429,7 @@ test('Revoked certificate handling: End-of-year logs audit event and does not ov
   assert.ok(certCalls.includes(revokedStudentId), 'End-of-year must trigger cert');
 
   // Cert status MUST remain 'revoked' (terminal state)
-  const cert = await dbStore.getCertificationByStudentClassLevel(revokedStudentId, 3, 5);
+  const cert = await dbStore.getCertificationByStudentClassLevel(revokedStudentId, 3, 91);
   assert.ok(cert);
   assert.equal(cert.status, 'revoked', 'Revoked cert must never be revived by evaluation evidence');
 

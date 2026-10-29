@@ -18,17 +18,17 @@
 import { randomUUID } from 'crypto';
 import { dbStore, Student, School, Certification, CertificationStatus, UserRole } from '../db';
 import { decideEligibility, EligibilityDecision } from './certificationEligibility';
-import { getRequirementsForClassLevel } from './certificationCompetencyRequirements';
+import { getRequirementsForClassLevel, CLASS_TOP_LEVEL } from './certificationCompetencyRequirements';
 import { notifyCertificationReviewNeeded } from './certificationNotifications';
 
 const inFlight: Map<string, Promise<void>> = new Map();
 
-function parseClassNumber(classGroup: string): number {
-  // Student.classGroup is stored as "Class 2" / "Class 3" / "Class 4".
-  // Falls back to 0 (unknown) on a malformed value; the engine still runs
-  // but no requirements match so the decision is empty.
-  const m = classGroup.match(/\d+/);
-  return m ? parseInt(m[0], 10) : 0;
+/** Balvatika is 0, "Class 1" to "Class 3" are 1 to 3, anything else is unknown (null). */
+export function parseClassNumber(classGroup?: string | null): number | null {
+  const label = (classGroup ?? '').trim();
+  if (/^balvatika$/i.test(label)) return 0;
+  const m = label.match(/^class\s*(\d+)/i);
+  return m ? parseInt(m[1], 10) : null;
 }
 
 function summariseForReview(decision: EligibilityDecision): string {
@@ -53,12 +53,14 @@ export async function runCertificationEligibilityForStudent(
   }
 
   const classNumber = parseClassNumber(student.classGroup);
-  if (classNumber < 2 || classNumber > 4) {
-    // Out of R-7 scope (class 1, or unknown). Skip silently — not an error.
+  if (classNumber === null || classNumber > 3) {
+    // FLN covers Balvatika to Class 3; Class 4 and above are Tenali's.
     return;
   }
 
-  const requirements = getRequirementsForClassLevel(classNumber, 5);
+  const level = CLASS_TOP_LEVEL[classNumber];
+
+  const requirements = getRequirementsForClassLevel(classNumber, level);
   const mandatory = requirements.filter((r) => r.isMandatory);
   if (mandatory.length === 0) {
     return; // no requirements seeded for this bucket
@@ -73,7 +75,7 @@ export async function runCertificationEligibilityForStudent(
   const existing = await dbStore.getCertificationByStudentClassLevel(
     student.id,
     classNumber,
-    5
+    level
   );
 
   if (!existing) {
@@ -83,7 +85,7 @@ export async function runCertificationEligibilityForStudent(
         id: 'cert_' + randomUUID(),
         studentId: student.id,
         classNumber,
-        level: 5,
+        level,
         decisionSnapshot: decision,
         status: 'active',
         version: 1,
@@ -112,7 +114,7 @@ export async function runCertificationEligibilityForStudent(
         userRole: UserRole.SUPERADMIN, // closest existing role; this is a system log
         activityType: 'verify',
         status: 'Success',
-        details: `[certification] new evaluation evidence arrived for REVOKED cert ${existing.id} (student ${student.id}, class ${classNumber}, level 5); ignoring. Review admin override.`,
+        details: `[certification] new evaluation evidence arrived for REVOKED cert ${existing.id} (student ${student.id}, class ${classNumber}, level ${level}); ignoring. Review admin override.`,
       });
     } catch (logErr) {
       console.error('[certification] revoked-cert log failed', logErr);
