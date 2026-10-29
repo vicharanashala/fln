@@ -17,6 +17,7 @@
     "build:backend": "npm run build --workspace @fln/backend",
     "start": "npm run start --workspace @fln/backend",
     "lint": "npm run lint --workspaces --if-present",
+    "report:calibration": "tsx scripts/certification-calibration.ts",
     "seed:question-bank": "npm run seed:question-bank --workspace @fln/backend",
     "check:level-notation-drift": "tsx scripts/check-level-notation-drift.ts",
     "check:duplicate-questions": "tsx scripts/check-duplicate-questions.ts",
@@ -28,6 +29,10 @@
   "dependencies": {
     "jose": "^5.9.6",
     "mongodb": "^7.5.0",
+    "mongoose": "^9.7.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6"
     "mongoose": "^9.7.4",
     "otpauth": "^9.5.1"
   },
