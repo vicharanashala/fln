@@ -1,3 +1,4 @@
+import { registerScanRoutes } from './routes/scan';
 // Explicitly load .env from the backend directory. The dev wrapper
 // script runs `npm run dev --workspace @fln/backend` from the repo root,
 // so dotenv's default cwd lookup misses backend/.env and the backend
@@ -254,6 +255,7 @@ async function startServer() {
 
 registerStatsRoutes(app);
 
+  registerScanRoutes(app);
   registerAuthRoutes(app);
   registerAnnouncementRoutes(app);
   registerTicketRoutes(app);

@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartFLN Model Test</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #cbd5e1;
+      --soft: #f6f8fb;
+      --panel: #ffffff;
+      --blue: #2563eb;
+      --green: #15803d;
+      --red: #b91c1c;
+      --amber: #b45309;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: var(--soft);
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 18px 0 28px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.15;
+    }
+
+    .status {
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    input, textarea, select, button {
+      font: inherit;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 78px;
+      resize: vertical;
+    }
+
+    .drop-zone {
+      display: grid;
+      place-items: center;
+      min-height: 170px;
+      border: 2px dashed #94a3b8;
+      border-radius: 8px;
+      background: #f8fafc;
+      color: var(--muted);
+      text-align: center;
+      padding: 16px;
+      cursor: pointer;
+    }
+
+    .drop-zone.active {
+      border-color: var(--blue);
+      background: #eff6ff;
+      color: var(--blue);
+    }
+
+    .preview {
+      display: none;
+      width: 100%;
+      max-height: 420px;
+      object-fit: contain;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      margin-top: 12px;
+      background: #fff;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    button {
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: #fff;
+      background: var(--blue);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      color: var(--ink);
+      background: #fff;
+      border-color: var(--line);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(110px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .identity-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fbfdff;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .metric strong {
+      font-size: 21px;
+      line-height: 1;
+    }
+
+    .answer {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+      background: #fff;
+    }
+
+    .answer-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .answer-title {
+      font-weight: 800;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .pill.review {
+      color: var(--amber);
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+    }
+
+    .pill.ok {
+      color: var(--green);
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 12px;
+      font-size: 14px;
+    }
+
+    .grid div {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .grid span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .crop-preview {
+      display: block;
+      width: 100%;
+      max-height: 180px;
+      object-fit: contain;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      margin: 10px 0;
+    }
+
+    pre {
+      max-height: 360px;
+      overflow: auto;
+      margin: 12px 0 0;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #0f172a;
+      color: #e5e7eb;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .error {
+      margin-top: 12px;
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    .invalid-paper {
+      margin-top: 12px;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--ink);
+      background: #fff7f7;
+    }
+
+    .invalid-paper strong {
+      display: block;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+
+    .check-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    .check-list div {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      background: #fff;
+    }
+
+    .check-list span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    @media (max-width: 840px) {
+      main {
+        width: min(100vw - 18px, 620px);
+        padding-top: 12px;
+      }
+
+      header, .layout {
+        display: block;
+      }
+
+      .status {
+        text-align: left;
+        margin-top: 6px;
+      }
+
+      section + section {
+        margin-top: 12px;
+      }
+
+      .summary, .identity-summary, .grid, .actions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>SmartFLN Model Test</h1>
+      <div id="status" class="status" aria-live="polite">Ready</div>
+    </header>
+
+    <div class="layout">
+      <section>
+        <h2>Paper Image</h2>
+        <input id="fileInput" type="file" accept="image/*">
+        <div id="dropZone" class="drop-zone" tabindex="0">
+          Paste, drop, or select a scanned paper image
+        </div>
+        <img id="preview" class="preview" alt="Selected paper preview">
+
+        <label for="qrText">QR Text</label>
+        <textarea id="qrText" spellcheck="false"></textarea>
+
+        <label for="studentId">Student ID</label>
+        <input id="studentId" placeholder="Read from QR">
+
+        <label for="paperId">Paper ID</label>
+        <input id="paperId" placeholder="Read from QR">
+
+        <label for="testId">Test ID</label>
+        <input id="testId" placeholder="Read from QR">
+
+        <label for="sampleSelect">Sample Paper</label>
+        <select id="sampleSelect"></select>
+
+        <div class="actions">
+          <button id="runButton" disabled>Run Model</button>
+          <button id="sampleButton" class="secondary" type="button">Use Selected Sample</button>
+          <button id="clearButton" class="secondary" type="button">Clear</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Result</h2>
+        <div id="result"></div>
+        <pre id="rawJson"></pre>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const preview = document.getElementById('preview');
+    const qrText = document.getElementById('qrText');
+    const studentId = document.getElementById('studentId');
+    const paperId = document.getElementById('paperId');
+    const testId = document.getElementById('testId');
+    const sampleSelect = document.getElementById('sampleSelect');
+    const runButton = document.getElementById('runButton');
+    const sampleButton = document.getElementById('sampleButton');
+    const clearButton = document.getElementById('clearButton');
+    const result = document.getElementById('result');
+    const rawJson = document.getElementById('rawJson');
+    const status = document.getElementById('status');
+
+    let imageDataUrl = '';
+    let sampleManifest = [
+      {
+        paper_id: 'demo-paper',
+        test_id: 'asm_demo_math_baseline',
+        title: 'demo-paper',
+        filled: '/samples/demo-paper-filled.png',
+        qrText: 'stu_demo_001|demo-paper|asm_demo_math_baseline'
+      }
+    ];
+
+    function setStatus(message) {
+      status.textContent = message;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Could not read image file.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Could not read sample image.'));
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('Could not load image preview.'));
+        image.src = src;
+      });
+    }
+
+    async function tryDecodeQr(dataUrl) {
+      if (!('BarcodeDetector' in window)) {
+        return '';
+      }
+      try {
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        const image = await loadImage(dataUrl);
+        const codes = await detector.detect(image);
+        return codes[0]?.rawValue || '';
+      } catch {
+        return '';
+      }
+    }
+
+    async function setImageFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        throw new Error('Select an image file.');
+      }
+      setStatus('Loading image...');
+      imageDataUrl = await readFileAsDataUrl(file);
+      preview.src = imageDataUrl;
+      preview.style.display = 'block';
+      runButton.disabled = false;
+
+      const decoded = await tryDecodeQr(imageDataUrl);
+      if (decoded) {
+        qrText.value = decoded;
+        setStatus('QR detected. Ready.');
+      } else {
+        qrText.value = '';
+        studentId.value = '';
+        paperId.value = '';
+        testId.value = '';
+        setStatus('QR not detected. SmartFLN paper will be invalid unless QR text is pasted.');
+      }
+    }
+
+    function renderSampleOptions() {
+      sampleSelect.innerHTML = sampleManifest.map((sample, index) => {
+        const label = `${sample.title || sample.paper_id} (${sample.paper_id})`;
+        return `<option value="${index}">${escapeHtml(label)}</option>`;
+      }).join('');
+    }
+
+    async function loadSampleManifest() {
+      renderSampleOptions();
+      try {
+        const response = await fetch('/samples/manifest.json', { cache: 'no-store' });
+        if (!response.ok) {
+          return;
+        }
+        const payload = await response.json();
+        if (Array.isArray(payload) && payload.length) {
+          sampleManifest = payload;
+          renderSampleOptions();
+        }
+      } catch {
+        renderSampleOptions();
+      }
+    }
+
+    async function loadSampleImage() {
+      setStatus('Loading sample...');
+      const sample = sampleManifest[Number(sampleSelect.value || 0)] || sampleManifest[0];
+      const response = await fetch(sample.filled || '/samples/demo-paper-filled.png');
+      if (!response.ok) {
+        throw new Error('Sample image was not found.');
+      }
+      imageDataUrl = await blobToDataUrl(await response.blob());
+      preview.src = imageDataUrl;
+      preview.style.display = 'block';
+      qrText.value = sample.qrText || '';
+      studentId.value = 'stu_demo_001';
+      paperId.value = sample.paper_id || '';
+      testId.value = sample.test_id || '';
+      runButton.disabled = false;
+      setStatus('Sample loaded. Ready.');
+    }
+
+    function renderInvalidPaper(payload) {
+      const checks = payload.validation?.checks || {};
+      const labels = {
+        qr_present: 'QR code',
+        qr_has_student_id: 'Student ID in QR',
+        qr_has_paper_id: 'Paper ID in QR',
+        qr_has_test_id: 'Test ID in QR',
+        four_markers_detected: 'Four corner markers',
+        template_loaded: 'Known template',
+        template_matches_qr: 'Template matches QR'
+      };
+      const checkHtml = Object.entries(labels).map(([key, label]) => {
+        const passed = Boolean(checks[key]);
+        return `<div><span>${escapeHtml(label)}</span>${passed ? 'OK' : 'Missing'}</div>`;
+      }).join('');
+      result.innerHTML = `
+        <div class="invalid-paper">
+          <strong>Invalid SmartFLN Paper</strong>
+          <div>${escapeHtml(payload.message || 'Upload the generated SmartFLN answer paper with its QR and four black corner markers.')}</div>
+          <div class="check-list">${checkHtml}</div>
+        </div>
+      `;
+    }
+
+    function renderResult(payload) {
+      if (payload.error === 'invalid_paper') {
+        renderInvalidPaper(payload);
+        return;
+      }
+
+      if (payload.error) {
+        result.innerHTML = `<div class="error">${escapeHtml(payload.message || payload.error)}</div>`;
+        return;
+      }
+
+      const answers = Array.isArray(payload.answers) ? payload.answers : [];
+      const identity = `
+        <div class="identity-summary">
+          <div class="metric"><span>Student ID</span><strong>${escapeHtml(payload.student_id || '')}</strong></div>
+          <div class="metric"><span>Paper ID</span><strong>${escapeHtml(payload.paper_id || '')}</strong></div>
+          <div class="metric"><span>Test ID</span><strong>${escapeHtml(payload.test_id || '')}</strong></div>
+          <div class="metric"><span>Answer Key ID</span><strong>${escapeHtml(payload.answer_key_id || payload.answer_key?.answer_key_id || '')}</strong></div>
+        </div>
+      `;
+      const summary = `
+        <div class="summary">
+          <div class="metric"><span>Marks</span><strong>${escapeHtml(payload.awarded_marks)} / ${escapeHtml(payload.total_marks)}</strong></div>
+          <div class="metric"><span>Percent</span><strong>${escapeHtml(payload.percentage)}%</strong></div>
+          <div class="metric"><span>Review</span><strong>${escapeHtml(payload.review_count)}</strong></div>
+          <div class="metric"><span>Confidence</span><strong>${escapeHtml(payload.final_confidence)}</strong></div>
+        </div>
+      `;
+
+      const answerHtml = answers.map((answer) => {
+        const review = answer.needs_teacher_review;
+        const ink = answer.ocr?.diagnostics?.ink;
+        const marker = answer.box_marker;
+        const inkText = ink ? `${ink.usableInk ? 'detected' : 'not detected'} - ${ink.inkPixels || 0} px` : 'n/a';
+        const markerText = marker ? `${marker.status} (${marker.dark_ratio})` : 'n/a';
+        const recognizedText = answer.recognized_answer || answer.recognition_label || 'Not recognized';
+        const cropImage = answer.crop_image_data_url
+          ? `<img class="crop-preview" src="${escapeHtml(answer.crop_image_data_url)}" alt="${escapeHtml(answer.label)} answer crop">`
+          : '';
+        return `
+          <div class="answer">
+            <div class="answer-head">
+              <div class="answer-title">${escapeHtml(answer.label)} &middot; ${escapeHtml(answer.type)}</div>
+              <span class="pill ${review ? 'review' : 'ok'}">${review ? 'Teacher Review' : 'Auto Scored'}</span>
+            </div>
+            ${cropImage}
+            <div class="grid">
+              <div><span>Recognized</span>${escapeHtml(recognizedText)}</div>
+              <div><span>Answer Detected</span>${escapeHtml(answer.answer_detected ? 'yes' : 'no')}</div>
+              <div><span>Answer Key</span>${escapeHtml(typeof answer.answer_key === 'object' ? JSON.stringify(answer.answer_key) : answer.answer_key)}</div>
+              <div><span>Marks</span>${escapeHtml(answer.awarded_marks)} / ${escapeHtml(answer.max_marks)}</div>
+              <div><span>Confidence</span>${escapeHtml(answer.confidence)} (${escapeHtml(answer.confidence_band)})</div>
+              <div><span>OCR</span>${escapeHtml(answer.ocr?.provider_status || '')}</div>
+              <div><span>Box Marker</span>${escapeHtml(markerText)}</div>
+              <div><span>Ink</span>${escapeHtml(inkText)}</div>
+              <div><span>ROI</span>${escapeHtml(`${answer.roi?.x}, ${answer.roi?.y}, ${answer.roi?.width}, ${answer.roi?.height}`)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      result.innerHTML = identity + summary + answerHtml;
+    }
+
+    async function runModel() {
+      if (!imageDataUrl) {
+        setStatus('Select an image first.');
+        return;
+      }
+
+      runButton.disabled = true;
+      setStatus('Running model...');
+      result.innerHTML = '';
+      rawJson.textContent = '';
+
+      const body = {
+        scanPageId: `scan_${Date.now()}`,
+        imageDataUrl,
+        qrText: qrText.value.trim()
+      };
+
+      try {
+        const response = await fetch('/v1/infer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const payload = await response.json();
+        rawJson.textContent = JSON.stringify(payload, null, 2);
+        renderResult(payload);
+        setStatus(payload.error === 'invalid_paper' ? 'Invalid paper' : (response.ok ? 'Done' : 'Model returned an error'));
+      } catch (error) {
+        result.innerHTML = `<div class="error">${escapeHtml(error.message)}</div>`;
+        setStatus('Request failed');
+      } finally {
+        runButton.disabled = false;
+      }
+    }
+
+    function clearPage() {
+      imageDataUrl = '';
+      fileInput.value = '';
+      preview.removeAttribute('src');
+      preview.style.display = 'none';
+      result.innerHTML = '';
+      rawJson.textContent = '';
+      qrText.value = '';
+      studentId.value = '';
+      paperId.value = '';
+      testId.value = '';
+      runButton.disabled = true;
+      setStatus('Ready');
+    }
+
+    fileInput.addEventListener('change', async () => {
+      try {
+        await setImageFile(fileInput.files[0]);
+      } catch (error) {
+        setStatus(error.message);
+      }
+    });
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        fileInput.click();
+      }
+    });
+    dropZone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropZone.classList.add('active');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
+    dropZone.addEventListener('drop', async (event) => {
+      event.preventDefault();
+      dropZone.classList.remove('active');
+      try {
+        await setImageFile(event.dataTransfer.files[0]);
+      } catch (error) {
+        setStatus(error.message);
+      }
+    });
+
+    document.addEventListener('paste', async (event) => {
+      const item = [...event.clipboardData.items].find((entry) => entry.type.startsWith('image/'));
+      if (!item) {
+        return;
+      }
+      try {
+        await setImageFile(item.getAsFile());
+      } catch (error) {
+        setStatus(error.message);
+      }
+    });
+
+    runButton.addEventListener('click', runModel);
+    sampleButton.addEventListener('click', async () => {
+      try {
+        await loadSampleImage();
+      } catch (error) {
+        setStatus(error.message);
+      }
+    });
+    clearButton.addEventListener('click', clearPage);
+    loadSampleManifest();
+  </script>
+</body>
+</html>

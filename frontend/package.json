@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "jsqr": "^1.4.0",
     "@tanstack/react-query": "^5.101.2",
     "i18next": "^26.4.0",
     "lucide-react": "^0.546.0",

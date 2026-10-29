@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.server*.log
+models/cache/
+data/raw/*
+data/processed/*
+data/labels/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/labels/.gitkeep

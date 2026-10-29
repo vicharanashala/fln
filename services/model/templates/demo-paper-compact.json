@@ -1,0 +1,91 @@
+{
+  "paper_id": "demo-paper-compact",
+  "test_id": "asm_demo_compact_math",
+  "answer_key_id": "ak_demo_compact_math_v1",
+  "title": "SmartFLN Compact Numeracy Check",
+  "subtitle": "Grade 2 Mathematics - Compact Structured Paper",
+  "page": {
+    "width": 2480,
+    "height": 3508
+  },
+  "box_markers_required": true,
+  "questions": [
+    {
+      "question_id": "q_compact_1",
+      "label": "Q1",
+      "type": "numeric",
+      "prompt": "Write the missing number: 10, 11, __.",
+      "answer_key": "12",
+      "marks": 1,
+      "roi": {
+        "x": 198,
+        "y": 735,
+        "width": 2084,
+        "height": 310
+      }
+    },
+    {
+      "question_id": "q_compact_2",
+      "label": "Q2",
+      "type": "mcq",
+      "prompt": "Circle the smaller number: 8 or 4.",
+      "answer_key": "4",
+      "marks": 1,
+      "roi": {
+        "x": 198,
+        "y": 1205,
+        "width": 2084,
+        "height": 310
+      }
+    },
+    {
+      "question_id": "q_compact_3",
+      "label": "Q3",
+      "type": "numeric",
+      "prompt": "Solve 6 + 2.",
+      "answer_key": "8",
+      "marks": 1,
+      "roi": {
+        "x": 198,
+        "y": 1675,
+        "width": 2084,
+        "height": 310
+      }
+    },
+    {
+      "question_id": "q_compact_4",
+      "label": "Q4",
+      "type": "numeric",
+      "prompt": "Solve 9 - 3.",
+      "answer_key": "6",
+      "marks": 1,
+      "roi": {
+        "x": 198,
+        "y": 2145,
+        "width": 2084,
+        "height": 310
+      }
+    },
+    {
+      "question_id": "q_compact_5",
+      "label": "Q5",
+      "type": "short_text",
+      "prompt": "Write the word for 2.",
+      "answer_key": "two",
+      "marks": 1,
+      "roi": {
+        "x": 198,
+        "y": 2615,
+        "width": 2084,
+        "height": 310
+      }
+    }
+  ],
+  "sample_answers": {
+    "q_compact_1": "12",
+    "q_compact_2": "4",
+    "q_compact_3": "8",
+    "q_compact_4": "6",
+    "q_compact_5": "two"
+  }
+}

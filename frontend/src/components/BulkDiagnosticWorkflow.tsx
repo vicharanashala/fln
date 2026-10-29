@@ -21,11 +21,13 @@ interface JobStatus {
   completed: number;
   status: 'running' | 'completed' | 'failed';
   pdfUrl: string;
+  templateUrl?: string;
   error: string;
   downloadUrl: string | null;
 }
 
 export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ user, token, userRole, onBack }) => {
+  const [paperFormat, setPaperFormat] = useState('standard');
   const [classLevel, setClassLevel] = useState<number>(2); // Default to Class 2
   const [totalStudents, setTotalStudents] = useState<number | ''>(30); // Default to 30 students
   const [enrolledStudents, setEnrolledStudents] = useState<Array<{ name: string; studentId: string }>>([]);
@@ -120,6 +122,7 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
       }
 
       const payload: any = {
+        paperFormat,
         classNumber: classLevel,
         count: enrolledStudents.length,
         students: enrolledStudents
@@ -190,6 +193,12 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
       {/* Batch Control Form */}
       <div className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 shadow-sm">
         <form onSubmit={handleGenerateBulk} className="space-y-6">
+          <label className="block text-sm font-semibold">Paper format
+            <select value={paperFormat} onChange={e => setPaperFormat(e.target.value)} className="ml-3 rounded-lg border p-2 dark:bg-slate-900">
+              <option value="standard">Standard diagnostic</option>
+              <option value="scan-template">QR / local TrOCR paper</option>
+            </select>
+          </label>
           <div>
             <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 block mb-2">
               Baseline Class Level
@@ -311,7 +320,8 @@ export const BulkDiagnosticWorkflow: React.FC<BulkDiagnosticWorkflowProps> = ({ 
             </div>
           )}
 
-          {job.status === 'failed' && (
+          {job.templateUrl && <a href={withBase(job.templateUrl)} target="_blank" rel="noreferrer" className="block text-sm underline">Open ROI template JSON</a>}
+          {job.status === 'failed'  && (
             <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
               <XCircle className="w-4 h-4 text-red-600" />
               <span>{job.error || 'Generation failed. Please try again.'}</span>

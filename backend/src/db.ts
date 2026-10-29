@@ -1,3 +1,5 @@
+import type { ScanPaperTemplate } from './scan.types';
+export * from './scan.types';
 import fs from 'fs/promises';
 import { readFileSync } from 'fs';
 import path from 'path';
@@ -144,6 +146,7 @@ interface DatabaseSchema {
   classes: ClassGroup[];
   students: Student[];
   questions: Question[];
+  scanPaperTemplates: ScanPaperTemplate[];
   worksheets: Worksheet[];
   levelWorksheets: LevelWorksheet[];
   levelHtmlTemplates: LevelHtmlTemplate[];
@@ -178,6 +181,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   classes: 'classes',
   students: 'students',
   questions: 'questions',
+  scanPaperTemplates: 'scanPaperTemplates',
   worksheets: 'worksheets',
   levelWorksheets: 'levelWorksheets',
   levelHtmlTemplates: 'levelHtmlTemplates',
@@ -974,6 +978,31 @@ export class DBStore {
     const pass = all.filter(r => (r.score ?? 0) >= 50).length;
     const avg = all.length > 0 ? all.reduce((s, r) => s + (r.score ?? 0), 0) / all.length : 0;
     return { pass, fail: all.length - pass, total: all.length, avgScore: Math.round(avg) };
+  }
+  async getScanPaperTemplates(): Promise<ScanPaperTemplate[]> {
+    if (this.mongoDb) return this.mongoDb.collection<ScanPaperTemplate>('scanPaperTemplates').find({}).toArray();
+    return this.data?.scanPaperTemplates || [];
+  }
+  async getScanPaperTemplate(paperId: string, pageNumber = 1) {
+    if (this.mongoDb) return this.mongoDb.collection<ScanPaperTemplate>('scanPaperTemplates').findOne({ paperId, pageNumber });
+    return (await this.getScanPaperTemplates()).find(item => item.paperId === paperId && item.pageNumber === pageNumber);
+  }
+  async upsertScanPaperTemplates(templates: ScanPaperTemplate[]) {
+    if (this.mongoDb) {
+      for (const template of templates) {
+        await this.mongoDb.collection<ScanPaperTemplate>('scanPaperTemplates').updateOne(
+          { paperId: template.paperId, pageNumber: template.pageNumber }, { $set: template }, { upsert: true });
+      }
+    } else {
+      const stored = this.data!.scanPaperTemplates ||= [];
+      for (const template of templates) {
+        const index = stored.findIndex(item => item.paperId === template.paperId && item.pageNumber === template.pageNumber);
+        if (index >= 0) stored[index] = template;
+        else stored.push(template);
+      }
+      await this.save();
+    }
+    return templates;
   }
   async getQuestions() {
     if (this.mongoDb) return await this.mongoDb.collection<Question>('questions').find({}).toArray();
@@ -4738,6 +4767,7 @@ export class DBStore {
       classes,
       students,
       questions: seedQuestions,
+      scanPaperTemplates: [],
       worksheets,
       levelWorksheets: [],
       levelHtmlTemplates: [],

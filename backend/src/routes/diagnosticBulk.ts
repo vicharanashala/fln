@@ -1,3 +1,4 @@
+import { generateDiagnosticPaper as generateScanDiagnosticPaper } from '../scanPaperGenerator';
 import express from 'express';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
@@ -25,6 +26,7 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
     fileName: string;
     filePath: string;
     pdfUrl: string;
+    templateUrl?: string;
     error: string;
     /** Students whose answer key was refused as incomplete (not stored). */
     keyErrors?: Array<{ studentId: string; problem: string }>;
@@ -39,7 +41,8 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { classNumber, count, students: reqStudents } = req.body;
+    const { classNumber, count, students: reqStudents, paperFormat } = req.body;
+    if (paperFormat && !['standard', 'scan-template'].includes(paperFormat)) return res.status(400).json({ error: 'Unknown paper format.' });
 
     // Use provided students array or fall back to count
     let paperStudents: Array<{ name: string; studentId: string }>;
@@ -205,7 +208,8 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
     // Run in background
     (async () => {
       try {
-        const result = await generateDiagnosticPaper({
+        const generatePaper = paperFormat === 'scan-template' ? generateScanDiagnosticPaper : generateDiagnosticPaper;
+        const result = await generatePaper({
           classNumber: job.classNumber,
           students: paperStudents.map(s => ({ name: s.name, studentId: s.studentId })),
           onProgress: (setNum, total) => {
@@ -213,6 +217,7 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
           }
         });
 
+        job.templateUrl = 'templateUrl' in result ? String(result.templateUrl || '') : '';
         job.fileName = result.fileName;
         job.filePath = result.filePath;
         job.pdfUrl = `/output/${result.pdfFileName || result.fileName}`;
@@ -355,6 +360,7 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
       completed: job.completed,
       status: job.status,
       pdfUrl: job.pdfUrl,
+      templateUrl: job.templateUrl,
       error: job.error,
       keyErrors: job.keyErrors ?? [],
       downloadUrl: job.status === 'completed' ? `/api/diagnostic/bulk/${job.jobId}/download` : null

@@ -1,0 +1,72 @@
+{
+  "paper_id": "demo-paper",
+  "test_id": "asm_demo_math_baseline",
+  "answer_key_id": "ak_demo_math_baseline_v1",
+  "page": {
+    "width": 2480,
+    "height": 3508
+  },
+  "box_markers_required": true,
+  "questions": [
+    {
+      "question_id": "q_demo_1",
+      "label": "Q1",
+      "type": "mcq",
+      "prompt": "Circle the bigger number: 7 or 3.",
+      "answer_key": "7",
+      "marks": 1,
+      "roi": {
+        "x": 198,
+        "y": 772,
+        "width": 2084,
+        "height": 386
+      }
+    },
+    {
+      "question_id": "q_demo_2",
+      "label": "Q2",
+      "type": "numeric",
+      "prompt": "Solve 2 + 3.",
+      "answer_key": "5",
+      "marks": 1,
+      "roi": {
+        "x": 198,
+        "y": 1333,
+        "width": 2084,
+        "height": 386
+      }
+    },
+    {
+      "question_id": "q_demo_3",
+      "label": "Q3",
+      "type": "short_text",
+      "prompt": "Write the word for this shape: circle.",
+      "answer_key": "circle",
+      "marks": 1,
+      "roi": {
+        "x": 198,
+        "y": 1895,
+        "width": 2084,
+        "height": 386
+      }
+    },
+    {
+      "question_id": "q_demo_4",
+      "label": "Q4",
+      "type": "matching",
+      "prompt": "Match the number to the word.",
+      "answer_key": {
+        "1": "one",
+        "2": "two"
+      },
+      "marks": 2,
+      "auto_score": false,
+      "roi": {
+        "x": 198,
+        "y": 2456,
+        "width": 2084,
+        "height": 386
+      }
+    }
+  ]
+}

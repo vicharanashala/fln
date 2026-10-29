@@ -16,7 +16,29 @@ export function registerStatsRoutes(app: express.Express) {
   // Public stats (no auth required — used by landing page)
   app.get('/api/stats', async (_req, res) => {
     const db = dbStore.getDb();
-    if (!db) return res.json({ totalStates: 0, totalDistricts: 0, totalSchools: 0, totalStudents: 0, totalAssessments: 0, avgFlnLevel: 0, totalUsers: 0, certifiedCount: 0, certifiedPercent: 0 });
+    if (!db) {
+      const [schools, students, users, worksheets] = await Promise.all([
+        dbStore.getSchools(),
+        dbStore.getStudents(),
+        dbStore.getUsers(),
+        dbStore.getWorksheets()
+      ]);
+      const certifiedCount = students.filter(student => student.currentLevel >= 5).length;
+      const avgFlnLevel = students.length
+        ? Math.round(students.reduce((sum, student) => sum + student.currentLevel, 0) / students.length)
+        : 0;
+      return res.json({
+        totalStates: new Set(schools.map(school => school.stateCode)).size,
+        totalDistricts: new Set(schools.map(school => school.districtCode)).size,
+        totalSchools: schools.length,
+        totalStudents: students.length,
+        totalAssessments: worksheets.length,
+        avgFlnLevel,
+        totalUsers: users.length,
+        certifiedCount,
+        certifiedPercent: students.length ? Math.round((certifiedCount / students.length) * 100) : 0
+      });
+    }
 
     const [totalSchools, totalStudents, totalUsers, totalAssessments, stateCodes, districtCodes, avgResult, certifiedResult] = await Promise.all([
       db.collection('schools').countDocuments(),

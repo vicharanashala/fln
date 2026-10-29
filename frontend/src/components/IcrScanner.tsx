@@ -1,3 +1,4 @@
+import { ScanTemplateScanner } from './ScanTemplateScanner';
 import { apiFetch } from '../services/apiClient';
 import React, { useState, useEffect } from 'react';
 import { Student, ClassGroup, EvaluationReport, User } from '../types';
@@ -244,7 +245,7 @@ const DonutChart: React.FC<{
   );
 };
 
-export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) => {
+const StandardIcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) => {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -2440,4 +2441,15 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
       )}
     </div>
   );
+};
+
+export const IcrScanner: React.FC<IcrScannerProps> = (props) => {
+  const [mode, setMode] = useState<'standard' | 'template'>('standard');
+  return <div className="space-y-4">
+    <div className="flex gap-3" role="group" aria-label="Scanning workflow">
+      <button type="button" aria-pressed={mode === 'standard'} onClick={() => setMode('standard')} className="rounded-lg border px-4 py-2">Standard / bulk scanning</button>
+      <button type="button" aria-pressed={mode === 'template'} onClick={() => setMode('template')} className="rounded-lg border px-4 py-2">QR / local TrOCR scanning</button>
+    </div>
+    {mode === 'template' ? <ScanTemplateScanner {...props} /> : <StandardIcrScanner {...props} />}
+  </div>;
 };
