@@ -37,6 +37,7 @@ export interface BulkOcrResponse {
   provider: string;
   totalPages: number;
   pagesPerStudent: number;
+  pageCountWarning?: string;    // Set when totalPages % pagesPerStudent !== 0 (#746)
   totalStudents: number;
   successfulStudents: number;
   failedStudents: number;
