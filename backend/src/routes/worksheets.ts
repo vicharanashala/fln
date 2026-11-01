@@ -404,7 +404,7 @@ export function registerWorksheetRoutes(app: express.Express) {
           studentId: student.id,
           studentName: student.name,
           level: student.currentLevel,
-          reason: 'No observed or both-mode question is available for this Balvatika level.',
+          reason: 'No both-mode question is available for this Balvatika level.',
         });
         continue;
       }
@@ -420,7 +420,7 @@ export function registerWorksheetRoutes(app: express.Express) {
 
     if (compiledQuestions.length === 0) {
       return res.status(400).json({
-        error: 'No worksheet generated: none of the selected students has an eligible question. Add an observed or both-mode question template for the Balvatika levels and try again.',
+        error: 'No worksheet generated: none of the selected students has an eligible question. Add a both-mode question template for the Balvatika levels and try again.',
         skippedStudents,
       });
     }
@@ -705,12 +705,12 @@ export function registerWorksheetRoutes(app: express.Express) {
         );
         if (balvatikaQuestions.length === 0) {
           return res.status(400).json({
-            error: `No worksheet generated for ${student.name}: Balvatika level ${student.currentLevel} has no observed or both-mode question.`,
+            error: `No worksheet generated for ${student.name}: Balvatika level ${student.currentLevel} has no both-mode question.`,
             skippedStudents: [{
               studentId: student.id,
               studentName: student.name,
               level: student.currentLevel,
-              reason: 'No observed or both-mode question is available for this Balvatika level.',
+              reason: 'No both-mode question is available for this Balvatika level.',
             }],
           });
         }
@@ -840,7 +840,7 @@ export function registerWorksheetRoutes(app: express.Express) {
               studentId: student.id,
               studentName: student.name,
               level: student.currentLevel,
-              reason: 'No observed or both-mode question is available for this Balvatika level.',
+              reason: 'No both-mode question is available for this Balvatika level.',
             });
           } else {
             balvatikaQuestions.set(student.id, questions);
@@ -901,7 +901,7 @@ export function registerWorksheetRoutes(app: express.Express) {
       res.json({
         success: true,
         batchId: generated[0]?.batchId || null,
-        studentsProcessed: generated.length,
+        studentsProcessed: new Set(generated.map(item => item.studentId)).size,
         totalFiles: generated.length,
         results,
         skipped,

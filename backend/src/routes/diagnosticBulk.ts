@@ -132,7 +132,7 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
         studentId: student.id,
         studentName: student.name,
         level: student.currentLevel,
-        reason: 'No observed or both-mode question is available for this Balvatika level.',
+        reason: 'No both-mode question is available for this Balvatika level.',
       });
     }
     paperStudents = studentsWithQuestions;
@@ -896,12 +896,12 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
         );
         if (balvatikaQuestions.length === 0) {
           return res.status(400).json({
-            error: `No diagnostic generated for ${student.name}: Balvatika level ${student.currentLevel} has no observed or both-mode question.`,
+            error: `No diagnostic generated for ${student.name}: Balvatika level ${student.currentLevel} has no both-mode question.`,
             skippedStudents: [{
               studentId: student.id,
               studentName: student.name,
               level: student.currentLevel,
-              reason: 'No observed or both-mode question is available for this Balvatika level.',
+              reason: 'No both-mode question is available for this Balvatika level.',
             }],
           });
         }

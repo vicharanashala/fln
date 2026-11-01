@@ -112,7 +112,7 @@ test('worksheet route skips empty Balvatika papers without changing a standard p
       studentId: balvatikaStudent.id,
       studentName: balvatikaStudent.name,
       level: balvatikaStudent.currentLevel,
-      reason: 'No observed or both-mode question is available for this Balvatika level.',
+      reason: 'No both-mode question is available for this Balvatika level.',
     }]);
 
     const expectedStandardQuestions = (await generateQuestionsForLevel(
@@ -152,5 +152,85 @@ test('worksheet route skips empty Balvatika papers without changing a standard p
     for (const [name, implementation] of originals) {
       (dbStore as any)[name] = implementation;
     }
+  }
+});
+
+test('Balvatika worksheet route prints only both-mode questions', async (t) => {
+  const cases = [
+    { mode: 'observed', expectedStatus: 400, expectedQuestionCount: 0 },
+    { mode: 'written', expectedStatus: 400, expectedQuestionCount: 0 },
+    { mode: 'both', expectedStatus: 200, expectedQuestionCount: 4 },
+  ] as const;
+
+  for (const testCase of cases) {
+    await t.test(testCase.mode, async () => {
+      const app = express();
+      app.use(express.json());
+      registerWorksheetRoutes(app);
+
+      const storedWorksheets: any[] = [];
+      const originals = new Map<string, unknown>();
+      const stub = (name: string, implementation: unknown) => {
+        originals.set(name, (dbStore as any)[name]);
+        (dbStore as any)[name] = implementation;
+      };
+
+      stub('getUserSync', () => teacher);
+      stub('getClasses', async () => [{
+        id: 'class-route-test',
+        className: 'Class 1',
+        section: 'A',
+        schoolId: teacher.schoolId,
+        teacherId: teacher.id,
+      }]);
+      stub('getSchools', async () => [{
+        id: teacher.schoolId,
+        name: 'Route Test School',
+        strength: 'high',
+        isAccessLocked: false,
+      }]);
+      stub('getGenerationWindows', async () => [generationWindow]);
+      stub('getWorksheets', async () => []);
+      stub('getStudents', async () => [balvatikaStudent]);
+      stub('getQuestionTemplates', async () => [{
+        conceptId: 'S3.1',
+        assessmentMode: testCase.mode,
+      }]);
+      stub('addWorksheet', async (worksheet: any) => {
+        storedWorksheets.push(worksheet);
+        return worksheet;
+      });
+      stub('updateGenerationWindow', async () => generationWindow);
+      stub('addLog', async (entry: any) => entry);
+
+      const server = app.listen(0, '127.0.0.1');
+      await new Promise<void>(resolve => server.once('listening', resolve));
+      const port = (server.address() as AddressInfo).port;
+      const token = jwt.sign({ email: teacher.email }, JWT_SECRET, { expiresIn: '1h' });
+
+      try {
+        const response = await fetch(`http://127.0.0.1:${port}/api/worksheets/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ classId: 'class-route-test', cycle: 'Baseline' }),
+        });
+        const body = await response.json() as any;
+
+        assert.equal(response.status, testCase.expectedStatus, JSON.stringify(body));
+        assert.equal(storedWorksheets.length, testCase.expectedStatus === 200 ? 1 : 0);
+        if (testCase.expectedStatus === 200) {
+          assert.equal(body.questions.length, testCase.expectedQuestionCount);
+          assert.equal(storedWorksheets[0].questions.length, testCase.expectedQuestionCount);
+        }
+      } finally {
+        await new Promise<void>(resolve => server.close(() => resolve()));
+        for (const [name, implementation] of originals) {
+          (dbStore as any)[name] = implementation;
+        }
+      }
+    });
   }
 });

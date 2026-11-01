@@ -23,13 +23,13 @@ export function withAssessmentModes(
   }));
 }
 
-/** Remove written items from a Balvatika student's student-facing paper. */
+/** Keep only both-mode items on a Balvatika student's paper. */
 export function filterQuestionsForStudent(
   questions: Question[],
   student: Pick<Student, 'currentLevel'>,
 ): Question[] {
   if (!isBalvatikaStage(student.currentLevel)) return questions;
-  return questions.filter(question => question.assessmentMode !== 'written');
+  return questions.filter(question => question.assessmentMode === 'both');
 }
 
 /**
