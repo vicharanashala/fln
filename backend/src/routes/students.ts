@@ -4,6 +4,7 @@ import { answersMatch, matchesChoiceLetter } from '../answerMatching';
 import { getAuthUser, canAccessStudent, adminAreaIncludesSchool } from '../auth';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
+import { NoApprovedContentError } from '../utils/conceptQuestionGenerator';
 import { evaluateAIDiagnostic } from '../gemini';
 import { invalidateFingerprintCache } from './misconceptions';
 import { assignStudentToArchetype } from '../studentArchetypeService';
@@ -637,7 +638,14 @@ export function registerStudentRoutes(app: express.Express) {
       const startLevel = (classNumber - 1) * 12 + 1;
       questions = [];
       for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-        const lvlQuestions = await generateQuestionsForLevel(Math.min(lvl, LEVEL_COUNT), 0);
+        let lvlQuestions: Question[];
+        try {
+          lvlQuestions = await generateQuestionsForLevel(Math.min(lvl, LEVEL_COUNT), 0);
+        } catch (levelErr) {
+          // A level with no written questions is skipped in this mock; a real error is not hidden.
+          if (levelErr instanceof NoApprovedContentError) continue;
+          throw levelErr;
+        }
         lvlQuestions.forEach(q => {
           questions.push({
             ...q,

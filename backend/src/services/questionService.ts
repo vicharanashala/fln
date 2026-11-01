@@ -7,14 +7,14 @@ export class QuestionService {
    * Fetch questions by Level Number.
    * Dynamically maps level number -> Concept ID so re-ordering curriculum levels requires zero DB updates.
    */
-  static getQuestionsByLevel(levelNumber: number, subLevel: number = 0): Question[] {
+  static getQuestionsByLevel(levelNumber: number, subLevel: number = 0, count: number = 4): Question[] {
     const conceptConfig = getConceptForLevel(levelNumber);
     if (!conceptConfig) {
       console.warn(`Level ${levelNumber} not found in CURRICULUM_MAPPING. Falling back to default concept.`);
-      return generateQuestionsByConcept('S1.1', subLevel);
+      return generateQuestionsByConcept('S1.1', subLevel, count);
     }
 
-    return generateQuestionsByConcept(conceptConfig.conceptId, subLevel);
+    return generateQuestionsByConcept(conceptConfig.conceptId, subLevel, count);
   }
 
   /**

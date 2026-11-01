@@ -142,3 +142,77 @@ test('banned teachers receive 403 from all observation routes', async () => {
     await dbStore.updateUser('u6', { isBanned: false });
   }
 });
+
+// --- selfCorrected and strategyUsed (#619, #620, #705) -------------------------
+
+const fieldInput = {
+  studentId: 's1',
+  classId: 'c1',
+  cycle: 'Baseline',
+  rating: 'Progressive',
+  notYetAssessed: false
+};
+
+test('selfCorrected and strategyUsed are saved, read back, and kept by a later update that omits them', async () => {
+  const input = { ...fieldInput, conceptId: 'S3.13' };
+
+  const saved = await request('POST', '/api/observations', { ...input, selfCorrected: true, strategyUsed: 'counters' });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.body.selfCorrected, true);
+  assert.equal(saved.body.strategyUsed, 'counters');
+
+  const byStudent = await request('GET', '/api/observations/student/s1?cycle=Baseline');
+  const studentRecord = byStudent.body.find((r: any) => r.conceptId === 'S3.13');
+  assert.equal(studentRecord.selfCorrected, true);
+  assert.equal(studentRecord.strategyUsed, 'counters');
+
+  const byClass = await request('GET', '/api/observations/class/c1?cycle=Baseline');
+  const classRecord = byClass.body.find((r: any) => r.conceptId === 'S3.13');
+  assert.equal(classRecord.selfCorrected, true);
+  assert.equal(classRecord.strategyUsed, 'counters');
+
+  // A later save that does not mention the fields keeps what was recorded.
+  const kept = await request('POST', '/api/observations', { ...input, rating: 'Proficient' });
+  assert.equal(kept.status, 200);
+  assert.equal(kept.body.rating, 'Proficient');
+  assert.equal(kept.body.selfCorrected, true);
+  assert.equal(kept.body.strategyUsed, 'counters');
+
+  // A later save that sends them replaces them, including false.
+  const changed = await request('POST', '/api/observations', { ...input, selfCorrected: false, strategyUsed: 'mental' });
+  assert.equal(changed.status, 200);
+  assert.equal(changed.body.selfCorrected, false);
+  assert.equal(changed.body.strategyUsed, 'mental');
+});
+
+test('a bad selfCorrected or strategyUsed is refused with 400 and nothing is saved', async () => {
+  const before = (await request('GET', '/api/observations/student/s1?cycle=Baseline')).body.length;
+  const bad: unknown[] = [
+    { selfCorrected: 'yes' },
+    { selfCorrected: 1 },
+    { selfCorrected: null },
+    { strategyUsed: 'telepathy' },
+    { strategyUsed: 7 },
+    { strategyUsed: null }
+  ];
+  for (const extra of bad) {
+    const response = await request('POST', '/api/observations', { ...fieldInput, conceptId: 'S3.14', ...(extra as object) });
+    assert.equal(response.status, 400, JSON.stringify(extra));
+  }
+  const after = await request('GET', '/api/observations/student/s1?cycle=Baseline');
+  assert.equal(after.body.length, before, 'no record was added');
+  assert.equal(after.body.some((r: any) => r.conceptId === 'S3.14'), false);
+});
+
+test('a request without the new fields behaves as before: the record has no such keys', async () => {
+  const saved = await request('POST', '/api/observations', { ...fieldInput, conceptId: 'S3.15' });
+  assert.equal(saved.status, 200);
+  assert.equal('selfCorrected' in saved.body, false);
+  assert.equal('strategyUsed' in saved.body, false);
+
+  const persisted = JSON.parse(fs.readFileSync(path.join(scratchDir, 'data', 'db.json'), 'utf8'));
+  const stored = persisted.teacherObservationRecords.find((r: any) => r.conceptId === 'S3.15');
+  assert.ok(stored, 'the record is stored');
+  assert.equal('selfCorrected' in stored, false);
+  assert.equal('strategyUsed' in stored, false);
+});

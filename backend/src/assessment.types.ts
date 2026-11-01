@@ -177,6 +177,21 @@ export interface TeacherObservationRecord {
    */
   notYetAssessed: boolean;
 
+  /**
+   * Did the child notice and fix their own mistake while answering? The
+   * self-correction ratio of Clay's Running Records is a mastery signal that raw
+   * accuracy misses (#619). Optional: a record saved before this field existed,
+   * or one where the teacher did not tick it, simply omits it.
+   */
+  selfCorrected?: boolean;
+
+  /**
+   * How the child reached the answer, as the teacher saw it: on their fingers, with
+   * counters, in their head, or by writing it down (#620). Optional for the same
+   * reason as `selfCorrected`.
+   */
+  strategyUsed?: 'fingers' | 'counters' | 'mental' | 'written';
+
   observedAt: string;
   createdAt: string;
   updatedAt: string;

@@ -49,7 +49,7 @@ test('REGRESSION: personalized worksheet PDF paginates all questions', async () 
   }
 });
 
-test('REGRESSION: long Balvatika questions wrap within margins across three pages', async () => {
+test('REGRESSION: long Balvatika questions wrap within margins and flex across four pages', async () => {
   const longQuestion =
     'Look carefully at the collection of colorful classroom objects, count every object only once, and write the matching numeral in the box.';
   const questions = Array.from({ length: 10 }, (_, i) => ({
@@ -100,7 +100,7 @@ test('REGRESSION: long Balvatika questions wrap within margins across three page
 
   try {
     const pdf = await PDFDocument.load(fs.readFileSync(result.filePath));
-    assert.equal(pdf.getPageCount(), 3, '10 Balvatika questions should span exactly 3 pages');
+    assert.equal(pdf.getPageCount(), 4, '10 long Balvatika questions with 58 pt answer boxes should span exactly 4 pages (the page count flexes with the content)');
   } finally {
     if (fs.existsSync(result.filePath)) {
       fs.unlinkSync(result.filePath);

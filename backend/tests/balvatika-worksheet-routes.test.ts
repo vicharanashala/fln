@@ -30,12 +30,27 @@ const balvatikaStudent = {
 const standardStudent = {
   id: 'student-standard',
   name: 'Standard Student',
-  currentLevel: 59,
+  currentLevel: 1,
   currentSubLevel: 0,
   classGroup: 'Class 1',
   section: 'A',
   schoolId: teacher.schoolId,
 } as Student;
+
+function fixedQuestionTemplates(mode: 'written' | 'observed' | 'both') {
+  return Array.from({ length: 4 }, (_, index) => ({
+    id: `qtpl_s3_1_${index + 1}`,
+    conceptId: 'S3.1',
+    assessmentMode: mode,
+    status: 'approved',
+    deletedAt: null,
+    stem: `Identify numeral ${index + 1}.`,
+    answerSpec: String(index + 1),
+    svgThemeIds: [],
+    name: `Numeral recognition ${index + 1}`,
+    questionFamily: 'numeral-recognition',
+  }));
+}
 
 const now = Date.now();
 const generationWindow = {
@@ -82,8 +97,9 @@ test('worksheet route skips empty Balvatika papers without changing a standard p
   stub('getWorksheets', async () => []);
   stub('getStudents', async () => currentStudents);
   // No authored mode means legacy "written". Level 19 is therefore empty after
-  // the Balvatika gate, while level 40 must keep its legacy question objects.
+  // the Balvatika gate, while level 1 must keep its legacy question objects.
   stub('getQuestionTemplates', async () => []);
+  stub('getQuestionTemplatesByConcept', async () => []);
   stub('addWorksheet', async (worksheet: any) => {
     storedWorksheets.push(worksheet);
     return worksheet;
@@ -196,6 +212,7 @@ test('Balvatika worksheet route prints only both-mode questions', async (t) => {
         conceptId: 'S3.1',
         assessmentMode: testCase.mode,
       }]);
+      stub('getQuestionTemplatesByConcept', async () => fixedQuestionTemplates(testCase.mode));
       stub('addWorksheet', async (worksheet: any) => {
         storedWorksheets.push(worksheet);
         return worksheet;

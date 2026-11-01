@@ -629,9 +629,11 @@ export async function generateQuestionsFromTemplates(
   const difficulty: Question['difficulty'] = opts.subLevel === 2 ? 'easy' : opts.subLevel === 1 ? 'medium' : 'hard';
 
   const questions: Question[] = [];
+  const seen = new Set<string>();
   let cursor = 0;
   let attempts = 0;
-  const maxAttempts = Math.max(opts.count * 3, eligible.length * 2);
+  // Enough draws to step past repeats: a paper must not carry the same question twice (#760).
+  const maxAttempts = Math.max(opts.count * 8, eligible.length * 2);
 
   while (questions.length < opts.count && attempts < maxAttempts) {
     const template = eligible[cursor % eligible.length];
@@ -641,6 +643,11 @@ export async function generateQuestionsFromTemplates(
     const seed = instanceSeed(template);
     const rendered = renderTemplateQuestion(template, seed);
     if (!rendered) continue;
+
+    // Same words and same picture as an earlier question: draw another.
+    const key = `${rendered.question}\u0000${rendered.svgAsset ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
 
     questions.push({
       question_id: `${conceptId}_Q${questions.length + 1}`,
@@ -655,6 +662,10 @@ export async function generateQuestionsFromTemplates(
       conceptId,
       svgAsset: rendered.svgAsset,
     });
+  }
+
+  if (questions.length < opts.count) {
+    console.warn(`[questionTemplateRenderer] ${conceptId} produced ${questions.length} distinct question(s), wanted ${opts.count}.`);
   }
 
   return questions;
