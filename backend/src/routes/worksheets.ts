@@ -13,7 +13,7 @@ import type {
   Worksheet,
   LevelWorksheet,
 } from '../assessment.types';
-import { getAuthUser } from '../auth';
+import { getAuthUser, canAccessStudent } from '../auth';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import { NoApprovedContentError } from '../utils/conceptQuestionGenerator';
 import * as levelsBackendClient from '../levelsBackendClient';
@@ -688,6 +688,16 @@ export function registerWorksheetRoutes(app: express.Express) {
 
       if (student.currentLevel == null) {
         return res.status(400).json({ error: 'Student has not completed their diagnostic test.' });
+      }
+      // Authorize BEFORE locking: a rejected or unauthorized request must not lock the child.
+      const mayGenerate =
+        user.role === UserRole.TEACHER ? (student.teacherId === user.id || student.schoolId === user.schoolId)
+        : user.role === UserRole.SCHOOL ? student.schoolId === user.schoolId
+        : user.role === UserRole.VOLUNTEER ? (user.assignedSchools || []).includes(student.schoolId)
+        : canAccessStudent(user, student);
+
+      if (!mayGenerate) {
+        return res.status(403).json({ error: 'You are not authorized to generate papers for this student.' });
       }
 
       // Per-student generation lock. This route renders a personalized

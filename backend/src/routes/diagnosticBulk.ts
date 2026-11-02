@@ -2,7 +2,7 @@ import express from 'express';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
 import { dbStore, UserRole, Question, Worksheet, TestHistoryEntry } from '../db';
-import { getAuthUser } from '../auth';
+import { getAuthUser, canAccessStudent } from '../auth';
 import { recordStudentCycleLock } from '../paperLock';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
@@ -766,6 +766,19 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
     if (!studentId || !className) {
       return res.status(400).json({ error: 'studentId and className are required.' });
     }
+    // Authorize BEFORE locking: a rejected or unknown request must not lock somebody else's child.
+    const student = await dbStore.getStudentById(studentId);
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+    const mayGenerate =
+      user.role === UserRole.TEACHER ? (student.teacherId === user.id || student.schoolId === user.schoolId)
+        : user.role === UserRole.SCHOOL ? student.schoolId === user.schoolId
+          : user.role === UserRole.VOLUNTEER ? (user.assignedSchools || []).includes(student.schoolId)
+            : canAccessStudent(user, student);
+
+    if (!mayGenerate) {
+      return res.status(403).json({ error: 'You are not authorized to generate diagnostic papers for this student.' });
+    }
 
     // Per-student generation lock (single-student diagnostic route).
     // Mirrors the same policy as the personalized-worksheet route:
@@ -791,29 +804,6 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
     await dbStore.addStudentCycleLock(lockAttempt.lock);
 
     try {
-      const students = await dbStore.getStudents();
-      const student = students.find(s => s.id === studentId);
-      if (!student) return res.status(404).json({ error: 'Student not found.' });
-
-      // Role-based Authorization validation for single generation
-      let isAuthorized = false;
-      if (user.role === UserRole.SUPERADMIN || user.role === UserRole.ADMIN) {
-        isAuthorized = true;
-      } else if (user.role === UserRole.TEACHER) {
-        isAuthorized = student.teacherId === user.id || student.schoolId === user.schoolId;
-      } else if (user.role === UserRole.VOLUNTEER) {
-        isAuthorized = user.assignedSchools?.includes(student.schoolId) || false;
-      } else if (user.role === UserRole.SCHOOL) {
-        isAuthorized = student.schoolId === user.schoolId;
-      } else if (user.role === UserRole.BLOCK_ADMIN) {
-        const schools = await dbStore.getSchools();
-        const school = schools.find(s => s.id === student.schoolId);
-        isAuthorized = school?.blockCode === user.blockCode;
-      }
-
-      if (!isAuthorized) {
-        return res.status(403).json({ error: 'You are not authorized to generate diagnostic papers for this student.' });
-      }
 
       // Parse class number from classGroup (e.g. "Class 2" -> 2)
       const classMatch = student.classGroup.match(/\d+/);
