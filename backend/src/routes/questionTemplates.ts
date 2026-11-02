@@ -395,6 +395,9 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     const variantKey = req.query.variantKey as string | undefined;
     if (variantKey) templates = templates.filter(t => t.variantKey === variantKey);
 
+    const status = req.query.status as string | undefined;
+    if (status) templates = templates.filter(t => (t.status ?? 'approved') === status);
+
     res.json(templates);
   });
 

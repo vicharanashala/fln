@@ -1,0 +1,7 @@
+conceptId,itemNumber,stem,answerSpec,assessmentMode
+S1.8,1,"Show 3 daily routine cards: waking up, eating breakfast, sleeping. Child puts them in sequence.",routine-seq-3,both
+S3.1,1,"Show numeral 5 beside 3 groups of objects. Child circles the group with 5 objects.",5,written
+S3.11,1,"Teacher asks child to recite numbers 1 to 20 aloud without objects. Record fluency.",1-20-recite,observed
+S3.14,1,"Show two groups of objects (3 and 4 items). Child determines total count without plus symbol.",7,both
+S3.20,1,"Teacher hands child a ball and asks for physical description in child's own words.",sphere-features,observed
+S4.12,1,"Show a box where all objects have been removed. Child writes the numeral representing empty set.",0,written
