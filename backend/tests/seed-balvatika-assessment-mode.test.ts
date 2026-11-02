@@ -1,11 +1,13 @@
 /**
  * Tests for Issue #761: Assessment Mode preservation in Balvatika question templates seeding.
+ * Also verifies compatibility with Issue #903 (levelNumber and levelName resolution).
  *
  * Verifies:
  * - Each Balvatika seed template retains its intended assessmentMode.
  * - Valid values are 'written', 'observed', and 'both'.
  * - Missing or invalid values default to 'written'.
  * - Seeding preserves an existing question's intended assessmentMode (does not silently overwrite).
+ * - Document construction via buildSeedQuestionTemplate populates levelNumber and levelName.
  * - End-to-end compatibility with CSV bulk import and question template contracts.
  */
 import assert from 'node:assert/strict';
@@ -13,6 +15,7 @@ import { test } from 'node:test';
 import {
   ROWS,
   resolveSeedAssessmentMode,
+  buildSeedQuestionTemplate,
 } from '../src/seedBalvatikaQuestionTemplates';
 import { ASSESSMENT_MODES } from '../src/routes/questionTemplates';
 
@@ -85,4 +88,52 @@ test('resolveSeedAssessmentMode: handles case-insensitivity gracefully', () => {
   assert.equal(resolveSeedAssessmentMode('OBSERVED', 'written'), 'observed');
   assert.equal(resolveSeedAssessmentMode('Both', 'written'), 'both');
   assert.equal(resolveSeedAssessmentMode(undefined, 'WRITTEN'), 'written');
+});
+
+test('buildSeedQuestionTemplate: resolves levelNumber, levelName, and preserves assessmentMode for every seeded row (#903 compatibility)', () => {
+  for (const row of ROWS) {
+    const doc = buildSeedQuestionTemplate(row);
+    assert.ok(typeof doc.levelNumber === 'number', `Row ${row.conceptId} must have levelNumber`);
+    assert.ok(typeof doc.levelName === 'string' && doc.levelName.length > 0, `Row ${row.conceptId} must have levelName`);
+    assert.equal(doc.assessmentMode, row.assessmentMode, `Row ${row.conceptId} must retain its assessmentMode`);
+    assert.equal(doc.conceptId, row.conceptId);
+    assert.equal(doc.source, 'seed:balvatika');
+  }
+});
+
+test('buildSeedQuestionTemplate: preserves existing assessmentMode and creation metadata on update', () => {
+  const row = ROWS[0]; // S1.8, mode 'both'
+  const existing = {
+    id: 'qtpl_pres_123',
+    assessmentMode: 'observed' as const, // manually updated by reviewer
+    createdAt: '2026-08-01T00:00:00.000Z',
+    createdBy: 'reviewer_jane',
+  };
+
+  const doc = buildSeedQuestionTemplate(row, existing as any);
+  assert.equal(doc.id, 'qtpl_pres_123');
+  assert.equal(doc.assessmentMode, 'observed'); // preserved, not reset to 'both'
+  assert.equal(doc.createdAt, '2026-08-01T00:00:00.000Z');
+  assert.equal(doc.createdBy, 'reviewer_jane');
+  assert.ok(doc.levelNumber != null);
+  assert.ok(doc.levelName != null);
+});
+
+test('buildSeedQuestionTemplate: throws on invalid conceptId not in curriculum map', () => {
+  const badRow = {
+    conceptId: 'NON_EXISTENT_CONCEPT',
+    skills: ['SK01'],
+    subskills: [],
+    questionFamily: 'counting',
+    assessmentMode: 'written' as const,
+    generationIntent: 'Some intent',
+    svgThemeIds: [],
+    subjectCategory: null,
+    name: 'Bad Row',
+  };
+
+  assert.throws(
+    () => buildSeedQuestionTemplate(badRow),
+    /not in the curriculum map/
+  );
 });

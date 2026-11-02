@@ -39,6 +39,9 @@ import { randomUUID } from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ASSESSMENT_MODES } from './routes/questionTemplates';
+import { getLevelForConcept } from './config/curriculumMap';
+import { getLevel } from './config/skillLevelMap';
+import type { QuestionTemplate } from './db';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
@@ -79,6 +82,66 @@ export function resolveSeedAssessmentMode(
     return candidate as 'written' | 'observed' | 'both';
   }
   return 'written';
+}
+
+
+/**
+ * Constructs a QuestionTemplate document for a seeded Balvatika question row.
+ * - Resolves levelNumber and levelName from curriculumMap and skillLevelMap (Issue #903).
+ * - Preserves existing question's intended assessmentMode if set (Issue #761).
+ * - Preserves existing creation timestamp and author metadata.
+ */
+export function buildSeedQuestionTemplate(
+  row: SeedRow,
+  existing?: Partial<QuestionTemplate> | null,
+  now = new Date().toISOString()
+): QuestionTemplate {
+  const concept = getLevelForConcept(row.conceptId);
+  if (!concept) {
+    throw new Error(`Seed row ${row.conceptId} is not in the curriculum map.`);
+  }
+  const levelInfo = getLevel(concept.levelNumber);
+  const id = existing?.id ?? ('qtpl_' + randomUUID().slice(0, 8));
+  const assessmentMode = resolveSeedAssessmentMode(existing?.assessmentMode, row.assessmentMode);
+
+  return {
+    id,
+    conceptId: row.conceptId,
+    levelNumber: concept.levelNumber,
+    levelName: levelInfo?.capability ?? `Level ${concept.levelNumber}`,
+    skills: row.skills,
+    subskills: row.subskills,
+    assessmentMode,
+    generationIntent: row.generationIntent,
+    questionFamily: row.questionFamily as any,
+    paramMode: 'structured',
+    svgThemeIds: row.svgThemeIds,
+    stem: '',
+    answerSpec: '',
+    numeralRange: null,
+    digitCount: null,
+    operations: [],
+    maxOperandCount: null,
+    carryBehavior: null,
+    borrowBehavior: null,
+    maxSumOrDifference: null,
+    answerType: null,
+    blankCount: null,
+    questionCount: 1,
+    subjectCategory: row.subjectCategory,
+    name: row.name,
+    variantKey: row.conceptId + ':seed:balvatika:v1',
+    tags: ['balvatika', 'seed'],
+    source: 'seed:balvatika' as any,
+    createdBy: existing?.createdBy ?? 'system-seed',
+    createdByEmail: existing?.createdByEmail ?? 'system-seed@fln.internal',
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+    updatedBy: 'system-seed',
+    updatedByEmail: 'system-seed@fln.internal',
+    deletedAt: null,
+    deletedBy: null,
+  };
 }
 
 export const ROWS: SeedRow[] = [
@@ -217,56 +280,14 @@ async function main() {
 
   for (const row of ROWS) {
     const existing = await coll.findOne({ conceptId: row.conceptId, source: 'seed:balvatika' });
-    const id = existing?.id ?? ('qtpl_' + randomUUID().slice(0, 8));
-    const assessmentMode = resolveSeedAssessmentMode(existing?.assessmentMode, row.assessmentMode);
-
-    const doc = {
-      id,
-      conceptId: row.conceptId,
-      // levelNumber/levelName are display aliases only, resolved from
-      // conceptId at write time (per QuestionTemplate's own contract) --
-      // this script does not hardcode them, so a future level-number shift
-      // never requires re-running this seed.
-      skills: row.skills,
-      subskills: row.subskills,
-      assessmentMode,
-      generationIntent: row.generationIntent,
-      questionFamily: row.questionFamily,
-      paramMode: 'structured',
-      svgThemeIds: row.svgThemeIds,
-      stem: '',
-      answerSpec: '',
-      numeralRange: null,
-      digitCount: null,
-      operations: [],
-      maxOperandCount: null,
-      carryBehavior: null,
-      borrowBehavior: null,
-      maxSumOrDifference: null,
-      answerType: null,
-      blankCount: null,
-      questionCount: 1,
-      subjectCategory: row.subjectCategory,
-      name: row.name,
-      variantKey: row.conceptId + ':seed:balvatika:v1',
-      tags: ['balvatika', 'seed'],
-      source: 'seed:balvatika',
-      createdBy: 'system-seed',
-      createdByEmail: 'system-seed@fln.internal',
-      createdAt: existing?.createdAt ?? now,
-      updatedAt: now,
-      updatedBy: 'system-seed',
-      updatedByEmail: 'system-seed@fln.internal',
-      deletedAt: null,
-      deletedBy: null,
-    };
+    const doc = buildSeedQuestionTemplate(row, existing as any, now);
 
     if (DRY_RUN) {
       console.log(existing ? `[dry-run] would update ${row.conceptId}` : `[dry-run] would insert ${row.conceptId}`);
       continue;
     }
 
-    await coll.updateOne({ id }, { $set: doc }, { upsert: true });
+    await coll.updateOne({ id: doc.id }, { $set: doc }, { upsert: true });
     if (existing) updated++; else inserted++;
   }
 
