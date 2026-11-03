@@ -129,7 +129,7 @@ export const ASSESSMENT_MODE_BY_CONCEPT: Record<string, AssessmentMode> = {
   'S4.4': 'written',    // INTERIM
   'S4.6': 'written',    // INTERIM
   'S4.7': 'written',    // INTERIM
-  'S4.8': 'both',       // INTERIM
+  'S4.8': 'observed',   // INTERIM (3D shape properties, Geometry)
   'S4.9': 'observed',   // INTERIM
   'S4.10': 'observed',  // INTERIM
 
@@ -141,15 +141,15 @@ export const ASSESSMENT_MODE_BY_CONCEPT: Record<string, AssessmentMode> = {
   'S5.7': 'both',       // INTERIM
   'S5.8': 'written',    // INTERIM
   'S5.11': 'observed',  // INTERIM
-  'S5.12': 'written',   // INTERIM
+  'S5.12': 'observed',  // INTERIM (2D shape set identification, Geometry)
 
   // Class 3 (INTERIM)
   'S6.4': 'written',    // INTERIM
   'S6.5': 'written',    // INTERIM
   'S6.6': 'written',    // INTERIM
   'S6.7': 'written',    // INTERIM
-  'S6.8': 'both',       // INTERIM
-  'S6.9': 'written',    // INTERIM
+  'S6.8': 'observed',   // INTERIM (standard measurement units, Measurement)
+  'S6.9': 'observed',   // INTERIM (relating 2D faces to 3D solids, Geometry)
   'S6.10': 'written',   // INTERIM
   'S6.12': 'written',   // INTERIM
   'S6.13': 'written',   // INTERIM
