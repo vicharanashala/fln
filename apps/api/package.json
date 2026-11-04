@@ -1,0 +1,23 @@
+{
+  "name": "@fln/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "typecheck": "tsc -p .",
+    "test": "tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@fln/curriculum": "*",
+    "@fln/domain": "*",
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.6.1",
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^4.17.21"
+  }
+}
