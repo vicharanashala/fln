@@ -1,0 +1,11 @@
+{
+  "name": "@fln/curriculum",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "tsx src/curriculumMap.test.ts && tsx src/index.test.ts"
+  }
+}
