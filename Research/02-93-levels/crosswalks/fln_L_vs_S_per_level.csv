@@ -1,0 +1,94 @@
+L,S,capability,code_primary,code_supporting,docs_strand,strand_match,docs_only_prereqs,code_only_prereqs,type_conflicts,issue
+L1,S1.1,One-to-One Correspondence,SK01,SK06,A,yes,,,,clean
+L2,S1.2,Classification (Single Property),SK02,SK04,A,yes,,,,clean
+L3,S1.3,Perceptual Same/Different,SK04,SK02,A,yes,S1.2(parallel),S1.1(supports),,EDGES
+L4,S1.4,Rote Verbal Counting to 10,SK05,SK10,B,yes,,S1.3(often-precedes),,EDGES
+L5,S1.5,Counting Small Sets (1-3),SK05 SK06,SK01,B,yes,,,S1.4: docs=co-occurs/code=requires,TYPE
+L6,S1.6,Shape Matching (Perceptual),SK19,SK04,D,yes,,S1.2(supports),,EDGES
+L7,S1.7,Perceptual Subitizing,SK07,SK06,B,yes,,S1.4(supports) S1.5(supports),,EDGES
+L8,S2.1,Quantity Comparison,SK09,SK01 SK06,A,NO,S1.3(requires),,S1.1: docs=requires/code=often-precedes,STRAND+TYPE+EDGES
+L9,S2.2,Seriation (3 Objects),SK03,SK09,A,yes,,,S2.1: docs=requires/code=often-precedes,TYPE
+L10,S2.3,Classification (Increasing Complexity),SK02,SK04,A,yes,S2.2(co-occurs),S1.2(supports),,EDGES
+L11,S2.4,Counting to 5 (Cardinality),SK05 SK06,SK01,B,yes,,,,clean
+L12,S2.5,Counting 6-10,SK05,SK06,B,yes,,,S2.4: docs=requires/code=often-precedes,TYPE
+L13,S2.6,Shape Identification,SK19,SK04,D,yes,,,,clean
+L14,S2.7,2-Item Patterns,SK18,SK04,F,yes,,S2.3(often-precedes),,EDGES
+L15,S2.8,Comparative Vocabulary,SK20,SK09,E,yes,,S2.1(supports),,EDGES
+L16,S2.9,Conceptual Subitizing,SK07,SK06 SK12,B,yes,,S2.4(supports),S1.7: docs=requires/code=supports,TYPE+EDGES
+L17,S2.10,Basic Shape Composition,SK19,SK12,D,yes,S1.6(co-occurs),S2.6(supports),,EDGES
+L18,S3.1,Numeral Recognition (1-10),SK08,SK05,B,yes,S2.5(requires),S1.4(often-precedes),,EDGES
+L19,S3.2,Numeral-Quantity Correspondence,SK08 SK06,SK05,B,yes,,S2.4(requires),,EDGES
+L20,S3.3,Numeral Comparison (Object-Mediated),SK09,SK08,A,NO,S2.1(requires),S3.2(often-precedes),,STRAND+EDGES
+L21,S3.4,Seriation with Transitivity,SK03,SK09,A,yes,,,S2.2: docs=requires/code=supports,TYPE
+L22,S3.5,Flexible Classification,SK02,SK04 SK24,A,yes,,,S2.3: docs=requires/code=supports,TYPE
+L23,S3.6,Numeral Sequencing,SK10,SK05 SK08,B,yes,S3.2(requires),S3.1(requires),,EDGES
+L24,S3.7,Comparative Vocabulary (Formalizing),SK20,SK09,E,yes,,,S2.8: docs=requires/code=supports,TYPE
+L25,S3.8,Patterns (2-Item Indep & 3-Item Intro),SK18,SK04,F,yes,,,S2.7: docs=requires/code=often-precedes,TYPE
+L26,S3.9,Basic Shape Properties,SK19,SK04,D,yes,S1.6(requires),S2.6(supports),,EDGES
+L27,S3.10,Shape Composition & Decomposition,SK19,SK12,D,yes,,,S2.10: docs=requires/code=supports,TYPE
+L28,S4.1,Abstract Numeral Comparison,SK09,SK08 SK10,B,yes,,,S3.3: docs=requires/code=often-precedes,TYPE
+L29,S4.2,Close Numeral Comparison,SK09,SK11,B,yes,,,S4.1: docs=requires/code=often-precedes,TYPE
+L30,S4.3,Counting Objects to 20,SK05 SK06,SK01,B,yes,S3.6(requires),S2.4(requires) S2.5(requires),,EDGES
+L31,S4.4,Reading & Writing Numerals to 99,SK08,SK05 SK11,B,yes,S4.3(requires),S3.1(requires) S3.6(requires),,EDGES
+L32,S4.5,Tens and Ones,SK11,SK12,B,yes,,,,clean
+L33,S4.6,Single-Digit Addition,SK13,SK05 SK06 SK12,C,yes,S4.4(requires),S4.5(requires),,EDGES
+L34,S4.7,Single-Digit Subtraction,SK14,SK05 SK06,C,yes,S4.4(requires),,S4.6: docs=parallel/code=requires,TYPE+EDGES
+L35,S4.8,3D Shape Properties,SK19,SK04,D,yes,S2.6(requires),,,EDGES
+L36,S4.9,Non-Standard Length Estimation,SK20,SK24,E,yes,,,S3.7: docs=requires/code=supports,TYPE
+L37,S4.10,Non-Standard Capacity Estimation,SK20,SK24,E,yes,S3.7(requires),,,EDGES
+L38,S4.11,3-Item Pattern Completion,SK18,SK04,F,yes,,,S3.8: docs=requires/code=often-precedes,TYPE
+L39,S4.12,Concept of Zero,SK08,SK05 SK11,B,yes,S2.4(requires) S3.2(requires),S3.1(often-precedes),,EDGES
+L40,S4.13,Ordinal Positions (1st-10th),SK10,SK05,B,yes,,,S3.6: docs=requires/code=often-precedes,TYPE
+L41,S4.14,Informal Number Line (0-20),SK10,SK09,B,yes,,,,clean
+L42,S4.15,Advanced Shape Composition,SK19,SK12,D,yes,,,S3.10: docs=requires/code=supports,TYPE
+L43,S5.1,Reading & Writing 3-Digit Numbers,SK08,SK11,B,yes,S4.5(requires),S4.4(requires),,EDGES
+L44,S5.2,Tens as Bundles/Groups,SK11,SK12,B,yes,S5.1(requires),S4.5(often-precedes),,EDGES
+L45,S5.3,Flexible 2-Digit Decomposition,SK12,SK11,B,yes,S5.17(parallel),S4.5(requires),,EDGES
+L46,S5.4,2-Digit Addition with Regrouping,SK13 SK11,SK12,C,yes,S5.2(requires),S5.3(requires),,EDGES
+L47,S5.5,2-Digit Subtraction with Regrouping,SK14 SK11,SK12,C,yes,,S5.3(requires),,EDGES
+L48,S5.6,Multiplication as Repeated Addition,SK15,SK13 SK18,C,yes,S5.4(requires) S5.5(parallel),S4.6(often-precedes) S5.19(often-precedes),,EDGES
+L49,S5.7,Division as Equal Sharing,SK16,SK01 SK06,C,yes,S5.6(parallel),S4.6(often-precedes),,EDGES
+L50,S5.8,"Multiplication Tables (2,3,4,5,10)",SK15,SK18,C,yes,S5.19(requires) S5.7(co-occurs),,,EDGES
+L51,S5.9,Currency Recognition,SK22,SK08,G,yes,,S5.1(often-precedes),,EDGES
+L52,S5.10,Informal Fractions (Folding),SK17,SK19,I,yes,,S4.15(supports),,EDGES
+L53,S5.11,Uniform Non-Standard Measurement,SK20,SK24,E,yes,,,S4.10: docs=requires/code=supports S4.9: docs=requires/code=supports,TYPE
+L54,S5.12,2D Shape Set Identification,SK19,SK02,D,yes,S4.8(co-occurs),S3.9(supports) S4.15(supports),,EDGES
+L55,S5.13,Spatial Vocabulary,SK19,SK24,D,yes,,S4.8(supports),,EDGES
+L56,S5.14,Calendar Reading,SK21,SK10,H,yes,,S4.13(often-precedes),,EDGES
+L57,S5.15,Data Handling (Sorting & Tallies),SK23,SK02 SK05,J,yes,,S3.5(supports),,EDGES
+L58,S5.16,Number Patterns & Sequences,SK18,SK10,F,yes,S4.11(co-occurs) S4.4(requires),S3.6(often-precedes) S4.14(often-precedes),,EDGES
+L59,S5.17,Zero as a Placeholder,SK11,SK08,B,yes,S4.12(requires) S5.2(requires),S5.1(requires),,EDGES
+L60,S5.18,Extended Number Line (0-100),SK10,SK09 SK11,B,yes,S5.1(co-occurs),S5.2(often-precedes),,EDGES
+L61,S5.19,"Skip Counting (2s, 5s, 10s)",SK18 SK15,SK05,F,yes,,S2.5(often-precedes),S5.16: docs=requires/code=often-precedes,TYPE+EDGES
+L62,S6.1,3-Digit Place Value & Expanded Form,SK11,SK12,B,yes,,S5.17(requires),,EDGES
+L63,S6.2,Flexible 3-Digit Decomposition,SK12,SK11,B,yes,,S5.3(requires),,EDGES
+L64,S6.3,3-Digit Comparison & Ordering,SK09 SK03,SK11,B,yes,S6.2(requires),S6.1(often-precedes),S4.2: docs=requires/code=often-precedes,TYPE+EDGES
+L65,S6.4,Reading & Writing 4-Digit Numbers,SK08,SK11,B,yes,S6.3(requires),S5.17(requires) S6.1(requires),,EDGES
+L66,S6.5,3-Digit Addition & Subtraction Problems,SK13 SK14,SK11 SK12,C,yes,S5.8(co-occurs),,,EDGES
+L67,S6.6,Full Multiplication Tables (2-10),SK15,SK18,C,yes,S6.5(co-occurs),S5.19(requires),,EDGES
+L68,S6.7,Division Facts & Inverse Relation,SK16,SK15,C,yes,,,,clean
+L69,S6.8,Standard Measurement Units,SK20,SK24,E,yes,,,,clean
+L70,S6.9,Relating 2D Faces to 3D Solids,SK19,SK04,D,yes,,S5.12(supports),S4.8: docs=requires/code=supports,TYPE+EDGES
+L71,S6.10,Telling Time (Hours & Half-Hours),SK21,SK10,H,yes,,,S5.14: docs=co-occurs/code=requires,TYPE
+L72,S6.11,Money Arithmetic,SK22,SK13 SK14,G,yes,,S6.5(requires),,EDGES
+L73,S6.12,Formal Fractions (Half/Quarter),SK17,SK12,I,yes,,,,clean
+L74,S6.13,Pattern Rules & Generalization,SK18,SK24,F,yes,S5.19(requires),S5.16(often-precedes) S6.6(often-precedes),,EDGES
+L75,S6.14,Data Handling (Pictographs & Bar Graphs),SK23,SK05 SK09,J,yes,,,,clean
+L76,S7.1,4-Digit & 5-Digit Place Value,SK11,SK12,B,yes,,S6.1(requires),,EDGES
+L77,S7.2,Large Number Operations & Regrouping,SK13 SK14 SK11,SK12,B,yes,,S6.5(requires),,EDGES
+L78,S7.3,Complex Multi-Digit Word Problems,SK24 SK13 SK14,SK11 SK12,C,yes,S6.5(requires) S6.7(co-occurs) S7.1(requires),S7.2(often-precedes),,EDGES
+L79,S7.4,Extended Multiplication,SK15,SK11 SK12,C,yes,S7.3(co-occurs),S5.8(requires) S6.6(requires) S7.1(requires),,EDGES
+L80,S7.5,Formal Long Division,SK16,SK15 SK11,C,yes,S7.4(requires),S6.7(requires) S7.1(requires),,EDGES
+L81,S7.6,Fractional Notation & Equivalence,SK17,SK12,I,yes,,,,clean
+L82,S7.7,Standard Unit Conversion,SK20,SK12,E,yes,,,,clean
+L83,S7.8,Applied Measurement Word Problems,SK20 SK24,SK13 SK14,E,yes,S6.8(requires),S7.3(often-precedes),,EDGES
+L84,S7.9,3D Nets & Spatial Perspective,SK19,SK12 SK24,D,yes,,,S6.9: docs=requires/code=supports,TYPE
+L85,S7.10,Advanced Time Calculation,SK21,SK13 SK14,H,yes,,,,clean
+L86,S7.11,Complex Money Problems,SK22 SK24,SK13 SK14,G,yes,,,S6.11: docs=requires/code=often-precedes,TYPE
+L87,S7.12,Advanced Number Patterns,SK18,SK10 SK24,F,yes,,,S6.13: docs=requires/code=often-precedes,TYPE
+L88,S7.13,Bar Graphs & Data Interpretation,SK23,SK09 SK24,J,yes,,,S6.14: docs=requires/code=often-precedes,TYPE
+L89,S7.14,Factors & Multiples,SK15 SK18,SK16,C,yes,,S6.7(often-precedes),S6.6: docs=requires/code=often-precedes,TYPE+EDGES
+L90,S7.15,Decimals (Tenths & Hundredths),SK08 SK17,SK11 SK12,B,yes,S7.1(requires),S6.2(requires) S7.6(requires),,EDGES
+L91,S7.16,Angles & Turn,SK19,SK10,D,yes,S4.8(co-occurs),S5.13(supports),,EDGES
+L92,S7.17,Symmetry & Reflection,SK19,SK18,D,yes,S6.9(co-occurs),S6.13(supports),,EDGES
+L93,S7.18,Perimeter & Area,SK20,SK19 SK13,E,yes,S6.8(requires),S7.7(requires),,EDGES

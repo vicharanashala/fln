@@ -1,0 +1,1576 @@
+<title>FLN Micro-Skill Prerequisite Graph</title>
+<style>
+ :root{--bg:#eef1ee;--surface:#fff;--surface-2:#e4e9e4;--surface-3:#f5f7f5;--ink:#1c2622;--ink-muted:#57645d;
+  --ink-faint:#8b968f;--line:#d3dbd4;--accent:#2f6b62;--accent-soft:#d7e8e3;--accent-ink:#fff;
+  --warn:#a5691f;--warn-soft:#f3e3cd;--bad:#a5432f;--bad-soft:#f3ddd4;
+  --shadow:0 1px 2px rgba(28,38,34,.06),0 6px 20px rgba(28,38,34,.05)}
+ @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111613;--surface:#181f1b;--surface-2:#202b25;--surface-3:#151c18;--ink:#e8ece9;--ink-muted:#a4b0a9;
+  --ink-faint:#6d7a73;--line:#2a342e;--accent:#6fcbb9;--accent-soft:#1f3a34;--accent-ink:#0c1a17;
+  --warn:#e0a552;--warn-soft:#3a2e18;--bad:#e08a72;--bad-soft:#3a241c;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35)}}
+ :root[data-theme="dark"]{--bg:#111613;--surface:#181f1b;--surface-2:#202b25;--surface-3:#151c18;--ink:#e8ece9;
+  --ink-muted:#a4b0a9;--ink-faint:#6d7a73;--line:#2a342e;--accent:#6fcbb9;--accent-soft:#1f3a34;
+  --accent-ink:#0c1a17;--warn:#e0a552;--warn-soft:#3a2e18;--bad:#e08a72;--bad-soft:#3a241c;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35)}
+ *{box-sizing:border-box}
+ body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;line-height:1.55}
+ .page{max-width:1180px;margin:0 auto;padding:56px 24px 110px;display:flex;flex-direction:column;gap:30px}
+ .eyebrow{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+ h1{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-size:clamp(28px,4vw,38px);
+  font-weight:600;margin:6px 0 0;text-wrap:balance;letter-spacing:-.01em}
+ h2{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-size:20px;font-weight:600;margin:0 0 4px}
+ .subtitle{color:var(--ink-muted);font-size:16px;max-width:66ch;margin-top:10px}
+ header{display:flex;flex-direction:column;gap:4px}
+ .status-row{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+ .chip-stat{display:inline-flex;align-items:baseline;gap:6px;font-size:13px;padding:6px 12px;
+  border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+ .chip-stat b{font-family:ui-monospace,monospace;font-size:14px}
+ .chip-stat.gap{background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 35%,transparent);color:var(--bad)}
+ .chip-stat.rev{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 35%,transparent);color:var(--warn)}
+ p{margin:0;max-width:70ch} p.muted{color:var(--ink-muted);font-size:15px}
+ code{font-family:ui-monospace,monospace;font-size:.92em;background:var(--surface-2);padding:1px 5px;border-radius:5px}
+ figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:20px 18px 14px;box-shadow:var(--shadow)}
+ .fig-label{font-family:ui-monospace,monospace;font-size:11.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+ .svg-wrap{overflow-x:auto}
+ svg{display:block;max-width:100%;height:auto;min-width:1400px}
+ figcaption{margin-top:12px;font-size:13.5px;color:var(--ink-muted);border-top:1px solid var(--line);padding-top:10px}
+ .nb{fill:var(--surface-2);stroke:var(--line)}
+ .nb.root{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.6}
+ .nt{fill:var(--ink);font-family:ui-monospace,monospace}
+ .nt.root{fill:var(--accent)}
+ .ns{fill:var(--ink-muted);font-family:-apple-system,sans-serif}
+ .mbox{fill:var(--surface-3);stroke:var(--line);stroke-dasharray:3 2}
+ .mlab{fill:var(--ink-faint);font-family:ui-monospace,monospace;letter-spacing:.08em}
+ .ms.named{fill:var(--accent-soft)} .ms.derived{fill:var(--warn-soft)}
+ .ms.gap{fill:var(--bad-soft)} .ms.supp{fill:var(--surface-2)}
+ .mid{font-family:ui-monospace,monospace}
+ .mid.named{fill:var(--accent)} .mid.derived{fill:var(--warn)}
+ .mid.gap{fill:var(--bad)} .mid.supp{fill:var(--ink-faint)}
+ .mt{font-family:-apple-system,sans-serif}
+ .mt.named,.mt.derived{fill:var(--ink)} .mt.gap{fill:var(--bad);font-weight:600} .mt.supp{fill:var(--ink-muted)}
+ .e1{stroke:var(--ink-faint);stroke-width:1;fill:none;opacity:.7}
+ .e2{stroke:var(--accent);stroke-width:1;fill:none;opacity:.6;stroke-dasharray:4 3}
+ .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-muted);align-items:center}
+ .sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:4px;border:1px solid}
+ .callout{border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;border:1px solid;
+  background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+ .callout h2{font-size:16px;font-family:-apple-system,sans-serif;font-weight:700;color:var(--bad)}
+ .callout ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+ .callout li{font-size:14.5px}
+ footer{color:var(--ink-faint);font-size:12.5px;border-top:1px solid var(--line);padding-top:18px}
+</style>
+<div class="page">
+ <header>
+  <span class="eyebrow">FLN &middot; micro-skill decomposition</span>
+  <h1>The whole curriculum as one prerequisite graph</h1>
+  <p class="subtitle">All 93 Levels in prerequisite layers &mdash; a <b>DAG (directed acyclic graph)</b>, not a tree: 30 of the 93 Levels already have two or more prerequisites feeding into them, which a tree cannot represent (a tree gives every node exactly one parent). Each Level now carries a separate <b>requires</b> box beneath it, with every skill and subskill written out in full &mdash; nothing truncated.</p>
+  <div class="status-row">
+   <span class="chip-stat"><b>93</b>&nbsp;levels</span>
+   <span class="chip-stat"><b>124</b>&nbsp;prerequisite links</span>
+   <span class="chip-stat"><b>27</b>&nbsp;name-confirmed</span>
+   <span class="chip-stat rev"><b>83</b>&nbsp;need review</span>
+   <span class="chip-stat gap"><b>38</b>&nbsp;gap flags</span>
+  </div>
+ </header>
+
+ <div class="legend">
+  <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>confirmed by the Level's own name</span>
+  <span><span class="sw" style="background:var(--warn-soft);border-color:var(--warn)"></span>rule-derived &mdash; needs review</span>
+  <span><span class="sw" style="background:var(--surface-2);border-color:var(--line)"></span>supporting skill, tier not assigned</span>
+  <span><span class="sw" style="background:var(--bad-soft);border-color:var(--bad)"></span>missing subskill</span>
+  <span><span class="sw" style="background:none;border-color:var(--accent);border-style:dashed"></span>edge skipping a layer</span>
+ </div>
+
+ <figure>
+  <div class="fig-label">The graph &middot; L1 at the root, 15 layers deep</div>
+  <div class="svg-wrap">
+<svg viewBox="0 0 3008 4156" role="img" aria-label="Prerequisite DAG of all 93 FLN Levels in layers, each Level paired with a separate requirements box listing its micro-skills in full">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor" style="color:var(--ink-faint)"/></marker></defs>
+<path class="e1" marker-end="url(#ar)" d="M1504,173 C1504,202 1236,202 1236,225"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,173 C1504,202 1504,202 1504,225"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,356 C1504,404 1504,404 1504,446"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,588 C1504,623 1504,623 1504,652"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,379 C1236,416 968,416 968,446"/>
+<path class="e2" marker-end="url(#ar)" d="M1504,588 C1504,739 1772,739 1772,884"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,832 C1504,861 1772,861 1772,884"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,173 C1504,202 1772,202 1772,225"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,394 C1772,423 1772,423 1772,446"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,379 C1236,416 1236,416 1236,446"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,832 C1504,861 1504,861 1504,884"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,1053 C1504,1106 2174,1106 2174,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M968,588 C968,623 968,623 968,652"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,600 C1236,629 700,629 700,652"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,394 C1772,423 2040,423 2040,446"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,1015 C1772,1088 1906,1088 1906,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,1053 C1504,1106 1906,1106 1906,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M968,794 C968,842 432,842 432,884"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,588 C1504,623 1772,623 1772,652"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,1053 C1504,1106 298,1106 298,1154"/>
+<path class="e2" marker-end="url(#ar)" d="M1772,794 C1772,977 298,977 298,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M298,1335 C298,1388 432,1388 432,1436"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,577 C1772,618 2040,618 2040,652"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,600 C1236,629 1236,629 1236,652"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,794 C1772,842 2040,842 2040,884"/>
+<path class="e1" marker-end="url(#ar)" d="M2040,577 C2040,618 2308,618 2308,652"/>
+<path class="e1" marker-end="url(#ar)" d="M700,794 C700,842 700,842 700,884"/>
+<path class="e1" marker-end="url(#ar)" d="M968,794 C968,842 1236,842 1236,884"/>
+<path class="e1" marker-end="url(#ar)" d="M432,1026 C432,1093 566,1093 566,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M432,1590 C432,1638 432,1638 432,1680"/>
+<path class="e1" marker-end="url(#ar)" d="M432,1860 C432,1916 566,1916 566,1966"/>
+<path class="e2" marker-end="url(#ar)" d="M1504,1053 C1504,1248 2040,1248 2040,1436"/>
+<path class="e1" marker-end="url(#ar)" d="M2174,1285 C2174,1364 2040,1364 2040,1436"/>
+<path class="e2" marker-end="url(#ar)" d="M1772,794 C1772,977 1638,977 1638,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M2040,1064 C2040,1112 1638,1112 1638,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M1638,1384 C1638,1413 1772,1413 1772,1436"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,1616 C1772,1651 2040,1651 2040,1680"/>
+<path class="e1" marker-end="url(#ar)" d="M2040,1914 C2040,1943 1370,1943 1370,1966"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,1026 C1236,1093 1370,1093 1370,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M2308,795 C2308,842 2576,842 2576,884"/>
+<path class="e1" marker-end="url(#ar)" d="M2576,1026 C2576,1093 2442,1093 2442,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M700,1038 C700,1099 834,1099 834,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,794 C1772,842 2308,842 2308,884"/>
+<path class="e1" marker-end="url(#ar)" d="M2040,1064 C2040,1112 2710,1112 2710,1154"/>
+<path class="e1" marker-end="url(#ar)" d="M2040,1605 C2040,1646 2308,1646 2308,1680"/>
+<path class="e1" marker-end="url(#ar)" d="M566,1308 C566,1375 700,1375 700,1436"/>
+<path class="e1" marker-end="url(#ar)" d="M1638,1384 C1638,1413 1236,1413 1236,1436"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,1616 C1772,1651 1772,1651 1772,1680"/>
+<path class="e2" marker-end="url(#ar)" d="M1772,1616 C1772,1794 1102,1794 1102,1966"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,1860 C1772,1916 1102,1916 1102,1966"/>
+<path class="e2" marker-end="url(#ar)" d="M2040,1914 C2040,2072 1772,2072 1772,2225"/>
+<path class="e1" marker-end="url(#ar)" d="M1102,2146 C1102,2188 1772,2188 1772,2225"/>
+<path class="e1" marker-end="url(#ar)" d="M1370,2162 C1370,2196 1504,2196 1504,2225"/>
+<path class="e1" marker-end="url(#ar)" d="M1102,2146 C1102,2188 1504,2188 1504,2225"/>
+<path class="e2" marker-end="url(#ar)" d="M2040,1914 C2040,2222 2040,2222 2040,2523"/>
+<path class="e1" marker-end="url(#ar)" d="M2040,2421 C2040,2475 2040,2475 2040,2523"/>
+<path class="e1" marker-end="url(#ar)" d="M2040,1914 C2040,1943 2442,1943 2442,1966"/>
+<path class="e1" marker-end="url(#ar)" d="M2040,2731 C2040,2798 1906,2798 1906,2859"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,1628 C1236,1657 700,1657 700,1680"/>
+<path class="e1" marker-end="url(#ar)" d="M700,1578 C700,1632 164,1632 164,1680"/>
+<path class="e2" marker-end="url(#ar)" d="M2576,1026 C2576,1234 2308,1234 2308,1436"/>
+<path class="e1" marker-end="url(#ar)" d="M2442,1308 C2442,1375 2308,1375 2308,1436"/>
+<path class="e2" marker-end="url(#ar)" d="M1236,1026 C1236,1356 968,1356 968,1680"/>
+<path class="e1" marker-end="url(#ar)" d="M700,1578 C700,1632 968,1632 968,1680"/>
+<path class="e1" marker-end="url(#ar)" d="M1370,1296 C1370,1369 1504,1369 1504,1436"/>
+<path class="e1" marker-end="url(#ar)" d="M2710,1296 C2710,1369 2576,1369 2576,1436"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,832 C1236,861 968,861 968,884"/>
+<path class="e2" marker-end="url(#ar)" d="M2040,1064 C2040,1518 1638,1518 1638,1966"/>
+<path class="e1" marker-end="url(#ar)" d="M2308,1811 C2308,1892 1638,1892 1638,1966"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,1628 C1236,1657 1504,1657 1504,1680"/>
+<path class="e1" marker-end="url(#ar)" d="M2308,1811 C2308,1892 2174,1892 2174,1966"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,1860 C1772,1916 2174,1916 2174,1966"/>
+<path class="e2" marker-end="url(#ar)" d="M2174,1285 C2174,1758 2040,1758 2040,2225"/>
+<path class="e1" marker-end="url(#ar)" d="M1638,2108 C1638,2170 2040,2170 2040,2225"/>
+<path class="e1" marker-end="url(#ar)" d="M1102,2146 C1102,2188 1236,2188 1236,2225"/>
+<path class="e2" marker-end="url(#ar)" d="M1504,1860 C1504,2046 1236,2046 1236,2225"/>
+<path class="e2" marker-end="url(#ar)" d="M1102,2146 C1102,2338 1236,2338 1236,2523"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,2417 C1236,2473 1236,2473 1236,2523"/>
+<path class="e2" marker-end="url(#ar)" d="M566,2146 C566,2338 968,2338 968,2523"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,2417 C1236,2473 968,2473 968,2523"/>
+<path class="e2" marker-end="url(#ar)" d="M1504,1860 C1504,2194 1772,2194 1772,2523"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,2417 C1236,2473 1772,2473 1772,2523"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,2471 C1772,2500 1504,2500 1504,2523"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,2471 C1504,2500 1504,2500 1504,2523"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,2417 C1236,2473 1504,2473 1504,2523"/>
+<path class="e1" marker-end="url(#ar)" d="M1906,3040 C1906,3101 1504,3101 1504,3156"/>
+<path class="e2" marker-end="url(#ar)" d="M2040,2421 C2040,2792 1504,2792 1504,3156"/>
+<path class="e2" marker-end="url(#ar)" d="M2040,2421 C2040,2650 1906,2650 1906,2865"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,3337 C1504,3412 1102,3412 1102,3481"/>
+<path class="e1" marker-end="url(#ar)" d="M2308,1590 C2308,1638 2576,1638 2576,1680"/>
+<path class="e2" marker-end="url(#ar)" d="M1370,1296 C1370,1634 834,1634 834,1966"/>
+<path class="e1" marker-end="url(#ar)" d="M968,1811 C968,1892 834,1892 834,1966"/>
+<path class="e1" marker-end="url(#ar)" d="M2576,1578 C2576,1632 2844,1632 2844,1680"/>
+<path class="e2" marker-end="url(#ar)" d="M700,1822 C700,2344 1370,2344 1370,2859"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,2807 C1504,2836 1370,2836 1370,2859"/>
+<path class="e1" marker-end="url(#ar)" d="M164,1822 C164,1897 298,1897 298,1966"/>
+<path class="e2" marker-end="url(#ar)" d="M1638,2108 C1638,2798 1638,2798 1638,3481"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,3337 C1504,3412 1638,3412 1638,3481"/>
+<path class="e1" marker-end="url(#ar)" d="M968,1065 C968,1112 1102,1112 1102,1154"/>
+<path class="e2" marker-end="url(#ar)" d="M1236,2417 C1236,2641 1638,2641 1638,2859"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,2715 C1772,2790 1638,2790 1638,2859"/>
+<path class="e2" marker-end="url(#ar)" d="M1504,2807 C1504,2984 1772,2984 1772,3156"/>
+<path class="e1" marker-end="url(#ar)" d="M1638,3039 C1638,3100 1772,3100 1772,3156"/>
+<path class="e1" marker-end="url(#ar)" d="M1772,3429 C1772,3458 1906,3458 1906,3481"/>
+<path class="e2" marker-end="url(#ar)" d="M1906,3040 C1906,3264 1370,3264 1370,3481"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,3337 C1504,3412 1370,3412 1370,3481"/>
+<path class="e2" marker-end="url(#ar)" d="M1638,3039 C1638,3263 1370,3263 1370,3481"/>
+<path class="e1" marker-end="url(#ar)" d="M1102,3651 C1102,3750 968,3750 968,3844"/>
+<path class="e2" marker-end="url(#ar)" d="M1638,3039 C1638,3444 968,3444 968,3844"/>
+<path class="e1" marker-end="url(#ar)" d="M298,2120 C298,2176 700,2176 700,2225"/>
+<path class="e1" marker-end="url(#ar)" d="M2576,1822 C2576,1897 1906,1897 1906,1966"/>
+<path class="e1" marker-end="url(#ar)" d="M1906,3792 C1906,3821 2040,3821 2040,3844"/>
+<path class="e2" marker-end="url(#ar)" d="M1906,2108 C1906,2979 2040,2979 2040,3844"/>
+<path class="e1" marker-end="url(#ar)" d="M834,2108 C834,2170 968,2170 968,2225"/>
+<path class="e1" marker-end="url(#ar)" d="M2844,1834 C2844,1903 2710,1903 2710,1966"/>
+<path class="e1" marker-end="url(#ar)" d="M1370,3017 C1370,3090 1236,3090 1236,3156"/>
+<path class="e1" marker-end="url(#ar)" d="M1638,3623 C1638,3736 1504,3736 1504,3844"/>
+<path class="e1" marker-end="url(#ar)" d="M1102,1335 C1102,1388 968,1388 968,1436"/>
+<path class="e2" marker-end="url(#ar)" d="M1504,3337 C1504,3594 1236,3594 1236,3844"/>
+<path class="e1" marker-end="url(#ar)" d="M1102,3651 C1102,3750 1236,3750 1236,3844"/>
+<path class="e1" marker-end="url(#ar)" d="M1236,2703 C1236,2784 1102,2784 1102,2859"/>
+<path class="e2" marker-end="url(#ar)" d="M700,2379 C700,2622 1102,2622 1102,2859"/>
+<path class="e1" marker-end="url(#ar)" d="M1504,1578 C1504,1632 1236,1632 1236,1680"/>
+<path class="e1" marker-end="url(#ar)" d="M1638,3623 C1638,3736 1772,3736 1772,3844"/>
+<path class="e1" marker-end="url(#ar)" d="M1906,2108 C1906,2170 2308,2170 2308,2225"/>
+<rect class="nb root" x="1379" y="48" width="250" height="38" rx="8"/>
+<text class="nt root" x="1389" y="63" font-size="11" font-weight="700">L1</text>
+<text class="ns" x="1389" y="75" font-size="9">One-to-One Correspondence</text>
+<rect class="mbox" x="1379" y="94" width="250" height="79" rx="8"/>
+<text class="mlab" x="1389" y="108" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1386" y="113" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1391" y="122" font-size="7.8" font-weight="700">SK01.01</text>
+<text class="mt derived" x="1391" y="133" font-size="8.4">Match one object to one object</text>
+<rect class="ms supp" x="1386" y="140" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1391" y="149" font-size="7.8" font-weight="700">SK06</text>
+<text class="mt supp" x="1391" y="160" font-size="8.4">Cardinality (tier tbd)</text>
+<rect class="nb" x="1111" y="231" width="250" height="50" rx="8"/>
+<text class="nt" x="1121" y="246" font-size="11" font-weight="700">L2</text>
+<text class="ns" x="1121" y="258" font-size="9">Classification (Single</text>
+<text class="ns" x="1121" y="270" font-size="9">Property)</text>
+<rect class="mbox" x="1111" y="289" width="250" height="90" rx="8"/>
+<text class="mlab" x="1121" y="303" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1118" y="308" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1123" y="317" font-size="7.8" font-weight="700">SK02.01</text>
+<text class="mt derived" x="1123" y="328" font-size="8.4">Classify by one property</text>
+<rect class="ms supp" x="1118" y="335" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1123" y="344" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="1123" y="355" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="1123" y="366" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="nb" x="1379" y="231" width="250" height="38" rx="8"/>
+<text class="nt" x="1389" y="246" font-size="11" font-weight="700">L3</text>
+<text class="ns" x="1389" y="258" font-size="9">Perceptual Same/Different</text>
+<rect class="mbox" x="1379" y="277" width="250" height="79" rx="8"/>
+<text class="mlab" x="1389" y="291" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1386" y="296" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1391" y="305" font-size="7.8" font-weight="700">SK04.01</text>
+<text class="mt derived" x="1391" y="316" font-size="8.4">Perceptual same/different</text>
+<rect class="ms supp" x="1386" y="323" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1391" y="332" font-size="7.8" font-weight="700">SK02</text>
+<text class="mt supp" x="1391" y="343" font-size="8.4">Classification (tier tbd)</text>
+<rect class="nb" x="1379" y="452" width="250" height="38" rx="8"/>
+<text class="nt" x="1389" y="467" font-size="11" font-weight="700">L4</text>
+<text class="ns" x="1389" y="479" font-size="9">Rote Verbal Counting to 10</text>
+<rect class="mbox" x="1379" y="498" width="250" height="90" rx="8"/>
+<text class="mlab" x="1389" y="512" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1386" y="517" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="526" font-size="7.8" font-weight="700">SK05.01</text>
+<text class="mt named" x="1391" y="537" font-size="8.4">Rote counting to 10</text>
+<rect class="ms supp" x="1386" y="544" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="553" font-size="7.8" font-weight="700">SK10</text>
+<text class="mt supp" x="1391" y="564" font-size="8.4">Number Sequencing &amp; Number Line</text>
+<text class="mt supp" x="1391" y="575" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1379" y="658" width="250" height="38" rx="8"/>
+<text class="nt" x="1389" y="673" font-size="11" font-weight="700">L5</text>
+<text class="ns" x="1389" y="685" font-size="9">Counting Small Sets (1-3)</text>
+<rect class="mbox" x="1379" y="704" width="250" height="128" rx="8"/>
+<text class="mlab" x="1389" y="718" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1386" y="723" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="732" font-size="7.8" font-weight="700">SK05.03</text>
+<text class="mt named" x="1391" y="743" font-size="8.4">Count to 5</text>
+<rect class="ms named" x="1386" y="750" width="236" height="34" rx="4"/>
+<text class="mid named" x="1391" y="759" font-size="7.8" font-weight="700">SK06.01</text>
+<text class="mt named" x="1391" y="770" font-size="8.4">Understand last number counted as</text>
+<text class="mt named" x="1391" y="781" font-size="8.4">total</text>
+<rect class="ms supp" x="1386" y="788" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="797" font-size="7.8" font-weight="700">SK01</text>
+<text class="mt supp" x="1391" y="808" font-size="8.4">One-to-One Correspondence (tier</text>
+<text class="mt supp" x="1391" y="819" font-size="8.4">tbd)</text>
+<rect class="nb" x="843" y="452" width="250" height="38" rx="8"/>
+<text class="nt" x="853" y="467" font-size="11" font-weight="700">L6</text>
+<text class="ns" x="853" y="479" font-size="9">Shape Matching (Perceptual)</text>
+<rect class="mbox" x="843" y="498" width="250" height="90" rx="8"/>
+<text class="mlab" x="853" y="512" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="850" y="517" width="236" height="23" rx="4"/>
+<text class="mid derived" x="855" y="526" font-size="7.8" font-weight="700">SK19.01</text>
+<text class="mt derived" x="855" y="537" font-size="8.4">Shape matching</text>
+<rect class="ms supp" x="850" y="544" width="236" height="34" rx="4"/>
+<text class="mid supp" x="855" y="553" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="855" y="564" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="855" y="575" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="nb" x="1647" y="890" width="250" height="38" rx="8"/>
+<text class="nt" x="1657" y="905" font-size="11" font-weight="700">L7</text>
+<text class="ns" x="1657" y="917" font-size="9">Perceptual Subitizing</text>
+<rect class="mbox" x="1647" y="936" width="250" height="79" rx="8"/>
+<text class="mlab" x="1657" y="950" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1654" y="955" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1659" y="964" font-size="7.8" font-weight="700">SK07.01</text>
+<text class="mt derived" x="1659" y="975" font-size="8.4">Perceptual subitizing</text>
+<rect class="ms supp" x="1654" y="982" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1659" y="991" font-size="7.8" font-weight="700">SK06</text>
+<text class="mt supp" x="1659" y="1002" font-size="8.4">Cardinality (tier tbd)</text>
+<rect class="nb" x="1647" y="231" width="250" height="38" rx="8"/>
+<text class="nt" x="1657" y="246" font-size="11" font-weight="700">L8</text>
+<text class="ns" x="1657" y="258" font-size="9">Quantity Comparison</text>
+<rect class="mbox" x="1647" y="277" width="250" height="117" rx="8"/>
+<text class="mlab" x="1657" y="291" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1654" y="296" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1659" y="305" font-size="7.8" font-weight="700">SK09.01</text>
+<text class="mt derived" x="1659" y="316" font-size="8.4">Compare quantities</text>
+<rect class="ms supp" x="1654" y="323" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1659" y="332" font-size="7.8" font-weight="700">SK01</text>
+<text class="mt supp" x="1659" y="343" font-size="8.4">One-to-One Correspondence (tier</text>
+<text class="mt supp" x="1659" y="354" font-size="8.4">tbd)</text>
+<rect class="ms supp" x="1654" y="361" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1659" y="370" font-size="7.8" font-weight="700">SK06</text>
+<text class="mt supp" x="1659" y="381" font-size="8.4">Cardinality (tier tbd)</text>
+<rect class="nb" x="1647" y="452" width="250" height="38" rx="8"/>
+<text class="nt" x="1657" y="467" font-size="11" font-weight="700">L9</text>
+<text class="ns" x="1657" y="479" font-size="9">Seriation (3 Objects)</text>
+<rect class="mbox" x="1647" y="498" width="250" height="79" rx="8"/>
+<text class="mlab" x="1657" y="512" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1654" y="517" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1659" y="526" font-size="7.8" font-weight="700">SK03.01</text>
+<text class="mt derived" x="1659" y="537" font-size="8.4">Arrange three objects by size</text>
+<rect class="ms supp" x="1654" y="544" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1659" y="553" font-size="7.8" font-weight="700">SK09</text>
+<text class="mt supp" x="1659" y="564" font-size="8.4">Number Comparison (tier tbd)</text>
+<rect class="nb" x="1111" y="452" width="250" height="50" rx="8"/>
+<text class="nt" x="1121" y="467" font-size="11" font-weight="700">L10</text>
+<text class="ns" x="1121" y="479" font-size="9">Classification (Increasing</text>
+<text class="ns" x="1121" y="491" font-size="9">Complexity)</text>
+<rect class="mbox" x="1111" y="510" width="250" height="90" rx="8"/>
+<text class="mlab" x="1121" y="524" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1118" y="529" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1123" y="538" font-size="7.8" font-weight="700">SK02.03</text>
+<text class="mt derived" x="1123" y="549" font-size="8.4">Identify odd object</text>
+<rect class="ms supp" x="1118" y="556" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1123" y="565" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="1123" y="576" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="1123" y="587" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="nb" x="1379" y="890" width="250" height="38" rx="8"/>
+<text class="nt" x="1389" y="905" font-size="11" font-weight="700">L11</text>
+<text class="ns" x="1389" y="917" font-size="9">Counting to 5 (Cardinality)</text>
+<rect class="mbox" x="1379" y="936" width="250" height="117" rx="8"/>
+<text class="mlab" x="1389" y="950" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1386" y="955" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="964" font-size="7.8" font-weight="700">SK05.05</text>
+<text class="mt named" x="1391" y="975" font-size="8.4">Count to 20</text>
+<rect class="ms named" x="1386" y="982" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="991" font-size="7.8" font-weight="700">SK06.02</text>
+<text class="mt named" x="1391" y="1002" font-size="8.4">Count small sets</text>
+<rect class="ms supp" x="1386" y="1009" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="1018" font-size="7.8" font-weight="700">SK01</text>
+<text class="mt supp" x="1391" y="1029" font-size="8.4">One-to-One Correspondence (tier</text>
+<text class="mt supp" x="1391" y="1040" font-size="8.4">tbd)</text>
+<rect class="nb" x="2049" y="1160" width="250" height="38" rx="8"/>
+<text class="nt" x="2059" y="1175" font-size="11" font-weight="700">L12</text>
+<text class="ns" x="2059" y="1187" font-size="9">Counting 6-10</text>
+<rect class="mbox" x="2049" y="1206" width="250" height="79" rx="8"/>
+<text class="mlab" x="2059" y="1220" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2056" y="1225" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2061" y="1234" font-size="7.8" font-weight="700">SK05.07</text>
+<text class="mt derived" x="2061" y="1245" font-size="8.4">Count to 100</text>
+<rect class="ms supp" x="2056" y="1252" width="236" height="23" rx="4"/>
+<text class="mid supp" x="2061" y="1261" font-size="7.8" font-weight="700">SK06</text>
+<text class="mt supp" x="2061" y="1272" font-size="8.4">Cardinality (tier tbd)</text>
+<rect class="nb" x="843" y="658" width="250" height="38" rx="8"/>
+<text class="nt" x="853" y="673" font-size="11" font-weight="700">L13</text>
+<text class="ns" x="853" y="685" font-size="9">Shape Identification</text>
+<rect class="mbox" x="843" y="704" width="250" height="90" rx="8"/>
+<text class="mlab" x="853" y="718" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="850" y="723" width="236" height="23" rx="4"/>
+<text class="mid derived" x="855" y="732" font-size="7.8" font-weight="700">SK19.02</text>
+<text class="mt derived" x="855" y="743" font-size="8.4">Identify basic shapes</text>
+<rect class="ms supp" x="850" y="750" width="236" height="34" rx="4"/>
+<text class="mid supp" x="855" y="759" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="855" y="770" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="855" y="781" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="nb" x="575" y="658" width="250" height="38" rx="8"/>
+<text class="nt" x="585" y="673" font-size="11" font-weight="700">L14</text>
+<text class="ns" x="585" y="685" font-size="9">2-Item Patterns</text>
+<rect class="mbox" x="575" y="704" width="250" height="90" rx="8"/>
+<text class="mlab" x="585" y="718" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="582" y="723" width="236" height="23" rx="4"/>
+<text class="mid derived" x="587" y="732" font-size="7.8" font-weight="700">SK18.01</text>
+<text class="mt derived" x="587" y="743" font-size="8.4">Identify repeating pattern</text>
+<rect class="ms supp" x="582" y="750" width="236" height="34" rx="4"/>
+<text class="mid supp" x="587" y="759" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="587" y="770" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="587" y="781" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="nb" x="1915" y="452" width="250" height="38" rx="8"/>
+<text class="nt" x="1925" y="467" font-size="11" font-weight="700">L15</text>
+<text class="ns" x="1925" y="479" font-size="9">Comparative Vocabulary</text>
+<rect class="mbox" x="1915" y="498" width="250" height="79" rx="8"/>
+<text class="mlab" x="1925" y="512" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1922" y="517" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1927" y="526" font-size="7.8" font-weight="700">SK20.01</text>
+<text class="mt derived" x="1927" y="537" font-size="8.4">Compare length</text>
+<rect class="ms supp" x="1922" y="544" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1927" y="553" font-size="7.8" font-weight="700">SK09</text>
+<text class="mt supp" x="1927" y="564" font-size="8.4">Number Comparison (tier tbd)</text>
+<rect class="nb" x="1781" y="1160" width="250" height="38" rx="8"/>
+<text class="nt" x="1791" y="1175" font-size="11" font-weight="700">L16</text>
+<text class="ns" x="1791" y="1187" font-size="9">Conceptual Subitizing</text>
+<rect class="mbox" x="1781" y="1206" width="250" height="117" rx="8"/>
+<text class="mlab" x="1791" y="1220" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1788" y="1225" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1793" y="1234" font-size="7.8" font-weight="700">SK07.04</text>
+<text class="mt derived" x="1793" y="1245" font-size="8.4">Compose quantity from subgroups</text>
+<rect class="ms supp" x="1788" y="1252" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1793" y="1261" font-size="7.8" font-weight="700">SK06</text>
+<text class="mt supp" x="1793" y="1272" font-size="8.4">Cardinality (tier tbd)</text>
+<rect class="ms supp" x="1788" y="1279" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1793" y="1288" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1793" y="1299" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1793" y="1310" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="307" y="890" width="250" height="38" rx="8"/>
+<text class="nt" x="317" y="905" font-size="11" font-weight="700">L17</text>
+<text class="ns" x="317" y="917" font-size="9">Basic Shape Composition</text>
+<rect class="mbox" x="307" y="936" width="250" height="90" rx="8"/>
+<text class="mlab" x="317" y="950" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="314" y="955" width="236" height="23" rx="4"/>
+<text class="mid derived" x="319" y="964" font-size="7.8" font-weight="700">SK19.03</text>
+<text class="mt derived" x="319" y="975" font-size="8.4">Identify shape properties</text>
+<rect class="ms supp" x="314" y="982" width="236" height="34" rx="4"/>
+<text class="mid supp" x="319" y="991" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="319" y="1002" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="319" y="1013" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1647" y="658" width="250" height="38" rx="8"/>
+<text class="nt" x="1657" y="673" font-size="11" font-weight="700">L18</text>
+<text class="ns" x="1657" y="685" font-size="9">Numeral Recognition (1-10)</text>
+<rect class="mbox" x="1647" y="704" width="250" height="90" rx="8"/>
+<text class="mlab" x="1657" y="718" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1654" y="723" width="236" height="23" rx="4"/>
+<text class="mid named" x="1659" y="732" font-size="7.8" font-weight="700">SK08.01</text>
+<text class="mt named" x="1659" y="743" font-size="8.4">Recognize numerals 1-10</text>
+<rect class="ms supp" x="1654" y="750" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1659" y="759" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="1659" y="770" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="1659" y="781" font-size="8.4">tbd)</text>
+<rect class="nb" x="173" y="1160" width="250" height="50" rx="8"/>
+<text class="nt" x="183" y="1175" font-size="11" font-weight="700">L19</text>
+<text class="ns" x="183" y="1187" font-size="9">Numeral-Quantity</text>
+<text class="ns" x="183" y="1199" font-size="9">Correspondence</text>
+<rect class="mbox" x="173" y="1218" width="250" height="117" rx="8"/>
+<text class="mlab" x="183" y="1232" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="180" y="1237" width="236" height="23" rx="4"/>
+<text class="mid derived" x="185" y="1246" font-size="7.8" font-weight="700">SK08.03</text>
+<text class="mt derived" x="185" y="1257" font-size="8.4">Represent quantity with objects</text>
+<rect class="ms derived" x="180" y="1264" width="236" height="23" rx="4"/>
+<text class="mid derived" x="185" y="1273" font-size="7.8" font-weight="700">SK06.03</text>
+<text class="mt derived" x="185" y="1284" font-size="8.4">Count and tell how many</text>
+<rect class="ms supp" x="180" y="1291" width="236" height="34" rx="4"/>
+<text class="mid supp" x="185" y="1300" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="185" y="1311" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="185" y="1322" font-size="8.4">tbd)</text>
+<rect class="nb" x="307" y="1442" width="250" height="50" rx="8"/>
+<text class="nt" x="317" y="1457" font-size="11" font-weight="700">L20</text>
+<text class="ns" x="317" y="1469" font-size="9">Numeral Comparison (Object-</text>
+<text class="ns" x="317" y="1481" font-size="9">Mediated)</text>
+<rect class="mbox" x="307" y="1500" width="250" height="90" rx="8"/>
+<text class="mlab" x="317" y="1514" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="314" y="1519" width="236" height="23" rx="4"/>
+<text class="mid derived" x="319" y="1528" font-size="7.8" font-weight="700">SK09.03</text>
+<text class="mt derived" x="319" y="1539" font-size="8.4">Compare numerals using objects</text>
+<rect class="ms supp" x="314" y="1546" width="236" height="34" rx="4"/>
+<text class="mid supp" x="319" y="1555" font-size="7.8" font-weight="700">SK08</text>
+<text class="mt supp" x="319" y="1566" font-size="8.4">Quantity &amp; Numeral Representation</text>
+<text class="mt supp" x="319" y="1577" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1915" y="658" width="250" height="38" rx="8"/>
+<text class="nt" x="1925" y="673" font-size="11" font-weight="700">L21</text>
+<text class="ns" x="1925" y="685" font-size="9">Seriation with Transitivity</text>
+<rect class="mbox" x="1915" y="704" width="250" height="79" rx="8"/>
+<text class="mlab" x="1925" y="718" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1922" y="723" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1927" y="732" font-size="7.8" font-weight="700">SK03.04</text>
+<text class="mt derived" x="1927" y="743" font-size="8.4">Apply transitivity</text>
+<rect class="ms supp" x="1922" y="750" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1927" y="759" font-size="7.8" font-weight="700">SK09</text>
+<text class="mt supp" x="1927" y="770" font-size="8.4">Number Comparison (tier tbd)</text>
+<rect class="nb" x="1111" y="658" width="250" height="38" rx="8"/>
+<text class="nt" x="1121" y="673" font-size="11" font-weight="700">L22</text>
+<text class="ns" x="1121" y="685" font-size="9">Flexible Classification</text>
+<rect class="mbox" x="1111" y="704" width="250" height="128" rx="8"/>
+<text class="mlab" x="1121" y="718" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1118" y="723" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1123" y="732" font-size="7.8" font-weight="700">SK02.05</text>
+<text class="mt derived" x="1123" y="743" font-size="8.4">Flexible reclassification</text>
+<rect class="ms supp" x="1118" y="750" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1123" y="759" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="1123" y="770" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="1123" y="781" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="ms supp" x="1118" y="788" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1123" y="797" font-size="7.8" font-weight="700">SK24</text>
+<text class="mt supp" x="1123" y="808" font-size="8.4">Mathematical Reasoning &amp; Problem</text>
+<text class="mt supp" x="1123" y="819" font-size="8.4">Solving (tier tbd)</text>
+<rect class="nb" x="1915" y="890" width="250" height="38" rx="8"/>
+<text class="nt" x="1925" y="905" font-size="11" font-weight="700">L23</text>
+<text class="ns" x="1925" y="917" font-size="9">Numeral Sequencing</text>
+<rect class="mbox" x="1915" y="936" width="250" height="128" rx="8"/>
+<text class="mlab" x="1925" y="950" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1922" y="955" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1927" y="964" font-size="7.8" font-weight="700">SK10.01</text>
+<text class="mt derived" x="1927" y="975" font-size="8.4">Numeral sequencing</text>
+<rect class="ms supp" x="1922" y="982" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1927" y="991" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="1927" y="1002" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="1927" y="1013" font-size="8.4">tbd)</text>
+<rect class="ms supp" x="1922" y="1020" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1927" y="1029" font-size="7.8" font-weight="700">SK08</text>
+<text class="mt supp" x="1927" y="1040" font-size="8.4">Quantity &amp; Numeral Representation</text>
+<text class="mt supp" x="1927" y="1051" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="2183" y="658" width="250" height="50" rx="8"/>
+<text class="nt" x="2193" y="673" font-size="11" font-weight="700">L24</text>
+<text class="ns" x="2193" y="685" font-size="9">Comparative Vocabulary</text>
+<text class="ns" x="2193" y="697" font-size="9">(Formalizing)</text>
+<rect class="mbox" x="2183" y="716" width="250" height="79" rx="8"/>
+<text class="mlab" x="2193" y="730" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2190" y="735" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2195" y="744" font-size="7.8" font-weight="700">SK20.02</text>
+<text class="mt derived" x="2195" y="755" font-size="8.4">Compare size</text>
+<rect class="ms supp" x="2190" y="762" width="236" height="23" rx="4"/>
+<text class="mid supp" x="2195" y="771" font-size="7.8" font-weight="700">SK09</text>
+<text class="mt supp" x="2195" y="782" font-size="8.4">Number Comparison (tier tbd)</text>
+<rect class="nb" x="575" y="890" width="250" height="50" rx="8"/>
+<text class="nt" x="585" y="905" font-size="11" font-weight="700">L25</text>
+<text class="ns" x="585" y="917" font-size="9">Patterns (2-Item Indep &amp;</text>
+<text class="ns" x="585" y="929" font-size="9">3-Item Intro)</text>
+<rect class="mbox" x="575" y="948" width="250" height="90" rx="8"/>
+<text class="mlab" x="585" y="962" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="582" y="967" width="236" height="23" rx="4"/>
+<text class="mid derived" x="587" y="976" font-size="7.8" font-weight="700">SK18.02</text>
+<text class="mt derived" x="587" y="987" font-size="8.4">Extend pattern</text>
+<rect class="ms supp" x="582" y="994" width="236" height="34" rx="4"/>
+<text class="mid supp" x="587" y="1003" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="587" y="1014" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="587" y="1025" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="nb" x="1111" y="890" width="250" height="38" rx="8"/>
+<text class="nt" x="1121" y="905" font-size="11" font-weight="700">L26</text>
+<text class="ns" x="1121" y="917" font-size="9">Basic Shape Properties</text>
+<rect class="mbox" x="1111" y="936" width="250" height="90" rx="8"/>
+<text class="mlab" x="1121" y="950" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1118" y="955" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1123" y="964" font-size="7.8" font-weight="700">SK19.04</text>
+<text class="mt derived" x="1123" y="975" font-size="8.4">Compose shapes</text>
+<rect class="ms supp" x="1118" y="982" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1123" y="991" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="1123" y="1002" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="1123" y="1013" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="nb" x="441" y="1160" width="250" height="50" rx="8"/>
+<text class="nt" x="451" y="1175" font-size="11" font-weight="700">L27</text>
+<text class="ns" x="451" y="1187" font-size="9">Shape Composition &amp;</text>
+<text class="ns" x="451" y="1199" font-size="9">Decomposition</text>
+<rect class="mbox" x="441" y="1218" width="250" height="90" rx="8"/>
+<text class="mlab" x="451" y="1232" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="448" y="1237" width="236" height="23" rx="4"/>
+<text class="mid derived" x="453" y="1246" font-size="7.8" font-weight="700">SK19.05</text>
+<text class="mt derived" x="453" y="1257" font-size="8.4">Decompose shapes</text>
+<rect class="ms supp" x="448" y="1264" width="236" height="34" rx="4"/>
+<text class="mid supp" x="453" y="1273" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="453" y="1284" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="453" y="1295" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="307" y="1686" width="250" height="38" rx="8"/>
+<text class="nt" x="317" y="1701" font-size="11" font-weight="700">L28</text>
+<text class="ns" x="317" y="1713" font-size="9">Abstract Numeral Comparison</text>
+<rect class="mbox" x="307" y="1732" width="250" height="128" rx="8"/>
+<text class="mlab" x="317" y="1746" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="314" y="1751" width="236" height="23" rx="4"/>
+<text class="mid derived" x="319" y="1760" font-size="7.8" font-weight="700">SK09.04</text>
+<text class="mt derived" x="319" y="1771" font-size="8.4">Abstract numeral comparison</text>
+<rect class="ms supp" x="314" y="1778" width="236" height="34" rx="4"/>
+<text class="mid supp" x="319" y="1787" font-size="7.8" font-weight="700">SK08</text>
+<text class="mt supp" x="319" y="1798" font-size="8.4">Quantity &amp; Numeral Representation</text>
+<text class="mt supp" x="319" y="1809" font-size="8.4">(tier tbd)</text>
+<rect class="ms supp" x="314" y="1816" width="236" height="34" rx="4"/>
+<text class="mid supp" x="319" y="1825" font-size="7.8" font-weight="700">SK10</text>
+<text class="mt supp" x="319" y="1836" font-size="8.4">Number Sequencing &amp; Number Line</text>
+<text class="mt supp" x="319" y="1847" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="441" y="1972" width="250" height="38" rx="8"/>
+<text class="nt" x="451" y="1987" font-size="11" font-weight="700">L29</text>
+<text class="ns" x="451" y="1999" font-size="9">Close Numeral Comparison</text>
+<rect class="mbox" x="441" y="2018" width="250" height="128" rx="8"/>
+<text class="mlab" x="451" y="2032" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="448" y="2037" width="236" height="23" rx="4"/>
+<text class="mid derived" x="453" y="2046" font-size="7.8" font-weight="700">SK09.05</text>
+<text class="mt derived" x="453" y="2057" font-size="8.4">Compare close numbers</text>
+<rect class="ms supp" x="448" y="2064" width="236" height="34" rx="4"/>
+<text class="mid supp" x="453" y="2073" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="453" y="2084" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="453" y="2095" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="448" y="2102" width="236" height="34" rx="4"/>
+<text class="mid named" x="453" y="2111" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="453" y="2122" font-size="8.4">Face value</text>
+<rect class="nb" x="1915" y="1442" width="250" height="38" rx="8"/>
+<text class="nt" x="1925" y="1457" font-size="11" font-weight="700">L30</text>
+<text class="ns" x="1925" y="1469" font-size="9">Counting Objects to 20</text>
+<rect class="mbox" x="1915" y="1488" width="250" height="117" rx="8"/>
+<text class="mlab" x="1925" y="1502" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1922" y="1507" width="236" height="23" rx="4"/>
+<text class="mid named" x="1927" y="1516" font-size="7.8" font-weight="700">SK05.09</text>
+<text class="mt named" x="1927" y="1527" font-size="8.4">Count backward</text>
+<rect class="ms named" x="1922" y="1534" width="236" height="23" rx="4"/>
+<text class="mid named" x="1927" y="1543" font-size="7.8" font-weight="700">SK06.04</text>
+<text class="mt named" x="1927" y="1554" font-size="8.4">Relate quantity to numeral</text>
+<rect class="ms supp" x="1922" y="1561" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1927" y="1570" font-size="7.8" font-weight="700">SK01</text>
+<text class="mt supp" x="1927" y="1581" font-size="8.4">One-to-One Correspondence (tier</text>
+<text class="mt supp" x="1927" y="1592" font-size="8.4">tbd)</text>
+<rect class="nb" x="1513" y="1160" width="250" height="50" rx="8"/>
+<text class="nt" x="1523" y="1175" font-size="11" font-weight="700">L31</text>
+<text class="ns" x="1523" y="1187" font-size="9">Reading &amp; Writing Numerals to</text>
+<text class="ns" x="1523" y="1199" font-size="9">99</text>
+<rect class="mbox" x="1513" y="1218" width="250" height="166" rx="8"/>
+<text class="mlab" x="1523" y="1232" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1520" y="1237" width="236" height="23" rx="4"/>
+<text class="mid named" x="1525" y="1246" font-size="7.8" font-weight="700">SK08.05</text>
+<text class="mt named" x="1525" y="1257" font-size="8.4">Write numerals</text>
+<rect class="ms supp" x="1520" y="1264" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1525" y="1273" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="1525" y="1284" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="1525" y="1295" font-size="8.4">tbd)</text>
+<rect class="ms supp" x="1520" y="1302" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1525" y="1311" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="1525" y="1322" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="1525" y="1333" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1520" y="1340" width="236" height="34" rx="4"/>
+<text class="mid named" x="1525" y="1349" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1525" y="1360" font-size="8.4">Face value</text>
+<rect class="nb" x="1647" y="1442" width="250" height="38" rx="8"/>
+<text class="nt" x="1657" y="1457" font-size="11" font-weight="700">L32</text>
+<text class="ns" x="1657" y="1469" font-size="9">Tens and Ones</text>
+<rect class="mbox" x="1647" y="1488" width="250" height="128" rx="8"/>
+<text class="mlab" x="1657" y="1502" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1654" y="1507" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1659" y="1516" font-size="7.8" font-weight="700">SK11.01</text>
+<text class="mt derived" x="1659" y="1527" font-size="8.4">Understand groups of ten</text>
+<rect class="ms supp" x="1654" y="1534" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1659" y="1543" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1659" y="1554" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1659" y="1565" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1654" y="1572" width="236" height="34" rx="4"/>
+<text class="mid named" x="1659" y="1581" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1659" y="1592" font-size="8.4">Face value</text>
+<rect class="nb" x="1915" y="1686" width="250" height="38" rx="8"/>
+<text class="nt" x="1925" y="1701" font-size="11" font-weight="700">L33</text>
+<text class="ns" x="1925" y="1713" font-size="9">Single-Digit Addition</text>
+<rect class="mbox" x="1915" y="1732" width="250" height="182" rx="8"/>
+<text class="mlab" x="1925" y="1746" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1922" y="1751" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1927" y="1760" font-size="7.8" font-weight="700">SK13.01</text>
+<text class="mt derived" x="1927" y="1771" font-size="8.4">Combine sets</text>
+<rect class="ms supp" x="1922" y="1778" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1927" y="1787" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="1927" y="1798" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="1927" y="1809" font-size="8.4">tbd)</text>
+<rect class="ms supp" x="1922" y="1816" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1927" y="1825" font-size="7.8" font-weight="700">SK06</text>
+<text class="mt supp" x="1927" y="1836" font-size="8.4">Cardinality (tier tbd)</text>
+<rect class="ms supp" x="1922" y="1843" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1927" y="1852" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1927" y="1863" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1927" y="1874" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1245" y="1972" width="250" height="38" rx="8"/>
+<text class="nt" x="1255" y="1987" font-size="11" font-weight="700">L34</text>
+<text class="ns" x="1255" y="1999" font-size="9">Single-Digit Subtraction</text>
+<rect class="mbox" x="1245" y="2018" width="250" height="144" rx="8"/>
+<text class="mlab" x="1255" y="2032" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1252" y="2037" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1257" y="2046" font-size="7.8" font-weight="700">SK14.01</text>
+<text class="mt derived" x="1257" y="2057" font-size="8.4">Take away</text>
+<rect class="ms supp" x="1252" y="2064" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1257" y="2073" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="1257" y="2084" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="1257" y="2095" font-size="8.4">tbd)</text>
+<rect class="ms supp" x="1252" y="2102" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1257" y="2111" font-size="7.8" font-weight="700">SK06</text>
+<text class="mt supp" x="1257" y="2122" font-size="8.4">Cardinality (tier tbd)</text>
+<rect class="nb" x="1245" y="1160" width="250" height="38" rx="8"/>
+<text class="nt" x="1255" y="1175" font-size="11" font-weight="700">L35</text>
+<text class="ns" x="1255" y="1187" font-size="9">3D Shape Properties</text>
+<rect class="mbox" x="1245" y="1206" width="250" height="90" rx="8"/>
+<text class="mlab" x="1255" y="1220" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1252" y="1225" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1257" y="1234" font-size="7.8" font-weight="700">SK19.06</text>
+<text class="mt derived" x="1257" y="1245" font-size="8.4">Identify 2D shapes</text>
+<rect class="ms supp" x="1252" y="1252" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1257" y="1261" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="1257" y="1272" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="1257" y="1283" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="nb" x="2451" y="890" width="250" height="38" rx="8"/>
+<text class="nt" x="2461" y="905" font-size="11" font-weight="700">L36</text>
+<text class="ns" x="2461" y="917" font-size="9">Non-Standard Length Estimation</text>
+<rect class="mbox" x="2451" y="936" width="250" height="90" rx="8"/>
+<text class="mlab" x="2461" y="950" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2458" y="955" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2463" y="964" font-size="7.8" font-weight="700">SK20.04</text>
+<text class="mt derived" x="2463" y="975" font-size="8.4">Estimate length</text>
+<rect class="ms supp" x="2458" y="982" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2463" y="991" font-size="7.8" font-weight="700">SK24</text>
+<text class="mt supp" x="2463" y="1002" font-size="8.4">Mathematical Reasoning &amp; Problem</text>
+<text class="mt supp" x="2463" y="1013" font-size="8.4">Solving (tier tbd)</text>
+<rect class="nb" x="2317" y="1160" width="250" height="50" rx="8"/>
+<text class="nt" x="2327" y="1175" font-size="11" font-weight="700">L37</text>
+<text class="ns" x="2327" y="1187" font-size="9">Non-Standard Capacity</text>
+<text class="ns" x="2327" y="1199" font-size="9">Estimation</text>
+<rect class="mbox" x="2317" y="1218" width="250" height="90" rx="8"/>
+<text class="mlab" x="2327" y="1232" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2324" y="1237" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2329" y="1246" font-size="7.8" font-weight="700">SK20.05</text>
+<text class="mt derived" x="2329" y="1257" font-size="8.4">Estimate capacity</text>
+<rect class="ms supp" x="2324" y="1264" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2329" y="1273" font-size="7.8" font-weight="700">SK24</text>
+<text class="mt supp" x="2329" y="1284" font-size="8.4">Mathematical Reasoning &amp; Problem</text>
+<text class="mt supp" x="2329" y="1295" font-size="8.4">Solving (tier tbd)</text>
+<rect class="nb" x="709" y="1160" width="250" height="38" rx="8"/>
+<text class="nt" x="719" y="1175" font-size="11" font-weight="700">L38</text>
+<text class="ns" x="719" y="1187" font-size="9">3-Item Pattern Completion</text>
+<rect class="mbox" x="709" y="1206" width="250" height="90" rx="8"/>
+<text class="mlab" x="719" y="1220" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="716" y="1225" width="236" height="23" rx="4"/>
+<text class="mid derived" x="721" y="1234" font-size="7.8" font-weight="700">SK18.04</text>
+<text class="mt derived" x="721" y="1245" font-size="8.4">Two-item pattern</text>
+<rect class="ms supp" x="716" y="1252" width="236" height="34" rx="4"/>
+<text class="mid supp" x="721" y="1261" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="721" y="1272" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="721" y="1283" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="nb" x="2183" y="890" width="250" height="38" rx="8"/>
+<text class="nt" x="2193" y="905" font-size="11" font-weight="700">L39</text>
+<text class="ns" x="2193" y="917" font-size="9">Concept of Zero</text>
+<rect class="mbox" x="2183" y="936" width="250" height="166" rx="8"/>
+<text class="mlab" x="2193" y="950" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="2190" y="955" width="236" height="23" rx="4"/>
+<text class="mid named" x="2195" y="964" font-size="7.8" font-weight="700">SK08.09</text>
+<text class="mt named" x="2195" y="975" font-size="8.4">Zero as "none"</text>
+<rect class="ms supp" x="2190" y="982" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2195" y="991" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="2195" y="1002" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="2195" y="1013" font-size="8.4">tbd)</text>
+<rect class="ms supp" x="2190" y="1020" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2195" y="1029" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="2195" y="1040" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="2195" y="1051" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="2190" y="1058" width="236" height="34" rx="4"/>
+<text class="mid named" x="2195" y="1067" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="2195" y="1078" font-size="8.4">Face value</text>
+<rect class="nb" x="2585" y="1160" width="250" height="38" rx="8"/>
+<text class="nt" x="2595" y="1175" font-size="11" font-weight="700">L40</text>
+<text class="ns" x="2595" y="1187" font-size="9">Ordinal Positions (1st-10th)</text>
+<rect class="mbox" x="2585" y="1206" width="250" height="90" rx="8"/>
+<text class="mlab" x="2595" y="1220" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2592" y="1225" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2597" y="1234" font-size="7.8" font-weight="700">SK10.03</text>
+<text class="mt derived" x="2597" y="1245" font-size="8.4">After</text>
+<rect class="ms supp" x="2592" y="1252" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2597" y="1261" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="2597" y="1272" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="2597" y="1283" font-size="8.4">tbd)</text>
+<rect class="nb" x="2183" y="1686" width="250" height="38" rx="8"/>
+<text class="nt" x="2193" y="1701" font-size="11" font-weight="700">L41</text>
+<text class="ns" x="2193" y="1713" font-size="9">Informal Number Line (0-20)</text>
+<rect class="mbox" x="2183" y="1732" width="250" height="79" rx="8"/>
+<text class="mlab" x="2193" y="1746" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="2190" y="1751" width="236" height="23" rx="4"/>
+<text class="mid named" x="2195" y="1760" font-size="7.8" font-weight="700">SK10.06</text>
+<text class="mt named" x="2195" y="1771" font-size="8.4">Ordinal position</text>
+<rect class="ms supp" x="2190" y="1778" width="236" height="23" rx="4"/>
+<text class="mid supp" x="2195" y="1787" font-size="7.8" font-weight="700">SK09</text>
+<text class="mt supp" x="2195" y="1798" font-size="8.4">Number Comparison (tier tbd)</text>
+<rect class="nb" x="575" y="1442" width="250" height="38" rx="8"/>
+<text class="nt" x="585" y="1457" font-size="11" font-weight="700">L42</text>
+<text class="ns" x="585" y="1469" font-size="9">Advanced Shape Composition</text>
+<rect class="mbox" x="575" y="1488" width="250" height="90" rx="8"/>
+<text class="mlab" x="585" y="1502" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="582" y="1507" width="236" height="23" rx="4"/>
+<text class="mid derived" x="587" y="1516" font-size="7.8" font-weight="700">SK19.07</text>
+<text class="mt derived" x="587" y="1527" font-size="8.4">Identify 3D shapes</text>
+<rect class="ms supp" x="582" y="1534" width="236" height="34" rx="4"/>
+<text class="mid supp" x="587" y="1543" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="587" y="1554" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="587" y="1565" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1111" y="1442" width="250" height="50" rx="8"/>
+<text class="nt" x="1121" y="1457" font-size="11" font-weight="700">L43</text>
+<text class="ns" x="1121" y="1469" font-size="9">Reading &amp; Writing 3-Digit</text>
+<text class="ns" x="1121" y="1481" font-size="9">Numbers</text>
+<rect class="mbox" x="1111" y="1500" width="250" height="128" rx="8"/>
+<text class="mlab" x="1121" y="1514" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1118" y="1519" width="236" height="23" rx="4"/>
+<text class="mid named" x="1123" y="1528" font-size="7.8" font-weight="700">SK08.06</text>
+<text class="mt named" x="1123" y="1539" font-size="8.4">Read/write numbers to 99</text>
+<rect class="ms supp" x="1118" y="1546" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1123" y="1555" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="1123" y="1566" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="1123" y="1577" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1118" y="1584" width="236" height="34" rx="4"/>
+<text class="mid named" x="1123" y="1593" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1123" y="1604" font-size="8.4">Face value</text>
+<rect class="nb" x="1647" y="1686" width="250" height="38" rx="8"/>
+<text class="nt" x="1657" y="1701" font-size="11" font-weight="700">L44</text>
+<text class="ns" x="1657" y="1713" font-size="9">Tens as Bundles/Groups</text>
+<rect class="mbox" x="1647" y="1732" width="250" height="128" rx="8"/>
+<text class="mlab" x="1657" y="1746" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1654" y="1751" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1659" y="1760" font-size="7.8" font-weight="700">SK11.02</text>
+<text class="mt derived" x="1659" y="1771" font-size="8.4">Tens and ones</text>
+<rect class="ms supp" x="1654" y="1778" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1659" y="1787" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1659" y="1798" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1659" y="1809" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1654" y="1816" width="236" height="34" rx="4"/>
+<text class="mid named" x="1659" y="1825" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1659" y="1836" font-size="8.4">Face value</text>
+<rect class="nb" x="977" y="1972" width="250" height="38" rx="8"/>
+<text class="nt" x="987" y="1987" font-size="11" font-weight="700">L45</text>
+<text class="ns" x="987" y="1999" font-size="9">Flexible 2-Digit Decomposition</text>
+<rect class="mbox" x="977" y="2018" width="250" height="128" rx="8"/>
+<text class="mlab" x="987" y="2032" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="984" y="2037" width="236" height="23" rx="4"/>
+<text class="mid named" x="989" y="2046" font-size="7.8" font-weight="700">SK12.01</text>
+<text class="mt named" x="989" y="2057" font-size="8.4">Compose quantities</text>
+<rect class="ms supp" x="984" y="2064" width="236" height="34" rx="4"/>
+<text class="mid supp" x="989" y="2073" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="989" y="2084" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="989" y="2095" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="984" y="2102" width="236" height="34" rx="4"/>
+<text class="mid named" x="989" y="2111" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="989" y="2122" font-size="8.4">Face value</text>
+<rect class="nb" x="1647" y="2231" width="250" height="50" rx="8"/>
+<text class="nt" x="1657" y="2246" font-size="11" font-weight="700">L46</text>
+<text class="ns" x="1657" y="2258" font-size="9">2-Digit Addition with</text>
+<text class="ns" x="1657" y="2270" font-size="9">Regrouping</text>
+<rect class="mbox" x="1647" y="2289" width="250" height="182" rx="8"/>
+<text class="mlab" x="1657" y="2303" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1654" y="2308" width="236" height="23" rx="4"/>
+<text class="mid named" x="1659" y="2317" font-size="7.8" font-weight="700">SK13.03</text>
+<text class="mt named" x="1659" y="2328" font-size="8.4">Single-digit addition</text>
+<rect class="ms named" x="1654" y="2335" width="236" height="23" rx="4"/>
+<text class="mid named" x="1659" y="2344" font-size="7.8" font-weight="700">SK11.04</text>
+<text class="mt named" x="1659" y="2355" font-size="8.4">Zero as placeholder</text>
+<rect class="ms supp" x="1654" y="2362" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1659" y="2371" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1659" y="2382" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1659" y="2393" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1654" y="2427" width="236" height="34" rx="4"/>
+<text class="mid named" x="1659" y="2436" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1659" y="2447" font-size="8.4">Face value</text>
+<rect class="nb" x="1379" y="2231" width="250" height="50" rx="8"/>
+<text class="nt" x="1389" y="2246" font-size="11" font-weight="700">L47</text>
+<text class="ns" x="1389" y="2258" font-size="9">2-Digit Subtraction with</text>
+<text class="ns" x="1389" y="2270" font-size="9">Regrouping</text>
+<rect class="mbox" x="1379" y="2289" width="250" height="182" rx="8"/>
+<text class="mlab" x="1389" y="2303" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1386" y="2308" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="2317" font-size="7.8" font-weight="700">SK14.03</text>
+<text class="mt named" x="1391" y="2328" font-size="8.4">Single-digit subtraction</text>
+<rect class="ms named" x="1386" y="2335" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="2344" font-size="7.8" font-weight="700">SK11.06</text>
+<text class="mt named" x="1391" y="2355" font-size="8.4">Three-digit place value</text>
+<rect class="ms supp" x="1386" y="2362" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="2371" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1391" y="2382" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1391" y="2393" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1386" y="2427" width="236" height="34" rx="4"/>
+<text class="mid named" x="1391" y="2436" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1391" y="2447" font-size="8.4">Face value</text>
+<rect class="nb" x="1915" y="2529" width="250" height="50" rx="8"/>
+<text class="nt" x="1925" y="2544" font-size="11" font-weight="700">L48</text>
+<text class="ns" x="1925" y="2556" font-size="9">Multiplication as Repeated</text>
+<text class="ns" x="1925" y="2568" font-size="9">Addition</text>
+<rect class="mbox" x="1915" y="2587" width="250" height="144" rx="8"/>
+<text class="mlab" x="1925" y="2601" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1922" y="2606" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1927" y="2615" font-size="7.8" font-weight="700">SK15.02</text>
+<text class="mt derived" x="1927" y="2626" font-size="8.4">Repeated addition</text>
+<rect class="ms supp" x="1922" y="2633" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1927" y="2642" font-size="7.8" font-weight="700">SK13</text>
+<text class="mt supp" x="1927" y="2653" font-size="8.4">Addition (tier tbd)</text>
+<rect class="ms supp" x="1922" y="2660" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1927" y="2669" font-size="7.8" font-weight="700">SK18</text>
+<text class="mt supp" x="1927" y="2680" font-size="8.4">Patterns &amp; Generalization (tier</text>
+<text class="mt supp" x="1927" y="2691" font-size="8.4">tbd)</text>
+<rect class="nb" x="2317" y="1972" width="250" height="38" rx="8"/>
+<text class="nt" x="2327" y="1987" font-size="11" font-weight="700">L49</text>
+<text class="ns" x="2327" y="1999" font-size="9">Division as Equal Sharing</text>
+<rect class="mbox" x="2317" y="2018" width="250" height="144" rx="8"/>
+<text class="mlab" x="2327" y="2032" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2324" y="2037" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2329" y="2046" font-size="7.8" font-weight="700">SK16.01</text>
+<text class="mt derived" x="2329" y="2057" font-size="8.4">Equal sharing</text>
+<rect class="ms supp" x="2324" y="2064" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2329" y="2073" font-size="7.8" font-weight="700">SK01</text>
+<text class="mt supp" x="2329" y="2084" font-size="8.4">One-to-One Correspondence (tier</text>
+<text class="mt supp" x="2329" y="2095" font-size="8.4">tbd)</text>
+<rect class="ms supp" x="2324" y="2102" width="236" height="23" rx="4"/>
+<text class="mid supp" x="2329" y="2111" font-size="7.8" font-weight="700">SK06</text>
+<text class="mt supp" x="2329" y="2122" font-size="8.4">Cardinality (tier tbd)</text>
+<rect class="nb" x="1781" y="2865" width="250" height="50" rx="8"/>
+<text class="nt" x="1791" y="2880" font-size="11" font-weight="700">L50</text>
+<text class="ns" x="1791" y="2892" font-size="9">Multiplication Tables</text>
+<text class="ns" x="1791" y="2904" font-size="9">(2,3,4,5,10)</text>
+<rect class="mbox" x="1781" y="2923" width="250" height="117" rx="8"/>
+<text class="mlab" x="1791" y="2937" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1788" y="2942" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1793" y="2951" font-size="7.8" font-weight="700">SK15.03</text>
+<text class="mt derived" x="1793" y="2962" font-size="8.4">Skip-count connection</text>
+<rect class="ms supp" x="1788" y="2969" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1793" y="2978" font-size="7.8" font-weight="700">SK18</text>
+<text class="mt supp" x="1793" y="2989" font-size="8.4">Patterns &amp; Generalization (tier</text>
+<text class="mt supp" x="1793" y="3000" font-size="8.4">tbd)</text>
+<rect class="nb" x="575" y="1686" width="250" height="38" rx="8"/>
+<text class="nt" x="585" y="1701" font-size="11" font-weight="700">L51</text>
+<text class="ns" x="585" y="1713" font-size="9">Currency Recognition</text>
+<rect class="mbox" x="575" y="1732" width="250" height="90" rx="8"/>
+<text class="mlab" x="585" y="1746" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="582" y="1751" width="236" height="23" rx="4"/>
+<text class="mid derived" x="587" y="1760" font-size="7.8" font-weight="700">SK22.01</text>
+<text class="mt derived" x="587" y="1771" font-size="8.4">Recognize currency</text>
+<rect class="ms supp" x="582" y="1778" width="236" height="34" rx="4"/>
+<text class="mid supp" x="587" y="1787" font-size="7.8" font-weight="700">SK08</text>
+<text class="mt supp" x="587" y="1798" font-size="8.4">Quantity &amp; Numeral Representation</text>
+<text class="mt supp" x="587" y="1809" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="39" y="1686" width="250" height="38" rx="8"/>
+<text class="nt" x="49" y="1701" font-size="11" font-weight="700">L52</text>
+<text class="ns" x="49" y="1713" font-size="9">Informal Fractions (Folding)</text>
+<rect class="mbox" x="39" y="1732" width="250" height="90" rx="8"/>
+<text class="mlab" x="49" y="1746" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="46" y="1751" width="236" height="23" rx="4"/>
+<text class="mid derived" x="51" y="1760" font-size="7.8" font-weight="700">SK17.01</text>
+<text class="mt derived" x="51" y="1771" font-size="8.4">Equal parts</text>
+<rect class="ms supp" x="46" y="1778" width="236" height="34" rx="4"/>
+<text class="mid supp" x="51" y="1787" font-size="7.8" font-weight="700">SK19</text>
+<text class="mt supp" x="51" y="1798" font-size="8.4">Shapes &amp; Spatial Reasoning (tier</text>
+<text class="mt supp" x="51" y="1809" font-size="8.4">tbd)</text>
+<rect class="nb" x="2183" y="1442" width="250" height="50" rx="8"/>
+<text class="nt" x="2193" y="1457" font-size="11" font-weight="700">L53</text>
+<text class="ns" x="2193" y="1469" font-size="9">Uniform Non-Standard</text>
+<text class="ns" x="2193" y="1481" font-size="9">Measurement</text>
+<rect class="mbox" x="2183" y="1500" width="250" height="90" rx="8"/>
+<text class="mlab" x="2193" y="1514" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2190" y="1519" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2195" y="1528" font-size="7.8" font-weight="700">SK20.07</text>
+<text class="mt derived" x="2195" y="1539" font-size="8.4">Use uniform units</text>
+<rect class="ms supp" x="2190" y="1546" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2195" y="1555" font-size="7.8" font-weight="700">SK24</text>
+<text class="mt supp" x="2195" y="1566" font-size="8.4">Mathematical Reasoning &amp; Problem</text>
+<text class="mt supp" x="2195" y="1577" font-size="8.4">Solving (tier tbd)</text>
+<rect class="nb" x="843" y="1686" width="250" height="38" rx="8"/>
+<text class="nt" x="853" y="1701" font-size="11" font-weight="700">L54</text>
+<text class="ns" x="853" y="1713" font-size="9">2D Shape Set Identification</text>
+<rect class="mbox" x="843" y="1732" width="250" height="79" rx="8"/>
+<text class="mlab" x="853" y="1746" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="850" y="1751" width="236" height="23" rx="4"/>
+<text class="mid derived" x="855" y="1760" font-size="7.8" font-weight="700">SK19.10</text>
+<text class="mt derived" x="855" y="1771" font-size="8.4">Nets</text>
+<rect class="ms supp" x="850" y="1778" width="236" height="23" rx="4"/>
+<text class="mid supp" x="855" y="1787" font-size="7.8" font-weight="700">SK02</text>
+<text class="mt supp" x="855" y="1798" font-size="8.4">Classification (tier tbd)</text>
+<rect class="nb" x="1379" y="1442" width="250" height="38" rx="8"/>
+<text class="nt" x="1389" y="1457" font-size="11" font-weight="700">L55</text>
+<text class="ns" x="1389" y="1469" font-size="9">Spatial Vocabulary</text>
+<rect class="mbox" x="1379" y="1488" width="250" height="90" rx="8"/>
+<text class="mlab" x="1389" y="1502" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1386" y="1507" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="1516" font-size="7.8" font-weight="700">SK19.08</text>
+<text class="mt named" x="1391" y="1527" font-size="8.4">Spatial vocabulary</text>
+<rect class="ms supp" x="1386" y="1534" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="1543" font-size="7.8" font-weight="700">SK24</text>
+<text class="mt supp" x="1391" y="1554" font-size="8.4">Mathematical Reasoning &amp; Problem</text>
+<text class="mt supp" x="1391" y="1565" font-size="8.4">Solving (tier tbd)</text>
+<rect class="nb" x="2451" y="1442" width="250" height="38" rx="8"/>
+<text class="nt" x="2461" y="1457" font-size="11" font-weight="700">L56</text>
+<text class="ns" x="2461" y="1469" font-size="9">Calendar Reading</text>
+<rect class="mbox" x="2451" y="1488" width="250" height="90" rx="8"/>
+<text class="mlab" x="2461" y="1502" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2458" y="1507" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2463" y="1516" font-size="7.8" font-weight="700">SK21.01</text>
+<text class="mt derived" x="2463" y="1527" font-size="8.4">Day/night concepts</text>
+<rect class="ms supp" x="2458" y="1534" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2463" y="1543" font-size="7.8" font-weight="700">SK10</text>
+<text class="mt supp" x="2463" y="1554" font-size="8.4">Number Sequencing &amp; Number Line</text>
+<text class="mt supp" x="2463" y="1565" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="843" y="890" width="250" height="50" rx="8"/>
+<text class="nt" x="853" y="905" font-size="11" font-weight="700">L57</text>
+<text class="ns" x="853" y="917" font-size="9">Data Handling (Sorting &amp;</text>
+<text class="ns" x="853" y="929" font-size="9">Tallies)</text>
+<rect class="mbox" x="843" y="948" width="250" height="117" rx="8"/>
+<text class="mlab" x="853" y="962" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="850" y="967" width="236" height="23" rx="4"/>
+<text class="mid derived" x="855" y="976" font-size="7.8" font-weight="700">SK23.01</text>
+<text class="mt derived" x="855" y="987" font-size="8.4">Sort data</text>
+<rect class="ms supp" x="850" y="994" width="236" height="23" rx="4"/>
+<text class="mid supp" x="855" y="1003" font-size="7.8" font-weight="700">SK02</text>
+<text class="mt supp" x="855" y="1014" font-size="8.4">Classification (tier tbd)</text>
+<rect class="ms supp" x="850" y="1021" width="236" height="34" rx="4"/>
+<text class="mid supp" x="855" y="1030" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="855" y="1041" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="855" y="1052" font-size="8.4">tbd)</text>
+<rect class="nb" x="1513" y="1972" width="250" height="38" rx="8"/>
+<text class="nt" x="1523" y="1987" font-size="11" font-weight="700">L58</text>
+<text class="ns" x="1523" y="1999" font-size="9">Number Patterns &amp; Sequences</text>
+<rect class="mbox" x="1513" y="2018" width="250" height="90" rx="8"/>
+<text class="mlab" x="1523" y="2032" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1520" y="2037" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1525" y="2046" font-size="7.8" font-weight="700">SK18.05</text>
+<text class="mt derived" x="1525" y="2057" font-size="8.4">Three-item pattern</text>
+<rect class="ms supp" x="1520" y="2064" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1525" y="2073" font-size="7.8" font-weight="700">SK10</text>
+<text class="mt supp" x="1525" y="2084" font-size="8.4">Number Sequencing &amp; Number Line</text>
+<text class="mt supp" x="1525" y="2095" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1379" y="1686" width="250" height="38" rx="8"/>
+<text class="nt" x="1389" y="1701" font-size="11" font-weight="700">L59</text>
+<text class="ns" x="1389" y="1713" font-size="9">Zero as a Placeholder</text>
+<rect class="mbox" x="1379" y="1732" width="250" height="128" rx="8"/>
+<text class="mlab" x="1389" y="1746" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1386" y="1751" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="1760" font-size="7.8" font-weight="700">SK11.04</text>
+<text class="mt named" x="1391" y="1771" font-size="8.4">Zero as placeholder</text>
+<rect class="ms supp" x="1386" y="1778" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="1787" font-size="7.8" font-weight="700">SK08</text>
+<text class="mt supp" x="1391" y="1798" font-size="8.4">Quantity &amp; Numeral Representation</text>
+<text class="mt supp" x="1391" y="1809" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1386" y="1816" width="236" height="34" rx="4"/>
+<text class="mid named" x="1391" y="1825" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1391" y="1836" font-size="8.4">Face value</text>
+<rect class="nb" x="2049" y="1972" width="250" height="38" rx="8"/>
+<text class="nt" x="2059" y="1987" font-size="11" font-weight="700">L60</text>
+<text class="ns" x="2059" y="1999" font-size="9">Extended Number Line (0-100)</text>
+<rect class="mbox" x="2049" y="2018" width="250" height="155" rx="8"/>
+<text class="mlab" x="2059" y="2032" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="2056" y="2037" width="236" height="23" rx="4"/>
+<text class="mid named" x="2061" y="2046" font-size="7.8" font-weight="700">SK10.08</text>
+<text class="mt named" x="2061" y="2057" font-size="8.4">Number line 0-100</text>
+<rect class="ms supp" x="2056" y="2064" width="236" height="23" rx="4"/>
+<text class="mid supp" x="2061" y="2073" font-size="7.8" font-weight="700">SK09</text>
+<text class="mt supp" x="2061" y="2084" font-size="8.4">Number Comparison (tier tbd)</text>
+<rect class="ms supp" x="2056" y="2091" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2061" y="2100" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="2061" y="2111" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="2061" y="2122" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="2056" y="2129" width="236" height="34" rx="4"/>
+<text class="mid named" x="2061" y="2138" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="2061" y="2149" font-size="8.4">Face value</text>
+<rect class="nb" x="1915" y="2231" width="250" height="38" rx="8"/>
+<text class="nt" x="1925" y="2246" font-size="11" font-weight="700">L61</text>
+<text class="ns" x="1925" y="2258" font-size="9">Skip Counting (2s, 5s, 10s)</text>
+<rect class="mbox" x="1915" y="2277" width="250" height="144" rx="8"/>
+<text class="mlab" x="1925" y="2291" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1922" y="2296" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1927" y="2305" font-size="7.8" font-weight="700">SK18.06</text>
+<text class="mt derived" x="1927" y="2316" font-size="8.4">Number pattern</text>
+<rect class="ms derived" x="1922" y="2323" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1927" y="2332" font-size="7.8" font-weight="700">SK15.01</text>
+<text class="mt derived" x="1927" y="2343" font-size="8.4">Equal groups</text>
+<rect class="ms supp" x="1922" y="2350" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1927" y="2359" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="1927" y="2370" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="1927" y="2381" font-size="8.4">tbd)</text>
+<rect class="nb" x="1111" y="2231" width="250" height="50" rx="8"/>
+<text class="nt" x="1121" y="2246" font-size="11" font-weight="700">L62</text>
+<text class="ns" x="1121" y="2258" font-size="9">3-Digit Place Value &amp; Expanded</text>
+<text class="ns" x="1121" y="2270" font-size="9">Form</text>
+<rect class="mbox" x="1111" y="2289" width="250" height="128" rx="8"/>
+<text class="mlab" x="1121" y="2303" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1118" y="2308" width="236" height="23" rx="4"/>
+<text class="mid named" x="1123" y="2317" font-size="7.8" font-weight="700">SK11.07</text>
+<text class="mt named" x="1123" y="2328" font-size="8.4">Expanded form</text>
+<rect class="ms supp" x="1118" y="2335" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1123" y="2344" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1123" y="2355" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1123" y="2366" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1118" y="2373" width="236" height="34" rx="4"/>
+<text class="mid named" x="1123" y="2382" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1123" y="2393" font-size="8.4">Face value</text>
+<rect class="nb" x="1111" y="2529" width="250" height="38" rx="8"/>
+<text class="nt" x="1121" y="2544" font-size="11" font-weight="700">L63</text>
+<text class="ns" x="1121" y="2556" font-size="9">Flexible 3-Digit Decomposition</text>
+<rect class="mbox" x="1111" y="2575" width="250" height="128" rx="8"/>
+<text class="mlab" x="1121" y="2589" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1118" y="2594" width="236" height="23" rx="4"/>
+<text class="mid named" x="1123" y="2603" font-size="7.8" font-weight="700">SK12.06</text>
+<text class="mt named" x="1123" y="2614" font-size="8.4">Regroup quantities</text>
+<rect class="ms supp" x="1118" y="2621" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1123" y="2630" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="1123" y="2641" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="1123" y="2652" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1118" y="2659" width="236" height="34" rx="4"/>
+<text class="mid named" x="1123" y="2668" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1123" y="2679" font-size="8.4">Face value</text>
+<rect class="nb" x="843" y="2529" width="250" height="38" rx="8"/>
+<text class="nt" x="853" y="2544" font-size="11" font-weight="700">L64</text>
+<text class="ns" x="853" y="2556" font-size="9">3-Digit Comparison &amp; Ordering</text>
+<rect class="mbox" x="843" y="2575" width="250" height="155" rx="8"/>
+<text class="mlab" x="853" y="2589" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="850" y="2594" width="236" height="23" rx="4"/>
+<text class="mid named" x="855" y="2603" font-size="7.8" font-weight="700">SK09.07</text>
+<text class="mt named" x="855" y="2614" font-size="8.4">Compare three-digit numbers</text>
+<rect class="ms named" x="850" y="2621" width="236" height="23" rx="4"/>
+<text class="mid named" x="855" y="2630" font-size="7.8" font-weight="700">SK03.07</text>
+<text class="mt named" x="855" y="2641" font-size="8.4">Order numbers descending</text>
+<rect class="ms supp" x="850" y="2648" width="236" height="34" rx="4"/>
+<text class="mid supp" x="855" y="2657" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="855" y="2668" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="855" y="2679" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="850" y="2686" width="236" height="34" rx="4"/>
+<text class="mid named" x="855" y="2695" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="855" y="2706" font-size="8.4">Face value</text>
+<rect class="nb" x="1647" y="2529" width="250" height="50" rx="8"/>
+<text class="nt" x="1657" y="2544" font-size="11" font-weight="700">L65</text>
+<text class="ns" x="1657" y="2556" font-size="9">Reading &amp; Writing 4-Digit</text>
+<text class="ns" x="1657" y="2568" font-size="9">Numbers</text>
+<rect class="mbox" x="1647" y="2587" width="250" height="128" rx="8"/>
+<text class="mlab" x="1657" y="2601" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1654" y="2606" width="236" height="23" rx="4"/>
+<text class="mid named" x="1659" y="2615" font-size="7.8" font-weight="700">SK08.08</text>
+<text class="mt named" x="1659" y="2626" font-size="8.4">Read/write four-digit numbers</text>
+<rect class="ms supp" x="1654" y="2633" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1659" y="2642" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="1659" y="2653" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="1659" y="2664" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1654" y="2671" width="236" height="34" rx="4"/>
+<text class="mid named" x="1659" y="2680" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1659" y="2691" font-size="8.4">Face value</text>
+<rect class="nb" x="1379" y="2529" width="250" height="50" rx="8"/>
+<text class="nt" x="1389" y="2544" font-size="11" font-weight="700">L66</text>
+<text class="ns" x="1389" y="2556" font-size="9">3-Digit Addition &amp; Subtraction</text>
+<text class="ns" x="1389" y="2568" font-size="9">Problems</text>
+<rect class="mbox" x="1379" y="2587" width="250" height="220" rx="8"/>
+<text class="mlab" x="1389" y="2601" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1386" y="2606" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="2615" font-size="7.8" font-weight="700">SK13.05</text>
+<text class="mt named" x="1391" y="2626" font-size="8.4">Addition within 30</text>
+<rect class="ms named" x="1386" y="2633" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="2642" font-size="7.8" font-weight="700">SK14.05</text>
+<text class="mt named" x="1391" y="2653" font-size="8.4">Subtraction within 30</text>
+<rect class="ms supp" x="1386" y="2660" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="2669" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="1391" y="2680" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="1391" y="2691" font-size="8.4">(tier tbd)</text>
+<rect class="ms supp" x="1386" y="2698" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="2707" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1391" y="2718" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1391" y="2729" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1386" y="2763" width="236" height="34" rx="4"/>
+<text class="mid named" x="1391" y="2772" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1391" y="2783" font-size="8.4">Face value</text>
+<rect class="nb" x="1379" y="3162" width="250" height="50" rx="8"/>
+<text class="nt" x="1389" y="3177" font-size="11" font-weight="700">L67</text>
+<text class="ns" x="1389" y="3189" font-size="9">Full Multiplication Tables</text>
+<text class="ns" x="1389" y="3201" font-size="9">(2-10)</text>
+<rect class="mbox" x="1379" y="3220" width="250" height="117" rx="8"/>
+<text class="mlab" x="1389" y="3234" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1386" y="3239" width="236" height="23" rx="4"/>
+<text class="mid named" x="1391" y="3248" font-size="7.8" font-weight="700">SK15.05</text>
+<text class="mt named" x="1391" y="3259" font-size="8.4">Tables 2-10</text>
+<rect class="ms supp" x="1386" y="3266" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="3275" font-size="7.8" font-weight="700">SK18</text>
+<text class="mt supp" x="1391" y="3286" font-size="8.4">Patterns &amp; Generalization (tier</text>
+<text class="mt supp" x="1391" y="3297" font-size="8.4">tbd)</text>
+<rect class="nb" x="977" y="3487" width="250" height="50" rx="8"/>
+<text class="nt" x="987" y="3502" font-size="11" font-weight="700">L68</text>
+<text class="ns" x="987" y="3514" font-size="9">Division Facts &amp; Inverse</text>
+<text class="ns" x="987" y="3526" font-size="9">Relation</text>
+<rect class="mbox" x="977" y="3545" width="250" height="106" rx="8"/>
+<text class="mlab" x="987" y="3559" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="984" y="3564" width="236" height="23" rx="4"/>
+<text class="mid derived" x="989" y="3573" font-size="7.8" font-weight="700">SK16.04</text>
+<text class="mt derived" x="989" y="3584" font-size="8.4">Relation to multiplication</text>
+<rect class="ms supp" x="984" y="3591" width="236" height="23" rx="4"/>
+<text class="mid supp" x="989" y="3600" font-size="7.8" font-weight="700">SK15</text>
+<text class="mt supp" x="989" y="3611" font-size="8.4">Multiplication (tier tbd)</text>
+<rect class="nb" x="2451" y="1686" width="250" height="38" rx="8"/>
+<text class="nt" x="2461" y="1701" font-size="11" font-weight="700">L69</text>
+<text class="ns" x="2461" y="1713" font-size="9">Standard Measurement Units</text>
+<rect class="mbox" x="2451" y="1732" width="250" height="90" rx="8"/>
+<text class="mlab" x="2461" y="1746" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2458" y="1751" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2463" y="1760" font-size="7.8" font-weight="700">SK20.08</text>
+<text class="mt derived" x="2463" y="1771" font-size="8.4">Standard measurement units</text>
+<rect class="ms supp" x="2458" y="1778" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2463" y="1787" font-size="7.8" font-weight="700">SK24</text>
+<text class="mt supp" x="2463" y="1798" font-size="8.4">Mathematical Reasoning &amp; Problem</text>
+<text class="mt supp" x="2463" y="1809" font-size="8.4">Solving (tier tbd)</text>
+<rect class="nb" x="709" y="1972" width="250" height="38" rx="8"/>
+<text class="nt" x="719" y="1987" font-size="11" font-weight="700">L70</text>
+<text class="ns" x="719" y="1999" font-size="9">Relating 2D Faces to 3D Solids</text>
+<rect class="mbox" x="709" y="2018" width="250" height="90" rx="8"/>
+<text class="mlab" x="719" y="2032" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="716" y="2037" width="236" height="23" rx="4"/>
+<text class="mid named" x="721" y="2046" font-size="7.8" font-weight="700">SK19.09</text>
+<text class="mt named" x="721" y="2057" font-size="8.4">Relate 2D faces to 3D solids</text>
+<rect class="ms supp" x="716" y="2064" width="236" height="34" rx="4"/>
+<text class="mid supp" x="721" y="2073" font-size="7.8" font-weight="700">SK04</text>
+<text class="mt supp" x="721" y="2084" font-size="8.4">Same/Different &amp; Attribute</text>
+<text class="mt supp" x="721" y="2095" font-size="8.4">Recognition (tier tbd)</text>
+<rect class="nb" x="2719" y="1686" width="250" height="50" rx="8"/>
+<text class="nt" x="2729" y="1701" font-size="11" font-weight="700">L71</text>
+<text class="ns" x="2729" y="1713" font-size="9">Telling Time (Hours &amp; Half-</text>
+<text class="ns" x="2729" y="1725" font-size="9">Hours)</text>
+<rect class="mbox" x="2719" y="1744" width="250" height="90" rx="8"/>
+<text class="mlab" x="2729" y="1758" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2726" y="1763" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2731" y="1772" font-size="7.8" font-weight="700">SK21.05</text>
+<text class="mt derived" x="2731" y="1783" font-size="8.4">Tell time to hour</text>
+<rect class="ms supp" x="2726" y="1790" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2731" y="1799" font-size="7.8" font-weight="700">SK10</text>
+<text class="mt supp" x="2731" y="1810" font-size="8.4">Number Sequencing &amp; Number Line</text>
+<text class="mt supp" x="2731" y="1821" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1245" y="2865" width="250" height="38" rx="8"/>
+<text class="nt" x="1255" y="2880" font-size="11" font-weight="700">L72</text>
+<text class="ns" x="1255" y="2892" font-size="9">Money Arithmetic</text>
+<rect class="mbox" x="1245" y="2911" width="250" height="106" rx="8"/>
+<text class="mlab" x="1255" y="2925" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1252" y="2930" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1257" y="2939" font-size="7.8" font-weight="700">SK22.03</text>
+<text class="mt derived" x="1257" y="2950" font-size="8.4">Combine amounts</text>
+<rect class="ms supp" x="1252" y="2957" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1257" y="2966" font-size="7.8" font-weight="700">SK13</text>
+<text class="mt supp" x="1257" y="2977" font-size="8.4">Addition (tier tbd)</text>
+<rect class="ms supp" x="1252" y="2984" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1257" y="2993" font-size="7.8" font-weight="700">SK14</text>
+<text class="mt supp" x="1257" y="3004" font-size="8.4">Subtraction (tier tbd)</text>
+<rect class="nb" x="173" y="1972" width="250" height="50" rx="8"/>
+<text class="nt" x="183" y="1987" font-size="11" font-weight="700">L73</text>
+<text class="ns" x="183" y="1999" font-size="9">Formal Fractions</text>
+<text class="ns" x="183" y="2011" font-size="9">(Half/Quarter)</text>
+<rect class="mbox" x="173" y="2030" width="250" height="90" rx="8"/>
+<text class="mlab" x="183" y="2044" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="180" y="2049" width="236" height="23" rx="4"/>
+<text class="mid derived" x="185" y="2058" font-size="7.8" font-weight="700">SK17.02</text>
+<text class="mt derived" x="185" y="2069" font-size="8.4">Half</text>
+<rect class="ms supp" x="180" y="2076" width="236" height="34" rx="4"/>
+<text class="mid supp" x="185" y="2085" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="185" y="2096" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="185" y="2107" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1513" y="3487" width="250" height="38" rx="8"/>
+<text class="nt" x="1523" y="3502" font-size="11" font-weight="700">L74</text>
+<text class="ns" x="1523" y="3514" font-size="9">Pattern Rules &amp; Generalization</text>
+<rect class="mbox" x="1513" y="3533" width="250" height="90" rx="8"/>
+<text class="mlab" x="1523" y="3547" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1520" y="3552" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1525" y="3561" font-size="7.8" font-weight="700">SK18.07</text>
+<text class="mt derived" x="1525" y="3572" font-size="8.4">Skip-count pattern</text>
+<rect class="ms supp" x="1520" y="3579" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1525" y="3588" font-size="7.8" font-weight="700">SK24</text>
+<text class="mt supp" x="1525" y="3599" font-size="8.4">Mathematical Reasoning &amp; Problem</text>
+<text class="mt supp" x="1525" y="3610" font-size="8.4">Solving (tier tbd)</text>
+<rect class="nb" x="977" y="1160" width="250" height="50" rx="8"/>
+<text class="nt" x="987" y="1175" font-size="11" font-weight="700">L75</text>
+<text class="ns" x="987" y="1187" font-size="9">Data Handling (Pictographs &amp;</text>
+<text class="ns" x="987" y="1199" font-size="9">Bar Graphs)</text>
+<rect class="mbox" x="977" y="1218" width="250" height="117" rx="8"/>
+<text class="mlab" x="987" y="1232" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="984" y="1237" width="236" height="23" rx="4"/>
+<text class="mid derived" x="989" y="1246" font-size="7.8" font-weight="700">SK23.05</text>
+<text class="mt derived" x="989" y="1257" font-size="8.4">Read pictograph</text>
+<rect class="ms supp" x="984" y="1264" width="236" height="34" rx="4"/>
+<text class="mid supp" x="989" y="1273" font-size="7.8" font-weight="700">SK05</text>
+<text class="mt supp" x="989" y="1284" font-size="8.4">Counting &amp; Counting Sequence (tier</text>
+<text class="mt supp" x="989" y="1295" font-size="8.4">tbd)</text>
+<rect class="ms supp" x="984" y="1302" width="236" height="23" rx="4"/>
+<text class="mid supp" x="989" y="1311" font-size="7.8" font-weight="700">SK09</text>
+<text class="mt supp" x="989" y="1322" font-size="8.4">Number Comparison (tier tbd)</text>
+<rect class="nb" x="1513" y="2865" width="250" height="38" rx="8"/>
+<text class="nt" x="1523" y="2880" font-size="11" font-weight="700">L76</text>
+<text class="ns" x="1523" y="2892" font-size="9">4-Digit &amp; 5-Digit Place Value</text>
+<rect class="mbox" x="1513" y="2911" width="250" height="128" rx="8"/>
+<text class="mlab" x="1523" y="2925" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1520" y="2930" width="236" height="23" rx="4"/>
+<text class="mid named" x="1525" y="2939" font-size="7.8" font-weight="700">SK11.08</text>
+<text class="mt named" x="1525" y="2950" font-size="8.4">Four-digit place value</text>
+<rect class="ms supp" x="1520" y="2957" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1525" y="2966" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1525" y="2977" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1525" y="2988" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1520" y="2995" width="236" height="34" rx="4"/>
+<text class="mid named" x="1525" y="3004" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1525" y="3015" font-size="8.4">Face value</text>
+<rect class="nb" x="1647" y="3162" width="250" height="50" rx="8"/>
+<text class="nt" x="1657" y="3177" font-size="11" font-weight="700">L77</text>
+<text class="ns" x="1657" y="3189" font-size="9">Large Number Operations &amp;</text>
+<text class="ns" x="1657" y="3201" font-size="9">Regrouping</text>
+<rect class="mbox" x="1647" y="3220" width="250" height="209" rx="8"/>
+<text class="mlab" x="1657" y="3234" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1654" y="3239" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1659" y="3248" font-size="7.8" font-weight="700">SK13.08</text>
+<text class="mt derived" x="1659" y="3259" font-size="8.4">Three-digit addition</text>
+<rect class="ms derived" x="1654" y="3266" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1659" y="3275" font-size="7.8" font-weight="700">SK14.08</text>
+<text class="mt derived" x="1659" y="3286" font-size="8.4">Three-digit subtraction</text>
+<rect class="ms derived" x="1654" y="3293" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1659" y="3302" font-size="7.8" font-weight="700">SK11.09</text>
+<text class="mt derived" x="1659" y="3313" font-size="8.4">Five-digit place value</text>
+<rect class="ms supp" x="1654" y="3320" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1659" y="3329" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1659" y="3340" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1659" y="3351" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1654" y="3385" width="236" height="34" rx="4"/>
+<text class="mid named" x="1659" y="3394" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1659" y="3405" font-size="8.4">Face value</text>
+<rect class="nb" x="1781" y="3487" width="250" height="50" rx="8"/>
+<text class="nt" x="1791" y="3502" font-size="11" font-weight="700">L78</text>
+<text class="ns" x="1791" y="3514" font-size="9">Complex Multi-Digit Word</text>
+<text class="ns" x="1791" y="3526" font-size="9">Problems</text>
+<rect class="mbox" x="1781" y="3545" width="250" height="247" rx="8"/>
+<text class="mlab" x="1791" y="3559" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1788" y="3564" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1793" y="3573" font-size="7.8" font-weight="700">SK24.04</text>
+<text class="mt derived" x="1793" y="3584" font-size="8.4">Explain reasoning</text>
+<rect class="ms derived" x="1788" y="3591" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1793" y="3600" font-size="7.8" font-weight="700">SK13.10</text>
+<text class="mt derived" x="1793" y="3611" font-size="8.4">Addition word problems</text>
+<rect class="ms derived" x="1788" y="3618" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1793" y="3627" font-size="7.8" font-weight="700">SK14.10</text>
+<text class="mt derived" x="1793" y="3638" font-size="8.4">Subtraction word problems</text>
+<rect class="ms supp" x="1788" y="3645" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1793" y="3654" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="1793" y="3665" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="1793" y="3676" font-size="8.4">(tier tbd)</text>
+<rect class="ms supp" x="1788" y="3683" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1793" y="3692" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1793" y="3703" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1793" y="3714" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1788" y="3748" width="236" height="34" rx="4"/>
+<text class="mid named" x="1793" y="3757" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1793" y="3768" font-size="8.4">Face value</text>
+<rect class="nb" x="1245" y="3487" width="250" height="38" rx="8"/>
+<text class="nt" x="1255" y="3502" font-size="11" font-weight="700">L79</text>
+<text class="ns" x="1255" y="3514" font-size="9">Extended Multiplication</text>
+<rect class="mbox" x="1245" y="3533" width="250" height="193" rx="8"/>
+<text class="mlab" x="1255" y="3547" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1252" y="3552" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1257" y="3561" font-size="7.8" font-weight="700">SK15.06</text>
+<text class="mt derived" x="1257" y="3572" font-size="8.4">Multi-digit multiplication</text>
+<rect class="ms supp" x="1252" y="3579" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1257" y="3588" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="1257" y="3599" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="1257" y="3610" font-size="8.4">(tier tbd)</text>
+<rect class="ms supp" x="1252" y="3617" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1257" y="3626" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1257" y="3637" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1257" y="3648" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="1252" y="3682" width="236" height="34" rx="4"/>
+<text class="mid named" x="1257" y="3691" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="1257" y="3702" font-size="8.4">Face value</text>
+<rect class="nb" x="843" y="3850" width="250" height="38" rx="8"/>
+<text class="nt" x="853" y="3865" font-size="11" font-weight="700">L80</text>
+<text class="ns" x="853" y="3877" font-size="9">Formal Long Division</text>
+<rect class="mbox" x="843" y="3896" width="250" height="182" rx="8"/>
+<text class="mlab" x="853" y="3910" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="850" y="3915" width="236" height="23" rx="4"/>
+<text class="mid derived" x="855" y="3924" font-size="7.8" font-weight="700">SK16.07</text>
+<text class="mt derived" x="855" y="3935" font-size="8.4">Division word problems</text>
+<rect class="ms supp" x="850" y="3942" width="236" height="23" rx="4"/>
+<text class="mid supp" x="855" y="3951" font-size="7.8" font-weight="700">SK15</text>
+<text class="mt supp" x="855" y="3962" font-size="8.4">Multiplication (tier tbd)</text>
+<rect class="ms supp" x="850" y="3969" width="236" height="34" rx="4"/>
+<text class="mid supp" x="855" y="3978" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="855" y="3989" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="855" y="4000" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="850" y="4034" width="236" height="34" rx="4"/>
+<text class="mid named" x="855" y="4043" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="855" y="4054" font-size="8.4">Face value</text>
+<rect class="nb" x="575" y="2231" width="250" height="50" rx="8"/>
+<text class="nt" x="585" y="2246" font-size="11" font-weight="700">L81</text>
+<text class="ns" x="585" y="2258" font-size="9">Fractional Notation &amp;</text>
+<text class="ns" x="585" y="2270" font-size="9">Equivalence</text>
+<rect class="mbox" x="575" y="2289" width="250" height="90" rx="8"/>
+<text class="mlab" x="585" y="2303" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="582" y="2308" width="236" height="23" rx="4"/>
+<text class="mid derived" x="587" y="2317" font-size="7.8" font-weight="700">SK17.04</text>
+<text class="mt derived" x="587" y="2328" font-size="8.4">Fraction notation</text>
+<rect class="ms supp" x="582" y="2335" width="236" height="34" rx="4"/>
+<text class="mid supp" x="587" y="2344" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="587" y="2355" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="587" y="2366" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1781" y="1972" width="250" height="38" rx="8"/>
+<text class="nt" x="1791" y="1987" font-size="11" font-weight="700">L82</text>
+<text class="ns" x="1791" y="1999" font-size="9">Standard Unit Conversion</text>
+<rect class="mbox" x="1781" y="2018" width="250" height="90" rx="8"/>
+<text class="mlab" x="1791" y="2032" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1788" y="2037" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1793" y="2046" font-size="7.8" font-weight="700">SK20.09</text>
+<text class="mt derived" x="1793" y="2057" font-size="8.4">Unit conversion</text>
+<rect class="ms supp" x="1788" y="2064" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1793" y="2073" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="1793" y="2084" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="1793" y="2095" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1915" y="3850" width="250" height="50" rx="8"/>
+<text class="nt" x="1925" y="3865" font-size="11" font-weight="700">L83</text>
+<text class="ns" x="1925" y="3877" font-size="9">Applied Measurement Word</text>
+<text class="ns" x="1925" y="3889" font-size="9">Problems</text>
+<rect class="mbox" x="1915" y="3908" width="250" height="133" rx="8"/>
+<text class="mlab" x="1925" y="3922" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1922" y="3927" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1927" y="3936" font-size="7.8" font-weight="700">SK20.12</text>
+<text class="mt derived" x="1927" y="3947" font-size="8.4">Area</text>
+<rect class="ms derived" x="1922" y="3954" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1927" y="3963" font-size="7.8" font-weight="700">SK24.07</text>
+<text class="mt derived" x="1927" y="3974" font-size="8.4">Solve multi-step problems</text>
+<rect class="ms supp" x="1922" y="3981" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1927" y="3990" font-size="7.8" font-weight="700">SK13</text>
+<text class="mt supp" x="1927" y="4001" font-size="8.4">Addition (tier tbd)</text>
+<rect class="ms supp" x="1922" y="4008" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1927" y="4017" font-size="7.8" font-weight="700">SK14</text>
+<text class="mt supp" x="1927" y="4028" font-size="8.4">Subtraction (tier tbd)</text>
+<rect class="nb" x="843" y="2231" width="250" height="38" rx="8"/>
+<text class="nt" x="853" y="2246" font-size="11" font-weight="700">L84</text>
+<text class="ns" x="853" y="2258" font-size="9">3D Nets &amp; Spatial Perspective</text>
+<rect class="mbox" x="843" y="2277" width="250" height="128" rx="8"/>
+<text class="mlab" x="853" y="2291" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="850" y="2296" width="236" height="23" rx="4"/>
+<text class="mid derived" x="855" y="2305" font-size="7.8" font-weight="700">SK19.13</text>
+<text class="mt derived" x="855" y="2316" font-size="8.4">Symmetry</text>
+<rect class="ms supp" x="850" y="2323" width="236" height="34" rx="4"/>
+<text class="mid supp" x="855" y="2332" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="855" y="2343" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="855" y="2354" font-size="8.4">(tier tbd)</text>
+<rect class="ms supp" x="850" y="2361" width="236" height="34" rx="4"/>
+<text class="mid supp" x="855" y="2370" font-size="7.8" font-weight="700">SK24</text>
+<text class="mt supp" x="855" y="2381" font-size="8.4">Mathematical Reasoning &amp; Problem</text>
+<text class="mt supp" x="855" y="2392" font-size="8.4">Solving (tier tbd)</text>
+<rect class="nb" x="2585" y="1972" width="250" height="38" rx="8"/>
+<text class="nt" x="2595" y="1987" font-size="11" font-weight="700">L85</text>
+<text class="ns" x="2595" y="1999" font-size="9">Advanced Time Calculation</text>
+<rect class="mbox" x="2585" y="2018" width="250" height="106" rx="8"/>
+<text class="mlab" x="2595" y="2032" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2592" y="2037" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2597" y="2046" font-size="7.8" font-weight="700">SK21.08</text>
+<text class="mt derived" x="2597" y="2057" font-size="8.4">Advanced time problems</text>
+<rect class="ms supp" x="2592" y="2064" width="236" height="23" rx="4"/>
+<text class="mid supp" x="2597" y="2073" font-size="7.8" font-weight="700">SK13</text>
+<text class="mt supp" x="2597" y="2084" font-size="8.4">Addition (tier tbd)</text>
+<rect class="ms supp" x="2592" y="2091" width="236" height="23" rx="4"/>
+<text class="mid supp" x="2597" y="2100" font-size="7.8" font-weight="700">SK14</text>
+<text class="mt supp" x="2597" y="2111" font-size="8.4">Subtraction (tier tbd)</text>
+<rect class="nb" x="1111" y="3162" width="250" height="38" rx="8"/>
+<text class="nt" x="1121" y="3177" font-size="11" font-weight="700">L86</text>
+<text class="ns" x="1121" y="3189" font-size="9">Complex Money Problems</text>
+<rect class="mbox" x="1111" y="3208" width="250" height="133" rx="8"/>
+<text class="mlab" x="1121" y="3222" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1118" y="3227" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1123" y="3236" font-size="7.8" font-weight="700">SK22.06</text>
+<text class="mt derived" x="1123" y="3247" font-size="8.4">Multi-step money problems</text>
+<rect class="ms derived" x="1118" y="3254" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1123" y="3263" font-size="7.8" font-weight="700">SK24.01</text>
+<text class="mt derived" x="1123" y="3274" font-size="8.4">Identify relevant information</text>
+<rect class="ms supp" x="1118" y="3281" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1123" y="3290" font-size="7.8" font-weight="700">SK13</text>
+<text class="mt supp" x="1123" y="3301" font-size="8.4">Addition (tier tbd)</text>
+<rect class="ms supp" x="1118" y="3308" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1123" y="3317" font-size="7.8" font-weight="700">SK14</text>
+<text class="mt supp" x="1123" y="3328" font-size="8.4">Subtraction (tier tbd)</text>
+<rect class="nb" x="1379" y="3850" width="250" height="38" rx="8"/>
+<text class="nt" x="1389" y="3865" font-size="11" font-weight="700">L87</text>
+<text class="ns" x="1389" y="3877" font-size="9">Advanced Number Patterns</text>
+<rect class="mbox" x="1379" y="3896" width="250" height="128" rx="8"/>
+<text class="mlab" x="1389" y="3910" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1386" y="3915" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1391" y="3924" font-size="7.8" font-weight="700">SK18.09</text>
+<text class="mt derived" x="1391" y="3935" font-size="8.4">Generalize pattern</text>
+<rect class="ms supp" x="1386" y="3942" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="3951" font-size="7.8" font-weight="700">SK10</text>
+<text class="mt supp" x="1391" y="3962" font-size="8.4">Number Sequencing &amp; Number Line</text>
+<text class="mt supp" x="1391" y="3973" font-size="8.4">(tier tbd)</text>
+<rect class="ms supp" x="1386" y="3980" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1391" y="3989" font-size="7.8" font-weight="700">SK24</text>
+<text class="mt supp" x="1391" y="4000" font-size="8.4">Mathematical Reasoning &amp; Problem</text>
+<text class="mt supp" x="1391" y="4011" font-size="8.4">Solving (tier tbd)</text>
+<rect class="nb" x="843" y="1442" width="250" height="50" rx="8"/>
+<text class="nt" x="853" y="1457" font-size="11" font-weight="700">L88</text>
+<text class="ns" x="853" y="1469" font-size="9">Bar Graphs &amp; Data</text>
+<text class="ns" x="853" y="1481" font-size="9">Interpretation</text>
+<rect class="mbox" x="843" y="1500" width="250" height="117" rx="8"/>
+<text class="mlab" x="853" y="1514" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="850" y="1519" width="236" height="23" rx="4"/>
+<text class="mid derived" x="855" y="1528" font-size="7.8" font-weight="700">SK23.08</text>
+<text class="mt derived" x="855" y="1539" font-size="8.4">Interpret data</text>
+<rect class="ms supp" x="850" y="1546" width="236" height="23" rx="4"/>
+<text class="mid supp" x="855" y="1555" font-size="7.8" font-weight="700">SK09</text>
+<text class="mt supp" x="855" y="1566" font-size="8.4">Number Comparison (tier tbd)</text>
+<rect class="ms supp" x="850" y="1573" width="236" height="34" rx="4"/>
+<text class="mid supp" x="855" y="1582" font-size="7.8" font-weight="700">SK24</text>
+<text class="mt supp" x="855" y="1593" font-size="8.4">Mathematical Reasoning &amp; Problem</text>
+<text class="mt supp" x="855" y="1604" font-size="8.4">Solving (tier tbd)</text>
+<rect class="nb" x="1111" y="3850" width="250" height="38" rx="8"/>
+<text class="nt" x="1121" y="3865" font-size="11" font-weight="700">L89</text>
+<text class="ns" x="1121" y="3877" font-size="9">Factors &amp; Multiples</text>
+<rect class="mbox" x="1111" y="3896" width="250" height="133" rx="8"/>
+<text class="mlab" x="1121" y="3910" font-size="7.6">REQUIRES</text>
+<rect class="ms named" x="1118" y="3915" width="236" height="23" rx="4"/>
+<text class="mid named" x="1123" y="3924" font-size="7.8" font-weight="700">SK15.08</text>
+<text class="mt named" x="1123" y="3935" font-size="8.4">Factors and multiples</text>
+<rect class="ms derived" x="1118" y="3942" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1123" y="3951" font-size="7.8" font-weight="700">SK18.10</text>
+<text class="mt derived" x="1123" y="3962" font-size="8.4">Advanced number pattern</text>
+<rect class="ms supp" x="1118" y="3969" width="236" height="23" rx="4"/>
+<text class="mid supp" x="1123" y="3978" font-size="7.8" font-weight="700">SK16</text>
+<text class="mt supp" x="1123" y="3989" font-size="8.4">Division (tier tbd)</text>
+<rect class="nb" x="977" y="2865" width="250" height="38" rx="8"/>
+<text class="nt" x="987" y="2880" font-size="11" font-weight="700">L90</text>
+<text class="ns" x="987" y="2892" font-size="9">Decimals (Tenths &amp; Hundredths)</text>
+<rect class="mbox" x="977" y="2911" width="250" height="193" rx="8"/>
+<text class="mlab" x="987" y="2925" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="984" y="2930" width="236" height="23" rx="4"/>
+<text class="mid derived" x="989" y="2939" font-size="7.8" font-weight="700">SK08.08</text>
+<text class="mt derived" x="989" y="2950" font-size="8.4">Read/write four-digit numbers</text>
+<rect class="ms named" x="984" y="2957" width="236" height="23" rx="4"/>
+<text class="mid named" x="989" y="2966" font-size="7.8" font-weight="700">SK17.06</text>
+<text class="mt named" x="989" y="2977" font-size="8.4">Decimal notation</text>
+<rect class="ms supp" x="984" y="2984" width="236" height="34" rx="4"/>
+<text class="mid supp" x="989" y="2993" font-size="7.8" font-weight="700">SK11</text>
+<text class="mt supp" x="989" y="3004" font-size="8.4">Place Value &amp; Base-Ten Structure</text>
+<text class="mt supp" x="989" y="3015" font-size="8.4">(tier tbd)</text>
+<rect class="ms supp" x="984" y="3022" width="236" height="34" rx="4"/>
+<text class="mid supp" x="989" y="3031" font-size="7.8" font-weight="700">SK12</text>
+<text class="mt supp" x="989" y="3042" font-size="8.4">Number Composition &amp; Decomposition</text>
+<text class="mt supp" x="989" y="3053" font-size="8.4">(tier tbd)</text>
+<rect class="ms named" x="984" y="3060" width="236" height="34" rx="4"/>
+<text class="mid named" x="989" y="3069" font-size="7.8" font-weight="700">SK11.10</text>
+<text class="mt named" x="989" y="3080" font-size="8.4">Face value</text>
+<rect class="nb" x="1111" y="1686" width="250" height="38" rx="8"/>
+<text class="nt" x="1121" y="1701" font-size="11" font-weight="700">L91</text>
+<text class="ns" x="1121" y="1713" font-size="9">Angles &amp; Turn</text>
+<rect class="mbox" x="1111" y="1732" width="250" height="90" rx="8"/>
+<text class="mlab" x="1121" y="1746" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1118" y="1751" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1123" y="1760" font-size="7.8" font-weight="700">SK19.11</text>
+<text class="mt derived" x="1123" y="1771" font-size="8.4">Perspective</text>
+<rect class="ms supp" x="1118" y="1778" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1123" y="1787" font-size="7.8" font-weight="700">SK10</text>
+<text class="mt supp" x="1123" y="1798" font-size="8.4">Number Sequencing &amp; Number Line</text>
+<text class="mt supp" x="1123" y="1809" font-size="8.4">(tier tbd)</text>
+<rect class="nb" x="1647" y="3850" width="250" height="38" rx="8"/>
+<text class="nt" x="1657" y="3865" font-size="11" font-weight="700">L92</text>
+<text class="ns" x="1657" y="3877" font-size="9">Symmetry &amp; Reflection</text>
+<rect class="mbox" x="1647" y="3896" width="250" height="90" rx="8"/>
+<text class="mlab" x="1657" y="3910" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="1654" y="3915" width="236" height="23" rx="4"/>
+<text class="mid derived" x="1659" y="3924" font-size="7.8" font-weight="700">SK19.14</text>
+<text class="mt derived" x="1659" y="3935" font-size="8.4">Reflection</text>
+<rect class="ms supp" x="1654" y="3942" width="236" height="34" rx="4"/>
+<text class="mid supp" x="1659" y="3951" font-size="7.8" font-weight="700">SK18</text>
+<text class="mt supp" x="1659" y="3962" font-size="8.4">Patterns &amp; Generalization (tier</text>
+<text class="mt supp" x="1659" y="3973" font-size="8.4">tbd)</text>
+<rect class="nb" x="2183" y="2231" width="250" height="38" rx="8"/>
+<text class="nt" x="2193" y="2246" font-size="11" font-weight="700">L93</text>
+<text class="ns" x="2193" y="2258" font-size="9">Perimeter &amp; Area</text>
+<rect class="mbox" x="2183" y="2277" width="250" height="117" rx="8"/>
+<text class="mlab" x="2193" y="2291" font-size="7.6">REQUIRES</text>
+<rect class="ms derived" x="2190" y="2296" width="236" height="23" rx="4"/>
+<text class="mid derived" x="2195" y="2305" font-size="7.8" font-weight="700">SK20.11</text>
+<text class="mt derived" x="2195" y="2316" font-size="8.4">Perimeter</text>
+<rect class="ms supp" x="2190" y="2323" width="236" height="34" rx="4"/>
+<text class="mid supp" x="2195" y="2332" font-size="7.8" font-weight="700">SK19</text>
+<text class="mt supp" x="2195" y="2343" font-size="8.4">Shapes &amp; Spatial Reasoning (tier</text>
+<text class="mt supp" x="2195" y="2354" font-size="8.4">tbd)</text>
+<rect class="ms supp" x="2190" y="2361" width="236" height="23" rx="4"/>
+<text class="mid supp" x="2195" y="2370" font-size="7.8" font-weight="700">SK13</text>
+<text class="mt supp" x="2195" y="2381" font-size="8.4">Addition (tier tbd)</text></svg>  </div>
+  <figcaption>Solid box: the Level itself. Dashed box below it: everything that Level requires, each entry showing its skill or subskill ID and full name. Scroll sideways for the full width.</figcaption>
+ </figure>
+
+ <div class="callout">
+  <h2>The two red entries recurring through the graph</h2>
+  <ul>
+   <li><b>recognise the operator symbol</b> &mdash; <b>resolved 2026-09-15, no code added.</b> Was flagged on 16 Levels. Checked both government documents directly: NCERT's <i>Learning Outcomes at the Elementary Stage</i> never lists symbol-recognition as its own outcome anywhere in the mainstream curriculum &mdash; the Class I addition outcome itself just writes "3+3=6" inline, with no separate "recognises +" step before it. The only place "operational symbols" is named at all is the special-needs appendix, as a noted <i>difficulty</i> for children with cognitive impairments, not a mainstream learning target. NIPUN Bharat's guidelines don't mention math symbols at all. Decision: follow the source &mdash; no standalone subskill; symbol reading stays implicit inside each operation's own subskill (SK13.03, SK15.01, etc.), so the 16 MISSING markers were removed rather than filled in.</li>
+   <li><b>face value (distinct from place value)</b> &mdash; <b>resolved 2026-09-15.</b> Was on 22 Levels, everything touching place value (only meaningfully distinct at two digits and above, which is why it stayed invisible). Added as <code>SK11.10 &mdash; Face value</code> in <code>skillProgressionMap.ts</code> and every one of the 22 flagged Levels updated to reference it.</li>
+   <li>Also added 2026-09-15 (Pavani/Amritha review): <code>SK08.09</code> Zero as "none" (L39), <code>SK15.08</code> Factors and multiples (L89), <code>SK17.06</code> Decimal notation, tenths &amp; hundredths (L90) &mdash; plus four wrong-skill corrections (L55, L59, L65, L70) and a missing required edge (L61 &rarr; L50).</li>
+  </ul>
+ </div>
+
+ <footer>
+  Structure and skill tags from <code>frontend/src/data/skillProgressionMap.ts</code>. Layers by longest-path depth; within-layer order by iterative barycentre. Amber entries are assigned by a depth-ordinal rule and are <b>not verified</b>; supporting skills are listed without a tier because none has been assigned yet. Proposal only &mdash; nothing here is implemented or curriculum-approved.
+ </footer>
+</div>
