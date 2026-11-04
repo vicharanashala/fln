@@ -638,7 +638,7 @@ export class DBStore {
         // advertises. The previous version used an unanchored case-insensitive
         // regex (e.g. /foo/i), which CANNOT use a B-tree index in this
         // MongoDB version — every keystroke COLLSCAN'd the 86k-row
-// collection. The fix is a BSON range { $gte: prefix, $lt: prefix+' ' }
+        // collection. The fix is a BSON range { $gte: prefix, $lt: prefix+'￿' }
         // combined with a strength:2 collation on the cursor. Combined with
         // the matching collation-aware indexes (see the `init()` block
         // above), Mongo uses index OR (one IXSCAN per $or branch) and the
@@ -652,7 +652,7 @@ export class DBStore {
         // The in-memory (file-fallback) path below mirrors this with
         // .startsWith() so dev and prod return the same results.
         const prefix = search;
-const upper = prefix + '�';
+        const upper = prefix + '￿';
         filter.$or = [
           { name:        { $gte: prefix, $lt: upper } },
           { displayId:   { $gte: prefix, $lt: upper } },
@@ -749,7 +749,7 @@ const upper = prefix + '�';
         // the same collation, Mongo uses the same six IXSCANs as
         // the find, so the count is also single-digit ms on 86k rows.
         const prefix = search;
-const upper = prefix + '�';
+        const upper = prefix + '￿';
         filter.$or = [
           { name:        { $gte: prefix, $lt: upper } },
           { displayId:   { $gte: prefix, $lt: upper } },
