@@ -36,20 +36,21 @@ import 'dotenv/config';
 import { MongoClient } from 'mongodb';
 import { randomUUID } from 'crypto';
 
-const MONGO_URI = process.env.MONGODB_URI;
-if (!MONGO_URI) {
-  console.error('MONGODB_URI is not set. Refusing to guess a connection string.');
-  process.exit(1);
-}
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { ASSESSMENT_MODES } from './routes/questionTemplates';
+import { getLevelForConcept } from './config/curriculumMap';
+import { getLevel } from './config/skillLevelMap';
+import type { QuestionTemplate } from './db';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
-interface SeedRow {
+export interface SeedRow {
   conceptId: string;
   skills: string[];
   subskills: string[];
   questionFamily: string;
-  assessmentMode: 'written' | 'observed' | 'both';
+  assessmentMode?: 'written' | 'observed' | 'both';
   generationIntent: string;
   svgThemeIds: string[];
   subjectCategory: string | null;
@@ -66,7 +67,84 @@ interface SeedRow {
 // (learning action + visual behaviour + how the answer is given, no
 // specific numbers/objects, per QuestionTemplate.generationIntent's own
 // documented contract).
-const ROWS: SeedRow[] = [
+/**
+ * Resolves the assessment mode for a seeded question template row.
+ * - Preserves existing question's intended assessment mode if set (does not silently overwrite).
+ * - Accepts 'written', 'observed', and 'both'.
+ * - Missing or invalid values default to 'written'.
+ */
+export function resolveSeedAssessmentMode(
+  existingMode?: string | null,
+  rowMode?: string | null
+): 'written' | 'observed' | 'both' {
+  const candidate = (existingMode ?? rowMode ?? '').trim().toLowerCase();
+  if ((ASSESSMENT_MODES as readonly string[]).includes(candidate)) {
+    return candidate as 'written' | 'observed' | 'both';
+  }
+  return 'written';
+}
+
+
+/**
+ * Constructs a QuestionTemplate document for a seeded Balvatika question row.
+ * - Resolves levelNumber and levelName from curriculumMap and skillLevelMap (Issue #903).
+ * - Preserves existing question's intended assessmentMode if set (Issue #761).
+ * - Preserves existing creation timestamp and author metadata.
+ */
+export function buildSeedQuestionTemplate(
+  row: SeedRow,
+  existing?: Partial<QuestionTemplate> | null,
+  now = new Date().toISOString()
+): QuestionTemplate {
+  const concept = getLevelForConcept(row.conceptId);
+  if (!concept) {
+    throw new Error(`Seed row ${row.conceptId} is not in the curriculum map.`);
+  }
+  const levelInfo = getLevel(concept.levelNumber);
+  const id = existing?.id ?? ('qtpl_' + randomUUID().slice(0, 8));
+  const assessmentMode = resolveSeedAssessmentMode(existing?.assessmentMode, row.assessmentMode);
+
+  return {
+    id,
+    conceptId: row.conceptId,
+    levelNumber: concept.levelNumber,
+    levelName: levelInfo?.capability ?? `Level ${concept.levelNumber}`,
+    skills: row.skills,
+    subskills: row.subskills,
+    assessmentMode,
+    generationIntent: row.generationIntent,
+    questionFamily: row.questionFamily as any,
+    paramMode: 'structured',
+    svgThemeIds: row.svgThemeIds,
+    stem: '',
+    answerSpec: '',
+    numeralRange: null,
+    digitCount: null,
+    operations: [],
+    maxOperandCount: null,
+    carryBehavior: null,
+    borrowBehavior: null,
+    maxSumOrDifference: null,
+    answerType: null,
+    blankCount: null,
+    questionCount: 1,
+    subjectCategory: row.subjectCategory,
+    name: row.name,
+    variantKey: row.conceptId + ':seed:balvatika:v1',
+    tags: ['balvatika', 'seed'],
+    source: 'seed:balvatika' as any,
+    createdBy: existing?.createdBy ?? 'system-seed',
+    createdByEmail: existing?.createdByEmail ?? 'system-seed@fln.internal',
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+    updatedBy: 'system-seed',
+    updatedByEmail: 'system-seed@fln.internal',
+    deletedAt: null,
+    deletedBy: null,
+  };
+}
+
+export const ROWS: SeedRow[] = [
   { conceptId: 'S1.8', skills: ['SK03'], subskills: [], questionFamily: 'sequencing', assessmentMode: 'both',
     generationIntent: 'Show 3-4 pictures of a familiar daily routine (waking up, brushing teeth, eating breakfast, going to school) in scrambled order. The child arranges or numbers them in the correct sequence.',
     svgThemeIds: [], subjectCategory: null, name: 'Daily Routine Sequencing' },
@@ -185,7 +263,12 @@ const ROWS: SeedRow[] = [
 ];
 
 async function main() {
-  const client = new MongoClient(MONGO_URI!);
+  const MONGO_URI = process.env.MONGODB_URI;
+  if (!MONGO_URI) {
+    console.error('MONGODB_URI is not set. Refusing to guess a connection string.');
+    process.exit(1);
+  }
+  const client = new MongoClient(MONGO_URI);
   await client.connect();
   const db = client.db();
   const coll = db.collection('questionTemplates');
@@ -197,55 +280,14 @@ async function main() {
 
   for (const row of ROWS) {
     const existing = await coll.findOne({ conceptId: row.conceptId, source: 'seed:balvatika' });
-    const id = existing?.id ?? ('qtpl_' + randomUUID().slice(0, 8));
-
-    const doc = {
-      id,
-      conceptId: row.conceptId,
-      // levelNumber/levelName are display aliases only, resolved from
-      // conceptId at write time (per QuestionTemplate's own contract) --
-      // this script does not hardcode them, so a future level-number shift
-      // never requires re-running this seed.
-      skills: row.skills,
-      subskills: row.subskills,
-      assessmentMode: row.assessmentMode,
-      generationIntent: row.generationIntent,
-      questionFamily: row.questionFamily,
-      paramMode: 'structured',
-      svgThemeIds: row.svgThemeIds,
-      stem: '',
-      answerSpec: '',
-      numeralRange: null,
-      digitCount: null,
-      operations: [],
-      maxOperandCount: null,
-      carryBehavior: null,
-      borrowBehavior: null,
-      maxSumOrDifference: null,
-      answerType: null,
-      blankCount: null,
-      questionCount: 1,
-      subjectCategory: row.subjectCategory,
-      name: row.name,
-      variantKey: row.conceptId + ':seed:balvatika:v1',
-      tags: ['balvatika', 'seed'],
-      source: 'seed:balvatika',
-      createdBy: 'system-seed',
-      createdByEmail: 'system-seed@fln.internal',
-      createdAt: existing?.createdAt ?? now,
-      updatedAt: now,
-      updatedBy: 'system-seed',
-      updatedByEmail: 'system-seed@fln.internal',
-      deletedAt: null,
-      deletedBy: null,
-    };
+    const doc = buildSeedQuestionTemplate(row, existing as any, now);
 
     if (DRY_RUN) {
       console.log(existing ? `[dry-run] would update ${row.conceptId}` : `[dry-run] would insert ${row.conceptId}`);
       continue;
     }
 
-    await coll.updateOne({ id }, { $set: doc }, { upsert: true });
+    await coll.updateOne({ id: doc.id }, { $set: doc }, { upsert: true });
     if (existing) updated++; else inserted++;
   }
 
@@ -253,7 +295,14 @@ async function main() {
   await client.close();
 }
 
-main().catch(err => {
-  console.error('Seed failed:', err);
-  process.exit(1);
-});
+const isDirectRun =
+  Boolean(process.argv[1]) &&
+  path.resolve(process.argv[1]).toLowerCase() ===
+    path.resolve(fileURLToPath(import.meta.url)).toLowerCase();
+
+if (isDirectRun) {
+  main().catch(err => {
+    console.error('Seed failed:', err);
+    process.exit(1);
+  });
+}

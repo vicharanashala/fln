@@ -90,6 +90,7 @@ export const QuestionTemplatePanel: React.FC = () => {
   const [filterSkill, setFilterSkill] = useState('');
   const [filterTag, setFilterTag] = useState('');
   const [filterMode, setFilterMode] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   const loadAll = async () => {
     try {
@@ -439,8 +440,9 @@ export const QuestionTemplatePanel: React.FC = () => {
     (filterLevel === '' || t.levelNumber === filterLevel) &&
     (filterSkill === '' || t.skills.includes(filterSkill)) &&
     (filterTag === '' || t.tags.includes(filterTag)) &&
-    (filterMode === '' || (t.assessmentMode ?? 'written') === filterMode)
-  ), [templates, filterLevel, filterSkill, filterTag, filterMode]);
+    (filterMode === '' || (t.assessmentMode ?? 'written') === filterMode) &&
+    (filterStatus === '' || (t.status ?? 'approved') === filterStatus)
+  ), [templates, filterLevel, filterSkill, filterTag, filterMode, filterStatus]);
 
   if (loading) {
     return <div className="p-6 text-zinc-500 dark:text-zinc-400">Loading questions…</div>;
@@ -954,6 +956,14 @@ export const QuestionTemplatePanel: React.FC = () => {
               <option value="observed">observed</option>
               <option value="both">both</option>
             </select>
+            <select aria-label="Filter by status" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+              className="rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-2 py-1.5 text-sm text-zinc-900 dark:text-white">
+              <option value="">All statuses</option>
+              <option value="approved">approved</option>
+              <option value="pendingApproval">pendingApproval</option>
+              <option value="draft">draft</option>
+              <option value="rejected">rejected</option>
+            </select>
           </div>
         </div>
 
@@ -973,6 +983,7 @@ export const QuestionTemplatePanel: React.FC = () => {
                   <th className="py-2 pr-3 font-medium">What it asks for</th>
                   <th className="py-2 pr-3 font-medium">Skills</th>
                   <th className="py-2 pr-3 font-medium">Mode</th>
+                  <th className="py-2 pr-3 font-medium">Status</th>
                   <th className="py-2 pr-3 font-medium">Tags</th>
                   <th className="py-2 pr-3 font-medium">Created by</th>
                   <th className="py-2 font-medium">Actions</th>
@@ -993,6 +1004,19 @@ export const QuestionTemplatePanel: React.FC = () => {
                     <td className="py-3 pr-3">
                       <span className="inline-flex items-center rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                         {t.assessmentMode ?? 'written'}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-3">
+                      <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${
+                        (t.status ?? 'approved') === 'approved'
+                          ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                          : (t.status ?? 'approved') === 'pendingApproval'
+                          ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+                          : (t.status ?? 'approved') === 'rejected'
+                          ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300'
+                          : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400'
+                      }`}>
+                        {t.status ?? 'approved'}
                       </span>
                     </td>
                     <td className="py-3 pr-3 text-zinc-500 dark:text-zinc-400">{t.tags.length ? t.tags.join(', ') : '—'}</td>
