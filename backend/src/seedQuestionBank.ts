@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { MongoClient } from 'mongodb';
 import { questionBankId } from './db';
 import { escapeStraySvgText } from './utils/svgEscape';
+import { getCrosswalkForLegacyLevel, validateCrosswalkInvariants } from './config/legacy59Crosswalk';
+import { CURRICULUM_MAPPING } from './config/curriculumMap';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const QUESTION_BANK_PATH = path.join(__dirname, '../../data/questionBank.json');
@@ -24,6 +26,9 @@ const QUESTION_BANK_PATH = path.join(__dirname, '../../data/questionBank.json');
  * must never overwrite them). Same division of authority as seedCurriculumLevels.
  */
 async function seed() {
+  // Validate 59-to-93 crosswalk invariants before seeding
+  validateCrosswalkInvariants();
+
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     console.error('MONGODB_URI not set');
@@ -57,17 +62,6 @@ async function seed() {
   const collection = client.db().collection('questionBank');
 
   // Migrate rows seeded before questionId existed.
-  //
-  // The previous seeder wrote rows with no stable id, so an existing
-  // deployment has 1202 of them with `questionId` unset. The unique index
-  // below would then fail to build with a bare
-  //   E11000 duplicate key ... dup key: { questionId: null }
-  // which stops the deploy with nothing an operator can act on.
-  //
-  // Those rows are safe to drop: they predate review state entirely, so they
-  // carry no human decision to lose, and every one of them is re-inserted from
-  // the JSON immediately below with a proper id. Anything that DOES carry a
-  // decision has a questionId by definition and is left alone.
   const legacyRows = await collection.countDocuments({ questionId: { $exists: false } });
   if (legacyRows > 0) {
     const withDecisions = await collection.countDocuments({
@@ -91,32 +85,54 @@ async function seed() {
 
   await collection.createIndex({ questionId: 1 }, { unique: true });
   await collection.createIndex({ level: 1 });
+  await collection.createIndex({ mappedLevel: 1 });
+  await collection.createIndex({ conceptId: 1 });
   await collection.createIndex({ level: 1, sectionType: 1 });
   await collection.createIndex({ reviewStatus: 1 });
 
-  const ops = [...seen.entries()].map(([questionId, q]) => ({
-    updateOne: {
-      filter: { questionId },
-      update: {
-        $set: {
-          level: Number(q.level),
-          levelTitle: q.levelTitle,
-          section: q.section,
-          sectionType: q.sectionType,
-          questionNumber: Number(q.questionNumber),
-          questionText: q.questionText,
-          answer: q.answer,
-          svgHtml: escapeStraySvgText(q.svgHtml),
+  const ops = [...seen.entries()].map(([questionId, q]) => {
+    const legacyLevel = Number(q.level);
+    const crosswalk = getCrosswalkForLegacyLevel(legacyLevel);
+    const mappedLevel = q.mappedLevel ?? crosswalk?.mappedLevel ?? legacyLevel;
+    const conceptId = q.conceptId ?? crosswalk?.conceptId ?? CURRICULUM_MAPPING[mappedLevel]?.conceptId ?? null;
+
+    // Fail loudly if question concept label and mapped level disagree
+    if (conceptId) {
+      const expectedCfg = CURRICULUM_MAPPING[mappedLevel];
+      if (expectedCfg && expectedCfg.conceptId !== conceptId) {
+        console.error(
+          `ABORT: Question ${questionId} concept mismatch! ` +
+          `Claims conceptId '${conceptId}', but CURRICULUM_MAPPING for level ${mappedLevel} is '${expectedCfg.conceptId}'.`
+        );
+        process.exit(1);
+      }
+    }
+
+    return {
+      updateOne: {
+        filter: { questionId },
+        update: {
+          $set: {
+            level: legacyLevel,
+            mappedLevel,
+            conceptId,
+            levelTitle: q.levelTitle,
+            section: q.section,
+            sectionType: q.sectionType,
+            questionNumber: Number(q.questionNumber),
+            questionText: q.questionText,
+            answer: q.answer,
+            svgHtml: escapeStraySvgText(q.svgHtml),
+          },
+          $setOnInsert: {
+            questionId,
+            reviewStatus: 'untagged',
+          },
         },
-        $setOnInsert: {
-          questionId,
-          mappedLevel: null,
-          reviewStatus: 'untagged',
-        },
+        upsert: true,
       },
-      upsert: true,
-    },
-  }));
+    };
+  });
 
   const result = await collection.bulkWrite(ops, { ordered: false });
   const inserted = result.upsertedCount;
