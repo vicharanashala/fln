@@ -66,7 +66,8 @@
     "test:skill-evolution-routes": "tsx --test tests/skill-evolution-route.test.ts",
     "test:cert-eoy": "tsx --test tests/certification-end-of-year.test.ts",
     "test:ncf-competencies": "tsx --test tests/ncf-competencies.test.ts",
-    "test:icr-cloud-config": "tsx --test tests/icr-cloud-config.test.ts"
+    "test:icr-cloud-config": "tsx --test tests/icr-cloud-config.test.ts",
+"test:ocr-response-review": "tsx --test src/services/scanExtraction.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
