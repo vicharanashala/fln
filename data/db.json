@@ -2855,7 +2855,11 @@
       },
       "narrative": "Amanpreet demonstrated absolute competence in counting objects and doing simple addition arithmetic.",
       "recommendedLevel": 2,
-      "timestamp": "2026-06-15T11:15:00Z"
+      "timestamp": "2026-06-15T11:15:00Z",
+      "studentClass": 3,
+      "cycle": "End-of-year",
+      "teacherRating": "Progressing"
+    
     },
     {
       "id": "rep_s6_1002",
@@ -2868,7 +2872,10 @@
       },
       "narrative": "Sandeep exhibits strong capacity to compute lengths and carry out simple subtraction comparisons.",
       "recommendedLevel": 3,
-      "timestamp": "2026-06-18T11:35:00Z"
+      "timestamp": "2026-06-18T11:35:00Z",
+      "studentClass": 3,
+      "cycle": "End-of-year",
+      "teacherRating": "Proficient"
     },
     {
       "id": "rep_s14_1004",
@@ -2881,7 +2888,10 @@
       },
       "narrative": "Rajiv displays flawless sequencing and pattern recognition matching Level 3 descriptors.",
       "recommendedLevel": 3,
-      "timestamp": "2026-06-22T11:30:00Z"
+      "timestamp": "2026-06-22T11:30:00Z",
+      "studentClass": 2,
+      "cycle": "End-of-year",
+      "teacherRating": "Proficient"
     },
     {
       "id": "rep_s18_1005",
@@ -2896,7 +2906,10 @@
       },
       "narrative": "Kavya shows strength in counting and measurement but needs more practice with money transactions.",
       "recommendedLevel": 8,
-      "timestamp": "2026-07-01T11:15:00Z"
+      "timestamp": "2026-07-01T11:15:00Z",
+      "studentClass": 2,
+      "cycle": "End-of-year",
+      "teacherRating": "Progressing"
     },
     {
       "id": "rep_s22_1006",
@@ -2910,7 +2923,10 @@
       },
       "narrative": "Anika demonstrated flawless pattern recognition and multiplication skills.",
       "recommendedLevel": 12,
-      "timestamp": "2026-07-03T11:25:00Z"
+      "timestamp": "2026-07-03T11:25:00Z",
+      "studentClass": 1,
+      "cycle": "End-of-year",
+      "teacherRating": "Proficient"
     },
     {
       "id": "rep_s20_1007",
@@ -2924,7 +2940,10 @@
       },
       "narrative": "Pooja displays strong conceptual understanding of fractions and monetary calculations.",
       "recommendedLevel": 10,
-      "timestamp": "2026-07-02T11:20:00Z"
+      "timestamp": "2026-07-02T11:20:00Z",
+      "studentClass": 1,
+      "cycle": "End-of-year",
+      "teacherRating": "Proficient"
     },
     {
       "id": "rep_s24_diag",
@@ -2940,7 +2959,10 @@
       "narrative": "Tanvi performed very well on the diagnostic, demonstrating strong number sense.",
       "recommendedLevel": 15,
       "recommendedSubLevel": 0,
-      "timestamp": "2026-07-01T10:00:00Z"
+      "timestamp": "2026-07-01T10:00:00Z",
+      "studentClass": 1,
+      "cycle": "End-of-year",
+      "teacherRating": "Beginner"
     }
   ],
   "tickets": [
