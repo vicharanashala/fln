@@ -2,7 +2,7 @@ import type { ClassGroup, School, Student, User } from './types';
 
 /**
  * Data access, behind interfaces so the routes never know which store is used.
- * v2 has one real store (MongoDB, added next); the in-memory version is for tests and local demos.
+ * v2 has one real store (MongoDB); the in-memory version is for tests and local demos.
  */
 export interface Repos {
   users: {
