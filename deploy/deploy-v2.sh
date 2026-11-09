@@ -19,7 +19,9 @@ fi
 if [ "$mode" != "apply" ]; then echo "usage: $0 check|apply"; exit 1; fi
 
 sudo mkdir -p /var/www/v2/fln /var/www/v2/tenali
-sudo cp "$here/../landing/index.html" /var/www/v2/index.html 2>/dev/null || sudo cp "$here/landing/index.html" /var/www/v2/index.html
+src="$here/../landing"; [ -d "$src" ] || src="$here/landing"
+for f in index.html site.css site.js; do sudo cp "$src/$f" "/var/www/v2/$f"; done
+for d in why-fln why-tenali; do sudo mkdir -p "/var/www/v2/$d"; sudo cp "$src/$d/index.html" "/var/www/v2/$d/index.html"; done
 for app in fln tenali; do
   if [ ! -f "/var/www/v2/$app/index.html" ]; then
     label=$([ "$app" = fln ] && echo "FLN v2" || echo "Tenali v2")

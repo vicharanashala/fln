@@ -77,24 +77,11 @@
   .btn .arrow { display: inline-block; transition: transform .2s ease; margin-left: 6px; }
   .btn:hover .arrow { transform: translateX(5px); }
 
-  /* path: stones appear as you scroll, line draws itself */
-  .path { margin-top: 64px; text-align: center; }
-  .path h3 { margin: 0 0 20px; font-size: 1.25rem; }
-  .steps { display: flex; justify-content: space-between; align-items: flex-start; position: relative; max-width: 720px; margin: 0 auto; }
-  .steps::before { content: ""; position: absolute; left: 8%; right: 8%; top: 26px; height: 4px; background: repeating-linear-gradient(90deg, var(--line) 0 10px, transparent 10px 18px);
-                   transform-origin: left; transform: scaleX(0); transition: transform 1.2s ease .2s; }
-  .steps.in::before { transform: scaleX(1); }
-  .step { position: relative; flex: 1; opacity: 0; transform: scale(.6); transition: opacity .5s ease, transform .5s cubic-bezier(.3,1.6,.5,1); }
-  .steps.in .step { opacity: 1; transform: none; }
-  .steps.in .step:nth-child(1) { transition-delay: .3s; } .steps.in .step:nth-child(2) { transition-delay: .6s; }
-  .steps.in .step:nth-child(3) { transition-delay: .9s; } .steps.in .step:nth-child(4) { transition-delay: 1.2s; }
-  .stone { width: 52px; height: 52px; margin: 0 auto 8px; border-radius: 50%; background: var(--orange); color: var(--brown); font-weight: 800;
-           display: grid; place-items: center; border: 3px solid var(--cream-2); box-shadow: 0 0 0 3px var(--line); }
-  .step:nth-child(2) .stone { background: var(--gold); } .step:nth-child(3) .stone { background: var(--red); color: var(--cream-2); }
-  .step:nth-child(4) .stone { background: var(--brown-2); color: var(--cream-2); }
-  .step span { font-size: .95rem; font-weight: 600; }
-
   footer { margin-top: 56px; text-align: center; color: var(--brown-2); font-size: .9rem; }
+
+  .more { display: inline-block; margin-top: 12px; color: var(--brown-2); font-weight: 600; text-decoration: none; border-bottom: 2px solid var(--line); padding-bottom: 1px; transition: color .2s ease, border-color .2s ease; }
+  .more:hover { color: var(--red); border-color: var(--red); }
+  .more:focus-visible { outline: 3px solid var(--brown); outline-offset: 3px; }
 
   /* confetti burst on click */
   .pop { position: fixed; width: 10px; height: 10px; border-radius: 2px; pointer-events: none; z-index: 5; animation: pop .8s ease-out forwards; }
@@ -102,9 +89,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
-    .rise, .blk, .step { opacity: 1; transform: none; }
+    .rise, .blk { opacity: 1; transform: none; }
     .bar { transform: none; }
-    .steps::before { transform: none; }
   }
 </style>
 </head>
@@ -125,6 +111,7 @@
       <h2 id="fln-h">FLN</h2>
       <p class="tag">Reading and counting, the first steps</p>
       <a class="btn fln" href="/v2/fln/">Classes 3 and below<span class="arrow" aria-hidden="true">&rarr;</span></a>
+      <a class="more" href="/v2/why-fln/">Why FLN?</a>
     </section>
 
     <section class="card" aria-labelledby="tenali-h">
@@ -141,18 +128,9 @@
       <h2 id="tenali-h">Tenali</h2>
       <p class="tag">Practice that climbs with the child</p>
       <a class="btn tenali" href="/v2/tenali/">Classes 4 and above<span class="arrow" aria-hidden="true">&rarr;</span></a>
+      <a class="more" href="/v2/why-tenali/">Why Tenali?</a>
     </section>
   </div>
-
-  <section class="path" aria-labelledby="path-h">
-    <h3 id="path-h">How we move forward</h3>
-    <div class="steps" id="steps">
-      <div class="step"><div class="stone">1</div><span>Stabilise</span></div>
-      <div class="step"><div class="stone">2</div><span>Check content</span></div>
-      <div class="step"><div class="stone">3</div><span>Pilot in a school</span></div>
-      <div class="step"><div class="stone">4</div><span>Extend upward</span></div>
-    </div>
-  </section>
 
   <footer>Version 2 preview &middot; Vicharanashala Lab for Education Design, IIT Ropar</footer>
 </main>
@@ -201,12 +179,6 @@
     if (first) { dot.style.left = (first.offsetLeft + first.offsetWidth / 2 - 11) + 'px'; dot.style.bottom = (first.offsetHeight + 6) + 'px'; }
   });
 
-  var steps = document.getElementById('steps');
-  if ('IntersectionObserver' in window && !reduce) {
-    new IntersectionObserver(function (es, o) {
-      es.forEach(function (e) { if (e.isIntersecting) { steps.classList.add('in'); o.disconnect(); } });
-    }, { threshold: .4 }).observe(steps);
-  } else { steps.classList.add('in'); }
 })();
 </script>
 </body>
