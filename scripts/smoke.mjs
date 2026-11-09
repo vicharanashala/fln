@@ -8,6 +8,7 @@ const site = apiOnly ? null : (args[0] ?? '').replace(/\/+$/, '');
 const api = (apiOnly ? args[1] : `${site}/v2/api/fln`)?.replace(/\/+$/, '');
 if (!api) { console.error('Usage: node scripts/smoke.mjs <https://site> | --api <api base>'); process.exit(2); }
 
+import net from 'node:net';
 let failed = 0;
 const check = async (name, fn) => {
   try { const note = await fn(); console.log(`PASS  ${name}${note ? `: ${note}` : ''}`); }
@@ -43,6 +44,13 @@ if (site) {
   await check('Tenali API health', async () => { const r = await get(`${site}/v2/tenali/api/health`); ok(r.status === 200, `status ${r.status}`); ok((r.headers.get('content-type') ?? '').includes('json'), 'not JSON: the request did not reach Tenali'); });
   await check('Tenali live connection (Socket.IO)', async () => { const r = await get(`${site}/v2/tenali/socket.io/?EIO=4&transport=polling`); ok(r.status === 200, `status ${r.status}`); });
   await check('Tenali code runner stays closed', async () => { const r = await get(`${site}/v2/tenali/api/playground2/run`, { method: 'POST' }); ok(r.status === 503, `status ${r.status}, expected 503`); });
+}
+if (site) {
+  const host = new URL(site).hostname;
+  const reachable = (port) => new Promise(resolve => { const sock = net.connect({ host, port, timeout: 4000 }); sock.once('connect', () => { sock.destroy(); resolve(true); }); sock.once('timeout', () => { sock.destroy(); resolve(false); }); sock.once('error', () => resolve(false)); });
+  for (const [port, what] of [[3100, 'FLN API'], [3200, 'Tenali'], [27017, 'MongoDB']]) {
+    await check(`${what} port ${port} is closed to the world`, async () => { ok(!(await reachable(port)), `port ${port} answers from outside, it must only be reachable through nginx`); });
+  }
 }
 await check('API health', async () => { const r = await get(`${api}/health`); ok(r.status === 200, `status ${r.status}`); const j = await r.json(); ok(j.ok === true, 'not ok'); return `version ${j.version}, store ${j.store}`; });
 await check('API refuses a logged-out request', async () => { const r = await get(`${api}/levels`); ok(r.status === 401, `status ${r.status}, expected 401`); });

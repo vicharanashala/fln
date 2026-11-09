@@ -9,7 +9,8 @@ Group=tenali-v2
 WorkingDirectory=@APP@/src/server
 EnvironmentFile=/etc/tenali-v2/tenali.env
 # The heap is capped below the memory limit so Node cleans up before systemd would stop it.
-ExecStart=@NODE@ --max-old-space-size=384 index.js
+# bind-local.cjs makes Tenali listen on 127.0.0.1 only (its own code listens on every address), so only nginx can reach it.
+ExecStart=@NODE@ --max-old-space-size=384 --require @APP@/bind-local.cjs index.js
 Restart=on-failure
 RestartSec=3
 

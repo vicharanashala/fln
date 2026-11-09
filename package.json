@@ -4,13 +4,17 @@
   "version": "0.0.0",
   "description": "FLN v2: clean rebuild of the Foundational Literacy and Numeracy assessment platform (Balvatika to Class 3)",
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint .",
     "check:levels": "tsx scripts/check-levels.ts",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run check:levels"
+    "check": "npm run typecheck && npm run lint && npm run test && npm run check:levels && npm run test:deploy",
+    "test:deploy": "node --test deploy/"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

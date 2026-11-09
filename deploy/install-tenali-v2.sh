@@ -24,7 +24,7 @@ if [ "$mode" = "check" ]; then
   echo "== disk";    df -h / | tail -1
   echo "== port ${PORT} (nothing listed means free)"; (ss -tlnp 2>/dev/null | grep ":${PORT} ") || echo "free"
   echo "== MongoDB on 127.0.0.1:27017?"; ( (exec 3<>/dev/tcp/127.0.0.1/27017) 2>/dev/null && echo "yes" ) || echo "no: Tenali then runs with in-memory accounts (data lost on restart)"
-  echo "== firewall (Tenali listens on every address, so port ${PORT} must be blocked from outside)"; (sudo ufw status 2>/dev/null | head -8) || echo "ufw not available: check your firewall before apply"
+  echo "== firewall (Tenali is made to listen on 127.0.0.1 only; the firewall is a second lock)"; (sudo ufw status 2>/dev/null | head -8) || echo "ufw not available: check your firewall before apply"
   echo "== current install"; (sudo -u tenali-v2 git -C "$SRC" log -1 --format='%h %cd' --date=short 2>/dev/null) || echo "none yet"
   exit 0
 fi
@@ -61,6 +61,7 @@ if [ ! -f "$ENVFILE" ]; then
   echo "Created ${ENVFILE} with a new JWT secret."
 fi
 
+sudo install -m 644 -o root -g root "$here/deploy/bind-local.cjs" "${APP}/bind-local.cjs"
 sed -e "s#@NODE@#${NODE}#g" -e "s#@APP@#${APP}#g" "$here/deploy/tenali-v2.service" | sudo tee /etc/systemd/system/tenali-v2.service >/dev/null
 sudo systemctl daemon-reload
 sudo systemctl enable tenali-v2 >/dev/null 2>&1
@@ -79,9 +80,17 @@ if [ "$healthy" != yes ]; then
 fi
 echo "Tenali healthy: $(curl -fsS "http://127.0.0.1:${PORT}/api/health")"
 
+# Safety: Tenali must listen on this machine only. If it ever listens on every address, its port would bypass nginx
+# (and the protections in it), so refuse to go live.
+listening="$(ss -tln 2>/dev/null | awk -v p=":${PORT}" '$4 ~ p"$" {print $4}' | head -1)"
+case "$listening" in
+  127.0.0.1:*) echo "Listening only on ${listening}: good." ;;
+  *) echo "Tenali is listening on '${listening}', not 127.0.0.1. Stopping so it cannot be reached around nginx."; sudo systemctl stop tenali-v2 || true; exit 1 ;;
+esac
+
 sudo cp "$here/deploy/v2.nginx.conf" /etc/nginx/snippets/v2.conf
 if sudo nginx -t 2>/dev/null; then sudo systemctl reload nginx; echo "nginx reloaded."; else echo "nginx test failed, not reloaded:"; sudo nginx -t; exit 1; fi
 echo
 echo "Done: Tenali ${rev} at /v2/tenali/. Check it from outside with:  node deploy/smoke.mjs https://tenali.fun"
-echo "Also confirm port ${PORT} is closed to the world (from your own computer this must FAIL):  curl --max-time 5 http://161.35.7.133:${PORT}/api/health"
+echo "The outside smoke test also checks that port ${PORT} is closed to the world."
 echo "Rollback: sudo systemctl stop tenali-v2   and remove the /v2/tenali/ block from /etc/nginx/snippets/v2.conf (then nginx -t and reload)."
