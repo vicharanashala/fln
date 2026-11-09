@@ -1,5 +1,6 @@
 import { createApp } from './app';
 import { connectMongo } from './mongoRepos';
+import { ollamaReader } from './ollama';
 import { memoryRepos, type Repos } from './repos';
 
 const secret = process.env.JWT_SECRET;
@@ -19,5 +20,9 @@ if (process.env.MONGODB_URI) {
   console.warn('MONGODB_URI is not set: starting with an empty in-memory store (local demo only).');
   repos = memoryRepos();
 }
-createApp({ repos, auth: { jwtSecret: secret, tokenHours: 12 } })
+// Photo reading is optional: without a key and a model the scan route answers 503 and teachers mark by hand.
+const reader = process.env.OLLAMA_MODEL
+  ? ollamaReader({ host: process.env.OLLAMA_HOST ?? 'https://ollama.com', apiKey: process.env.OLLAMA_API_KEY, model: process.env.OLLAMA_MODEL })
+  : undefined;
+createApp({ repos, auth: { jwtSecret: secret, tokenHours: 12 }, reader })
   .listen(port, () => console.log(`FLN v2 API listening on :${port}`));

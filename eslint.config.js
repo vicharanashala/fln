@@ -8,4 +8,6 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { languageOptions: { globals: { ...globals.node } } },
+  // Browser code: the landing pages and the web app.
+  { files: ['landing/**/*.js', 'apps/web/**/*.{ts,tsx}'], languageOptions: { globals: { ...globals.browser } } },
 );

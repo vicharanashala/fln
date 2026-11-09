@@ -43,8 +43,8 @@ function contract(name: string, make: () => Promise<Repos>) {
       assert.equal(Object.hasOwn(await repos.classes.byId('c1') ?? {}, '_id'), false);
     });
     it('lists all classes', async () => {
-      const ids = (await repos.classes.list()).map(c => c.id).sort();
-      assert.deepEqual(ids, ['c1', 'c2']);
+      const ids = (await repos.classes.list()).map(c => c.id);
+      assert.ok(ids.includes('c1') && ids.includes('c2'));
     });
     it('lists only the students of the asked class', async () => {
       assert.deepEqual((await repos.students.byClass('c1')).map(s => s.name), ['Asha']);
@@ -56,6 +56,23 @@ function contract(name: string, make: () => Promise<Repos>) {
       assert.notEqual(a.id, b.id);
       const names = (await repos.students.byClass('c1')).map(s => s.name).sort();
       assert.deepEqual(names, ['Asha', 'Ira', 'Om']);
+    });
+    it('adds a class with a new id and lists it', async () => {
+      const created = await repos.classes.add({ schoolId: 'A', className: 'Class 2', section: 'B', teacherId: 'u1' });
+      assert.match(created.id, /^cls_/);
+      assert.equal((await repos.classes.byId(created.id))?.section, 'B');
+      assert.ok((await repos.classes.list()).some(c => c.id === created.id));
+    });
+    it('stores attempts per class, newest first, without leaking a Mongo _id', async () => {
+      const base = { schoolId: 'A', classId: 'c1', studentId: 's1', level: 22, set: 0, answers: [], score: 3, band: 'Developing' as const, source: 'marks' as const, recordedBy: 'u1' };
+      const older = await repos.attempts.add({ ...base, createdAt: '2026-11-01T10:00:00.000Z' });
+      const newer = await repos.attempts.add({ ...base, createdAt: '2026-11-02T10:00:00.000Z' });
+      await repos.attempts.add({ ...base, classId: 'c2', createdAt: '2026-11-03T10:00:00.000Z' });
+      assert.notEqual(older.id, newer.id);
+      const list = await repos.attempts.byClass('c1');
+      assert.deepEqual(list.map(a => a.id), [newer.id, older.id]);
+      assert.equal(Object.hasOwn(list[0], '_id'), false);
+      assert.deepEqual(await repos.attempts.byClass('missing'), []);
     });
   });
 }

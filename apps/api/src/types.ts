@@ -33,3 +33,28 @@ export interface Student {
 
 /** What the API puts in a response; never includes the password hash. */
 export type PublicUser = Omit<User, 'passwordHash'>;
+
+export interface AttemptAnswer {
+  /** Question number on the sheet, 1 to 5. */
+  n: number;
+  /** What the child wrote (from a scan or typed by the teacher); null when marked by hand or left blank. */
+  given: string | null;
+  correct: boolean;
+}
+
+/** One child's paper for one concept sheet. Several attempts per child are kept; the newest counts. */
+export interface Attempt {
+  id: string;
+  schoolId: string;
+  classId: string;
+  studentId: string;
+  level: number;
+  /** Which five-question sheet of the level was used (0 = A, 1 = B ...). */
+  set: number;
+  answers: AttemptAnswer[];
+  score: number;
+  band: 'Emerging' | 'Developing' | 'Secure';
+  source: 'marks' | 'typed' | 'scan';
+  createdAt: string;
+  recordedBy: string;
+}

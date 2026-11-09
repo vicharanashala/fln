@@ -1,6 +1,6 @@
 import { MongoClient, type Db } from 'mongodb';
 import type { Repos, SeedData } from './repos';
-import type { ClassGroup, School, Student, User } from './types';
+import type { Attempt, ClassGroup, School, Student, User } from './types';
 
 /** Mongo documents use our string id as `_id`, so ids stay stable and no ObjectId leaks into the API. */
 type Doc<T extends { id: string }> = Omit<T, 'id'> & { _id: string };
@@ -35,6 +35,7 @@ export function createMongoStore(db: Db, close: () => Promise<void> = async () =
   const schools = db.collection<Doc<School>>('schools');
   const classes = db.collection<Doc<ClassGroup>>('classes');
   const students = db.collection<Doc<Student>>('students');
+  const attempts = db.collection<Doc<Attempt>>('attempts');
 
   const repos: Repos = {
     users: {
@@ -62,6 +63,11 @@ export function createMongoStore(db: Db, close: () => Promise<void> = async () =
       async list() {
         return (await classes.find().sort({ _id: 1 }).toArray()).map(d => fromDoc<ClassGroup>(d));
       },
+      async add(cls) {
+        const created: ClassGroup = { ...cls, id: `cls_${crypto.randomUUID()}` };
+        await classes.insertOne(toDoc(created));
+        return created;
+      },
     },
     students: {
       async byClass(classId) {
@@ -73,6 +79,16 @@ export function createMongoStore(db: Db, close: () => Promise<void> = async () =
         return created;
       },
     },
+    attempts: {
+      async add(attempt) {
+        const created: Attempt = { ...attempt, id: `att_${crypto.randomUUID()}` };
+        await attempts.insertOne(toDoc(created));
+        return created;
+      },
+      async byClass(classId) {
+        return (await attempts.find({ classId }).sort({ createdAt: -1 }).toArray()).map(d => fromDoc<Attempt>(d));
+      },
+    },
   };
 
   return {
@@ -82,11 +98,13 @@ export function createMongoStore(db: Db, close: () => Promise<void> = async () =
       if (data.schools?.length) await schools.insertMany(data.schools.map(toDoc));
       if (data.classes?.length) await classes.insertMany(data.classes.map(toDoc));
       if (data.students?.length) await students.insertMany(data.students.map(toDoc));
+      if (data.attempts?.length) await attempts.insertMany(data.attempts.map(toDoc));
     },
     async ensureIndexes() {
       await users.createIndex({ email: 1 }, { unique: true });
       await classes.createIndex({ schoolId: 1 });
       await students.createIndex({ classId: 1 });
+      await attempts.createIndex({ classId: 1, createdAt: -1 });
     },
     close,
   };
