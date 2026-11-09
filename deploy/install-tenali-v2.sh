@@ -35,7 +35,8 @@ id tenali-v2 >/dev/null 2>&1 || sudo useradd --system --home-dir "$APP" --create
 sudo mkdir -p "$APP"; sudo chown tenali-v2:tenali-v2 "$APP"
 as_app() { sudo -u tenali-v2 -H bash -c "$1"; }
 
-if [ -d "${SRC}/.git" ]; then
+# The folder belongs to the service user, so the test must run as that user: the login user cannot look inside it.
+if as_app "test -d '${SRC}/.git'"; then
   as_app "git -C '$SRC' fetch --depth 1 origin '$REF' && git -C '$SRC' reset --hard FETCH_HEAD"
 else
   as_app "git clone --depth 1 --branch '$REF' '$REPO' '$SRC'"
