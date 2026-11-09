@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import type { AddressInfo } from 'node:net';
 import { after, before, describe, it } from 'node:test';
 import bcrypt from 'bcryptjs';
-import { MAX_LEVEL } from '@fln/curriculum';
+import { MAX_LEVEL, tagsForLevel } from '@fln/curriculum';
 import { createApp } from '../src/app';
 import { loadQuestionBank } from '../src/questionBank';
 import { memoryRepos } from '../src/repos';
@@ -55,6 +55,9 @@ async function login(email: string) {
 }
 
 const good = (over: Record<string, unknown> = {}) => ({ mode: 'written', prompt: 'Circle the set with 2 flowers.', answer: '2', options: ['1', '2', '3'], ...over });
+/** A valid skill tag for a level, taken from the curriculum so the tests follow it. */
+const subOf = (level: number, i = 0) => tagsForLevel(level)!.subskills[i].id;
+const tagged = (level: number, over: Record<string, unknown> = {}) => good({ subskillIds: [subOf(level)], ...over });
 
 describe('levels', () => {
   it('every logged-in role sees all curriculum levels; logged-out sees none', async () => {
@@ -105,7 +108,7 @@ describe('writing questions (superadmin only)', () => {
   });
   it('moves a question through draft, approved and retired, and never edits an approved one', async () => {
     const s = await login('super@fln.test');
-    const q = (await call('/api/levels/23/questions', { method: 'POST', token: s, body: good() })).json.question;
+    const q = (await call('/api/levels/23/questions', { method: 'POST', token: s, body: tagged(23) })).json.question;
     const patch = (body: unknown, id = q.id) => call(`/api/questions/${id}`, { method: 'PATCH', token: s, body });
     assert.equal((await patch({ prompt: 'Circle the group of 2 stones.' })).json.question.prompt, 'Circle the group of 2 stones.');
     assert.equal((await patch({ answer: '9' })).status, 400, 'edit is validated against the existing choices');
@@ -126,12 +129,55 @@ describe('writing questions (superadmin only)', () => {
   });
 });
 
+describe('tagging questions with skills', () => {
+  it('lists the skills of a level and tags each question from the curriculum', async () => {
+    const s = await login('super@fln.test');
+    const created = await call('/api/levels/30/questions', { method: 'POST', token: s, body: tagged(30, { subskillIds: [subOf(30, 0), subOf(30, 0)] }) });
+    assert.equal(created.status, 201);
+    assert.deepEqual(created.json.question.subskillIds, [subOf(30, 0)], 'repeated tags are stored once');
+    const r = await call('/api/levels/30/questions', { token: s });
+    assert.ok(r.json.skills.primarySkills.length > 0);
+    assert.ok(r.json.skills.subskills.some((x: { id: string }) => x.id === subOf(30, 0)));
+    const t = r.json.questions[0].tags;
+    assert.equal(t.levelNumber, 30);
+    assert.ok(t.conceptId && t.strand && t.primarySkillIds.length > 0);
+    assert.deepEqual(t.subskillIds, [subOf(30, 0)]);
+  });
+  it('refuses a tag from another level\'s skills, junk tags and an untagged approval', async () => {
+    const s = await login('super@fln.test');
+    const other = tagsForLevel(1)!.subskills.find(x => !tagsForLevel(30)!.subskills.some(y => y.id === x.id))!.id;
+    for (const subskillIds of [[other], ['NOPE'], 'SK01.01', [5], Array.from({ length: 13 }, () => subOf(30))]) {
+      assert.equal((await call('/api/levels/30/questions', { method: 'POST', token: s, body: good({ subskillIds }) })).status, 400, JSON.stringify(subskillIds).slice(0, 30));
+    }
+    const untagged = (await call('/api/levels/30/questions', { method: 'POST', token: s, body: good() })).json.question;
+    assert.equal((await call(`/api/questions/${untagged.id}`, { method: 'PATCH', token: s, body: { status: 'approved' } })).status, 409, 'approval needs a tag');
+    assert.equal((await call(`/api/questions/${untagged.id}`, { method: 'PATCH', token: s, body: { subskillIds: [other] } })).status, 400);
+    assert.equal((await call(`/api/questions/${untagged.id}`, { method: 'PATCH', token: s, body: { subskillIds: [subOf(30, 1)] } })).status, 200);
+    assert.equal((await call(`/api/questions/${untagged.id}`, { method: 'PATCH', token: s, body: { status: 'approved' } })).status, 200);
+  });
+  it('shows which skills have approved questions, to the superadmin only', async () => {
+    const s = await login('super@fln.test');
+    const tax = await call('/api/taxonomy', { token: s });
+    assert.equal(tax.json.skills.length, 24);
+    const cov = await call('/api/coverage', { token: s });
+    assert.equal(cov.status, 200);
+    const total = cov.json.skills.reduce((n: number, sk: { approved: number }) => n + sk.approved, 0);
+    assert.ok(total >= 1, 'the question approved above counts');
+    const sub = cov.json.skills.flatMap((sk: { subskills: { id: string; approved: number }[] }) => sk.subskills).find((x: { id: string }) => x.id === subOf(30, 1));
+    assert.equal(sub.approved, 1);
+    for (const path of ['/api/taxonomy', '/api/coverage']) {
+      assert.equal((await call(path, { token: await login('t1@fln.test') })).status, 403);
+      assert.equal((await call(path)).status, 401);
+    }
+  });
+});
+
 describe('what teachers see', () => {
   it('only approved questions count for a teacher, and a worksheet needs five approved written ones', async () => {
     const s = await login('super@fln.test'), t = await login('t1@fln.test');
     const ids: string[] = [];
     for (let i = 0; i < 6; i++) {
-      const r = await call('/api/levels/24/questions', { method: 'POST', token: s, body: good({ prompt: `Question ${i + 1}`, answer: String(i + 1), options: [String(i + 1), '99'] }) });
+      const r = await call('/api/levels/24/questions', { method: 'POST', token: s, body: tagged(24, { prompt: `Question ${i + 1}`, answer: String(i + 1), options: [String(i + 1), '99'] }) });
       ids.push(r.json.question.id);
     }
     const level24 = (token: string) => call('/api/levels', { token }).then(r => r.json.levels.find((l: { levelNumber: number }) => l.levelNumber === 24));

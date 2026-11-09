@@ -95,6 +95,8 @@ export interface Question {
   answer: string;
   /** Choices the child circles from; empty for write-in and observed questions. */
   options: string[];
+  /** Subskills (like SK05.02) this question checks. Must belong to the level's own skills; at least one is required to approve. */
+  subskillIds: string[];
   /** Optional drawing (inline SVG), shown as an image so it cannot run code. */
   svg: string | null;
   teacherNote: string | null;

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { requireRole } from '../auth';
 import { HttpError, handler, requireString } from '../http';
 import type { Repos } from '../repos';
+import { subskillProblem, tagsFor, taxonomy } from '../tags';
+import { tagsForLevel } from '@fln/curriculum';
 import { QUESTION_MODES, QUESTION_STATUSES, type Question, type QuestionMode, type QuestionStatus } from '../types';
 
 const MAX_SVG_CHARS = 60_000;
@@ -16,10 +18,10 @@ export function svgProblem(svg: string): string | undefined {
   return undefined;
 }
 
-interface Fields { mode: QuestionMode; prompt: string; answer: string; options: string[]; svg: string | null; teacherNote: string | null }
+interface Fields { mode: QuestionMode; prompt: string; answer: string; options: string[]; subskillIds: string[]; svg: string | null; teacherNote: string | null }
 
 /** Reads the writable fields of a question from a request body, applying the rules once for create and edit. */
-function readFields(body: Record<string, unknown> | undefined, base?: Question): Fields {
+function readFields(body: Record<string, unknown> | undefined, levelNumber: number, base?: Question): Fields {
   const b = body ?? {};
   const mode = (b.mode ?? base?.mode) as string;
   if (!(QUESTION_MODES as readonly string[]).includes(mode)) throw new HttpError(400, `mode must be one of: ${QUESTION_MODES.join(', ')}.`);
@@ -36,13 +38,18 @@ function readFields(body: Record<string, unknown> | undefined, base?: Question):
   if (options.length === 1) throw new HttpError(400, 'Give at least two choices, or none.');
   if (new Set(options.map(o => o.toLowerCase())).size !== options.length) throw new HttpError(400, 'The choices must all be different.');
   if (options.length > 0 && !options.includes(answer)) throw new HttpError(400, 'The answer must be one of the choices.');
+  const subRaw = b.subskillIds ?? base?.subskillIds ?? [];
+  if (!Array.isArray(subRaw) || subRaw.length > 12 || subRaw.some(x => typeof x !== 'string')) throw new HttpError(400, 'subskillIds must be a short list of skill codes.');
+  const subskillIds = [...new Set(subRaw as string[])];
+  const subProblem = subskillProblem(levelNumber, subskillIds);
+  if (subProblem) throw new HttpError(400, subProblem);
   const svgRaw = b.svg === undefined ? base?.svg ?? null : b.svg;
   if (svgRaw !== null && (typeof svgRaw !== 'string')) throw new HttpError(400, 'svg must be text or null.');
   const svg = svgRaw === null || svgRaw.trim() === '' ? null : svgRaw.trim();
   if (svg) { const p = svgProblem(svg); if (p) throw new HttpError(400, p); }
   const noteRaw = b.teacherNote === undefined ? base?.teacherNote ?? null : b.teacherNote;
   if (noteRaw !== null && (typeof noteRaw !== 'string' || noteRaw.length > 500)) throw new HttpError(400, 'teacherNote must be text of at most 500 characters.');
-  return { mode: mode as QuestionMode, prompt, answer, options, svg, teacherNote: typeof noteRaw === 'string' && noteRaw.trim() ? noteRaw.trim() : null };
+  return { mode: mode as QuestionMode, prompt, answer, options, subskillIds, svg, teacherNote: typeof noteRaw === 'string' && noteRaw.trim() ? noteRaw.trim() : null };
 }
 
 /** Where a question may go next. An approved question is never edited: retire it and write a new one. */
@@ -73,12 +80,13 @@ export function contentRoutes(repos: Repos): Router {
 
   router.get('/levels/:n/questions', superadmin, handler(async (req, res) => {
     const level = await loadLevel(req.params.n);
-    res.json({ level, questions: await repos.questions.byLevel(level.levelNumber) });
+    const questions = await repos.questions.byLevel(level.levelNumber);
+    res.json({ level, skills: tagsForLevel(level.levelNumber), questions: questions.map(q => ({ ...q, tags: tagsFor(q, level) })) });
   }));
 
   router.post('/levels/:n/questions', superadmin, handler(async (req, res) => {
     const level = await loadLevel(req.params.n);
-    const f = readFields(req.body);
+    const f = readFields(req.body, level.levelNumber);
     const now = new Date().toISOString();
     const created = await repos.questions.add({
       levelNumber: level.levelNumber, conceptId: level.conceptId, ...f,
@@ -92,7 +100,7 @@ export function contentRoutes(repos: Repos): Router {
     const q = await repos.questions.byId(String(req.params.id));
     if (!q) throw new HttpError(404, 'Question not found.');
     const wantsStatus = req.body?.status !== undefined;
-    const wantsEdit = ['mode', 'prompt', 'answer', 'options', 'svg', 'teacherNote'].some(k => req.body?.[k] !== undefined);
+    const wantsEdit = ['mode', 'prompt', 'answer', 'options', 'subskillIds', 'svg', 'teacherNote'].some(k => req.body?.[k] !== undefined);
     if (wantsStatus && wantsEdit) throw new HttpError(400, 'Change the status or the wording, not both at once.');
     if (!wantsStatus && !wantsEdit) throw new HttpError(400, 'Nothing to change.');
     const now = new Date().toISOString();
@@ -101,12 +109,26 @@ export function contentRoutes(repos: Repos): Router {
       if (!(QUESTION_STATUSES as readonly string[]).includes(next)) throw new HttpError(400, `status must be one of: ${QUESTION_STATUSES.join(', ')}.`);
       if (!NEXT[q.status].includes(next)) throw new HttpError(409, `A ${q.status} question cannot become ${next}.`);
       const approving = next === 'approved';
+      if (approving && q.subskillIds.length === 0) throw new HttpError(409, 'Tag the question with at least one skill before approving it.');
       const updated = await repos.questions.update(q.id, { status: next, updatedAt: now, approvedBy: approving ? req.user!.id : q.approvedBy, approvedAt: approving ? now : q.approvedAt });
       res.json({ question: updated });
       return;
     }
     if (q.status !== 'draft') throw new HttpError(409, 'Only a draft can be edited. Retire this question and write a new one.');
-    res.json({ question: await repos.questions.update(q.id, { ...readFields(req.body, q), updatedAt: now }) });
+    res.json({ question: await repos.questions.update(q.id, { ...readFields(req.body, q.levelNumber, q), updatedAt: now }) });
+  }));
+
+  router.get('/taxonomy', superadmin, handler((_req, res) => { res.json({ skills: taxonomy() }); }));
+
+  /** For every skill and subskill: how many approved questions check it. Shows what still has no questions. */
+  router.get('/coverage', superadmin, handler(async (_req, res) => {
+    const perSub = new Map<string, number>();
+    const perSkill = new Map<string, number>();
+    for (const q of await repos.questions.approved()) {
+      for (const id of q.subskillIds) perSub.set(id, (perSub.get(id) ?? 0) + 1);
+      for (const sk of new Set(q.subskillIds.map(id => id.split('.')[0]))) perSkill.set(sk, (perSkill.get(sk) ?? 0) + 1);
+    }
+    res.json({ skills: taxonomy().map(s => ({ id: s.id, name: s.name, domain: s.domain, approved: perSkill.get(s.id) ?? 0, subskills: s.subskills.map(x => ({ ...x, approved: perSub.get(x.id) ?? 0 })) })) });
   }));
 
   return router;

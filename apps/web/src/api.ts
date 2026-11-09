@@ -1,5 +1,5 @@
 import type { SheetRef } from './lib';
-import type { Attempt, ClassGroup, ClassLevel, LevelRow, LevelWithCounts, Question, QuestionInput, QuestionStatus, School, Student, Topic, User, Worksheet } from './types';
+import type { Attempt, ClassGroup, ClassLevel, CoverageSkill, LevelRow, LevelSkills, LevelWithCounts, Question, QuestionInput, QuestionStatus, School, Student, Topic, User, Worksheet } from './types';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
@@ -51,7 +51,8 @@ export const api = {
     call<{ answers: (string | null)[]; suggestedMarks: boolean[] }>(`/classes/${id}/scan`, { method: 'POST', body: { ...ref, set, imageBase64, mimeType } }),
   // Superadmin
   levels: () => call<{ levels: LevelWithCounts[] }>('/levels'),
-  levelQuestions: (n: number) => call<{ level: LevelRow; questions: Question[] }>(`/levels/${n}/questions`),
+  levelQuestions: (n: number) => call<{ level: LevelRow; skills: LevelSkills; questions: Question[] }>(`/levels/${n}/questions`),
+  coverage: () => call<{ skills: CoverageSkill[] }>('/coverage'),
   createQuestion: (n: number, body: QuestionInput) => call<{ question: Question }>(`/levels/${n}/questions`, { method: 'POST', body }),
   setQuestionStatus: (id: string, status: QuestionStatus) => call<{ question: Question }>(`/questions/${id}`, { method: 'PATCH', body: { status } }),
   schools: () => call<{ schools: School[] }>('/schools'),

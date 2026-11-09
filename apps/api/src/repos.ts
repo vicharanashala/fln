@@ -26,6 +26,8 @@ export interface Repos {
     add(question: Omit<Question, 'id'>): Promise<Question>;
     byId(id: string): Promise<Question | undefined>;
     byLevel(levelNumber: number): Promise<Question[]>;
+    /** Every approved question, for coverage reports. */
+    approved(): Promise<Question[]>;
     update(id: string, patch: Partial<Omit<Question, 'id'>>): Promise<Question | undefined>;
     /** How many questions each level has in each status. Levels with none are absent. */
     countsByLevel(): Promise<Record<number, LevelCounts>>;
@@ -105,6 +107,7 @@ export function memoryRepos(seed: SeedData = {}): Repos {
         return created;
       },
       async byId(id) { return questions.find(q => q.id === id); },
+      async approved() { return questions.filter(q => q.status === 'approved').map(q => ({ ...q })); },
       async byLevel(n) { return questions.filter(q => q.levelNumber === n).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)); },
       async update(id, patch) {
         const q = questions.find(x => x.id === id);

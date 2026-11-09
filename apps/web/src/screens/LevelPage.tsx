@@ -18,6 +18,7 @@ export function LevelPage({ levelNumber, onUnauthorized }: { levelNumber: number
   const [optionsText, setOptionsText] = useState('');
   const [svg, setSvg] = useState('');
   const [note, setNote] = useState('');
+  const [subs, setSubs] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -25,8 +26,8 @@ export function LevelPage({ levelNumber, onUnauthorized }: { levelNumber: number
     e.preventDefault();
     setBusy(true); setError(null);
     try {
-      await api.createQuestion(levelNumber, { mode, prompt, answer, options: parseOptions(optionsText), svg: svg.trim() || null, teacherNote: note.trim() || null });
-      setPrompt(''); setAnswer(''); setOptionsText(''); setSvg(''); setNote('');
+      await api.createQuestion(levelNumber, { mode, prompt, answer, options: parseOptions(optionsText), subskillIds: subs, svg: svg.trim() || null, teacherNote: note.trim() || null });
+      setPrompt(''); setSubs([]); setAnswer(''); setOptionsText(''); setSvg(''); setNote('');
       data.reload();
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save the question.'); }
     finally { setBusy(false); }
@@ -39,13 +40,15 @@ export function LevelPage({ levelNumber, onUnauthorized }: { levelNumber: number
 
   if (data.loading) return <p className="muted">Loading…</p>;
   if (data.error || !data.data) return <p className="error" role="alert">{data.error}</p>;
-  const { level, questions } = data.data;
+  const { level, questions, skills } = data.data;
+  const subName = (id: string) => skills.subskills.find(x => x.id === id)?.name ?? id;
   const approvedWritten = questions.filter(q => q.status === 'approved' && q.mode === 'written').length;
   return (
     <>
       <p><a className="link" href="#/levels">All levels</a></p>
       <h1>Level {level.levelNumber}: {level.title}</h1>
       <p className="muted">{level.conceptId} · {level.strand} · age {level.ageGroup} · {level.group}</p>
+      <p className="tagline"><strong>Main skills:</strong> {skills.primarySkills.map(k => <span key={k.id} className="pill">{k.id} {k.name}</span>)}{skills.supportingSkills.length > 0 && <> <strong>Also uses:</strong> {skills.supportingSkills.map(k => <span key={k.id} className="pill soft">{k.id} {k.name}</span>)}</>}</p>
       <p className="note">{approvedWritten >= 5 ? `${Math.floor(approvedWritten / 5)} printable worksheet(s) (${approvedWritten} approved written questions).` : `${approvedWritten} of 5 approved written questions. A worksheet needs five.`} Teachers only ever see approved questions.</p>
       {error && <p className="error" role="alert">{error}</p>}
 
@@ -60,6 +63,7 @@ export function LevelPage({ levelNumber, onUnauthorized }: { levelNumber: number
             {q.options.length > 0 && <p className="muted">Choices: {q.options.map(o => <span key={o} className={o === q.answer ? 'good' : ''}>{o}</span>)}</p>}
             {q.options.length === 0 && q.answer && <p className="muted">Answer: <strong>{q.answer}</strong></p>}
             {q.teacherNote && <p className="muted">Teacher note: {q.teacherNote}</p>}
+            <p className="muted">Checks: {q.subskillIds.length ? q.subskillIds.map(id => <span key={id} className="pill soft" title={subName(id)}>{id} {subName(id)}</span>) : <em>not tagged yet (needed before approval)</em>}</p>
             <div className="qactions">{NEXT_ACTIONS[q.status].map(a => <button key={a.to} type="button" className="link" onClick={() => void move(q, a.to)}>{a.label}</button>)}</div>
           </li>
         ))}
@@ -79,6 +83,15 @@ export function LevelPage({ levelNumber, onUnauthorized }: { levelNumber: number
           </>
         )}
         <label>Teacher note (optional)<input value={note} onChange={e => setNote(e.target.value)} /></label>
+        <fieldset className="subs"><legend>Skills this question checks (needed before approval)</legend>
+          {[...skills.primarySkills, ...skills.supportingSkills].map(k => (
+            <div key={k.id}><strong>{k.id} {k.name}</strong>
+              {skills.subskills.filter(x => x.skillId === k.id).map(x => (
+                <label key={x.id} className="check"><input type="checkbox" checked={subs.includes(x.id)} onChange={e => setSubs(e.target.checked ? [...subs, x.id] : subs.filter(i => i !== x.id))} />{x.id} {x.name}</label>
+              ))}
+            </div>
+          ))}
+        </fieldset>
         <details><summary>Add a drawing (optional)</summary>
           <label>SVG drawing<textarea rows={4} value={svg} onChange={e => setSvg(e.target.value)} placeholder="<svg viewBox=...>...</svg>" /></label>
         </details>

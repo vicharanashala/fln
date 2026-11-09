@@ -6,6 +6,6 @@
   "main": "src/index.ts",
   "scripts": {
     "typecheck": "tsc -p .",
-    "test": "tsx src/curriculumMap.test.ts && tsx src/index.test.ts"
+    "test": "tsx src/curriculumMap.test.ts && tsx src/index.test.ts && tsx src/skills.test.ts"
   }
 }

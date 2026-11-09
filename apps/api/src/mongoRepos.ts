@@ -101,6 +101,9 @@ export function createMongoStore(db: Db, close: () => Promise<void> = async () =
         const doc = await questions.findOne({ _id: id });
         return doc ? fromDoc<Question>(doc) : undefined;
       },
+      async approved() {
+        return (await questions.find({ status: 'approved' }).toArray()).map(d => fromDoc<Question>(d));
+      },
       async byLevel(n) {
         return (await questions.find({ levelNumber: n }).sort({ createdAt: 1, _id: 1 }).toArray()).map(d => fromDoc<Question>(d));
       },

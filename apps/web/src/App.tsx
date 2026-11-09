@@ -4,6 +4,7 @@ import { useLoad } from './hooks';
 import { parseHash } from './lib';
 import { ClassPage } from './screens/ClassPage';
 import { Classes } from './screens/Classes';
+import { Coverage } from './screens/Coverage';
 import { LevelPage } from './screens/LevelPage';
 import { Levels } from './screens/Levels';
 import { Login } from './screens/Login';
@@ -35,6 +36,7 @@ function Shell({ hash, logout }: { hash: string; logout: () => void }) {
   if (isSuper) {
     if (parts[0] === 'level' && parts[1]) screen = <LevelPage key={parts[1]} levelNumber={Number(parts[1])} onUnauthorized={logout} />;
     else if (parts[0] === 'people') screen = <People onUnauthorized={logout} />;
+    else if (parts[0] === 'coverage') screen = <Coverage onUnauthorized={logout} />;
     else screen = <Levels onUnauthorized={logout} />;
   } else if (!me.data) screen = <p className="muted">Loading…</p>;
   else if (parts[0] === 'class' && parts[1] && parts[2] === 'print') screen = <PrintSheets key={hash} classId={parts[1]} query={query} onUnauthorized={logout} />;
@@ -45,7 +47,7 @@ function Shell({ hash, logout }: { hash: string; logout: () => void }) {
     <>
       <header className="top no-print">
         <a className="brand" href="#/">FLN</a>
-        {isSuper && <nav className="topnav"><a href="#/levels">Levels</a><a href="#/people">People</a></nav>}
+        {isSuper && <nav className="topnav"><a href="#/levels">Levels</a><a href="#/coverage">Coverage</a><a href="#/people">People</a></nav>}
         <span className="who">{me.data?.user.name}</span>
         <button className="link" type="button" onClick={logout}>Log out</button>
       </header>

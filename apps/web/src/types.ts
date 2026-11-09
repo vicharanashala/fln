@@ -28,7 +28,11 @@ export interface ClassLevel { levelNumber: number; title: string; group: string;
 export type QuestionStatus = 'draft' | 'approved' | 'retired';
 export interface Question {
   id: string; levelNumber: number; conceptId: string; mode: 'written' | 'observed'; prompt: string; answer: string;
-  options: string[]; svg: string | null; teacherNote: string | null; status: QuestionStatus;
+  options: string[]; subskillIds: string[]; svg: string | null; teacherNote: string | null; status: QuestionStatus;
   createdAt: string; approvedAt: string | null;
+  tags?: { conceptId: string; strand: string; primarySkillIds: string[]; supportingSkillIds: string[]; subskillIds: string[] };
 }
-export interface QuestionInput { mode: 'written' | 'observed'; prompt: string; answer: string; options: string[]; svg: string | null; teacherNote: string | null }
+export interface Skill { id: string; name: string; domain: string; definition: string }
+export interface LevelSkills { primarySkills: Skill[]; supportingSkills: Skill[]; subskills: { id: string; name: string; skillId: string }[] }
+export interface CoverageSkill { id: string; name: string; domain: string; approved: number; subskills: { id: string; name: string; approved: number }[] }
+export interface QuestionInput { mode: 'written' | 'observed'; prompt: string; answer: string; options: string[]; subskillIds: string[]; svg: string | null; teacherNote: string | null }

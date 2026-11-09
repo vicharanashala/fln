@@ -1,6 +1,7 @@
 // The one place that knows how many levels there are and which classes they belong to.
 // Everything else in v2 imports these; no other file may hard-code a level number.
 export * from './curriculumMap';
+export * from './skills';
 import { CURRICULUM_MAPPING, type LevelConceptConfig } from './curriculumMap';
 
 export type ClassStage = 'Balvatika' | 'Class 1' | 'Class 2' | 'Class 3' | 'Beyond MVP';
