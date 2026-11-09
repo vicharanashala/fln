@@ -46,3 +46,16 @@ button.primary:hover:not(:disabled), a.primary:hover { filter: brightness(1.08);
   body { background: #fff; } .no-print, .top { display: none !important; } main { padding: 0; max-width: none; }
   .paper { margin: 0; padding: 0; border: 0; max-width: none; page-break-after: always; break-after: page; } .paper:last-child { page-break-after: auto; break-after: auto; }
 }
+
+.paper .qbody { flex: 1; } .paper .qtext { margin: 0 0 6px; font-size: 1.15rem; } .paper .choices { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+.paper .choice { border: 2px solid #000; border-radius: 999px; padding: 6px 18px; font-size: 1.2rem; font-weight: 700; min-width: 3em; text-align: center; }
+.topnav { display: flex; gap: 14px; } .topnav a { color: var(--brown); font-weight: 600; text-decoration: none; } .topnav a:hover { color: var(--red); }
+.levellist { list-style: none; padding: 0; margin: 0 0 8px; } .levellist a { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-bottom: 1px solid var(--line); color: var(--brown); text-decoration: none; }
+.levellist a:hover { background: var(--cream-2); } .lnum { flex: 0 0 40px; font-weight: 800; color: var(--red); } .ltitle { flex: 1; } .ltitle small { display: block; color: var(--brown-2); }
+.lcounts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .85rem; font-weight: 700; background: var(--sand); color: var(--brown); white-space: nowrap; }
+.pill.ok, .pill.approved { background: var(--green); color: #fff; } .pill.draft { background: var(--gold); } .pill.retired { background: #b8a58a; }
+.qlist { list-style: none; padding: 0; margin: 0; } .qitem { background: var(--cream-2); border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 10px 0; }
+.qitem.approved { border-color: var(--green); } .qitem.retired { opacity: .6; } .qhead { display: flex; gap: 6px; } .qprompt { margin: 8px 0 4px; font-weight: 600; }
+.qsvg { max-width: 100%; max-height: 160px; } .qactions { display: flex; gap: 8px; } .good { font-weight: 800; color: var(--green); } .muted .good, .muted span + span { margin-left: 10px; }
+details { margin: 8px 0; } summary { cursor: pointer; font-weight: 600; }

@@ -1,4 +1,5 @@
-import type { Attempt, ClassGroup, Student, Topic, User, Worksheet } from './types';
+import type { SheetRef } from './lib';
+import type { Attempt, ClassGroup, ClassLevel, LevelRow, LevelWithCounts, Question, QuestionInput, QuestionStatus, School, Student, Topic, User, Worksheet } from './types';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
@@ -30,6 +31,8 @@ async function call<T>(path: string, init: { method?: string; body?: unknown } =
   return json as T;
 }
 
+const refQuery = (ref: SheetRef) => (ref.levelNumber !== undefined ? `levelNumber=${ref.levelNumber}` : `bankLevel=${ref.bankLevel}`);
+
 export interface ResultEntry { studentId: string; marks?: boolean[]; answers?: (string | null)[]; source?: 'scan' }
 
 export const api = {
@@ -40,9 +43,20 @@ export const api = {
   students: (id: string) => call<{ class: ClassGroup; students: Student[] }>(`/classes/${id}/students`),
   addStudents: (id: string, names: string[]) => call<{ students: Student[] }>(`/classes/${id}/students/bulk`, { method: 'POST', body: { names } }),
   topics: (id: string) => call<{ topics: Topic[] }>(`/classes/${id}/topics`),
-  worksheet: (id: string, bankLevel: number, set: number) => call<Worksheet>(`/classes/${id}/worksheet?bankLevel=${bankLevel}&set=${set}`),
+  classLevels: (id: string) => call<{ levels: ClassLevel[] }>(`/classes/${id}/levels`),
+  worksheet: (id: string, ref: SheetRef, set: number) => call<Worksheet>(`/classes/${id}/worksheet?${refQuery(ref)}&set=${set}`),
   results: (id: string) => call<{ attempts: Attempt[] }>(`/classes/${id}/results`),
-  saveResults: (id: string, bankLevel: number, set: number, entries: ResultEntry[]) => call<{ attempts: Attempt[] }>(`/classes/${id}/results`, { method: 'POST', body: { bankLevel, set, entries } }),
-  scan: (id: string, bankLevel: number, set: number, imageBase64: string, mimeType: string) =>
-    call<{ answers: (string | null)[]; suggestedMarks: boolean[] }>(`/classes/${id}/scan`, { method: 'POST', body: { bankLevel, set, imageBase64, mimeType } }),
+  saveResults: (id: string, ref: SheetRef, set: number, entries: ResultEntry[]) => call<{ attempts: Attempt[] }>(`/classes/${id}/results`, { method: 'POST', body: { ...ref, set, entries } }),
+  scan: (id: string, ref: SheetRef, set: number, imageBase64: string, mimeType: string) =>
+    call<{ answers: (string | null)[]; suggestedMarks: boolean[] }>(`/classes/${id}/scan`, { method: 'POST', body: { ...ref, set, imageBase64, mimeType } }),
+  // Superadmin
+  levels: () => call<{ levels: LevelWithCounts[] }>('/levels'),
+  levelQuestions: (n: number) => call<{ level: LevelRow; questions: Question[] }>(`/levels/${n}/questions`),
+  createQuestion: (n: number, body: QuestionInput) => call<{ question: Question }>(`/levels/${n}/questions`, { method: 'POST', body }),
+  setQuestionStatus: (id: string, status: QuestionStatus) => call<{ question: Question }>(`/questions/${id}`, { method: 'PATCH', body: { status } }),
+  schools: () => call<{ schools: School[] }>('/schools'),
+  createSchool: (name: string) => call<{ school: School }>('/schools', { method: 'POST', body: { name } }),
+  users: () => call<{ users: User[] }>('/users'),
+  createUser: (body: { name: string; email: string; password: string; role: string; schoolId?: string }) => call<{ user: User }>('/users', { method: 'POST', body }),
+  setBanned: (id: string, isBanned: boolean) => call<{ user: User }>(`/users/${id}`, { method: 'PATCH', body: { isBanned } }),
 };

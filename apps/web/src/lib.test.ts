@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { describe, it } from 'node:test';
-import { bandOf, firstTopic, latestByStudent, parseHash, parseNames, sameMarks, scoreOf, setLetter, svgDataUri } from './lib';
+import { bandOf, firstChoice, firstTopic, parseOptions, parseSheetRef, sheetRefValue, latestByStudent, parseHash, parseNames, sameMarks, scoreOf, setLetter, svgDataUri } from './lib';
 import type { Attempt } from './types';
 
 describe('parseNames', () => {
@@ -22,7 +22,7 @@ describe('bands match the server rule', () => {
 
 describe('latestByStudent', () => {
   it('keeps the first (newest) attempt per child', () => {
-    const mk = (id: string, studentId: string): Attempt => ({ id, studentId, bankLevel: 22, set: 0, score: 1, band: 'Emerging', source: 'marks', createdAt: '', answers: [] });
+    const mk = (id: string, studentId: string): Attempt => ({ id, studentId, bankLevel: 22, levelNumber: null, set: 0, score: 1, band: 'Emerging', source: 'marks', createdAt: '', answers: [] });
     const m = latestByStudent([mk('new', 's1'), mk('other', 's2'), mk('old', 's1')]);
     assert.strictEqual(m.get('s1')?.id, 'new');
     assert.strictEqual(m.size, 2);
@@ -49,5 +49,25 @@ describe('small helpers', () => {
   it('svgDataUri keeps scripts inert by encoding the markup', () => {
     assert.ok(svgDataUri('<svg onload="x()"/>').startsWith('data:image/svg+xml'));
     assert.ok(!svgDataUri('<svg onload="x()"/>').includes('<'));
+  });
+});
+
+describe('sheet choices', () => {
+  it('parses and writes a sheet reference', () => {
+    assert.deepStrictEqual(parseSheetRef('L24'), { levelNumber: 24 });
+    assert.deepStrictEqual(parseSheetRef('B22'), { bankLevel: 22 });
+    for (const bad of [null, '', '22', 'X5', 'L', 'L1.5', 'l24', 'L-1']) assert.strictEqual(parseSheetRef(bad), undefined, String(bad));
+    assert.strictEqual(sheetRefValue({ levelNumber: 24 }), 'L24');
+    assert.strictEqual(sheetRefValue({ bankLevel: 9 }), 'B9');
+  });
+  it('offers the lowest level with a sheet, else the first older topic, else nothing', () => {
+    const lv = (levelNumber: number, sets: number) => ({ levelNumber, title: '', group: '', sets });
+    assert.strictEqual(firstChoice([lv(30, 1), lv(24, 2), lv(20, 0)], [{ bankLevel: 22, title: '', sets: 1 }]), 'L24');
+    assert.strictEqual(firstChoice([lv(20, 0)], [{ bankLevel: 31, title: '', sets: 1 }, { bankLevel: 22, title: '', sets: 1 }]), 'B22');
+    assert.strictEqual(firstChoice([], []), undefined);
+  });
+  it('splits choices by line', () => {
+    assert.deepStrictEqual(parseOptions(' 1\n\n 2 \n  \n3'), ['1', '2', '3']);
+    assert.deepStrictEqual(parseOptions(''), []);
   });
 });

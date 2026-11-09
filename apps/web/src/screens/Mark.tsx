@@ -3,16 +3,17 @@ import { go } from '../App';
 import { api, type ResultEntry } from '../api';
 import { useLoad } from '../hooks';
 import { photoToBase64 } from '../image';
-import { bandOf, sameMarks, scoreOf, setLetter, svgDataUri } from '../lib';
+import { bandOf, parseSheetRef, sameMarks, scoreOf, svgDataUri } from '../lib';
+import { TopicSelect } from './TopicSelect';
 
 const FIVE = 5;
 interface Row { marks: boolean[]; touched: boolean; read: (string | null)[] | null; suggested: boolean[] | null; note: string | null; busy: boolean }
 const blank = (): Row => ({ marks: Array(FIVE).fill(false), touched: false, read: null, suggested: null, note: null, busy: false });
 
 export function Mark({ classId, query, onUnauthorized }: { classId: string; query: URLSearchParams; onUnauthorized: () => void }) {
-  const topic = Number(query.get('topic')), set = Number(query.get('set') ?? 0);
-  const topics = useLoad(() => api.topics(classId), `topics-${classId}`, onUnauthorized);
-  const sheet = useLoad(() => api.worksheet(classId, topic, set), `sheet-${classId}-${topic}-${set}`, onUnauthorized);
+  const topicValue = query.get('topic'), set = Number(query.get('set') ?? 0);
+  const ref = parseSheetRef(topicValue);
+  const sheet = useLoad(() => (ref ? api.worksheet(classId, ref, set) : Promise.reject(new Error('Choose a level or topic.'))), `sheet-${classId}-${topicValue}-${set}`, onUnauthorized);
   const [rows, setRows] = useState<Record<string, Row>>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -21,8 +22,7 @@ export function Mark({ classId, query, onUnauthorized }: { classId: string; quer
 
   const row = (id: string): Row => rows[id] ?? blank();
   const update = (id: string, fn: (r: Row) => Row) => setRows(prev => ({ ...prev, [id]: fn(prev[id] ?? blank()) }));
-  const info = topics.data?.topics.find(t => t.bankLevel === topic);
-  const pick = (l: number, s: number) => { setRows({}); go(`#/class/${classId}/mark?topic=${l}&set=${s}`); };
+  const pick = (v: string, s: number) => { setRows({}); go(`#/class/${classId}/mark?topic=${v}&set=${s}`); };
 
   function toggle(id: string, i: number) { update(id, r => ({ ...r, touched: true, marks: r.marks.map((m, j) => (j === i ? !m : m)) })); }
   function allRight(id: string) { update(id, r => ({ ...r, touched: true, marks: Array(FIVE).fill(true) })); }
@@ -34,7 +34,8 @@ export function Mark({ classId, query, onUnauthorized }: { classId: string; quer
     update(id, r => ({ ...r, busy: true, note: null }));
     try {
       const { base64, mimeType } = await photoToBase64(file);
-      const r = await api.scan(classId, topic, set, base64, mimeType);
+      if (!ref) throw new Error('Choose a level or topic first.');
+      const r = await api.scan(classId, ref, set, base64, mimeType);
       update(id, () => ({ marks: r.suggestedMarks, touched: true, read: r.answers, suggested: r.suggestedMarks, note: 'Read from the photo. Please check each answer and fix any that are wrong.', busy: false }));
     } catch (err) {
       update(id, r => ({ ...r, busy: false, note: err instanceof Error ? err.message : 'Could not read this photo. Please mark it by hand.' }));
@@ -50,7 +51,11 @@ export function Mark({ classId, query, onUnauthorized }: { classId: string; quer
       // Keep the child's written answers only if the teacher accepted the photo reading as it was.
       return r.read && r.suggested && sameMarks(r.marks, r.suggested) ? { studentId: id, answers: r.read, source: 'scan' as const } : { studentId: id, marks: r.marks };
     });
-    try { await api.saveResults(classId, topic, set, entries); go(`#/class/${classId}`); }
+    try {
+      if (!ref) throw new Error('Choose a level or topic first.');
+      await api.saveResults(classId, ref, set, entries);
+      go(`#/class/${classId}`);
+    }
     catch (err) { setError(err instanceof Error ? err.message : 'Could not save.'); }
     finally { setSaving(false); }
   }
@@ -60,18 +65,7 @@ export function Mark({ classId, query, onUnauthorized }: { classId: string; quer
     <>
       <p><a className="link" href={`#/class/${classId}`}>Back to class</a></p>
       <h1>Mark papers</h1>
-      <div className="card row">
-        <label>Topic
-          <select value={topic} onChange={e => pick(Number(e.target.value), 0)}>
-            {topics.data?.topics.map(t => <option key={t.bankLevel} value={t.bankLevel}>{t.title}</option>)}
-          </select>
-        </label>
-        <label>Sheet
-          <select value={set} onChange={e => pick(topic, Number(e.target.value))}>
-            {Array.from({ length: info?.sets ?? 1 }, (_, i) => <option key={i} value={i}>Sheet {setLetter(i)}</option>)}
-          </select>
-        </label>
-      </div>
+      <TopicSelect classId={classId} value={topicValue} set={set} onPick={pick} onUnauthorized={onUnauthorized} />
       {sheet.loading && <p className="muted">Loading…</p>}
       {sheet.error && <p className="error" role="alert">{sheet.error}</p>}
       {sheet.data && (
@@ -79,7 +73,7 @@ export function Mark({ classId, query, onUnauthorized }: { classId: string; quer
           <details className="card">
             <summary>Show the questions and answers for this sheet</summary>
             <ol className="key">{sheet.data.sheet.questions.map((q, i) => (
-              <li key={q.n}>{q.svg ? <img src={svgDataUri(q.svg)} alt={q.text} /> : q.text}<strong>Answer: {sheet.data!.answerKey[i]}</strong></li>
+              <li key={q.n}>{(sheet.data!.sheet.levelNumber !== null || !q.svg) && <span>{q.text} </span>}{q.svg && <img src={svgDataUri(q.svg)} alt={sheet.data!.sheet.levelNumber !== null ? '' : q.text} />}{q.options.length > 0 && <em> Choices: {q.options.join(', ')}.</em>}<strong>Answer: {sheet.data!.answerKey[i]}</strong></li>
             ))}</ol>
           </details>
           <p className="muted">Tap a question number when the child got it right. Children you do not touch are not saved.</p>

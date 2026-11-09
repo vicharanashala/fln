@@ -25,7 +25,10 @@ if (process.env.MONGODB_URI) {
   const demoPassword = process.env.DEMO_PASSWORD;
   repos = memoryRepos(demoPassword ? {
     schools: [{ id: 'demo', name: 'Demo School' }],
-    users: [{ id: 'u_demo', email: 'demo@fln.test', name: 'Demo Teacher', role: 'teacher', schoolId: 'demo', passwordHash: bcrypt.hashSync(demoPassword, 10) }],
+    users: [
+      { id: 'u_demo', email: 'demo@fln.test', name: 'Demo Teacher', role: 'teacher', schoolId: 'demo', passwordHash: bcrypt.hashSync(demoPassword, 10) },
+      { id: 'u_demo_admin', email: 'admin@fln.test', name: 'Demo Superadmin', role: 'superadmin', passwordHash: bcrypt.hashSync(demoPassword, 10) },
+    ],
   } : {});
 }
 // Photo reading is optional: without a key and a model the scan route answers 503 and teachers mark by hand.

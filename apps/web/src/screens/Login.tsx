@@ -12,7 +12,7 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
     setBusy(true); setError(null);
     try {
       const r = await api.login(email.trim(), password);
-      if (r.user.role !== 'teacher') { setError('This version is for teachers. Please use a teacher account.'); return; }
+      if (r.user.role === 'school') { setError('School accounts are not available in this version yet.'); return; }
       saveToken(r.token);
       onLoggedIn();
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not log in.'); }
@@ -21,8 +21,8 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
 
   return (
     <main className="narrow">
-      <h1>FLN for teachers</h1>
-      <p className="muted">Log in to see your classes.</p>
+      <h1>FLN</h1>
+      <p className="muted">Log in with your account.</p>
       <form className="card" onSubmit={submit}>
         <label>Email<input type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required /></label>
         <label>Password<input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></label>

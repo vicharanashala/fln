@@ -1,4 +1,4 @@
-import type { Attempt, Band, Topic } from './types';
+import type { Attempt, Band, ClassLevel, Topic } from './types';
 
 /** One child per line (a pasted spreadsheet column) or separated by commas; blanks and repeats are dropped. */
 export function parseNames(text: string): string[] {
@@ -43,3 +43,26 @@ export function parseHash(hash: string): { parts: string[]; query: URLSearchPara
 }
 
 export function svgDataUri(svg: string): string { return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; }
+
+/** Which sheet a teacher picked: a curriculum level (written "L24") or a topic of the older bank ("B22"). */
+export type SheetRef = { levelNumber: number; bankLevel?: undefined } | { bankLevel: number; levelNumber?: undefined };
+
+export function parseSheetRef(value: string | null): SheetRef | undefined {
+  const m = /^([LB])(\d+)$/.exec(value ?? '');
+  if (!m) return undefined;
+  return m[1] === 'L' ? { levelNumber: Number(m[2]) } : { bankLevel: Number(m[2]) };
+}
+export function sheetRefValue(ref: SheetRef): string { return ref.levelNumber !== undefined ? `L${ref.levelNumber}` : `B${ref.bankLevel}`; }
+
+/** What to offer first: the lowest level that has a sheet, otherwise the first topic of the older bank. */
+export function firstChoice(levels: readonly ClassLevel[], topics: readonly Topic[]): string | undefined {
+  const level = levels.filter(l => l.sets > 0).reduce<ClassLevel | undefined>((b, l) => (b === undefined || l.levelNumber < b.levelNumber ? l : b), undefined);
+  if (level) return `L${level.levelNumber}`;
+  const topic = firstTopic(topics);
+  return topic ? `B${topic.bankLevel}` : undefined;
+}
+
+/** Splits a typed list of choices (one per line) into trimmed, non-empty lines. */
+export function parseOptions(text: string): string[] {
+  return text.split('\n').map(l => l.trim()).filter(Boolean);
+}
