@@ -24,3 +24,16 @@ assert.strictEqual(classForLevel(2.5), undefined);
 for (let l = 1; l <= MAX_LEVEL; l++) assert.strictEqual(classForLevel(l) === 'Balvatika', isBalvatikaStage(l), `level ${l}`);
 
 console.log('PASS  curriculum index: 109 levels, class ranges, MVP stop at 91');
+
+import { listLevels, groupForLevel, MAX_LEVEL as MAX } from './index';
+import assert2 from 'node:assert';
+{
+  const levels = listLevels();
+  assert2.strictEqual(levels.length, MAX, 'one record per level');
+  assert2.deepStrictEqual(levels.map(l => l.levelNumber), Array.from({ length: MAX }, (_, i) => i + 1), 'levels run 1..max with no gaps');
+  assert2.ok(levels.every(l => l.levelTitle.length > 0 && l.conceptId.length > 0), 'every level has a title and a concept');
+  assert2.strictEqual(groupForLevel(1), 'Before Balvatika');
+  assert2.strictEqual(groupForLevel(MAX), 'Beyond MVP');
+  assert2.strictEqual(new Set(levels.map(l => l.conceptId)).size, MAX, 'conceptIds are unique');
+  console.log('PASS  listLevels: all levels, in order, unique concepts, grouped');
+}

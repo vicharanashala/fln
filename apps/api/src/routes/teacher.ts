@@ -5,7 +5,7 @@ import { QUESTIONS_PER_CONCEPT, answersMatch, bandFromScore } from '@fln/domain'
 import { canAccessClass } from '../access';
 import { HttpError, handler, requireString } from '../http';
 import type { ReadAnswers } from '../ollama';
-import type { QuestionBank } from '../questionBank';
+import type { QuestionBank, SheetQuestion } from '../questionBank';
 import type { Repos } from '../repos';
 import type { Attempt, AttemptAnswer, User } from '../types';
 
@@ -27,12 +27,33 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
     return cls;
   }
 
-  function readSheet(body: { bankLevel?: unknown; set?: unknown }) {
-    const bankLevel = body.bankLevel, set = body.set ?? 0;
-    if (!Number.isInteger(bankLevel) || !Number.isInteger(set)) throw new HttpError(400, 'bankLevel and set must be whole numbers.');
-    const sheet = bank.sheet(bankLevel as number, set as number);
+  /**
+   * A sheet comes from approved written questions of a curriculum level (`levelNumber`), or, until those exist,
+   * from the older bank (`bankLevel`). Exactly one of the two is given.
+   */
+  interface ResolvedSheet { bankLevel: number | null; levelNumber: number | null; title: string; set: number; questions: SheetQuestion[]; answers: string[] }
+  async function readSheet(body: { bankLevel?: unknown; levelNumber?: unknown; set?: unknown }): Promise<ResolvedSheet> {
+    const set = body.set ?? 0;
+    const hasLevel = body.levelNumber !== undefined && body.levelNumber !== null, hasBank = body.bankLevel !== undefined && body.bankLevel !== null;
+    if (hasLevel === hasBank) throw new HttpError(400, 'Give either levelNumber or bankLevel.');
+    if (!Number.isInteger(set) || (set as number) < 0) throw new HttpError(400, 'set must be a whole number.');
+    if (hasLevel) {
+      if (!Number.isInteger(body.levelNumber)) throw new HttpError(400, 'levelNumber must be a whole number.');
+      const level = await repos.levels.byNumber(body.levelNumber as number);
+      if (!level) throw new HttpError(404, 'Level not found.');
+      const written = (await repos.questions.byLevel(level.levelNumber)).filter(q => q.status === 'approved' && q.mode === 'written');
+      const picked = written.slice((set as number) * QUESTIONS_PER_CONCEPT, ((set as number) + 1) * QUESTIONS_PER_CONCEPT);
+      if (picked.length < QUESTIONS_PER_CONCEPT) throw new HttpError(404, 'This level does not have enough approved questions for a worksheet yet.');
+      return {
+        bankLevel: null, levelNumber: level.levelNumber, title: level.title, set: set as number,
+        questions: picked.map((q, i) => ({ n: i + 1, text: q.prompt, svg: q.svg, options: q.options })),
+        answers: picked.map(q => q.answer),
+      };
+    }
+    if (!Number.isInteger(body.bankLevel)) throw new HttpError(400, 'bankLevel must be a whole number.');
+    const sheet = bank.sheet(body.bankLevel as number, set as number);
     if (!sheet) throw new HttpError(404, 'There is no worksheet for that topic yet.');
-    return sheet;
+    return { bankLevel: sheet.bankLevel, levelNumber: null, title: sheet.title, set: sheet.set, questions: sheet.questions, answers: sheet.answers };
   }
 
   router.post('/classes', handler(async (req, res) => {
@@ -69,6 +90,18 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
     res.status(201).json({ students });
   }));
 
+  router.get('/classes/:id/levels', handler(async (req, res) => {
+    const cls = await loadClass(String(req.params.id), req.user!);
+    const upTo = isClassName(cls.className) ? CLASS_LEVEL_RANGES[cls.className][1] : 0;
+    const [levels, counts] = await Promise.all([repos.levels.list(), repos.questions.countsByLevel()]);
+    res.json({
+      levels: levels.filter(l => l.levelNumber <= upTo).map(l => {
+        const written = counts[l.levelNumber]?.writtenApproved ?? 0;
+        return { levelNumber: l.levelNumber, title: l.title, group: l.group, sets: Math.floor(written / QUESTIONS_PER_CONCEPT) };
+      }),
+    });
+  }));
+
   router.get('/classes/:id/topics', handler(async (req, res) => {
     await loadClass(String(req.params.id), req.user!);
     res.json({ topics: bank.topics() });
@@ -76,9 +109,10 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
 
   router.get('/classes/:id/worksheet', handler(async (req, res) => {
     const cls = await loadClass(String(req.params.id), req.user!);
-    const sheet = readSheet({ bankLevel: Number(req.query.bankLevel), set: Number(req.query.set ?? 0) });
+    const q = req.query;
+    const sheet = await readSheet({ bankLevel: q.bankLevel === undefined ? undefined : Number(q.bankLevel), levelNumber: q.levelNumber === undefined ? undefined : Number(q.levelNumber), set: Number(q.set ?? 0) });
     const students = (await repos.students.byClass(cls.id)).sort((a, b) => a.name.localeCompare(b.name));
-    res.json({ class: cls, sheet: { bankLevel: sheet.bankLevel, title: sheet.title, set: sheet.set, questions: sheet.questions }, answerKey: sheet.answers, students });
+    res.json({ class: cls, sheet: { bankLevel: sheet.bankLevel, levelNumber: sheet.levelNumber, title: sheet.title, set: sheet.set, questions: sheet.questions }, answerKey: sheet.answers, students });
   }));
 
   router.get('/classes/:id/results', handler(async (req, res) => {
@@ -89,7 +123,7 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
   router.post('/classes/:id/results', handler(async (req, res) => {
     const user = req.user!;
     const cls = await loadClass(String(req.params.id), user);
-    const sheet = readSheet(req.body ?? {});
+    const sheet = await readSheet(req.body ?? {});
     const entries = req.body?.entries;
     if (!Array.isArray(entries) || entries.length === 0 || entries.length > 200) throw new HttpError(400, 'entries must be a list of 1 to 200 papers.');
     const roster = new Set((await repos.students.byClass(cls.id)).map(s => s.id));
@@ -114,7 +148,7 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
       }
       const score = answers.filter(a => a.correct).length;
       planned.push({
-        schoolId: cls.schoolId, classId: cls.id, studentId: e.studentId, bankLevel: sheet.bankLevel, set: sheet.set, answers, score, band: bandFromScore(score),
+        schoolId: cls.schoolId, classId: cls.id, studentId: e.studentId, bankLevel: sheet.bankLevel, levelNumber: sheet.levelNumber, set: sheet.set, answers, score, band: bandFromScore(score),
         source: hasMarks ? 'marks' : e.source === 'scan' ? 'scan' : 'typed', createdAt: new Date().toISOString(), recordedBy: user.id,
       });
     }
@@ -131,7 +165,7 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
   router.post('/classes/:id/scan', scanLimiter, handler(async (req, res) => {
     await loadClass(String(req.params.id), req.user!); // access check only
     if (!reader) throw new HttpError(503, 'Photo reading is not switched on yet. Please mark by hand.');
-    const sheet = readSheet(req.body ?? {});
+    const sheet = await readSheet(req.body ?? {});
     const image = req.body?.imageBase64, type = req.body?.mimeType;
     if (typeof image !== 'string' || image.length === 0 || image.length > MAX_IMAGE_BASE64_CHARS || !/^[A-Za-z0-9+/=]+$/.test(image)) throw new HttpError(400, 'The photo is missing, too large or not valid.');
     if (!IMAGE_TYPES.includes(type)) throw new HttpError(400, 'The photo must be a JPEG or PNG.');

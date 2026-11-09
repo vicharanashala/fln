@@ -1,7 +1,7 @@
 // The one place that knows how many levels there are and which classes they belong to.
 // Everything else in v2 imports these; no other file may hard-code a level number.
 export * from './curriculumMap';
-import { CURRICULUM_MAPPING } from './curriculumMap';
+import { CURRICULUM_MAPPING, type LevelConceptConfig } from './curriculumMap';
 
 export type ClassStage = 'Balvatika' | 'Class 1' | 'Class 2' | 'Class 3' | 'Beyond MVP';
 
@@ -25,4 +25,22 @@ export function classForLevel(level: number): ClassStage | undefined {
     if (level >= from && level <= to) return name as ClassStage;
   }
   return level > MVP_MAX_LEVEL ? 'Beyond MVP' : undefined;
+}
+
+/** The group a level is shown under: before Balvatika, one of the MVP classes, or beyond (Tenali territory). */
+export type LevelGroup = 'Before Balvatika' | ClassStage;
+
+export interface LevelRecord extends LevelConceptConfig { group: LevelGroup }
+
+export function groupForLevel(level: number): LevelGroup {
+  const first = CLASS_LEVEL_RANGES.Balvatika[0];
+  if (level < first) return 'Before Balvatika';
+  return classForLevel(level) ?? 'Beyond MVP';
+}
+
+/** Every level of the curriculum, in order. This is what the database `levels` collection is filled from. */
+export function listLevels(): LevelRecord[] {
+  return Object.values(CURRICULUM_MAPPING)
+    .sort((a, b) => a.levelNumber - b.levelNumber)
+    .map(l => ({ ...l, group: groupForLevel(l.levelNumber) }));
 }

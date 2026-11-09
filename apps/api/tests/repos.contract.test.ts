@@ -64,7 +64,7 @@ function contract(name: string, make: () => Promise<Repos>) {
       assert.ok((await repos.classes.list()).some(c => c.id === created.id));
     });
     it('stores attempts per class, newest first, without leaking a Mongo _id', async () => {
-      const base = { schoolId: 'A', classId: 'c1', studentId: 's1', bankLevel: 22, set: 0, answers: [], score: 3, band: 'Developing' as const, source: 'marks' as const, recordedBy: 'u1' };
+      const base = { schoolId: 'A', classId: 'c1', studentId: 's1', bankLevel: 22, levelNumber: null, set: 0, answers: [], score: 3, band: 'Developing' as const, source: 'marks' as const, recordedBy: 'u1' };
       const older = await repos.attempts.add({ ...base, createdAt: '2026-11-01T10:00:00.000Z' });
       const newer = await repos.attempts.add({ ...base, createdAt: '2026-11-02T10:00:00.000Z' });
       await repos.attempts.add({ ...base, classId: 'c2', createdAt: '2026-11-03T10:00:00.000Z' });

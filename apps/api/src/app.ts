@@ -5,6 +5,8 @@ import type { Repos } from './repos';
 import { authRoutes } from './routes/auth';
 import type { ReadAnswers } from './ollama';
 import { loadQuestionBank, type QuestionBank } from './questionBank';
+import { contentRoutes } from './routes/content';
+import { peopleRoutes } from './routes/people';
 import { rosterRoutes } from './routes/roster';
 import { teacherRoutes } from './routes/teacher';
 
@@ -21,7 +23,7 @@ export function createApp({ repos, auth, bank = loadQuestionBank(), reader }: Ap
   const requireLogin = authenticate(repos, auth);
   app.get('/api/health', (_req, res) => { res.json({ ok: true }); });
   app.use('/api/auth', authRoutes(repos, auth, requireLogin));
-  app.use('/api', requireLogin, rosterRoutes(repos), teacherRoutes(repos, bank, reader));
+  app.use('/api', requireLogin, rosterRoutes(repos), teacherRoutes(repos, bank, reader), contentRoutes(repos), peopleRoutes(repos, auth));
 
   app.use('/api', (_req, res) => { res.status(404).json({ error: 'Not found' }); });
   app.use(errorMiddleware);

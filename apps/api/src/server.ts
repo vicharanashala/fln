@@ -16,6 +16,8 @@ if (process.env.MONGODB_URI) {
   // v2 uses its own database name so it can never read or write the data of main.
   const store = await connectMongo(process.env.MONGODB_URI, process.env.MONGODB_DB ?? 'fln_v2');
   await store.ensureIndexes();
+  // Every curriculum level lives in the database, so questions can be written for any of them.
+  console.log(`Levels in the database: ${await store.syncLevels()}`);
   repos = store.repos;
 } else {
   console.warn('MONGODB_URI is not set: starting with an in-memory store (local demo only; data is lost on restart).');

@@ -17,7 +17,7 @@ interface BankRow {
   svgHtml?: string;
 }
 
-export interface SheetQuestion { n: number; text: string; svg: string | null }
+export interface SheetQuestion { n: number; text: string; svg: string | null; options: string[] }
 export interface Sheet {
   bankLevel: number;
   title: string;
@@ -61,7 +61,7 @@ export function loadQuestionBank(path = new URL('../../../data/questionBank.json
       const picked = byLevel.get(bankLevel)!.slice(set * QUESTIONS_PER_CONCEPT, (set + 1) * QUESTIONS_PER_CONCEPT);
       return {
         bankLevel, title: topic.title, set,
-        questions: picked.map((q, i) => ({ n: i + 1, text: q.questionText, svg: q.svgHtml ?? null })),
+        questions: picked.map((q, i) => ({ n: i + 1, text: q.questionText, svg: q.svgHtml ?? null, options: [] })),
         answers: picked.map(q => q.answer),
       };
     },

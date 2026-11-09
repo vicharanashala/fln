@@ -5,7 +5,16 @@ import { HttpError } from './http';
 import type { Repos } from './repos';
 import type { PublicUser, Role, User } from './types';
 
-export interface AuthConfig { jwtSecret: string; tokenHours: number }
+export interface AuthConfig { jwtSecret: string; tokenHours: number; /** bcrypt cost for new passwords; defaults to 10 (tests use a low value). */ bcryptCost?: number }
+
+/** The same password rule as the live FLN: 8 or more characters with a capital letter, a digit and a special character. */
+export function passwordProblem(password: string): string | undefined {
+  if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*(),.?":{}|<>_\-+=~`;/\\[\]']/.test(password)) {
+    return 'Password must be at least 8 characters with a capital letter, a digit and a special character.';
+  }
+  if (password.length > 200) return 'Password must be at most 200 characters.';
+  return undefined;
+}
 
 export function toPublic(user: User): PublicUser {
   const { passwordHash: _omit, ...rest } = user;
