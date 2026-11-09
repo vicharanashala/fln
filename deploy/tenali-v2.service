@@ -1,0 +1,33 @@
+# Installed by install-tenali-v2.sh. @NODE@ and @APP@ are filled in then.
+[Unit]
+Description=Tenali v2 (preview of the current Tenali, mounted at /v2/tenali)
+After=network.target mongod.service
+
+[Service]
+User=tenali-v2
+Group=tenali-v2
+WorkingDirectory=@APP@/src/server
+EnvironmentFile=/etc/tenali-v2/tenali.env
+# The heap is capped below the memory limit so Node cleans up before systemd would stop it.
+ExecStart=@NODE@ --max-old-space-size=384 index.js
+Restart=on-failure
+RestartSec=3
+
+# Resource allocation: at most this much of a shared server (idle it uses about 160 MB).
+MemoryHigh=480M
+MemoryMax=600M
+CPUQuota=80%
+TasksMax=128
+LimitNOFILE=8192
+
+# Tenali writes its progress files, logs and caches inside its own folder; nowhere else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=@APP@/src
+ProtectHome=true
+ProtectKernelTunables=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
