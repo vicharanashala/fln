@@ -8,6 +8,8 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { languageOptions: { globals: { ...globals.node } } },
+  // CommonJS files (the startup file loaded with `node --require`): require() is how they work.
+  { files: ['**/*.cjs'], languageOptions: { sourceType: 'commonjs' }, rules: { '@typescript-eslint/no-require-imports': 'off' } },
   // Browser code: the landing pages and the web app.
   { files: ['landing/**/*.js', 'apps/web/**/*.{ts,tsx}'], languageOptions: { globals: { ...globals.browser } } },
 );
