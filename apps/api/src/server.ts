@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { createApp } from './app';
 import { connectMongo } from './mongoRepos';
 import { ollamaReader } from './ollama';
@@ -17,8 +18,13 @@ if (process.env.MONGODB_URI) {
   await store.ensureIndexes();
   repos = store.repos;
 } else {
-  console.warn('MONGODB_URI is not set: starting with an empty in-memory store (local demo only).');
-  repos = memoryRepos();
+  console.warn('MONGODB_URI is not set: starting with an in-memory store (local demo only; data is lost on restart).');
+  // A demo teacher exists only when a password is given in the environment; nothing is hard-coded.
+  const demoPassword = process.env.DEMO_PASSWORD;
+  repos = memoryRepos(demoPassword ? {
+    schools: [{ id: 'demo', name: 'Demo School' }],
+    users: [{ id: 'u_demo', email: 'demo@fln.test', name: 'Demo Teacher', role: 'teacher', schoolId: 'demo', passwordHash: bcrypt.hashSync(demoPassword, 10) }],
+  } : {});
 }
 // Photo reading is optional: without a key and a model the scan route answers 503 and teachers mark by hand.
 const reader = process.env.OLLAMA_MODEL

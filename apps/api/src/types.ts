@@ -48,7 +48,8 @@ export interface Attempt {
   schoolId: string;
   classId: string;
   studentId: string;
-  level: number;
+  /** Level number in the legacy question bank (data/questionBank.json). NOT a level of the 109-level curriculum: the two numberings do not match. */
+  bankLevel: number;
   /** Which five-question sheet of the level was used (0 = A, 1 = B ...). */
   set: number;
   answers: AttemptAnswer[];

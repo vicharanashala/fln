@@ -5,10 +5,12 @@ import { QUESTIONS_PER_CONCEPT, answersMatch, bandFromScore } from '@fln/domain'
 import { canAccessClass } from '../access';
 import { HttpError, handler, requireString } from '../http';
 import type { ReadAnswers } from '../ollama';
-import { CLASS_NAMES, type ClassName, type QuestionBank } from '../questionBank';
+import type { QuestionBank } from '../questionBank';
 import type { Repos } from '../repos';
 import type { Attempt, AttemptAnswer, User } from '../types';
 
+type ClassName = keyof typeof CLASS_LEVEL_RANGES;
+const CLASS_NAMES = Object.keys(CLASS_LEVEL_RANGES) as ClassName[];
 const MAX_NEW_STUDENTS = 60;
 const MAX_IMAGE_BASE64_CHARS = 8_000_000;
 const IMAGE_TYPES = ['image/jpeg', 'image/png'];
@@ -25,12 +27,11 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
     return cls;
   }
 
-  function readSheet(body: { level?: unknown; set?: unknown }, className: string) {
-    const level = body.level, set = body.set ?? 0;
-    if (!Number.isInteger(level) || !Number.isInteger(set)) throw new HttpError(400, 'level and set must be whole numbers.');
-    if (!isClassName(className) || (level as number) > CLASS_LEVEL_RANGES[className][1]) throw new HttpError(400, 'That level is above this class.');
-    const sheet = bank.sheet(level as number, set as number);
-    if (!sheet) throw new HttpError(404, 'There is no worksheet for that level yet.');
+  function readSheet(body: { bankLevel?: unknown; set?: unknown }) {
+    const bankLevel = body.bankLevel, set = body.set ?? 0;
+    if (!Number.isInteger(bankLevel) || !Number.isInteger(set)) throw new HttpError(400, 'bankLevel and set must be whole numbers.');
+    const sheet = bank.sheet(bankLevel as number, set as number);
+    if (!sheet) throw new HttpError(404, 'There is no worksheet for that topic yet.');
     return sheet;
   }
 
@@ -62,22 +63,22 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
     }
     if (names.length === 0) throw new HttpError(400, 'Add at least one new name.');
     if (names.length > MAX_NEW_STUDENTS) throw new HttpError(400, `Add at most ${MAX_NEW_STUDENTS} names at a time.`);
-    const startLevel = CLASS_LEVEL_RANGES[cls.className as ClassName]?.[0] ?? 1;
+    const startLevel = isClassName(cls.className) ? CLASS_LEVEL_RANGES[cls.className][0] : 1;
     const students = [];
     for (const name of names) students.push(await repos.students.add({ schoolId: cls.schoolId, classId: cls.id, name, currentLevel: startLevel }));
     res.status(201).json({ students });
   }));
 
-  router.get('/classes/:id/levels', handler(async (req, res) => {
-    const cls = await loadClass(String(req.params.id), req.user!);
-    res.json({ levels: isClassName(cls.className) ? bank.levelsForClass(cls.className) : [] });
+  router.get('/classes/:id/topics', handler(async (req, res) => {
+    await loadClass(String(req.params.id), req.user!);
+    res.json({ topics: bank.topics() });
   }));
 
   router.get('/classes/:id/worksheet', handler(async (req, res) => {
     const cls = await loadClass(String(req.params.id), req.user!);
-    const sheet = readSheet({ level: Number(req.query.level), set: Number(req.query.set ?? 0) }, cls.className);
+    const sheet = readSheet({ bankLevel: Number(req.query.bankLevel), set: Number(req.query.set ?? 0) });
     const students = (await repos.students.byClass(cls.id)).sort((a, b) => a.name.localeCompare(b.name));
-    res.json({ class: cls, sheet: { level: sheet.level, title: sheet.title, set: sheet.set, questions: sheet.questions }, answerKey: sheet.answers, students });
+    res.json({ class: cls, sheet: { bankLevel: sheet.bankLevel, title: sheet.title, set: sheet.set, questions: sheet.questions }, answerKey: sheet.answers, students });
   }));
 
   router.get('/classes/:id/results', handler(async (req, res) => {
@@ -88,7 +89,7 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
   router.post('/classes/:id/results', handler(async (req, res) => {
     const user = req.user!;
     const cls = await loadClass(String(req.params.id), user);
-    const sheet = readSheet(req.body ?? {}, cls.className);
+    const sheet = readSheet(req.body ?? {});
     const entries = req.body?.entries;
     if (!Array.isArray(entries) || entries.length === 0 || entries.length > 200) throw new HttpError(400, 'entries must be a list of 1 to 200 papers.');
     const roster = new Set((await repos.students.byClass(cls.id)).map(s => s.id));
@@ -113,7 +114,7 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
       }
       const score = answers.filter(a => a.correct).length;
       planned.push({
-        schoolId: cls.schoolId, classId: cls.id, studentId: e.studentId, level: sheet.level, set: sheet.set, answers, score, band: bandFromScore(score),
+        schoolId: cls.schoolId, classId: cls.id, studentId: e.studentId, bankLevel: sheet.bankLevel, set: sheet.set, answers, score, band: bandFromScore(score),
         source: hasMarks ? 'marks' : e.source === 'scan' ? 'scan' : 'typed', createdAt: new Date().toISOString(), recordedBy: user.id,
       });
     }
@@ -128,9 +129,9 @@ export function teacherRoutes(repos: Repos, bank: QuestionBank, reader?: ReadAns
     message: { error: 'Too many photos this hour. Please mark the rest by hand or try again later.' },
   });
   router.post('/classes/:id/scan', scanLimiter, handler(async (req, res) => {
-    const cls = await loadClass(String(req.params.id), req.user!);
+    await loadClass(String(req.params.id), req.user!); // access check only
     if (!reader) throw new HttpError(503, 'Photo reading is not switched on yet. Please mark by hand.');
-    const sheet = readSheet(req.body ?? {}, cls.className);
+    const sheet = readSheet(req.body ?? {});
     const image = req.body?.imageBase64, type = req.body?.mimeType;
     if (typeof image !== 'string' || image.length === 0 || image.length > MAX_IMAGE_BASE64_CHARS || !/^[A-Za-z0-9+/=]+$/.test(image)) throw new HttpError(400, 'The photo is missing, too large or not valid.');
     if (!IMAGE_TYPES.includes(type)) throw new HttpError(400, 'The photo must be a JPEG or PNG.');

@@ -3,7 +3,6 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { after, before, describe, it } from 'node:test';
 import bcrypt from 'bcryptjs';
-import { MVP_MAX_LEVEL } from '@fln/curriculum';
 import { createApp } from '../src/app';
 import { ollamaReader } from '../src/ollama';
 import { loadQuestionBank } from '../src/questionBank';
@@ -75,13 +74,13 @@ async function login(email: string) {
 }
 
 describe('question bank', () => {
-  it('has sheets for Balvatika and Class 1 levels but none for Class 2 and 3', () => {
-    assert.ok(bank.levelsForClass('Balvatika').length > 15);
-    assert.ok(bank.levelsForClass('Class 1').length > bank.levelsForClass('Balvatika').length);
-    assert.ok(bank.levelsForClass('Class 3').every(l => l.level <= MVP_MAX_LEVEL));
-    const balvatika = bank.levelsForClass('Balvatika').map(l => l.level);
-    assert.ok(!balvatika.includes(23), 'level 23 has no mastery questions');
-    assert.ok(Math.max(...balvatika) <= 46);
+  it('lists topics by the bank\'s own names, without the old "Level N" prefix, in order', () => {
+    const topics = bank.topics();
+    assert.ok(topics.length > 30);
+    assert.ok(topics.every(t => !/^Level\s*\d/.test(t.title) && t.sets >= 1));
+    assert.deepStrictEqual(topics.map(t => t.bankLevel), [...topics.map(t => t.bankLevel)].sort((a, b) => a - b));
+    assert.ok(!topics.some(t => t.bankLevel === 23), 'bank level 23 has no mastery questions');
+    assert.ok(topics.some(t => t.title === 'Carry Addition (with Regrouping)'), 'titles come from the bank, not from the curriculum map');
   });
   it('gives five questions per sheet, distinct sets, and keeps the answers separate', () => {
     const a = bank.sheet(22, 0)!, b = bank.sheet(22, 1)!;
@@ -126,9 +125,9 @@ describe('creating classes and adding students', () => {
 });
 
 describe('worksheet', () => {
-  it('returns five questions and a separate answer key for a level that has them', async () => {
+  it('returns five questions and a separate answer key for a topic that has them', async () => {
     const t = await login('t1@fln.test');
-    const r = await call('/api/classes/cBal/worksheet?level=22&set=0', { token: t });
+    const r = await call('/api/classes/cBal/worksheet?bankLevel=22&set=0', { token: t });
     assert.equal(r.status, 200);
     assert.equal(r.json.sheet.questions.length, 5);
     assert.equal(r.json.answerKey.length, 5);
@@ -136,28 +135,30 @@ describe('worksheet', () => {
     assert.equal(Object.hasOwn(r.json.sheet.questions[0], 'answer'), false, 'the printed sheet must not carry answers');
     assert.equal(Object.hasOwn(r.json.sheet, 'answers'), false);
   });
-  it('refuses a level above the class, a level with no questions, a bad set and another teacher', async () => {
+  it('refuses a topic with no questions, a bad set, a bad number and another teacher', async () => {
     const t = await login('t1@fln.test');
-    assert.equal((await call('/api/classes/cBal/worksheet?level=50&set=0', { token: t })).status, 400);
-    assert.equal((await call('/api/classes/cBal/worksheet?level=23&set=0', { token: t })).status, 404);
-    assert.equal((await call('/api/classes/cBal/worksheet?level=22&set=9', { token: t })).status, 404);
-    assert.equal((await call('/api/classes/cBal/worksheet?level=abc', { token: t })).status, 400);
-    assert.equal((await call('/api/classes/cBal/worksheet?level=22', { token: await login('t2@fln.test') })).status, 403);
+    assert.equal((await call('/api/classes/cBal/worksheet?bankLevel=23&set=0', { token: t })).status, 404);
+    assert.equal((await call('/api/classes/cBal/worksheet?bankLevel=22&set=9', { token: t })).status, 404);
+    assert.equal((await call('/api/classes/cBal/worksheet?bankLevel=abc', { token: t })).status, 400);
+    assert.equal((await call('/api/classes/cBal/worksheet?set=0', { token: t })).status, 400);
+    assert.equal((await call('/api/classes/cBal/worksheet?bankLevel=22', { token: await login('t2@fln.test') })).status, 403);
   });
-  it('a Class 2 class has no levels with questions yet', async () => {
-    const r = await call('/api/classes/cC2/levels', { token: await login('t1@fln.test') });
-    assert.equal(r.status, 200);
-    assert.ok(r.json.levels.every((l: { level: number }) => l.level <= 77));
-    assert.ok(r.json.levels.length > 0, 'a Class 2 teacher can still print the earlier levels as remedial sheets');
-    assert.equal(Math.max(...r.json.levels.map((l: { level: number }) => l.level)), 58);
+  it('every class sees the same topics, because the bank is not tied to a class', async () => {
+    const t = await login('t1@fln.test');
+    const a = await call('/api/classes/cBal/topics', { token: t });
+    const b = await call('/api/classes/cC2/topics', { token: t });
+    assert.equal(a.status, 200);
+    assert.deepStrictEqual(a.json.topics, b.json.topics);
+    assert.ok(a.json.topics.length > 30);
+    assert.equal((await call('/api/classes/cBal/topics', { token: await login('t2@fln.test') })).status, 403);
   });
 });
 
 describe('recording results', () => {
   it('grades typed answers against the key, handles blanks, and assigns the band', async () => {
     const t = await login('t1@fln.test');
-    const key = (await call('/api/classes/cBal/worksheet?level=22&set=0', { token: t })).json.answerKey as string[];
-    const r = await call('/api/classes/cBal/results', { method: 'POST', token: t, body: { level: 22, set: 0, entries: [{ studentId: 's1', answers: [key[0], key[1], key[2], 'wrong', null] }] } });
+    const key = (await call('/api/classes/cBal/worksheet?bankLevel=22&set=0', { token: t })).json.answerKey as string[];
+    const r = await call('/api/classes/cBal/results', { method: 'POST', token: t, body: { bankLevel: 22, set: 0, entries: [{ studentId: 's1', answers: [key[0], key[1], key[2], 'wrong', null] }] } });
     assert.equal(r.status, 201);
     const a = r.json.attempts[0];
     assert.equal(a.score, 3);
@@ -167,7 +168,7 @@ describe('recording results', () => {
   });
   it('records hand marks and keeps every attempt, newest first', async () => {
     const t = await login('t1@fln.test');
-    await call('/api/classes/cBal/results', { method: 'POST', token: t, body: { level: 22, set: 1, entries: [{ studentId: 's2', marks: [true, true, true, true, true] }] } });
+    await call('/api/classes/cBal/results', { method: 'POST', token: t, body: { bankLevel: 22, set: 1, entries: [{ studentId: 's2', marks: [true, true, true, true, true] }] } });
     const list = (await call('/api/classes/cBal/results', { token: t })).json.attempts;
     assert.ok(list.length >= 2);
     assert.equal(list[0].band, 'Secure');
@@ -177,16 +178,16 @@ describe('recording results', () => {
     const t = await login('t1@fln.test');
     const post = (body: unknown, token = t) => call('/api/classes/cBal/results', { method: 'POST', token, body });
     const five = [true, true, true, true, true];
-    assert.equal((await post({ level: 22, set: 0, entries: [{ studentId: 'nobody', marks: five }] })).status, 400);
-    assert.equal((await post({ level: 22, set: 0, entries: [{ studentId: 's1', marks: five, answers: ['1', '1', '1', '1', '1'] }] })).status, 400);
-    assert.equal((await post({ level: 22, set: 0, entries: [{ studentId: 's1' }] })).status, 400);
-    assert.equal((await post({ level: 22, set: 0, entries: [{ studentId: 's1', marks: [true] }] })).status, 400);
-    assert.equal((await post({ level: 22, set: 0, entries: [{ studentId: 's1', marks: ['yes', 1, 1, 1, 1] }] })).status, 400);
-    assert.equal((await post({ level: 22, set: 0, entries: [{ studentId: 's1', answers: ['a', 'b'] }] })).status, 400);
-    assert.equal((await post({ level: 22, set: 0, entries: [] })).status, 400);
-    assert.equal((await post({ level: 22, set: 0 })).status, 400);
-    assert.equal((await post({ level: 23, set: 0, entries: [{ studentId: 's1', marks: five }] })).status, 404);
-    assert.equal((await post({ level: 22, set: 0, entries: [{ studentId: 's1', marks: five }] }, await login('t2@fln.test'))).status, 403);
+    assert.equal((await post({ bankLevel: 22, set: 0, entries: [{ studentId: 'nobody', marks: five }] })).status, 400);
+    assert.equal((await post({ bankLevel: 22, set: 0, entries: [{ studentId: 's1', marks: five, answers: ['1', '1', '1', '1', '1'] }] })).status, 400);
+    assert.equal((await post({ bankLevel: 22, set: 0, entries: [{ studentId: 's1' }] })).status, 400);
+    assert.equal((await post({ bankLevel: 22, set: 0, entries: [{ studentId: 's1', marks: [true] }] })).status, 400);
+    assert.equal((await post({ bankLevel: 22, set: 0, entries: [{ studentId: 's1', marks: ['yes', 1, 1, 1, 1] }] })).status, 400);
+    assert.equal((await post({ bankLevel: 22, set: 0, entries: [{ studentId: 's1', answers: ['a', 'b'] }] })).status, 400);
+    assert.equal((await post({ bankLevel: 22, set: 0, entries: [] })).status, 400);
+    assert.equal((await post({ bankLevel: 22, set: 0 })).status, 400);
+    assert.equal((await post({ bankLevel: 23, set: 0, entries: [{ studentId: 's1', marks: five }] })).status, 404);
+    assert.equal((await post({ bankLevel: 22, set: 0, entries: [{ studentId: 's1', marks: five }] }, await login('t2@fln.test'))).status, 403);
   });
 });
 
@@ -197,9 +198,9 @@ describe('photo reading with Ollama', () => {
   it('sends the key, model and photo, and returns what was read plus suggested marks', async () => {
     ollamaMode = 'ok';
     const t = await login('t1@fln.test');
-    const key = (await call('/api/classes/cBal/worksheet?level=22&set=0', { token: t })).json.answerKey as string[];
+    const key = (await call('/api/classes/cBal/worksheet?bankLevel=22&set=0', { token: t })).json.answerKey as string[];
     ollamaMode = 'partial';
-    const r = await scan({ level: 22, set: 0, imageBase64: img, mimeType: 'image/jpeg' }, t);
+    const r = await scan({ bankLevel: 22, set: 0, imageBase64: img, mimeType: 'image/jpeg' }, t);
     assert.equal(r.status, 200);
     assert.equal(lastOllamaRequest.auth, 'Bearer test-key');
     assert.equal(lastOllamaRequest.body?.model, 'test-model');
@@ -212,7 +213,7 @@ describe('photo reading with Ollama', () => {
     const t = await login('t1@fln.test');
     for (const mode of ['down', 'junk'] as const) {
       ollamaMode = mode;
-      const r = await scan({ level: 22, set: 0, imageBase64: img, mimeType: 'image/png' }, t);
+      const r = await scan({ bankLevel: 22, set: 0, imageBase64: img, mimeType: 'image/png' }, t);
       assert.equal(r.status, 502, mode);
       assert.match(r.json.error, /by hand/);
     }
@@ -221,11 +222,11 @@ describe('photo reading with Ollama', () => {
     ollamaMode = 'ok';
     lastOllamaRequest = {};
     const t = await login('t1@fln.test');
-    assert.equal((await scan({ level: 22, set: 0, imageBase64: '', mimeType: 'image/jpeg' }, t)).status, 400);
-    assert.equal((await scan({ level: 22, set: 0, imageBase64: 'not base64!!', mimeType: 'image/jpeg' }, t)).status, 400);
-    assert.equal((await scan({ level: 22, set: 0, imageBase64: img, mimeType: 'application/pdf' }, t)).status, 400);
-    assert.equal((await scan({ level: 22, set: 0, imageBase64: img, mimeType: 'image/jpeg' }, await login('t2@fln.test'))).status, 403);
-    assert.equal((await call('/api/classes/cBal/scan', { method: 'POST', body: { level: 22 } })).status, 401);
+    assert.equal((await scan({ bankLevel: 22, set: 0, imageBase64: '', mimeType: 'image/jpeg' }, t)).status, 400);
+    assert.equal((await scan({ bankLevel: 22, set: 0, imageBase64: 'not base64!!', mimeType: 'image/jpeg' }, t)).status, 400);
+    assert.equal((await scan({ bankLevel: 22, set: 0, imageBase64: img, mimeType: 'application/pdf' }, t)).status, 400);
+    assert.equal((await scan({ bankLevel: 22, set: 0, imageBase64: img, mimeType: 'image/jpeg' }, await login('t2@fln.test'))).status, 403);
+    assert.equal((await call('/api/classes/cBal/scan', { method: 'POST', body: { bankLevel: 22 } })).status, 401);
     assert.equal(lastOllamaRequest.body, undefined);
   });
   it('says so plainly when photo reading is not set up', async () => {
@@ -234,7 +235,7 @@ describe('photo reading with Ollama', () => {
     try {
       const b = `http://127.0.0.1:${(app.address() as AddressInfo).port}`;
       const tok = (await (await fetch(b + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 't1@fln.test', password: 'correct-horse' }) })).json() as { token: string }).token;
-      const res = await fetch(b + '/api/classes/cBal/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ level: 22, set: 0, imageBase64: img, mimeType: 'image/jpeg' }) });
+      const res = await fetch(b + '/api/classes/cBal/scan', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ bankLevel: 22, set: 0, imageBase64: img, mimeType: 'image/jpeg' }) });
       assert.equal(res.status, 503);
     } finally { app.close(); }
   });
