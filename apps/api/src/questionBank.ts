@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { QUESTIONS_PER_CONCEPT } from '@fln/domain';
 
 /**
@@ -37,7 +37,13 @@ export interface QuestionBank {
 
 const titleOf = (row: BankRow): string => row.levelTitle.replace(/^Level\s+\d+\s*[\u2014-]\s*/, '').trim();
 
-export function loadQuestionBank(path = new URL('../../../data/questionBank.json', import.meta.url)): QuestionBank {
+/** In a release the bank sits next to the program; in the repo it is in /data. An explicit path overrides both. */
+function defaultBankPath(): URL {
+  const beside = new URL('./questionBank.json', import.meta.url);
+  return existsSync(beside) ? beside : new URL('../../../data/questionBank.json', import.meta.url);
+}
+
+export function loadQuestionBank(path: string | URL = defaultBankPath()): QuestionBank {
   const rows = JSON.parse(readFileSync(path, 'utf8')) as BankRow[];
   const byLevel = new Map<number, BankRow[]>();
   for (const row of rows) {

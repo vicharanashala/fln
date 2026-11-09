@@ -275,3 +275,29 @@ describe('schools and accounts', () => {
     assert.equal((await block('u_t1', true, await login('tb@fln.test'))).status, 403);
   });
 });
+
+describe('health', () => {
+  it('answers without a login and says the store is working', async () => {
+    const r = await call('/api/health');
+    assert.equal(r.status, 200);
+    assert.equal(r.json.ok, true);
+  });
+  it('answers 503 when the data store does not respond', async () => {
+    const app = createApp({ repos, auth: { jwtSecret: 'x'.repeat(40), tokenHours: 1 }, bank: loadQuestionBank(), checkStore: async () => { throw new Error('down'); }, version: 'v1' }).listen(0);
+    await new Promise<void>(r => app.once('listening', () => r()));
+    try {
+      const res = await fetch(`http://127.0.0.1:${(app.address() as AddressInfo).port}/api/health`);
+      assert.equal(res.status, 503);
+      assert.deepEqual(await res.json(), { ok: false, version: 'v1', store: 'down' });
+    } finally { app.close(); }
+  });
+  it('refuses an oversized ordinary body but the limit is configurable', async () => {
+    const app = createApp({ repos, auth: { jwtSecret: 'x'.repeat(40), tokenHours: 1 }, bank: loadQuestionBank(), limits: { jsonBodyMb: 1 } }).listen(0);
+    await new Promise<void>(r => app.once('listening', () => r()));
+    try {
+      const res = await fetch(`http://127.0.0.1:${(app.address() as AddressInfo).port}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'a@b.c', password: 'x'.repeat(1_200_000) }) });
+      assert.equal(res.status, 413, 'a body over the limit is rejected with a clear status');
+      assert.match(((await res.json()) as { error: string }).error, /too large/);
+    } finally { app.close(); }
+  });
+});

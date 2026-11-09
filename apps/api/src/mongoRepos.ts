@@ -24,11 +24,13 @@ export interface MongoStore {
   syncLevels(): Promise<number>;
   /** Create the indexes the repositories rely on. Safe to run on every start. */
   ensureIndexes(): Promise<void>;
+  /** Throws when the database does not answer. */
+  ping(): Promise<void>;
   close(): Promise<void>;
 }
 
-export async function connectMongo(uri: string, dbName: string): Promise<MongoStore> {
-  const client = new MongoClient(uri);
+export async function connectMongo(uri: string, dbName: string, options: { maxPoolSize?: number } = {}): Promise<MongoStore> {
+  const client = new MongoClient(uri, { maxPoolSize: options.maxPoolSize ?? 10, serverSelectionTimeoutMS: 5000 });
   await client.connect();
   return createMongoStore(client.db(dbName), () => client.close());
 }
@@ -185,6 +187,7 @@ export function createMongoStore(db: Db, close: () => Promise<void> = async () =
       await levels.createIndex({ levelNumber: 1 }, { unique: true });
       await questions.createIndex({ levelNumber: 1, status: 1 });
     },
+    async ping() { await db.command({ ping: 1 }); },
     close,
   };
 }
