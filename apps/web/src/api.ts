@@ -50,6 +50,8 @@ export const api = {
   scan: (id: string, ref: SheetRef, set: number, imageBase64: string, mimeType: string) =>
     call<{ answers: (string | null)[]; suggestedMarks: boolean[] }>(`/classes/${id}/scan`, { method: 'POST', body: { ...ref, set, imageBase64, mimeType } }),
   // Superadmin
+  importStudents: (rows: { name: string; className: string; section: string }[]) =>
+    call<{ createdStudents: number; createdClasses: number; skipped: { row: number; reason: string }[] }>('/students/import', { method: 'POST', body: { rows } }),
   levels: () => call<{ levels: LevelWithCounts[] }>('/levels'),
   levelQuestions: (n: number) => call<{ level: LevelRow; skills: LevelSkills; questions: Question[] }>(`/levels/${n}/questions`),
   coverage: () => call<{ skills: CoverageSkill[] }>('/coverage'),

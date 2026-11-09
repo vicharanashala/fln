@@ -3,6 +3,7 @@ import { go } from '../App';
 import { api } from '../api';
 import { useLoad } from '../hooks';
 import { CLASS_NAMES } from '../types';
+import { ImportCard } from './ImportCard';
 
 export function Classes({ onUnauthorized }: { onUnauthorized: () => void }) {
   const list = useLoad(() => api.classes(), 'classes', onUnauthorized);
@@ -32,6 +33,7 @@ export function Classes({ onUnauthorized }: { onUnauthorized: () => void }) {
       <div className="grid">
         {classes.map(c => <a key={c.id} className="tile" href={`#/class/${c.id}`}><strong>{c.className}</strong><span>Section {c.section}</span></a>)}
       </div>
+      <ImportCard onDone={list.reload} />
       <form className="card" onSubmit={create}>
         <h2>New class</h2>
         <div className="chips" role="radiogroup" aria-label="Class">

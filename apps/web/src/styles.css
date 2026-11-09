@@ -9,7 +9,7 @@ main.narrow { max-width: 420px; padding-top: 12vh; }
 h1 { font-size: 1.8rem; margin: 8px 0 12px; line-height: 1.2; } h2 { font-size: 1.2rem; margin: 22px 0 8px; }
 .muted { color: var(--brown-2); font-weight: 400; } .error { color: #a02818; font-weight: 600; } .note { background: var(--sand); padding: 10px 12px; border-radius: 10px; }
 .top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--cream-2); border-bottom: 2px solid var(--line); }
-.top .brand { font-weight: 800; font-size: 1.2rem; color: var(--red); text-decoration: none; } .top .who { margin-left: auto; color: var(--brown-2); }
+.top .brand { font-weight: 800; font-size: 1.2rem; color: var(--red); text-decoration: none; } .top .who { color: var(--brown-2); }
 .link { background: none; border: 0; padding: 4px 6px; font: inherit; font-weight: 600; color: var(--brown-2); text-decoration: underline; cursor: pointer; }
 .link:hover { color: var(--red); } .link:disabled { opacity: .5; cursor: default; }
 :focus-visible { outline: 3px solid var(--brown); outline-offset: 2px; }
@@ -63,3 +63,5 @@ details { margin: 8px 0; } summary { cursor: pointer; font-weight: 600; }
 .tagline { margin: 6px 0; } .pill.soft { background: #efe3cc; font-weight: 600; margin: 2px 4px 2px 0; }
 .subs { border: 2px solid var(--line); border-radius: 12px; margin: 10px 0; padding: 8px 12px; } .subs legend { font-weight: 700; padding: 0 6px; }
 .check { display: flex; gap: 8px; align-items: center; font-weight: 400; margin: 3px 0; } .check input { width: auto; margin: 0; }
+
+.textsize { display: flex; gap: 4px; margin-left: auto; } .textsize + .who { margin-left: 8px; } .textsize button { min-width: 36px; height: 32px; border: 2px solid var(--line); background: #fff; border-radius: 8px; font-weight: 700; color: var(--brown); cursor: pointer; }

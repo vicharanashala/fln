@@ -69,8 +69,11 @@ async function call(path: string, opts: { method?: string; token?: string; body?
   const text = await res.text();
   return { status: res.status, json: text ? JSON.parse(text) : null };
 }
+// The login route is rate limited, so each account logs in once and the token is reused.
+const tokens = new Map<string, string>();
 async function login(email: string) {
-  return (await call('/api/auth/login', { method: 'POST', body: { email, password: 'correct-horse' } })).json.token as string;
+  if (!tokens.has(email)) tokens.set(email, (await call('/api/auth/login', { method: 'POST', body: { email, password: 'correct-horse' } })).json.token as string);
+  return tokens.get(email)!;
 }
 
 describe('question bank', () => {
@@ -121,6 +124,49 @@ describe('creating classes and adding students', () => {
       assert.equal((await call('/api/classes/cBal/students/bulk', { method: 'POST', token: t, body: { names } })).status, 400, JSON.stringify(names).slice(0, 40));
     }
     assert.equal((await call('/api/classes/cBal/students/bulk', { method: 'POST', token: await login('t2@fln.test'), body: { names: ['X'] } })).status, 403);
+  });
+});
+
+describe('importing a school file', () => {
+  const post = (rows: unknown, token: string) => call('/api/students/import', { method: 'POST', token, body: { rows } });
+  it('creates the classes it needs, adds the children, and skips bad rows with a reason', async () => {
+    const t = await login('t2@fln.test');
+    const r = await post([
+      { name: 'Aarav Sharma', className: 'Class 1', section: 'A' },
+      { name: '  Diya   Rao ', className: 'Class 1', section: 'a' },
+      { name: 'Kabir', className: 'Balvatika' },
+      { name: 'aarav sharma', className: 'Class 1', section: 'A' },
+      { name: '', className: 'Class 1', section: 'A' },
+      { name: 'Nina', className: 'Class 9', section: 'A' },
+      { name: 'Ravi', className: 'Class 2', section: 'WAYTOOLONGSECTION' },
+      { name: 'n'.repeat(101), className: 'Class 1', section: 'A' },
+    ], t);
+    assert.equal(r.status, 201);
+    assert.equal(r.json.createdStudents, 3);
+    assert.equal(r.json.createdClasses, 2, 'Class 1 A (once, section matched without case) and Balvatika A');
+    assert.deepEqual(r.json.skipped.map((x: { row: number }) => x.row), [4, 5, 6, 7, 8]);
+    assert.match(r.json.skipped[0].reason, /already/);
+    const classes = (await call('/api/classes', { token: t })).json.classes as { id: string; className: string; section: string }[];
+    assert.ok(classes.some(c => c.className === 'Balvatika' && c.section === 'A'), 'the default section is A');
+    assert.equal(classes.filter(c => c.className === 'Class 1' && c.section.toLowerCase() === 'a').length, 1, 'sections A and a are one class');
+    const c1 = classes.find(c => c.className === 'Class 1' && c.section === 'A')!;
+    assert.deepEqual((await call(`/api/classes/${c1.id}/students`, { token: t })).json.students.map((s: { name: string }) => s.name), ['Aarav Sharma', 'Diya Rao']);
+  });
+  it('importing the same file again adds nobody and says why', async () => {
+    const t = await login('t2@fln.test');
+    const r = await post([{ name: 'Aarav Sharma', className: 'Class 1', section: 'A' }], t);
+    assert.equal(r.status, 400);
+    assert.match(r.json.error, /already in the class/);
+  });
+  it('refuses empty, oversized, malformed and not-a-teacher requests; a teacher never touches another teacher\'s classes', async () => {
+    const t = await login('t2@fln.test');
+    for (const rows of [undefined, [], 'x', Array.from({ length: 501 }, (_, i) => ({ name: `C${i}`, className: 'Class 1' }))]) assert.equal((await post(rows, t)).status, 400);
+    assert.equal((await post([null, 5, 'x'], t)).status, 400, 'nothing usable in the file');
+    assert.equal((await post([{ name: 'X', className: 'Class 1' }], await login('school.a@fln.test'))).status, 403);
+    assert.equal((await post([{ name: 'X', className: 'Class 1' }], await login('super@fln.test'))).status, 403);
+    assert.equal((await call('/api/students/import', { method: 'POST', body: { rows: [] } })).status, 401);
+    const mine = (await call('/api/classes', { token: await login('t1@fln.test') })).json.classes.map((c: { id: string }) => c.id);
+    assert.ok(!mine.some((id: string) => id !== 'cBal' && id !== 'cC2'), 'teacher 1 sees only own classes');
   });
 });
 

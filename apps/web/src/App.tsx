@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, hasToken, saveToken } from './api';
 import { useLoad } from './hooks';
+import { nextFontSize } from './csv';
 import { parseHash } from './lib';
 import { ClassPage } from './screens/ClassPage';
 import { Classes } from './screens/Classes';
@@ -14,7 +15,15 @@ import { PrintSheets } from './screens/PrintSheets';
 
 export function go(path: string): void { window.location.hash = path; }
 
+const FONT_KEY = 'fln-font-size';
+function readFontSize(): number { try { return Number(localStorage.getItem(FONT_KEY)) || 100; } catch { return 100; } }
+function applyFontSize(percent: number): void {
+  document.documentElement.style.fontSize = `${percent}%`;
+  try { localStorage.setItem(FONT_KEY, String(percent)); } catch { /* storage blocked: the size lasts for this visit only */ }
+}
+
 export function App() {
+  useEffect(() => { applyFontSize(readFontSize()); }, []);
   const [hash, setHash] = useState(window.location.hash);
   const [authed, setAuthed] = useState(hasToken());
   useEffect(() => {
@@ -48,6 +57,11 @@ function Shell({ hash, logout }: { hash: string; logout: () => void }) {
       <header className="top no-print">
         <a className="brand" href="#/">FLN</a>
         {isSuper && <nav className="topnav"><a href="#/levels">Levels</a><a href="#/coverage">Coverage</a><a href="#/people">People</a></nav>}
+        <span className="textsize" role="group" aria-label="Text size">
+          <button type="button" aria-label="Smaller text" onClick={() => applyFontSize(nextFontSize(readFontSize(), -10))}>A−</button>
+          <button type="button" aria-label="Normal text size" onClick={() => applyFontSize(100)}>A</button>
+          <button type="button" aria-label="Larger text" onClick={() => applyFontSize(nextFontSize(readFontSize(), 10))}>A+</button>
+        </span>
         <span className="who">{me.data?.user.name}</span>
         <button className="link" type="button" onClick={logout}>Log out</button>
       </header>

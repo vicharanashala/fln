@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx src/server.ts",
     "typecheck": "tsc -p .",
-    "test": "tsx --test --test-concurrency=1 tests/*.test.ts"
+    "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
+    "build": "node scripts/build.mjs"
   },
   "dependencies": {
     "@fln/curriculum": "*",

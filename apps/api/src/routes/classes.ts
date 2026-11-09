@@ -6,6 +6,7 @@ import type { Repos } from '../repos';
 import { CLASS_NAMES, isClassName, levelRange, loadClass } from '../services/classes';
 
 const MAX_NEW_STUDENTS = 60;
+const MAX_IMPORT_ROWS = 500;
 
 /** Classes and their children: create a class, add many children, see which levels have worksheets. */
 export function classRoutes(repos: Repos, bank: QuestionBank): Router {
@@ -42,6 +43,45 @@ export function classRoutes(repos: Repos, bank: QuestionBank): Router {
     const students = [];
     for (const name of names) students.push(await repos.students.add({ schoolId: cls.schoolId, classId: cls.id, name, currentLevel: startLevel }));
     res.status(201).json({ students });
+  }));
+
+  /**
+   * Imports a whole school file in one go. Each row names a child, a class and a section; classes that do not exist
+   * yet are created for this teacher. A bad row is skipped with its reason and never stops the good ones.
+   */
+  router.post('/students/import', handler(async (req, res) => {
+    const user = req.user!;
+    if (user.role !== 'teacher' || !user.schoolId) throw new HttpError(403, 'Only a teacher can import children.');
+    const rows = req.body?.rows;
+    if (!Array.isArray(rows) || rows.length === 0) throw new HttpError(400, 'rows must be a list with at least one row.');
+    if (rows.length > MAX_IMPORT_ROWS) throw new HttpError(400, `A file may have at most ${MAX_IMPORT_ROWS} rows.`);
+    const classes = (await repos.classes.list()).filter(c => c.teacherId === user.id);
+    const names = new Map<string, Set<string>>(); // class id -> lower-cased names already there or added in this file
+    const skipped: { row: number; reason: string }[] = [];
+    let createdClasses = 0, createdStudents = 0;
+    for (const [i, row] of (rows as { name?: unknown; className?: unknown; section?: unknown }[]).entries()) {
+      const rowNo = i + 1;
+      const name = typeof row?.name === 'string' ? row.name.trim().replace(/\s+/g, ' ') : '';
+      const section = typeof row?.section === 'string' && row.section.trim() ? row.section.trim() : 'A';
+      if (!name) { skipped.push({ row: rowNo, reason: 'The name is empty.' }); continue; }
+      if (name.length > 100) { skipped.push({ row: rowNo, reason: 'The name is longer than 100 characters.' }); continue; }
+      if (!isClassName(row.className)) { skipped.push({ row: rowNo, reason: `The class must be one of: ${CLASS_NAMES.join(', ')}.` }); continue; }
+      if (section.length > 10) { skipped.push({ row: rowNo, reason: 'The section is longer than 10 characters.' }); continue; }
+      let cls = classes.find(c => c.className === row.className && c.section.toLowerCase() === section.toLowerCase());
+      if (!cls) {
+        cls = await repos.classes.add({ schoolId: user.schoolId, className: row.className, section, teacherId: user.id });
+        classes.push(cls);
+        createdClasses++;
+      }
+      let known = names.get(cls.id);
+      if (!known) { known = new Set((await repos.students.byClass(cls.id)).map(s => s.name.toLowerCase())); names.set(cls.id, known); }
+      if (known.has(name.toLowerCase())) { skipped.push({ row: rowNo, reason: 'This child is already in the class.' }); continue; }
+      known.add(name.toLowerCase());
+      await repos.students.add({ schoolId: cls.schoolId, classId: cls.id, name, currentLevel: levelRange(cls.className)?.[0] ?? 1 });
+      createdStudents++;
+    }
+    if (createdStudents === 0) throw new HttpError(400, 'No child could be imported. ' + (skipped[0] ? `Row ${skipped[0].row}: ${skipped[0].reason}` : ''));
+    res.status(201).json({ createdStudents, createdClasses, skipped });
   }));
 
   router.get('/classes/:id/levels', handler(async (req, res) => {

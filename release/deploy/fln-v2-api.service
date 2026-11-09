@@ -1,0 +1,32 @@
+# Installed by install-fln-v2.sh. @NODE@ and @INSTALL@ are filled in then.
+[Unit]
+Description=FLN v2 API
+After=network.target mongod.service
+
+[Service]
+User=fln-v2
+Group=fln-v2
+WorkingDirectory=@INSTALL@/current/api
+EnvironmentFile=/etc/fln-v2/api.env
+# The heap is capped below the memory limit so Node cleans up before systemd would stop it.
+ExecStart=@NODE@ --max-old-space-size=192 server.mjs
+Restart=on-failure
+RestartSec=3
+
+# Resource allocation: this service may use at most this much of a shared server.
+MemoryHigh=320M
+MemoryMax=384M
+CPUQuota=60%
+TasksMax=64
+LimitNOFILE=4096
+
+# The API reads its own files and writes none, so it gets no more access than that.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
