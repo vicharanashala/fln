@@ -1,7 +1,7 @@
 // Creates a superadmin account in the v2 database. Run on the server, once.
 //
-//   read -rs -p "Password: " NEW_SUPERADMIN_PASSWORD; export NEW_SUPERADMIN_PASSWORD
-//   MONGODB_URI=mongodb://127.0.0.1:27017 npx tsx apps/api/scripts/create-superadmin.ts someone@example.org "Full Name"
+//   On the server:  bash deploy/create-superadmin.sh someone@example.org "Full Name"   (asks for the password, hidden)
+//   Directly:       NEW_SUPERADMIN_PASSWORD=... MONGODB_URI=... node create-superadmin.mjs <email> "<name>"
 //
 // The password is read from the environment, never from the command line, so it does not land in shell history.
 import bcrypt from 'bcryptjs';
