@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLN and Tenali, version 2</title>
+<meta name="description" content="One learning path from Balvatika to Class 12: FLN for the first years, Tenali from Class 4 onward.">
+<style>
+  :root {
+    --bg: #fbf9f4; --ink: #1f2933; --muted: #52606d; --card: #ffffff; --line: #e4e0d6;
+    --fln: #1f6f5c; --fln-ink: #ffffff; --tenali: #3b4cca; --tenali-ink: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14181c; --ink: #eef1f4; --muted: #a4afba; --card: #1d2329; --line: #2d353d;
+            --fln: #4fb99f; --fln-ink: #0c1512; --tenali: #8f9bff; --tenali-ink: #0d1030; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 56px 16px 72px; }
+  h1 { font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.15; margin: 0 0 12px; }
+  h2 { font-size: 1.35rem; margin: 48px 0 12px; }
+  p { margin: 0 0 14px; }
+  .lede { font-size: 1.15rem; color: var(--muted); max-width: 40em; }
+  .stages { display: grid; gap: 16px; grid-template-columns: 1fr; margin-top: 28px; }
+  @media (min-width: 700px) { .stages { grid-template-columns: 1fr 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; }
+  .card h3 { margin: 0 0 4px; font-size: 1.25rem; }
+  .tag { font-size: .85rem; color: var(--muted); margin: 0 0 12px; }
+  .card p { flex: 1; }
+  .btn { display: inline-block; text-align: center; padding: 12px 18px; border-radius: 10px; text-decoration: none;
+         font-weight: 600; margin-top: 8px; }
+  .btn.fln { background: var(--fln); color: var(--fln-ink); }
+  .btn.tenali { background: var(--tenali); color: var(--tenali-ink); }
+  .btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  ol.path { padding-left: 1.2em; }
+  ol.path li { margin-bottom: 10px; }
+  footer { margin-top: 56px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>One learning path, from Balvatika to Class 12</h1>
+  <p class="lede">Learning gaps that start in the first years follow a child for the rest of school. We are rebuilding two linked platforms so a teacher can see where each child stands and what to teach next, at every stage.</p>
+
+  <div class="stages">
+    <section class="card" aria-labelledby="fln-h">
+      <h3 id="fln-h">FLN</h3>
+      <p class="tag">Balvatika to Class 3 &middot; foundational literacy and numeracy</p>
+      <p>Small children are not tested like older students. A teacher prints a worksheet, observes the child, and enters the result. The platform places each child on a level and shows a simple band: Emerging, Developing or Secure.</p>
+      <a class="btn fln" href="/v2/fln/">Open FLN v2</a>
+    </section>
+    <section class="card" aria-labelledby="tenali-h">
+      <h3 id="tenali-h">Tenali</h3>
+      <p class="tag">Class 4 and above &middot; practice and mastery</p>
+      <p>Once children can read and count, they need practice that adapts to them, topic by topic, from simple to complex. Tenali carries the same idea forward: find the gap, practise it, check it again.</p>
+      <a class="btn tenali" href="/v2/tenali/">Open Tenali v2</a>
+    </section>
+  </div>
+
+  <h2>Why both stages matter</h2>
+  <p>A child who is shaky in Class 2 reading or number sense struggles in Class 5 maths and in every subject after it. Fixing the early years without a path onward loses the gain; building the later years without a foundation builds on sand. Each platform on its own answers half the question, so we present them as one path.</p>
+
+  <h2>How we move forward</h2>
+  <ol class="path">
+    <li><strong>Stabilise.</strong> Both platforms are rebuilt on a clean base, with FLN first and Tenali next, so that what a school sees is dependable.</li>
+    <li><strong>Check with real content.</strong> The question banks are reviewed with subject experts before any child is assessed.</li>
+    <li><strong>Pilot in a school.</strong> Start with one school, record where children begin, and track them across the term.</li>
+    <li><strong>Extend upward.</strong> Add the remaining classes only after the earlier stage works in a real classroom.</li>
+  </ol>
+
+  <footer>Version 2 is a preview under active development. Vicharanashala Lab for Education Design, IIT Ropar.</footer>
+</main>
+</body>
+</html>
