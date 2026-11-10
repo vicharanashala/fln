@@ -286,7 +286,7 @@ export const Layout: React.FC<LayoutProps> = ({
     <div className="flex min-h-screen flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
 
       {/* Accessibility / Top strip */}
-      <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-6 py-2 flex justify-between items-center border-b border-gray-800 shrink-0">
+      <div className="w-full bg-[#111827] text-gray-300 text-[10px] md:text-xs font-semibold px-3 md:px-6 py-2 flex justify-between items-center border-b border-gray-800 shrink-0">
         <div className="flex items-center gap-3">
           <span className="font-bold text-white dark:text-gray-200">FLN Portal</span>
           <span className="text-gray-500 dark:text-gray-600">|</span>
@@ -294,9 +294,9 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold">
-            <button onClick={() => adjustFontSize(-10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Decrease font size">A-</button>
-            <button onClick={resetFontSize} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Reset font size">A</button>
-            <button onClick={() => adjustFontSize(10)} className="hover:text-white transition px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500" title="Increase font size">A+</button>
+            <button onClick={() => adjustFontSize(-10)} className="hover:text-white transition px-1.5 py-0.5 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded border border-gray-700 hover:border-gray-500" title="Decrease font size">A-</button>
+            <button onClick={resetFontSize} className="hover:text-white transition px-1.5 py-0.5 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded border border-gray-700 hover:border-gray-500" title="Reset font size">A</button>
+            <button onClick={() => adjustFontSize(10)} className="hover:text-white transition px-1.5 py-0.5 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 rounded border border-gray-700 hover:border-gray-500" title="Increase font size">A+</button>
           </div>
           <span className="text-gray-700 dark:text-gray-500">|</span>
           <LanguageSwitcher variant="dark" />
@@ -304,11 +304,11 @@ export const Layout: React.FC<LayoutProps> = ({
       </div>
 
       {/* Unified Topbar */}
-      <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-slate-200 bg-white px-6 transition duration-200 shrink-0 dark:border-slate-700 dark:bg-slate-900">
+      <header className="sticky top-0 z-30 flex h-auto min-h-20 w-full flex-wrap items-center justify-between gap-y-2 border-b border-slate-200 bg-white px-3 py-2 transition duration-200 shrink-0 md:h-20 md:flex-nowrap md:gap-y-0 md:px-6 md:py-0 dark:border-slate-700 dark:bg-slate-900">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="rounded-lg p-2 text-slate-650 hover:bg-slate-100 md:hidden dark:text-slate-400 dark:hover:bg-slate-800"
+            className="rounded-lg p-2 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 text-slate-650 hover:bg-slate-100 md:hidden dark:text-slate-400 dark:hover:bg-slate-800"
             aria-label="Toggle sidebar menu"
           >
             <Menu className="h-5 w-5" />
@@ -350,15 +350,15 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
 
         {/* Topbar Right Section */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-end gap-2 md:flex-nowrap md:gap-4">
           {/* Language Switcher — dashboard chrome labels remain English for now;
               the landing page hero/stats/vision copy is already routed through t(). */}
-          <LanguageSwitcher />
+          <div className="hidden md:block"><LanguageSwitcher /></div>
 
           {/* Dynamic Database Storage Status */}
           <button
             onClick={() => setShowDbModal(true)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono font-bold shrink-0 cursor-pointer transition ${
+            className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono font-bold shrink-0 cursor-pointer transition ${
               dbStatus?.connected
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
                 : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300'
@@ -374,7 +374,7 @@ export const Layout: React.FC<LayoutProps> = ({
           {/* Theme Toggle */}
           <button
             onClick={onThemeToggle}
-            className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 hover:text-slate-800 transition-all duration-200 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+            className="rounded-lg p-2 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 text-slate-505 hover:bg-slate-100 hover:text-slate-800 transition-all duration-200 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
             {isDark ? <Sun className="h-4.5 w-4.5 text-amber-500" /> : <Moon className="h-4.5 w-4.5" />}
@@ -382,9 +382,9 @@ export const Layout: React.FC<LayoutProps> = ({
 
           {/* Notifications bell */}
           <div className="relative">
-            <button
+            <button aria-label="Notifications"
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative rounded-lg p-2 text-slate-505 hover:bg-slate-100 transition dark:text-slate-400 dark:hover:bg-slate-800"
+              className="relative rounded-lg p-2 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 text-slate-505 hover:bg-slate-100 transition dark:text-slate-400 dark:hover:bg-slate-800"
             >
               <Bell className="h-4.5 w-4.5" />
               {notifications.length > 0 && (
@@ -430,7 +430,7 @@ export const Layout: React.FC<LayoutProps> = ({
           {/* Support Tickets — opens the existing ticket list/create flow */}
           <button
             onClick={() => setShowTicketModal(true)}
-            className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 hover:text-indigo-600 transition dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
+            className="rounded-lg p-2 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 text-slate-505 hover:bg-slate-100 hover:text-indigo-600 transition dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
             title="Support Tickets"
             aria-label="Open support tickets"
           >
@@ -441,7 +441,7 @@ export const Layout: React.FC<LayoutProps> = ({
           {canViewLogbook && (
             <button
               onClick={() => setShowLogbookModal(true)}
-              className="rounded-lg p-2 text-slate-505 hover:bg-slate-100 hover:text-indigo-600 transition dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
+              className="rounded-lg p-2 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 text-slate-505 hover:bg-slate-100 hover:text-indigo-600 transition dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
               title="Activity Logbook"
               aria-label="Open activity logbook"
             >
@@ -456,20 +456,20 @@ export const Layout: React.FC<LayoutProps> = ({
             </div>
             <div className="hidden flex-col sm:flex">
               <span className="text-xs font-bold text-slate-900 dark:text-white">{currentUser.name}</span>
-              <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wide dark:text-slate-500">
+              <span className="text-[11px] font-mono text-slate-600 uppercase tracking-wide dark:text-slate-400">
                 {currentUser.role.replace('_', ' ')}
               </span>
             </div>
             <button
               onClick={onNavigateHome}
-              className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-500 transition dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
+              className="rounded-lg p-2 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 text-slate-400 hover:bg-slate-100 hover:text-indigo-500 transition dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
               title="Home"
             >
               <Home className="h-4.5 w-4.5" />
             </button>
             <button
               onClick={onLogout}
-              className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-500 transition dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-red-400"
+              className="rounded-lg p-2 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 text-slate-400 hover:bg-slate-100 hover:text-red-500 transition dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-red-400"
               title="Logout"
             >
               <LogOut className="h-4.5 w-4.5" />
@@ -535,7 +535,7 @@ export const Layout: React.FC<LayoutProps> = ({
           <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
             {/* Pinned shortcuts header */}
             {!collapsed && pinnedItems.length > 0 && (
-              <div className="px-3 py-1 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest block mb-1 dark:text-slate-500">
+              <div className="px-3 py-1 text-[11px] font-mono font-bold text-slate-600 uppercase tracking-widest block mb-1 dark:text-slate-400">
                 📌 Pinned Views
               </div>
             )}
@@ -608,7 +608,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
           {/* Support Branding Footer */}
           <div className="border-t border-slate-200 p-4 dark:border-slate-700">
-            <div className={`flex items-center gap-2 px-2 text-[10px] font-semibold text-slate-450 ${collapsed ? 'justify-center' : ''} dark:text-slate-500`}>
+            <div className={`flex items-center gap-2 px-2 text-[10px] font-semibold text-slate-600 ${collapsed ? 'justify-center' : ''} dark:text-slate-400`}>
               <HelpCircle className="h-4 w-4 text-slate-400 shrink-0 dark:text-slate-500" />
               {!collapsed && <span>IIT Ropar VLED Labs</span>}
             </div>

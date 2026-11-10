@@ -7,7 +7,7 @@ For each class:
         Observe -> Recognize -> Recall -> Sequence -> Compare -> Represent
         -> Combine -> Take Away -> Classify -> Relate -> Generalize -> Interpret -> Apply
   - The level -> cognitive-level mapping lives in cog_mapping.json
-  - Source: levels.json (parsed from Research/fln_proposed_levels.md)
+  - Source: levels.json (parsed from Research/02-93-levels/framework-build/fln_proposed_levels.md)
 
 Output:
   frontend/public/worksheets/proposed-levels/class2-diagnostic-cognitive.html

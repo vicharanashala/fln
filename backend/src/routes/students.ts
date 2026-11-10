@@ -4,8 +4,8 @@ import { answersMatch, matchesChoiceLetter } from '../answerMatching';
 import { getAuthUser, canAccessStudent, adminAreaIncludesSchool } from '../auth';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
+import { NoApprovedContentError } from '../utils/conceptQuestionGenerator';
 import { evaluateAIDiagnostic } from '../gemini';
-import { runCertificationEligibility } from '../services/certificationRecords';
 import { invalidateFingerprintCache } from './misconceptions';
 import { assignStudentToArchetype } from '../studentArchetypeService';
 import { resolvePrerequisites, describeConcept, directPrerequisites } from '../competencyPrerequisites';
@@ -638,7 +638,14 @@ export function registerStudentRoutes(app: express.Express) {
       const startLevel = (classNumber - 1) * 12 + 1;
       questions = [];
       for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-        const lvlQuestions = await generateQuestionsForLevel(Math.min(lvl, LEVEL_COUNT), 0);
+        let lvlQuestions: Question[];
+        try {
+          lvlQuestions = await generateQuestionsForLevel(Math.min(lvl, LEVEL_COUNT), 0);
+        } catch (levelErr) {
+          // A level with no written questions is skipped in this mock; a real error is not hidden.
+          if (levelErr instanceof NoApprovedContentError) continue;
+          throw levelErr;
+        }
         lvlQuestions.forEach(q => {
           questions.push({
             ...q,
@@ -651,7 +658,7 @@ export function registerStudentRoutes(app: express.Express) {
     }
 
     res.json({
-      student,
+      student: toPublicStudent(student),
       diagnosticPaper: {
         id: 'diag_' + student.id + '_' + Date.now(),
         studentId: student.id,
@@ -821,7 +828,7 @@ export function registerStudentRoutes(app: express.Express) {
         });
       }
       return res.json({
-        student,
+        student: toPublicStudent(student),
         evaluation: { score: existingReport.score, recommendedLevel: existingReport.recommendedLevel, narrative: existingReport.narrative },
         report: existingReport,
         alreadySubmitted: true
@@ -1054,16 +1061,30 @@ export function registerStudentRoutes(app: express.Express) {
       levelHistory
     });
 
-    // Concept mastery by broad topic band. Coarse (four fixed bands keyed to
-    // recommendedLevel thresholds) rather than derived from which questions
-    // were actually missed — a real per-topic breakdown needs #413's error
-    // clustering, not something to fake here in the meantime.
-    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {
-      'Number Sense': recommendedLevel >= 15 ? 'Strong' : 'Needs Practice',
-      'Shapes': recommendedLevel >= 25 ? 'Strong' : 'Needs Practice',
-      'Fractions': recommendedLevel >= 35 ? 'Strong' : 'Needs Practice',
-      'Operations': recommendedLevel >= 12 ? 'Strong' : 'Needs Practice'
-    };
+    // Concept mastery per strand, from how the student actually did on this
+    // paper's questions in that strand: >= 80% correct is Strong, >= 60% is
+    // Satisfactory, anything lower is Needs Practice. (It used to compare
+    // recommendedLevel against four fixed thresholds that every class's level
+    // range now exceeds, so every strand came out Strong regardless of score —
+    // #577.)
+    const strandOf = (r: (typeof questionResults)[number]) =>
+      CURRICULUM_MAPPING[r.sourceLevel]?.strand
+      || (r.q.conceptId ? describeConcept(r.q.conceptId)?.strand : undefined)
+      || r.q.topic
+      || 'General Mathematics';
+    const strandOutcomes = new Map<string, { correct: number; total: number }>();
+    for (const r of questionResults) {
+      const strand = strandOf(r);
+      const o = strandOutcomes.get(strand) ?? { correct: 0, total: 0 };
+      o.total += 1;
+      if (r.isCorrect) o.correct += 1;
+      strandOutcomes.set(strand, o);
+    }
+    const conceptMastery: { [topic: string]: "Strong" | "Needs Practice" | "Satisfactory" } = {};
+    for (const [strand, { correct, total }] of strandOutcomes) {
+      const pct = total > 0 ? (correct / total) * 100 : 0;
+      conceptMastery[strand] = pct >= 80 ? 'Strong' : pct >= 60 ? 'Satisfactory' : 'Needs Practice';
+    }
 
     // Persist what the child actually wrote, alongside the verdict.
     //
@@ -1149,24 +1170,19 @@ export function registerStudentRoutes(app: express.Express) {
 
     // A concept counts as failed only when the student got none of its
     // questions right. Per-question correctness is the only source of truth
-    // here — deliberately NOT the heuristic conceptMastery above, which is
-    // derived from recommendedLevel thresholds and can flag a concept as weak
-    // even when every question was answered correctly.
+    // here — conceptMastery above is per strand, which is coarser than the
+    // per-concept grouping a failed concept needs.
     const failedConceptIds: string[] = [];
     for (const [conceptId, { correct }] of conceptOutcomes) {
       if (correct === 0) failedConceptIds.push(conceptId);
     }
 
-    // Override conceptMastery for the PASS case. The level-threshold heuristic
-    // above would otherwise mark every strand as "Needs Practice" because the
-    // student is placed at Level 2 — which directly contradicts the
-    // demonstrated mastery.
+    // PASS case: every strand on the paper is Strong. Per-strand scoring
+    // already gives 100% everywhere here; this keeps the guarantee explicit
+    // and uses the same strandOf() so the keys always match.
     if (allCorrect) {
       for (const r of questionResults) {
-        const cfg = CURRICULUM_MAPPING[r.q.source_level || 0];
-        if (cfg?.strand) {
-          conceptMastery[cfg.strand] = 'Strong';
-        }
+        conceptMastery[strandOf(r)] = 'Strong';
       }
     }
 
@@ -1179,7 +1195,7 @@ export function registerStudentRoutes(app: express.Express) {
     //
     //   question result (correct / incorrect, from the submitted answers)
     //     -> q.conceptId          (skip the question when absent)
-    //     -> CONCEPT_PREREQUISITES (Research/fln_level_networks.md, prereq edges only)
+    //     -> CONCEPT_PREREQUISITES (Research/02-93-levels/framework-build/fln_level_networks.md, prereq edges only)
     //     -> prerequisiteLearningPath
     //
     // There is no level-number arithmetic, no topic/subtopic string matching and
@@ -1356,8 +1372,9 @@ export function registerStudentRoutes(app: express.Express) {
       console.error('[archetype] Failed to assign student to misconception archetype:', error);
     }
 
-    // Fire-and-forget: re-evaluate certification eligibility.
-    runCertificationEligibility(student);
+    // Issue #845: certification eligibility is NOT evaluated on diagnostic
+    // submissions. Only End-of-year worksheet submissions trigger it
+    // (see routes/evaluation.ts).
 
     await dbStore.addLog({
       id: 'log_' + Date.now(),
@@ -1385,7 +1402,7 @@ export function registerStudentRoutes(app: express.Express) {
       });
     }
 
-    res.json({ student, evaluation: { score, recommendedLevel, narrative }, report });
+    res.json({ student: toPublicStudent(student), evaluation: { score, recommendedLevel, narrative }, report });
   };
 
   app.post('/api/students/:id/diagnostic/submit', submitDiagnostic('diagnostic'));

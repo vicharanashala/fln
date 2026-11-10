@@ -20,12 +20,21 @@
     "seed:question-bank": "npm run seed:question-bank --workspace @fln/backend",
     "check:level-notation-drift": "tsx scripts/check-level-notation-drift.ts",
     "check:duplicate-questions": "tsx scripts/check-duplicate-questions.ts",
-    "check:pr": "bash scripts/ci/pr-checks.sh"
+    "check:pr": "bash scripts/ci/pr-checks.sh",
+    "lint:eslint": "eslint .",
+    "check:levels": "tsx scripts/ci/check-levels.ts",
+    "check:routes": "tsx scripts/ci/check-routes.ts"
   },
   "dependencies": {
     "jose": "^5.9.6",
     "mongodb": "^7.5.0",
     "mongoose": "^9.7.4",
     "otpauth": "^9.5.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.13.0",
+    "typescript-eslint": "^8.72.0"
   }
 }

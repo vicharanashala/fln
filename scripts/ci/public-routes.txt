@@ -1,0 +1,10 @@
+# Routes that are meant to answer without a login. scripts/ci/check-routes.ts expects every
+# OTHER route to answer 401/403 when called with no login. Format: METHOD /path   # why
+# Adding a line here is a decision that the route exposes nothing private — say why.
+POST /api/auth/login                                  # how a user logs in
+GET  /health                                          # liveness probe, no data
+GET  /api/states                                      # static state/UT list for the registration form
+GET  /api/districts/by-state/:stateId                 # static geography list for the registration form
+GET  /api/blocks/by-district/:districtId              # static geography list for the registration form
+POST /api/students/:id/aadhaar/mfa/enroll             # retired route, always answers 410 Gone
+GET  /api/students/:id/aadhaar/mfa/me                 # retired route, always answers 410 Gone

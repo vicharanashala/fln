@@ -29,6 +29,7 @@
 // same `vaultLogbookEntry` helper the other vault commands use.
 
 import express from 'express';
+import { authRateLimiter } from '../config';
 import { dbStore, UserRole, type User } from '../db';
 import { getAuthUser } from '../auth';
 import {
@@ -160,7 +161,7 @@ export function registerMfaEnrollmentRoutes(app: express.Express): void {
   // weaken replay protection (an attacker who learns one
   // secret still has the other as a fallback).
   // ─────────────────────────────────────────────────────────────────────
-  app.post('/api/me/mfa/enroll', async (req, res) => {
+  app.post('/api/me/mfa/enroll', authRateLimiter, async (req, res) => {
     const guard = requireDetokenizeRole(req, res);
     if (!guard) return;
     const { user, email, role } = guard;
@@ -297,7 +298,7 @@ export function registerMfaEnrollmentRoutes(app: express.Express): void {
   // step-up concern, not an enrollment concern, and should go
   // through /api/students/:id/aadhaar/step-up/approve instead.
   // ─────────────────────────────────────────────────────────────────────
-  app.post('/api/me/mfa/verify', async (req, res) => {
+  app.post('/api/me/mfa/verify', authRateLimiter, async (req, res) => {
     const guard = requireDetokenizeRole(req, res);
     if (!guard) return;
     const { user, email, role } = guard;

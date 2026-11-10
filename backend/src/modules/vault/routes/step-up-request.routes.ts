@@ -18,10 +18,10 @@
 import type { Request, Response, Router } from 'express';
 import express from 'express';
 import { requireScope } from '../middleware';
+import { sessionCallerContext } from '../session-context';
 import { VaultError } from '../errors';
 import type { VaultErrorCode } from '../errors';
 import type {
-  RequestDetokenizationCallerContext,
   RequestDetokenizationCommand,
 } from '../application/commands/request-detokenization';
 import { RequestDetokenizationCommandError } from '../application/commands/request-detokenization';
@@ -38,21 +38,6 @@ function asString(v: unknown, field: string): string {
     throw new VaultError('INVALID_INPUT', `field "${field}" must be a string.`, 400);
   }
   return v;
-}
-
-function asContext(v: unknown): RequestDetokenizationCallerContext {
-  if (!v || typeof v !== 'object') {
-    throw new VaultError('INVALID_INPUT', 'field "context" must be an object.', 400);
-  }
-  const o = v as Record<string, unknown>;
-  return {
-    actorId: asString(o.actorId, 'context.actorId'),
-    actorRole: asString(o.actorRole, 'context.actorRole') as RequestDetokenizationCallerContext['actorRole'],
-    reason: asString(o.reason, 'context.reason'),
-    requestId: o.requestId !== undefined ? asString(o.requestId, 'context.requestId') : undefined,
-    sourceIp: o.sourceIp !== undefined ? asString(o.sourceIp, 'context.sourceIp') : undefined,
-    userAgent: o.userAgent !== undefined ? asString(o.userAgent, 'context.userAgent') : undefined,
-  };
 }
 
 export function registerStepUpRequestRoute(router: Router, ctx: VaultContext | null): void {
@@ -74,7 +59,7 @@ export function registerStepUpRequestRoute(router: Router, ctx: VaultContext | n
         cmd = {
           tokenId: asString(body.tokenId, 'tokenId'),
           factorId: asString(body.factorId, 'factorId'),
-          context: asContext(body.context),
+          context: sessionCallerContext(res, body.context),
         };
       } catch (err) {
         if (err instanceof VaultError) {

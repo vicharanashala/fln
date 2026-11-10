@@ -1,0 +1,75 @@
+name: PR checks comment
+
+# Posts what the "PR checks" run found as ONE comment on the pull request, and edits
+# that comment on every push, so a contributor sees which check failed and what to fix
+# without opening the Actions log. Stays quiet when everything passes, unless an earlier
+# failure comment exists, in which case it is edited to say the checks now pass.
+#
+# Runs on workflow_run, in the base repository with write permission, so it works for
+# pull requests from forks. It never checks out or runs the PR's code: the report it
+# reads is data produced by the PR's run, so it is only quoted inside a code block.
+
+on:
+  workflow_run:
+    workflows: ["PR checks"]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: pr-checks-report-*
+          merge-multiple: true
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: report
+
+      - name: Post or update the comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -euo pipefail
+          ls report/*.md >/dev/null 2>&1 || { echo "no report (the run was cancelled or stopped before it wrote one)"; exit 0; }
+
+          # Find the open PR for this commit. The workflow_run payload has no PR for forks.
+          pr=$(gh pr list -R "$REPO" --state open --search "$HEAD_SHA" --json number,headRefOid \
+                 --jq '.[] | select(.headRefOid == env.HEAD_SHA) | .number' | head -n1)
+          [ -n "$pr" ] || { echo "no open PR with head $HEAD_SHA (it was pushed again or closed) — nothing to do"; exit 0; }
+
+          marker='<!-- fln-pr-checks -->'
+          existing=$(gh api "repos/$REPO/issues/$pr/comments" --paginate \
+                       --jq "[.[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\")))][0].id // empty")
+
+          # Passing and nothing to correct: stay quiet.
+          if [ "$CONCLUSION" = "success" ] && [ -z "$existing" ]; then echo "checks pass, no earlier comment — staying quiet"; exit 0; fi
+
+          {
+            echo "$marker"
+            if [ "$CONCLUSION" = "success" ]; then echo "### ✅ PR checks passed"; else echo "### ❌ PR checks failed"; fi
+            echo
+            # one report per job, in a fixed order; failed ones first so they are not cut off
+            for f in $(grep -l '^#### ❌' report/*.md 2>/dev/null | sort) $(grep -L '^#### ❌' report/*.md 2>/dev/null | sort); do cat "$f"; echo; done | head -c 55000
+            echo
+            echo
+            echo "<sub>Automatic comment from the PR checks workflow for commit \`${HEAD_SHA:0:7}\`. It edits itself on every push. Team Vicharanashala</sub>"
+          } > body.md
+
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$existing" -F body=@body.md >/dev/null
+            echo "updated comment $existing on #$pr"
+          else
+            gh api "repos/$REPO/issues/$pr/comments" -F body=@body.md >/dev/null
+            echo "commented on #$pr"
+          fi

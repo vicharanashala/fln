@@ -13,10 +13,13 @@ name: PR checks
 # read-only token and no secrets, so it is safe for pull requests from forks.
 #
 # Everything is in scripts/ci/pr-checks.sh so it can be run locally too:
-#   npm run check:pr
+#   npm run check:pr            (all groups)
+#   npm run check:pr -- types   (one group)
 #
-# To make this a hard gate, mark "PR checks / verify" as a required status
-# check in Settings > Branches > main.
+# One job per group, so the pull request shows each as its own check and a failure
+# says which part broke without opening a log. To make this a hard gate, mark the
+# jobs you want (e.g. "PR checks / Type check") as required status checks in
+# Settings > Branches > main. Add a group: add it to the script and to the matrix.
 
 on:
   pull_request:
@@ -32,9 +35,20 @@ permissions:
 
 jobs:
   verify:
-    name: verify
+    name: ${{ matrix.label }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false   # one failing group must not hide the others
+      matrix:
+        include:
+          - { group: consistency,    label: Consistency }
+          - { group: types,          label: Type check }
+          - { group: eslint,         label: ESLint }
+          - { group: tests-backend,  label: Backend tests }
+          - { group: tests-frontend, label: Frontend tests }
+          - { group: build,          label: Build }
+          - { group: routes,         label: Routes }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,5 +64,19 @@ jobs:
           PUPPETEER_SKIP_DOWNLOAD: 'true'
         run: npm ci   # fails if package-lock.json is out of step with package.json
 
-      - name: Run PR checks
-        run: bash scripts/ci/pr-checks.sh
+      - name: Run ${{ matrix.label }}
+        env:
+          PR_CHECKS_REPORT: pr-checks-report/${{ matrix.group }}.md
+          PR_CHECKS_LABEL: ${{ matrix.label }}
+        run: bash scripts/ci/pr-checks.sh ${{ matrix.group }}
+
+      # The comment bot (pr-checks-comment.yml) reads these. They are kept even when
+      # the checks fail, which is exactly when the report is needed.
+      - name: Keep the report for the comment bot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-checks-report-${{ matrix.group }}
+          path: pr-checks-report/${{ matrix.group }}.md
+          if-no-files-found: ignore
+          retention-days: 3

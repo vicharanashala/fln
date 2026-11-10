@@ -12,8 +12,8 @@ export interface LevelConceptConfig {
  * Re-ordering levels in the curriculum requires ONLY changing the levelNumber assignment here.
  *
  * Stage 3 ("the year before Class 1" / Balvatika) was finalised against NCF-FS 2022
- * (Annexure 1, Tables 29-41) in PR #517 — see Research/fln_year_before_class1.md for
- * the full decision record and Research/fln_level_networks.md Part 2b for the sourced
+ * (Annexure 1, Tables 29-41) in PR #517 — see Research/03-109-levels/fln_year_before_class1.md for
+ * the full decision record and Research/02-93-levels/framework-build/fln_level_networks.md Part 2b for the sourced
  * prerequisite edges. That work added 15 nodes to this stage (11 split off later-stage
  * nodes, 4 new), moved 4 nodes in from later stages (S-code kept, stage label only),
  * and widened 2 earlier-stage definitions — shifting every level number below from what

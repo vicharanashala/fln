@@ -247,3 +247,57 @@ test('Case 4: choiceErrorTags lookup on wrong choices sets tagged errorType (#62
   assert.ok(result.rootCauses && result.rootCauses.length > 0, 'rootCauses should not be empty');
   assert.equal(result.rootCauses[0].errorType, 'under-inclusion', 'errorType should match tagged choice');
 });
+
+test('Case 5: invalid errorType returns 400 (#459)', async () => {
+  const reportId = 'rep-override-invalid-errortype';
+  const report = createReport(reportId);
+  storeData?.evaluationReports.push(report);
+
+  const res = await api('PATCH', `/api/evaluation/${reportId}/override`, TEACHER, {
+    corrections: [{ questionId: 'q1', isCorrect: false, errorType: 'completely_made_up' }],
+  });
+
+  assert.equal(res.status, 400, 'Invalid errorType must return 400');
+  assert.ok(res.json?.error?.includes('Invalid errorType'), 'Error message should explain invalid errorType');
+});
+
+test('Case 6: teacher-supplied errorType overrides classifier in rootCauses (#459)', async () => {
+  const reportId = 'rep-override-teacher-label';
+  const report = createReport(reportId);
+  storeData?.evaluationReports.push(report);
+
+  // q1 submitted answer is '4', expected is '3' (numeric off-by-one).
+  // The classifier would normally classify it as 'off_by_one'.
+  // Teacher supplies 'conceptual'.
+  const res = await api('PATCH', `/api/evaluation/${reportId}/override`, TEACHER, {
+    corrections: [
+      { questionId: 'q1', isCorrect: false, errorType: 'conceptual' },
+      { questionId: 'q3', isCorrect: true, correctedAnswer: '9' },
+    ],
+  });
+
+  assert.equal(res.status, 200);
+  const rootCauses = res.json.report.rootCauses;
+  assert.ok(Array.isArray(rootCauses), 'rootCauses should be an array');
+  assert.equal(rootCauses.length, 1, 'rootCauses should only contain q1');
+  assert.equal(rootCauses[0].questionId, 'q1');
+  assert.equal(rootCauses[0].errorType, 'conceptual', 'Teacher errorType "conceptual" must override classifier');
+});
+
+test('Case 7: a teacher label is kept when a later override changes another question (#459)', async () => {
+  const reportId = 'rep-override-label-kept';
+  storeData?.evaluationReports.push(createReport(reportId));
+
+  const first = await api('PATCH', `/api/evaluation/${reportId}/override`, TEACHER, {
+    corrections: [{ questionId: 'q1', isCorrect: false, errorType: 'conceptual' }],
+  });
+  assert.equal(first.status, 200);
+
+  const second = await api('PATCH', `/api/evaluation/${reportId}/override`, TEACHER, {
+    corrections: [{ questionId: 'q3', isCorrect: true, correctedAnswer: '9' }],
+  });
+  assert.equal(second.status, 200);
+
+  const q1 = second.json.report.rootCauses.find((r: any) => r.questionId === 'q1');
+  assert.equal(q1.errorType, 'conceptual', 'the label from the first override must still be there');
+});

@@ -387,8 +387,10 @@ test('audit: no logbook row contains a 12-digit Aadhaar in details (security rul
     // hex chars; the tokenize row encodes the subjectHash
     // UUID which contains 32 hex chars, none of which are
     // 12 consecutive digits). The regex below only matches
-    // 12 *decimal* digits, not 12 hex.
-    assert.ok(!/\b\d{12}\b/.test(row.details),
+    // 12 *decimal* digits, not 12 hex. (A dashed UUID's last group is
+    // 12 hex chars and is all digits ~0.4% of the time, so the regex
+    // ignores digit runs touching a word character or a hyphen.)
+    assert.ok(!/(?<![\w-])\d{12}(?![\w-])/.test(row.details),
       `logbook row details must not contain a 12-digit Aadhaar; offending row id: ${row.id}, details: ${row.details.slice(0, 120)}`);
   }
 });

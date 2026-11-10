@@ -2,7 +2,7 @@
  * Prerequisite edges for the FLN curriculum (108 levels as of PR #517's Stage-3
  * finalisation, 2026-09-18), keyed by conceptId.
  *
- * SOURCE OF TRUTH: `Research/fln_level_networks.md` — Part 2, "The Ten Strand
+ * SOURCE OF TRUTH: `Research/02-93-levels/framework-build/fln_level_networks.md` — Part 2, "The Ten Strand
  * Chains (the actual prerequisite graph)". That document expresses the graph as
  * typed edge lists and states outright that "The Evaluation Engine should
  * consume the edge list".
@@ -324,7 +324,7 @@ export const CONCEPT_PREREQUISITES: Readonly<Record<string, readonly string[]>> 
   'S7.2': ['S7.1'],
   'S4.2': ['S4.1'],
   'S7.15': ['S7.1'],
-  // Added 2026-09-18, PR #517 §5g (Research/fln_level_networks.md Part 2b) — the year-before-Class-1 stage finalisation.
+  // Added 2026-09-18, PR #517 §5g (Research/02-93-levels/framework-build/fln_level_networks.md Part 2b) — the year-before-Class-1 stage finalisation.
   'S3.11': ['S1.4'],
   'S3.12': ['S2.4'],
   'S3.13': ['S3.1'],
@@ -455,7 +455,7 @@ export function resolvePrerequisites(conceptId: string): string[] {
  * Apex set of a group of concepts: the ones that are not a (transitive) hard
  * prerequisite of any other concept in the group. Passing an apex concept is
  * evidence for everything beneath it, so a diagnostic has to ask about every
- * apex concept and need not ask about the rest (Research/fln_level_networks.md,
+ * apex concept and need not ask about the rest (Research/02-93-levels/framework-build/fln_level_networks.md,
  * Part 4b). Derived from the edge table rather than kept as a written-out
  * table, so it cannot go stale when an edge changes (FLN #468). Unknown ids
  * are ignored. Order follows the input.

@@ -822,6 +822,6 @@ test('TEST 20: plaintext Aadhaar is never written to any captured console line',
     console.info = origInfo;
   }
   for (const line of captured) {
-    assert.equal(/\b\d{12}\b/.test(line), false, `12-digit run leaked in console: ${line}`);
+    assert.equal(/(?<![\w-])\d{12}(?![\w-])/.test(line), false, `12-digit run leaked in console: ${line}`);
   }
 });

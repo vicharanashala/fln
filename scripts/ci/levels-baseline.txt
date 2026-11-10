@@ -1,0 +1,24 @@
+# Stale level numbers that already existed on main when scripts/ci/check-levels.ts was introduced.
+# The check fails only on lines NOT listed here. Fix one, then delete its line (the script tells
+# you when a line no longer matches). Format: <file> :: <the exact source line, trimmed>
+#
+# Math.min(59, ...) caps: the curriculum has 109 levels, so these clamp any recommendation above
+# L59 down to L59 (the live "paper-gen bug above L59"). Fix: use LEVEL_COUNT from config/skillLevelMap.
+# frontend/src/constants.ts: builds 93 placeholder levels; should use MAX_FLN_LEVEL.
+# seedCurriculumLevels.ts and ARCHITECTURE.md: wording that still says "93 levels" for the current curriculum.
+backend/src/gemini.ts :: recommendedLevel = Math.min(59, maxLevel + 1);
+backend/src/gradeLevelCalculator.ts :: newLevel = Math.min(59, currentLevel + 1);
+backend/src/routes/evaluation.ts :: targetLevel: Math.min(59, recommendedLevel + 1),
+backend/src/routes/evaluation.ts :: const recommendedLevel = Math.max(1, Math.min(59, (classNumber - 1) * 10 + Math.ceil(percentage / 10)));
+backend/src/routes/evaluation.ts :: targetLevel: Math.min(59, recommendedLevel + 1),
+backend/src/routes/questionBank.ts :: for (let legacyId = 1; legacyId <= 59; legacyId++) {
+backend/src/routes/students.ts :: recommendedLevel = Math.min(59, maxLevel + 1);
+backend/src/routes/students.ts :: `- Target next milestone: Level ${Math.min(59, recommendedLevel + 1)}.`,
+backend/src/routes/students.ts :: targetLevel: Math.min(59, recommendedLevel + 1),
+backend/src/routes/students.ts :: `- Target next milestone: Level ${Math.min(59, recommendedLevel + 1)}.`,
+backend/src/routes/students.ts :: nextDemonstratedLevel = Math.min(59, demonstratedLevel + 1);
+backend/src/seedCurriculumLevels.ts :: console.error(`Crosswalk has ${collisions.length} collision(s) — two legacy levels mapped to one 93-level:`);
+frontend/src/constants.ts :: for (let i = 1; i <= 93; i++) {
+ARCHITECTURE.md :: SA["Superadmin — National Governance<br/>Curriculum taxonomy (93 levels) · Question authoring · Calendar"]
+ARCHITECTURE.md :: │   │   ├── data/              # Canonical skillProgressionMap.ts (93 levels)
+ARCHITECTURE.md :: │   │   │   ├── curriculum.ts  # 93-level curriculum queries, coverage metrics

@@ -50,6 +50,7 @@
 //   the existing one.
 
 import express from 'express';
+import { authRateLimiter } from '../config';
 import { dbStore, UserRole } from '../db';
 import { getAuthUser, canAccessStudent } from '../auth';
 import {
@@ -201,7 +202,7 @@ export function registerAadhaarDetokenizeRoutes(app: express.Express): void {
   //    step-up path does NOT mint factors; it only SELECTS an
   //    existing ENROLLED factor.
   // ─────────────────────────────────────────────────────────────────────────
-  app.post('/api/students/:id/aadhaar/step-up/request', async (req, res) => {
+  app.post('/api/students/:id/aadhaar/step-up/request', authRateLimiter, async (req, res) => {
     const student = await authorizeAndResolveStudent(req, res, req.params.id);
     if (!student) return;
 
@@ -263,7 +264,7 @@ export function registerAadhaarDetokenizeRoutes(app: express.Express): void {
   //    different student). The TOTP code is forwarded to the vault and
   //    NEVER logged.
   // ─────────────────────────────────────────────────────────────────────────
-  app.post('/api/students/:id/aadhaar/step-up/approve', async (req, res) => {
+  app.post('/api/students/:id/aadhaar/step-up/approve', authRateLimiter, async (req, res) => {
     const student = await authorizeAndResolveStudent(req, res, req.params.id);
     if (!student) return;
 
@@ -303,7 +304,7 @@ export function registerAadhaarDetokenizeRoutes(app: express.Express): void {
   //    the client — the backend resolves the student's vault token id from
   //    MongoDB. The user CANNOT supply a tokenId to bypass authorization.
   // ─────────────────────────────────────────────────────────────────────────
-  app.post('/api/students/:id/aadhaar/detokenize', async (req, res) => {
+  app.post('/api/students/:id/aadhaar/detokenize', authRateLimiter, async (req, res) => {
     const student = await authorizeAndResolveStudent(req, res, req.params.id);
     if (!student) return;
 

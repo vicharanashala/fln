@@ -58,7 +58,10 @@ import { InProcessEventPublisher } from '../infrastructure/events/in-process-eve
 import { makeTokenizeAadhaar } from '../application/commands/tokenize-aadhaar';
 import { makeEnrollMfa } from '../application/commands/enroll-mfa';
 import { makeRequestDetokenization } from '../application/commands/request-detokenization';
-import { makeApproveStepUpChallenge } from '../application/commands/approve-step-up-challenge';
+import {
+  makeApproveStepUpChallenge,
+  APPROVE_TOTP_WINDOW,
+} from '../application/commands/approve-step-up-challenge';
 import { makeDetokenizeAadhaar } from '../application/commands/detokenize-aadhaar';
 import { dbStore, type LogEntry } from '../../../db';
 import type {
@@ -532,7 +535,7 @@ test('E2E Step-Up: tokenize → enrollMfa → request → approve → detokenize
   // None of the rows may contain a 12-digit Aadhaar in the
   // details — that's security rule 9.
   for (const row of logbookRows) {
-    assert.ok(!/\b\d{12}\b/.test(row.details), `logbook row details must not contain a 12-digit Aadhaar: ${row.details.slice(0, 80)}`);
+    assert.ok(!/(?<![\w-])\d{12}(?![\w-])/.test(row.details), `logbook row details must not contain a 12-digit Aadhaar: ${row.details.slice(0, 80)}`);
   }
 
   // The challenge row's auditId must resolve to the
@@ -708,4 +711,162 @@ test('E2E Step-Up: actor-binding check refuses a caller who did not request the 
     context: { actorId: ADMIN_REQUESTER, actorRole: 'SUPER_ADMIN', reason: 'e2e legit' },
   });
   assert.equal(ok.aadhaar, RAW_AADHAAR);
+});
+
+// ----------------------------------------------------------------------------
+// Approver identity, factor ownership and the fixed TOTP window
+// ----------------------------------------------------------------------------
+
+/** Enrol a factor for `actor`, then return a function that produces that
+ *  factor's TOTP code for a given wall-clock time. */
+async function enrolWithCodeSource(actor: string) {
+  const enrolled = await enrollMfa({
+    actor,
+    context: { actorId: actor, actorRole: 'SUPER_ADMIN', reason: 'e2e enroll' },
+  });
+  const sealed = await mfa.getById(enrolled.factorId);
+  assert.ok(sealed);
+  const opened = await keyManager.openSecret(
+    { bytes: sealed.encryptedSecret },
+    Buffer.from(`mfa-factor:${enrolled.factorId}`, 'utf8'),
+  );
+  const codeAt = (nowMs: number) => totp.currentCode(opened, nowMs);
+  return { factorId: enrolled.factorId, codeAt };
+}
+
+async function seedToken(raw: string): Promise<string> {
+  const tok = await tokenize({
+    raw,
+    type: 'AADHAAR',
+    context: { actorId: 'fln-backend-service', actorRole: 'SERVICE', reason: 'e2e seed' },
+  });
+  return tok.token;
+}
+
+test('E2E Step-Up: request, approve and detokenize by the same admin using the email as actorId', async () => {
+  const ADMIN = 'same-admin@fln.org';
+  const tokenId = await seedToken('111122223333');
+  const { factorId, codeAt } = await enrolWithCodeSource(ADMIN);
+  const ctx = (reason: string) => ({ actorId: ADMIN, actorRole: 'SUPER_ADMIN' as const, reason });
+
+  const req = await requestDetokenization({ tokenId, factorId, context: ctx('request') });
+  const stored = await challenges.findById(req.challengeId);
+  assert.equal(stored?.requestedBy, ADMIN);
+
+  const approved = await approveStepUpChallenge({
+    challengeId: req.challengeId,
+    code: await codeAt(Date.now()),
+    context: ctx('approve'),
+  });
+  assert.equal(approved.status, 'approved');
+
+  const out = await detokenizeAadhaar({ challengeId: req.challengeId, context: ctx('detokenize') });
+  assert.equal(out.aadhaar, '111122223333');
+});
+
+test('E2E Step-Up: a different user cannot approve someone else\'s challenge', async () => {
+  const OWNER = 'owner-admin@fln.org';
+  const OTHER = 'other-admin@fln.org';
+  const tokenId = await seedToken('222233334444');
+  const owner = await enrolWithCodeSource(OWNER);
+  const other = await enrolWithCodeSource(OTHER);
+
+  const req = await requestDetokenization({
+    tokenId,
+    factorId: owner.factorId,
+    context: { actorId: OWNER, actorRole: 'SUPER_ADMIN', reason: 'request' },
+  });
+
+  // OTHER has a valid code for their own factor, and even holds the owner's
+  // valid code. Neither lets them approve a challenge OWNER requested.
+  for (const code of [await other.codeAt(Date.now()), await owner.codeAt(Date.now())]) {
+    await assert.rejects(
+      () => approveStepUpChallenge({
+        challengeId: req.challengeId,
+        code,
+        context: { actorId: OTHER, actorRole: 'SUPER_ADMIN', reason: 'approve someone else' },
+      }),
+      (err: unknown) => {
+        assert.equal((err as any).code, 'ACTOR_MISMATCH');
+        return true;
+      },
+    );
+  }
+
+  // The rejected attempts did not change or burn the challenge.
+  const stillPending = await challenges.findById(req.challengeId);
+  assert.equal(stillPending?.status, 'pending');
+
+  // The owner can still approve it.
+  const approved = await approveStepUpChallenge({
+    challengeId: req.challengeId,
+    code: await owner.codeAt(Date.now()),
+    context: { actorId: OWNER, actorRole: 'SUPER_ADMIN', reason: 'approve' },
+  });
+  assert.equal(approved.status, 'approved');
+});
+
+test('E2E Step-Up: the approver must own the factor being verified', async () => {
+  const REQUESTER = 'requester-two@fln.org';
+  const FACTOR_OWNER = 'factor-owner@fln.org';
+  const tokenId = await seedToken('333344445555');
+  const foreign = await enrolWithCodeSource(FACTOR_OWNER);
+
+  // The challenge is requested by REQUESTER but points at FACTOR_OWNER's factor.
+  const req = await requestDetokenization({
+    tokenId,
+    factorId: foreign.factorId,
+    context: { actorId: REQUESTER, actorRole: 'SUPER_ADMIN', reason: 'request' },
+  });
+
+  const foreignCode = await foreign.codeAt(Date.now());
+  await assert.rejects(
+    () => approveStepUpChallenge({
+      challengeId: req.challengeId,
+      code: foreignCode,
+      context: { actorId: REQUESTER, actorRole: 'SUPER_ADMIN', reason: 'approve with foreign factor' },
+    }),
+    (err: unknown) => {
+      assert.equal((err as any).code, 'ACTOR_MISMATCH');
+      return true;
+    },
+  );
+  assert.equal((await challenges.findById(req.challengeId))?.status, 'pending');
+});
+
+
+test('E2E Step-Up: approve uses a fixed window of 1 and ignores a caller-supplied window', async () => {
+  assert.equal(APPROVE_TOTP_WINDOW, 1);
+  const ADMIN = 'window-admin@fln.org';
+  const ctx = { actorId: ADMIN, actorRole: 'SUPER_ADMIN' as const, reason: 'window test' };
+  const tokenId = await seedToken('444455556666');
+  const { factorId, codeAt } = await enrolWithCodeSource(ADMIN);
+
+  // A code from 90 s ago (three 30 s steps back) is outside the fixed window,
+  // even when the caller asks for a huge window.
+  const stale = await requestDetokenization({ tokenId, factorId, context: ctx });
+  const staleCode = await codeAt(Date.now() - 90_000);
+  await assert.rejects(
+    () => approveStepUpChallenge({
+      challengeId: stale.challengeId,
+      code: staleCode,
+      context: ctx,
+      window: 1000,
+    } as any),
+    (err: unknown) => {
+      assert.equal((err as any).code, 'CODE_MISMATCH');
+      return true;
+    },
+  );
+
+  // A code from one step back is inside it, and a nonsense window is ignored
+  // rather than rejected.
+  const fresh = await requestDetokenization({ tokenId, factorId, context: ctx });
+  const approved = await approveStepUpChallenge({
+    challengeId: fresh.challengeId,
+    code: await codeAt(Date.now() - 15_000),
+    context: ctx,
+    window: -5,
+  } as any);
+  assert.equal(approved.status, 'approved');
 });

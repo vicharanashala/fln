@@ -32,7 +32,7 @@ import { getAuthUser } from '../auth';
  * `unmapped` is NOT the same as "cannot be built", and collapsing the two would
  * make the UI lie. Today the worksheet engine builds 59 levels perfectly well;
  * what is missing is the crosswalk saying WHICH 93-space level each of those
- * corresponds to. Until `Research/fln_59_to_93_crosswalk.json` lands, every
+ * corresponds to. Until `Research/02-93-levels/crosswalks/fln_59_to_93_crosswalk.json` lands, every
  * level is `unmapped` — including ones whose content demonstrably works.
  *
  * `hasStaticHtml`/`hasBuilder` are both gated on `legacyLevel59 !== null` at

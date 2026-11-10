@@ -16,6 +16,10 @@
  *   1. validate input (challengeId, code, caller context);
  *   2. look up the challenge via
  *      {@link StepUpChallengeRepository.findById};
+ *   2a. reject unless the approver (`context.actorId`) is the actor that
+ *      requested the challenge (`ACTOR_MISMATCH`); this runs before any
+ *      state change, so a different caller cannot fail or burn the
+ *      challenge;
  *   3. reject if the challenge is missing or no longer in `pending`
  *      state (`CHALLENGE_NOT_FOUND` / `CHALLENGE_NOT_PENDING`);
  *   4. reject if the challenge has already expired (sweep to
@@ -24,15 +28,17 @@
  *      `challenge.requiredFactorId` (server-derived — the client
  *      never names a factor; the challenge row is authoritative);
  *   6. look up the MFA factor via
- *      {@link MfaFactorRepository.getById};
+ *      {@link MfaFactorRepository.getById}, and reject unless the factor
+ *      belongs to the approver (`factor.actor === context.actorId`,
+ *      `ACTOR_MISMATCH`);
  *   7. reject missing / non-active / expired factor
  *      (`FACTOR_NOT_FOUND` / `FACTOR_NOT_ACTIVE` / `FACTOR_EXPIRED`);
  *   8. open the sealed shared secret with
  *      {@link KeyManager.openSecret} under the per-factor context
  *      (see {@link makeMfaSecretContext});
  *   9. verify the user-submitted code via
- *      {@link TotpVerifier.verifyCode} with a small clock-skew
- *      window;
+ *      {@link TotpVerifier.verifyCode} with the fixed
+ *      {@link APPROVE_TOTP_WINDOW} clock-skew window;
  *  10. on a successful verify — append an audit row, publish a
  *      `StepUpChallengeApproved` event, and call
  *      {@link StepUpChallengeRepository.approve} to flip the row;
@@ -90,8 +96,8 @@ import {
  * Caller context. Same shape as the other commands' caller context
  * (`VerifyMfa`, `EnrollMfa`, `RequestDetokenization`, etc.) so the
  * audit chain sees a consistent actor triple. The route layer
- * supplies the JWT subject as `actorId`; the body's `actorId` is
- * intentionally NOT trusted.
+ * supplies the authenticated session's identity as `actorId`
+ * (the user's email); any `actorId` in a request body is ignored.
  */
 export interface ApproveStepUpChallengeCallerContext {
   actorId: string;
@@ -114,7 +120,7 @@ export interface ApproveStepUpChallengeCallerContext {
 }
 
 /**
- * Request shape: `{ challengeId, code, context, window? }`.
+ * Request shape: `{ challengeId, code, context }`.
  *
  *   - `challengeId` — the row minted by `RequestDetokenization`.
  *     The challenge row's `requiredFactorId` is the
@@ -124,13 +130,14 @@ export interface ApproveStepUpChallengeCallerContext {
  *     with `400 invalid_request` before it reaches this command.
  *   - `code` — the 6-digit TOTP code from the user's authenticator.
  *   - `context` — actor + reason for the audit chain.
- *   - `window` — clock-skew tolerance in TOTP time-steps.
+ *
+ * There is no caller-supplied TOTP window: the approve step always
+ * uses {@link APPROVE_TOTP_WINDOW}.
  */
 export interface ApproveStepUpChallengeCommand {
   challengeId: string;
   code: string;
   context: ApproveStepUpChallengeCallerContext;
-  window?: number;
 }
 
 /**
@@ -166,6 +173,9 @@ export interface ApproveStepUpChallengeSuccess {
  *   - `FACTOR_NOT_FOUND`     — no row with this factorId.
  *   - `FACTOR_NOT_ACTIVE`    — factor is revoked / pending.
  *   - `FACTOR_EXPIRED`       — factor past `expiresAt`.
+ *   - `ACTOR_MISMATCH`       — the approver is not the actor that
+ *                              requested the challenge, or does not
+ *                              own the factor being verified.
  *   - `CODE_MISMATCH`        — code did not match within the
  *                              window.
  */
@@ -183,13 +193,12 @@ export class ApproveStepUpChallengeCommandError extends Error {
 // ---------------------------------------------------------------------------
 
 /**
- * Default clock-skew window in TOTP time-steps (±3). With the default
- * 30s period this gives a ±90s acceptance window — long enough for a
- * human to unlock their phone, open the authenticator, and type the
- * code without racing the next code rotation. Production deployments
- * can tighten this via the `window` field on the request body.
+ * Fixed clock-skew window, in TOTP time-steps, used when verifying an
+ * approval code (±1 step, so ±30 s with the default 30 s period). It is
+ * not configurable per request. This is the one place the value is
+ * defined; import it rather than repeating the number.
  */
-const DEFAULT_WINDOW = 3;
+export const APPROVE_TOTP_WINDOW = 1;
 
 // ---------------------------------------------------------------------------
 // Accepted TOTP code lengths.
@@ -284,21 +293,9 @@ export function makeApproveStepUpChallenge(deps: ApproveStepUpChallengeDeps) {
         "code must be a 6- or 8-digit decimal string.",
       );
     }
-    if (cmd.window !== undefined) {
-      if (
-        !Number.isFinite(cmd.window) ||
-        !Number.isInteger(cmd.window) ||
-        cmd.window < 0
-      ) {
-        throw new ApproveStepUpChallengeCommandError(
-          "INVALID_INPUT",
-          "window, when supplied, must be a non-negative integer.",
-        );
-      }
-    }
 
     const now = clock();
-    const window = cmd.window ?? DEFAULT_WINDOW;
+    const window = APPROVE_TOTP_WINDOW;
 
     // -----------------------------------------------------------------
     // 2. Load the challenge.
@@ -308,6 +305,19 @@ export function makeApproveStepUpChallenge(deps: ApproveStepUpChallengeDeps) {
       throw new ApproveStepUpChallengeCommandError(
         "CHALLENGE_NOT_FOUND",
         "No step-up challenge with that id exists.",
+      );
+    }
+
+    // -----------------------------------------------------------------
+    // 2a. Only the actor that requested the challenge may approve it.
+    //     This runs before any state change, so a different caller
+    //     cannot fail, expire or otherwise burn someone else's
+    //     challenge.
+    // -----------------------------------------------------------------
+    if (challenge.requestedBy !== cmd.context.actorId) {
+      throw new ApproveStepUpChallengeCommandError(
+        "ACTOR_MISMATCH",
+        "Only the actor that requested the step-up challenge can approve it.",
       );
     }
 
@@ -350,6 +360,16 @@ export function makeApproveStepUpChallenge(deps: ApproveStepUpChallengeDeps) {
       throw new ApproveStepUpChallengeCommandError(
         "FACTOR_NOT_FOUND",
         "No MFA factor with that id exists.",
+      );
+    }
+
+    // -----------------------------------------------------------------
+    // 6a. The factor being verified must belong to the approver.
+    // -----------------------------------------------------------------
+    if (factor.actor !== cmd.context.actorId) {
+      throw new ApproveStepUpChallengeCommandError(
+        "ACTOR_MISMATCH",
+        "The MFA factor does not belong to the approving actor.",
       );
     }
 

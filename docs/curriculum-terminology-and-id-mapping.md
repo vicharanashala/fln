@@ -11,7 +11,7 @@
 Historically, the FLN platform suffered from multiple disconnected ways of identifying learning competencies:
 1. **Legacy 1–59 numbering**: Rooted in the early standalone HTML worksheet engine (`levels_main.html`).
 2. **Current 1–93 numbering**: Display levels defined in `frontend/src/data/skillProgressionMap.ts`.
-3. **Research S-codes**: Pedagogical stage-notations (`S1.1` through `S7.18`) authored in `Research/fln_proposed_levels.md`.
+3. **Research S-codes**: Pedagogical stage-notations (`S1.1` through `S7.18`) authored in `Research/02-93-levels/framework-build/fln_proposed_levels.md`.
 4. **Ad-hoc `subLevel` markers**: Ambiguous numeric flags (`0`, `1`, `2`) attached to evaluation reports without standard semantics.
 
 When curriculum researchers updated the syllabus or inserted intermediate levels, sequential level numbers shifted. If student responses were tied to mutable integers like `level: 42`, **curriculum revisions would silently corrupt or orphan historical student assessment evidence**.
@@ -72,7 +72,7 @@ The single queryable source of truth for the curriculum is the `curriculumLevels
 ## 4. Legacy Content Transition: Question-Level Concept Tagging (#423)
 
 ### Superseding the Level-to-Level Crosswalk Approach
-Earlier attempts to reconcile legacy 59-level content with the 93-level curriculum relied on an automated level-to-level mapping (`Research/fln_59_to_93_crosswalk.PROPOSED.json`). That approach was officially retired and superseded on 2026-09-01 (via PR [#423](https://github.com/vicharanashala/fln/pull/423)) for two fundamental reasons:
+Earlier attempts to reconcile legacy 59-level content with the 93-level curriculum relied on an automated level-to-level mapping (`Research/02-93-levels/crosswalks/fln_59_to_93_crosswalk.PROPOSED.json`). That approach was officially retired and superseded on 2026-09-01 (via PR [#423](https://github.com/vicharanashala/fln/pull/423)) for two fundamental reasons:
 1. **Unreliable Automated Matching**: Title-only matching produced severe pedagogical errors (e.g. legacy level 4 *"Numbers 1-10"* erroneously matched to L43 *"3-Digit Numbers"*).
 2. **1-to-Many Pedagogical Overlaps**: Multiple 93-space levels legitimately draw from the same legacy level tasks rather than conforming to clean 1:1 level mappings. Attempting to force a rigid sequential crosswalk obscured this reality.
 

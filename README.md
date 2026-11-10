@@ -4,23 +4,52 @@ A large-scale, personalized assessment system that helps teachers measure, track
 
 > **Current build scope: Mathematics only.** "FLN" names the policy problem this project is built to eventually address in full (see [SRS.md](SRS.md)), but nothing here evaluates literacy today — every level, question, and evaluation path in this repo is numeracy. Don't read the sections below as literacy features that already exist.
 >
+> **Curriculum:** 109 levels, 24 skills, 183 subskills. See [where to find it](#curriculum-status-and-where-to-find-it).
+>
 > **Build order pivoted 2026-09-17 to stage-by-stage, not all-classes-at-once:** Balvatika (the year before Class 1) → Class 1 → Class 2 → Class 3, each stage frozen before the next starts. Class 4/5 are explicitly deferred to Tenali, not built here. Balvatika's 29 curriculum levels and their question-content (`generationIntent`) rows are already authored and seeded in the database, and the generation pipeline now consumes them — `levelGenerator` queries the level's approved `questionTemplates` and renders intent → wording, numbers and answer (`backend/src/services/questionTemplateRenderer.ts`, issue #486), falling back to the legacy generators for concepts with no approved templates. Don't assume a level existing in `curriculumMap.ts` means a student can be assessed on it end-to-end.
 
 ---
 
 ## Table of Contents
+- [Curriculum Status and Where to Find It](#curriculum-status-and-where-to-find-it)
 - [What is FLN?](#what-is-fln)
 - [Why FLN Matters](#why-fln-matters)
 - [Initiatives](#initiatives)
 - [What This Software Does](#what-this-software-does)
 - [How It Works (Workflow)](#how-it-works-workflow)
-- [The Level Framework](#the-level-framework)
+- [The Level Framework (109 levels)](#the-level-framework)
 - [Where This Is Headed](#where-this-is-headed)
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
 - [Contribution Guidelines](#contribution-guidelines)
 - [Branching & PR Convention](#branching--pr-convention)
 - [License](#license)
+
+---
+
+## Curriculum Status and Where to Find It
+
+**The platform currently covers 109 levels** (Preschool 1 to Class 4), built from 24 skills and 183 subskills. The count has moved twice: 59 levels, then 93, now 109. If you are working on the platform, these are the places to look:
+
+| I want to... | Go to |
+|---|---|
+| See all 109 levels, skills and subskills | [`Research/03-109-levels/`](Research/03-109-levels/README.md): [all levels](Research/03-109-levels/all-levels.md), [skills and subskills](Research/03-109-levels/skills-and-subskills.md), [CSV for Excel/Sheets](Research/03-109-levels/levels-and-subskills.csv) |
+| Understand the Balvatika stage (levels 19-46), the one being built now | [`Research/03-109-levels/fln_year_before_class1.md`](Research/03-109-levels/fln_year_before_class1.md) |
+| Read about the earlier 93-level version and how the framework was derived | [`Research/02-93-levels/`](Research/02-93-levels/README.md) |
+| Read about the original 59 levels (legacy worksheet engine) | [`Research/01-original-59-levels/`](Research/01-original-59-levels/README.md) |
+| Read the policy, theory and national data behind the curriculum | [`Research/04-background-research/`](Research/04-background-research/README.md) |
+| See how levels connect (AND/OR prerequisites) | [`docs/skill-graph/`](docs/skill-graph/README.md) |
+| Learn the ID rules (level number, S-code, skill ID) | [`docs/curriculum-terminology-and-id-mapping.md`](docs/curriculum-terminology-and-id-mapping.md) |
+| Find the level data in code | `backend/src/data/skillLevelMap.json` (source of truth), `backend/src/config/curriculumMap.ts`, `frontend/src/data/skillProgressionMap.ts` |
+
+| Stage | Levels |
+|---|---|
+| Preschool 1 / Preschool 2 | 1-8 / 9-18 |
+| Balvatika (year before Class 1) | 19-46 |
+| Class 1 / Class 2 / Class 3 | 47-60 / 61-77 / 78-91 |
+| Class 4 (outside the MVP) | 92-109 |
+
+The level list files in `Research/03-109-levels/` are generated from `skillLevelMap.json`. Change the JSON, then run `node scripts/export-levels-docs.js`; do not edit the generated files by hand. Start with the [Research index](Research/README.md) if you are new.
 
 ---
 
@@ -80,11 +109,20 @@ The platform is built around **personalized, student-specific assessment**, not 
 
 ## The Level Framework
 
+> **Looking for the list of levels and subskills?** See [Curriculum Status and Where to Find It](#curriculum-status-and-where-to-find-it) above.
+
 Every question, worksheet, and diagnostic is pinned to one of **109 curriculum levels** (`backend/src/config/curriculumMap.ts`), each mapped to a stage, age group, and a concept ID (`S1.1`–`S7.18`). The count has moved twice: an older 59-level numbering was replaced by 93, which grew to 109 when the year before Class 1 was finalised against NCF-FS 2022 (PR #517). The migration is still in progress, and the most recently added levels have had the least real-world testing.
 
 **Stage 3 (levels 19–46, concept IDs mostly `S3.*` with a few relocated `S4`/`S5` nodes) is Balvatika** — "the year before Class 1," defined by school-admission-year, not by the child's actual age (NCF and Nipun Bharat both treat the 3/4/5 age split as tentative, so there's no age-specific sub-staging). It's the stage currently being built out: 29 nodes have curriculum entries, skill/subskill mappings, and authored `generationIntent` question content in Mongo (`backend/src/seedBalvatikaQuestionTemplates.ts`, seeded via PR #529), and since issue #486 the generation pipeline consumes that content — an approved template for the level's concept is rendered into the sheet, with the legacy generators as the fallback when none exists.
 
-**Open, deliberately unsolved: how many questions per node are needed for mastery, and how that fits a Balvatika-length worksheet.** ~30 nodes × the ~4-5-questions/concept that standard mastery norms (and ASER's own practice) call for is a 90+ question diagnostic — infeasible for a 5-6-year-old in one sitting, and combining multiple nodes into one question (the usual fix) has limited reach here since most Balvatika nodes are independent rather than interconnected. FLN grades pass/fail per concept, never a partial score, which constrains whatever threshold gets picked. The same open question applies to teacher observation worksheets (how many times to observe a skill before ticking it off). Being researched deliberately, not guessed at under time pressure — don't hardcode a per-node question count or observation threshold until this is resolved.
+**Decided with the curriculum reviewer (Oct 2026): five questions per concept, scored 0 to 5.** Standard mastery norms call for about 4-5 questions per concept, and the reviewer confirmed 5 is enough for each Balvatika concept: two on the core skill, two on the same skill in a different context or format, and one on application or extension. A mark is 1 for correct and 0 for incorrect; prompts and support are recorded separately from the mark. The three result bands are **Emerging (0-1), Developing (2-3) and Secure (4-5)**, the same for every concept. Written work is read together with the teacher's observation of the child over time, and when the evidence is unclear the teacher gives that one child a follow-up activity instead of more questions for everyone.
+
+Two consequences for the code:
+
+- **A paper is built around concepts, not a fixed question total.** About 30 concepts x 5 questions is too long for one sitting, so the teacher chooses which concepts a round covers (baseline, mid-year, end-of-year) and each chosen concept gets its 5 questions. `PAPER_TYPE_CONFIG` still holds provisional totals of 10 and 8 (#593); treat them as placeholders.
+- **The scoring code has not caught up yet.** `skillStatus.ts` still uses the provisional 2-of-3 rule with the names Proficient / Progressive / Beginner (#621), and the observation sheet uses the same names. Do not hardcode either; the Emerging / Developing / Secure bands and the 5-question score are replacing them.
+
+Observation worksheets work the same way: the teacher records how the child did it (on their own, after a prompt, with support, and the strategy used), alongside the written result.
 
 Two things worth knowing before you touch level numbers:
 
@@ -314,6 +352,41 @@ All branches must follow this naming convention (`/`, not `:` — a colon is not
 4. **Review is two stages, in order: an automated first pass, then human review.** A bot pass may auto-reject a PR with a comment explaining why (fix and resubmit) — it never auto-approves. A PR that passes the automated pass is queued for human review; a maintainer merges it, not the contributor who opened it, and not necessarily the first human to look at it.
 5. If you're a new contributor, submit your [Onboarding Document](#rules) (see Rules above) with or before your first PR.
 
+## Repository Blueprint (EGM)
+
+High-altitude map of the code-bearing directories and the contracts each one carries. Each linked `README.md` lists that directory's Interface, Invariants and Side Effects. `docs/`, `Ideas/` and `Database/` hold documentation only and carry no contract. Four other directories hold no source but are read by code, so changing them can break scripts and seeds: `FLN SVG HTML files(22-59)/` (seed and question-extraction input for `backend/src/seedLevelHtml.ts`, `extractQuestions.ts` and `seedCurriculumLevels.ts`), `Research/` (crosswalk JSON read by `scripts/check-level-notation-drift.ts` and `seedCurriculumLevels.ts`, plus files written by `scripts/export-levels-docs.js` and `scripts/propose-59-to-93-crosswalk.ts`), `data/` (tracked `db.json` and `questionBank.json`; `scripts/sanitize-question-bank-svgs.ts` rewrites the question bank) and `backend/data/` (git-ignored local seed files). `mvp/` is git-ignored output.
+
+### Local Interface & Invariants
+- `test_ocr_api.py`: manual check of the ICR API (`python test_ocr_api.py <image_path>`). It is for local or seeded environments only. Known gap: it POSTs to `/api/icr/evaluate-pdf`, which the backend does not register (the registered route is `/api/icr/evaluate-cloud`, `backend/src/routes/evaluation.ts:557`), so the script cannot succeed as written.
+- `package.json`: npm workspaces root with three workspaces (`frontend`, `backend`, `backend/fln-backend`) exposing `dev`, `dev:frontend`, `dev:backend`, `build`, `start`, `lint`, `lint:eslint`, `seed:question-bank` and the `check:*` PR gates.
+- `eslint.config.mjs` and `eslint-suppressions.json`: shared lint configuration and baselined suppressions.
+- `masterTemplate.html`: standalone worksheet template.
+
+### Subdirectories & System Boundaries
+- Backend: [./backend/README.md](./backend/README.md) - the API server (`src/`), the Puppeteer batch worksheet renderer (`fln-backend/`) and operator scripts.
+  - [./backend/src/README.md](./backend/src/README.md) - Express + MongoDB server: auth, paper generation, evaluation, certification.
+  - [./backend/src/modules/vault/README.md](./backend/src/modules/vault/README.md) - Aadhaar tokenization vault.
+  - [./backend/fln-backend/README.md](./backend/fln-backend/README.md) - standalone Puppeteer batch worksheet generator.
+- Frontend: [./frontend/README.md](./frontend/README.md) - React 19 + Vite SPA; backend traffic goes through `src/services/apiClient.ts`, with one direct `fetch` of a PDF URL in `src/components/panels/DiagnosticTestPanel.tsx:130`. Standalone worksheet generators live in [./frontend/public/worksheets/README.md](./frontend/public/worksheets/README.md).
+- AI services: [./ai-services/README.md](./ai-services/README.md) - Python evaluation pipeline and personalized next-phrase exam generator. These are run by hand from the command line. The backend calls only `ai-services/scripts/pdf_rasterize.py` (`backend/src/routes/evaluation.ts:150,659`); nothing in `backend/` or `frontend/` references `run_pipeline.py`, `personalized_evaluation_pipeline.py` or the numbered stage scripts.
+- Scripts: [./scripts/README.md](./scripts/README.md) - repo tooling, Mongo migrations, derived-artifact generators. PR gates are in [./scripts/ci/README.md](./scripts/ci/README.md).
+
+### Global Invariants
+- Backend and frontend share data by generated snapshot, never by import; the curriculum registry in `backend/src/config` and `frontend/src/data` must stay in step.
+- Scope and authorization are enforced by the backend; the frontend only hides UI.
+- Aadhaar values and token IDs stay out of API responses and logs, and reversal goes only through the vault's TOTP step-up flow.
+- Generated files (skill-level map, curriculum summary, levels docs) are regenerated from source, not hand-edited.
+- The PR gate (`scripts/ci/pr-checks.sh`) runs only the sections you select and continues after a failure. ESLint, level, route and smoke checks use baselines, so only new problems fail and fixed entries are removed from the baseline. Type checks (`tsc --noEmit` per workspace, `pr-checks.sh:82-83`) have no baseline: any type error fails.
+
+### Global Side Effects
+- MongoDB (`MONGODB_URI`): the server, seed and migration scripts read and write it; `seed.ts` and `reseed.ts` drop collections.
+- External calls: Gemini and Groq LLM APIs, plus an optional admin email.
+- Headless Chromium (Puppeteer) is spawned by the worksheet renderers and some checks.
+- The PR gate spawns a local backend and temporarily moves `backend/data/db.json` aside.
+
+### System Verification
+- Run: `npm install`, then `npm run lint` and `npm run check:pr`. Workspace tests: `npm test --workspace @fln/backend` and `npm test --workspace @fln/frontend`.
+
 ## License
 
-This repository is open source. *(License file to be added — e.g., MIT/Apache 2.0. Update this section once finalized.)*
+This project is released under the [MIT License](LICENSE).

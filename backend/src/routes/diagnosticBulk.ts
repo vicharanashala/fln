@@ -6,6 +6,7 @@ import { getAuthUser } from '../auth';
 import { recordStudentCycleLock } from '../paperLock';
 import { generateDiagnosticPaper } from '../paperGenerator';
 import { generateQuestionsForLevel } from '../levelGenerator';
+import { NoApprovedContentError } from '../utils/conceptQuestionGenerator';
 import { LEVEL_COUNT } from '../config/skillLevelMap';
 import { describeAnswerKey, answerKeyProblem } from '../answerKeyCheck';
 
@@ -884,7 +885,14 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
         const startLevel = (classNumber - 1) * 12 + 1;
         questions = [];
         for (let lvl = startLevel; lvl < startLevel + 8; lvl++) {
-          const lvlQuestions = await generateQuestionsForLevel(Math.min(lvl, LEVEL_COUNT), 0);
+          let lvlQuestions: Question[];
+          try {
+            lvlQuestions = await generateQuestionsForLevel(Math.min(lvl, LEVEL_COUNT), 0);
+          } catch (levelErr) {
+            // A level with no written questions is skipped in this mock; a real error is not hidden.
+            if (levelErr instanceof NoApprovedContentError) continue;
+            throw levelErr;
+          }
           lvlQuestions.forEach(q => {
             questions.push({
               ...q,

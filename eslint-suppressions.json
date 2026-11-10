@@ -1,0 +1,17 @@
+{
+  "backend/src/levelGenerator.ts": {
+    "no-case-declarations": {
+      "count": 52
+    }
+  },
+  "backend/src/modules/vault/application/commands/detokenize-aadhaar.ts": {
+    "no-useless-catch": {
+      "count": 1
+    }
+  },
+  "backend/src/modules/vault/application/commands/enroll-mfa.ts": {
+    "no-useless-catch": {
+      "count": 1
+    }
+  }
+}

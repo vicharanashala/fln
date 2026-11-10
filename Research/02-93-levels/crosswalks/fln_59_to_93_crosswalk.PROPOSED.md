@@ -82,6 +82,6 @@ word overlap between level names and nothing more.
 
 ## Sign-off
 
-When reviewed, save the corrected mapping as `Research/fln_59_to_93_crosswalk.json`
+When reviewed, save the corrected mapping as `Research/02-93-levels/crosswalks/fln_59_to_93_crosswalk.json`
 in the shape `{ "legacy59_to_level": { "1": 4, "2": 7, ... } }`. Omit any legacy
 level that should not carry forward. `npm run seed:levels` reads that file only.

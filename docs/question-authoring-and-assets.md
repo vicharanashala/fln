@@ -49,8 +49,7 @@ Extract the ZIP to find:
 Adapt the example to the intended concept; it illustrates the CSV format, not
 pedagogically reviewed question content. Separate multiple values with `|`.
 **Upload only `questions.csv`**, not the ZIP or reference/example files, and use
-**Check the file** before importing. The importer and its existing validation
-are unchanged. Download again after updated curriculum/catalog data is deployed.
+**Check the file** before importing. Rows identical to an existing template (sharing the same variant key, normalized generation intent, skills, subskills, question family, and SVG themes) or repeated within the same file are skipped on import instead of being stored again. Download again after updated curriculum/catalog data is deployed.
 
 The authenticated ZIP endpoint accepts an optional `?stage=Balvatika` (or raw
 stage name). An omitted or empty stage returns all stages; an unknown stage

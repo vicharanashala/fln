@@ -48,6 +48,7 @@ import { registerCurriculumRoutes } from './routes/curriculum';
 import { registerQuestionBankRoutes } from './routes/questionBank';
 import { registerErrorTagsRoutes } from './routes/errorTags';
 import { registerObservationRoutes } from './routes/observations';
+import { registerSkillEvolutionRoutes } from './routes/skillEvolution';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
@@ -241,6 +242,7 @@ async function startServer() {
   console.log(`[competencyPrerequisites] prerequisite graph OK — ${prereqReport.totalConceptsWithPrerequisites} concepts, ${prereqReport.totalEdges} edges, 0 unknown ids, 0 cycles`);
 
   const app = express();
+  app.set('trust proxy', 1);
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
@@ -295,6 +297,7 @@ registerStatsRoutes(app);
   registerQuestionBankRoutes(app);
   registerErrorTagsRoutes(app);
   registerObservationRoutes(app);
+  registerSkillEvolutionRoutes(app);
 
   // --- Intervention Tracking & Best Practices Repository ---
 

@@ -1,6 +1,6 @@
 # Spec: 42 Missing Levels — Proposed Diagnostic Papers
 
-**Purpose.** Extend the python diagnostic-paper pipeline (`_build/build_class_papers.py`) to cover the 42 levels in `Research/fln_proposed_levels.md` that are NOT yet in `cog_mapping.json`. Total: 93 levels (51 existing + 42 new).
+**Purpose.** Extend the python diagnostic-paper pipeline (`_build/build_class_papers.py`) to cover the 42 levels in `Research/02-93-levels/framework-build/fln_proposed_levels.md` that are NOT yet in `cog_mapping.json`. Total: 93 levels (51 existing + 42 new).
 
 **Source of truth.** Each spec entry cites the research level code, learning outcome, and topics. Hand-written question text, fixed numbers, no randomness.
 

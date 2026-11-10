@@ -1,0 +1,5 @@
+{
+  "_comment": "current = number of levels in backend/src/config/curriculumMap.ts. retired = counts the curriculum used to have. When levels are added: set current to the new count and add the old one to retired; scripts/ci/check-levels.ts then reports every leftover literal of the old count.",
+  "current": 109,
+  "retired": [59, 93]
+}

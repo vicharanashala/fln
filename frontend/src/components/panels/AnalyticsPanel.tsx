@@ -5,6 +5,17 @@ import { PageHeader } from './PanelShared';
 import { MetricCard } from '../Card';
 import { School as SchoolIcon, Users, BarChart3, Award, Inbox, AlertTriangle, RotateCcw } from 'lucide-react';
 
+export const getTotalSchoolsCount = (
+  isPrincipal: boolean,
+  dataLength: number,
+  schoolsLength: number,
+  schoolsLoading?: boolean,
+  schoolsError?: string | null
+): string | number => {
+  if (schoolsLoading || schoolsError) return '—';
+  return isPrincipal ? dataLength : schoolsLength;
+};
+
 export const AnalyticsPanel: React.FC<{
   currentUser: User;
   schools: School[];
@@ -32,7 +43,13 @@ export const AnalyticsPanel: React.FC<{
   const title = isAdmin ? 'Geographical Analytics' : 'Performance Analytics';
   const desc = isAdmin ? 'Cross-regional performance metrics and benchmarking' : 'School-level performance data and trends';
 
-  const totalSchoolsCount = isPrincipal ? (currentUser.schoolId ? (schools.some(s => s.id === currentUser.schoolId) ? 1 : 0) : 0) : schools.length;
+  const totalSchoolsCount = getTotalSchoolsCount(
+    isPrincipal,
+    data.length,
+    schools.length,
+    schoolsLoading,
+    schoolsError
+  );
   const scopedStudents = isPrincipal && currentUser.schoolId ? students.filter(s => s.schoolId === currentUser.schoolId) : (isPrincipal && !currentUser.schoolId ? [] : students);
   const avgLevel = scopedStudents.length > 0 ? `L${Math.round(scopedStudents.reduce((a, s) => a + s.currentLevel, 0) / scopedStudents.length)}` : 'L0';
   const certRate = scopedStudents.length > 0 ? `${Math.round(scopedStudents.filter(s => s.currentLevel >= 5).length / scopedStudents.length * 100)}%` : '0%';

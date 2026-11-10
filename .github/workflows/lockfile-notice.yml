@@ -1,0 +1,54 @@
+name: Lockfile notice
+
+# When package-lock.json changes on main, every open PR that also changes package.json or
+# the lockfile is likely to conflict. Tell those PRs once, with the exact fix, so the author
+# does not have to ask. It never edits anyone's branch.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package-lock.json
+
+permissions:
+  pull-requests: write
+
+jobs:
+  notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on open PRs that touch package files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          marker='<!-- fln-lockfile-notice -->'
+          for pr in $(gh pr list -R "$REPO" --state open --limit 200 --json number --jq '.[].number'); do
+            files=$(gh pr view "$pr" -R "$REPO" --json files --jq '.files[].path')
+            echo "$files" | grep -qE '(^|/)package(-lock)?\.json$' || continue
+            already=$(gh api "repos/$REPO/issues/$pr/comments" --paginate \
+                        --jq "[.[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\")))] | length")
+            [ "$already" = 0 ] || continue
+            {
+              echo "$marker"
+              echo "Hi, the package lockfile on \`main\` just changed, and this pull request also changes a package file, so it may now show a conflict in \`package-lock.json\`. We are sorry for the extra step. Here is exactly what to do:"
+              echo
+              echo '```bash'
+              echo 'git fetch origin'
+              echo 'git merge origin/main'
+              echo '# if package-lock.json is listed as conflicting:'
+              echo 'git checkout origin/main -- package-lock.json'
+              echo 'npm install'
+              echo 'git add package-lock.json package.json'
+              echo 'git commit -m "merge main"'
+              echo 'git push'
+              echo '```'
+              echo
+              echo 'Keep your own changes to `package.json` (for example a new dependency or a script line); only the lockfile is taken from `main` and rebuilt by `npm install`.'
+              echo
+              echo '<sub>Automatic notice, sent once per pull request. Team Vicharanashala</sub>'
+            } > body.md
+            gh api "repos/$REPO/issues/$pr/comments" -F body=@body.md >/dev/null
+            echo "noticed #$pr"
+          done

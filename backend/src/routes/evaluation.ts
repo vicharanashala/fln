@@ -51,12 +51,12 @@ export function registerEvaluationRoutes(app: express.Express) {
   };
 
   // Admin endpoint: configure (or clear) a cloud OCR API key.
-  // Restricted to superadmin / admin roles. Returns {provider, configured}.
+  // Restricted to superadmin role only. Returns {provider, configured}.
   app.post('/api/icr/cloud-config', async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    if (user.role !== 'superadmin' && user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin role required.' });
+    if (user.role !== UserRole.SUPERADMIN) {
+      return res.status(403).json({ error: 'Superadmin role required.' });
     }
     const { provider, apiKey } = req.body || {};
     // Single OCR model: ollama-gemma4. Other providers (google, aws,
@@ -1062,6 +1062,7 @@ export function registerEvaluationRoutes(app: express.Express) {
       id: 'rep_' + student.id + '_' + Date.now(),
       studentId,
       worksheetId,
+      cycle: ws.cycle,
       score: evaluation.score,
       totalQuestions: studentQuestions.length,
       conceptMastery: evaluation.conceptMastery,
@@ -1093,7 +1094,10 @@ export function registerEvaluationRoutes(app: express.Express) {
     await dbStore.addEvaluationReport(report);
 
     // Fire-and-forget: re-evaluate certification eligibility.
-    runCertificationEligibility(student);
+    // Issue #845: only End-of-year worksheets may create or flag a certificate.
+    if (ws.cycle === 'End-of-year') {
+      runCertificationEligibility(student);
+    }
     try {
       await assignStudentToArchetype(studentId);
     } catch (error) {
@@ -1316,11 +1320,37 @@ export function registerEvaluationRoutes(app: express.Express) {
       });
     }
 
+    // Allowed errorType values: deterministic classifier ErrorType values plus
+    // pedagogical labels from teacher human diagnosis (#459).
+    const ALLOWED_ERROR_TYPES = new Set([
+      'unanswered',
+      'digit_reversal',
+      'decimal_place_shift',
+      'off_by_one',
+      'unclassified',
+      'conceptual',
+      'careless',
+      'prerequisite',
+    ]);
+
     const { corrections } = req.body as {
-      corrections: { questionId: string; isCorrect: boolean; correctedAnswer?: string }[];
+      corrections: {
+        questionId: string;
+        isCorrect: boolean;
+        correctedAnswer?: string;
+        errorType?: string;
+      }[];
     };
     if (!Array.isArray(corrections) || corrections.length === 0) {
       return res.status(400).json({ error: '`corrections` must be a non-empty array.' });
+    }
+
+    for (const c of corrections) {
+      if (c.errorType !== undefined && !ALLOWED_ERROR_TYPES.has(c.errorType)) {
+        return res.status(400).json({
+          error: `Invalid errorType "${c.errorType}". Must be one of: ${Array.from(ALLOWED_ERROR_TYPES).join(', ')}`,
+        });
+      }
     }
 
     const knownIds = new Set(report.questionResults.map(q => q.questionId));
@@ -1337,6 +1367,9 @@ export function registerEvaluationRoutes(app: express.Express) {
         ...q,
         submittedAnswer: correction.correctedAnswer ?? q.submittedAnswer,
         isCorrect: correction.isCorrect,
+        // Keep the teacher's label so a later override does not lose it.
+        // A question that is now correct has no error to label.
+        teacherErrorType: correction.isCorrect ? undefined : (correction.errorType ?? q.teacherErrorType),
       };
     });
 
@@ -1363,6 +1396,15 @@ export function registerEvaluationRoutes(app: express.Express) {
         const answersForAnalysis: { [questionId: string]: string } = {};
         for (const q of updatedQuestionResults) answersForAnalysis[q.questionId] = q.submittedAnswer;
         updatedRootCauses = computeRootCauseAnalysis({}, matchedQuestions, answersForAnalysis).rootCauses ?? [];
+
+        // #459: teacher-supplied errorType wins over deterministic classifier
+        // for still-wrong questions that have a teacher diagnostic label.
+        if (updatedRootCauses.length > 0) {
+          updatedRootCauses = updatedRootCauses.map(rc => {
+            const label = correctionMap.get(rc.questionId)?.errorType ?? updatedQuestionResults.find(q => q.questionId === rc.questionId)?.teacherErrorType;
+            return label ? { ...rc, errorType: label as any } : rc;
+          });
+        }
       }
     } catch (error) {
       console.error('[override] Failed to recompute rootCauses after correction:', error);

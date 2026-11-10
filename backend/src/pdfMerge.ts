@@ -1,4 +1,12 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname_esm = path.dirname(fileURLToPath(import.meta.url));
+const FONT_DIR = path.resolve(__dirname_esm, "../assets/fonts");
+const hasDevanagari = (text: string) => /[ऀ-ॿ]/.test(text);
 
 export interface StudentInfo {
   rollNo?: string;
@@ -20,7 +28,13 @@ export async function mergeAndStamp(renderedSets: RenderedSet[], students: Stude
   }
 
   const mergedPdf = await PDFDocument.create();
+  mergedPdf.registerFontkit(fontkit);
   const font = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
+  const devaBold = await mergedPdf.embedFont(
+    fs.readFileSync(path.join(FONT_DIR, "NotoSansDevanagari-Bold.ttf")),
+    { subset: true }
+  );
+  const fontFor = (text: string) => (hasDevanagari(text) ? devaBold : font);
 
   for (let i = 0; i < renderedSets.length; i += 1) {
     const set = renderedSets[i];
@@ -32,8 +46,9 @@ export async function mergeAndStamp(renderedSets: RenderedSet[], students: Stude
 
     const rollNo = student.rollNo || String(i + 1);
     const label = `STUDENT: ${student.name.toUpperCase()}   (ID: ${student.studentId || student.rollNo || rollNo})`;
+    const labelFont = fontFor(label);
     const fontSize = 9;
-    const textWidth = font.widthOfTextAtSize(label, fontSize);
+    const textWidth = labelFont.widthOfTextAtSize(label, fontSize);
 
     copiedPages.forEach((page) => {
       mergedPdf.addPage(page);
@@ -59,7 +74,7 @@ export async function mergeAndStamp(renderedSets: RenderedSet[], students: Stude
         x: x + boxPadding,
         y: y + boxPadding,
         size: fontSize,
-        font,
+        font: labelFont,
         color: rgb(0, 0, 0),
       });
     });

@@ -1,0 +1,19 @@
+# Problems that already existed on main when scripts/ci/check-routes.ts was introduced.
+# The check fails only on a route/probe NOT listed here. Fix the route, then delete its line (the
+# script tells you when a line now passes). Format: METHOD /path <probe>   # reason
+# probe = anon (no login), teacher, superadmin.
+#
+# ---- answers without a login, and probably should not (needs a decision) ----
+GET /api/schools/by-block/:blockId anon           # returns full School records (email, phone, UDISE code, address, principalId) to anyone
+GET /api/announcements anon                       # announcements readable without a login
+GET /api/stats anon                               # platform-wide counts readable without a login
+GET /api/db-status anon                           # reveals whether the database is connected, without a login
+GET /api/diagnostic/bulk/:jobId/progress anon     # no login; protected only by an unguessable job id (random UUID)
+GET /api/diagnostic/bulk/:jobId/download anon     # no login; the class ZIP is protected only by an unguessable job id (random UUID)
+GET /api/worksheets/download-batch/:batchId anon  # no login; proxies the batch ZIP from the worksheet service
+# ---- crashes (5xx) ----
+GET /api/worksheets/download-batch/:batchId teacher     # 502 when the worksheet service is not running; should answer 503 with a message
+GET /api/worksheets/download-batch/:batchId superadmin  # same
+GET /api/me/mfa/factors superadmin                # vault module is not wired when there is no Mongo
+POST /api/me/mfa/enroll superadmin                # same
+DELETE /api/me/mfa/factors/:factorId superadmin   # same

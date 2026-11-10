@@ -115,7 +115,7 @@ export function registerAdminRoutes(app: express.Express) {
       details: `Superadmin created account: ${name} (${role}) for scope ${stateCode || '*'}/${districtCode || '*'}/${blockCode || '*'}`
     });
 
-    res.json(newUser);
+    res.json(sanitizeUser(newUser));
   });
 
   app.get('/api/admin/coordinators', async (req, res) => {
