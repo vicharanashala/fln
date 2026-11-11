@@ -15,9 +15,12 @@ import { test } from 'node:test';
 import {
   ROWS,
   resolveSeedAssessmentMode,
+  resolveSeedSvgThemes,
   buildSeedQuestionTemplate,
 } from '../src/seedBalvatikaQuestionTemplates';
 import { ASSESSMENT_MODES } from '../src/routes/questionTemplates';
+import { getLevelForConcept } from '../src/config/curriculumMap';
+import { getLevel } from '../src/config/skillLevelMap';
 
 test('Balvatika seed data: all seeded rows declare a valid assessmentMode', () => {
   assert.ok(ROWS.length >= 29, `expected at least 29 seeded Balvatika rows, found ${ROWS.length}`);
@@ -136,4 +139,103 @@ test('buildSeedQuestionTemplate: throws on invalid conceptId not in curriculum m
     () => buildSeedQuestionTemplate(badRow),
     /not in the curriculum map/
   );
+});
+
+test('resolveSeedSvgThemes: preserves existing valid theme IDs', () => {
+  assert.deepEqual(
+    resolveSeedSvgThemes(['animals', 'fruits'], []),
+    ['animals', 'fruits']
+  );
+});
+
+test('resolveSeedSvgThemes: removes invalid or obsolete theme IDs', () => {
+  assert.deepEqual(
+    resolveSeedSvgThemes(['animals', 'invalid_obsolete_theme_xyz'], []),
+    ['animals']
+  );
+});
+
+test('resolveSeedSvgThemes: normalizes whitespace around theme IDs', () => {
+  assert.deepEqual(
+    resolveSeedSvgThemes(['  animals  ', ' fruits\t'], []),
+    ['animals', 'fruits']
+  );
+});
+
+test('resolveSeedSvgThemes: falls back to row themes if all existing themes are invalid', () => {
+  assert.deepEqual(
+    resolveSeedSvgThemes(['non_existent_theme_1', 'bad_theme_2'], ['mixed']),
+    ['mixed']
+  );
+});
+
+test('resolveSeedSvgThemes: validates fallback row themes and rejects invalid row theme IDs', () => {
+  assert.deepEqual(
+    resolveSeedSvgThemes([], ['  mixed  ', 'invalid_row_theme_xyz', 'fruits']),
+    ['mixed', 'fruits']
+  );
+  assert.deepEqual(
+    resolveSeedSvgThemes([], ['invalid_row_theme_1', 'invalid_row_theme_2']),
+    []
+  );
+  assert.deepEqual(
+    resolveSeedSvgThemes(['invalid_existing'], ['invalid_fallback']),
+    []
+  );
+});
+
+test('resolveSeedSvgThemes: safely handles empty, null and undefined existing themes', () => {
+  assert.deepEqual(resolveSeedSvgThemes([], ['mixed']), ['mixed']);
+  assert.deepEqual(resolveSeedSvgThemes(null, ['mixed']), ['mixed']);
+  assert.deepEqual(resolveSeedSvgThemes(undefined, ['mixed']), ['mixed']);
+  assert.deepEqual(resolveSeedSvgThemes(null, []), []);
+  assert.deepEqual(resolveSeedSvgThemes(undefined, []), []);
+});
+
+test('buildSeedQuestionTemplate: preserves both assessmentMode and svgThemeIds on update', () => {
+  const row = ROWS[1]; // S3.1
+  const existing = {
+    id: 'qtpl_pres_test_456',
+    assessmentMode: 'both' as const,
+    svgThemeIds: ['fruits', 'animals'],
+    createdAt: '2026-09-01T00:00:00.000Z',
+    createdBy: 'admin_test',
+  };
+
+  const doc = buildSeedQuestionTemplate(row, existing as any);
+  assert.equal(doc.id, 'qtpl_pres_test_456');
+  assert.equal(doc.assessmentMode, 'both');
+  assert.deepEqual(doc.svgThemeIds, ['fruits', 'animals']);
+  assert.equal(doc.createdAt, '2026-09-01T00:00:00.000Z');
+  assert.equal(doc.createdBy, 'admin_test');
+});
+
+test('buildSeedQuestionTemplate: every seed row levelName exactly matches corresponding skill-map capability', () => {
+  for (const row of ROWS) {
+    const concept = getLevelForConcept(row.conceptId);
+    assert.ok(concept, `Concept ${row.conceptId} must exist in curriculum map`);
+    const levelInfo = getLevel(concept.levelNumber);
+    assert.ok(levelInfo, `Level ${concept.levelNumber} must exist in skill map`);
+
+    const doc = buildSeedQuestionTemplate(row);
+    assert.equal(doc.levelNumber, concept.levelNumber);
+    assert.equal(doc.levelName, levelInfo.capability);
+  }
+});
+
+test('buildSeedQuestionTemplate: S3.1 resolves to Level 19 and S3.2 resolves to Level 20', () => {
+  const rowS31 = ROWS.find(r => r.conceptId === 'S3.1');
+  const rowS32 = ROWS.find(r => r.conceptId === 'S3.2');
+
+  assert.ok(rowS31, 'S3.1 must exist in ROWS');
+  assert.ok(rowS32, 'S3.2 must exist in ROWS');
+
+  const docS31 = buildSeedQuestionTemplate(rowS31);
+  const docS32 = buildSeedQuestionTemplate(rowS32);
+
+  assert.equal(docS31.levelNumber, 19);
+  assert.equal(docS31.levelName, 'Numeral Recognition (1-10)');
+
+  assert.equal(docS32.levelNumber, 20);
+  assert.equal(docS32.levelName, 'Numeral-Quantity Correspondence');
 });

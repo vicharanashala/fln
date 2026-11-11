@@ -41,6 +41,7 @@ import { fileURLToPath } from 'url';
 import { ASSESSMENT_MODES } from './routes/questionTemplates';
 import { getLevelForConcept } from './config/curriculumMap';
 import { getLevel } from './config/skillLevelMap';
+import { isKnownThemeId } from './svgAssetCatalog';
 import type { QuestionTemplate } from './db';
 
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -86,9 +87,40 @@ export function resolveSeedAssessmentMode(
 
 
 /**
+ * Resolves the visual SVG themes for a seeded question template row.
+ * - Preserves existing themes if they exist in the database and are valid in the catalog.
+ * - Trims whitespace around IDs before validation and return.
+ * - Removes invalid, empty, or obsolete theme IDs from both existing and row themes.
+ * - Falls back to valid rowThemes only when no valid existing themes remain.
+ * - Returns an empty array if neither source contains valid themes.
+ * - Safely handles null, undefined, and empty arrays.
+ */
+export function resolveSeedSvgThemes(
+  existingThemes?: string[] | null,
+  rowThemes: string[] = []
+): string[] {
+  const sanitize = (themes?: string[] | null): string[] => {
+    if (!Array.isArray(themes) || themes.length === 0) return [];
+    return themes
+      .map(t => (typeof t === 'string' ? t.trim() : ''))
+      .filter(t => t.length > 0 && isKnownThemeId(t));
+  };
+
+  const validExisting = sanitize(existingThemes);
+  if (validExisting.length > 0) {
+    return validExisting;
+  }
+
+  return sanitize(rowThemes);
+}
+
+
+/**
  * Constructs a QuestionTemplate document for a seeded Balvatika question row.
  * - Resolves levelNumber and levelName from curriculumMap and skillLevelMap (Issue #903).
+ * - Enforces strict capability validation from skillLevelMap (no fallback).
  * - Preserves existing question's intended assessmentMode if set (Issue #761).
+ * - Preserves existing question's valid svgThemeIds if set (Issue #903).
  * - Preserves existing creation timestamp and author metadata.
  */
 export function buildSeedQuestionTemplate(
@@ -101,21 +133,27 @@ export function buildSeedQuestionTemplate(
     throw new Error(`Seed row ${row.conceptId} is not in the curriculum map.`);
   }
   const levelInfo = getLevel(concept.levelNumber);
+  if (!levelInfo) {
+    throw new Error(
+      `Level ${concept.levelNumber} for concept ${row.conceptId} is not in the skill map.`
+    );
+  }
   const id = existing?.id ?? ('qtpl_' + randomUUID().slice(0, 8));
   const assessmentMode = resolveSeedAssessmentMode(existing?.assessmentMode, row.assessmentMode);
+  const svgThemeIds = resolveSeedSvgThemes(existing?.svgThemeIds, row.svgThemeIds);
 
   return {
     id,
     conceptId: row.conceptId,
     levelNumber: concept.levelNumber,
-    levelName: levelInfo?.capability ?? `Level ${concept.levelNumber}`,
+    levelName: levelInfo.capability,
     skills: row.skills,
     subskills: row.subskills,
     assessmentMode,
     generationIntent: row.generationIntent,
     questionFamily: row.questionFamily as any,
     paramMode: 'structured',
-    svgThemeIds: row.svgThemeIds,
+    svgThemeIds,
     stem: '',
     answerSpec: '',
     numeralRange: null,
