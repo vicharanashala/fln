@@ -259,12 +259,12 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const [bulkResults, setBulkResults] = useState<BulkResultItem[] | null>(null);
   const [ocrPreviewData, setOcrPreviewData] = useState<OcrAnalysisData | null>(null);
 
-  // Bulk-class scan mode (separate from the legacy single-sheet flow).
   // The dropdown option in the UI toggles scanMode; pagesPerStudent is
-  // user-controlled so a class-1 paper (1 page) and class-4 paper (2-3
-  // pages) can both be scanned without code changes.
+  // user-controlled so a class-1 paper (1 page) and class-2/3/4 papers
+  // can all be scanned without code changes. Default 3 because the most
+  // common diagnostic paper (Class 4) is 3 pages ("Page n of 3"). (#746)
   const [scanMode, setScanMode] = useState<'single' | 'bulk'>('single');
-  const [pagesPerStudent, setPagesPerStudent] = useState<number>(2);
+  const [pagesPerStudent, setPagesPerStudent] = useState<number>(3);
   // How many questions ONE student's paper has, applied uniformly to every
   // chunk in the bulk batch (a batch is normally one class/level, so every
   // student's paper is the same length). Optional — undefined means no
@@ -865,9 +865,14 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     setSelectedChunkIndex(0);
     setStep('bulk-select');
     const withName = (resp.results || []).filter(r => r.studentName).length;
+    // Include the server's page-count warning (if any) in the success banner
+    // so the teacher sees it immediately without hunting for it. (#746)
+    const warnSuffix = resp.pageCountWarning
+      ? ` ⚠️ ${resp.pageCountWarning}`
+      : '';
     setSuccess(
       `Bulk OCR complete — ${resp.successfulStudents}/${resp.totalStudents} chunks succeeded, ` +
-      `${withName} name(s) extracted from page-1 headers.`
+      `${withName} name(s) extracted from page-1 headers.` + warnSuffix
     );
     setError('');
 
@@ -1434,7 +1439,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                   />
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono leading-relaxed">
                     How many pages make up one student's paper in the merged scan PDF.
-                    Default 2 (FLN classes 2-4). Set to 1 for class-1 single-page papers.
+                    Class 4 diagnostics are 3 pages; check the printed "Page n of N" on your paper.
                   </span>
                 </div>
               </div>
