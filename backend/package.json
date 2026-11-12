@@ -33,6 +33,7 @@
     "test:school-onboarding": "tsx --test tests/school-onboarding.test.ts",
     "test:panel-isolation": "tsx --test tests/panel-isolation.test.cjs",
     "test:assessment-mode": "node tests/question-template-assessment-mode.test.cjs",
+    "test:assessment-mode-routes": "esbuild tests/balvatika-worksheet-routes.test.ts --bundle --platform=node --format=esm --packages=external --alias:bcrypt=./tests/stubs/bcrypt.ts --outfile=tests/dist/balvatika-worksheet-routes.test.mjs --log-level=warning && node tests/dist/balvatika-worksheet-routes.test.mjs",
     "test:roster-filters": "tsx --test tests/roster-filters-persistence.test.cjs",
     "audit:aadhaar": "tsx scripts/audit-aadhaar-at-rest.ts",
     "test:answer-matching": "tsx src/answerMatching.test.ts",
