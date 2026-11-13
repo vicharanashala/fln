@@ -389,4 +389,4 @@ High-altitude map of the code-bearing directories and the contracts each one car
 
 ## License
 
-This repository is open source. *(License file to be added — e.g., MIT/Apache 2.0. Update this section once finalized.)*
+This project is released under the [MIT License](LICENSE).
