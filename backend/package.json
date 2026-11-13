@@ -67,7 +67,10 @@
     "test:cert-eoy": "tsx --test tests/certification-end-of-year.test.ts",
     "test:ncf-competencies": "tsx --test tests/ncf-competencies.test.ts",
     "test:icr-cloud-config": "tsx --test tests/icr-cloud-config.test.ts",
-"test:ocr-response-review": "tsx --test src/services/scanExtraction.test.ts"
+    "seed:balvatika-bank": "tsx src/seedBalvatikaBank.ts",
+    "test:balvatika-bank": "tsx --test tests/seed-balvatika-bank.test.ts",
+    "test:seed-balvatika": "tsx --test tests/seed-balvatika-assessment-mode.test.ts",
+    "test:ocr-response-review": "tsx --test src/services/scanExtraction.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
