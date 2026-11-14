@@ -133,13 +133,19 @@ Each idea below is tied to a finding in Section 4. These are proposals, not clai
 
 ## 6. Your Contribution
 
-### Repository walkthrough and design proposal
+### Repository Analysis and Preliminary Design Work
 
-For this onboarding, I prepared a source-referenced walkthrough of the repository and traced the identity, student, curriculum, assessment, evaluation, certification, frontend API and Python-tooling boundaries. I recorded the findings in Section 4 and connected the proposed improvements in Section 5 to those findings.
+As part of my onboarding, I reviewed the FLN repository structure and traced the main frontend, backend, database, curriculum, assessment and evaluation workflows.
 
-I also prepared a separate preliminary design note, [`ISSUE-837-CERTIFICATION-DESIGN-NOTES-Anumakonda-Likith.md`](./ISSUE-837-CERTIFICATION-DESIGN-NOTES-Anumakonda-Likith.md), for Issue #837. It documents the current class-range gate, fixed certification-level lookup, existing requirement data, decisions that must be confirmed before implementation and a proposed test plan. This is a design proposal only; it is not a code fix and does not claim to resolve the issue.
+I identified and documented four areas for further improvement in Section 4 and proposed corresponding technical approaches in Section 5.
 
-**Implementation and verification status:** no production frontend, backend or Python behaviour has been changed in this onboarding work. No runtime test suite or full CI run is claimed. Before submission, I will verify the source references against the latest upstream `main`, read the design note, and rewrite the explanations in my own words. My next code contribution will target an existing open `intern-ready` issue after checking that it is not assigned or already covered by another PR.
+I also analysed the certification-record handling in `backend/src/services/certificationRecords.ts` and identified the changes needed to support the intended Balvatika-to-Class-3 scope.
+
+This analysis is preliminary design work, not a completed code fix.
+
+No production frontend or backend behaviour has been changed as part of this onboarding exercise. No runtime test or full CI success is claimed.
+
+My next step is to select an eligible, open `intern-ready` issue, verify the problem against the latest upstream code, implement the solution and submit a separate pull request with appropriate tests.
 
 ---
 
