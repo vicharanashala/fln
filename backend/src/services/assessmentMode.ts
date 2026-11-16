@@ -1,7 +1,12 @@
 import { dbStore, Question, Student } from '../db';
 import { isBalvatikaStage } from '../config/curriculumMap';
+import { generateQuestionsForLevel } from '../levelGenerator';
+import { NoApprovedContentError } from '../utils/conceptQuestionGenerator';
 
 export type AssessmentMode = 'written' | 'observed' | 'both';
+
+export const NO_PRINTABLE_QUESTION_REASON =
+  'No printable question is available for this Balvatika level.';
 
 /**
  * Resolve the author-selected assessment mode for generated questions. A
@@ -23,13 +28,13 @@ export function withAssessmentModes(
   }));
 }
 
-/** Keep only both-mode items on a Balvatika student's paper. */
+/** Remove observation-only items from a Balvatika student's paper. */
 export function filterQuestionsForStudent(
   questions: Question[],
   student: Pick<Student, 'currentLevel'>,
 ): Question[] {
   if (!isBalvatikaStage(student.currentLevel)) return questions;
-  return questions.filter(question => question.assessmentMode === 'both');
+  return questions.filter(question => question.assessmentMode !== 'observed');
 }
 
 /**
@@ -43,4 +48,21 @@ export function prepareQuestionsForStudent(
 ): Question[] {
   if (!isBalvatikaStage(student.currentLevel)) return questions;
   return filterQuestionsForStudent(withAssessmentModes(questions, modes), student);
+}
+
+export async function printableQuestionsForStudent(
+  student: Pick<Student, 'currentLevel' | 'currentSubLevel'>,
+  modes: Map<string, AssessmentMode>,
+): Promise<Question[]> {
+  let generated: Question[];
+  try {
+    generated = await generateQuestionsForLevel(
+      student.currentLevel,
+      student.currentSubLevel || 0,
+    );
+  } catch (err) {
+    if (err instanceof NoApprovedContentError) return [];
+    throw err;
+  }
+  return prepareQuestionsForStudent(generated, student, modes);
 }

@@ -9,7 +9,12 @@ import { generateQuestionsForLevel } from '../levelGenerator';
 import { NoApprovedContentError } from '../utils/conceptQuestionGenerator';
 import { LEVEL_COUNT } from '../config/skillLevelMap';
 import { describeAnswerKey, answerKeyProblem } from '../answerKeyCheck';
-import { getAssessmentModesByConcept, prepareQuestionsForStudent } from '../services/assessmentMode';
+import {
+  getAssessmentModesByConcept,
+  NO_PRINTABLE_QUESTION_REASON,
+  prepareQuestionsForStudent,
+  printableQuestionsForStudent,
+} from '../services/assessmentMode';
 import { isBalvatikaStage } from '../config/curriculumMap';
 
 export function registerDiagnosticBulkRoutes(app: express.Express) {
@@ -118,11 +123,7 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
         continue;
       }
 
-      const questions = prepareQuestionsForStudent(
-        await generateQuestionsForLevel(student.currentLevel, student.currentSubLevel || 0),
-        student,
-        assessmentModes,
-      );
+      const questions = await printableQuestionsForStudent(student, assessmentModes);
       if (questions.length > 0) {
         balvatikaQuestions.set(student.id, questions);
         studentsWithQuestions.push(paperStudent);
@@ -133,7 +134,7 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
         studentId: student.id,
         studentName: student.name,
         level: student.currentLevel,
-        reason: 'No both-mode question is available for this Balvatika level.',
+        reason: NO_PRINTABLE_QUESTION_REASON,
       });
     }
     paperStudents = studentsWithQuestions;
@@ -890,19 +891,15 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
       const assessmentModes = await getAssessmentModesByConcept();
       let balvatikaQuestions: Question[] | null = null;
       if (isBalvatikaStage(student.currentLevel)) {
-        balvatikaQuestions = prepareQuestionsForStudent(
-          await generateQuestionsForLevel(student.currentLevel, student.currentSubLevel || 0),
-          student,
-          assessmentModes,
-        );
+        balvatikaQuestions = await printableQuestionsForStudent(student, assessmentModes);
         if (balvatikaQuestions.length === 0) {
           return res.status(400).json({
-            error: `No diagnostic generated for ${student.name}: Balvatika level ${student.currentLevel} has no both-mode question.`,
+            error: `No diagnostic generated for ${student.name}: Balvatika level ${student.currentLevel} has no printable question.`,
             skippedStudents: [{
               studentId: student.id,
               studentName: student.name,
               level: student.currentLevel,
-              reason: 'No both-mode question is available for this Balvatika level.',
+              reason: NO_PRINTABLE_QUESTION_REASON,
             }],
           });
         }
@@ -947,7 +944,6 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
           });
           questions = filteredQuestions;
           pdfUrl = localResult.pdfUrl;
-          useMock = true;
         } else {
         const result = await generateDiagnosticPaper({
           classNumber,

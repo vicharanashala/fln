@@ -28,7 +28,12 @@ import {
   getLatestGenerationWindow,
   isWorksheetGenerationLocked
 } from '../generationWindowRules';
-import { getAssessmentModesByConcept, prepareQuestionsForStudent } from '../services/assessmentMode';
+import {
+  getAssessmentModesByConcept,
+  NO_PRINTABLE_QUESTION_REASON,
+  prepareQuestionsForStudent,
+  printableQuestionsForStudent,
+} from '../services/assessmentMode';
 /**
  * Shared pipeline: build a roster -> Levels_backend /api/generate-batch ->
  * poll /api/batch-status -> /api/download-batch (zip) -> unpack
@@ -412,7 +417,7 @@ export function registerWorksheetRoutes(app: express.Express) {
               studentId: student.id,
               studentName: student.name,
               level: student.currentLevel,
-              reason: 'No both-mode question is available for this Balvatika level.',
+              reason: NO_PRINTABLE_QUESTION_REASON,
             });
           } else {
             withoutContent.push({
@@ -434,7 +439,7 @@ export function registerWorksheetRoutes(app: express.Express) {
           studentId: student.id,
           studentName: student.name,
           level: student.currentLevel,
-          reason: 'No both-mode question is available for this Balvatika level.',
+          reason: NO_PRINTABLE_QUESTION_REASON,
         });
         continue;
       }
@@ -461,7 +466,7 @@ export function registerWorksheetRoutes(app: express.Express) {
 
     if (compiledQuestions.length === 0) {
       return res.status(400).json({
-        error: 'No worksheet generated: none of the selected students has an eligible question. Add a both-mode question template for the Balvatika levels and try again.',
+        error: 'No worksheet generated: none of the selected students has an eligible question. Add a written or both question template for the Balvatika levels and try again.',
         skippedStudents,
       });
     }
@@ -745,19 +750,15 @@ export function registerWorksheetRoutes(app: express.Express) {
       let balvatikaQuestions: Question[] | null = null;
       if (isBalvatikaStage(student.currentLevel)) {
         const assessmentModes = await getAssessmentModesByConcept();
-        balvatikaQuestions = prepareQuestionsForStudent(
-          await generateQuestionsForLevel(student.currentLevel, student.currentSubLevel || 0),
-          student,
-          assessmentModes,
-        );
+        balvatikaQuestions = await printableQuestionsForStudent(student, assessmentModes);
         if (balvatikaQuestions.length === 0) {
           return res.status(400).json({
-            error: `No worksheet generated for ${student.name}: Balvatika level ${student.currentLevel} has no both-mode question.`,
+            error: `No worksheet generated for ${student.name}: Balvatika level ${student.currentLevel} has no printable question.`,
             skippedStudents: [{
               studentId: student.id,
               studentName: student.name,
               level: student.currentLevel,
-              reason: 'No both-mode question is available for this Balvatika level.',
+              reason: NO_PRINTABLE_QUESTION_REASON,
             }],
           });
         }
@@ -877,17 +878,13 @@ export function registerWorksheetRoutes(app: express.Express) {
       if (balvatikaTargets.length > 0) {
         const assessmentModes = await getAssessmentModesByConcept();
         for (const student of balvatikaTargets) {
-          const questions = prepareQuestionsForStudent(
-            await generateQuestionsForLevel(student.currentLevel, student.currentSubLevel || 0),
-            student,
-            assessmentModes,
-          );
+          const questions = await printableQuestionsForStudent(student, assessmentModes);
           if (questions.length === 0) {
             skippedStudents.push({
               studentId: student.id,
               studentName: student.name,
               level: student.currentLevel,
-              reason: 'No both-mode question is available for this Balvatika level.',
+              reason: NO_PRINTABLE_QUESTION_REASON,
             });
           } else {
             balvatikaQuestions.set(student.id, questions);
