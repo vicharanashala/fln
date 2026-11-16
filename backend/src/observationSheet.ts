@@ -24,6 +24,9 @@ import { randomUUID } from 'crypto';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { PDFFont, PDFPage } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+// The font library shapes a run that starts with a Devanagari letter with generator code that
+// expects this global. Without it, drawing "प्रिया" on its own throws "regeneratorRuntime is not defined".
+import 'regenerator-runtime/runtime';
 import { wrapTextToWidth } from './paperGenerator';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -214,9 +217,23 @@ async function embedFonts(doc: PDFDocument, texts: string[]): Promise<Fonts> {
   return { font, bold, pick, safe };
 }
 
+/**
+ * Splits a line into runs that each use one font: a Devanagari run (letters and the spaces
+ * between Hindi words) and the Latin text around it. The Devanagari font has no Latin letters,
+ * so "Name: प्रिया" drawn as one string prints "Name" as empty boxes (#618).
+ */
+export function splitScriptRuns(value: string): string[] {
+  return value.split(/([ऀ-ॿ]+(?:[ \u200c\u200d]+[ऀ-ॿ]+)*)/).filter(run => run.length > 0);
+}
+
 function text(page: PDFPage, f: Fonts, value: string, x: number, y: number, size: number, opts: { bold?: boolean; color?: ReturnType<typeof rgb> } = {}) {
-  const s = f.safe(value);
-  page.drawText(s, { x, y, size, font: f.pick(s, opts.bold), color: opts.color ?? INK });
+  let cx = x;
+  for (const run of splitScriptRuns(value)) {
+    const s = f.safe(run);
+    const font = f.pick(s, opts.bold);
+    page.drawText(s, { x: cx, y, size, font, color: opts.color ?? INK });
+    cx += font.widthOfTextAtSize(s, size);
+  }
 }
 
 function box(page: PDFPage, x: number, y: number, size: number) {

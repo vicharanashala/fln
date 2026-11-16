@@ -21,6 +21,7 @@ import {
   STRATEGY_LABELS,
   layoutStrategyRow,
   listLabel,
+  splitScriptRuns,
   planChildPages,
   planGridPages,
   renderObservationSheet,
@@ -153,12 +154,42 @@ test('the six strategy choices fit the per-child row at a readable size, whateve
   assert.equal(layoutStrategyRow(measure, right - 20, right).size, 6);
 });
 
-test('a Hindi name prints on both layouts without an error', async () => {
+test('splitScriptRuns keeps Hindi words together and leaves the Latin text around them', () => {
+  assert.deepEqual(splitScriptRuns('Name: प्रिया कुमारी'), ['Name: ', 'प्रिया कुमारी']);
+  assert.deepEqual(splitScriptRuns('No. 2  प्रिया'), ['No. 2  ', 'प्रिया']);
+  assert.deepEqual(splitScriptRuns('आरव Sharma (D-104)'), ['आरव', ' Sharma (D-104)']);
+  assert.deepEqual(splitScriptRuns('Aarav आरव'), ['Aarav ', 'आरव']);
+  assert.deepEqual(splitScriptRuns('Aarav'), ['Aarav']);
+  assert.deepEqual(splitScriptRuns(''), []);
+  assert.deepEqual(splitScriptRuns('श्रीमती द्रौपदी क्ष्त्र ज्ञान').length, 1, 'conjuncts and spaces stay in one run');
+  assert.equal(splitScriptRuns('a प b ब c').join(''), 'a प b ब c', 'nothing is lost or reordered');
+});
+
+test('a Hindi name prints on both layouts with its Latin label as real letters, not empty boxes (#618)', async () => {
+  const names = ['प्रिया कुमारी', 'Aarav आरव', 'आरव Sharma', 'श्रीमती द्रौपदी क्ष्त्र ज्ञान', 'आ'];
   for (const layout of ['class-grid', 'per-child'] as ObservationLayout[]) {
-    const { pdf, cleanup } = await render(layout, [student(1, 'प्रिया कुमारी'), student(2, 'Aarav')], concepts(2));
+    const { pdf, cleanup } = await render(layout, names.map((n, i) => student(i + 1, n)).concat(student(9, 'Aarav')), concepts(2));
     try {
       assert.ok(pdf.getPageCount() >= 1, layout);
+      const all = Array.from({ length: pdf.getPageCount() }, (_, p) => pageStrings(pdf, p)).flat();
+      if (layout === 'per-child') {
+        // Every child has a "Name:" label in the Latin font (it is in the page as plain letters). Four of the
+        // six names start with Hindi, so for them the label is its own run; "Aarav आरव" and "Aarav" keep it in front of the Latin name.
+        assert.equal(all.filter(t => t.startsWith('Name:')).length, 6, 'a Latin "Name:" label for every child, Hindi or not');
+        assert.equal(all.filter(t => t === 'Name: ').length, 4, 'the label stands alone before a Hindi name');
+      } else {
+        for (const n of [2, 3, 4, 5]) assert.ok(all.some(t => t.startsWith(`No. ${n}`) || t === `No. ${n}  `), `the "No. ${n}" label is plain letters`);
+      }
     } finally { cleanup(); }
+  }
+});
+
+test('a Hindi name that is long, has a child id, or sits in a class of 30 still prints on every layout', async () => {
+  const long = 'श्रीमती द्रौपदी क्ष्त्र ज्ञान '.repeat(4).trim();
+  for (const layout of ['class-grid', 'per-child'] as ObservationLayout[]) {
+    const kids = [student(1, long), { ...student(2, 'आरव'), displayId: 'D-104' }, ...Array.from({ length: 28 }, (_, i) => student(i + 3, i % 2 ? 'प्रिया' : 'Child'))];
+    const { result, pdf, cleanup } = await render(layout, kids, concepts(3));
+    try { assert.equal(pdf.getPageCount(), result.pageCount); } finally { cleanup(); }
   }
 });
 
