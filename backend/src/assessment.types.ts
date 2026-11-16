@@ -240,3 +240,39 @@ export interface AttemptRecord {
   /** teacherId/volunteerId who captured this attempt. */
   recordedBy: string;
 }
+
+/**
+ * A printed observation sheet, saved when it is printed (#913), so a scanned page can be matched
+ * to the children, the concepts and the exact place of every box. The sheet's QR code carries
+ * `id` and the page number; everything else is looked up here.
+ *
+ * The box positions are saved rather than worked out again later: if the sheet layout changes
+ * after a sheet was printed, the old sheet must still be read against the layout it was printed with.
+ */
+export interface ObservationSheetRecord {
+  /** The sheet id printed in the QR code and the footer, e.g. OBS_1a2b3c4d. */
+  id: string;
+  classId: string;
+  schoolId: string;
+  className: string;
+  section: string;
+  cycle: string;
+  layout: 'class-grid' | 'per-child';
+  students: { id: string; name: string; displayId?: string }[];
+  concepts: { conceptId: string; levelNumber: number; title: string }[];
+  pages: { page: number; width: number; height: number; qr: { payload: string; x: number; y: number; size: number } }[];
+  boxes: {
+    page: number;
+    kind: 'rating' | 'selfCorrected' | 'strategy';
+    studentId: string;
+    conceptId: string | null;
+    value: string;
+    x: number;
+    y: number;
+    size: number;
+  }[];
+  pdfFile: string;
+  createdAt: string;
+  createdByEmail: string;
+  createdByRole: string;
+}

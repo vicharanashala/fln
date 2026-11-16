@@ -5,9 +5,11 @@
 // worksheet). It reads the class, its roster and the observed concepts, checks who may
 // print, and writes nothing except the PDF files.
 
+import fs from 'fs';
 import { randomUUID } from 'crypto';
 import { dbStore, UserRole, CYCLE_NAMES } from '../db';
 import type { getAuthUser } from '../auth';
+import type { ObservationSheetRecord } from '../assessment.types';
 import { getLevelForConcept } from '../config/curriculumMap';
 import { OBSERVATION_LAYOUTS, renderObservationSheet } from '../observationSheet';
 import type { ObservationLayout } from '../observationSheet';
@@ -89,16 +91,46 @@ export async function buildObservationSheets(
   }
 
   const sheets: BuiltObservationSheets['sheets'] = [];
+  const printedFiles: string[] = [];
+  const sheetStudents = students.map(s => ({ id: s.id, name: s.name, displayId: s.displayId }));
   for (const layout of input.layouts) {
+    const sheetId = `OBS_${randomUUID().slice(0, 8)}`;
     const result = await renderObservationSheet({
-      sheetId: `OBS_${randomUUID().slice(0, 8)}`,
+      sheetId,
       layout,
       className: classGroup.className,
       section: classGroup.section,
       cycle: input.cycle,
-      students: students.map(s => ({ id: s.id, name: s.name, displayId: s.displayId })),
+      students: sheetStudents,
       concepts,
     });
+    printedFiles.push(result.filePath);
+    // A sheet that cannot be read back is no use to the teacher, so it is saved before it is handed
+    // over; if saving fails nothing printed in this request is kept (#913).
+    const record: ObservationSheetRecord = {
+      id: sheetId,
+      classId: classGroup.id,
+      schoolId: classGroup.schoolId,
+      className: classGroup.className,
+      section: classGroup.section,
+      cycle: input.cycle,
+      layout,
+      students: sheetStudents,
+      concepts: concepts.map(c => ({ conceptId: c.conceptId, levelNumber: c.levelNumber, title: c.title })),
+      pages: result.pages,
+      boxes: result.boxes,
+      pdfFile: result.fileName,
+      createdAt: new Date().toISOString(),
+      createdByEmail: user.email,
+      createdByRole: user.role,
+    };
+    try {
+      await dbStore.addObservationSheet(record);
+    } catch (err: any) {
+      console.error('[Observations] could not save the sheet record:', err?.message || err);
+      for (const file of printedFiles) fs.rmSync(file, { force: true });
+      return { ok: false, status: 500, error: 'Could not save the sheet record, so no sheet was printed. Please try again.' };
+    }
     sheets.push({ layout, pdfUrl: result.pdfUrl, pageCount: result.pageCount });
   }
   return {
