@@ -181,3 +181,83 @@ test('Case 5: Rows with the same intent but different skills or subskills are NO
   assert.equal(json2.skippedIdentical, 0);
   assert.equal((dbStore as any).data?.questionTemplates.length, 2);
 });
+
+// --- assessmentMode column (#761) ---------------------------------------------------
+
+const MODE_HEADER = `${CSV_HEADER},assessmentMode`;
+const modeRow = (name: string, mode: string, intent = `Child watches and the teacher notes ${name}.`) =>
+  `S1.1,SK01,SK01.01,${intent},counting,fruits,,tag,${name},0-9,1-digit,add,2,,,,single-number,,1,fruits,${mode}`;
+const importCsv = (headers: any, csv: string, dryRun = false) =>
+  fetch(`${base}/import`, { method: 'POST', headers, body: JSON.stringify({ csv, dryRun }) });
+const stored = () => ((dbStore as any).data?.questionTemplates ?? []) as any[];
+
+test('Case 6: an assessmentMode column is stored per row; a blank cell or any capital letters still work', async t => {
+  const headers = authorize(t);
+  const csv = [MODE_HEADER, modeRow('Watch A', 'observed'), modeRow('Watch B', 'both'), modeRow('Plain C', ''), modeRow('Shout D', 'WRITTEN')].join('\n');
+  const res = await importCsv(headers, csv);
+  const json = await res.json() as any;
+  assert.equal(res.status, 201, JSON.stringify(json));
+  assert.equal(json.imported, 4);
+  const modeOf = (name: string) => stored().find(t => t.name === name).assessmentMode;
+  assert.equal(modeOf('Watch A'), 'observed');
+  assert.equal(modeOf('Watch B'), 'both');
+  assert.equal(modeOf('Plain C'), 'written', 'a blank cell means written, as before');
+  assert.equal(modeOf('Shout D'), 'written');
+});
+
+test('Case 7: a file without the column imports as written, exactly as before', async t => {
+  const headers = authorize(t);
+  const row = 'S1.1,SK01,SK01.01,Child counts pears and writes numeral.,counting,fruits,,tag,No Mode,0-9,1-digit,add,2,,,,single-number,,1,fruits';
+  const res = await importCsv(headers, [CSV_HEADER, row].join('\n'));
+  assert.equal(res.status, 201);
+  assert.equal(stored()[0].assessmentMode, 'written');
+});
+
+test('Case 8: a bad assessmentMode is refused with its row number, and nothing is imported', async t => {
+  const headers = authorize(t);
+  const csv = [MODE_HEADER, modeRow('Fine', 'observed'), modeRow('Broken', 'watching')].join('\n');
+  const res = await importCsv(headers, csv);
+  const json = await res.json() as any;
+  assert.equal(res.status, 400, JSON.stringify(json));
+  assert.equal(json.imported, 0);
+  assert.deepEqual(json.errors, [{ row: 3, error: 'assessmentMode must be written, observed or both.' }]);
+  assert.equal(stored().length, 0, 'the good row is not imported either');
+});
+
+test('Case 9: the same settings as a written row, but observed, is a new question and not a repeat', async t => {
+  const headers = authorize(t);
+  const first = await importCsv(headers, [MODE_HEADER, modeRow('Same', 'written', 'Same intent for both modes.')].join('\n'));
+  assert.equal((await first.json() as any).imported, 1);
+
+  const observed = [MODE_HEADER, modeRow('Same', 'observed', 'Same intent for both modes.')].join('\n');
+  const second = await importCsv(headers, observed);
+  const json = await second.json() as any;
+  assert.equal(json.imported, 1, JSON.stringify(json));
+  assert.equal(json.skippedIdentical, 0);
+  assert.equal(stored().length, 2);
+
+  const again = await importCsv(headers, observed);
+  const jsonAgain = await again.json() as any;
+  assert.equal(jsonAgain.imported, 0);
+  assert.equal(jsonAgain.skippedIdentical, 1, 'the observed row, repeated, is a repeat');
+  assert.equal(stored().length, 2);
+});
+
+test('Case 10: the dry run counts rows the same way and writes nothing', async t => {
+  const headers = authorize(t);
+  const csv = [MODE_HEADER, modeRow('Watch A', 'observed'), modeRow('Watch B', 'both')].join('\n');
+  const res = await importCsv(headers, csv, true);
+  const json = await res.json() as any;
+  assert.equal(res.status, 200, JSON.stringify(json));
+  assert.equal(json.wouldImport, 2);
+  assert.equal(stored().length, 0);
+});
+
+test('Case 11: the blank file offered to authors lists assessmentMode last', async t => {
+  const headers = authorize(t);
+  const res = await fetch(`${base}/csv-template`, { headers });
+  assert.equal(res.status, 200);
+  const header = (await res.text()).trim().split(',');
+  assert.equal(header[header.length - 1], 'assessmentMode');
+  assert.equal(header.filter(c => c === 'conceptId').length, 1);
+});

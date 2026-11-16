@@ -11,9 +11,9 @@ import {
 } from '../src/config/worksheetLayoutRules';
 import { renderWorksheetPdf } from '../src/paperGenerator';
 
-test('the fixed Balvatika minimums are the ones the issue names', () => {
+test('the fixed Balvatika minimums: 18 pt text, a 58 pt answer box a young child can write in, 4 questions a page', () => {
   assert.equal(MIN_FONT_SIZE_PT, 18);
-  assert.equal(MIN_ANSWER_BOX_HEIGHT_PT, 24);
+  assert.equal(MIN_ANSWER_BOX_HEIGHT_PT, 58);
   assert.equal(QUESTIONS_PER_PAGE_MAX, 4);
 });
 

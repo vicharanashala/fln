@@ -1,7 +1,13 @@
 import { ANSWER_TYPES } from '../types/questionTemplateParams';
 
 export const MIN_FONT_SIZE_PT = 18;
-export const MIN_ANSWER_BOX_HEIGHT_PT = 24;
+/**
+ * A child of five or six has to be able to write a digit or a letter in the box.
+ * 58 pt is about 20 mm (78 px), the size the Balvatika worksheet review settled on:
+ * a smaller box is decorative, not usable. (It was 24 pt until #603's first value
+ * was checked against a printed sheet.)
+ */
+export const MIN_ANSWER_BOX_HEIGHT_PT = 58;
 export const QUESTIONS_PER_PAGE_MAX = 4;
 
 /**
@@ -76,8 +82,8 @@ export interface AnswerSpaceRule {
 export const ANSWER_SPACE_RULES: Readonly<Record<(typeof ANSWER_TYPES)[number], AnswerSpaceRule>> = {
   'single-number': { style: 'box', widthPt: 150, heightPt: MIN_ANSWER_BOX_HEIGHT_PT },
   'mcq-4':         { style: 'none', widthPt: 0, heightPt: 12 },
-  'fill-blanks':   { style: 'line', widthPt: 330, heightPt: 30 },
-  'true-false':    { style: 'true-false', widthPt: 230, heightPt: 34 },
+  'fill-blanks':   { style: 'line', widthPt: 330, heightPt: MIN_ANSWER_BOX_HEIGHT_PT },
+  'true-false':    { style: 'true-false', widthPt: 230, heightPt: MIN_ANSWER_BOX_HEIGHT_PT },
   'matching':      { style: 'box', widthPt: 420, heightPt: 96 },
   'trace':         { style: 'box', widthPt: 420, heightPt: 120, dashed: true },
 };

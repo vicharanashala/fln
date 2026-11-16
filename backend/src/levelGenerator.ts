@@ -6,6 +6,23 @@ import { generateQuestionsFromTemplates } from './services/questionTemplateRende
 /** Questions a generated paper carries per level. The legacy builder below builds the same count. */
 export const QUESTIONS_PER_LEVEL = 4;
 
+/**
+ * Balvatika is levels 19-46 (stage 3 plus S4.12, S4.13, S5.9, S5.13). A Balvatika
+ * level is assessed with 5 questions: the curriculum reviewer's ruling on the
+ * Balvatika question bank (2026-10-22) is "5 is enough for each concept", scored
+ * 0-1 Beginner, 2-3 Intermediate, 4-5 Proficient. (#594's earlier 8-10 is superseded.)
+ */
+export const BALVATIKA_FIRST_LEVEL = 19;
+export const BALVATIKA_LAST_LEVEL = 46;
+export const QUESTIONS_PER_BALVATIKA_LEVEL = 5;
+
+/** How many questions a paper for `level` carries. */
+export function questionsPerLevel(level: number): number {
+  return level >= BALVATIKA_FIRST_LEVEL && level <= BALVATIKA_LAST_LEVEL
+    ? QUESTIONS_PER_BALVATIKA_LEVEL
+    : QUESTIONS_PER_LEVEL;
+}
+
 // Helper to generate a random integer
 function randomVal(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -27,14 +44,15 @@ export async function generateQuestionsForLevel(level: number, subLevel: number)
     // returns [] for a concept with no approved templates (or an unreadable
     // store), which is exactly the "not authored yet" case the legacy
     // generator still has to cover.
+    const count = questionsPerLevel(level);
     const fromTemplates = await generateQuestionsFromTemplates(conceptConfig.conceptId, {
-      count: QUESTIONS_PER_LEVEL,
+      count,
       levelNumber: level,
       subLevel,
     });
     if (fromTemplates.length > 0) return fromTemplates;
 
-    return QuestionService.getQuestionsByLevel(level, subLevel);
+    return QuestionService.getQuestionsByLevel(level, subLevel, count);
   }
 
   const questions: Question[] = [];

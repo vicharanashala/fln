@@ -348,4 +348,59 @@ export interface CurriculumLevel {
 export const QUESTION_TEMPLATE_STATUSES = ['draft', 'pendingApproval', 'approved', 'rejected'] as const;
 export type QuestionTemplateStatus = (typeof QUESTION_TEMPLATE_STATUSES)[number];
 
+/**
+ * D1.6 — Skill Evolution (#481): Candidate subskill proposed from algorithmic
+ * error pattern clustering or human diagnosis, subject to human-in-the-loop validation.
+ */
+export type CandidateSkillStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'MERGED' | 'SPLIT' | 'REDEFINED';
+
+export interface CandidateSkillEvidence {
+  attemptsCount: number;
+  affectedLearnersCount: number;
+  affectedLearnersPercentage: number; // e.g. 73 for 73%
+  questionTemplateIds: string[];
+  errorTypes: string[];
+}
+
+export interface CandidateSkill {
+  id: string; // e.g. "C-018"
+  parentSkillId: string; // e.g. "SK13.06" or "SK13"
+  observedPattern: string; // e.g. "Fails regrouping when carry crosses tens boundary"
+  evidence: CandidateSkillEvidence;
+  algorithmConfidence: number; // 0.0 - 1.0 (e.g. 0.87)
+  status: CandidateSkillStatus;
+  proposedSubskillName?: string;
+  reviewNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+  validatedBy?: string; // validator email/userId
+  validatedAt?: string;
+  resultingSkillId?: string; // set when ACCEPTED or MERGED
+}
+
+/**
+ * Skill provenance and ontology representation (D1.1 / D1.6 #481).
+ *
+ * An accepted discovered skill carries the exact same provenance shape as an
+ * NCERT/curriculum-sourced skill, differing only in `source_type`.
+ */
+export type SkillSourceType = 'CURRICULUM_NCERT' | 'DISCOVERED_DATA' | 'EXPERT_AUTHORED';
+export type SkillValidationStatus = 'PENDING' | 'VALIDATED' | 'DEPRECATED';
+
+export interface Skill {
+  id: string; // e.g. "SK13.06" or generated subskill id
+  parentSkillId?: string;
+  name: string;
+  description?: string;
+  sourceType: SkillSourceType;
+  source_type?: SkillSourceType;
+  validationStatus: SkillValidationStatus;
+  createdBy: string;
+  validatedBy?: string;
+  validatedAt?: string;
+  candidateSourceId?: string; // links back to CandidateSkill.id if discovered
+  createdAt: string;
+  updatedAt: string;
+}
+
 

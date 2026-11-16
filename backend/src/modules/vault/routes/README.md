@@ -13,7 +13,7 @@ Thin Express handlers. Each `registerXRoute(router, ctx)` validates body shape, 
 | `POST /v1/mfa/enroll` | `vault:mfa:enroll` | enrollMfa (`actor`, `label?`, `algorithm?`, `digits?`, `period?`, `context`) | 201 |
 | `GET` and `POST /v1/audit` | `vault:audit` | readAuditHistory (`identityId`, `limit?`, `context`; GET merges query and body) | 200 |
 
-`context` = `{actorId, actorRole, reason, requestId?, sourceIp?, userAgent?}`, all strings.
+`context` = `{reason, requestId?, sourceIp?, userAgent?}`, all strings. The actor (`actorId` = the user's email, `actorRole`) always comes from the authenticated session; any `actorId`, `actorRole` or (for `/v1/mfa/enroll`) `actor` in the body is ignored. Only SUPERADMIN users may call these routes (others get 403, no or an invalid token gets 401).
 
 ## Invariants
 - Null `ctx` -> 503 `VAULT_DB_UNAVAILABLE` on every route.

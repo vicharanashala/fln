@@ -214,10 +214,9 @@ function buildTemplate(
     status?: QuestionTemplateStatus;
     /**
      * Optional, defaults to 'written' -- matches every template authored
-     * before this field existed (2026-09-19). The authoring form/CSV
-     * importer don't collect this yet; that's a real follow-up (letting a
-     * Superadmin actually choose observed-only for a Balvatika item), not
-     * something to infer here. Explicit callers can already pass it.
+     * before this field existed (2026-09-19). The authoring form and the CSV
+     * import (an optional `assessmentMode` column) both pass it; nothing
+     * infers it.
      */
     assessmentMode?: 'written' | 'observed' | 'both';
   },
@@ -320,6 +319,16 @@ const CSV_COLUMNS = [
   'name', 'tags',
 ] as const;
 
+/**
+ * Columns an import file may carry but need not. `assessmentMode` (written, observed or
+ * both) was missing, so every imported row silently became written and an observation
+ * item could not be imported at all (#761). A file without the column, or a blank cell,
+ * still means written, exactly as before.
+ */
+const OPTIONAL_CSV_COLUMNS = ['assessmentMode'] as const;
+/** What the downloadable template shows an author: every required column, then the optional ones. */
+const TEMPLATE_CSV_COLUMNS = [...CSV_COLUMNS, ...OPTIONAL_CSV_COLUMNS] as const;
+
 export function registerQuestionTemplateRoutes(app: express.Express) {
   /** The legal values and context rules the form renders itself from. */
   app.get('/api/question-templates/param-catalog', (req, res) => {
@@ -336,7 +345,7 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
   /** The header row the importer expects, so the form can offer a blank file. */
   app.get('/api/question-templates/csv-template', (req, res) => {
     if (!requireSuperadmin(req, res, SUBJECT)) return;
-    res.type('text/csv').send(CSV_COLUMNS.join(',') + '\n');
+    res.type('text/csv').send(TEMPLATE_CSV_COLUMNS.join(',') + '\n');
   });
 
   /** One download containing the unchanged import template and current references. */
@@ -351,7 +360,7 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
           error: 'Unknown stage.', validStages: listStages().map(s => s.label),
         });
       }
-      const archive = await buildQuestionTemplateDownload(CSV_COLUMNS, buildLevelMapPayload(), listThemes(), { stage });
+      const archive = await buildQuestionTemplateDownload(TEMPLATE_CSV_COLUMNS, buildLevelMapPayload(), listThemes(), { stage });
       const slug = stage ? '-' + listStages().find(s => s.stage === stage)!.label.toLowerCase().replace(/\s+/g, '-') : '';
       res.setHeader('Cache-Control', 'no-store');
       res.attachment(`question-authoring-template${slug}.zip`).type('application/zip').send(archive);
@@ -643,8 +652,16 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
         return;
       }
 
+      // Optional column: blank (or no column) means written, as it always did.
+      const modeText = col(row, 'assessmentMode').toLowerCase();
+      if (modeText !== '' && !(ASSESSMENT_MODES as readonly string[]).includes(modeText)) {
+        errors.push({ row: rowNumber, error: 'assessmentMode must be written, observed or both.' });
+        return;
+      }
+      const assessmentMode = (modeText || undefined) as 'written' | 'observed' | 'both' | undefined;
+
       prepared.push(buildTemplate(
-        { conceptId, skills, subskills, generationIntent, questionFamily: questionFamily as QuestionFamily, svgThemeIds, params, name, tags, source: 'csv' },
+        { conceptId, skills, subskills, generationIntent, questionFamily: questionFamily as QuestionFamily, svgThemeIds, params, name, tags, source: 'csv', assessmentMode },
         user,
         now
       ));
@@ -666,8 +683,12 @@ export function registerQuestionTemplateRoutes(app: express.Express) {
     const existingKeys: string[] = [];
 
     const clean = (s: string) => (s ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+    // The mode is part of "the same row": an observed item with the same settings as a
+    // written one is a different question, not a repeat. A row saved before the field
+    // existed is a written row.
     const fingerprint = (t: QuestionTemplate) => JSON.stringify([
       t.variantKey,
+      t.assessmentMode ?? 'written',
       clean(t.generationIntent),
       [...(t.skills ?? [])].sort(),
       [...(t.subskills ?? [])].sort(),

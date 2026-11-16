@@ -16,7 +16,7 @@ const CLASS_FILE_MAP: { [key: string]: string } = {
   // classN.html files are superseded — they still exist on disk so we don't
   // break the file:// load path, but the iframe should preview the new
   // papers which have the reduced Q-count and 93-level coverage.
-  'Class 1': withBase('/worksheets/proposed-levels/class-1-diagnostic-cognitive.html'),
+  'Class 1': withBase('/worksheets/proposed-levels/class1-diagnostic-cognitive.html'),
   'Class 2': withBase('/worksheets/proposed-levels/class-2-diagnostic-cognitive.html'),
   'Class 3': withBase('/worksheets/proposed-levels/class-3-diagnostic-cognitive.html'),
   'Class 4': withBase('/worksheets/proposed-levels/class-4-diagnostic-cognitive.html'),

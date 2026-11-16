@@ -15,9 +15,12 @@ import type {
 } from '../assessment.types';
 import { getAuthUser } from '../auth';
 import { generateQuestionsForLevel } from '../levelGenerator';
+import { NoApprovedContentError } from '../utils/conceptQuestionGenerator';
 import * as levelsBackendClient from '../levelsBackendClient';
 import { ROOT_DIR } from '../config';
 import { getLevelForConcept } from '../config/curriculumMap';
+import { buildSheetsForWorksheet, parseWorksheetSheetRequest } from '../services/observationSheetBuilder';
+import type { WorksheetSheetRequest } from '../services/observationSheetBuilder';
 import { PAPER_TYPE_CONFIG, getPaperTypeConfig, spreadQuestionCount } from '../config/paperTypeConfig';
 import { recordStudentCycleLock } from '../paperLock';
 import {
@@ -387,9 +390,29 @@ export function registerWorksheetRoutes(app: express.Express) {
     // Compile distinct personalized questions per student based on level and sub-level
     const compiledQuestions: Question[] = [];
 
+    // A student on a level with no written questions (for example one assessed by
+    // the teacher's observation sheet) cannot be given a printed paper. Collect
+    // them all so the teacher sees every student to sort out, not just the first.
+    const withoutContent: Array<{ studentId: string; studentName: string; level: number; conceptId: string; levelTitle: string }> = [];
+
     for (const student of classStudents) {
       const subLvl = student.currentSubLevel || 0;
-      const qs = await generateQuestionsForLevel(student.currentLevel, subLvl);
+      let qs: Question[];
+      try {
+        qs = await generateQuestionsForLevel(student.currentLevel, subLvl);
+      } catch (err) {
+        if (err instanceof NoApprovedContentError) {
+          withoutContent.push({
+            studentId: student.id,
+            studentName: student.name,
+            level: student.currentLevel,
+            conceptId: err.conceptId,
+            levelTitle: getLevelForConcept(err.conceptId)?.levelTitle ?? '',
+          });
+          continue;
+        }
+        throw err;
+      }
       // Map question IDs to be student-specific to prevent duplicate collisions
       qs.forEach(q => {
         compiledQuestions.push({
@@ -397,6 +420,17 @@ export function registerWorksheetRoutes(app: express.Express) {
           question_id: `${student.id}_${q.question_id}`,
           question: `[For ${student.name} - L${student.currentLevel}.${subLvl}] ${q.question}`
         });
+      });
+    }
+
+    if (withoutContent.length > 0) {
+      const list = withoutContent
+        .map(w => `${w.studentName} (Level ${w.level}${w.levelTitle ? `: ${w.levelTitle}` : ''})`)
+        .join('; ');
+      return res.status(422).json({
+        error: `No worksheet was generated. These students are on a level that has no written questions yet: ${list}. `
+          + 'Those levels are assessed by observation, or their questions are still being written.',
+        studentsWithoutContent: withoutContent,
       });
     }
 
@@ -587,6 +621,10 @@ export function registerWorksheetRoutes(app: express.Express) {
     if (seed !== undefined && (typeof seed !== 'string' || seed.length === 0 || seed.length > 60)) {
       return res.status(400).json({ error: 'seed must be a text of 1 to 60 characters.' });
     }
+    // Optional (#618): also print the teacher observation sheet for the class.
+    const parsedSheet = parseWorksheetSheetRequest(req.body?.observationSheet);
+    if (parsedSheet && 'error' in parsedSheet) return res.status(400).json({ error: parsedSheet.error });
+    const sheetRequest = parsedSheet as WorksheetSheetRequest | undefined;
 
     let content;
     try {
@@ -622,8 +660,10 @@ export function registerWorksheetRoutes(app: express.Express) {
         conceptIds: content.concepts.map(c => c.conceptId),
         resolvedQuestions: content.questions,
       });
+      const observationSheet = sheetRequest ? await buildSheetsForWorksheet(user, sheetRequest, conceptIds) : undefined;
       res.json({
         success: true, pdfUrl: result.pdfUrl, questionCount: content.questions.length, concepts: summary,
+        ...(observationSheet ? { observationSheet } : {}),
         ...(paperTypeConfig ? {
           paperType: paperTypeConfig.paperType,
           expectedQuestionCount: paperTypeConfig.questionCount,

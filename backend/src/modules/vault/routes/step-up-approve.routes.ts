@@ -9,7 +9,9 @@
  * `/v1/mfa/verify` route is not exposed.
  *
  * Wire shape: `POST /v1/detokenize/step-up/:challengeId/approve`
- *   body: `{ code, context }`
+ *   body: `{ code, context }` (`context` carries only `reason` and the
+ *   optional `requestId` / `sourceIp` / `userAgent`; the actor comes from
+ *   the authenticated session, and any `window` field is ignored)
  * Response: `{ challengeId, status, approvedAt, verifiedFactorId }`
  *   - `status` is always `'approved'` on 2xx.
  *
@@ -20,10 +22,10 @@
 import type { Request, Response, Router } from 'express';
 import express from 'express';
 import { requireScope } from '../middleware';
+import { sessionCallerContext } from '../session-context';
 import { VaultError } from '../errors';
 import type { VaultErrorCode } from '../errors';
 import type {
-  ApproveStepUpChallengeCallerContext,
   ApproveStepUpChallengeCommand,
 } from '../application/commands/approve-step-up-challenge';
 import { ApproveStepUpChallengeCommandError } from '../application/commands/approve-step-up-challenge';
@@ -32,7 +34,6 @@ import type { VaultContext } from '../context';
 interface StepUpApproveRequestBody {
   code?: unknown;
   context?: unknown;
-  window?: unknown;
 }
 
 function asString(v: unknown, field: string): string {
@@ -40,21 +41,6 @@ function asString(v: unknown, field: string): string {
     throw new VaultError('INVALID_INPUT', `field "${field}" must be a string.`, 400);
   }
   return v;
-}
-
-function asContext(v: unknown): ApproveStepUpChallengeCallerContext {
-  if (!v || typeof v !== 'object') {
-    throw new VaultError('INVALID_INPUT', 'field "context" must be an object.', 400);
-  }
-  const o = v as Record<string, unknown>;
-  return {
-    actorId: asString(o.actorId, 'context.actorId'),
-    actorRole: asString(o.actorRole, 'context.actorRole') as ApproveStepUpChallengeCallerContext['actorRole'],
-    reason: asString(o.reason, 'context.reason'),
-    requestId: o.requestId !== undefined ? asString(o.requestId, 'context.requestId') : undefined,
-    sourceIp: o.sourceIp !== undefined ? asString(o.sourceIp, 'context.sourceIp') : undefined,
-    userAgent: o.userAgent !== undefined ? asString(o.userAgent, 'context.userAgent') : undefined,
-  };
 }
 
 export function registerStepUpApproveRoute(router: Router, ctx: VaultContext | null): void {
@@ -77,18 +63,8 @@ export function registerStepUpApproveRoute(router: Router, ctx: VaultContext | n
         cmd = {
           challengeId,
           code: asString(body.code, 'code'),
-          context: asContext(body.context),
+          context: sessionCallerContext(res, body.context),
         };
-        if (body.window !== undefined) {
-          if (typeof body.window !== 'number' || !Number.isInteger(body.window) || body.window < 0) {
-            throw new VaultError(
-              'INVALID_INPUT',
-              'field "window" must be a non-negative integer.',
-              400,
-            );
-          }
-          cmd.window = body.window;
-        }
       } catch (err) {
         if (err instanceof VaultError) {
           res.status(err.status).json({ error: err.code, message: err.message });

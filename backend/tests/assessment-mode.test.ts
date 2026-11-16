@@ -96,6 +96,35 @@ test('4. Balvatika counts for the 29 outcome nodes are 9 written, 9 both, 11 obs
     assert.equal(counts.observed, 11, 'Expected exactly 11 observed (Teacher) Balvatika outcomes');
 });
 
+test('5. Every Balvatika outcome concept is in ASSESSMENT_MODE_BY_CONCEPT with a consistent mode', () => {
+    // Group the outcome modes by concept so a concept with more than one
+    // outcome (e.g. S3.5) can be checked against the table as a whole.
+    const modesByConcept = new Map<string, Set<AssessmentMode>>();
+    for (const outcome of BALVATIKA_OUTCOMES) {
+        const modes = modesByConcept.get(outcome.conceptId) ?? new Set<AssessmentMode>();
+        modes.add(outcome.mode);
+        modesByConcept.set(outcome.conceptId, modes);
+    }
+
+    for (const [conceptId, outcomeModes] of modesByConcept) {
+        const tableMode = getAssessmentMode(conceptId);
+        assert.ok(
+            tableMode !== undefined,
+            `Concept '${conceptId}' from BALVATIKA_OUTCOMES is missing from ASSESSMENT_MODE_BY_CONCEPT`,
+        );
+
+        // If all of a concept's outcomes agree on one mode, the table must say
+        // that mode; if they differ (like S3.5), the table must say 'both'.
+        const expectedMode: AssessmentMode =
+            outcomeModes.size === 1 ? [...outcomeModes][0] : 'both';
+        assert.equal(
+            tableMode,
+            expectedMode,
+            `Concept '${conceptId}' has outcomes ${[...outcomeModes].join(', ')} but the table says '${tableMode}' (expected '${expectedMode}')`,
+        );
+    }
+});
+
 test('Edge cases: getAssessmentMode returns correct mode or undefined for unknown concept', () => {
     assert.equal(getAssessmentMode('S3.2'), 'both');
     assert.equal(getAssessmentMode('S3.1'), 'written');

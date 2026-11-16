@@ -5,7 +5,7 @@
 **Status:** Draft
 **Owner:** Vicharanashala Lab (VLED) / IIT Ropar core team
 **Source of truth (technical):** [SRS.md](SRS.md)
-**Subject Scope:** Mathematics FLN (Foundational Literacy & Numeracy), Classes 2–4
+**Subject Scope:** Mathematics FLN (Foundational Literacy & Numeracy), built stage by stage: Balvatika (the year before Class 1), then Class 1, Class 2 and Class 3. The MVP stops at Class 3; Class 4 and 5 are out of scope for FLN (see the README, Curriculum Status)
 **Stack:** MERN + Python (AI/automation services)
 
 ---
@@ -42,7 +42,7 @@ Existing tools are either grade-uniform, manual/paper-heavy, or lack a governanc
 - **G6** — Operate in both connected (Teacher-led) and no-internet/low-strength (Volunteer-led) school modes on one data model.
 
 ### 3.2 Non-Goals (v0.1)
-- Literacy (reading/writing) — Mathematics only.
+- Literacy (reading/writing) — Mathematics only. Literacy will come later as its own module, not as a section of the maths observation sheet.
 - Adaptive mid-worksheet difficulty.
 - Curriculum editing via UI.
 - Multi-LLM provider switching UI.
@@ -172,7 +172,7 @@ Full detail in [SRS §7–§13](SRS.md). Product-level summary:
 
 ## 11. Release / Roadmap
 
-**v0.1 (this PRD)** — Mathematics FLN, Classes 2–4; full 7-role hierarchy; three assessment cycles; single generation flow with locks; ICR ingestion; evaluation engine; dashboards; governance.
+**v0.1 (this PRD)** — Mathematics FLN, Balvatika to Class 3, built one stage at a time (Balvatika first); full 7-role hierarchy; three assessment cycles; single generation flow with locks; ICR ingestion; evaluation engine; dashboards; governance.
 
 **Future (out of scope now):** Literacy, multi-language worksheets, adaptive difficulty, curriculum UI editor, multi-LLM support, offline-first Volunteer app, deployment automation, expanded analytics.
 

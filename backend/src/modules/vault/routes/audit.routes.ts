@@ -27,6 +27,7 @@
 import type { Request, Response, Router } from 'express';
 import express from 'express';
 import { requireScope } from '../middleware';
+import { sessionCallerContext } from '../session-context';
 import { VaultError } from '../errors';
 import type { VaultErrorCode } from '../errors';
 import type { ReadAuditHistoryCallerContext } from '../application/commands/read-audit-history';
@@ -44,21 +45,6 @@ function asString(v: unknown, field: string): string {
     throw new VaultError('INVALID_INPUT', `field "${field}" must be a string.`, 400);
   }
   return v;
-}
-
-function asContext(v: unknown): ReadAuditHistoryCallerContext {
-  if (!v || typeof v !== 'object') {
-    throw new VaultError('INVALID_INPUT', 'field "context" must be an object.', 400);
-  }
-  const o = v as Record<string, unknown>;
-  return {
-    actorId: asString(o.actorId, 'context.actorId'),
-    actorRole: asString(o.actorRole, 'context.actorRole') as ReadAuditHistoryCallerContext['actorRole'],
-    reason: asString(o.reason, 'context.reason'),
-    requestId: o.requestId !== undefined ? asString(o.requestId, 'context.requestId') : undefined,
-    sourceIp: o.sourceIp !== undefined ? asString(o.sourceIp, 'context.sourceIp') : undefined,
-    userAgent: o.userAgent !== undefined ? asString(o.userAgent, 'context.userAgent') : undefined,
-  };
 }
 
 export function registerAuditRoute(router: Router, ctx: VaultContext | null): void {
@@ -94,7 +80,7 @@ export function registerAuditRoute(router: Router, ctx: VaultContext | null): vo
         }
         limit = parsed;
       }
-      context = asContext(source.context);
+      context = sessionCallerContext(res, source.context);
     } catch (err) {
       if (err instanceof VaultError) {
         res.status(err.status).json({ error: err.code, message: err.message });
