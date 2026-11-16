@@ -39,7 +39,7 @@ interface ErrorInstance {
   multiDigit: boolean;
 }
 
-interface Fingerprint {
+export interface Fingerprint {
   studentId: string;
   studentName: string;
   classGroup: string;
@@ -65,7 +65,7 @@ interface Fingerprint {
   glyph: GlyphSpec;
 }
 
-interface Archetype {
+export interface Archetype {
   clusterId: number;
   slug: string;
   stableName: string;
@@ -80,7 +80,7 @@ interface Archetype {
   incoherent: boolean;
 }
 
-interface ComparePayload {
+export interface ComparePayload {
   left: { fingerprint: Fingerprint; archetype: Archetype | null };
   right: { fingerprint: Fingerprint; archetype: Archetype | null };
   sameScore: boolean;
@@ -89,6 +89,29 @@ interface ComparePayload {
   cohortSize: number;
   archetypeCount: number;
   usedFallbackNaming: boolean;
+}
+
+export interface NoCollisionPayload {
+  left: null;
+  right: null;
+  reason: 'NO_COLLISION';
+  message: string;
+}
+
+export type CompareResponse = ComparePayload | NoCollisionPayload;
+
+export function isNoCollisionResponse(payload: unknown): payload is NoCollisionPayload {
+  if (typeof payload !== 'object' || payload === null) {
+    return false;
+  }
+  return (
+    'reason' in payload &&
+    'left' in payload &&
+    'right' in payload &&
+    payload.reason === 'NO_COLLISION' &&
+    payload.left === null &&
+    payload.right === null
+  );
 }
 
 interface CohortPayload {
@@ -611,10 +634,15 @@ const MisconceptionFingerprint: React.FC<Props> = ({ token, classGroup: fixedCla
           }
           setCompare(null);
         } else {
-          const payload: ComparePayload = await cmpRes.json();
-          setCompare(payload);
-          setLeftId(payload.left.fingerprint.studentId);
-          setRightId(payload.right.fingerprint.studentId);
+          const payload: CompareResponse = await cmpRes.json();
+          if (isNoCollisionResponse(payload)) {
+            setNoCollision(true);
+            setCompare(null);
+          } else {
+            setCompare(payload);
+            setLeftId(payload.left.fingerprint.studentId);
+            setRightId(payload.right.fingerprint.studentId);
+          }
         }
 
         if (cohortRes.ok) setCohort(await cohortRes.json());
