@@ -24,7 +24,11 @@ import { randomUUID } from 'crypto';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { PDFFont, PDFPage } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+// The font library shapes a run that starts with a Devanagari letter with generator code that
+// expects this global. Without it, drawing "प्रिया" on its own throws "regeneratorRuntime is not defined".
+import 'regenerator-runtime/runtime';
 import { wrapTextToWidth } from './paperGenerator';
+import { drawQrCode } from './qrCode';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,12 +50,71 @@ export interface ObservationSheetStudent {
   displayId?: string;
 }
 
+/**
+ * One tickable box (or circle) as printed, in PDF points with the origin at the bottom left of its
+ * page. A circle is recorded as the square that holds it. The list is saved with the sheet (#913) so
+ * a scan can be read against where each mark was meant to go, not against a guess from the photo.
+ */
+export type SheetBoxKind = 'rating' | 'selfCorrected' | 'strategy';
+export interface SheetBox {
+  page: number;
+  kind: SheetBoxKind;
+  studentId: string;
+  /** null for the maths-vocabulary check, which is not a concept. */
+  conceptId: string | null;
+  /** The rating label, the strategy value, or 'true' for the self-correction box. */
+  value: string;
+  x: number;
+  y: number;
+  size: number;
+}
+
+export interface SheetPageInfo {
+  page: number;
+  width: number;
+  height: number;
+  qr: { payload: string; x: number; y: number; size: number };
+}
+
 export interface ObservationSheetResult {
   fileName: string;
   filePath: string;
   pdfUrl: string;
   pageCount: number;
+  pages: SheetPageInfo[];
+  boxes: SheetBox[];
 }
+
+/** Every page of every observation sheet carries a QR code that names the sheet and the page (#913). */
+export const QR_SIZE = 48;
+export function qrPayload(sheetId: string, page: number, pages: number): string {
+  return `${sheetId}|${page}|${pages}`;
+}
+/** Reads what a scanner decoded from the QR code. Null for anything that is not one of our sheets. */
+export function parseQrPayload(decoded: unknown): { sheetId: string; page: number; pages: number } | null {
+  if (typeof decoded !== 'string') return null;
+  let raw = decoded.trim();
+  try { const json = JSON.parse(raw); if (typeof json === 'string') raw = json; } catch { /* not JSON: use the text as it is */ }
+  const m = /^(OBS_[A-Za-z0-9]{1,40})\|(\d{1,4})\|(\d{1,4})$/.exec(raw);
+  if (!m) return null;
+  const page = Number(m[2]), pages = Number(m[3]);
+  if (page < 1 || pages < 1 || page > pages) return null;
+  return { sheetId: m[1], page, pages };
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** Draws the QR code at the bottom right of a page, on a white pad so no rule or text crowds it. */
+function drawSheetQr(page: PDFPage, width: number, margin: number, sheetId: string, pageNo: number, pageTotal: number): SheetPageInfo['qr'] {
+  const x = width - margin - QR_SIZE;
+  const y = 14;
+  page.drawRectangle({ x: x - 6, y: y - 6, width: QR_SIZE + 12, height: QR_SIZE + 12, color: rgb(1, 1, 1) });
+  const payload = qrPayload(sheetId, pageNo, pageTotal);
+  drawQrCode(page, payload, x, y, QR_SIZE);
+  return { payload, x: round1(x), y, size: QR_SIZE };
+}
+
+interface Drawn { pages: SheetPageInfo[]; boxes: SheetBox[] }
 
 /** The check printed on every sheet. It is not a concept, so it has no concept id (#618). */
 export const MATHS_VOCABULARY_LABEL = 'Maths vocabulary';
@@ -65,7 +128,40 @@ export const RATING_CHOICES = [
   { short: 'N', label: 'Not yet assessed', help: 'could not judge yet' },
 ] as const;
 
-export const STRATEGY_CHOICES = ['fingers', 'counters', 'in head', 'written'] as const;
+/**
+ * How the child found the answer. The value is what POST /api/observations stores; the
+ * label is what the sheet prints ("mental" is printed as "in head"). One list, so the
+ * sheet and the API cannot drift apart.
+ */
+export const OBSERVATION_STRATEGIES = ['fingers', 'counters', 'mental', 'written', 'guessed', 'remembered'] as const;
+export const STRATEGY_LABELS: Record<typeof OBSERVATION_STRATEGIES[number], string> = {
+  fingers: 'fingers', counters: 'counters', mental: 'in head', written: 'written', guessed: 'guessed', remembered: 'remembered',
+};
+export const STRATEGY_CHOICES = OBSERVATION_STRATEGIES.map(s => STRATEGY_LABELS[s]);
+
+/**
+ * Where each strategy choice goes on the per-child row. Six choices no longer fit at 8 pt
+ * beside the self-correction box, so the type shrinks until the row ends inside the margin
+ * (never below 6 pt). Pure, so the fit can be tested with real font metrics.
+ */
+export function layoutStrategyRow(
+  measure: (label: string, size: number) => number,
+  startX: number,
+  rightEdge: number,
+): { size: number; items: { label: string; x: number }[]; endX: number } {
+  let last = { size: 6, items: [] as { label: string; x: number }[], endX: startX };
+  for (let size = 8; size >= 6; size -= 0.5) {
+    let x = startX;
+    const items: { label: string; x: number }[] = [];
+    for (const label of STRATEGY_CHOICES) {
+      items.push({ label, x });
+      x += 13 + measure(label, size) + 8;
+    }
+    last = { size, items, endX: x - 8 };
+    if (last.endX <= rightEdge) break;
+  }
+  return last;
+}
 
 // --- Page plans (pure, so they can be tested) ---------------------------------
 
@@ -181,9 +277,23 @@ async function embedFonts(doc: PDFDocument, texts: string[]): Promise<Fonts> {
   return { font, bold, pick, safe };
 }
 
+/**
+ * Splits a line into runs that each use one font: a Devanagari run (letters and the spaces
+ * between Hindi words) and the Latin text around it. The Devanagari font has no Latin letters,
+ * so "Name: प्रिया" drawn as one string prints "Name" as empty boxes (#618).
+ */
+export function splitScriptRuns(value: string): string[] {
+  return value.split(/([ऀ-ॿ]+(?:[ \u200c\u200d]+[ऀ-ॿ]+)*)/).filter(run => run.length > 0);
+}
+
 function text(page: PDFPage, f: Fonts, value: string, x: number, y: number, size: number, opts: { bold?: boolean; color?: ReturnType<typeof rgb> } = {}) {
-  const s = f.safe(value);
-  page.drawText(s, { x, y, size, font: f.pick(s, opts.bold), color: opts.color ?? INK });
+  let cx = x;
+  for (const run of splitScriptRuns(value)) {
+    const s = f.safe(run);
+    const font = f.pick(s, opts.bold);
+    page.drawText(s, { x: cx, y, size, font, color: opts.color ?? INK });
+    cx += font.widthOfTextAtSize(s, size);
+  }
 }
 
 function box(page: PDFPage, x: number, y: number, size: number) {
@@ -219,7 +329,7 @@ export async function renderObservationSheet(input: ObservationSheetInput): Prom
   ]);
   const today = new Date().toISOString().slice(0, 10);
 
-  const pageCount = input.layout === 'class-grid'
+  const drawn = input.layout === 'class-grid'
     ? drawClassGrid(doc, f, input, today)
     : drawPerChild(doc, f, input, today);
 
@@ -227,7 +337,7 @@ export async function renderObservationSheet(input: ObservationSheetInput): Prom
   const fileName = `observation_sheet_${input.sheetId}_${randomUUID()}.pdf`;
   const filePath = path.join(OUTPUT_DIR, fileName);
   fs.writeFileSync(filePath, Buffer.from(await doc.save()));
-  return { fileName, filePath, pdfUrl: `/output/${fileName}`, pageCount };
+  return { fileName, filePath, pdfUrl: `/output/${fileName}`, pageCount: drawn.pages.length, pages: drawn.pages, boxes: drawn.boxes };
 }
 
 function legendLines(): string[] {
@@ -238,7 +348,7 @@ function legendLines(): string[] {
 
 // --- Class grid (landscape) ---------------------------------------------------------
 
-function drawClassGrid(doc: PDFDocument, f: Fonts, input: ObservationSheetInput, today: string): number {
+function drawClassGrid(doc: PDFDocument, f: Fonts, input: ObservationSheetInput, today: string): Drawn {
   const W = 841.89;
   const H = 595.28;
   const margin = 36;
@@ -250,6 +360,8 @@ function drawClassGrid(doc: PDFDocument, f: Fonts, input: ObservationSheetInput,
   const cell = 15;
 
   const plan = planGridPages(input.students.length, input.concepts.length);
+  const pages: SheetPageInfo[] = [];
+  const boxes: SheetBox[] = [];
 
   plan.forEach((p, pageIndex) => {
     const page = doc.addPage([W, H]);
@@ -288,6 +400,11 @@ function drawClassGrid(doc: PDFDocument, f: Fonts, input: ObservationSheetInput,
         RATING_CHOICES.forEach((rc, k) => {
           const bx = x + k * (cell + 4);
           box(page, bx, rowTop - 20, cell);
+          boxes.push({
+            page: pageIndex + 1, kind: 'rating', studentId: student.id,
+            conceptId: i < GRID_CONCEPTS_PER_PAGE ? input.concepts[p.conceptFrom + i].conceptId : null,
+            value: rc.label, x: round1(bx), y: round1(rowTop - 20), size: cell,
+          });
           text(page, f, rc.short, bx + (rc.short.length === 1 ? 4.6 : 2.4), rowTop - 15.5, 6.5, { color: LIGHT });
         });
       }
@@ -295,13 +412,14 @@ function drawClassGrid(doc: PDFDocument, f: Fonts, input: ObservationSheetInput,
     }
 
     text(page, f, `Sheet ${input.sheetId}   Page ${pageIndex + 1} of ${plan.length}`, margin, 22, 8, { color: GREY });
+    pages.push({ page: pageIndex + 1, width: W, height: H, qr: drawSheetQr(page, W, margin, input.sheetId, pageIndex + 1, plan.length) });
   });
-  return plan.length;
+  return { pages, boxes };
 }
 
 // --- Per child (portrait, two children to a page) --------------------------------------
 
-function drawPerChild(doc: PDFDocument, f: Fonts, input: ObservationSheetInput, today: string): number {
+function drawPerChild(doc: PDFDocument, f: Fonts, input: ObservationSheetInput, today: string): Drawn {
   const W = 595.28;
   const H = 841.89;
   const margin = 40;
@@ -312,9 +430,11 @@ function drawPerChild(doc: PDFDocument, f: Fonts, input: ObservationSheetInput, 
   const innerW = W - 2 * margin;
   const bx = 11; // box size
 
-  const pages = planChildPages(input.students.length, input.concepts.length);
+  const plan = planChildPages(input.students.length, input.concepts.length);
+  const pages: SheetPageInfo[] = [];
+  const boxes: SheetBox[] = [];
 
-  pages.forEach((blocks, pageIndex) => {
+  plan.forEach((blocks, pageIndex) => {
     const page = doc.addPage([W, H]);
     page.drawRectangle({ x: 0, y: H - 10, width: W, height: 10, color: rgb(0.06, 0.5, 0.35) });
 
@@ -332,20 +452,22 @@ function drawPerChild(doc: PDFDocument, f: Fonts, input: ObservationSheetInput, 
         const title = `L${c.levelNumber}  ${c.conceptId}  ${c.title}`;
         const shown = wrapTextToWidth(f.safe(title), f.pick(title, true), 10, innerW)[0];
         text(page, f, shown, margin, y - 10, 10, { bold: true });
-        drawRatingRow(page, f, margin, y - 28, bx);
+        drawRatingRow(page, f, margin, y - 28, bx, (value, x, yy) =>
+          boxes.push({ page: pageIndex + 1, kind: 'rating', studentId: student.id, conceptId: c.conceptId, value, x: round1(x), y: round1(yy), size: bx }));
         // Self-correction and strategy.
         box(page, margin, y - 46, bx);
-        const fixedText = 'Noticed and fixed their own mistake';
+        boxes.push({ page: pageIndex + 1, kind: 'selfCorrected', studentId: student.id, conceptId: c.conceptId, value: 'true', x: round1(margin), y: round1(y - 46), size: bx });
+        const fixedText = 'Fixed their own mistake';
         text(page, f, fixedText, margin + bx + 5, y - 44, 8.5);
         // Positions follow the measured text, so the row never runs past the margin.
-        const howX = margin + bx + 5 + f.font.widthOfTextAtSize(fixedText, 8.5) + 22;
-        const howText = 'How they found the answer:';
+        const howX = margin + bx + 5 + f.font.widthOfTextAtSize(fixedText, 8.5) + 16;
+        const howText = 'How they found it:';
         text(page, f, howText, howX, y - 44, 8.5, { color: GREY });
-        let sx = howX + f.font.widthOfTextAtSize(howText, 8.5) + 10;
-        STRATEGY_CHOICES.forEach(s => {
-          circle(page, sx + 5, y - 41, 5);
-          text(page, f, s, sx + 13, y - 44, 8);
-          sx += 13 + f.font.widthOfTextAtSize(s, 8) + 10;
+        const row = layoutStrategyRow((label, size) => f.font.widthOfTextAtSize(label, size), howX + f.font.widthOfTextAtSize(howText, 8.5) + 8, margin + innerW);
+        row.items.forEach((item, idx) => {
+          circle(page, item.x + 5, y - 41, 5);
+          boxes.push({ page: pageIndex + 1, kind: 'strategy', studentId: student.id, conceptId: c.conceptId, value: OBSERVATION_STRATEGIES[idx], x: round1(item.x), y: round1(y - 46), size: 10 });
+          text(page, f, item.label, item.x + 13, y - 44, row.size);
         });
         page.drawLine({ start: { x: margin, y: y - 58 }, end: { x: margin + innerW, y: y - 58 }, thickness: 0.4, color: LIGHT });
         y -= conceptH;
@@ -354,7 +476,8 @@ function drawPerChild(doc: PDFDocument, f: Fonts, input: ObservationSheetInput, 
       if (block.isLast) {
         text(page, f, MATHS_VOCABULARY_LABEL, margin, y - 10, 10, { bold: true });
         text(page, f, MATHS_VOCABULARY_TEXT, margin + 105, y - 10, 8.5, { color: GREY });
-        drawRatingRow(page, f, margin, y - 28, bx);
+        drawRatingRow(page, f, margin, y - 28, bx, (value, x, yy) =>
+          boxes.push({ page: pageIndex + 1, kind: 'rating', studentId: student.id, conceptId: null, value, x: round1(x), y: round1(yy), size: bx }));
       }
 
       // One notes line at the foot of each half page.
@@ -366,15 +489,17 @@ function drawPerChild(doc: PDFDocument, f: Fonts, input: ObservationSheetInput, 
       }
     });
 
-    text(page, f, `Sheet ${input.sheetId}   Page ${pageIndex + 1} of ${pages.length}`, margin, 22, 8, { color: GREY });
+    text(page, f, `Sheet ${input.sheetId}   Page ${pageIndex + 1} of ${plan.length}`, margin, 22, 8, { color: GREY });
+    pages.push({ page: pageIndex + 1, width: W, height: H, qr: drawSheetQr(page, W, margin, input.sheetId, pageIndex + 1, plan.length) });
   });
-  return pages.length;
+  return { pages, boxes };
 }
 
-function drawRatingRow(page: PDFPage, f: Fonts, x: number, y: number, bx: number) {
+function drawRatingRow(page: PDFPage, f: Fonts, x: number, y: number, bx: number, onBox?: (value: string, x: number, y: number) => void) {
   let cx = x;
   RATING_CHOICES.forEach(r => {
     box(page, cx, y, bx);
+    onBox?.(r.label, cx, y);
     const label = r.help && r.short !== 'N' ? `${r.label} (${r.help})` : r.label;
     text(page, f, label, cx + bx + 4, y + 2, 8);
     cx += bx + 4 + f.font.widthOfTextAtSize(label, 8) + 12;

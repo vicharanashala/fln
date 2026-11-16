@@ -183,6 +183,15 @@ test('selfCorrected and strategyUsed are saved, read back, and kept by a later u
   assert.equal(changed.status, 200);
   assert.equal(changed.body.selfCorrected, false);
   assert.equal(changed.body.strategyUsed, 'mental');
+
+  // "Guessed" and "remembered" are saved and read back too, and each replaces the one before.
+  for (const strategy of ['guessed', 'remembered', 'fingers']) {
+    const saved = await request('POST', '/api/observations', { ...input, strategyUsed: strategy });
+    assert.equal(saved.status, 200, strategy);
+    assert.equal(saved.body.strategyUsed, strategy);
+    const read = await request('GET', '/api/observations/student/s1?cycle=Baseline');
+    assert.equal(read.body.find((r: any) => r.conceptId === input.conceptId).strategyUsed, strategy);
+  }
 });
 
 test('a bad selfCorrected or strategyUsed is refused with 400 and nothing is saved', async () => {
@@ -192,6 +201,9 @@ test('a bad selfCorrected or strategyUsed is refused with 400 and nothing is sav
     { selfCorrected: 1 },
     { selfCorrected: null },
     { strategyUsed: 'telepathy' },
+    { strategyUsed: 'Guessed' },
+    { strategyUsed: 'in head' },
+    { strategyUsed: '' },
     { strategyUsed: 7 },
     { strategyUsed: null }
   ];
