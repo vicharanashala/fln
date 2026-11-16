@@ -55,6 +55,7 @@
     "test:observation-sheet": "tsx --test tests/observation-sheet.test.ts",
     "test:observation-sheet-route": "tsx --test tests/observation-sheet-route.test.ts",
     "test:observation-sheet-with-worksheet": "tsx --test tests/observation-sheet-with-worksheet.test.ts",
+    "test:observation-sheet-qr": "tsx --test tests/observation-sheet-qr.test.ts",
     "test:student-history": "tsx --test tests/student-history.test.ts",
     "test:worksheet-content": "tsx --test tests/worksheet-content.test.ts",
     "test:svg-pdf": "tsx --test tests/svg-pdf.test.ts",

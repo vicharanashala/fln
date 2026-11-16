@@ -116,6 +116,7 @@ import type {
   Worksheet,
   AnswerSubmission,
   TeacherObservationRecord,
+  ObservationSheetRecord,
   WorksheetGenerationWindow,
   AttemptRecord,
 } from './assessment.types';
@@ -228,6 +229,7 @@ extractedResponses: ExtractedResponse[];
   studentCycleLocks: StudentCycleLock[];
   generationWindows: WorksheetGenerationWindow[];
   teacherObservationRecords: TeacherObservationRecord[];
+  observationSheets: ObservationSheetRecord[];
   attemptRecords: AttemptRecord[];
   candidateSkills: CandidateSkill[];
   skills: Skill[];
@@ -264,6 +266,7 @@ extractedResponses: 'extracted_responses',
   studentCycleLocks: 'studentCycleLocks',
   generationWindows: 'generationWindows',
   teacherObservationRecords: 'teacher_observation_records',
+  observationSheets: 'observation_sheets',
   attemptRecords: 'attempt_records',
   candidateSkills: 'candidate_skills',
   skills: 'skills',
@@ -471,6 +474,11 @@ export class DBStore {
           await obsColl.createIndex({ studentId: 1, conceptId: 1, cycle: 1 }, { unique: true });
           await obsColl.createIndex({ classId: 1, cycle: 1 });
           await obsColl.createIndex({ conceptId: 1 });
+
+          // Printed observation sheets, saved so a scanned sheet can be matched back (#913).
+          const sheetColl = db.collection('observation_sheets');
+          await sheetColl.createIndex({ id: 1 }, { unique: true });
+          await sheetColl.createIndex({ classId: 1, cycle: 1 });
 
           console.log('Successfully ensured indexes on the question authoring collections');
         } catch (e: any) {
@@ -2491,6 +2499,28 @@ export class DBStore {
       { upsert: true }
     );
     return record;
+  }
+
+  // --- Printed observation sheets (#913) ----------------------------------
+  // One record per printed sheet. The QR code on every page carries the sheet id; the record holds
+  // the children, the concepts and the place of every box, as they were when it was printed.
+
+  async addObservationSheet(record: ObservationSheetRecord) {
+    if (!this.mongoDb) {
+      if (this.data) {
+        if (this.data.observationSheets.some(x => x.id === record.id)) throw new Error(`Observation sheet ${record.id} already exists.`);
+        this.data.observationSheets.push(record);
+        await this.save();
+      }
+      return record;
+    }
+    await this.mongoDb!.collection<ObservationSheetRecord>('observation_sheets').insertOne(record as any);
+    return record;
+  }
+
+  async getObservationSheet(id: string): Promise<ObservationSheetRecord | null> {
+    if (!this.mongoDb) return (this.data?.observationSheets || []).find(x => x.id === id) ?? null;
+    return await this.mongoDb!.collection<ObservationSheetRecord>('observation_sheets').findOne({ id }, { projection: { _id: 0 } });
   }
 
   // --- Attempt Record Methods (Evidence Model, #479) ----------------------
@@ -4928,6 +4958,8 @@ extractedResponses: [],
       // teacher's observation of a real child is not something to fabricate
       // demo data for.
       teacherObservationRecords: [],
+      // Printed sheets belong to real classes, so nothing is seeded here either.
+      observationSheets: [],
       // Same reasoning again -- a child's actual hints/scaffolding evidence
       // isn't something to fabricate demo data for either.
       attemptRecords: [],
