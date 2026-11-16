@@ -1,18 +1,18 @@
 """
-Personalized Evaluation Pipeline
+DEPRECATED (Issue #458)
 
-Checks existing evaluation reports for a student's class/phrase exam.
-If the child failed, generates a personalized next-phrase exam:
+DEPRECATED. To be retired when the remediation plan service (#376) is built; do not extend.
 
-  1. Reuses the EXACT same questions the child got wrong
-  2. PLUS questions for NEW subtopics/levels present in the target
-     phrase's syllabus but NOT in the current phrase's syllabus
-  3. If syllabi are identical (e.g. class_1 phrase_3 -> class_2 phrase_1),
-     only the failed questions are included
+This script is preserved for reference only. It runs on a legacy,
+standalone `class_N` + `phrase_1/2/3` flat-file data model that is disconnected
+from the platform's production MongoDB database and 93-level concept taxonomy.
+
+Do not invoke or patch this script for live production evaluation.
 """
 
 import json
 import sys
+import warnings
 from pathlib import Path
 from datetime import datetime
 
@@ -127,9 +127,15 @@ def get_questions_for_subtopic_names(question_bank, subtopic_names):
 
 
 def run_pipeline(student_id, class_num, phrase, student_name=None):
+    warnings.warn(
+        "DEPRECATED. To be retired when the remediation plan service (#376) is built; do not extend.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     print("=" * 70)
-    print(f"PERSONALIZED EVALUATION PIPELINE")
+    print("PERSONALIZED EVALUATION PIPELINE (DEPRECATED — ISSUE #458)")
     print(f"Student: {student_id} | Class {class_num} | {phrase}")
+    print("Notice: DEPRECATED. To be retired when the remediation plan service (#376) is built; do not extend.")
     print("=" * 70)
 
     # --- Load existing reports ---
