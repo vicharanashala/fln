@@ -59,7 +59,8 @@
     "test:evaluation-override": "tsx --test tests/evaluation-override.test.ts",
     "test:cert-eoy": "tsx --test tests/certification-end-of-year.test.ts",
     "test:ncf-competencies": "tsx --test tests/ncf-competencies.test.ts",
-    "test:icr-cloud-config": "tsx --test tests/icr-cloud-config.test.ts"
+    "test:icr-cloud-config": "tsx --test tests/icr-cloud-config.test.ts",
+    "test:bulk-pdf-page-count": "tsx --test tests/bulk-pdf-page-count.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
