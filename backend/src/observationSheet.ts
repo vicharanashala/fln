@@ -65,7 +65,40 @@ export const RATING_CHOICES = [
   { short: 'N', label: 'Not yet assessed', help: 'could not judge yet' },
 ] as const;
 
-export const STRATEGY_CHOICES = ['fingers', 'counters', 'in head', 'written'] as const;
+/**
+ * How the child found the answer. The value is what POST /api/observations stores; the
+ * label is what the sheet prints ("mental" is printed as "in head"). One list, so the
+ * sheet and the API cannot drift apart.
+ */
+export const OBSERVATION_STRATEGIES = ['fingers', 'counters', 'mental', 'written', 'guessed', 'remembered'] as const;
+export const STRATEGY_LABELS: Record<typeof OBSERVATION_STRATEGIES[number], string> = {
+  fingers: 'fingers', counters: 'counters', mental: 'in head', written: 'written', guessed: 'guessed', remembered: 'remembered',
+};
+export const STRATEGY_CHOICES = OBSERVATION_STRATEGIES.map(s => STRATEGY_LABELS[s]);
+
+/**
+ * Where each strategy choice goes on the per-child row. Six choices no longer fit at 8 pt
+ * beside the self-correction box, so the type shrinks until the row ends inside the margin
+ * (never below 6 pt). Pure, so the fit can be tested with real font metrics.
+ */
+export function layoutStrategyRow(
+  measure: (label: string, size: number) => number,
+  startX: number,
+  rightEdge: number,
+): { size: number; items: { label: string; x: number }[]; endX: number } {
+  let last = { size: 6, items: [] as { label: string; x: number }[], endX: startX };
+  for (let size = 8; size >= 6; size -= 0.5) {
+    let x = startX;
+    const items: { label: string; x: number }[] = [];
+    for (const label of STRATEGY_CHOICES) {
+      items.push({ label, x });
+      x += 13 + measure(label, size) + 8;
+    }
+    last = { size, items, endX: x - 8 };
+    if (last.endX <= rightEdge) break;
+  }
+  return last;
+}
 
 // --- Page plans (pure, so they can be tested) ---------------------------------
 
@@ -335,17 +368,16 @@ function drawPerChild(doc: PDFDocument, f: Fonts, input: ObservationSheetInput, 
         drawRatingRow(page, f, margin, y - 28, bx);
         // Self-correction and strategy.
         box(page, margin, y - 46, bx);
-        const fixedText = 'Noticed and fixed their own mistake';
+        const fixedText = 'Fixed their own mistake';
         text(page, f, fixedText, margin + bx + 5, y - 44, 8.5);
         // Positions follow the measured text, so the row never runs past the margin.
-        const howX = margin + bx + 5 + f.font.widthOfTextAtSize(fixedText, 8.5) + 22;
-        const howText = 'How they found the answer:';
+        const howX = margin + bx + 5 + f.font.widthOfTextAtSize(fixedText, 8.5) + 16;
+        const howText = 'How they found it:';
         text(page, f, howText, howX, y - 44, 8.5, { color: GREY });
-        let sx = howX + f.font.widthOfTextAtSize(howText, 8.5) + 10;
-        STRATEGY_CHOICES.forEach(s => {
-          circle(page, sx + 5, y - 41, 5);
-          text(page, f, s, sx + 13, y - 44, 8);
-          sx += 13 + f.font.widthOfTextAtSize(s, 8) + 10;
+        const row = layoutStrategyRow((label, size) => f.font.widthOfTextAtSize(label, size), howX + f.font.widthOfTextAtSize(howText, 8.5) + 8, margin + innerW);
+        row.items.forEach(item => {
+          circle(page, item.x + 5, y - 41, 5);
+          text(page, f, item.label, item.x + 13, y - 44, row.size);
         });
         page.drawLine({ start: { x: margin, y: y - 58 }, end: { x: margin + innerW, y: y - 58 }, thickness: 0.4, color: LIGHT });
         y -= conceptH;

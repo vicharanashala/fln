@@ -187,10 +187,10 @@ export interface TeacherObservationRecord {
 
   /**
    * How the child reached the answer, as the teacher saw it: on their fingers, with
-   * counters, in their head, or by writing it down (#620). Optional for the same
-   * reason as `selfCorrected`.
+   * counters, in their head, by writing it down, by guessing, or by remembering the
+   * answer (#620). Optional for the same reason as `selfCorrected`.
    */
-  strategyUsed?: 'fingers' | 'counters' | 'mental' | 'written';
+  strategyUsed?: 'fingers' | 'counters' | 'mental' | 'written' | 'guessed' | 'remembered';
 
   observedAt: string;
   createdAt: string;
