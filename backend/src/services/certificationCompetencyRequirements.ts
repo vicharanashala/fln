@@ -3,6 +3,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { CompetencyRequirement, MasteryLevel } from '../db';
 
+/** Top level of each class band in the 109-level map (Balvatika L19-46, Class 1 L47-60, Class 2 L61-77, Class 3 L78-91). */
+export const CLASS_TOP_LEVEL: Record<number, number> = { 0: 46, 1: 60, 2: 77, 3: 91 };
+
 /**
  * Read-only competency-requirements registry for the certification engine.
  * Loads backend/src/data/competencyRequirements.seed.json — the same seed
