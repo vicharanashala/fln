@@ -6,11 +6,11 @@ Role-specific page bodies, mostly selected by `../PanelViews.tsx` from the `acti
 ## Interface
 - Data hook: `usePanelData.ts` (`usePanelData(token, currentUser, activePanel)`: students, `studentsLoading`, schools, `schoolsLoading`, `schoolsError`, `refreshSchools`, users, reports, worksheets, teachers, district/block stats, `updateStudentLocally`, `refreshStudents`).
 - Shared: `PanelShared.tsx` (`PageHeader`, `EmptyStudents`), `pdfReportGenerator.ts` (`handleDownloadPDF`).
-- Teacher: `StudentListPanel` (also `extractInvalidStudentRows`), `StudentProfilePanel`, `DiagnosticTestPanel`, `AdaptiveTestPanel` (a placeholder that renders a "not available yet" message), `TestHistoryPanel`, `WorksheetsPanel`, `PerformancePanel`, `CertificatesPanel`.
+- Teacher: `StudentListPanel` (also `extractInvalidStudentRows`), `StudentProfilePanel`, `DiagnosticTestPanel`, `AdaptiveTestPanel` (a placeholder that renders a "not available yet" message), `TestHistoryPanel`, `WorksheetsPanel` (with `ObservationSheetCard`, which prints the observation sheet), `PerformancePanel`, `CertificatesPanel`.
 - Volunteer: `AssignedSchoolsPanel`, `StudentProgressPanel`, `AttendancePanel`.
 - Principal and regional admin: `TeachersPanel`, `SchoolsPanel`, `DistrictsPanel`, `BlocksPanel`, `AnalyticsPanel` (`getTotalSchoolsCount`).
 - Superadmin and content: `UsersPanel`, `ContentPanel`, `SecurityPanel`, `SystemSettingsPanel` (static empty-state text only), `AadhaarRevealPanel`, `AadhaarRevealDialog`, `CurriculumLevelsPanel`, `QuestionBankPanel`, `QuestionReviewPanel`, `QuestionTemplatePanel`, `QuestionInterventionPanel`, `WorksheetTemplatesPanel`.
-- Tests: `AnalyticsPanel.test.tsx`.
+- Tests: `AnalyticsPanel.test.tsx`, `ObservationSheetCard.test.tsx`.
 
 ## Invariants
 - Panels never decide access; `PanelViews` gates by `UserRole` and the backend enforces scope.

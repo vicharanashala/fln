@@ -7,6 +7,7 @@ import { ClipboardList, CheckCircle2, FileText } from 'lucide-react';
 import { apiFetch, withBase } from '../../services/apiClient';
 import { WorksheetWorkflow } from '../WorksheetWorkflow';
 import { IcrScanner } from '../IcrScanner';
+import { ObservationSheetCard } from './ObservationSheetCard';
 
 interface WorksheetsPanelProps {
   reportsList: EvaluationReport[];
@@ -336,6 +337,15 @@ export const WorksheetsPanel: React.FC<WorksheetsPanelProps> = ({
             </div>
           )}
         </div>
+
+        {/* #914: print the teacher observation sheet (class grid, per child or both). */}
+        <ObservationSheetCard
+          classes={classes}
+          activeClass={activeClass}
+          onSelectClass={next => { setActiveClass(next); setLevelBatchId(null); setLevelBatchResults([]); setLevelBatchSkipped([]); }}
+          currentUser={currentUser}
+          token={token}
+        />
 
         {/* Issue #166: Worksheet Engine launchers — moved from the dashboard's
             floating "Exam Worksheets Engine" side panel. Each is a full-screen
