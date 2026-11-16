@@ -19,6 +19,8 @@ import { NoApprovedContentError } from '../utils/conceptQuestionGenerator';
 import * as levelsBackendClient from '../levelsBackendClient';
 import { ROOT_DIR } from '../config';
 import { getLevelForConcept, isBalvatikaStage } from '../config/curriculumMap';
+import { buildSheetsForWorksheet, parseWorksheetSheetRequest } from '../services/observationSheetBuilder';
+import type { WorksheetSheetRequest } from '../services/observationSheetBuilder';
 import { PAPER_TYPE_CONFIG, getPaperTypeConfig, spreadQuestionCount } from '../config/paperTypeConfig';
 import { recordStudentCycleLock } from '../paperLock';
 import {
@@ -663,6 +665,10 @@ export function registerWorksheetRoutes(app: express.Express) {
     if (seed !== undefined && (typeof seed !== 'string' || seed.length === 0 || seed.length > 60)) {
       return res.status(400).json({ error: 'seed must be a text of 1 to 60 characters.' });
     }
+    // Optional (#618): also print the teacher observation sheet for the class.
+    const parsedSheet = parseWorksheetSheetRequest(req.body?.observationSheet);
+    if (parsedSheet && 'error' in parsedSheet) return res.status(400).json({ error: parsedSheet.error });
+    const sheetRequest = parsedSheet as WorksheetSheetRequest | undefined;
 
     let content;
     try {
@@ -698,8 +704,10 @@ export function registerWorksheetRoutes(app: express.Express) {
         conceptIds: content.concepts.map(c => c.conceptId),
         resolvedQuestions: content.questions,
       });
+      const observationSheet = sheetRequest ? await buildSheetsForWorksheet(user, sheetRequest, conceptIds) : undefined;
       res.json({
         success: true, pdfUrl: result.pdfUrl, questionCount: content.questions.length, concepts: summary,
+        ...(observationSheet ? { observationSheet } : {}),
         ...(paperTypeConfig ? {
           paperType: paperTypeConfig.paperType,
           expectedQuestionCount: paperTypeConfig.questionCount,

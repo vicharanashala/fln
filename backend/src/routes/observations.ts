@@ -3,23 +3,11 @@ import { randomUUID } from 'crypto';
 import { dbStore, CYCLE_NAMES, TeacherObservationRecord, UserRole } from '../db';
 import { canAccessStudent, getAuthUser } from '../auth';
 import { getLevelForConcept } from '../config/curriculumMap';
-import { OBSERVATION_LAYOUTS, renderObservationSheet } from '../observationSheet';
+import { OBSERVATION_LAYOUTS, OBSERVATION_STRATEGIES } from '../observationSheet';
+import { MAX_SHEET_CONCEPTS, buildObservationSheets, canAccessClassRecords } from '../services/observationSheetBuilder';
 import type { ObservationLayout } from '../observationSheet';
 
 const OBSERVATION_RATINGS = ['Proficient', 'Progressive', 'Beginner'] as const;
-const OBSERVATION_STRATEGIES = ['fingers', 'counters', 'mental', 'written'] as const;
-
-/** Most children and concepts one printed sheet may carry. */
-const MAX_SHEET_STUDENTS = 120;
-const MAX_SHEET_CONCEPTS = 20;
-
-/** Who may read or print a class's observations: wide roles, anyone at the school, or the class teacher. */
-function canAccessClassRecords(user: NonNullable<ReturnType<typeof getAuthUser>>, classGroup: { schoolId: string; teacherId: string }): boolean {
-  const hasBroadAccess = [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.DISTRICT_ADMIN, UserRole.BLOCK_ADMIN].includes(user.role);
-  const hasSchoolAccess = classGroup.schoolId === user.schoolId || (user.assignedSchools?.includes(classGroup.schoolId) ?? false);
-  const isClassTeacher = classGroup.teacherId === user.id;
-  return hasBroadAccess || hasSchoolAccess || isClassTeacher;
-}
 
 function isValidCycle(cycle: unknown): cycle is typeof CYCLE_NAMES[number] {
   return typeof cycle === 'string' && (CYCLE_NAMES as readonly string[]).includes(cycle);
@@ -192,61 +180,15 @@ export function registerObservationRoutes(app: express.Express) {
     }
 
     try {
-      const classGroup = (await dbStore.getClasses()).find(c => c.id === classId.trim());
-      if (!classGroup) return res.status(404).json({ error: 'Class not found.' });
-      if (!canAccessClassRecords(user, classGroup)) {
-        return res.status(403).json({ error: 'Forbidden.' });
-      }
-
-      const students = (await dbStore.getStudents())
-        .filter(s => s.schoolId === classGroup.schoolId && s.classGroup === classGroup.className && s.section === classGroup.section)
-        .sort((a, b) => a.name.localeCompare(b.name));
-      if (students.length === 0) {
-        return res.status(400).json({ error: 'No students found in this class roster.' });
-      }
-      if (students.length > MAX_SHEET_STUDENTS) {
-        return res.status(400).json({ error: `A sheet can hold at most ${MAX_SHEET_STUDENTS} children; this class has ${students.length}.` });
-      }
-
-      // A concept is observed when one of its live templates is marked observed or both.
-      const observable = new Set(
-        (await dbStore.getQuestionTemplates())
-          .filter(t => t.assessmentMode === 'observed' || t.assessmentMode === 'both')
-          .map(t => t.conceptId)
-      );
-      let conceptList: string[];
-      if (requested) {
-        const notObserved = requested.filter(c => !observable.has(c));
-        if (notObserved.length > 0) {
-          return res.status(400).json({ error: `${notObserved.join(', ')} ${notObserved.length === 1 ? 'is' : 'are'} not observed by a teacher, so there is no observation sheet row for ${notObserved.length === 1 ? 'it' : 'them'}.` });
-        }
-        conceptList = requested;
-      } else {
-        conceptList = [...observable].filter(c => getLevelForConcept(c)).slice(0, MAX_SHEET_CONCEPTS);
-      }
-      const concepts = conceptList
-        .map(c => ({ conceptId: c, levelNumber: getLevelForConcept(c)!.levelNumber, title: getLevelForConcept(c)!.levelTitle }))
-        .sort((a, b) => a.levelNumber - b.levelNumber);
-      if (concepts.length === 0) {
-        return res.status(404).json({ error: 'No concept is marked as observed, so there is nothing to put on the sheet.' });
-      }
-
-      const result = await renderObservationSheet({
-        sheetId: `OBS_${randomUUID().slice(0, 8)}`,
-        layout: layout as ObservationLayout,
-        className: classGroup.className,
-        section: classGroup.section,
-        cycle,
-        students: students.map(s => ({ id: s.id, name: s.name, displayId: s.displayId })),
-        concepts,
-      });
+      const built = await buildObservationSheets(user, { classId: classId.trim(), cycle, layouts: [layout as ObservationLayout], requested, strict: true });
+      if ('error' in built) return res.status(built.status).json({ error: built.error });
       return res.json({
         success: true,
-        pdfUrl: result.pdfUrl,
+        pdfUrl: built.sheets[0].pdfUrl,
         layout,
-        pageCount: result.pageCount,
-        studentCount: students.length,
-        concepts: concepts.map(c => ({ conceptId: c.conceptId, level: c.levelNumber })),
+        pageCount: built.sheets[0].pageCount,
+        studentCount: built.studentCount,
+        concepts: built.concepts,
       });
     } catch (error: any) {
       console.error('[Observations] sheet failed:', error?.message || error);

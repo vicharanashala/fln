@@ -46,3 +46,13 @@ export function drawQrCode(page: PDFPage, payload: unknown, x: number, y: number
     }
   }
 }
+
+/** The dark/light module matrix for a payload, drawn the same way as drawQrCode (used by tests and the reader). */
+export function qrModules(payload: unknown): boolean[][] {
+  if (!qrcodeFactory) createQrDataUrl(payload);
+  const qr = qrcodeFactory(0, 'M');
+  qr.addData(JSON.stringify(payload));
+  qr.make();
+  const n = qr.getModuleCount();
+  return Array.from({ length: n }, (_, row) => Array.from({ length: n }, (_, col) => !!qr.isDark(row, col)));
+}

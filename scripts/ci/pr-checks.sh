@@ -39,7 +39,7 @@ want() { [ "$SELECTED" = "  " ] || [[ "$SELECTED" == *" $1 "* ]]; }
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-declare -a NAMES RESULTS LOGS
+declare -a NAMES=() RESULTS=() LOGS=()
 record() { NAMES+=("$1"); RESULTS+=("$2"); }
 section() { printf '\n\033[1m=== %s ===\033[0m\n' "$1"; }
 LOG_DIR="$(mktemp -d)"

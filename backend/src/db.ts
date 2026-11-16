@@ -85,7 +85,6 @@ export * from './curriculum.types';
 export * from './assessment.types';
 export * from './evaluation.types';
 export * from './operations.types';
-
 import { UserRole } from './identity.types';
 import type {
   User,
@@ -117,6 +116,7 @@ import type {
   Worksheet,
   AnswerSubmission,
   TeacherObservationRecord,
+  ObservationSheetRecord,
   WorksheetGenerationWindow,
   AttemptRecord,
 } from './assessment.types';
@@ -136,7 +136,67 @@ import type {
 } from './operations.types';
 import { emitKeypressEvents } from 'readline';
 
+export type ScanProcessingStage =
+  | 'uploaded'
+  | 'quality_checked'
+  | 'rasterized'
+  | 'extracted'
+  | 'failed';
 
+export interface ScanSubmissionPageState {
+  pageNumber: number;
+  rasterized: boolean;
+  extractionStatus: 'pending' | 'done' | 'error';
+  error?: string;
+}
+
+export interface ScanSubmission {
+  id: string;
+  schoolId?: string;
+  classId?: string;
+  studentId?: string;
+  uploaderId: string;
+  fileName?: string;
+  pageCount?: number;
+  provider?: string;
+  stage: ScanProcessingStage;
+  pages?: ScanSubmissionPageState[];
+  scanQuality?: ScanQualityResult;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ExtractedResponseReviewState =
+  | 'pending'
+  | 'reviewed'
+  | 'corrected';
+
+export interface ExtractedResponseBoundingBox {
+  x_mm?: number;
+  y_mm?: number;
+  w_mm?: number;
+  h_mm?: number;
+}
+
+export interface ExtractedResponse {
+  id: string;
+  scanSubmissionId: string;
+  studentId?: string;
+  questionId: string;
+  pageNumber: number;
+  rawText: string;
+  ocrConfidence?: number | null;
+  ocrProvider: string;
+  boundingBox?: ExtractedResponseBoundingBox | null;
+  requiresReview: boolean;
+  reviewState: ExtractedResponseReviewState;
+  correctedAnswer?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface DatabaseSchema {
   users: User[];
@@ -147,6 +207,8 @@ interface DatabaseSchema {
   worksheets: Worksheet[];
   levelWorksheets: LevelWorksheet[];
   levelHtmlTemplates: LevelHtmlTemplate[];
+scanSubmissions: ScanSubmission[];
+extractedResponses: ExtractedResponse[];
   questionBank: QuestionBankEntry[];
   answerSubmissions: AnswerSubmission[];
   evaluationReports: EvaluationReport[];
@@ -167,6 +229,7 @@ interface DatabaseSchema {
   studentCycleLocks: StudentCycleLock[];
   generationWindows: WorksheetGenerationWindow[];
   teacherObservationRecords: TeacherObservationRecord[];
+  observationSheets: ObservationSheetRecord[];
   attemptRecords: AttemptRecord[];
   candidateSkills: CandidateSkill[];
   skills: Skill[];
@@ -175,6 +238,8 @@ interface DatabaseSchema {
 const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   users: 'users',
   schools: 'schools',
+scanSubmissions: 'scan_submissions',
+extractedResponses: 'extracted_responses',
   classes: 'classes',
   students: 'students',
   questions: 'questions',
@@ -201,6 +266,7 @@ const COLLECTION_NAMES: Record<keyof DatabaseSchema, string> = {
   studentCycleLocks: 'studentCycleLocks',
   generationWindows: 'generationWindows',
   teacherObservationRecords: 'teacher_observation_records',
+  observationSheets: 'observation_sheets',
   attemptRecords: 'attempt_records',
   candidateSkills: 'candidate_skills',
   skills: 'skills',
@@ -408,6 +474,11 @@ export class DBStore {
           await obsColl.createIndex({ studentId: 1, conceptId: 1, cycle: 1 }, { unique: true });
           await obsColl.createIndex({ classId: 1, cycle: 1 });
           await obsColl.createIndex({ conceptId: 1 });
+
+          // Printed observation sheets, saved so a scanned sheet can be matched back (#913).
+          const sheetColl = db.collection('observation_sheets');
+          await sheetColl.createIndex({ id: 1 }, { unique: true });
+          await sheetColl.createIndex({ classId: 1, cycle: 1 });
 
           console.log('Successfully ensured indexes on the question authoring collections');
         } catch (e: any) {
@@ -1838,6 +1909,99 @@ export class DBStore {
     return undefined;
   }
 
+  // --- Scan Submission & Extracted Response Methods (Issue #366) ---
+
+  async getScanSubmissions() {
+    if (this.mongoDb) return await this.mongoDb.collection<ScanSubmission>('scan_submissions').find({}).toArray();
+    return (this.data?.scanSubmissions || []);
+  }
+
+  async getScanSubmissionById(id: string) {
+    if (this.mongoDb) return await this.mongoDb.collection<ScanSubmission>('scan_submissions').findOne({ id });
+    return (this.data?.scanSubmissions || []).find(s => s.id === id);
+  }
+
+  async addScanSubmission(submission: ScanSubmission) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('scan_submissions').insertOne(submission);
+    }
+    if (this.data) {
+      if (!this.data.scanSubmissions) this.data.scanSubmissions = [];
+      this.data.scanSubmissions.push(submission);
+    }
+    return submission;
+  }
+
+  async updateScanSubmission(id: string, updates: Partial<ScanSubmission>) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('scan_submissions').updateOne({ id }, { $set: updates });
+      return await this.mongoDb.collection<ScanSubmission>('scan_submissions').findOne({ id });
+    }
+    if (this.data) {
+      const list = this.data.scanSubmissions || [];
+      const idx = list.findIndex(s => s.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...updates };
+        return list[idx];
+      }
+    }
+    return undefined;
+  }
+
+  async getExtractedResponses(filter?: {
+    scanSubmissionId?: string;
+    questionId?: string;
+    reviewState?: ExtractedResponseReviewState;
+    requiresReview?: boolean;
+  }) {
+    if (this.mongoDb) {
+      const query: Record<string, unknown> = {};
+      if (filter?.scanSubmissionId) query.scanSubmissionId = filter.scanSubmissionId;
+      if (filter?.questionId) query.questionId = filter.questionId;
+      if (filter?.reviewState) query.reviewState = filter.reviewState;
+      if (filter?.requiresReview !== undefined) query.requiresReview = filter.requiresReview;
+      return await this.mongoDb.collection<ExtractedResponse>('extracted_responses').find(query).toArray();
+    }
+    let list = this.data?.extractedResponses || [];
+    if (filter?.scanSubmissionId) list = list.filter(r => r.scanSubmissionId === filter.scanSubmissionId);
+    if (filter?.questionId) list = list.filter(r => r.questionId === filter.questionId);
+    if (filter?.reviewState) list = list.filter(r => r.reviewState === filter.reviewState);
+    if (filter?.requiresReview !== undefined) list = list.filter(r => r.requiresReview === filter.requiresReview);
+    return list;
+  }
+
+  async getExtractedResponseById(id: string) {
+    if (this.mongoDb) return await this.mongoDb.collection<ExtractedResponse>('extracted_responses').findOne({ id });
+    return (this.data?.extractedResponses || []).find(r => r.id === id);
+  }
+
+  async addExtractedResponses(items: ExtractedResponse[]) {
+    if (this.mongoDb && items.length > 0) {
+      await this.mongoDb.collection('extracted_responses').insertMany(items);
+    }
+    if (this.data) {
+      if (!this.data.extractedResponses) this.data.extractedResponses = [];
+      this.data.extractedResponses.push(...items);
+    }
+    return items;
+  }
+
+  async updateExtractedResponse(id: string, updates: Partial<ExtractedResponse>) {
+    if (this.mongoDb) {
+      await this.mongoDb.collection('extracted_responses').updateOne({ id }, { $set: updates });
+      return await this.mongoDb.collection<ExtractedResponse>('extracted_responses').findOne({ id });
+    }
+    if (this.data) {
+      const list = this.data.extractedResponses || [];
+      const idx = list.findIndex(r => r.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...updates };
+        return list[idx];
+      }
+    }
+    return undefined;
+  }
+
   async addTicket(t: Ticket) {
     if (!this.mongoDb) {
       if (this.data) {
@@ -2335,6 +2499,28 @@ export class DBStore {
       { upsert: true }
     );
     return record;
+  }
+
+  // --- Printed observation sheets (#913) ----------------------------------
+  // One record per printed sheet. The QR code on every page carries the sheet id; the record holds
+  // the children, the concepts and the place of every box, as they were when it was printed.
+
+  async addObservationSheet(record: ObservationSheetRecord) {
+    if (!this.mongoDb) {
+      if (this.data) {
+        if (this.data.observationSheets.some(x => x.id === record.id)) throw new Error(`Observation sheet ${record.id} already exists.`);
+        this.data.observationSheets.push(record);
+        await this.save();
+      }
+      return record;
+    }
+    await this.mongoDb!.collection<ObservationSheetRecord>('observation_sheets').insertOne(record as any);
+    return record;
+  }
+
+  async getObservationSheet(id: string): Promise<ObservationSheetRecord | null> {
+    if (!this.mongoDb) return (this.data?.observationSheets || []).find(x => x.id === id) ?? null;
+    return await this.mongoDb!.collection<ObservationSheetRecord>('observation_sheets').findOne({ id }, { projection: { _id: 0 } });
   }
 
   // --- Attempt Record Methods (Evidence Model, #479) ----------------------
@@ -4741,6 +4927,8 @@ export class DBStore {
       worksheets,
       levelWorksheets: [],
       levelHtmlTemplates: [],
+scanSubmissions: [],
+extractedResponses: [],
       questionBank: [],
       answerSubmissions,
       evaluationReports,
@@ -4770,6 +4958,8 @@ export class DBStore {
       // teacher's observation of a real child is not something to fabricate
       // demo data for.
       teacherObservationRecords: [],
+      // Printed sheets belong to real classes, so nothing is seeded here either.
+      observationSheets: [],
       // Same reasoning again -- a child's actual hints/scaffolding evidence
       // isn't something to fabricate demo data for either.
       attemptRecords: [],

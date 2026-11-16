@@ -2,7 +2,91 @@
 
 All notable changes to this repository, grouped by date (newest first).
 Auto-curated from git history: pull-request merges and direct commits are listed;
-routine branch-sync merges are omitted. Regenerate with `gen_changelog.py`.
+routine branch-sync merges are omitted.
+
+## 2026-11-06 — Licensing
+
+- **`docs`: add MIT license (#905)** — added repository `LICENSE` file under the MIT license and updated `README.md` to formally document FLN as open-source software under MIT.
+
+## 2026-11-02 — Curriculum alignment (109 levels, Balvatika scope & scoring bands)
+
+- **`docs(curriculum)`: formalize 109-level architecture (#902, refs #541)** — aligned `ARCHITECTURE.md` with the 109-level curriculum structure established in #517, replacing six stale references to the legacy 93-level framework.
+- **`docs(curriculum)`: update project scope from Classes 2–4 to Balvatika–Class 3 (#901, refs #541)** — updated `PRD.md` and `CLAUDE.md` to reflect the active curriculum scope spanning Balvatika through Class 3, noting that literacy will be developed as a separate dedicated module.
+- **`docs(curriculum)`: record 5-questions-per-concept ruling and mastery bands (#900, refs #541)** — documented the curriculum reviewer's decision in `README.md` establishing 5 questions per concept scored 0 to 5, mapped to Emerging (0–2), Developing (3–4), and Secure (5) bands.
+
+## 2026-10-29 — Balvatika pipeline, teacher observation sheets & generator reliability
+
+**Observation sheets & Balvatika pipeline**
+- **`feat(balvatika)`: pipeline local dry-run harness (#896, #895)** — added `npm run dry-run:balvatika` (`backend/src/dryRunBalvatika.ts`) validating five verification steps against an isolated scratch database: seeded templates presence, clean question rendering without placeholders or duplicates, written worksheet generation, observation sheet generation across layouts, and observation record persistence.
+- **`feat(observations)`: printable teacher observation sheets (#891, refs #890, #618)** — implemented `backend/src/observationSheet.ts` using `pdf-lib` to render observation sheets in two print layouts: a landscape class grid (row per child, 4 tick boxes per concept, 5 concepts per page) and portrait per-child sheets (2 students per page with mastery ratings, self-correction, strategy, and notes). Exposed via `POST /api/observations/sheet`.
+- **`feat(observations)`: record self-correction and strategy on observations (#887, refs #705, #619, #620)** — added optional `selfCorrected` (boolean) and `strategyUsed` (enum: `'concrete'`, `'counting-fingers'`, `'verbal'`, `'mental'`, `'guessed'`) fields to `TeacherObservationRecord` schema and route handlers.
+- **`feat(question-bank)`: preserve assessmentMode in bulk CSV imports (#893, refs #892, #761)** — enhanced CSV bulk import to support an optional `assessmentMode` column (`written`, `observed`, `both`), validating mode values and preserving mode in template fingerprints and generated question templates.
+
+**Worksheets & generator fixes**
+- **`fix(worksheets)`: expand answer box to 58 pt (#889, refs #888, #603)** — enlarged worksheet answer boxes to 58 pt to accommodate early childhood handwriting.
+- **`fix(balvatika)`: print 5 questions per level (#886, refs #885)** — updated `levelGenerator.ts` to output 5 questions per worksheet for Balvatika levels to match the curriculum reviewer ruling.
+- **`fix(balvatika)`: generate 10 distinct questions per level without placeholders (#884, refs #760, #359)** — eliminated placeholder text across Balvatika generators and guaranteed 10 distinct question variants per level.
+- **`fix(worksheets)`: correct Class 1 worksheet preview path (#883, refs #882)** — fixed preview modal path in `frontend/src/components/WorksheetIframeModal.tsx` to reference the existing Class 1 preview file.
+- **`fix(generators)`: deduplicate question generators and fix infinite loops (#772, refs #398)** — fixed 10 generators that hung when generating production counts, added unordered pair deduplication to `angle-compare-circle`, added match labels to `hand-number-mini-panels`, and refreshed the duplicate-question baseline.
+
+**Onboarding documents merged:** #856 (`Ideas/ONBOARDING-RAVI-BHATT.md`).
+
+## 2026-10-27 — Skill evolution, Devanagari PDF generation & security hardening
+
+**Curriculum & PDFs**
+- **`feat(curriculum)`: D1.6 Skill Evolution candidate skill schema & expert validation (#701, refs #481)** — introduced `candidateSkills` and `skills` collections in `backend/src/db.ts` with status workflow (`suggested` → `under_review` → `accepted` / `rejected`), audit logging, and route endpoints `GET /api/skills/evolution/candidates` and `POST /api/skills/evolution/validate`.
+- **`fix(paperGenerator)`: render Devanagari Hindi text in worksheet PDFs (#830, refs #757)** — bundled and registered `NotoSansDevanagari-Bold.ttf` via `fontkit` in `pdf-lib` so Hindi question stems render correctly instead of failing with missing font glyph errors.
+- **`fix(evaluation)`: derive concept mastery from diagnostic strand performance (#777)** — updated `backend/src/services/strandMastery.ts` to evaluate diagnostic strand performance and derive student concept mastery levels.
+
+**Security, privacy & contracts**
+- **`fix(vault)`: harden vault authentication (#876)** — derived Aadhaar vault caller credentials securely from the active session rather than trusting request parameters.
+- **`fix(api)`: limit student and user response fields (#875)** — sanitized student and admin responses to return public shapes only, preventing sensitive internal state and PII from leaking.
+- **`docs`: add EGM contract specifications (#874)** — documented Early Grade Mathematics (EGM) interface contracts and component boundaries.
+
+**Onboarding documents merged:** #834 (`Ideas/ONBOARDING-Jiya-Singh.md`).
+
+## 2026-10-26 — NCF competency mapping, database modularization & certification queue scoping
+
+- **`feat(curriculum)`: map Balvatika–Class 3 concepts to NCF competencies (#865, refs #849)** — mapped all 109 curriculum concepts across Balvatika, Class 1, Class 2, and Class 3 to foundational National Curriculum Framework (NCF-FS) competencies in `backend/src/config/ncfCompetencyMap.ts`.
+- **`refactor(db)`: modularize domain types from monolithic db.ts (#861)** — extracted domain types out of `backend/src/db.ts` into dedicated modules (`curriculum.types.ts`, `assessment.types.ts`, `evaluation.types.ts`, `operations.types.ts`, `student.types.ts`, `identity.types.ts`), re-exporting them from `db.ts` for backwards compatibility.
+- **`fix(certification)`: scope certification review queue and prevent double decisions (#835, refs #739)** — scoped admin certification review queue to prevent concurrent duplicate decisions and added optimistic concurrency validation.
+- **`fix(frontend)`: accessibility names and contrast for inputs (#851, refs #750)** — added descriptive accessible names to dropdowns, checkboxes, and notifications bell button, and fixed low-contrast form labels.
+
+## 2026-10-24 — Certification triggers, rate limiting & UI usability improvements
+
+- **`fix(eval)`: restrict certification triggers to End-of-Year worksheets (#863)** — restricted automated R-7 certification evaluations to run only on End-of-Year worksheet submissions, avoiding premature certification passes on baseline/practice papers.
+- **`fix(backend)`: trust reverse proxy and rate-limit code-checking routes (#843, refs #753)** — enabled `trust proxy` configuration for Express and applied rate limiting to authentication and verification endpoints.
+- **`fix(evaluation)`: persist teacher errorType across manual overrides (#824, refs #459)** — allowed teachers to manually submit and preserve `errorType` during answer evaluation overrides.
+- **`fix(frontend)`: show em dash in Total Schools card while loading (#855, refs #695)** — fixed KPI metric display in regional dashboard to show `—` instead of flashing `0` before school metrics load.
+- **`fix(ui)`: adapt mobile top bars to 44px tap targets (#796, refs #751)** — increased mobile navigation bar height to 44px and adjusted tap target sizing for smartphone screens.
+- **`fix(ui)`: executive dashboard KPI card styling (#776, refs #707)** — improved visual styling, spacing, and typography across executive dashboard metric cards.
+
+## 2026-10-23 — CI workflow enhancements, PR quality gate bots and test stability
+
+- **`ci`: split PR checks into parallel jobs (#871)** — refactored GitHub Actions PR check workflows to run individual test suites and linters as separate concurrent jobs with fine-grained status reporting.
+- **`ci`: PR checks automated diagnostic comment bot and lockfile notice (#870, #869)** — added automated PR comments with failure diagnostics and alerts when `package-lock.json` has conflicts or changes.
+- **`ci`: add ESLint, level-count check, and route coverage checks (#868)** — added `npm run lint:eslint`, level-count validation (`scripts/ci/check-levels.ts`), and route inventory verification (`scripts/ci/check-routes.ts`) to PR checks.
+- **`test(vault)`: eliminate false-positive UUID matches in Aadhaar vault tests (#872)** — fixed test assertions in vault test suite that previously mistook random UUID sequences for unencrypted Aadhaar numbers.
+
+**Onboarding documents merged:** #864 (`Ideas/ONBOARDING-Ekjot-Singh.md`), #842 (`Ideas/ONBOARDING-Sampurna.md`), #663 (`Ideas/ONBOARDING-Hemanjani-Harika-Kutani.md`).
+
+## 2026-10-22 — Research archive reorganization by curriculum era
+
+- **`docs(research)`: restructure Research directory by curriculum era (#867)** — reorganized research documentation into era-specific directories (`01-original-59-levels`, `02-93-levels`, `03-109-levels`, `04-background-research`), documented the 109 levels, and updated crosswalk references.
+
+**Onboarding documents merged:** #862 (`Ideas/ONBOARDING-Mahak.md`).
+
+## 2026-10-21 — School onboarding integration tests, access scoping and data fallbacks
+
+- **`test(backend)`: integration test suite for school onboarding (#854, refs #698)** — added automated integration test suite in `backend/tests/school-onboarding.test.ts` validating transaction rollback, admin authorization, and principal account creation.
+- **`fix(evaluation)`: restrict OCR configuration API to Superadmin (#793, refs #742)** — locked down `POST /api/icr/cloud-config` endpoint and added test suite `backend/tests/icr-cloud-config.test.ts`.
+- **`fix(templates)`: deduplicate identical templates on CSV bulk import (#825, refs #688)** — added duplicate fingerprint detection in question template CSV import to skip redundant template creation.
+- **`fix(backend)`: file-store fallback for question bank and curriculum accessors (#831, refs #690)** — added fallback handlers in `backend/src/db.ts` for 10 `questionBank` and `curriculum` methods so backend operates reliably without active MongoDB.
+- **`fix(analytics)`: scope analytics queries to user school for principals (#660, refs #448)** — ensured principal analytics queries fail closed and filter strictly by `user.schoolId`.
+
+## 2026-10-15 — Contributor onboarding and workspace documentation
+
+- **`docs`: contributor onboarding and npm workspace documentation (#833)** — added contributor onboarding guide for Kesar Agrawal (`Ideas/ONBOARDING-Kesar-Agrawal.md`) documenting correct npm workspace commands.
 
 ## 2026-10-12 — Balvatika pipeline, pilot-safety fixes and contributor onboarding
 
