@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { test } from 'node:test';
-import { PDFArray, PDFDocument, decodePDFRawStream } from 'pdf-lib';
+import { PDFArray, PDFDocument, StandardFonts, decodePDFRawStream } from 'pdf-lib';
 import type { PDFRawStream } from 'pdf-lib';
 import {
   CHILD_BLOCKS_PER_PAGE,
@@ -16,6 +16,10 @@ import {
   GRID_STUDENTS_PER_PAGE,
   MATHS_VOCABULARY_LABEL,
   MATHS_VOCABULARY_TEXT,
+  OBSERVATION_STRATEGIES,
+  STRATEGY_CHOICES,
+  STRATEGY_LABELS,
+  layoutStrategyRow,
   listLabel,
   planChildPages,
   planGridPages,
@@ -115,12 +119,38 @@ test('per-child PDF: every child has a half page, every concept has its boxes, a
     const all = Array.from({ length: pdf.getPageCount() }, (_, p) => pageStrings(pdf, p)).flat();
     for (const n of [1, 2, 3]) assert.ok(all.includes(`Name: Child ${n}`), `child ${n} has a block`);
     assert.equal(all.filter(t => t === MATHS_VOCABULARY_TEXT).length, 3, 'one vocabulary check per child');
-    assert.equal(all.filter(t => t === 'Noticed and fixed their own mistake').length, 3 * 5, 'a self-correction box for every child and concept');
-    for (const label of ['fingers', 'counters', 'in head', 'written']) {
+    assert.equal(all.filter(t => t === 'Fixed their own mistake').length, 3 * 5, 'a self-correction box for every child and concept');
+    for (const label of ['fingers', 'counters', 'in head', 'written', 'guessed', 'remembered']) {
       assert.equal(all.filter(t => t === label).length, 3 * 5, `the "${label}" choice for every child and concept`);
     }
     assert.equal(all.filter(t => t === 'Proficient (on their own)').length, 3 * 5 + 3, 'rating boxes: every concept plus the vocabulary check');
   } finally { cleanup(); }
+});
+
+test('the sheet and the API offer the same strategies, and the printed word for "mental" is "in head"', () => {
+  assert.deepEqual([...OBSERVATION_STRATEGIES], ['fingers', 'counters', 'mental', 'written', 'guessed', 'remembered']);
+  assert.deepEqual(STRATEGY_CHOICES, ['fingers', 'counters', 'in head', 'written', 'guessed', 'remembered']);
+  for (const strategy of OBSERVATION_STRATEGIES) assert.ok(STRATEGY_LABELS[strategy], strategy);
+});
+
+test('the six strategy choices fit the per-child row at a readable size, whatever the row starts at', async () => {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const measure = (label: string, size: number) => font.widthOfTextAtSize(label, size);
+  const right = 595.28 - 40;
+  // The row starts where "Fixed their own mistake  How they found it:" ends; try the real start and a worse one.
+  const realStart = 40 + 11 + 5 + font.widthOfTextAtSize('Fixed their own mistake', 8.5) + 16 + font.widthOfTextAtSize('How they found it:', 8.5) + 8;
+  for (const start of [realStart, realStart + 40]) {
+    const row = layoutStrategyRow(measure, start, right);
+    assert.equal(row.items.length, 6);
+    assert.ok(row.endX <= right, `ends at ${row.endX.toFixed(1)}, inside the margin at ${right.toFixed(1)}`);
+    assert.ok(row.size >= 7, `type size ${row.size}`);
+    for (let i = 1; i < row.items.length; i++) assert.ok(row.items[i].x > row.items[i - 1].x, 'choices run left to right without overlapping');
+  }
+  // From the real start the row keeps the full 8 pt used before the two new choices.
+  assert.equal(layoutStrategyRow(measure, realStart, right).size, 8);
+  // A start with no room never goes below 6 pt and never throws.
+  assert.equal(layoutStrategyRow(measure, right - 20, right).size, 6);
 });
 
 test('a Hindi name prints on both layouts without an error', async () => {
