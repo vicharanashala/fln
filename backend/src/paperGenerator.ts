@@ -22,6 +22,10 @@ import { mergeAndStamp } from './pdfMerge';
 import { drawQrCode } from './qrCode';
 import { drawSimpleSvg, parseSimpleSvg, ParsedSvg } from './svgPdf';
 import { readVariantSvg } from './svgAssetCatalog';
+import { drawLayout, measureLayout } from './layoutTemplatePdf';
+
+/** Space between a layout question's "Q1." label and its first row. */
+const LAYOUT_TOP_GAP = 6;
 import type { ResolvedQuestion } from './services/worksheetContent';
 import JSZip from 'jszip';
 
@@ -750,7 +754,16 @@ export async function renderWorksheetPdf({
     // count then flexes with the content (OVERFLOW_POLICY): a question that
     // does not fit in the space left goes to the next page instead of
     // running past the footer.
+    const layoutFonts = { fontFor };
     const blocks = swq.questions.map((q, index) => {
+      // A question built in the Template Builder draws its own layout under a
+      // short "Q1." label; its answer spaces are part of the layout, so no
+      // generic answer box is added.
+      if (q.layout) {
+        const label = `Q${index + 1}.`;
+        const layoutHeight = measureLayout(q.layout, maxQuestionWidth, layoutFonts);
+        return { q, lines: [label], font: fontFor(label, true), layoutHeight, height: lineHeight + LAYOUT_TOP_GAP + layoutHeight };
+      }
       const qText = `Q${index + 1}. [${q.topic}] ${q.question}`;
       const qFont = fontFor(qText, true);
       const lines = wrapTextToWidth(
@@ -759,7 +772,7 @@ export async function renderWorksheetPdf({
         questionFontSize,
         maxQuestionWidth
       );
-      return { q, lines, font: qFont, height: lines.length * lineHeight + answerBoxHeight };
+      return { q, lines, font: qFont, layoutHeight: 0, height: lines.length * lineHeight + answerBoxHeight };
     });
     const pagePlan = planQuestionPages(blocks.map(b => b.height), {
       maxPerPage: questionsPerPage,
@@ -847,6 +860,13 @@ export async function renderWorksheetPdf({
 
       pageBlocks.forEach(block => {
         const questionLines = block.lines;
+
+        if (block.q.layout) {
+          page.drawText(questionLines[0], { x: 50, y: currentY, size: questionFontSize, font: block.font, color: rgb(0.15, 0.15, 0.15) });
+          drawLayout(page, block.q.layout, 50, currentY - LAYOUT_TOP_GAP, maxQuestionWidth, layoutFonts);
+          currentY -= block.height + QUESTION_GAP_PT;
+          return;
+        }
 
         questionLines.forEach((line, lineIndex) => {
           page.drawText(line, {

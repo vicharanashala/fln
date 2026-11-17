@@ -5,6 +5,7 @@ import { usePanelData } from './panels/usePanelData';
 import { AdaptiveTestPanel } from './panels/AdaptiveTestPanel';
 import { TestHistoryPanel } from './panels/TestHistoryPanel';
 import { WorksheetTemplatesPanel } from './panels/WorksheetTemplatesPanel';
+import { TemplateBuilderPanel } from './panels/templateBuilder/TemplateBuilderPanel';
 import { SystemSettingsPanel } from './panels/SystemSettingsPanel';
 import { StudentListPanel } from './panels/StudentListPanel';
 import { AadhaarRevealPanel } from './panels/AadhaarRevealPanel';
@@ -111,6 +112,8 @@ export const PanelViews: React.FC<PanelViewsProps> = ({ activePanel, currentUser
 
 
   if (panel === 'worksheet_templates') return <WorksheetTemplatesPanel />;
+
+  if (panel === 'template_builder') return <TemplateBuilderPanel />;
 
   if (panel === 'content') return <ContentPanel />;
 
