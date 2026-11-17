@@ -7,6 +7,7 @@ import { BulkIcrScan, BulkChunkResult, BulkOcrResponse } from './BulkIcrScan';
 import { MAX_FLN_LEVEL } from '../data/skillProgressionMap';
 import { alignExtractedQuestions, questionsLikelyMatch } from '../utils/ocrQuestionMatching';
 import { normalizeBulkChunkResults } from '../utils/bulkChunkResults';
+import { summariseBulkSave } from '../utils/bulkSaveSummary';
 
 interface IcrScannerProps {
   token: string;
@@ -1090,21 +1091,24 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     if (!bulkChunkResults) return;
     setSavingAll(true);
     setSaveAllProgress({ done: 0, total: bulkChunkResults.length });
-    let done = 0, failed = 0;
+    let done = 0, saved = 0, notRead = 0, failed = 0;
     for (let idx = 0; idx < bulkChunkResults.length; idx++) {
-      // Skip failed OCR chunks — no answers to save.
-      if (!bulkChunkResults[idx].success) { done++; continue; }
+      // Skip failed OCR chunks — no answers to save. They are counted apart
+      // from saved ones so the summary does not report them as saved.
+      if (!bulkChunkResults[idx].success) { notRead++; done++; continue; }
       const studentId = chunkStudentMap[idx];
       if (!studentId) { failed++; done++; setSaveAllProgress({ done, total: bulkChunkResults.length }); continue; }
       // Lazy-load the answer key if we haven't fetched it yet.
       if (!chunkQuestions[idx]) await ensureChunkQuestions(idx);
       const ok = await saveChunkReport(idx);
-      if (!ok) failed++;
+      if (ok) saved++; else failed++;
       done++;
       setSaveAllProgress({ done, total: bulkChunkResults.length });
     }
     setSavingAll(false);
-    setSuccess(`Saved ${done - failed}/${bulkChunkResults.length} reports (${failed} failed).`);
+    const summary = summariseBulkSave({ total: bulkChunkResults.length, saved, notRead, failed });
+    if (summary.kind === 'success') { setError(''); setSuccess(summary.text); }
+    else { setSuccess(''); setError(summary.text); }
   };
 
   const handleAnswerChange = (qId: string, value: string) => {
