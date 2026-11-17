@@ -20,7 +20,7 @@ import { getLevelForConcept } from './config/curriculumMap';
 import { getLevel, getSkillsForLevel, getSubskillsForSkills } from './config/skillLevelMap';
 import { parseCsv, resolveTemplateTopic, ASSESSMENT_MODES } from './routes/questionTemplates';
 import type { QuestionTemplate } from './db';
-import type { QuestionFamily } from './types/questionTemplateParams';
+import { QUESTION_FAMILIES, type QuestionFamily } from './types/questionTemplateParams';
 
 export const BANK_REQUIRED_HEADERS = [
   'conceptId',
@@ -55,7 +55,7 @@ export interface ParseBankCsvResult {
  * Determine questionFamily from concept or explicit input.
  */
 export function inferQuestionFamily(conceptId: string, family?: string): QuestionFamily {
-  if (family && ['operation', 'counting', 'comparison', 'classification', 'pattern', 'shape', 'measurement', 'time', 'money', 'data', 'geometry', 'fractions', 'word-problem', 'sequencing', 'vocabulary', 'calendar', 'reasoning'].includes(family.toLowerCase())) {
+  if (family && (QUESTION_FAMILIES as readonly string[]).includes(family.toLowerCase())) {
     return family.toLowerCase() as QuestionFamily;
   }
   const topic = resolveTemplateTopic(conceptId);
@@ -99,6 +99,7 @@ export function parseAndValidateBankCsv(csvContent: string): ParseBankCsvResult 
     return idx >= 0 && idx < row.length ? (row[idx] ?? '').trim() : '';
   };
 
+  const seenKeys = new Map<string, number>();
   const dataRows = rows.slice(1);
   dataRows.forEach((row, idx) => {
     const rowNumber = idx + 2; // 1-based index (+1 header, +1 for 1-based row)
@@ -114,6 +115,13 @@ export function parseAndValidateBankCsv(csvContent: string): ParseBankCsvResult 
     const answerSpec = col(row, 'answerSpec');
     const rawMode = col(row, 'assessmentMode').toLowerCase();
     const explicitFamily = col(row, 'questionFamily');
+    if (explicitFamily && !(QUESTION_FAMILIES as readonly string[]).includes(explicitFamily.toLowerCase())) {
+      errors.push({
+        row: rowNumber,
+        error: `questionFamily must be one of: ${QUESTION_FAMILIES.join(', ')}. Got: "${explicitFamily}".`,
+      });
+      return;
+    }
     const explicitName = col(row, 'name');
     const explicitTopic = col(row, 'topic');
 
@@ -151,6 +159,17 @@ export function parseAndValidateBankCsv(csvContent: string): ParseBankCsvResult 
       });
       return;
     }
+
+    const duplicateKey = `${conceptId}:${itemNumber}`;
+    const previousRow = seenKeys.get(duplicateKey);
+    if (previousRow !== undefined) {
+      errors.push({
+        row: rowNumber,
+        error: `Concept ${conceptId} item ${itemNumber} already appears in row ${previousRow}.`,
+      });
+      return;
+    }
+    seenKeys.set(duplicateKey, rowNumber);
 
     const assessmentMode = rawMode as 'written' | 'observed' | 'both';
     const questionFamily = inferQuestionFamily(conceptId, explicitFamily);
@@ -233,6 +252,7 @@ export interface SeedBalvatikaBankOptions {
   filePath: string;
   dryRun?: boolean;
   mongoUri?: string;
+  collection?: any;
 }
 
 export interface SeedBalvatikaBankResult {
@@ -241,6 +261,7 @@ export interface SeedBalvatikaBankResult {
   insertedCount: number;
   updatedCount: number;
   skippedPreservedCount: number;
+  skippedEditedCount: number;
   errors: BankRowError[];
   dryRun: boolean;
   documents: QuestionTemplate[];
@@ -273,6 +294,7 @@ export async function seedBalvatikaBank(
       insertedCount: 0,
       updatedCount: 0,
       skippedPreservedCount: 0,
+      skippedEditedCount: 0,
       errors,
       dryRun,
       documents: [],
@@ -293,26 +315,44 @@ export async function seedBalvatikaBank(
       insertedCount: 0,
       updatedCount: 0,
       skippedPreservedCount: 0,
+      skippedEditedCount: 0,
       errors: [],
       dryRun: true,
       documents,
     };
   }
 
-  // Real run: requires MongoDB connection
-  const uri = mongoUri || process.env.MONGODB_URI;
-  if (!uri) {
-    throw new Error('MONGODB_URI is not configured. Real import requires database connection.');
-  }
+  // Real run: requires MongoDB connection or provided collection
+  let client: MongoClient | null = null;
+  let coll = options.collection;
 
-  const client = new MongoClient(uri);
-  await client.connect();
-  const db = client.db();
-  const coll = db.collection<QuestionTemplate>('questionTemplates');
+  if (!coll) {
+    const uri = mongoUri || process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error('MONGODB_URI is not configured. Real import requires database connection.');
+    }
+
+    client = new MongoClient(uri);
+    await client.connect();
+    const db = client.db();
+    const dbName = db.databaseName;
+    if (dbName) {
+      console.log(`Connected to database: ${dbName}`);
+    } else {
+      console.log('Connected to database: [name could not be safely determined]');
+    }
+    coll = db.collection<QuestionTemplate>('questionTemplates');
+  } else {
+    const dbName = coll.dbName || coll.databaseName;
+    if (dbName) {
+      console.log(`Connected to database: ${dbName}`);
+    }
+  }
 
   let insertedCount = 0;
   let updatedCount = 0;
   let skippedPreservedCount = 0;
+  let skippedEditedCount = 0;
 
   try {
     for (const r of validRows) {
@@ -323,6 +363,10 @@ export async function seedBalvatikaBank(
         // If question is approved or has been reviewed, preserve its status and reviewer-authored fields
         if (existing.status === 'approved' || existing.status === 'rejected') {
           skippedPreservedCount++;
+          continue;
+        }
+        if (existing.updatedBy && existing.updatedBy !== 'system-seed') {
+          skippedEditedCount++;
           continue;
         }
         const doc = buildBankQuestionTemplate(r, existing, now);
@@ -337,7 +381,9 @@ export async function seedBalvatikaBank(
       }
     }
   } finally {
-    await client.close();
+    if (client) {
+      await client.close();
+    }
   }
 
   return {
@@ -346,6 +392,7 @@ export async function seedBalvatikaBank(
     insertedCount,
     updatedCount,
     skippedPreservedCount,
+    skippedEditedCount,
     errors: [],
     dryRun: false,
     documents,
@@ -411,6 +458,7 @@ export async function main(): Promise<void> {
       console.log(`  Inserted: ${result.insertedCount}`);
       console.log(`  Updated:  ${result.updatedCount}`);
       console.log(`  Preserved approved: ${result.skippedPreservedCount}`);
+      console.log(`  Skipped reviewer-edited: ${result.skippedEditedCount}`);
       console.log(`  Total processed:    ${result.validCount}`);
     }
   } catch (err: any) {

@@ -261,3 +261,207 @@ test('Error handling: non-existent file throws clear error', async () => {
     /File not found/
   );
 });
+
+test('Question family validation: rejects unsupported family such as money and identifies row and allowed list', () => {
+  const csv = [
+    'conceptId,itemNumber,stem,answerSpec,assessmentMode,questionFamily',
+    'S3.1,1,Stem 1,Ans 1,written,counting',
+    'S3.1,2,Stem 2,Ans 2,written,money',
+    'S3.1,3,Stem 3,Ans 3,written,word-problem',
+  ].join('\n');
+
+  const { validRows, errors } = parseAndValidateBankCsv(csv);
+  assert.equal(validRows.length, 1);
+  assert.equal(validRows[0].itemNumber, 1);
+  assert.equal(validRows[0].questionFamily, 'counting');
+
+  assert.equal(errors.length, 2);
+  assert.equal(errors[0].row, 3);
+  assert.ok(errors[0].error.includes('questionFamily must be one of: counting, operation, shape, pattern, comparison, classification, sequencing, vocabulary, calendar, reasoning. Got: "money".'));
+  assert.equal(errors[1].row, 4);
+  assert.ok(errors[1].error.includes('questionFamily must be one of:'));
+  assert.ok(errors[1].error.includes('Got: "word-problem".'));
+});
+
+test('Question family validation: supported families continue to work', () => {
+  const supported = ['counting', 'operation', 'shape', 'pattern', 'comparison', 'classification', 'sequencing', 'vocabulary', 'calendar', 'reasoning'];
+  const rows = supported.map((fam, idx) => `S3.1,${idx + 1},Stem ${idx + 1},Ans,written,${fam}`);
+  const csv = ['conceptId,itemNumber,stem,answerSpec,assessmentMode,questionFamily', ...rows].join('\n');
+
+  const { validRows, errors } = parseAndValidateBankCsv(csv);
+  assert.equal(errors.length, 0);
+  assert.equal(validRows.length, supported.length);
+  for (let i = 0; i < supported.length; i++) {
+    assert.equal(validRows[i].questionFamily, supported[i]);
+  }
+});
+
+test('Duplicate validation: rejects repeated conceptId and itemNumber across CSV', () => {
+  const csv = [
+    'conceptId,itemNumber,stem,answerSpec,assessmentMode',
+    'S3.1,1,Stem 1,Ans 1,written',
+    'S3.1,2,Stem 2,Ans 2,written',
+    'S3.2,1,Different concept same item,Ans,written',
+    'S3.1,1,Duplicate of row 2,Ans 1,written',
+    'S3.2,2,Another valid row,Ans,written',
+  ].join('\n');
+
+  const { validRows, errors } = parseAndValidateBankCsv(csv);
+  assert.equal(validRows.length, 4);
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0].row, 5); // Row 5 is the duplicate of row 2
+  assert.equal(errors[0].error, 'Concept S3.1 item 1 already appears in row 2.');
+
+  assert.deepEqual(
+    validRows.map(r => `${r.conceptId}:${r.itemNumber}`),
+    ['S3.1:1', 'S3.1:2', 'S3.2:1', 'S3.2:2']
+  );
+});
+
+test('Duplicate validation: invalid row does not become a valid first occurrence', () => {
+  const csv = [
+    'conceptId,itemNumber,stem,answerSpec,assessmentMode',
+    'S3.1,1,,Ans 1,written', // row 2: invalid stem!
+    'S3.1,1,Valid stem,Ans 1,written', // row 3: valid first occurrence
+    'S3.1,1,Repeat of row 3,Ans 1,written', // row 4: duplicate of row 3
+  ].join('\n');
+
+  const { validRows, errors } = parseAndValidateBankCsv(csv);
+  assert.equal(validRows.length, 1);
+  assert.equal(validRows[0].stem, 'Valid stem');
+  assert.equal(errors.length, 2);
+  assert.equal(errors[0].row, 2);
+  assert.ok(errors[0].error.includes('stem'));
+  assert.equal(errors[1].row, 4);
+  assert.equal(errors[1].error, 'Concept S3.1 item 1 already appears in row 3.');
+});
+
+function createMockCollection(initialDocs: any[] = []) {
+  const store = new Map<string, any>();
+  for (const doc of initialDocs) {
+    store.set(doc.variantKey, { ...doc });
+  }
+  return {
+    databaseName: 'isolated_test_db',
+    async findOne({ variantKey }: { variantKey: string }) {
+      const doc = store.get(variantKey);
+      return doc ? { ...doc } : null;
+    },
+    async insertOne(doc: any) {
+      store.set(doc.variantKey, { ...doc });
+      return { acknowledged: true, insertedId: doc.id };
+    },
+    async updateOne({ variantKey }: { variantKey: string }, { $set }: { $set: any }) {
+      const existing = store.get(variantKey) || {};
+      store.set(variantKey, { ...existing, ...$set });
+      return { acknowledged: true, modifiedCount: 1 };
+    },
+    getAll() {
+      return Array.from(store.values());
+    },
+  };
+}
+
+test('Reviewer-edit preservation: reviewer-edited questions are preserved during reseed', async () => {
+  const tmpCsv = path.resolve(__dirname, 'fixtures/temp-reseed-test.csv');
+  const csvContent = [
+    'conceptId,itemNumber,stem,answerSpec,assessmentMode',
+    'S3.1,1,Original seed stem 1,Ans 1,written',
+    'S3.1,2,Original seed stem 2,Ans 2,written',
+    'S3.1,3,Original seed stem 3,Ans 3,written',
+    'S3.1,4,Original seed stem 4,Ans 4,written',
+  ].join('\n');
+  fs.writeFileSync(tmpCsv, csvContent, 'utf8');
+
+  try {
+    const mockColl = createMockCollection();
+
+    // 1. Initial seed run: inserts 4 questions with updatedBy='system-seed'
+    const firstResult = await seedBalvatikaBank({
+      filePath: tmpCsv,
+      collection: mockColl,
+    });
+    assert.equal(firstResult.insertedCount, 4);
+    assert.equal(firstResult.updatedCount, 0);
+    assert.equal(firstResult.skippedPreservedCount, 0);
+    assert.equal(firstResult.skippedEditedCount, 0);
+
+    // 2. Simulate reviewer edits
+    // Row 1 (S3.1:bank:v1:1): edited by reviewer-123
+    await mockColl.updateOne(
+      { variantKey: 'S3.1:bank:v1:1' },
+      {
+        $set: {
+          stem: 'Reviewer-customized wording for item 1',
+          updatedBy: 'reviewer-123',
+          updatedByEmail: 'reviewer@fln.org',
+        },
+      }
+    );
+
+    // Row 2 (S3.1:bank:v1:2): approved by admin
+    await mockColl.updateOne(
+      { variantKey: 'S3.1:bank:v1:2' },
+      {
+        $set: {
+          status: 'approved',
+          updatedBy: 'admin-456',
+        },
+      }
+    );
+
+    // Row 3 (S3.1:bank:v1:3): rejected by admin
+    await mockColl.updateOne(
+      { variantKey: 'S3.1:bank:v1:3' },
+      {
+        $set: {
+          status: 'rejected',
+          updatedBy: 'admin-789',
+        },
+      }
+    );
+
+    // Row 4 (S3.1:bank:v1:4): left as system-seed (updatedBy='system-seed')
+
+    // 3. Run reseed with updated CSV stem for all rows
+    const updatedCsvContent = [
+      'conceptId,itemNumber,stem,answerSpec,assessmentMode',
+      'S3.1,1,Attempted overwrite stem 1,Ans 1,written',
+      'S3.1,2,Attempted overwrite stem 2,Ans 2,written',
+      'S3.1,3,Attempted overwrite stem 3,Ans 3,written',
+      'S3.1,4,New updated stem 4,Ans 4,written',
+    ].join('\n');
+    fs.writeFileSync(tmpCsv, updatedCsvContent, 'utf8');
+
+    const secondResult = await seedBalvatikaBank({
+      filePath: tmpCsv,
+      collection: mockColl,
+    });
+
+    // 4. Verify execution summary counters
+    assert.equal(secondResult.skippedEditedCount, 1, 'Row 1 skipped because updatedBy !== system-seed');
+    assert.equal(secondResult.skippedPreservedCount, 2, 'Rows 2 and 3 skipped because approved/rejected');
+    assert.equal(secondResult.updatedCount, 1, 'Row 4 updated because updatedBy === system-seed');
+    assert.equal(secondResult.insertedCount, 0);
+
+    // 5. Verify stored data
+    const stored1 = await mockColl.findOne({ variantKey: 'S3.1:bank:v1:1' });
+    assert.equal(stored1.stem, 'Reviewer-customized wording for item 1');
+    assert.equal(stored1.updatedBy, 'reviewer-123');
+    assert.equal(stored1.updatedByEmail, 'reviewer@fln.org');
+
+    const stored2 = await mockColl.findOne({ variantKey: 'S3.1:bank:v1:2' });
+    assert.equal(stored2.status, 'approved');
+
+    const stored3 = await mockColl.findOne({ variantKey: 'S3.1:bank:v1:3' });
+    assert.equal(stored3.status, 'rejected');
+
+    const stored4 = await mockColl.findOne({ variantKey: 'S3.1:bank:v1:4' });
+    assert.equal(stored4.stem, 'New updated stem 4');
+    assert.equal(stored4.updatedBy, 'system-seed');
+  } finally {
+    if (fs.existsSync(tmpCsv)) {
+      fs.unlinkSync(tmpCsv);
+    }
+  }
+});
