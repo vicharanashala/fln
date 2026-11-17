@@ -13,6 +13,7 @@ export interface Question {
   difficulty: 'easy' | 'medium' | 'hard';
   source_level: number; // Mapping to mathematical level
   conceptId?: string; // Concept ID from 93-node framework (e.g. S1.1, S3.3)
+  assessmentMode?: 'written' | 'observed' | 'both';
   svgAsset?: string; // Standard pre-built SVG asset category
   choiceErrorTags?: Record<string, string>;
 }

@@ -209,6 +209,7 @@ export function getConceptForLevel(levelNumber: number): LevelConceptConfig | un
   return CURRICULUM_MAPPING[levelNumber];
 }
 
+
 /**
  * Get Level configuration by Concept ID (e.g. "S3.3")
  */
