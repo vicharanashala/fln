@@ -130,6 +130,34 @@ test('a PDF that cannot be read gives a 400 and does not hang', async () => {
   const json = (await res.json()) as any;
   assert.equal(res.status, 400);
   assert.ok(json.error);
+  // The teacher sees a plain sentence, never the internal reason.
+  assert.match(json.error, /could not be read/);
+  assert.doesNotMatch(json.error, /undefined|Cannot read|reading '/);
+});
+
+async function bulkWarning(pageCount: number, pagesPerStudent?: number): Promise<string | undefined> {
+  const res = await fetch(`${baseUrl}/api/icr/evaluate-bulk`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenFor('teacher@fln.org')}` },
+    body: JSON.stringify({ provider: 'ollama-gemma4', fileDataUrl: await createSamplePdfDataUrl(pageCount), pagesPerStudent }),
+  });
+  assert.equal(res.status, 200);
+  return ((await res.json()) as any).pageCountWarning;
+}
+
+test('the page-count warning uses the singular for one page and the plural for more', async () => {
+  assert.equal(
+    await bulkWarning(1, 3),
+    '1 page does not divide evenly into 3-page papers; the last student gets 1 page. Check "Pages Per Student".',
+  );
+  assert.equal(
+    await bulkWarning(5, 3),
+    '5 pages do not divide evenly into 3-page papers; the last student gets 2 pages. Check "Pages Per Student".',
+  );
+  assert.equal(
+    await bulkWarning(7, 3),
+    '7 pages do not divide evenly into 3-page papers; the last student gets 1 page. Check "Pages Per Student".',
+  );
 });
 
 test('pagesPerStudent: 2 on 9 pages gives 5 children and the warning', async () => {

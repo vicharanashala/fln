@@ -19,6 +19,12 @@ import { calculateStandardAdvancement } from '../gradeLevelCalculator';
 import { computeRootCauseAnalysis } from '../rootCauseAnalysis';
 import { matchesChoiceLetter } from '../answerMatching';
 
+/** Shown to the teacher when a scanned PDF cannot be opened. The technical reason goes to the server log only. */
+const UNREADABLE_PDF_MESSAGE =
+  'This PDF could not be read. Please scan the papers again, or save a new PDF, and upload that one.';
+
+const pagesLabel = (n: number) => `${n} ${n === 1 ? 'page' : 'pages'}`;
+
 export function registerEvaluationRoutes(app: express.Express) {
 
   // =========================================================================
@@ -864,7 +870,8 @@ export function registerEvaluationRoutes(app: express.Express) {
     try {
       sourceDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
     } catch (e: any) {
-      return res.status(400).json({ error: 'Could not parse PDF: ' + (e?.message || String(e)) });
+      console.error('[bulk-ocr] could not parse the PDF:', e?.message || String(e));
+      return res.status(400).json({ error: UNREADABLE_PDF_MESSAGE });
     }
     // Guard against PDFs with a valid header but a broken/corrupt page tree.
     // Without this, getPageCount() can throw or loop indefinitely, hanging
@@ -873,7 +880,8 @@ export function registerEvaluationRoutes(app: express.Express) {
     try {
       totalPages = sourceDoc.getPageCount();
     } catch (e: any) {
-      return res.status(400).json({ error: 'PDF has no readable pages: ' + (e?.message || String(e)) });
+      console.error('[bulk-ocr] could not read the pages of the PDF:', e?.message || String(e));
+      return res.status(400).json({ error: UNREADABLE_PDF_MESSAGE });
     }
     if (totalPages === 0) {
       return res.status(400).json({ error: 'PDF has no pages.' });
@@ -892,7 +900,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     // truncated paper — almost always a sign the teacher entered the wrong
     // pagesPerStudent value rather than a genuinely short last paper. (#746)
     const pageCountWarning = totalPages % pps !== 0
-      ? `${totalPages} pages do not divide evenly into ${pps}-page papers; the last student gets ${totalPages % pps} page(s). Check "Pages Per Student".`
+      ? `${pagesLabel(totalPages)} ${totalPages === 1 ? 'does' : 'do'} not divide evenly into ${pps}-page papers; the last student gets ${pagesLabel(totalPages % pps)}. Check "Pages Per Student".`
       : undefined;
 
     const subPdfs: Array<{ chunkIndex: number; pageFrom: number; pageTo: number; pdfBase64: string; pageCount: number }> = [];
