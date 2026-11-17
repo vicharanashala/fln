@@ -189,7 +189,7 @@ For onboarding, I reviewed the FLN repository structure and followed the main fr
 I selected [issue #754](https://github.com/vicharanashala/fln/issues/754), which is open and had no previous PR attempt in the history I reviewed.
 
 - **Branch:** [`fix/754-roster-performance`](https://github.com/LIKITH-3012-MAC/fln/tree/fix/754-roster-performance) in my fork.
-- **Latest commit:** [`f21257a`](https://github.com/LIKITH-3012-MAC/fln/commit/f21257adedb0a28434f2f95d1caf03966293301a) — corrects the backend workspace path used by the compression test.
+- **Latest commit:** [`3cea9f5`](https://github.com/LIKITH-3012-MAC/fln/commit/3cea9f5d0b4d4c7539c0a96cbb4be7705062e33b) — corrects the backend workspace path used by the compression test.
 - **Files changed:** `frontend/src/components/panels/usePanelData.ts`, `backend/src/index.ts`, `backend/package.json`, `package-lock.json`, `backend/tests/panel-isolation.test.cjs` and the new `backend/tests/http-compression.test.ts`.
 - **Work done:** added exclusions for panels that do not use the shared student roster, installed response compression and added tests for panel isolation and gzip/identity responses.
 - **Verification status:** I completed static checks of the changed source, test coverage and lockfile entries. I have not run `npm ci`, the new tests, workspace type checks, full CI or the performance measurements from issue #754. These checks remain necessary before the change can be considered verified.
