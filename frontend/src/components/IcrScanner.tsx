@@ -6,6 +6,7 @@ import { IcrTwoStageScan } from './IcrTwoStageScan';
 import { BulkIcrScan, BulkChunkResult, BulkOcrResponse } from './BulkIcrScan';
 import { MAX_FLN_LEVEL } from '../data/skillProgressionMap';
 import { alignExtractedQuestions, questionsLikelyMatch } from '../utils/ocrQuestionMatching';
+import { normalizeBulkChunkResults } from '../utils/bulkChunkResults';
 
 interface IcrScannerProps {
   token: string;
@@ -850,7 +851,9 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   // original /api/diagnostic/bulk paper generation, so chunk N = student[N]
   // in the teacher's batch.
   const handleBulkOcrSuccess = (resp: BulkOcrResponse) => {
-    setBulkChunkResults(resp.results || []);
+    // A failed chunk arrives without `answers`; normalise so no later read of
+    // chunk.answers can crash the screen. Failed chunks stay marked FAILED.
+    setBulkChunkResults(normalizeBulkChunkResults(resp.results));
     // Bulk chunks carry no transcribed question text, so drop any left over
     // from a previous single-sheet scan — otherwise the verify table would
     // flag every bulk row against a stale scan's question text.
