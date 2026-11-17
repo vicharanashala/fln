@@ -412,6 +412,7 @@ export interface QuestionTemplate {
   levelName: string;
   skills: string[];
   subskills: string[];
+  status?: 'draft' | 'pendingApproval' | 'approved' | 'rejected';
   assessmentMode?: 'written' | 'observed' | 'both';
   /** What the question should make the child do. An instruction, not a finished question. */
   generationIntent: string;
