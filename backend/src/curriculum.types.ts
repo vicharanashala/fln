@@ -1,6 +1,7 @@
 // Domain types: curriculum and question/content definitions.
 
 import type { QuestionFamily } from './types/questionTemplateParams';
+import type { ResolvedLayout } from './types/layoutTemplate';
 
 export interface Question {
   question_id: string;
@@ -16,6 +17,12 @@ export interface Question {
   assessmentMode?: 'written' | 'observed' | 'both';
   svgAsset?: string; // Standard pre-built SVG asset category
   choiceErrorTags?: Record<string, string>;
+  /**
+   * Set when the question came from a Superadmin-built layout template
+   * (Template Builder). The PDF draws this instead of the plain `question`
+   * text; `question` still carries a plain-text version for every other screen.
+   */
+  layout?: ResolvedLayout;
 }
 
 /**
