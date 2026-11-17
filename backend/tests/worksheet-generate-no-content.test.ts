@@ -1,11 +1,11 @@
 /**
- * POST /api/worksheets/generate when a student is on a level with no written
- * questions (#760, #359).
+ * POST /api/worksheets/generate when a non-Balvatika student is on a level
+ * with no approved question content (#760, #359).
  *
- * Before: the generator printed "[Concept S3.11] Level 28 Practice Question #1"
- * for that student. Now it raises NoApprovedContentError, and the route turns
- * that into one clear 422 that names every affected student, writes nothing,
- * and does not touch the other students' papers.
+ * Before: the generator printed a placeholder for that student. Now it raises
+ * NoApprovedContentError, and the route turns that into one clear 422 that
+ * names every affected student, writes nothing, and does not touch the other
+ * students' papers.
  *
  * Hermetic: every database call is mocked. Run with:
  *   npm run test:worksheet-no-content --workspace @fln/backend
@@ -43,11 +43,11 @@ function student(id: string, name: string, currentLevel: number): any {
   return { id, name, classGroup: 'Class 3', section: 'A', schoolId: 's1', currentLevel, currentSubLevel: 0 };
 }
 
-/** A written counting template, the kind a Balvatika level with content has. */
+/** A both-mode counting template, the kind a printable Balvatika level has. */
 function countingTemplate(conceptId: string): any {
   return {
     id: `qtpl_${conceptId}`, conceptId, levelNumber: 19, levelName: 'Test level',
-    skills: ['SK08'], subskills: ['SK08.01'], assessmentMode: 'written',
+    skills: ['SK08'], subskills: ['SK08.01'], assessmentMode: 'both',
     generationIntent: 'Show a set of counted objects beside a blank box. The child writes the numeral matching the count of objects shown.',
     questionFamily: 'counting', paramMode: 'structured', svgThemeIds: [], stem: '', answerSpec: '',
     numeralRange: '0-20', digitCount: null, operations: [], maxOperandCount: null, carryBehavior: null,
@@ -76,6 +76,7 @@ function mockClass(t: TestContext, students: any[]) {
   t.mock.method(dbStore, 'getStudents', async () => students);
   t.mock.method(dbStore, 'getQuestionTemplatesByConcept', async (conceptId: string) =>
     conceptId === 'S3.1' ? [countingTemplate(conceptId)] : []);
+  t.mock.method(dbStore, 'getQuestionTemplates', async () => [countingTemplate('S3.1')]);
   const addWorksheet = t.mock.method(dbStore, 'addWorksheet', async () => {});
   t.mock.method(dbStore, 'updateGenerationWindow', async () => {});
   t.mock.method(dbStore, 'addLog', async () => {});
@@ -91,17 +92,17 @@ async function generate(token: string) {
   return { status: res.status, body: await res.json() as any };
 }
 
-test('a student on level 28 (no written questions) gives one clear 422 and writes nothing', async t => {
-  const { addWorksheet, token } = mockClass(t, [student('st1', 'Asha', 19), student('st2', 'Ravi', 28), student('st3', 'Meena', 28)]);
+test('a non-Balvatika level with no approved content gives one clear 422 and writes nothing', async t => {
+  const { addWorksheet, token } = mockClass(t, [student('st1', 'Asha', 19), student('st2', 'Ravi', 60), student('st3', 'Meena', 60)]);
   const { status, body } = await generate(token);
   assert.equal(status, 422);
   assert.match(body.error, /No worksheet was generated/);
-  assert.match(body.error, /Ravi \(Level 28/);
-  assert.match(body.error, /Meena \(Level 28/);
+  assert.match(body.error, /Ravi \(Level 60/);
+  assert.match(body.error, /Meena \(Level 60/);
   assert.doesNotMatch(body.error, /Asha/, 'a student with content is not blamed');
   assert.deepEqual(body.studentsWithoutContent.map((s: any) => [s.studentName, s.level, s.conceptId]), [
-    ['Ravi', 28, 'S3.11'],
-    ['Meena', 28, 'S3.11'],
+    ['Ravi', 60, 'S4.15'],
+    ['Meena', 60, 'S4.15'],
   ]);
   assert.equal(addWorksheet.mock.callCount(), 0, 'nothing is saved when any student has no content');
 });
