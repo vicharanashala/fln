@@ -43,7 +43,7 @@ function student(id: string, name: string, currentLevel: number): any {
   return { id, name, classGroup: 'Class 3', section: 'A', schoolId: 's1', currentLevel, currentSubLevel: 0 };
 }
 
-/** A both-mode counting template, the kind a printable Balvatika level has. */
+/** A written or both counting template, the kind a printable Balvatika level has. */
 function countingTemplate(conceptId: string): any {
   return {
     id: `qtpl_${conceptId}`, conceptId, levelNumber: 19, levelName: 'Test level',
