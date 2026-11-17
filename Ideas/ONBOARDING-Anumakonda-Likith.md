@@ -104,6 +104,34 @@ The following are the issues I noticed while reviewing the supplied source. Befo
 - **#837:** PR #879 from another contributor has been merged, and issue #837 is closed. I would not select this as new work.
 - **#478:** The pilot file lists #354 as a dependency, and PR #907 remains open and linked to this issue. I would confirm the dependency and ask the maintainer what work, if any, remains before proceeding.
 
+### Gap 5 — The shared student roster is fetched by panels that do not use it
+
+- **Related issue:** [#754 — make the student list smaller and faster](https://github.com/vicharanashala/fln/issues/754).
+- **Where:** [`frontend/src/components/panels/usePanelData.ts`](../frontend/src/components/panels/usePanelData.ts), especially `STUDENTS_NOT_NEEDED_PANELS` and the `studentsUrl` effect; [`backend/src/index.ts`](../backend/src/index.ts), where the Express app and response middleware are registered.
+- **What I found:** The shared hook requests `/api/students?all=1` for most panels. Some screens either do not display student records or make their own narrower request, so they do not need the full shared roster. The API also did not install response compression in the reviewed main branch.
+- **Why it matters:** An unnecessary roster request can transfer a large amount of data when an admin opens a panel that does not use it. Compressing large JSON responses can also reduce network transfer size.
+- **Existing work:** I did not find a previous PR attempt for #754 in the repository's pull-request history. The prerequisite admin-area scoping issue #737 is closed and its current implementation is in `backend/src/auth.ts`.
+- **Contribution status:** I have committed an initial implementation on my fork branch [`fix/754-roster-performance`](https://github.com/LIKITH-3012-MAC/fln/tree/fix/754-roster-performance). It adds exclusions for panels that do not consume the shared student list, installs Express response compression and adds regression tests. The PR has not yet been opened, and runtime tests and the performance measurements in the issue still need to be run.
+- **Boundary:** Keep the full roster for pages and calculations that actually use student records. Do not treat the skipped panels as permission to remove roster data from teacher, student, assessment or aggregate views.
+
+### Gap 6 — There is no per-concept feedback report after an assessment
+
+- **Related issue:** [#846 — add a per-concept feedback report](https://github.com/vicharanashala/fln/issues/846).
+- **Where:** New service `backend/src/services/feedbackReport.ts`; a proposed route in `backend/src/routes/students.ts`; and a Feedback tab in `frontend/src/components/panels/StudentProfilePanel.tsx`.
+- **What I found:** The issue describes that the existing skill-status service returns concept ratings, but the application does not yet format those ratings into a report of strengths, challenges and suggestions for teachers and parents.
+- **Why it matters:** A teacher needs an understandable explanation of which concepts a student has demonstrated and what to practise next, not only the raw assessment result.
+- **Existing work:** I did not find a previous PR attempt for #846 in the repository's pull-request history. The issue is open and unassigned.
+- **Dependency:** The issue depends on #844 and #849. #849 is closed, but #844 remains open and depends on the certification-requirements decision in #836, which is marked `status: needs decision`. The issue describes this as mentor-supported work. I have selected it as planned work, but have not started implementation until the prerequisite shape and scope are confirmed.
+
+### Gap 7 — The current certificate is not based on the stored concept-level certification
+
+- **Related issue:** [#840 — print a skill-based certificate](https://github.com/vicharanashala/fln/issues/840).
+- **Where:** `frontend/src/components/panels/CertificatesPanel.tsx`, with supporting certification data from `backend/src/routes/certification.ts` and the certification record.
+- **What I found:** The issue describes that the current printable certificate uses a student's level, streak and class rank rather than the concept-level certification record. It also identifies that the ranking certificate should be separated and renamed to Weekly Recognition.
+- **Why it matters:** A certificate should show the skills actually recorded for the student, with the agreed level words, certificate ID and issue date. It should not present a ranking as a learning certification.
+- **Existing work:** I did not find a previous PR attempt for #840 in the repository's pull-request history. The issue is open and unassigned.
+- **Dependency:** The issue depends on #844 and #846, and requires Pavani ma'am's confirmation of the printed wording. Because #846 and #844 are not complete, I have selected #840 as planned work but have not started implementation.
+
 ## 5. Ideas for the Project
 
 The ideas below are possible improvements based on the gaps above. They are proposals only; I have not implemented these changes.
@@ -132,19 +160,48 @@ The ideas below are possible improvements based on the gaps above. They are prop
 - **Why:** PDF downloads should behave consistently with other frontend API requests.
 - **How:** First get an issue or maintainer-approved scope. Then implement the helper and test normal deployment, subpath deployment and unauthorised responses.
 
+### Idea 5 — Reduce unnecessary student-roster downloads (Gap 5 / Issue #754)
+
+- **What:** Avoid requesting the full shared student roster on panels that do not consume it, and compress large API responses.
+- **Why:** This reduces unnecessary network transfer and can make panel navigation more responsive, especially for admin users with large role-scoped rosters.
+- **How:** Keep a checked list of panels that do not use the shared roster, protect roster-dependent views with regression tests, and install Express compression before the body parsers. Measure the real response size and concurrent-request performance before calling the performance target complete.
+
+### Idea 6 — Create a per-concept feedback report (Gap 6 / Issue #846)
+
+- **What:** Build a report for each student and assessment cycle that groups concepts by competency and explains strengths, challenges, not-yet-assessed concepts and up to three suggestions.
+- **Why:** Teachers and parents need clear next steps based on assessment evidence.
+- **How:** First confirm the concept-level certification and competency data required by #844 and #849. Then create the service, an access-controlled student feedback route, a teacher-facing view and a parent-friendly printable layout. Keep unassessed concepts separate from concepts rated Beginner.
+
+### Idea 7 — Print the recorded skill-based certificate (Gap 7 / Issue #840)
+
+- **What:** Build a printable certificate from a complete certification record, showing each assessed skill, its agreed level label, a neutral icon, certificate ID and issue date. Keep weekly ranking recognition separate.
+- **Why:** The certificate should represent a student's recorded skills rather than a class ranking or streak.
+- **How:** Wait for the certification record shape in #844 and feedback/report dependencies in #846. Confirm the printed wording with Pavani ma'am, then add a pure certificate-view helper, frontend tests, role checks and print-layout verification.
+
 ## 6. Your Contribution
 
-### Repository review and initial technical analysis
+### Repository review and issue selection
 
-For onboarding, I reviewed the FLN repository structure and followed the main frontend, backend, database, curriculum, assessment and evaluation flows.
+For onboarding, I reviewed the FLN repository structure and followed the main frontend, backend, database, curriculum, assessment and evaluation flows. I recorded the initial gaps and proposals in Sections 4 and 5, then checked the current open issues and pull-request history before selecting further work.
 
-I wrote down four areas that may need improvement and added possible technical approaches for each one in this document.
+### Coding contribution in progress — Issue #754
 
-I also studied the certification-record logic in `backend/src/services/certificationRecords.ts` to understand why its current class and level checks do not cover the planned Balvatika-to-Class-3 scope.
+I selected [issue #754](https://github.com/vicharanashala/fln/issues/754), which is open and had no previous PR attempt in the history I reviewed.
 
-This was repository analysis and preliminary design work. It was not a completed code fix. I did not change production frontend or backend behaviour, and I am not claiming that I ran runtime tests or the full CI checks for this onboarding work.
+- **Branch:** [`fix/754-roster-performance`](https://github.com/LIKITH-3012-MAC/fln/tree/fix/754-roster-performance) in my fork.
+- **Latest commit:** [`f21257a`](https://github.com/LIKITH-3012-MAC/fln/commit/f21257adedb0a28434f2f95d1caf03966293301a) — corrects the backend workspace path used by the compression test.
+- **Files changed:** `frontend/src/components/panels/usePanelData.ts`, `backend/src/index.ts`, `backend/package.json`, `package-lock.json`, `backend/tests/panel-isolation.test.cjs` and the new `backend/tests/http-compression.test.ts`.
+- **Work done:** added exclusions for panels that do not use the shared student roster, installed response compression and added tests for panel isolation and gzip/identity responses.
+- **Verification status:** I completed static checks of the changed source, test coverage and lockfile entries. I have not run `npm ci`, the new tests, workspace type checks, full CI or the performance measurements from issue #754. These checks remain necessary before the change can be considered verified.
+- **PR status:** I have not yet opened a pull request for this branch, so there is no PR number to record yet.
 
-My next step is to select an available issue, compare it with the latest upstream code, confirm the scope with the maintainer when needed, implement the change, run the relevant tests and submit a separate pull request.
+### Selected next issues — not implemented yet
+
+I also selected [#846](https://github.com/vicharanashala/fln/issues/846) for a per-concept feedback report and [#840](https://github.com/vicharanashala/fln/issues/840) for the skill-based printable certificate. I found no previous PR attempts for either issue in the pull-request history I reviewed. Both remain open and unassigned.
+
+I have not started coding #846 or #840 because their dependencies and curriculum/output decisions need to be confirmed first: #846 depends on #844, and #840 depends on #844 and #846, with printed wording also requiring Pavani ma'am's confirmation. I will begin those tasks only after the maintainer confirms the prerequisites and scope.
+
+
 
 ---
 
