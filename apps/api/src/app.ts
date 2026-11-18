@@ -10,6 +10,7 @@ import { contentRoutes } from './routes/content';
 import { peopleRoutes } from './routes/people';
 import { rosterRoutes } from './routes/roster';
 import { worksheetRoutes } from './routes/worksheets';
+import { readQrInThread, type ReadQr } from './services/qrReader';
 import { createSheetService } from './services/sheets';
 
 export interface AppLimits { jsonBodyMb: number; scanBodyMb: number; loginPer15Min: number; scanPerHour: number }
@@ -20,6 +21,8 @@ export interface AppDeps {
   auth: AuthConfig;
   bank?: QuestionBank;
   reader?: ReadAnswers;
+  /** Reads the QR code of a photographed paper. Defaults to reading in the serving thread; the server passes a worker thread's reader (#904). */
+  qrReader?: ReadQr;
   limits?: Partial<AppLimits>;
   /** Reports whether the data store answers; used by /api/health so a deploy can tell the app is really working. */
   checkStore?: () => Promise<void>;
@@ -27,7 +30,7 @@ export interface AppDeps {
 }
 
 /** Builds the app without starting it, so tests can run it on any port. */
-export function createApp({ repos, auth, bank = loadQuestionBank(), reader, limits: given, checkStore, version = 'dev' }: AppDeps): express.Express {
+export function createApp({ repos, auth, bank = loadQuestionBank(), reader, qrReader = readQrInThread, limits: given, checkStore, version = 'dev' }: AppDeps): express.Express {
   const limits = { ...DEFAULT_LIMITS, ...given };
   const app = express();
   app.disable('x-powered-by');
@@ -48,7 +51,7 @@ export function createApp({ repos, auth, bank = loadQuestionBank(), reader, limi
   app.use('/api', requireLogin,
     rosterRoutes(repos),
     classRoutes(repos, bank),
-    worksheetRoutes(repos, createSheetService(repos, bank), { scanPerHour: limits.scanPerHour }, reader),
+    worksheetRoutes(repos, createSheetService(repos, bank), { scanPerHour: limits.scanPerHour }, reader, qrReader),
     contentRoutes(repos),
     peopleRoutes(repos, auth));
 

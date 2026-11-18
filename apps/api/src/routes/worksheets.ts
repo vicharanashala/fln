@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { HttpError, handler } from '../http';
-import { isPrintedSheetId, parsePrintedSheetQr, readQrFromImage } from '@fln/domain';
+import { isPrintedSheetId, parsePrintedSheetQr } from '@fln/domain';
 import type { ReadAnswers } from '../ollama';
+import { readQrInThread, type ReadQr } from '../services/qrReader';
 import type { Repos } from '../repos';
 import { loadClass } from '../services/classes';
 import { gradePaper, suggestMarks, type PaperEntry } from '../services/grading';
@@ -17,7 +18,7 @@ const MAX_PRINTED_COPIES = 200;
 export interface WorksheetLimits { scanPerHour: number }
 
 /** Printing a sheet, recording what children scored, and reading a photographed paper. */
-export function worksheetRoutes(repos: Repos, sheets: SheetService, limits: WorksheetLimits, reader?: ReadAnswers): Router {
+export function worksheetRoutes(repos: Repos, sheets: SheetService, limits: WorksheetLimits, reader?: ReadAnswers, qrReader: ReadQr = readQrInThread): Router {
   const router = Router();
 
   router.get('/classes/:id/worksheet', handler(async (req, res) => {
@@ -112,7 +113,7 @@ export function worksheetRoutes(repos: Repos, sheets: SheetService, limits: Work
     // before any model call, because marking it against some other sheet would give a wrong result without anyone noticing.
     let matched: { printedSheet: { id: string; title: string; set: number; bankLevel: number | null; levelNumber: number | null }; student: { id: string; name: string } } | null = null;
     let sheet;
-    const code = parsePrintedSheetQr(readQrFromImage(Buffer.from(image, 'base64')));
+    const code = parsePrintedSheetQr(await qrReader(Buffer.from(image, 'base64')));
     if (code) {
       const printed = await repos.printedSheets.byId(code.printedSheetId);
       if (!printed || printed.classId !== cls.id) throw new HttpError(422, 'This paper was printed for another class, or its print could not be found. Please mark it by hand.');

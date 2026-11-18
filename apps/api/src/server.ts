@@ -6,6 +6,7 @@ import { ollamaReader } from './ollama';
 import { loadQuestionBank } from './questionBank';
 import { memoryRepos, type Repos } from './repos';
 import { createLimiter } from './services/limiter';
+import { createQrWorker, defaultQrWorkerOptions } from './services/qrReader';
 
 let config;
 try { config = loadConfig(); } catch (err) { console.error(err instanceof Error ? err.message : err); process.exit(1); }
@@ -42,8 +43,12 @@ if (config.ollama) {
   reader = (input: Parameters<typeof read>[0]) => limit(() => read(input));
 }
 
+// The QR code of a photographed paper is read in a worker thread, so a scan never holds up other requests (#904).
+const qrWorker = createQrWorker(defaultQrWorkerOptions());
+process.once('SIGTERM', () => { void qrWorker.close(); });
+
 createApp({
-  repos, reader, checkStore, version: config.version, bank: loadQuestionBank(config.questionBankPath),
+  repos, reader, qrReader: qrWorker.read, checkStore, version: config.version, bank: loadQuestionBank(config.questionBankPath),
   auth: { jwtSecret: config.jwtSecret, tokenHours: config.tokenHours, bcryptCost: config.bcryptCost },
   limits: config.limits,
 }).listen(config.port, '127.0.0.1', () => console.log(`FLN v2 API ${config.version} listening on 127.0.0.1:${config.port}`));

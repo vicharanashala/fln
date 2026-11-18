@@ -15,5 +15,7 @@ const shared = {
 };
 await build({ ...shared, entryPoints: [fileURLToPath(new URL('../src/server.ts', import.meta.url))], outfile: `${out}/server.mjs` });
 await build({ ...shared, entryPoints: [fileURLToPath(new URL('./create-superadmin.ts', import.meta.url))], outfile: `${out}/create-superadmin.mjs` });
+// Read by server.mjs, which starts it as a worker thread (the QR code of a photographed paper, #904).
+await build({ ...shared, entryPoints: [fileURLToPath(new URL('../src/qrWorker.ts', import.meta.url))], outfile: `${out}/qrWorker.mjs` });
 copyFileSync(`${root}/data/questionBank.json`, `${out}/questionBank.json`);
-console.log('Built apps/api/dist/server.mjs, create-superadmin.mjs and questionBank.json');
+console.log('Built apps/api/dist/server.mjs, qrWorker.mjs, create-superadmin.mjs and questionBank.json');
