@@ -20,13 +20,6 @@ import { renderBatch } from './worksheetRenderer';
 import { keyRootOf, flatKeyQuestions } from './answerKeyCheck';
 import { mergeAndStamp } from './pdfMerge';
 import { drawQrCode } from './qrCode';
-import {
-  CONCEPT_SHEET_QR_SIZE_PT,
-  CONCEPT_SHEET_QR_CLEARANCE_PT,
-  conceptQrPayload,
-  type ConceptSheetLayout,
-  type PrintedAnswerBox,
-} from './conceptSheetRecord';
 import { drawSimpleSvg, parseSimpleSvg, ParsedSvg } from './svgPdf';
 import { readVariantSvg } from './svgAssetCatalog';
 import type { ResolvedQuestion } from './services/worksheetContent';
@@ -944,10 +937,6 @@ function printableText(allowed: Set<number>, text: string): string {
  * made-up questions. Every question is printed: the page count follows the
  * content and nothing is cut (see OVERFLOW_POLICY). The layout rules can ask
  * for more than the Balvatika minimums but never for less.
- *
- * With `copies` (#904) it prints one copy per child, all with the same questions. Each copy has the
- * child's name and a QR code on every page (worksheet, child, page), and the result carries `layout`:
- * where every answer box sits, measured while drawing. Without `copies` nothing changes.
  */
 export async function renderConceptWorksheet({
   worksheetId,
@@ -956,7 +945,6 @@ export async function renderConceptWorksheet({
   conceptIds,
   resolvedQuestions,
   layoutRules,
-  copies,
 }: {
   worksheetId: string;
   className: string;
@@ -964,8 +952,7 @@ export async function renderConceptWorksheet({
   conceptIds: string[];
   resolvedQuestions: ResolvedQuestion[];
   layoutRules?: ConceptWorksheetLayout;
-  copies?: Array<{ studentId: string; studentName: string }>;
-}): Promise<WorksheetPdfResult & { layout?: ConceptSheetLayout }> {
+}): Promise<WorksheetPdfResult> {
   if (!Array.isArray(resolvedQuestions) || resolvedQuestions.length === 0) {
     throw new RangeError('A concept worksheet needs at least one question.');
   }
@@ -1029,24 +1016,21 @@ export async function renderConceptWorksheet({
 
   const plan = planQuestionPages(blocks.map(b => b.height), {
     maxPerPage: perPage,
-    availableHeight: PAGE_HEIGHT - CONCEPT_SHEET_FIRST_QUESTION_OFFSET - (copies?.length ? CONCEPT_SHEET_QR_CLEARANCE_PT : PAGE_BOTTOM_MARGIN_PT),
+    availableHeight: PAGE_HEIGHT - CONCEPT_SHEET_FIRST_QUESTION_OFFSET - PAGE_BOTTOM_MARGIN_PT,
     gap: QUESTION_GAP_PT,
   });
   const totalPages = plan.length;
   const today = new Date().toISOString().slice(0, 10);
   const conceptList = safe([...new Set(conceptIds)].join(', '));
 
-  // Where every answer box sits, noted while the first copy is drawn (the same for every copy).
-  const boxes: PrintedAnswerBox[] = [];
-  let recordBoxes = true;
-  const drawCopy = (copy?: { studentId: string; studentName: string }) => plan.forEach((indexes, pageIndex) => {
+  plan.forEach((indexes, pageIndex) => {
     const page = doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
     const { height } = page.getSize();
     page.drawRectangle({ x: 0, y: height - 14, width: PAGE_WIDTH, height: 14, color: rgb(0.06, 0.5, 0.35) });
     page.drawText('FLN CONCEPT WORKSHEET', { x: 50, y: height - 48, size: 16, font: bold, color: rgb(0.06, 0.5, 0.35) });
     page.drawText(safe(`Class: ${className}  |  Section: ${section}  |  Date: ${today}`), { x: 50, y: height - 68, size: 10, font, color: rgb(0.3, 0.3, 0.3) });
     page.drawText(safe(`Concepts: ${conceptList}`).slice(0, 110), { x: 50, y: height - 83, size: 9, font, color: rgb(0.45, 0.45, 0.45) });
-    page.drawText(copy ? safe(`Name: ${copy.studentName}`) : 'Name: ______________________________', { x: 50, y: height - 112, size: 12, font, color: rgb(0.15, 0.15, 0.15) });
+    page.drawText('Name: ______________________________', { x: 50, y: height - 112, size: 12, font, color: rgb(0.15, 0.15, 0.15) });
 
     let y = height - CONCEPT_SHEET_FIRST_QUESTION_OFFSET;
     for (const i of indexes) {
@@ -1080,9 +1064,6 @@ export async function renderConceptWorksheet({
         y -= b.pictureRows * b.pictureCell;
       }
       const grey = rgb(0.8, 0.8, 0.8);
-      if (recordBoxes && b.rule.style !== 'none') {
-        boxes.push({ questionId: b.q.questionId, page: pageIndex + 1, xPt: 50, yBottomPt: y - b.answerHeight, widthPt: b.rule.widthPt, heightPt: b.answerHeight });
-      }
       if (b.rule.style === 'box') {
         page.drawRectangle({
           x: 50, y: y - b.answerHeight, width: b.rule.widthPt, height: b.answerHeight,
@@ -1103,24 +1084,10 @@ export async function renderConceptWorksheet({
     page.drawText(safe(`Worksheet ID: ${worksheetId} - Page ${pageIndex + 1} of ${totalPages}`), {
       x: 50, y: 40, size: 7.5, font, color: rgb(0.6, 0.6, 0.6),
     });
-    if (copy) {
-      // Bottom right, on a white pad so nothing crowds it (the same place as on the observation sheet, #913).
-      const qrX = PAGE_WIDTH - 50 - CONCEPT_SHEET_QR_SIZE_PT;
-      const qrY = 14;
-      page.drawRectangle({ x: qrX - 6, y: qrY - 6, width: CONCEPT_SHEET_QR_SIZE_PT + 12, height: CONCEPT_SHEET_QR_SIZE_PT + 12, color: rgb(1, 1, 1) });
-      drawQrCode(page, conceptQrPayload(worksheetId, copy.studentId, pageIndex + 1, totalPages), qrX, qrY, CONCEPT_SHEET_QR_SIZE_PT);
-    }
   });
-  for (const copy of copies?.length ? copies : [undefined]) {
-    drawCopy(copy);
-    recordBoxes = false;
-  }
 
   const fileName = `concept_worksheet_${worksheetId}_${randomUUID()}.pdf`;
   const filePath = path.join(OUTPUT_DIR, fileName);
   fs.writeFileSync(filePath, Buffer.from(await doc.save()));
-  return {
-    fileName, filePath, pdfUrl: `/output/${fileName}`,
-    ...(copies?.length ? { layout: { pagesPerCopy: totalPages, pageHeightPt: PAGE_HEIGHT, boxes } } : {}),
-  };
+  return { fileName, filePath, pdfUrl: `/output/${fileName}` };
 }

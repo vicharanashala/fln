@@ -63,7 +63,6 @@
     "test:worksheet-content": "tsx --test tests/worksheet-content.test.ts",
     "test:svg-pdf": "tsx --test tests/svg-pdf.test.ts",
     "test:concept-worksheet": "tsx --test tests/concept-worksheet.test.ts",
-    "test:concept-sheet-record": "tsx --test tests/concept-sheet-record.test.ts",
     "test:template-renderer": "tsx src/services/questionTemplateRenderer.test.ts",
     "test:balvatika-levels": "tsx --test tests/balvatika-levels.test.ts",
     "test:worksheet-no-content": "tsx --test tests/worksheet-generate-no-content.test.ts",
