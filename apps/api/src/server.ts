@@ -45,7 +45,8 @@ if (config.ollama) {
 
 // The QR code of a photographed paper is read in a worker thread, so a scan never holds up other requests (#904).
 const qrWorker = createQrWorker(defaultQrWorkerOptions());
-process.once('SIGTERM', () => { void qrWorker.close(); });
+// A handler replaces Node's default of exiting on SIGTERM, so it must exit itself: without this systemd waits out its stop timeout (about 90 seconds) and then kills the process.
+process.once('SIGTERM', () => { void qrWorker.close().finally(() => process.exit(0)); });
 
 createApp({
   repos, reader, qrReader: qrWorker.read, checkStore, version: config.version, bank: loadQuestionBank(config.questionBankPath),

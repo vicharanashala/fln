@@ -12,18 +12,20 @@ import { PNG } from 'pngjs';
 
 interface Raster { width: number; height: number; data: Uint8ClampedArray }
 
-const MAX_PIXELS = 60_000_000; // refuses images that would need too much memory to open (about 7000 x 8500)
+// Refuses images that would need too much memory to open. The API runs in a service capped at 384 MB, and an image takes about 4 bytes a pixel
+// to open (twice that while decoding). The web app sends photos of at most 1600 pixels, so only a direct upload can be this large.
+const MAX_PIXELS = 16_000_000; // about 4000 x 4000
 
 function decode(image: Buffer): Raster | null {
   try {
     if (image.length > 4 && image[0] === 0x89 && image[1] === 0x50) {
       const png = PNG.sync.read(image, { skipRescale: true });
       if (png.width * png.height > MAX_PIXELS) return null;
-      return { width: png.width, height: png.height, data: new Uint8ClampedArray(png.data) };
+      return { width: png.width, height: png.height, data: new Uint8ClampedArray(png.data.buffer, png.data.byteOffset, png.data.byteLength) };
     }
     if (image.length > 3 && image[0] === 0xff && image[1] === 0xd8) {
-      const jpg = jpeg.decode(image, { useTArray: true, maxMemoryUsageInMB: 512, maxResolutionInMP: 60 });
-      return { width: jpg.width, height: jpg.height, data: new Uint8ClampedArray(jpg.data) };
+      const jpg = jpeg.decode(image, { useTArray: true, maxMemoryUsageInMB: 256, maxResolutionInMP: MAX_PIXELS / 1_000_000 });
+      return { width: jpg.width, height: jpg.height, data: new Uint8ClampedArray(jpg.data.buffer, jpg.data.byteOffset, jpg.data.byteLength) };
     }
   } catch { /* not an image we can open */ }
   return null;
