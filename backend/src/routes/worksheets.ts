@@ -13,13 +13,7 @@ import type {
   Worksheet,
   LevelWorksheet,
 } from '../assessment.types';
-import { getAuthUser, canAccessStudent } from '../auth';
-import {
-  MAX_STUDENTS_PER_CONCEPT_BATCH,
-  buildConceptAnswerKey,
-  buildConceptWorksheetRecord,
-  questionsForStudent,
-} from '../conceptSheetRecord';
+import { getAuthUser } from '../auth';
 import { generateQuestionsForLevel } from '../levelGenerator';
 import { NoApprovedContentError } from '../utils/conceptQuestionGenerator';
 import * as levelsBackendClient from '../levelsBackendClient';
@@ -624,9 +618,7 @@ export function registerWorksheetRoutes(app: express.Express) {
   // Issue #601: a worksheet for a chosen set of concepts. Content comes from the
   // concepts' approved templates (resolveWorksheetContent, #600) and is printed
   // by renderConceptWorksheet (#602). Nothing is saved: the same request gives
-  // the same sheet again. The one exception is a request with `studentIds` (#904):
-  // it prints one copy per child with a QR code on every page, and saves a worksheet
-  // record and one answer key per child, so a filled copy can be matched and marked.
+  // the same sheet again.
   const CONCEPT_BATCH_ROLES = new Set<UserRole>([UserRole.SUPERADMIN, UserRole.SCHOOL, UserRole.TEACHER, UserRole.VOLUNTEER]);
   const MAX_QUESTIONS_PER_BATCH = 200;
 
@@ -683,49 +675,6 @@ export function registerWorksheetRoutes(app: express.Express) {
     if (parsedSheet && 'error' in parsedSheet) return res.status(400).json({ error: parsedSheet.error });
     const sheetRequest = parsedSheet as WorksheetSheetRequest | undefined;
 
-    // Optional (#904): one printed copy per child, saved so it can be marked later. All three of
-    // studentIds, classId and cycle are needed together. The cycle is never guessed: marking an
-    // End-of-year worksheet can start a certification check.
-    let copyStudents: Student[] = [];
-    let classRecord: { id: string; schoolId: string } | undefined;
-    let cycleName: (typeof CYCLE_NAMES)[number] | undefined;
-    if (req.body?.studentIds !== undefined) {
-      const { studentIds, classId, cycle } = req.body;
-      if (!Array.isArray(studentIds) || studentIds.length === 0 || studentIds.length > MAX_STUDENTS_PER_CONCEPT_BATCH
-        || studentIds.some((s: unknown) => typeof s !== 'string' || s.trim() === '')) {
-        return res.status(400).json({ error: `studentIds must be a list of 1 to ${MAX_STUDENTS_PER_CONCEPT_BATCH} student ids.` });
-      }
-      if (new Set(studentIds).size !== studentIds.length) {
-        return res.status(400).json({ error: 'studentIds must not repeat a student.' });
-      }
-      if (typeof classId !== 'string' || classId.trim() === '') {
-        return res.status(400).json({ error: 'classId is required when studentIds is sent.' });
-      }
-      if (typeof cycle !== 'string' || !(CYCLE_NAMES as readonly string[]).includes(cycle)) {
-        return res.status(400).json({ error: `cycle is required when studentIds is sent. Use one of: ${CYCLE_NAMES.join(', ')}.` });
-      }
-      const classObj = (await dbStore.getClasses()).find(c => c.id === classId);
-      if (!classObj) return res.status(404).json({ error: 'Class not found.' });
-      const everyone = await dbStore.getStudents();
-      const found: Student[] = [];
-      const missing: string[] = [];
-      for (const id of studentIds as string[]) {
-        const s = everyone.find(x => x.id === id);
-        if (s) found.push(s); else missing.push(id);
-      }
-      if (missing.length > 0) return res.status(404).json({ error: 'Some students were not found.', studentIds: missing });
-      const blocked: string[] = [];
-      for (const s of found) {
-        if (!(await canAccessStudent(user, s))) blocked.push(s.id);
-      }
-      if (blocked.length > 0) return res.status(403).json({ error: 'You cannot print worksheets for some of these students.', studentIds: blocked });
-      const elsewhere = found.filter(s => s.schoolId !== classObj.schoolId).map(s => s.id);
-      if (elsewhere.length > 0) return res.status(400).json({ error: 'Some students are not in this class\'s school.', studentIds: elsewhere });
-      copyStudents = found;
-      classRecord = { id: classObj.id, schoolId: classObj.schoolId };
-      cycleName = cycle as (typeof CYCLE_NAMES)[number];
-    }
-
     let content;
     try {
       const { resolveWorksheetContent } = await import('../services/worksheetContent');
@@ -753,44 +702,16 @@ export function registerWorksheetRoutes(app: express.Express) {
 
     try {
       const { renderConceptWorksheet } = await import('../paperGenerator');
-      const worksheetId = `CW_${randomUUID().slice(0, 8)}`;
       const result = await renderConceptWorksheet({
-        worksheetId,
+        worksheetId: `CW_${randomUUID().slice(0, 8)}`,
         className: classNameText,
         section: sectionText,
         conceptIds: content.concepts.map(c => c.conceptId),
         resolvedQuestions: content.questions,
-        ...(copyStudents.length > 0 ? { copies: copyStudents.map(s => ({ studentId: s.id, studentName: s.name })) } : {}),
       });
-
-      // Save what marking needs (#904). The answer keys go first and the worksheet record last: the
-      // record is what makes the sheet markable, so a failure half way never leaves a record that
-      // points at missing keys.
-      let copiesSaved: Array<{ studentId: string; studentName: string; pages: number }> | undefined;
-      if (copyStudents.length > 0 && classRecord && cycleName && result.layout) {
-        const now = new Date();
-        const levelOf = (conceptId: string) => {
-          const level = getLevelForConcept(conceptId);
-          return level ? { levelNumber: level.levelNumber, levelTitle: level.levelTitle ?? '' } : undefined;
-        };
-        const questionsByStudent = new Map(copyStudents.map(s => [s.id, questionsForStudent(s.id, content.questions, levelOf)]));
-        for (const s of copyStudents) {
-          await dbStore.addDiagnosticAnswerKey(buildConceptAnswerKey({
-            worksheetId, student: { id: s.id, name: s.name, classGroup: s.classGroup },
-            questions: questionsByStudent.get(s.id) ?? [], layout: result.layout, now,
-          }));
-        }
-        await dbStore.addWorksheet(buildConceptWorksheetRecord({
-          worksheetId, classObj: classRecord, className: classNameText, section: sectionText, cycle: cycleName,
-          user: { role: user.role, email: user.email },
-          students: copyStudents.map(s => ({ id: s.id, name: s.name })), questionsByStudent, now,
-        }));
-        copiesSaved = copyStudents.map(s => ({ studentId: s.id, studentName: s.name, pages: result.layout!.pagesPerCopy }));
-      }
       const observationSheet = sheetRequest ? await buildSheetsForWorksheet(user, sheetRequest, conceptIds) : undefined;
       res.json({
         success: true, pdfUrl: result.pdfUrl, questionCount: content.questions.length, concepts: summary,
-        ...(copiesSaved ? { worksheetId, copies: copiesSaved } : {}),
         ...(observationSheet ? { observationSheet } : {}),
         ...(paperTypeConfig ? {
           paperType: paperTypeConfig.paperType,
