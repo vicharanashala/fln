@@ -2,6 +2,7 @@ import { Question } from './db';
 import { QuestionService } from './services/questionService';
 import { CURRICULUM_MAPPING } from './config/curriculumMap';
 import { generateQuestionsFromTemplates } from './services/questionTemplateRenderer';
+import { generateQuestionsFromLayouts } from './services/layoutTemplateGeneration';
 
 /** Questions a generated paper carries per level. The legacy builder below builds the same count. */
 export const QUESTIONS_PER_LEVEL = 4;
@@ -45,6 +46,15 @@ export async function generateQuestionsForLevel(level: number, subLevel: number)
     // store), which is exactly the "not authored yet" case the legacy
     // generator still has to cover.
     const count = questionsPerLevel(level);
+    // Layout templates (Template Builder) come first: when a Superadmin has
+    // built and approved how this level's question looks, that decides it.
+    const fromLayouts = await generateQuestionsFromLayouts(conceptConfig.conceptId, {
+      count,
+      levelNumber: level,
+      subLevel,
+    });
+    if (fromLayouts.length > 0) return fromLayouts;
+
     const fromTemplates = await generateQuestionsFromTemplates(conceptConfig.conceptId, {
       count,
       levelNumber: level,

@@ -5,7 +5,7 @@ import {
   Menu, X, Search, Bell, Sun, Moon, LogOut, ChevronRight, ChevronLeft, ChevronDown,
   LayoutDashboard, BookOpen, UserCheck, Calendar, ShieldCheck, HelpCircle, Settings, Users,
   School, GraduationCap, MapPin, BarChart3, ClipboardList, ShieldAlert, KeyRound, Clock, Database, Home, Award,
-  Fingerprint, Ticket as TicketIcon, ScrollText
+  Fingerprint, Ticket as TicketIcon, ScrollText, LayoutTemplate
 } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { TicketModal } from './tickets/TicketModal';
@@ -228,6 +228,7 @@ export const Layout: React.FC<LayoutProps> = ({
         list.push({ name: 'Users', view: 'users', icon: Users });
         list.push({ name: 'Schools', view: 'schools', icon: School });
         list.push({ name: 'Worksheet Templates', view: 'worksheet_templates', icon: ClipboardList });
+        list.push({ name: 'Template Builder', view: 'template_builder', icon: LayoutTemplate });
         list.push({ name: 'Content', view: 'content', icon: BookOpen });
         list.push({ name: 'Question Bank', view: 'question_bank', icon: Database });
         list.push({ name: 'Analytics', view: 'analytics', icon: BarChart3 });
