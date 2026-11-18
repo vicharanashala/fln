@@ -5,8 +5,11 @@ import { tagsForLevel } from '@fln/curriculum';
 import { importQuestions } from '../src/importQuestions';
 import { memoryRepos } from '../src/repos';
 
-const pilot = JSON.parse(readFileSync(new URL('../../../data/balvatika-pilot-questions.json', import.meta.url), 'utf8'));
+const data = JSON.parse(readFileSync(new URL('../../../data/balvatika-questions.json', import.meta.url), 'utf8'));
 const fresh = () => memoryRepos({});
+const perLevel: Record<number, number> = {};
+for (const q of data) perLevel[q.levelNumber] = (perLevel[q.levelNumber] ?? 0) + 1;
+const N = data.length;
 const counts = async (repos: ReturnType<typeof memoryRepos>) => {
   const c = await repos.questions.countsByLevel();
   return Object.fromEntries(Object.entries(c).map(([n, v]) => [n, v.draft + v.approved + v.retired]));
@@ -16,31 +19,31 @@ const good = (over: Record<string, unknown> = {}) => ({ levelNumber: 19, mode: '
 describe('importing questions as drafts', () => {
   it('shows what would happen without writing anything', async () => {
     const repos = fresh();
-    const r = await importQuestions(repos, pilot, 'u_super', false);
-    assert.deepStrictEqual(r, { total: 12, added: 0, alreadyThere: 0, applied: false });
+    const r = await importQuestions(repos, data, 'u_super', false);
+    assert.deepStrictEqual(r, { total: N, added: 0, alreadyThere: 0, retired: 0, wouldRetire: 0, applied: false });
     assert.deepStrictEqual(await counts(repos), {});
   });
 
-  it('adds the pilot as drafts, with the drawing and the teacher note, and approves none of them', async () => {
+  it('adds the questions as drafts, with the drawing and the teacher note, and approves none of them', async () => {
     const repos = fresh();
-    const r = await importQuestions(repos, pilot, 'u_super', true);
-    assert.deepStrictEqual(r, { total: 12, added: 12, alreadyThere: 0, applied: true });
-    assert.deepStrictEqual(await counts(repos), { 19: 5, 20: 2, 31: 5 });
-    const all = [...await repos.questions.byLevel(19), ...await repos.questions.byLevel(20), ...await repos.questions.byLevel(31)];
+    const r = await importQuestions(repos, data, 'u_super', true);
+    assert.deepStrictEqual(r, { total: N, added: N, alreadyThere: 0, retired: 0, wouldRetire: 0, applied: true });
+    assert.deepStrictEqual(await counts(repos), perLevel);
+    const all = (await Promise.all(Object.keys(perLevel).map(n => repos.questions.byLevel(Number(n))))).flat();
     assert.ok(all.every(q => q.status === 'draft' && q.approvedBy === null && q.source === 'balvatika-review' && q.createdBy === 'u_super'));
-    assert.ok(all.every(q => q.svg?.startsWith('<svg') && q.subskillIds.length > 0));
-    assert.equal(all.filter(q => q.teacherNote).length, 8, 'the notes came with the questions');
-    assert.equal((await repos.questions.countsByLevel())[19].writtenApproved, 0, 'no teacher can see a draft');
+    assert.ok(all.every(q => q.subskillIds.length > 0 && (q.mode === 'observed' || q.answer)));
+    assert.ok(all.some(q => q.svg?.startsWith('<svg')) && all.some(q => q.teacherNote), 'drawings and teacher notes came with the questions');
+    assert.ok(Object.values(await repos.questions.countsByLevel()).every(c => c.writtenApproved === 0), 'no teacher can see a draft');
   });
 
   it('is safe to run twice, also after one has been approved', async () => {
     const repos = fresh();
-    await importQuestions(repos, pilot, 'u_super', true);
-    const first = (await repos.questions.byLevel(19))[0];
+    await importQuestions(repos, data, 'u_super', true);
+    const first = (await repos.questions.byLevel(Number(Object.keys(perLevel)[0])))[0];
     await repos.questions.update(first.id, { status: 'approved', approvedBy: 'u_super', approvedAt: new Date().toISOString() });
-    const again = await importQuestions(repos, pilot, 'u_super', true);
-    assert.deepStrictEqual(again, { total: 12, added: 0, alreadyThere: 12, applied: true });
-    assert.deepStrictEqual(await counts(repos), { 19: 5, 20: 2, 31: 5 });
+    const again = await importQuestions(repos, data, 'u_super', true);
+    assert.deepStrictEqual(again, { total: N, added: 0, alreadyThere: N, retired: 0, wouldRetire: 0, applied: true });
+    assert.deepStrictEqual(await counts(repos), perLevel);
   });
 
   it('writes nothing when any item breaks a rule, and names every one that does', async () => {
@@ -68,5 +71,27 @@ describe('importing questions as drafts', () => {
     const a = good({ svg: '<svg xmlns="http://www.w3.org/2000/svg"><g class="obj"/></svg>' }), b = good({ svg: '<svg xmlns="http://www.w3.org/2000/svg"><g class="obj"/><g class="obj"/></svg>' });
     const r = await importQuestions(repos, [a, b], 'u', true);
     assert.equal(r.added, 2);
+  });
+
+  it('retires an out-of-date draft but never an approved question, and leaves a hand-typed draft alone', async () => {
+    const repos = fresh();
+    const v1 = [good({ prompt: 'Old A', answer: '1', options: ['1', '2'] }), good({ prompt: 'Old B', answer: '2', options: ['1', '2'] }), good({ prompt: 'Old C', answer: '1', options: ['1', '2'] })].map(x => ({ ...x, source: 'balvatika-review' }));
+    await importQuestions(repos, v1, 'u', true);
+    const [oldA, oldB, oldC] = await repos.questions.byLevel(19);
+    await repos.questions.update(oldA.id, { status: 'approved', approvedBy: 'u', approvedAt: new Date().toISOString() });
+    const typed = await repos.questions.add({ ...oldB, id: undefined as never, prompt: 'Typed by hand', source: 'authored', createdAt: new Date().toISOString() } as never);
+    const v2 = [{ ...good({ prompt: 'Old C', answer: '1', options: ['1', '2'] }), source: 'balvatika-review' }, { ...good({ prompt: 'New D', answer: '2', options: ['1', '2'] }), source: 'balvatika-review' }];
+    const dry = await importQuestions(repos, v2, 'u', false);
+    assert.deepStrictEqual([dry.wouldRetire, dry.retired], [1, 0], 'a dry run says what it would retire and retires nothing');
+    assert.equal((await repos.questions.byId(oldB.id))!.status, 'draft');
+    const r = await importQuestions(repos, v2, 'u', true);
+    assert.deepStrictEqual([r.added, r.alreadyThere, r.retired], [1, 1, 1]);
+    const status = async (id: string) => (await repos.questions.byId(id))!.status;
+    assert.equal(await status(oldA.id), 'approved', 'an approved question is never touched');
+    assert.equal(await status(oldB.id), 'retired', 'an out-of-date draft is retired, not deleted');
+    assert.equal(await status(oldC.id), 'draft', 'a question that is still in the file stays');
+    assert.equal(await status(typed.id), 'draft', 'a draft typed in by hand is left alone');
+    const again = await importQuestions(repos, v2, 'u', true);
+    assert.deepStrictEqual([again.added, again.retired], [0, 0], 'safe to run again');
   });
 });

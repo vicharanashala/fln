@@ -19,8 +19,8 @@ try {
   const user = await store.repos.users.byEmail(email);
   if (!user || user.role !== 'superadmin') { console.error('That email is not a superadmin account. Nothing was changed.'); process.exit(1); }
   const report = await importQuestions(store.repos, JSON.parse(readFileSync(file, 'utf8')), user.id, mode === 'apply');
-  if (report.applied) console.log(`Added ${report.added} draft question(s); ${report.alreadyThere} were already there (of ${report.total} in the file).`);
-  else console.log(`Dry run: ${report.total - report.alreadyThere} question(s) would be added, ${report.alreadyThere} are already there (of ${report.total} in the file). Nothing was written. Add "apply" to write them.`);
+  if (report.applied) console.log(`Added ${report.added} draft question(s); ${report.alreadyThere} were already there (of ${report.total} in the file); retired ${report.retired} out-of-date draft(s).`);
+  else console.log(`Dry run: ${report.total - report.alreadyThere} question(s) would be added, ${report.alreadyThere} are already there (of ${report.total} in the file), ${report.wouldRetire} out-of-date draft(s) would be retired. Nothing was written. Add "apply" to do it.`);
 } catch (e) {
   console.error((e as Error).message);
   process.exitCode = 1;
