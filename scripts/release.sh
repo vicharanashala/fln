@@ -9,10 +9,10 @@ if [ -n "$(git status --porcelain)" ]; then version="${version}-dirty"; echo "Wa
 VITE_BASE_PATH=/v2/fln/ VITE_API_BASE=/v2/api/fln npm run build -w @fln/web
 npm run build -w @fln/api
 rm -rf release && mkdir -p release/api release/web release/landing release/deploy
-cp apps/api/dist/server.mjs apps/api/dist/qrWorker.mjs apps/api/dist/create-superadmin.mjs apps/api/dist/questionBank.json release/api/
+cp apps/api/dist/server.mjs apps/api/dist/qrWorker.mjs apps/api/dist/create-superadmin.mjs apps/api/dist/import-questions.mjs apps/api/dist/questionBank.json apps/api/dist/balvatika-pilot-questions.json release/api/
 cp -R apps/web/dist/. release/web/
 cp -R landing/. release/landing/
-cp deploy/fln-v2-api.service deploy/v2.nginx.conf deploy/install-fln-v2.sh deploy/install-tenali-v2.sh deploy/tenali-v2.service deploy/bind-local.cjs deploy/create-superadmin.sh scripts/smoke.mjs release/deploy/
+cp deploy/fln-v2-api.service deploy/v2.nginx.conf deploy/install-fln-v2.sh deploy/install-tenali-v2.sh deploy/tenali-v2.service deploy/bind-local.cjs deploy/create-superadmin.sh deploy/import-questions.sh scripts/smoke.mjs release/deploy/
 echo "$version" > release/VERSION
 out="${HOME}/Desktop/fln-v2-release-${version}.tar.gz"
 tar czf "$out" -C release .
