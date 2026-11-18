@@ -85,6 +85,7 @@ This is the eventual implementation; the panel today only shows the static graph
 
 ## See also
 
+- [D1.1_SKILL_ONTOLOGY_SOURCING.md](./D1.1_SKILL_ONTOLOGY_SOURCING.md) — 7-column skill sourcing standard & SK13 Evidence Matrix (#482).
 - [FLN_93_Level_Skill_Graph_Specification.md](./FLN_93_Level_Skill_Graph_Specification.md) — the parent spec (read first).
 - [FLN_Math_Skill_Progression_Framework.md](./FLN_Math_Skill_Progression_Framework.md) — the earlier 27-level framework doc this 93-level spec extended.
 - [docs/93-levels-and-question-types.md](../93-levels-and-question-types.md) — current 93-level registry with oral-only flags.
