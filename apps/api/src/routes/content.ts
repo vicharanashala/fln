@@ -18,10 +18,10 @@ export function svgProblem(svg: string): string | undefined {
   return undefined;
 }
 
-interface Fields { mode: QuestionMode; prompt: string; answer: string; options: string[]; subskillIds: string[]; svg: string | null; teacherNote: string | null }
+export interface Fields { mode: QuestionMode; prompt: string; answer: string; options: string[]; subskillIds: string[]; svg: string | null; teacherNote: string | null }
 
 /** Reads the writable fields of a question from a request body, applying the rules once for create and edit. */
-function readFields(body: Record<string, unknown> | undefined, levelNumber: number, base?: Question): Fields {
+export function readFields(body: Record<string, unknown> | undefined, levelNumber: number, base?: Question): Fields {
   const b = body ?? {};
   const mode = (b.mode ?? base?.mode) as string;
   if (!(QUESTION_MODES as readonly string[]).includes(mode)) throw new HttpError(400, `mode must be one of: ${QUESTION_MODES.join(', ')}.`);
