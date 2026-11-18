@@ -43,8 +43,8 @@ describe('the QR worker', () => {
     const got = await Promise.all(texts.map(t => w.read(png(page(t, 800, 800, 9)))));
     assert.deepStrictEqual(got, texts);
   });
-  it('keeps the main thread free while a very large photo is read (15 megapixels), which the in-thread reader does not', async () => {
-    const big = jpg(page(TEXT, 4000, 3900, 6)); // 15.6 megapixels, the largest the reader accepts
+  it('keeps the main thread free while a very large photo is read (12 megapixels), which the in-thread reader does not', async () => {
+    const big = jpg(page(TEXT, 4000, 3000, 10)); // 12 megapixels, a full-size phone photo
     // how long the main thread was stuck, seen as the longest gap between ticks of a 10 ms timer
     const longestGap = async (read: () => Promise<string | null>) => {
       let last = Date.now(), max = 0;

@@ -14,7 +14,7 @@ interface Raster { width: number; height: number; data: Uint8ClampedArray }
 
 // Refuses images that would need too much memory to open. The API runs in a service capped at 384 MB, and an image takes about 4 bytes a pixel
 // to open (twice that while decoding). The web app sends photos of at most 1600 pixels, so only a direct upload can be this large.
-const MAX_PIXELS = 16_000_000; // about 4000 x 4000
+const MAX_PIXELS = 13_000_000; // a 12 megapixel phone photo (4032 x 3024) opens within the decoder's 288 MB allowance (it needs about 22 bytes a pixel)
 
 function decode(image: Buffer): Raster | null {
   try {
@@ -24,7 +24,7 @@ function decode(image: Buffer): Raster | null {
       return { width: png.width, height: png.height, data: new Uint8ClampedArray(png.data.buffer, png.data.byteOffset, png.data.byteLength) };
     }
     if (image.length > 3 && image[0] === 0xff && image[1] === 0xd8) {
-      const jpg = jpeg.decode(image, { useTArray: true, maxMemoryUsageInMB: 256, maxResolutionInMP: MAX_PIXELS / 1_000_000 });
+      const jpg = jpeg.decode(image, { useTArray: true, maxMemoryUsageInMB: 288, maxResolutionInMP: MAX_PIXELS / 1_000_000 });
       return { width: jpg.width, height: jpg.height, data: new Uint8ClampedArray(jpg.data.buffer, jpg.data.byteOffset, jpg.data.byteLength) };
     }
   } catch { /* not an image we can open */ }

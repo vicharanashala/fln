@@ -45,13 +45,13 @@ let t0 = Date.now();
 assert.equal(readQrFromImage(jpg(phone)), TEXT);
 assert.ok(Date.now() - t0 < 6000, `a phone-sized photo is read in a few seconds (${Date.now() - t0} ms)`);
 
-// a very large photo (15.6 megapixels) with a small code: the whole-picture pass is too coarse, the corner pass finds it
-const huge = page({ w: 4000, h: 3900, x: 2900, y: 200, px: 6 });
+// a very large photo (12 megapixels) with a small code: the whole-picture pass is too coarse, the corner pass finds it
+const huge = page({ w: 4000, h: 3000, x: 2900, y: 200, px: 10 });   // a code about 20 mm wide on an A4-sized frame
 t0 = Date.now();
-assert.equal(readQrFromImage(jpg(huge, 75)), TEXT, 'a 15.6 megapixel photo');
-console.log(`15.6 MP photo read in ${Date.now() - t0} ms`);
-// over the memory guard (16 megapixels): refused, not opened
-assert.equal(readQrFromImage(jpg(page({ w: 4000, h: 5600, x: 2900, y: 200, px: 6 }), 75)), null, 'a 22 megapixel photo is over the limit');
+assert.equal(readQrFromImage(jpg(huge, 75)), TEXT, 'a 12 megapixel photo');
+console.log(`12 MP photo read in ${Date.now() - t0} ms`);
+// over the memory guard (13 megapixels): refused, not opened
+assert.equal(readQrFromImage(jpg(page({ w: 4000, h: 3900, x: 2900, y: 200, px: 10 }), 75)), null, 'a 15.6 megapixel photo is over the limit, though the code in it is readable');
 
 // the paper held any way round, a little noise and blur
 for (const turn of [1, 2, 3] as const) assert.equal(readQrFromImage(png(page({ w: 1600, h: 1600, x: 900, y: 120, px: 9, turn }))), TEXT, `turned ${turn}`);
