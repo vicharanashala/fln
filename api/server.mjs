@@ -76272,17 +76272,17 @@ function parsePrintedSheetQr(decoded) {
 var import_jsqr = __toESM(require_jsQR(), 1);
 var import_jpeg_js2 = __toESM(require_jpeg_js(), 1);
 var import_pngjs2 = __toESM(require_png(), 1);
-var MAX_PIXELS = 13e6;
+var MAX_PIXELS = 6e7;
 function decode2(image) {
   try {
     if (image.length > 4 && image[0] === 137 && image[1] === 80) {
       const png = import_pngjs2.PNG.sync.read(image, { skipRescale: true });
       if (png.width * png.height > MAX_PIXELS) return null;
-      return { width: png.width, height: png.height, data: new Uint8ClampedArray(png.data.buffer, png.data.byteOffset, png.data.byteLength) };
+      return { width: png.width, height: png.height, data: new Uint8ClampedArray(png.data) };
     }
     if (image.length > 3 && image[0] === 255 && image[1] === 216) {
-      const jpg = import_jpeg_js2.default.decode(image, { useTArray: true, maxMemoryUsageInMB: 288, maxResolutionInMP: MAX_PIXELS / 1e6 });
-      return { width: jpg.width, height: jpg.height, data: new Uint8ClampedArray(jpg.data.buffer, jpg.data.byteOffset, jpg.data.byteLength) };
+      const jpg = import_jpeg_js2.default.decode(image, { useTArray: true, maxMemoryUsageInMB: 512, maxResolutionInMP: 60 });
+      return { width: jpg.width, height: jpg.height, data: new Uint8ClampedArray(jpg.data) };
     }
   } catch {
   }
@@ -79135,6 +79135,7 @@ function worksheetRoutes(repos2, sheets, limits, reader2, qrReader = readQrInThr
       class: cls,
       sheet: { bankLevel: sheet.bankLevel, levelNumber: sheet.levelNumber, title: sheet.title, set: sheet.set, questions: sheet.questions },
       answerKey: sheet.answers,
+      teacherNotes: sheet.notes,
       students
     });
   }));
@@ -79263,12 +79264,13 @@ function createSheetService(repos2, bank) {
           set: printed.set,
           questions: found.map((q, i) => ({ n: i + 1, text: q.prompt, svg: q.svg, options: q.options })),
           answers: [...printed.answerKey],
+          notes: found.map((q) => q.teacherNote),
           questionIds: [...printed.questionIds]
         };
       }
       const sheet = printed.bankLevel === null ? void 0 : bank.sheet(printed.bankLevel, printed.set);
       if (!sheet || sheet.questions.length !== printed.answerKey.length) throw new HttpError(409, "This printed sheet can no longer be rebuilt. Please mark it by hand.");
-      return { bankLevel: printed.bankLevel, levelNumber: null, title: printed.title, set: printed.set, questions: sheet.questions, answers: [...printed.answerKey], questionIds: null };
+      return { bankLevel: printed.bankLevel, levelNumber: null, title: printed.title, set: printed.set, questions: sheet.questions, answers: [...printed.answerKey], notes: printed.answerKey.map(() => null), questionIds: null };
     },
     async resolve(body) {
       const set = body.set ?? 0;
@@ -79291,13 +79293,14 @@ function createSheetService(repos2, bank) {
           set: setNo,
           questions: picked.map((q, i) => ({ n: i + 1, text: q.prompt, svg: q.svg, options: q.options })),
           answers: picked.map((q) => q.answer),
+          notes: picked.map((q) => q.teacherNote),
           questionIds: picked.map((q) => q.id)
         };
       }
       if (!Number.isInteger(body.bankLevel)) throw new HttpError(400, "bankLevel must be a whole number.");
       const sheet = bank.sheet(body.bankLevel, setNo);
       if (!sheet) throw new HttpError(404, "There is no worksheet for that topic yet.");
-      return { bankLevel: sheet.bankLevel, levelNumber: null, title: sheet.title, set: sheet.set, questions: sheet.questions, answers: sheet.answers, questionIds: null };
+      return { bankLevel: sheet.bankLevel, levelNumber: null, title: sheet.title, set: sheet.set, questions: sheet.questions, answers: sheet.answers, notes: sheet.answers.map(() => null), questionIds: null };
     }
   };
 }
@@ -79841,7 +79844,7 @@ if (config.ollama) {
 }
 var qrWorker = createQrWorker(defaultQrWorkerOptions());
 process.once("SIGTERM", () => {
-  void qrWorker.close().finally(() => process.exit(0));
+  void qrWorker.close();
 });
 createApp({
   repos,
