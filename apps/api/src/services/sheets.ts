@@ -2,6 +2,7 @@ import { QUESTIONS_PER_CONCEPT } from '@fln/domain';
 import { HttpError } from '../http';
 import type { QuestionBank, SheetQuestion } from '../questionBank';
 import type { Repos } from '../repos';
+import type { PrintedSheet } from '../types';
 
 /** One printable five-question sheet, whichever source it came from. Answers stay apart from the questions. */
 export interface ResolvedSheet {
@@ -23,10 +24,29 @@ export interface SheetService {
    * from the older bank (`bankLevel`). Exactly one of the two is given.
    */
   resolve(request: SheetRequest): Promise<ResolvedSheet>;
+  /**
+   * The sheet exactly as it was printed (#904): the same questions in the same order, and the answer key that was saved with the print,
+   * whatever has been approved or retired since.
+   */
+  fromPrinted(printed: PrintedSheet): Promise<ResolvedSheet>;
 }
 
 export function createSheetService(repos: Repos, bank: QuestionBank): SheetService {
   return {
+    async fromPrinted(printed) {
+      if (printed.questionIds) {
+        const found = await Promise.all(printed.questionIds.map(id => repos.questions.byId(id)));
+        if (found.some(q => !q) || found.length !== printed.answerKey.length) throw new HttpError(409, 'This printed sheet can no longer be rebuilt. Please mark it by hand.');
+        return {
+          bankLevel: null, levelNumber: printed.levelNumber, title: printed.title, set: printed.set,
+          questions: found.map((q, i) => ({ n: i + 1, text: q!.prompt, svg: q!.svg, options: q!.options })),
+          answers: [...printed.answerKey], questionIds: [...printed.questionIds],
+        };
+      }
+      const sheet = printed.bankLevel === null ? undefined : bank.sheet(printed.bankLevel, printed.set);
+      if (!sheet || sheet.questions.length !== printed.answerKey.length) throw new HttpError(409, 'This printed sheet can no longer be rebuilt. Please mark it by hand.');
+      return { bankLevel: printed.bankLevel, levelNumber: null, title: printed.title, set: printed.set, questions: sheet.questions, answers: [...printed.answerKey], questionIds: null };
+    },
     async resolve(body) {
       const set = body.set ?? 0;
       const hasLevel = body.levelNumber !== undefined && body.levelNumber !== null;
