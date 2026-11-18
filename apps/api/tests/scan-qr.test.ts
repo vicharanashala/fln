@@ -10,6 +10,7 @@ import { createApp } from '../src/app';
 import { ollamaReader } from '../src/ollama';
 import { loadQuestionBank } from '../src/questionBank';
 import { memoryRepos } from '../src/repos';
+import { createQrWorker, defaultQrWorkerOptions } from '../src/services/qrReader';
 import type { Question, User } from '../src/types';
 
 // #904 Part B: a photographed paper is matched to its child and its print by the QR code, and marked against what was printed.
@@ -247,5 +248,31 @@ describe('saving results against a print', () => {
     const r = await results(await login('t1@fln.test'), { bankLevel: 22, entries: [{ studentId: 's1', marks: [true, true, true, false, false] }] });
     assert.equal(r.status, 201, JSON.stringify(r.json));
     assert.equal(r.json.attempts[0].printedSheetId, undefined);
+  });
+});
+
+describe('the scan route with the code read in a worker thread', () => {
+  it('matches the child and the print just the same', async () => {
+    const qrWorker = createQrWorker(defaultQrWorkerOptions());
+    const server = await new Promise<ReturnType<ReturnType<typeof createApp>['listen']>>(resolve => {
+      const s = createApp({
+        repos, auth: { jwtSecret: 'x'.repeat(40), tokenHours: 1 }, bank, qrReader: qrWorker.read,
+        reader: ollamaReader({ host: `http://127.0.0.1:${(fakeOllama.address() as AddressInfo).port}`, apiKey: 'test-key', model: 'test-model', timeoutMs: 3000 }),
+      }).listen(0, () => resolve(s));
+    });
+    try {
+      const t = await login('t1@fln.test');
+      const rec = await print(t, { levelNumber: 19 });
+      const res = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/classes/cBal/scan`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ mimeType: 'image/png', imageBase64: photo(printedSheetQrText(rec.id, 's1')) }),
+      });
+      const json = await res.json() as { matched: { student: { id: string } } | null };
+      assert.equal(res.status, 200, JSON.stringify(json));
+      assert.equal(json.matched?.student.id, 's1');
+    } finally {
+      await new Promise<void>(r => server.close(() => r()));
+      await qrWorker.close();
+    }
   });
 });
