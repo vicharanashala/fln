@@ -47,7 +47,7 @@ export function PrintSheets({ classId, query, onUnauthorized }: { classId: strin
         <TopicSelect classId={classId} value={topicValue} set={set} onPick={pick} onUnauthorized={onUnauthorized} />
         <div className="card row">
           <button className="primary" type="button" disabled={!sheet.data || sheet.data.students.length === 0 || saving} onClick={() => { void printCopies(); }}>{saving ? 'Saving…' : `Print ${sheet.data?.students.length ?? 0} copies`}</button>
-          <button className="primary alt" type="button" disabled={!sheet.data} onClick={() => { setKey(true); setTimeout(() => window.print(), 50); }}>Print answer key</button>
+          <button className="primary alt" type="button" disabled={!sheet.data} onClick={() => { setKey(true); setTimeout(() => window.print(), 50); }}>Print teacher sheet</button>
         </div>
         {sheet.data?.students.length === 0 && <p className="note">Add children to the class first. One copy is printed for each child.</p>}
         {printError && <p className="error" role="alert">{printError}</p>}
@@ -58,9 +58,10 @@ export function PrintSheets({ classId, query, onUnauthorized }: { classId: strin
       {sheet.loading && <p className="muted">Loading…</p>}
       {sheet.error && <p className="error" role="alert">{sheet.error}</p>}
       {sheet.data && (key
-        ? <section className="paper key" aria-label="Answer key">
-            <h2>Answer key: {sheet.data.sheet.title}, Sheet {setLetter(sheet.data.sheet.set)}</h2>
-            <ol>{sheet.data.answerKey.map((a, i) => <li key={i}>{a}</li>)}</ol>
+        ? <section className="paper key" aria-label="Teacher sheet">
+            <h2>Teacher sheet: {sheet.data.sheet.title}, Sheet {setLetter(sheet.data.sheet.set)}</h2>
+            <p className="muted">Answers and notes for the teacher. Keep this page apart from the children's papers.</p>
+            <ol>{sheet.data.answerKey.map((a, i) => <li key={i}>{a}{sheet.data!.teacherNotes[i] && <p className="teacher-note">Note: {sheet.data!.teacherNotes[i]}</p>}</li>)}</ol>
           </section>
         : sheet.data.students.map(s => (
             <section className="paper" key={s.id}>
