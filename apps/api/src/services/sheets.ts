@@ -11,6 +11,8 @@ export interface ResolvedSheet {
   set: number;
   questions: SheetQuestion[];
   answers: string[];
+  /** The approved questions this sheet was made from (curriculum level sheets). Null for the older bank, which does not change. */
+  questionIds: string[] | null;
 }
 
 export interface SheetRequest { bankLevel?: unknown; levelNumber?: unknown; set?: unknown }
@@ -43,12 +45,13 @@ export function createSheetService(repos: Repos, bank: QuestionBank): SheetServi
           bankLevel: null, levelNumber: level.levelNumber, title: level.title, set: setNo,
           questions: picked.map((q, i) => ({ n: i + 1, text: q.prompt, svg: q.svg, options: q.options })),
           answers: picked.map(q => q.answer),
+          questionIds: picked.map(q => q.id),
         };
       }
       if (!Number.isInteger(body.bankLevel)) throw new HttpError(400, 'bankLevel must be a whole number.');
       const sheet = bank.sheet(body.bankLevel as number, setNo);
       if (!sheet) throw new HttpError(404, 'There is no worksheet for that topic yet.');
-      return { bankLevel: sheet.bankLevel, levelNumber: null, title: sheet.title, set: sheet.set, questions: sheet.questions, answers: sheet.answers };
+      return { bankLevel: sheet.bankLevel, levelNumber: null, title: sheet.title, set: sheet.set, questions: sheet.questions, answers: sheet.answers, questionIds: null };
     },
   };
 }

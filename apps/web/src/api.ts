@@ -1,5 +1,5 @@
 import type { SheetRef } from './lib';
-import type { Attempt, ClassGroup, ClassLevel, CoverageSkill, LevelRow, LevelSkills, LevelWithCounts, Question, QuestionInput, QuestionStatus, School, Student, Topic, User, Worksheet } from './types';
+import type { PrintedSheet, Attempt, ClassGroup, ClassLevel, CoverageSkill, LevelRow, LevelSkills, LevelWithCounts, Question, QuestionInput, QuestionStatus, School, Student, Topic, User, Worksheet } from './types';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
@@ -46,6 +46,7 @@ export const api = {
   classLevels: (id: string) => call<{ levels: ClassLevel[] }>(`/classes/${id}/levels`),
   worksheet: (id: string, ref: SheetRef, set: number) => call<Worksheet>(`/classes/${id}/worksheet?${refQuery(ref)}&set=${set}`),
   results: (id: string) => call<{ attempts: Attempt[] }>(`/classes/${id}/results`),
+  createPrintedSheet: (id: string, ref: SheetRef, set: number) => call<{ printedSheet: PrintedSheet }>(`/classes/${id}/printed-sheets`, { method: 'POST', body: { ...(ref.levelNumber !== undefined ? { levelNumber: ref.levelNumber } : { bankLevel: ref.bankLevel }), set } }),
   saveResults: (id: string, ref: SheetRef, set: number, entries: ResultEntry[]) => call<{ attempts: Attempt[] }>(`/classes/${id}/results`, { method: 'POST', body: { ...ref, set, entries } }),
   scan: (id: string, ref: SheetRef, set: number, imageBase64: string, mimeType: string) =>
     call<{ answers: (string | null)[]; suggestedMarks: boolean[] }>(`/classes/${id}/scan`, { method: 'POST', body: { ...ref, set, imageBase64, mimeType } }),

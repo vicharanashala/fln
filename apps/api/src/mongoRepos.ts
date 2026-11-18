@@ -1,7 +1,7 @@
 import { MongoClient, type Db } from 'mongodb';
 import type { Repos, SeedData } from './repos';
 import { levelRows } from './levels';
-import type { Attempt, ClassGroup, LevelCounts, LevelRow, Question, School, Student, User } from './types';
+import type { Attempt, ClassGroup, LevelCounts, LevelRow, PrintedSheet, Question, School, Student, User } from './types';
 
 /** Mongo documents use our string id as `_id`, so ids stay stable and no ObjectId leaks into the API. */
 type Doc<T extends { id: string }> = Omit<T, 'id'> & { _id: string };
@@ -41,6 +41,7 @@ export function createMongoStore(db: Db, close: () => Promise<void> = async () =
   const classes = db.collection<Doc<ClassGroup>>('classes');
   const students = db.collection<Doc<Student>>('students');
   const attempts = db.collection<Doc<Attempt>>('attempts');
+  const printedSheets = db.collection<Doc<PrintedSheet>>('printedSheets');
   const levels = db.collection<Doc<LevelRow & { id: string }>>('levels');
   const questions = db.collection<Doc<Question>>('questions');
 
@@ -160,6 +161,21 @@ export function createMongoStore(db: Db, close: () => Promise<void> = async () =
         return (await attempts.find({ classId }).sort({ createdAt: -1 }).toArray()).map(d => fromDoc<Attempt>(d));
       },
     },
+    printedSheets: {
+      async add(sheet) {
+        // Short enough to sit in a QR code: `ps_` and 12 hex characters of a random id.
+        const created: PrintedSheet = { ...sheet, studentIds: [...sheet.studentIds], id: `ps_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}` };
+        await printedSheets.insertOne(toDoc(created));
+        return created;
+      },
+      async byId(id) {
+        const doc = await printedSheets.findOne({ _id: id });
+        return doc ? fromDoc<PrintedSheet>(doc) : undefined;
+      },
+      async byClass(classId) {
+        return (await printedSheets.find({ classId }).sort({ createdAt: -1 }).toArray()).map(d => fromDoc<PrintedSheet>(d));
+      },
+    },
   };
 
   return {
@@ -170,6 +186,7 @@ export function createMongoStore(db: Db, close: () => Promise<void> = async () =
       if (data.classes?.length) await classes.insertMany(data.classes.map(toDoc));
       if (data.students?.length) await students.insertMany(data.students.map(toDoc));
       if (data.attempts?.length) await attempts.insertMany(data.attempts.map(toDoc));
+      if (data.printedSheets?.length) await printedSheets.insertMany(data.printedSheets.map(toDoc));
       if (data.questions?.length) await questions.insertMany(data.questions.map(toDoc));
     },
     async syncLevels() {
@@ -184,6 +201,7 @@ export function createMongoStore(db: Db, close: () => Promise<void> = async () =
       await classes.createIndex({ schoolId: 1 });
       await students.createIndex({ classId: 1 });
       await attempts.createIndex({ classId: 1, createdAt: -1 });
+      await printedSheets.createIndex({ classId: 1, createdAt: -1 });
       await levels.createIndex({ levelNumber: 1 }, { unique: true });
       await questions.createIndex({ levelNumber: 1, status: 1 });
     },

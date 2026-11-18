@@ -6,7 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "typecheck": "tsc -p .",
-    "test": "tsx src/answerMatching.test.ts && tsx src/errorClassification.test.ts && tsx src/paperLock.test.ts && tsx src/scanQuality.test.ts && tsx src/bands.test.ts"
+    "test": "tsx src/answerMatching.test.ts && tsx src/errorClassification.test.ts && tsx src/paperLock.test.ts && tsx src/scanQuality.test.ts && tsx src/bands.test.ts && tsx src/printedSheet.test.ts"
   },
   "dependencies": {
     "jpeg-js": "^0.4.4",

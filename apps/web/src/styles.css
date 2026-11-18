@@ -39,6 +39,7 @@ button.primary:hover:not(:disabled), a.primary:hover { filter: brightness(1.08);
 .key { padding-left: 1.2em; } .key li { margin-bottom: 10px; } .key img { display: block; max-width: 100%; } .key strong { color: var(--green); }
 .paper { background: #fff; color: #000; max-width: 794px; margin: 16px auto; padding: 24px; border: 1px solid var(--line); }
 .paper header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 8px; }
+.paper header .qr { flex: 0 0 auto; margin-left: auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .paper .q { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; } .paper .qn { font-weight: 800; min-width: 1.4em; }
 .paper .q img { width: 100%; height: auto; } .paper.key li { font-size: 1.2rem; margin: 6px 0; }
 @media print {

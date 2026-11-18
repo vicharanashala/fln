@@ -10,6 +10,8 @@ import type { Attempt } from '../types';
 
 const MAX_IMAGE_BASE64_CHARS = 8_000_000;
 const IMAGE_TYPES = ['image/jpeg', 'image/png'];
+/** Most children one print may name (the same limit as saving results). */
+const MAX_PRINTED_COPIES = 200;
 
 export interface WorksheetLimits { scanPerHour: number }
 
@@ -53,6 +55,33 @@ export function worksheetRoutes(repos: Repos, sheets: SheetService, limits: Work
     const attempts = [];
     for (const a of planned) attempts.push(await repos.attempts.add(a));
     res.status(201).json({ attempts });
+  }));
+
+  // Saved when a worksheet is printed (#904), so that each child's paper can carry a QR code naming this record and
+  // the child. Printing again saves a new record: each print is its own paper.
+  router.post('/classes/:id/printed-sheets', handler(async (req, res) => {
+    const user = req.user!;
+    const cls = await loadClass(repos, String(req.params.id), user);
+    const sheet = await sheets.resolve(req.body ?? {});
+    const roster = await repos.students.byClass(cls.id);
+    const requested = req.body?.studentIds;
+    let chosen = roster;
+    if (requested !== undefined) {
+      if (!Array.isArray(requested) || requested.length === 0 || requested.length > MAX_PRINTED_COPIES || requested.some(id => typeof id !== 'string')) {
+        throw new HttpError(400, `studentIds must be a list of 1 to ${MAX_PRINTED_COPIES} children.`);
+      }
+      if (new Set(requested).size !== requested.length) throw new HttpError(400, 'studentIds must not repeat a child.');
+      const byId = new Map(roster.map(s => [s.id, s]));
+      if (requested.some(id => !byId.has(id))) throw new HttpError(400, 'A paper is for a child who is not in this class.');
+      chosen = requested.map(id => byId.get(id)!);
+    }
+    if (chosen.length === 0) throw new HttpError(400, 'Add children to the class first. One copy is printed for each child.');
+    if (chosen.length > MAX_PRINTED_COPIES) throw new HttpError(400, `At most ${MAX_PRINTED_COPIES} copies can be printed at once.`);
+    const printedSheet = await repos.printedSheets.add({
+      schoolId: cls.schoolId, classId: cls.id, bankLevel: sheet.bankLevel, levelNumber: sheet.levelNumber, set: sheet.set,
+      title: sheet.title, questionIds: sheet.questionIds, answerKey: [...sheet.answers], studentIds: chosen.map(s => s.id), createdAt: new Date().toISOString(), createdBy: user.id,
+    });
+    res.status(201).json({ printedSheet });
   }));
 
   const scanLimiter = rateLimit({

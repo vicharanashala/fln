@@ -1,5 +1,5 @@
 import { levelRows } from './levels';
-import type { Attempt, ClassGroup, LevelCounts, LevelRow, Question, School, Student, User } from './types';
+import type { Attempt, ClassGroup, LevelCounts, LevelRow, PrintedSheet, Question, School, Student, User } from './types';
 
 /**
  * Data access, behind interfaces so the routes never know which store is used.
@@ -45,6 +45,11 @@ export interface Repos {
     add(attempt: Omit<Attempt, 'id'>): Promise<Attempt>;
     byClass(classId: string): Promise<Attempt[]>;
   };
+  printedSheets: {
+    add(sheet: Omit<PrintedSheet, 'id'>): Promise<PrintedSheet>;
+    byId(id: string): Promise<PrintedSheet | undefined>;
+    byClass(classId: string): Promise<PrintedSheet[]>;
+  };
 }
 
 export interface SeedData {
@@ -53,6 +58,7 @@ export interface SeedData {
   classes?: ClassGroup[];
   students?: Student[];
   attempts?: Attempt[];
+  printedSheets?: PrintedSheet[];
   questions?: Question[];
 }
 
@@ -65,6 +71,8 @@ export function memoryRepos(seed: SeedData = {}): Repos {
   let nextId = students.length + 1;
   let nextClassId = classes.length + 1;
   let nextAttemptId = attempts.length + 1;
+  const printedSheets = [...(seed.printedSheets ?? [])];
+  let nextPrintedSheetId = printedSheets.length + 1;
   const levels = levelRows();
   const questions = [...(seed.questions ?? [])];
   let nextQuestionId = questions.length + 1;
@@ -150,6 +158,17 @@ export function memoryRepos(seed: SeedData = {}): Repos {
       },
       async byClass(classId) {
         return attempts.filter(a => a.classId === classId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      },
+    },
+    printedSheets: {
+      async add(sheet) {
+        const created: PrintedSheet = { ...sheet, studentIds: [...sheet.studentIds], id: `ps_${nextPrintedSheetId++}` };
+        printedSheets.push(created);
+        return created;
+      },
+      async byId(id) { return printedSheets.find(s => s.id === id); },
+      async byClass(classId) {
+        return printedSheets.filter(s => s.classId === classId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       },
     },
   };

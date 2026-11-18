@@ -63,6 +63,35 @@ export interface Attempt {
   recordedBy: string;
 }
 
+/**
+ * Saved when a worksheet is printed (#904): which sheet, for which class and children. Every child's paper carries a
+ * QR code naming this record and the child, so a scan can find both by itself.
+ */
+export interface PrintedSheet {
+  /** `ps_...`. This is what the QR code on each paper names. */
+  id: string;
+  schoolId: string;
+  classId: string;
+  /** The same sheet identity as an Attempt: exactly one of bankLevel and levelNumber is set. */
+  bankLevel: number | null;
+  levelNumber: number | null;
+  /** Which five-question sheet of the level was printed (0 = A, 1 = B ...). */
+  set: number;
+  /** The sheet's title as printed, kept so the record reads without the question bank. */
+  title: string;
+  /**
+   * What was actually printed, frozen. A level sheet is "the Nth block of five approved questions", so a question approved or retired
+   * later could change what (level, set) means; the ids and the answers recorded here do not change.
+   */
+  questionIds: string[] | null;
+  /** The right answers in question order, so a scan of this paper is marked against what was printed. */
+  answerKey: string[];
+  /** The children a copy was printed for, in the order printed. */
+  studentIds: string[];
+  createdAt: string;
+  createdBy: string;
+}
+
 /** One of the curriculum levels, as stored in the `levels` collection. Filled from @fln/curriculum on every start. */
 export interface LevelRow {
   levelNumber: number;
