@@ -107,19 +107,17 @@ interface Question {
   choices?: string[];       // MCQ choices
   topic: string;            // Broad theme (e.g., "Number Sense")
   subtopic: string;         // Specific target skills (e.g., "Addition with carry")
-  difficulty: 'easy' | 'medium' | 'hard'; // observed/derived only — see decision below
+  difficulty?: 'easy' | 'medium' | 'hard'; // deprecated as progression authority; analytical dimension only — see decisions below
+  empirical_item_difficulty?: number;      // calibrated item difficulty metric (V0.1 Stage 8/12)
   source_level: number;     // Math curriculum level origin
   svgAsset?: string;        // Optional visual symbol lookup path
 }
 ```
 
-**Decision on `difficulty` (2026-09-07, issue #324):** repurposed, not deprecated. It conflicted with the locked decision that there are no within-level difficulty tiers — apparent difficulty is supposed to move a question to a different point on the concrete→pictorial→abstract trajectory, not sit as a tag beside it.
-
-That rule governs **authoring**: it's why the question-template intent model (`generationIntent`/`questionFamily`, PR #428/#431) has no `difficulty` input at all — a Superadmin cannot author a "hard" version of a question, only a different concept placement.
-
-The field itself stays, because it is doing real, separate work as an **analytical dimension in misconception diagnosis** (`backend/src/misconceptionFingerprint.ts`) — `performanceByDifficulty` and the `hardOnlyFailure` ratio use per-question difficulty to distinguish a child failing everything from one failing only the harder items within a level. That's an observed classification of the question, not an authored one, and the two are allowed to disagree with the trajectory framing without contradicting it.
-
-**Rule going forward:** `difficulty` must never again be an author-facing field (new authoring surfaces must omit it, as #428/#431 already do). It may continue to be set programmatically — heuristically today (e.g. `levelGenerator.ts:486` assigns it by question index) — and consumed by analysis code. Replacing the index-based heuristic with a real derived measure is separate cleanup, not part of this decision.
+**Decision on `difficulty` (2026-09-07, issue #324; updated 2026-10-12, issue #372):**
+- **Issue #324 (Initial Repurposing):** `difficulty` was removed from question authoring. Apparent difficulty moves an item to a different position along the concrete → pictorial → abstract trajectory, not an author-facing difficulty tier. The question-template intent model (`generationIntent`/`questionFamily`) completely omits difficulty tiers.
+- **Issue #372 (Progression Authority Deprecation & V0.1 Decision Path):** `difficulty` is formally deprecated as a progression gate or pass/fail authority in the V0.1 adaptive decision path. Fixed percentage-by-difficulty pass cutoffs (e.g. 90% easy / 50% medium / 40% hard) must never gate learner progression or concept mastery. Concept mastery and level advancement are driven deterministically by verified concept evidence, question-spec validation, and prerequisite graph traversal.
+- **Analytical & Empirical Role:** The field is retained purely as an **analytical dimension in misconception diagnosis** (`backend/src/misconceptionFingerprint.ts` — `performanceByDifficulty` and `hardOnlyFailure`), distinguishing children who struggle across all items from those failing only harder items within a concept. For empirical calibration in Stage 8/12 pilot hardening, difficulty is modeled as `empirical_item_difficulty` (calibrated post-hoc from student response data via item response statistics or delta-method validation) rather than an a-priori progression tier.
 
 ### 6. `worksheets`
 Assessment packages issued by administrators.
