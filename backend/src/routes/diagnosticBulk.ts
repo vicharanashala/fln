@@ -774,7 +774,7 @@ export function registerDiagnosticBulkRoutes(app: express.Express) {
       user.role === UserRole.TEACHER ? (student.teacherId === user.id || student.schoolId === user.schoolId)
         : user.role === UserRole.SCHOOL ? student.schoolId === user.schoolId
           : user.role === UserRole.VOLUNTEER ? (user.assignedSchools || []).includes(student.schoolId)
-            : canAccessStudent(user, student);
+            : await canAccessStudent(user, student);
 
     if (!mayGenerate) {
       return res.status(403).json({ error: 'You are not authorized to generate diagnostic papers for this student.' });
