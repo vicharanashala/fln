@@ -11,6 +11,7 @@
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
     "test:fingerprint": "tsx src/misconceptionFingerprint.test.ts",
+    "test:misconceptions-compare": "tsx --test tests/misconceptions-compare.test.ts",
     "test:question-template-download": "tsx --test tests/question-template-download.test.ts",
     "test:question-template-import": "tsx --test tests/question-template-import.test.ts",
     "test:observations": "tsx --test tests/observations.test.ts",
@@ -33,6 +34,8 @@
     "test:school-onboarding": "tsx --test tests/school-onboarding.test.ts",
     "test:panel-isolation": "tsx --test tests/panel-isolation.test.cjs",
     "test:assessment-mode": "node tests/question-template-assessment-mode.test.cjs",
+    "test:assessment-mode-config": "tsx --test tests/assessment-mode.test.ts",
+    "test:assessment-mode-routes": "esbuild tests/balvatika-worksheet-routes.test.ts --bundle --platform=node --format=esm --packages=external --alias:bcrypt=./tests/stubs/bcrypt.ts --alias:regenerator-runtime/runtime=regenerator-runtime/runtime.js --outfile=dist/balvatika-worksheet-routes.test.mjs --log-level=warning && node dist/balvatika-worksheet-routes.test.mjs",
     "test:roster-filters": "tsx --test tests/roster-filters-persistence.test.cjs",
     "audit:aadhaar": "tsx scripts/audit-aadhaar-at-rest.ts",
     "test:answer-matching": "tsx src/answerMatching.test.ts",
@@ -54,6 +57,8 @@
     "test:worksheet-layout-rules": "tsx --test tests/worksheet-layout-rules.test.ts",
     "test:observation-sheet": "tsx --test tests/observation-sheet.test.ts",
     "test:observation-sheet-route": "tsx --test tests/observation-sheet-route.test.ts",
+    "test:observation-sheet-with-worksheet": "tsx --test tests/observation-sheet-with-worksheet.test.ts",
+    "test:observation-sheet-qr": "tsx --test tests/observation-sheet-qr.test.ts",
     "test:student-history": "tsx --test tests/student-history.test.ts",
     "test:worksheet-content": "tsx --test tests/worksheet-content.test.ts",
     "test:svg-pdf": "tsx --test tests/svg-pdf.test.ts",
@@ -65,9 +70,15 @@
     "test:skill-evolution": "tsx src/skillEvolution.test.ts",
     "test:skill-evolution-routes": "tsx --test tests/skill-evolution-route.test.ts",
     "test:cert-eoy": "tsx --test tests/certification-end-of-year.test.ts",
+    "test:certification-class-gate": "tsx --test tests/certification-class-gate.test.ts",
     "test:ncf-competencies": "tsx --test tests/ncf-competencies.test.ts",
     "test:icr-cloud-config": "tsx --test tests/icr-cloud-config.test.ts",
-    "test:authorize-before-lock": "tsx --test tests/authorize-before-lock.test.ts"
+    "test:authorize-before-lock": "tsx --test tests/authorize-before-lock.test.ts",
+    "test:bulk-pdf-page-count": "tsx --test tests/bulk-pdf-page-count.test.ts",
+    "seed:balvatika-bank": "tsx src/seedBalvatikaBank.ts",
+    "test:balvatika-bank": "tsx --test tests/seed-balvatika-bank.test.ts",
+    "test:seed-balvatika": "tsx --test tests/seed-balvatika-assessment-mode.test.ts",
+    "test:ocr-response-review": "tsx --test src/services/scanExtraction.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -84,7 +95,8 @@
     "otpauth": "^9.5.1",
     "pdf-lib": "^1.17.1",
     "pngjs": "^5.0.0",
-    "puppeteer": "^25.3.0"
+    "puppeteer": "^25.3.0",
+    "regenerator-runtime": "^0.14.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

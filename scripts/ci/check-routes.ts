@@ -27,6 +27,7 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn, ChildProcess } from 'child_process';
+import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -115,7 +116,8 @@ async function main() {
   let log = '';
   const env: NodeJS.ProcessEnv = { ...process.env, PORT, NODE_ENV: 'development' };
   delete env.MONGODB_URI;
-  const server: ChildProcess = spawn('npx', ['tsx', 'src/index.ts'], { cwd: path.join(ROOT, 'backend'), env, stdio: ['ignore', 'pipe', 'pipe'] });
+  const tsxCli = createRequire(import.meta.url).resolve('tsx/cli');
+  const server: ChildProcess = spawn(process.execPath, [tsxCli, 'src/index.ts'], { cwd: path.join(ROOT, 'backend'), env, stdio: ['ignore', 'pipe', 'pipe'] });
   server.stdout?.on('data', d => { log += d; });
   server.stderr?.on('data', d => { log += d; });
   const cleanup = () => {

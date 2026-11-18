@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { test } from 'node:test';
-import { PDFArray, PDFDocument, decodePDFRawStream } from 'pdf-lib';
+import { PDFArray, PDFDocument, StandardFonts, decodePDFRawStream } from 'pdf-lib';
 import type { PDFRawStream } from 'pdf-lib';
 import {
   CHILD_BLOCKS_PER_PAGE,
@@ -16,7 +16,12 @@ import {
   GRID_STUDENTS_PER_PAGE,
   MATHS_VOCABULARY_LABEL,
   MATHS_VOCABULARY_TEXT,
+  OBSERVATION_STRATEGIES,
+  STRATEGY_CHOICES,
+  STRATEGY_LABELS,
+  layoutStrategyRow,
   listLabel,
+  splitScriptRuns,
   planChildPages,
   planGridPages,
   renderObservationSheet,
@@ -115,20 +120,76 @@ test('per-child PDF: every child has a half page, every concept has its boxes, a
     const all = Array.from({ length: pdf.getPageCount() }, (_, p) => pageStrings(pdf, p)).flat();
     for (const n of [1, 2, 3]) assert.ok(all.includes(`Name: Child ${n}`), `child ${n} has a block`);
     assert.equal(all.filter(t => t === MATHS_VOCABULARY_TEXT).length, 3, 'one vocabulary check per child');
-    assert.equal(all.filter(t => t === 'Noticed and fixed their own mistake').length, 3 * 5, 'a self-correction box for every child and concept');
-    for (const label of ['fingers', 'counters', 'in head', 'written']) {
+    assert.equal(all.filter(t => t === 'Fixed their own mistake').length, 3 * 5, 'a self-correction box for every child and concept');
+    for (const label of ['fingers', 'counters', 'in head', 'written', 'guessed', 'remembered']) {
       assert.equal(all.filter(t => t === label).length, 3 * 5, `the "${label}" choice for every child and concept`);
     }
     assert.equal(all.filter(t => t === 'Proficient (on their own)').length, 3 * 5 + 3, 'rating boxes: every concept plus the vocabulary check');
   } finally { cleanup(); }
 });
 
-test('a Hindi name prints on both layouts without an error', async () => {
+test('the sheet and the API offer the same strategies, and the printed word for "mental" is "in head"', () => {
+  assert.deepEqual([...OBSERVATION_STRATEGIES], ['fingers', 'counters', 'mental', 'written', 'guessed', 'remembered']);
+  assert.deepEqual(STRATEGY_CHOICES, ['fingers', 'counters', 'in head', 'written', 'guessed', 'remembered']);
+  for (const strategy of OBSERVATION_STRATEGIES) assert.ok(STRATEGY_LABELS[strategy], strategy);
+});
+
+test('the six strategy choices fit the per-child row at a readable size, whatever the row starts at', async () => {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const measure = (label: string, size: number) => font.widthOfTextAtSize(label, size);
+  const right = 595.28 - 40;
+  // The row starts where "Fixed their own mistake  How they found it:" ends; try the real start and a worse one.
+  const realStart = 40 + 11 + 5 + font.widthOfTextAtSize('Fixed their own mistake', 8.5) + 16 + font.widthOfTextAtSize('How they found it:', 8.5) + 8;
+  for (const start of [realStart, realStart + 40]) {
+    const row = layoutStrategyRow(measure, start, right);
+    assert.equal(row.items.length, 6);
+    assert.ok(row.endX <= right, `ends at ${row.endX.toFixed(1)}, inside the margin at ${right.toFixed(1)}`);
+    assert.ok(row.size >= 7, `type size ${row.size}`);
+    for (let i = 1; i < row.items.length; i++) assert.ok(row.items[i].x > row.items[i - 1].x, 'choices run left to right without overlapping');
+  }
+  // From the real start the row keeps the full 8 pt used before the two new choices.
+  assert.equal(layoutStrategyRow(measure, realStart, right).size, 8);
+  // A start with no room never goes below 6 pt and never throws.
+  assert.equal(layoutStrategyRow(measure, right - 20, right).size, 6);
+});
+
+test('splitScriptRuns keeps Hindi words together and leaves the Latin text around them', () => {
+  assert.deepEqual(splitScriptRuns('Name: प्रिया कुमारी'), ['Name: ', 'प्रिया कुमारी']);
+  assert.deepEqual(splitScriptRuns('No. 2  प्रिया'), ['No. 2  ', 'प्रिया']);
+  assert.deepEqual(splitScriptRuns('आरव Sharma (D-104)'), ['आरव', ' Sharma (D-104)']);
+  assert.deepEqual(splitScriptRuns('Aarav आरव'), ['Aarav ', 'आरव']);
+  assert.deepEqual(splitScriptRuns('Aarav'), ['Aarav']);
+  assert.deepEqual(splitScriptRuns(''), []);
+  assert.deepEqual(splitScriptRuns('श्रीमती द्रौपदी क्ष्त्र ज्ञान').length, 1, 'conjuncts and spaces stay in one run');
+  assert.equal(splitScriptRuns('a प b ब c').join(''), 'a प b ब c', 'nothing is lost or reordered');
+});
+
+test('a Hindi name prints on both layouts with its Latin label as real letters, not empty boxes (#618)', async () => {
+  const names = ['प्रिया कुमारी', 'Aarav आरव', 'आरव Sharma', 'श्रीमती द्रौपदी क्ष्त्र ज्ञान', 'आ'];
   for (const layout of ['class-grid', 'per-child'] as ObservationLayout[]) {
-    const { pdf, cleanup } = await render(layout, [student(1, 'प्रिया कुमारी'), student(2, 'Aarav')], concepts(2));
+    const { pdf, cleanup } = await render(layout, names.map((n, i) => student(i + 1, n)).concat(student(9, 'Aarav')), concepts(2));
     try {
       assert.ok(pdf.getPageCount() >= 1, layout);
+      const all = Array.from({ length: pdf.getPageCount() }, (_, p) => pageStrings(pdf, p)).flat();
+      if (layout === 'per-child') {
+        // Every child has a "Name:" label in the Latin font (it is in the page as plain letters). Four of the
+        // six names start with Hindi, so for them the label is its own run; "Aarav आरव" and "Aarav" keep it in front of the Latin name.
+        assert.equal(all.filter(t => t.startsWith('Name:')).length, 6, 'a Latin "Name:" label for every child, Hindi or not');
+        assert.equal(all.filter(t => t === 'Name: ').length, 4, 'the label stands alone before a Hindi name');
+      } else {
+        for (const n of [2, 3, 4, 5]) assert.ok(all.some(t => t.startsWith(`No. ${n}`) || t === `No. ${n}  `), `the "No. ${n}" label is plain letters`);
+      }
     } finally { cleanup(); }
+  }
+});
+
+test('a Hindi name that is long, has a child id, or sits in a class of 30 still prints on every layout', async () => {
+  const long = 'श्रीमती द्रौपदी क्ष्त्र ज्ञान '.repeat(4).trim();
+  for (const layout of ['class-grid', 'per-child'] as ObservationLayout[]) {
+    const kids = [student(1, long), { ...student(2, 'आरव'), displayId: 'D-104' }, ...Array.from({ length: 28 }, (_, i) => student(i + 3, i % 2 ? 'प्रिया' : 'Child'))];
+    const { result, pdf, cleanup } = await render(layout, kids, concepts(3));
+    try { assert.equal(pdf.getPageCount(), result.pageCount); } finally { cleanup(); }
   }
 });
 

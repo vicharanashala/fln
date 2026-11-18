@@ -6,6 +6,8 @@ import { IcrTwoStageScan } from './IcrTwoStageScan';
 import { BulkIcrScan, BulkChunkResult, BulkOcrResponse } from './BulkIcrScan';
 import { MAX_FLN_LEVEL } from '../data/skillProgressionMap';
 import { alignExtractedQuestions, questionsLikelyMatch } from '../utils/ocrQuestionMatching';
+import { normalizeBulkChunkResults } from '../utils/bulkChunkResults';
+import { summariseBulkSave } from '../utils/bulkSaveSummary';
 
 interface IcrScannerProps {
   token: string;
@@ -259,12 +261,12 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   const [bulkResults, setBulkResults] = useState<BulkResultItem[] | null>(null);
   const [ocrPreviewData, setOcrPreviewData] = useState<OcrAnalysisData | null>(null);
 
-  // Bulk-class scan mode (separate from the legacy single-sheet flow).
   // The dropdown option in the UI toggles scanMode; pagesPerStudent is
-  // user-controlled so a class-1 paper (1 page) and class-4 paper (2-3
-  // pages) can both be scanned without code changes.
+  // user-controlled so a class-1 paper (1 page) and class-2/3/4 papers
+  // can all be scanned without code changes. Default 3 because the most
+  // common diagnostic paper (Class 4) is 3 pages ("Page n of 3"). (#746)
   const [scanMode, setScanMode] = useState<'single' | 'bulk'>('single');
-  const [pagesPerStudent, setPagesPerStudent] = useState<number>(2);
+  const [pagesPerStudent, setPagesPerStudent] = useState<number>(3);
   // How many questions ONE student's paper has, applied uniformly to every
   // chunk in the bulk batch (a batch is normally one class/level, so every
   // student's paper is the same length). Optional — undefined means no
@@ -850,7 +852,9 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
   // original /api/diagnostic/bulk paper generation, so chunk N = student[N]
   // in the teacher's batch.
   const handleBulkOcrSuccess = (resp: BulkOcrResponse) => {
-    setBulkChunkResults(resp.results || []);
+    // A failed chunk arrives without `answers`; normalise so no later read of
+    // chunk.answers can crash the screen. Failed chunks stay marked FAILED.
+    setBulkChunkResults(normalizeBulkChunkResults(resp.results));
     // Bulk chunks carry no transcribed question text, so drop any left over
     // from a previous single-sheet scan — otherwise the verify table would
     // flag every bulk row against a stale scan's question text.
@@ -865,9 +869,14 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     setSelectedChunkIndex(0);
     setStep('bulk-select');
     const withName = (resp.results || []).filter(r => r.studentName).length;
+    // Include the server's page-count warning (if any) in the success banner
+    // so the teacher sees it immediately without hunting for it. (#746)
+    const warnSuffix = resp.pageCountWarning
+      ? ` ⚠️ ${resp.pageCountWarning}`
+      : '';
     setSuccess(
       `Bulk OCR complete — ${resp.successfulStudents}/${resp.totalStudents} chunks succeeded, ` +
-      `${withName} name(s) extracted from page-1 headers.`
+      `${withName} name(s) extracted from page-1 headers.` + warnSuffix
     );
     setError('');
 
@@ -1082,21 +1091,24 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
     if (!bulkChunkResults) return;
     setSavingAll(true);
     setSaveAllProgress({ done: 0, total: bulkChunkResults.length });
-    let done = 0, failed = 0;
+    let done = 0, saved = 0, notRead = 0, failed = 0;
     for (let idx = 0; idx < bulkChunkResults.length; idx++) {
-      // Skip failed OCR chunks — no answers to save.
-      if (!bulkChunkResults[idx].success) { done++; continue; }
+      // Skip failed OCR chunks — no answers to save. They are counted apart
+      // from saved ones so the summary does not report them as saved.
+      if (!bulkChunkResults[idx].success) { notRead++; done++; continue; }
       const studentId = chunkStudentMap[idx];
       if (!studentId) { failed++; done++; setSaveAllProgress({ done, total: bulkChunkResults.length }); continue; }
       // Lazy-load the answer key if we haven't fetched it yet.
       if (!chunkQuestions[idx]) await ensureChunkQuestions(idx);
       const ok = await saveChunkReport(idx);
-      if (!ok) failed++;
+      if (ok) saved++; else failed++;
       done++;
       setSaveAllProgress({ done, total: bulkChunkResults.length });
     }
     setSavingAll(false);
-    setSuccess(`Saved ${done - failed}/${bulkChunkResults.length} reports (${failed} failed).`);
+    const summary = summariseBulkSave({ total: bulkChunkResults.length, saved, notRead, failed });
+    if (summary.kind === 'success') { setError(''); setSuccess(summary.text); }
+    else { setSuccess(''); setError(summary.text); }
   };
 
   const handleAnswerChange = (qId: string, value: string) => {
@@ -1434,7 +1446,7 @@ export const IcrScanner: React.FC<IcrScannerProps> = ({ token, user, onBack }) =
                   />
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono leading-relaxed">
                     How many pages make up one student's paper in the merged scan PDF.
-                    Default 2 (FLN classes 2-4). Set to 1 for class-1 single-page papers.
+                    Class 4 diagnostics are 3 pages; check the printed "Page n of N" on your paper.
                   </span>
                 </div>
               </div>

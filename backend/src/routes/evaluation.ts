@@ -1,10 +1,11 @@
+import type { ScanQualityResult } from '../scanQuality';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { randomUUID } from 'crypto';
 import { PDFDocument } from 'pdf-lib';
-import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_NAMES, dedupeQuestionsById } from '../db';
+import { dbStore, EvaluationReport, Student, AnswerSubmission, UserRole, CYCLE_NAMES, dedupeQuestionsById, ScanSubmissionPageState, ScanProcessingStage } from '../db';
 import { getAuthUser, canAccessStudent } from '../auth';
 import { evaluateAIWorksheet } from '../gemini';
 import { PYTHON_BIN, AI_SERVICES_DIR } from '../config';
@@ -17,6 +18,12 @@ import { analyzeScanQuality } from '../scanQuality';
 import { calculateStandardAdvancement } from '../gradeLevelCalculator';
 import { computeRootCauseAnalysis } from '../rootCauseAnalysis';
 import { matchesChoiceLetter } from '../answerMatching';
+
+/** Shown to the teacher when a scanned PDF cannot be opened. The technical reason goes to the server log only. */
+const UNREADABLE_PDF_MESSAGE =
+  'This PDF could not be read. Please scan the papers again, or save a new PDF, and upload that one.';
+
+const pagesLabel = (n: number) => `${n} ${n === 1 ? 'page' : 'pages'}`;
 
 export function registerEvaluationRoutes(app: express.Express) {
 
@@ -48,6 +55,23 @@ export function registerEvaluationRoutes(app: express.Express) {
       }
     }
     return _cloudKeyCache[provider] || null;
+  };
+
+  // Issue #366 (opt-in, non-breaking): reflect an OCR attempt onto the
+  // scan_submissions record — but ONLY when the caller supplied a
+  // scanSubmissionId. Requests that omit it (i.e. every pre-existing client)
+  // flow through exactly as before; no scan tracking occurs.
+  const reflectScanSubmission = async (
+    id: unknown,
+    updates: { stage?: ScanProcessingStage; provider?: string; scanQuality?: ScanQualityResult; error?: string; fileName?: string; pageCount?: number; pages?: ScanSubmissionPageState[] }
+  ) => {
+    if (typeof id !== 'string' || !id) return;
+    const existing = await dbStore.getScanSubmissionById(id);
+    if (!existing) return; // id supplied but no record — don't fabricate one
+    // Never write `undefined` values (Mongo $set rejects them): drop them here.
+    const patch: Record<string, unknown> = { ...updates, updatedAt: new Date().toISOString() };
+    for (const key of Object.keys(patch)) if (patch[key] === undefined) delete patch[key];
+    await dbStore.updateScanSubmission(id, patch as Parameters<typeof dbStore.updateScanSubmission>[1]);
   };
 
   // Admin endpoint: configure (or clear) a cloud OCR API key.
@@ -558,7 +582,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { imageDataUrl, fileBase64, provider, expectedCount, proceedDespiteQualityWarning } = req.body || {};
+    const { imageDataUrl, fileBase64, provider, expectedCount, proceedDespiteQualityWarning, scanSubmissionId } = req.body || {};
     const singleDataUrl = imageDataUrl || fileBase64;
     if (!singleDataUrl || typeof singleDataUrl !== 'string') {
       return res.status(400).json({ error: 'imageDataUrl or fileBase64 is required (data URL).' });
@@ -574,6 +598,8 @@ export function registerEvaluationRoutes(app: express.Express) {
     const qualityResult = analyzeScanQuality(imgBuf);
 
     if (qualityResult.status === 'reject') {
+      // Issue #366: only when the caller passed scanSubmissionId.
+      await reflectScanSubmission(scanSubmissionId, { stage: 'failed', provider, scanQuality: qualityResult, error: 'Scan quality check failed: ' + qualityResult.reasons.join('; ') });
       return res.status(400).json({
         error: 'Scan quality check failed: ' + qualityResult.reasons.join('; '),
         qualityResult,
@@ -582,6 +608,7 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
 
     if (qualityResult.status === 'warning' && proceedDespiteQualityWarning !== true) {
+      await reflectScanSubmission(scanSubmissionId, { stage: 'quality_checked', provider, scanQuality: qualityResult, error: 'Scan quality warning: ' + qualityResult.reasons.join('; ') });
       return res.status(422).json({
         error: 'Scan quality warning: ' + qualityResult.reasons.join('; '),
         qualityResult,
@@ -609,6 +636,15 @@ export function registerEvaluationRoutes(app: express.Express) {
     if (r.body && typeof r.body === 'object') {
       r.body.scanQuality = qualityResult;
     }
+    // Issue #366: opt-in scan_submissions tracking. Only when scanSubmissionId
+    // is supplied; pre-existing callers are unchanged.
+    const ocrOk = !!(r.body && typeof r.body === 'object' && r.body.success);
+    await reflectScanSubmission(
+      scanSubmissionId,
+      ocrOk
+        ? { stage: 'extracted', provider, scanQuality: qualityResult }
+        : { stage: 'failed', provider, scanQuality: qualityResult, error: (r.body && typeof r.body === 'object' && r.body.error) || 'Cloud OCR failed' }
+    );
     return res.status(r.status).json(r.body);
   });
 
@@ -764,7 +800,15 @@ export function registerEvaluationRoutes(app: express.Express) {
     const user = getAuthUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { fileDataUrl, imageDataUrl, fileBase64, provider, pagesPerStudent, expectedCount } = req.body || {};
+    const {
+      fileDataUrl,
+      imageDataUrl,
+      fileBase64,
+      provider,
+      pagesPerStudent,
+      expectedCount,
+      scanSubmissionId,
+    } = req.body || {};
     const singleDataUrl = fileDataUrl || imageDataUrl || fileBase64;
     if (!singleDataUrl || typeof singleDataUrl !== 'string') {
       return res.status(400).json({ error: 'fileDataUrl / imageDataUrl / fileBase64 is required (data URL).' });
@@ -773,13 +817,12 @@ export function registerEvaluationRoutes(app: express.Express) {
       return res.status(400).json({ error: 'provider must be "ollama-gemma4".' });
     }
 
-    // Pages-per-student: FLN Class 2-4 papers are 2 pages each. Class 1 is
-    // typically 1 page. Default to 2 so a typical bulk batch (25 students
-    // x 2 pages = 50 pages) splits into 25 chunks that each fit Ollama's
-    // body limit.
+    // Pages-per-student: the frontend sends this value from the teacher's
+    // input. Default to 3 because the most common paper (Class 4 diagnostic)
+    // is 3 pages ("Page n of 3"). Class 1 is typically 1 page. (#746)
     const pps = Number.isFinite(pagesPerStudent) && pagesPerStudent >= 1
       ? Math.min(Math.floor(pagesPerStudent), 20) // hard cap to avoid accidental 1000
-      : 2;
+      : 3;
 
     // Optional: how many questions ONE student's paper has, applied uniformly
     // to every chunk in this batch. A bulk scan is normally one class/level,
@@ -827,9 +870,19 @@ export function registerEvaluationRoutes(app: express.Express) {
     try {
       sourceDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
     } catch (e: any) {
-      return res.status(400).json({ error: 'Could not parse PDF: ' + (e?.message || String(e)) });
+      console.error('[bulk-ocr] could not parse the PDF:', e?.message || String(e));
+      return res.status(400).json({ error: UNREADABLE_PDF_MESSAGE });
     }
-    const totalPages = sourceDoc.getPageCount();
+    // Guard against PDFs with a valid header but a broken/corrupt page tree.
+    // Without this, getPageCount() can throw or loop indefinitely, hanging
+    // the request for minutes (observed: 240 s in the live audit). (#746)
+    let totalPages = 0;
+    try {
+      totalPages = sourceDoc.getPageCount();
+    } catch (e: any) {
+      console.error('[bulk-ocr] could not read the pages of the PDF:', e?.message || String(e));
+      return res.status(400).json({ error: UNREADABLE_PDF_MESSAGE });
+    }
     if (totalPages === 0) {
       return res.status(400).json({ error: 'PDF has no pages.' });
     }
@@ -841,6 +894,14 @@ export function registerEvaluationRoutes(app: express.Express) {
         error: `Too many chunks: ${totalPages} pages / ${pps} pages-per-student = ${expectedChunks}. Max 100. Increase pagesPerStudent or split the file.`,
       });
     }
+
+    // Warn (but don't block) when the total page count doesn't divide evenly
+    // by the chosen pages-per-student. This means the last student gets a
+    // truncated paper — almost always a sign the teacher entered the wrong
+    // pagesPerStudent value rather than a genuinely short last paper. (#746)
+    const pageCountWarning = totalPages % pps !== 0
+      ? `${pagesLabel(totalPages)} ${totalPages === 1 ? 'does' : 'do'} not divide evenly into ${pps}-page papers; the last student gets ${pagesLabel(totalPages % pps)}. Check "Pages Per Student".`
+      : undefined;
 
     const subPdfs: Array<{ chunkIndex: number; pageFrom: number; pageTo: number; pdfBase64: string; pageCount: number }> = [];
     for (let chunkIndex = 0; chunkIndex < expectedChunks; chunkIndex++) {
@@ -958,11 +1019,34 @@ export function registerEvaluationRoutes(app: express.Express) {
     }
 
     const successCount = results.filter((x) => x.success).length;
+
+    // Issue #366: opt-in scan_submissions tracking — only when the caller
+    // passed scanSubmissionId (pre-existing bulk requests are unchanged).
+    if (typeof scanSubmissionId === 'string' && scanSubmissionId) {
+      const pages: ScanSubmissionPageState[] = subPdfs.map((sub, i) => {
+        const ok = !!(results[i] && results[i].success);
+        return {
+          pageNumber: sub.pageFrom,
+          rasterized: true,
+          extractionStatus: ok ? 'done' : 'error',
+          ...(ok ? {} : { error: (results[i] && results[i].error) || 'OCR failed' }),
+        };
+      });
+      await reflectScanSubmission(scanSubmissionId, {
+        stage: successCount > 0 ? 'extracted' : 'failed',
+        provider,
+        pageCount: totalPages,
+        pages,
+        ...(successCount > 0 ? {} : { error: 'All OCR chunks failed' }),
+      });
+    }
+
     return res.json({
       success: true,
       provider,
       totalPages,
       pagesPerStudent: pps,
+      pageCountWarning,         // undefined → omitted from JSON; string → shown to teacher (#746)
       totalStudents: subPdfs.length,
       successfulStudents: successCount,
       failedStudents: subPdfs.length - successCount,
