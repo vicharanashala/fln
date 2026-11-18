@@ -74,6 +74,21 @@ function contract(name: string, make: () => Promise<Repos>) {
       assert.equal(Object.hasOwn(list[0], '_id'), false);
       assert.deepEqual(await repos.attempts.byClass('missing'), []);
     });
+    it('stores printed sheets per class, finds one by id, and returns its children as a copy', async () => {
+      const base = { schoolId: 'A', classId: 'c1', bankLevel: 22, levelNumber: null, set: 0, title: 'Comparison', questionIds: null, answerKey: ['a', 'b', 'c', 'd', 'e'], studentIds: ['s1'], createdBy: 'u1' };
+      const first = await repos.printedSheets.add({ ...base, createdAt: '2026-11-01T10:00:00.000Z' });
+      const ids = ['s1', 's9'];
+      const second = await repos.printedSheets.add({ ...base, studentIds: ids, createdAt: '2026-11-02T10:00:00.000Z' });
+      await repos.printedSheets.add({ ...base, classId: 'c2', createdAt: '2026-11-03T10:00:00.000Z' });
+      ids.push('mutated');
+      assert.match(first.id, /^ps_[A-Za-z0-9]{1,40}$/, 'short enough and plain enough for a QR code');
+      assert.notEqual(first.id, second.id);
+      assert.deepEqual((await repos.printedSheets.byId(second.id))?.studentIds, ['s1', 's9'], 'a later change to the caller\'s list does not change the record');
+      assert.equal(Object.hasOwn((await repos.printedSheets.byId(first.id))!, '_id'), false);
+      assert.deepEqual((await repos.printedSheets.byClass('c1')).map(s => s.id), [second.id, first.id], 'newest first');
+      assert.equal(await repos.printedSheets.byId('ps_nope'), undefined);
+      assert.deepEqual(await repos.printedSheets.byClass('missing'), []);
+    });
   });
 }
 

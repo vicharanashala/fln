@@ -6,6 +6,8 @@ export interface ClassGroup { id: string; className: string; section: string }
 export interface Student { id: string; name: string; classId: string; currentLevel: number }
 /** A topic of the older question bank. bankLevel is the old bank's number, not a level of the 109-level curriculum. */
 export interface Topic { bankLevel: number; title: string; sets: number }
+/** Saved when a worksheet is printed; every child's paper carries a QR code that names it (#904). */
+export interface PrintedSheet { id: string; classId: string; bankLevel: number | null; levelNumber: number | null; set: number; title: string; studentIds: string[]; createdAt: string }
 export interface SheetQuestion { n: number; text: string; svg: string | null; options: string[] }
 export interface Worksheet {
   class: ClassGroup;
