@@ -73,6 +73,7 @@
     "test:certification-class-gate": "tsx --test tests/certification-class-gate.test.ts",
     "test:ncf-competencies": "tsx --test tests/ncf-competencies.test.ts",
     "test:icr-cloud-config": "tsx --test tests/icr-cloud-config.test.ts",
+    "test:authorize-before-lock": "tsx --test tests/authorize-before-lock.test.ts",
     "test:bulk-pdf-page-count": "tsx --test tests/bulk-pdf-page-count.test.ts",
     "seed:balvatika-bank": "tsx src/seedBalvatikaBank.ts",
     "test:balvatika-bank": "tsx --test tests/seed-balvatika-bank.test.ts",
