@@ -13,6 +13,8 @@ export interface Worksheet {
   class: ClassGroup;
   sheet: { bankLevel: number | null; levelNumber: number | null; title: string; set: number; questions: SheetQuestion[] };
   answerKey: string[];
+  /** One entry per question, in the same order as `answerKey`; null when there is no note. For the teacher's sheet only. */
+  teacherNotes: (string | null)[];
   students: Student[];
 }
 export interface Attempt {

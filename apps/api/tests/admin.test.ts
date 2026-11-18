@@ -172,6 +172,26 @@ describe('tagging questions with skills', () => {
   });
 });
 
+describe('the teacher sheet', () => {
+  it('carries each question\'s note next to its answer and never puts a note on the child\'s paper', async () => {
+    const s = await login('super@fln.test'), t = await login('t1@fln.test');
+    const notes = [null, 'Ask again with a prompt before you decide.', null, 'Note how the child finds the total.', null];
+    for (let i = 0; i < 5; i++) {
+      const r = await call('/api/levels/27/questions', { method: 'POST', token: s, body: tagged(27, { prompt: `Q${i + 1}`, answer: String(i + 1), options: [String(i + 1), '99'], ...(notes[i] ? { teacherNote: notes[i] } : {}) }) });
+      await call(`/api/questions/${r.json.question.id}`, { method: 'PATCH', token: s, body: { status: 'approved' } });
+    }
+    const sheet = await call('/api/classes/cBal/worksheet?levelNumber=27&set=0', { token: t });
+    assert.equal(sheet.status, 200);
+    assert.deepEqual(sheet.json.teacherNotes, notes, 'one entry per question, in the order of the answers');
+    assert.equal(sheet.json.teacherNotes.length, sheet.json.answerKey.length);
+    const paper = JSON.stringify(sheet.json.sheet);
+    assert.ok(!paper.includes('Ask again') && !paper.includes('Note how') && !Object.hasOwn(sheet.json.sheet.questions[1], 'teacherNote'), 'nothing of a note is in what the child\'s paper is drawn from');
+    const old = await call('/api/classes/cBal/worksheet?bankLevel=22&set=0', { token: t });
+    assert.deepEqual(old.json.teacherNotes, [null, null, null, null, null], 'the older bank has no notes');
+    assert.equal(old.json.teacherNotes.length, old.json.answerKey.length);
+  });
+});
+
 describe('what teachers see', () => {
   it('only approved questions count for a teacher, and a worksheet needs five approved written ones', async () => {
     const s = await login('super@fln.test'), t = await login('t1@fln.test');

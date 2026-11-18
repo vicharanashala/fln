@@ -66,3 +66,6 @@ details { margin: 8px 0; } summary { cursor: pointer; font-weight: 600; }
 .check { display: flex; gap: 8px; align-items: center; font-weight: 400; margin: 3px 0; } .check input { width: auto; margin: 0; }
 
 .textsize { display: flex; gap: 4px; margin-left: auto; } .textsize + .who { margin-left: 8px; } .textsize button { min-width: 36px; height: 32px; border: 2px solid var(--line); background: #fff; border-radius: 8px; font-weight: 700; color: var(--brown); cursor: pointer; }
+
+/* The teacher sheet (printed apart from the children's papers) shows a note under an answer. */
+.paper.key .teacher-note { margin: 2px 0 8px; font-size: 0.9em; color: #111; }

@@ -29,7 +29,7 @@ export function worksheetRoutes(repos: Repos, sheets: SheetService, limits: Work
     res.json({
       class: cls,
       sheet: { bankLevel: sheet.bankLevel, levelNumber: sheet.levelNumber, title: sheet.title, set: sheet.set, questions: sheet.questions },
-      answerKey: sheet.answers, students,
+      answerKey: sheet.answers, teacherNotes: sheet.notes, students,
     });
   }));
 

@@ -12,6 +12,8 @@ export interface ResolvedSheet {
   set: number;
   questions: SheetQuestion[];
   answers: string[];
+  /** What the teacher is told about each question, in the same order as `answers`; null where there is nothing to say. Printed on the teacher's own sheet, never on the child's paper. */
+  notes: (string | null)[];
   /** The approved questions this sheet was made from (curriculum level sheets). Null for the older bank, which does not change. */
   questionIds: string[] | null;
 }
@@ -40,12 +42,12 @@ export function createSheetService(repos: Repos, bank: QuestionBank): SheetServi
         return {
           bankLevel: null, levelNumber: printed.levelNumber, title: printed.title, set: printed.set,
           questions: found.map((q, i) => ({ n: i + 1, text: q!.prompt, svg: q!.svg, options: q!.options })),
-          answers: [...printed.answerKey], questionIds: [...printed.questionIds],
+          answers: [...printed.answerKey], notes: found.map(q => q!.teacherNote), questionIds: [...printed.questionIds],
         };
       }
       const sheet = printed.bankLevel === null ? undefined : bank.sheet(printed.bankLevel, printed.set);
       if (!sheet || sheet.questions.length !== printed.answerKey.length) throw new HttpError(409, 'This printed sheet can no longer be rebuilt. Please mark it by hand.');
-      return { bankLevel: printed.bankLevel, levelNumber: null, title: printed.title, set: printed.set, questions: sheet.questions, answers: [...printed.answerKey], questionIds: null };
+      return { bankLevel: printed.bankLevel, levelNumber: null, title: printed.title, set: printed.set, questions: sheet.questions, answers: [...printed.answerKey], notes: printed.answerKey.map(() => null), questionIds: null };
     },
     async resolve(body) {
       const set = body.set ?? 0;
@@ -65,13 +67,14 @@ export function createSheetService(repos: Repos, bank: QuestionBank): SheetServi
           bankLevel: null, levelNumber: level.levelNumber, title: level.title, set: setNo,
           questions: picked.map((q, i) => ({ n: i + 1, text: q.prompt, svg: q.svg, options: q.options })),
           answers: picked.map(q => q.answer),
+          notes: picked.map(q => q.teacherNote),
           questionIds: picked.map(q => q.id),
         };
       }
       if (!Number.isInteger(body.bankLevel)) throw new HttpError(400, 'bankLevel must be a whole number.');
       const sheet = bank.sheet(body.bankLevel as number, setNo);
       if (!sheet) throw new HttpError(404, 'There is no worksheet for that topic yet.');
-      return { bankLevel: sheet.bankLevel, levelNumber: null, title: sheet.title, set: sheet.set, questions: sheet.questions, answers: sheet.answers, questionIds: null };
+      return { bankLevel: sheet.bankLevel, levelNumber: null, title: sheet.title, set: sheet.set, questions: sheet.questions, answers: sheet.answers, notes: sheet.answers.map(() => null), questionIds: null };
     },
   };
 }
