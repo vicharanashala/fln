@@ -59,6 +59,8 @@ export interface Attempt {
   score: number;
   band: 'Emerging' | 'Developing' | 'Secure';
   source: 'marks' | 'typed' | 'scan';
+  /** Set when the paper was one of a saved print (#904): it was marked against that print's frozen answer key. */
+  printedSheetId?: string;
   createdAt: string;
   recordedBy: string;
 }

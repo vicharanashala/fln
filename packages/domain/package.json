@@ -6,13 +6,15 @@
   "main": "src/index.ts",
   "scripts": {
     "typecheck": "tsc -p .",
-    "test": "tsx src/answerMatching.test.ts && tsx src/errorClassification.test.ts && tsx src/paperLock.test.ts && tsx src/scanQuality.test.ts && tsx src/bands.test.ts && tsx src/printedSheet.test.ts"
+    "test": "tsx src/answerMatching.test.ts && tsx src/errorClassification.test.ts && tsx src/paperLock.test.ts && tsx src/scanQuality.test.ts && tsx src/bands.test.ts && tsx src/printedSheet.test.ts && tsx src/qrRead.test.ts"
   },
   "dependencies": {
     "jpeg-js": "^0.4.4",
+    "jsqr": "^1.4.0",
     "pngjs": "^5.0.0"
   },
   "devDependencies": {
-    "@types/pngjs": "^6.0.5"
+    "@types/pngjs": "^6.0.5",
+    "qrcode-generator": "^2.0.4"
   }
 }
