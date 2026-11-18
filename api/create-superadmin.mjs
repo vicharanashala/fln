@@ -34711,6 +34711,7 @@ function createMongoStore(db, close = async () => {
   const classes = db.collection("classes");
   const students = db.collection("students");
   const attempts = db.collection("attempts");
+  const printedSheets = db.collection("printedSheets");
   const levels = db.collection("levels");
   const questions = db.collection("questions");
   const repos = {
@@ -34831,6 +34832,20 @@ function createMongoStore(db, close = async () => {
       async byClass(classId) {
         return (await attempts.find({ classId }).sort({ createdAt: -1 }).toArray()).map((d) => fromDoc(d));
       }
+    },
+    printedSheets: {
+      async add(sheet) {
+        const created = { ...sheet, studentIds: [...sheet.studentIds], id: `ps_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}` };
+        await printedSheets.insertOne(toDoc(created));
+        return created;
+      },
+      async byId(id) {
+        const doc = await printedSheets.findOne({ _id: id });
+        return doc ? fromDoc(doc) : void 0;
+      },
+      async byClass(classId) {
+        return (await printedSheets.find({ classId }).sort({ createdAt: -1 }).toArray()).map((d) => fromDoc(d));
+      }
     }
   };
   return {
@@ -34841,6 +34856,7 @@ function createMongoStore(db, close = async () => {
       if (data.classes?.length) await classes.insertMany(data.classes.map(toDoc));
       if (data.students?.length) await students.insertMany(data.students.map(toDoc));
       if (data.attempts?.length) await attempts.insertMany(data.attempts.map(toDoc));
+      if (data.printedSheets?.length) await printedSheets.insertMany(data.printedSheets.map(toDoc));
       if (data.questions?.length) await questions.insertMany(data.questions.map(toDoc));
     },
     async syncLevels() {
@@ -34855,6 +34871,7 @@ function createMongoStore(db, close = async () => {
       await classes.createIndex({ schoolId: 1 });
       await students.createIndex({ classId: 1 });
       await attempts.createIndex({ classId: 1, createdAt: -1 });
+      await printedSheets.createIndex({ classId: 1, createdAt: -1 });
       await levels.createIndex({ levelNumber: 1 }, { unique: true });
       await questions.createIndex({ levelNumber: 1, status: 1 });
     },
