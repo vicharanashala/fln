@@ -76272,17 +76272,17 @@ function parsePrintedSheetQr(decoded) {
 var import_jsqr = __toESM(require_jsQR(), 1);
 var import_jpeg_js2 = __toESM(require_jpeg_js(), 1);
 var import_pngjs2 = __toESM(require_png(), 1);
-var MAX_PIXELS = 6e7;
+var MAX_PIXELS = 13e6;
 function decode2(image) {
   try {
     if (image.length > 4 && image[0] === 137 && image[1] === 80) {
       const png = import_pngjs2.PNG.sync.read(image, { skipRescale: true });
       if (png.width * png.height > MAX_PIXELS) return null;
-      return { width: png.width, height: png.height, data: new Uint8ClampedArray(png.data) };
+      return { width: png.width, height: png.height, data: new Uint8ClampedArray(png.data.buffer, png.data.byteOffset, png.data.byteLength) };
     }
     if (image.length > 3 && image[0] === 255 && image[1] === 216) {
-      const jpg = import_jpeg_js2.default.decode(image, { useTArray: true, maxMemoryUsageInMB: 512, maxResolutionInMP: 60 });
-      return { width: jpg.width, height: jpg.height, data: new Uint8ClampedArray(jpg.data) };
+      const jpg = import_jpeg_js2.default.decode(image, { useTArray: true, maxMemoryUsageInMB: 288, maxResolutionInMP: MAX_PIXELS / 1e6 });
+      return { width: jpg.width, height: jpg.height, data: new Uint8ClampedArray(jpg.data.buffer, jpg.data.byteOffset, jpg.data.byteLength) };
     }
   } catch {
   }
@@ -79841,7 +79841,7 @@ if (config.ollama) {
 }
 var qrWorker = createQrWorker(defaultQrWorkerOptions());
 process.once("SIGTERM", () => {
-  void qrWorker.close();
+  void qrWorker.close().finally(() => process.exit(0));
 });
 createApp({
   repos,
