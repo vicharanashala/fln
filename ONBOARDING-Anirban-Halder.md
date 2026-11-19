@@ -5,7 +5,6 @@
 Foundational Literacy and Numeracy (FLN) is an open-source platform for teachers and students. It helps teachers create questions and worksheets at a student's current level, assess results, identify concept-level learning gaps, and provide constructive feedback and improvement areas instead of focusing only on marks.
 
 ## 2. What do you understand by FLN (as a system)?
-
 FLN is a coordinated educational system with several connected roles and workflows:
 
 1. Students are identified and enrolled by the platform, take assessments at their academic level, and receive constructive analysis and suggested improvement areas.
