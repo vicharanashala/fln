@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Calculator</title>
+<desc>Line drawing of a calculator with a display showing 123 and buttons for numbers and plus, minus, times, divide and equals.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="116" y="36" width="280" height="440" rx="30"/>
+<rect x="146" y="70" width="220" height="90" rx="10"/>
+<path d="M4 8 L14 0 V40" transform="translate(254.6 93.0) scale(1.1)" fill="none" stroke-width="5.5"/>
+<path d="M2 8 C4 -2 26 -2 26 10 C26 22 2 30 2 40 H28" transform="translate(288.6 93.0) scale(1.1)" fill="none" stroke-width="5.5"/>
+<path d="M2 4 C12 -4 28 4 16 18 C32 20 28 44 2 36" transform="translate(322.6 93.0) scale(1.1)" fill="none" stroke-width="5.5"/>
+<rect x="146" y="190" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M0 0 H28 L10 40" transform="translate(160.3 204.6) scale(0.62)" fill="none" stroke-width="6.5"/>
+<rect x="204" y="190" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M14 0 C26 0 26 18 14 18 C2 18 2 0 14 0 Z M14 18 C28 18 28 40 14 40 C0 40 0 18 14 18 Z" transform="translate(218.3 204.6) scale(0.62)" fill="none" stroke-width="6.5"/>
+<rect x="262" y="190" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M28 16 C26 22 20 26 14 26 C6 26 0 20 0 13 C0 6 6 0 14 0 C22 0 28 6 28 16 C28 30 22 40 6 40" transform="translate(276.3 204.6) scale(0.62)" fill="none" stroke-width="6.5"/>
+<rect x="320" y="190" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M332 217 H354" fill="none" stroke-width="5"/><circle cx="343" cy="207" r="3.5" fill="#1A1A1A" stroke-width="2"/><circle cx="343" cy="227" r="3.5" fill="#1A1A1A" stroke-width="2"/>
+<rect x="146" y="260" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M20 40 V0 L0 28 H28" transform="translate(160.3 274.6) scale(0.62)" fill="none" stroke-width="6.5"/>
+<rect x="204" y="260" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M26 0 H4 L2 18 C14 12 28 18 26 28 C24 40 8 42 0 36" transform="translate(218.3 274.6) scale(0.62)" fill="none" stroke-width="6.5"/>
+<rect x="262" y="260" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M24 2 C10 -2 0 10 0 24 C0 36 8 40 14 40 C22 40 28 34 28 26 C28 18 22 14 14 14 C8 14 2 18 0 24" transform="translate(276.3 274.6) scale(0.62)" fill="none" stroke-width="6.5"/>
+<rect x="320" y="260" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M334 278 L352 296 M352 278 L334 296" fill="none" stroke-width="5"/>
+<rect x="146" y="330" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M4 8 L14 0 V40" transform="translate(160.3 344.6) scale(0.62)" fill="none" stroke-width="6.5"/>
+<rect x="204" y="330" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M2 8 C4 -2 26 -2 26 10 C26 22 2 30 2 40 H28" transform="translate(218.3 344.6) scale(0.62)" fill="none" stroke-width="6.5"/>
+<rect x="262" y="330" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M2 4 C12 -4 28 4 16 18 C32 20 28 44 2 36" transform="translate(276.3 344.6) scale(0.62)" fill="none" stroke-width="6.5"/>
+<rect x="320" y="330" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M332 357 H354" fill="none" stroke-width="5"/>
+<rect x="146" y="400" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M14 0 C26 0 28 14 28 20 C28 26 26 40 14 40 C2 40 0 26 0 20 C0 14 2 0 14 0 Z" transform="translate(160.3 414.6) scale(0.62)" fill="none" stroke-width="6.5"/>
+<rect x="204" y="400" width="46" height="54" rx="10" stroke-width="5"/>
+<circle cx="227" cy="435" r="4" fill="#1A1A1A" stroke-width="2"/>
+<rect x="262" y="400" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M274 421 H296 M274 433 H296" fill="none" stroke-width="5"/>
+<rect x="320" y="400" width="46" height="54" rx="10" stroke-width="5"/>
+<path d="M332 427 H354 M343 416 V438" fill="none" stroke-width="5"/>
+</g>
+</svg>

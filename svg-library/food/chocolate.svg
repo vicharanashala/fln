@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Chocolate</title>
+<desc>Line drawing of a chocolate bar with its wrapper torn open, showing the square pieces, and one piece broken off.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-12 256 256)">
+<rect x="146" y="44" width="220" height="430" rx="12"/>
+<rect x="160" y="58" width="56" height="56" rx="6" stroke-width="5"/>
+<path d="M168 104 V66 H208" fill="none" stroke-width="3"/>
+<rect x="228" y="58" width="56" height="56" rx="6" stroke-width="5"/>
+<path d="M236 104 V66 H276" fill="none" stroke-width="3"/>
+<rect x="296" y="58" width="56" height="56" rx="6" stroke-width="5"/>
+<path d="M304 104 V66 H344" fill="none" stroke-width="3"/>
+<rect x="160" y="126" width="56" height="56" rx="6" stroke-width="5"/>
+<path d="M168 172 V134 H208" fill="none" stroke-width="3"/>
+<rect x="228" y="126" width="56" height="56" rx="6" stroke-width="5"/>
+<path d="M236 172 V134 H276" fill="none" stroke-width="3"/>
+<rect x="296" y="126" width="56" height="56" rx="6" stroke-width="5"/>
+<path d="M304 172 V134 H344" fill="none" stroke-width="3"/>
+<rect x="160" y="194" width="56" height="56" rx="6" stroke-width="5"/>
+<path d="M168 240 V202 H208" fill="none" stroke-width="3"/>
+<rect x="228" y="194" width="56" height="56" rx="6" stroke-width="5"/>
+<path d="M236 240 V202 H276" fill="none" stroke-width="3"/>
+<rect x="296" y="194" width="56" height="56" rx="6" stroke-width="5"/>
+<path d="M304 240 V202 H344" fill="none" stroke-width="3"/>
+<path d="M140 270 L166 284 L186 270 L206 284 L226 270 L246 284 L266 270 L286 284 L306 270 L326 284 L346 270 L366 284 L372 270 V480 C372 488 366 492 358 492 H154 C146 492 140 488 140 480 Z"/>
+<path d="M170 330 H342 M170 440 H342" fill="none" stroke-width="5"/>
+<path d="M200 360 H312 V410 H200 Z" stroke-width="5"/>
+</g>
+<g transform="rotate(16 420 420)"><rect x="384" y="384" width="66" height="66" rx="8"/><rect x="396" y="396" width="42" height="42" rx="5" stroke-width="4"/></g>
+</g>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Refrigerator</title>
+<desc>Line drawing of a tall refrigerator with a freezer door on top, long handles, little feet and a note stuck on with a magnet.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="140" y="28" width="232" height="440" rx="24"/>
+<path d="M140 176 H372" fill="none" stroke-width="7"/>
+<rect x="164" y="62" width="16" height="86" rx="8"/>
+<rect x="164" y="204" width="16" height="140" rx="8"/>
+<rect x="160" y="468" width="30" height="16" rx="4"/><rect x="322" y="468" width="30" height="16" rx="4"/>
+<g transform="rotate(6 300 270)"><rect x="248" y="220" width="100" height="120" rx="4" stroke-width="5"/><path d="M264 262 H332 M264 284 H332 M264 306 H316" fill="none" stroke-width="3.5"/></g>
+<path d="M296 216 C290 204 274 206 274 220 C274 232 296 244 296 244 C296 244 318 232 318 220 C318 206 302 204 296 216 Z" stroke-width="5"/>
+<circle cx="320" cy="100" r="14" stroke-width="5"/>
+<path d="M352 60 C356 80 356 120 352 150" fill="none" stroke-width="4"/>
+</g>
+</svg>

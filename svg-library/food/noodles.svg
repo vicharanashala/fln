@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Noodles</title>
+<desc>Line drawing of a bowl of noodles with chopsticks lifting some noodles, and steam rising.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M190 120 C176 96 204 84 190 60 M256 110 C242 86 270 74 256 48" fill="none" stroke-width="5"/>
+<g transform="rotate(-24 320 180)"><rect x="250" y="160" width="250" height="14" rx="7"/><rect x="250" y="186" width="250" height="14" rx="7"/></g>
+<path d="M300 176 C292 220 306 260 296 300 M312 182 C316 220 300 260 312 300 M286 190 C276 230 292 268 280 300" fill="none" stroke-width="5"/>
+<path d="M60 290 C70 400 160 450 256 450 C352 450 442 400 452 290 Z"/>
+<path d="M200 448 L190 480 H322 L312 448" />
+<ellipse cx="256" cy="290" rx="196" ry="40"/>
+<path d="M90 292 C110 272 130 312 150 292 C170 272 190 312 210 292 C230 272 250 312 270 292 C290 272 310 312 330 292 C350 272 370 312 390 292 C406 278 420 296 430 290" fill="none" stroke-width="5"/>
+<path d="M110 304 C130 286 150 318 170 302 C190 286 210 318 230 302 M300 306 C320 288 340 318 360 302 C380 288 400 314 414 300" fill="none" stroke-width="4"/>
+<path d="M90 350 C140 370 372 370 422 350 M110 390 C160 410 352 410 402 390" fill="none" stroke-width="4"/>
+</g>
+</svg>

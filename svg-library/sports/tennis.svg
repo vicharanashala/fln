@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Tennis</title>
+<desc>Line drawing of a tennis racket with a criss-cross string net and a taped grip, next to a tennis ball with its curved seam.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<defs><clipPath id="rk"><ellipse cx="200" cy="180" rx="90" ry="118" transform="rotate(-35 200 180)"/></clipPath></defs>
+<g transform="rotate(-35 200 180)"><path d="M190 316 L200 300 L210 316 V340 H190 Z"/><path d="M176 300 C186 320 190 340 190 350 M224 300 C214 320 210 340 210 350" fill="none" stroke-width="7"/><rect x="186" y="344" width="28" height="150" rx="8"/><path d="M186 372 L214 360 M186 388 L214 376 M186 404 L214 392 M186 420 L214 408 M186 436 L214 424 M186 452 L214 440 M186 468 L214 456 M186 484 L214 472" fill="none" stroke-width="3.5"/></g>
+<ellipse cx="200" cy="180" rx="110" ry="138" transform="rotate(-35 200 180)"/>
+<ellipse cx="200" cy="180" rx="90" ry="118" transform="rotate(-35 200 180)" stroke-width="5"/>
+<g clip-path="url(#rk)" transform="rotate(-35 200 180)"><path d="M110 40 V320 M128 40 V320 M146 40 V320 M164 40 V320 M182 40 V320 M200 40 V320 M218 40 V320 M236 40 V320 M254 40 V320 M272 40 V320 M290 40 V320 M90 60 H310 M90 78 H310 M90 96 H310 M90 114 H310 M90 132 H310 M90 150 H310 M90 168 H310 M90 186 H310 M90 204 H310 M90 222 H310 M90 240 H310 M90 258 H310 M90 276 H310 M90 294 H310 M90 312 H310" fill="none" stroke-width="2.5"/></g>
+<circle cx="384" cy="392" r="62"/>
+<path d="M330 360 C370 372 384 410 370 450 M438 340 C400 360 392 400 410 440" fill="none" stroke-width="5"/>
+<path d="M300 460 H330 M290 440 H316" fill="none" stroke-width="5"/>
+</g>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Balance scale</title>
+<desc>Line drawing of a balance scale tipped to one side: the pan with the big ball is heavier and lower than the pan with the small ball.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M150 470 C150 446 196 436 256 436 C316 436 362 446 362 470 Z"/>
+<rect x="244" y="120" width="24" height="320" rx="6"/>
+<g transform="rotate(-10 256 116)"><rect x="100" y="106" width="312" height="20" rx="8"/></g>
+<path d="M256 96 L236 132 H276 Z"/><circle cx="256" cy="116" r="8" stroke-width="4"/>
+<path d="M108 142 L48 302 M108 142 L168 302 M108 142 L108 302" fill="none" stroke-width="3.5"/>
+<circle cx="108" cy="142" r="8"/>
+<circle cx="108" cy="258" r="46"/>
+<path d="M84 232 C98 218 118 218 132 232 M68 272 C94 286 122 286 148 272" fill="none" stroke-width="4"/>
+<path d="M34 302 C44 342 172 342 182 302 Z"/>
+<path d="M404 90 L344 250 M404 90 L464 250 M404 90 L404 250" fill="none" stroke-width="3.5"/>
+<circle cx="404" cy="90" r="8"/>
+<circle cx="404" cy="234" r="18"/>
+<path d="M330 250 C340 290 468 290 478 250 Z"/>
+</g>
+</svg>

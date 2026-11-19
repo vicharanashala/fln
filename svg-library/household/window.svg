@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Window</title>
+<desc>Line drawing of a window with four glass panes, curtains tied back on both sides and a flower pot on the sill.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M80 52 H432" fill="none" stroke-width="8"/>
+<circle cx="74" cy="52" r="12"/><circle cx="438" cy="52" r="12"/>
+<rect x="120" y="76" width="272" height="314" rx="4"/>
+<rect x="138" y="94" width="236" height="278" stroke-width="5"/>
+<path d="M256 94 V372 M138 220 H374" fill="none" stroke-width="8"/>
+<path d="M160 120 l30 -16 M166 150 l50 -28 M282 250 l40 -22" fill="none" stroke-width="4"/>
+<path d="M96 52 H180 C170 120 168 180 150 240 C170 300 190 360 196 420 H90 C96 360 100 300 112 240 C100 180 96 120 96 52 Z"/>
+<path d="M416 52 H332 C342 120 344 180 362 240 C342 300 322 360 316 420 H422 C416 360 412 300 400 240 C412 180 416 120 416 52 Z"/>
+<path d="M120 60 C124 120 128 180 128 236 M148 60 C150 120 146 180 140 236 M392 60 C388 120 384 180 384 236 M364 60 C362 120 366 180 372 236" fill="none" stroke-width="3.5"/>
+<path d="M126 250 C122 310 118 360 116 416 M168 250 C174 310 180 360 182 416 M386 250 C390 310 394 360 396 416 M344 250 C338 310 332 360 330 416" fill="none" stroke-width="3.5"/>
+<rect x="104" y="232" width="56" height="16" rx="6"/><rect x="352" y="232" width="56" height="16" rx="6"/>
+<rect x="84" y="388" width="344" height="24" rx="6"/>
+<path d="M256 330 C250 300 262 280 276 270" fill="none" stroke-width="5"/>
+<path d="M282.0 244.0 A10.7 10.7 0 0 1 299.3 253.0 A9.9 9.9 0 0 1 299.3 271.0 A10.7 10.7 0 0 1 282.0 280.0 A10.7 10.7 0 0 1 264.7 271.0 A9.9 9.9 0 0 1 264.7 253.0 A10.7 10.7 0 0 1 282.0 244.0 Z"/><circle cx="282" cy="262" r="5" fill="#1A1A1A" stroke-width="2"/>
+<path d="M236 344 H284 L278 388 H242 Z"/><rect x="230" y="330" width="60" height="16" rx="4"/>
+</g>
+</svg>
