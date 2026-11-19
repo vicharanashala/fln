@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Sweater</title>
+<desc>Line drawing of a knitted sweater with long sleeves, ribbed cuffs, a ribbed collar and hem, and a zig-zag knit pattern.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M190 80 L112 108 C86 118 70 136 64 166 L30 380 L86 388 L116 214 V440 H396 V214 L426 388 L482 380 L448 166 C442 136 426 118 400 108 L322 80 C302 106 210 106 190 80 Z"/>
+<path d="M30 380 L86 388 L82 428 L24 420 Z"/><path d="M482 380 L426 388 L430 428 L488 420 Z"/>
+<path d="M42 384 l-4 36 M56 386 l-4 36 M70 388 l-4 36 M470 384 l4 36 M456 386 l4 36 M442 388 l4 36" fill="none" stroke-width="3.5"/>
+<rect x="116" y="412" width="280" height="40" rx="6"/>
+<path d="M132 416 V448 M148 416 V448 M164 416 V448 M180 416 V448 M196 416 V448 M212 416 V448 M228 416 V448 M244 416 V448 M260 416 V448 M276 416 V448 M292 416 V448 M308 416 V448 M324 416 V448 M340 416 V448 M356 416 V448 M372 416 V448 M388 416 V448" fill="none" stroke-width="3.5"/>
+<path d="M190 80 C210 106 302 106 322 80 C312 128 200 128 190 80 Z"/>
+<path d="M206 96 l2 10 M226 104 l0 12 M256 106 v14 M286 104 l0 12 M306 96 l-2 10" fill="none" stroke-width="3.5"/>
+<path d="M116 210 L140 232 L164 210 L188 232 L212 210 L236 232 L260 210 L284 232 L308 210 L332 232 L356 210 L380 232 L396 218" fill="none" stroke-width="5"/>
+<path d="M116 250 L140 272 L164 250 L188 272 L212 250 L236 272 L260 250 L284 272 L308 250 L332 272 L356 250 L380 272 L396 258" fill="none" stroke-width="5"/>
+<path d="M152 320 l1 1 M200 340 l1 1 M256 320 l1 1 M312 340 l1 1 M360 320 l1 1 M176 376 l1 1 M232 376 l1 1 M288 376 l1 1 M340 376 l1 1" fill="none" stroke-width="7"/>
+</g>
+</svg>

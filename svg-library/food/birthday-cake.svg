@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Birthday cake</title>
+<desc>Line drawing of a round birthday cake with dripping icing, little hearts and three lit candles, on a plate.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="256" cy="440" rx="214" ry="42"/>
+<ellipse cx="256" cy="436" rx="180" ry="28" stroke-width="4"/>
+<path d="M96 220 V396 C96 426 168 446 256 446 C344 446 416 426 416 396 V220 Z"/>
+<path d="M96 220 L96 236.1 L100 245.2 L104 249.7 L108 254.8 L112 262.2 L116 272.3 L120 283.6 L124 291.7 L128 293.1 L132 287.8 L136 279.4 L140 272.3 L144 268.2 L148 266.7 L152 266.8 L156 267.6 L160 269.2 L164 272.3 L168 278.1 L172 287.0 L176 297.1 L180 304.3 L184 304.8 L188 298.7 L192 289.6 L196 281.8 L200 277.1 L204 275.0 L208 274.6 L212 275.1 L216 276.9 L220 280.7 L224 287.7 L228 297.2 L232 306.0 L236 309.7 L240 306.2 L244 297.7 L248 288.5 L252 281.7 L256 278.1 L260 276.7 L264 276.4 L268 277.1 L272 279.4 L276 284.4 L280 292.5 L284 301.9 L288 308.3 L292 308.0 L296 301.2 L300 291.4 L304 282.9 L308 277.4 L312 274.7 L316 273.5 L320 273.0 L324 273.4 L328 275.3 L332 279.9 L336 287.6 L340 296.5 L344 302.5 L348 301.8 L352 294.5 L356 284.2 L360 275.1 L364 269.1 L368 265.9 L372 264.5 L376 264.6 L380 267.0 L384 272.5 L388 280.4 L392 287.5 L396 289.4 L400 283.9 L404 273.0 L408 261.0 L412 250.6 L416 238.1 L416 220 Z"/>
+<ellipse cx="256" cy="220" rx="160" ry="40"/>
+<path d="M100 372 C150 400 362 400 412 372" fill="none" stroke-width="5"/>
+<path d="M140 350 l-8 -10 a6 6 0 0 1 8 -4 a6 6 0 0 1 8 4 Z" stroke-width="3"/><path d="M200 362 l-8 -10 a6 6 0 0 1 8 -4 a6 6 0 0 1 8 4 Z" stroke-width="3"/><path d="M256 366 l-8 -10 a6 6 0 0 1 8 -4 a6 6 0 0 1 8 4 Z" stroke-width="3"/><path d="M312 362 l-8 -10 a6 6 0 0 1 8 -4 a6 6 0 0 1 8 4 Z" stroke-width="3"/><path d="M372 350 l-8 -10 a6 6 0 0 1 8 -4 a6 6 0 0 1 8 4 Z" stroke-width="3"/>
+<rect x="187" y="130" width="18" height="84" rx="4"/>
+<path d="M187 150 l18 -10 M187 174 l18 -10 M187 198 l18 -10" fill="none" stroke-width="3"/>
+<path d="M196 130 v-10" fill="none" stroke-width="3"/>
+<path d="M196 78 C188 94 180 104 180 112 C180 122 188 126 196 126 C204 126 212 122 212 112 C212 104 204 94 196 78 Z" stroke-width="5"/>
+<rect x="247" y="134" width="18" height="84" rx="4"/>
+<path d="M247 154 l18 -10 M247 178 l18 -10 M247 202 l18 -10" fill="none" stroke-width="3"/>
+<path d="M256 134 v-10" fill="none" stroke-width="3"/>
+<path d="M256 82 C248 98 240 108 240 116 C240 126 248 130 256 130 C264 130 272 126 272 116 C272 108 264 98 256 82 Z" stroke-width="5"/>
+<rect x="307" y="130" width="18" height="84" rx="4"/>
+<path d="M307 150 l18 -10 M307 174 l18 -10 M307 198 l18 -10" fill="none" stroke-width="3"/>
+<path d="M316 130 v-10" fill="none" stroke-width="3"/>
+<path d="M316 78 C308 94 300 104 300 112 C300 122 308 126 316 126 C324 126 332 122 332 112 C332 104 324 94 316 78 Z" stroke-width="5"/>
+</g>
+</svg>

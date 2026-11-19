@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Crab</title>
+<desc>Line drawing of a smiling crab with big raised claws, six legs and eyes on stalks.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M146 290 Q77 264 54 340" fill="none" stroke-width="22"/><path d="M146 320 Q77 300 54 400" fill="none" stroke-width="22"/><path d="M146 350 Q86 336 66 454" fill="none" stroke-width="22"/><path d="M366 290 Q435 264 458 340" fill="none" stroke-width="22"/><path d="M366 320 Q435 300 458 400" fill="none" stroke-width="22"/><path d="M366 350 Q426 336 446 454" fill="none" stroke-width="22"/><path d="M146 290 Q77 264 54 340" fill="none" stroke="#FFFFFF" stroke-width="10"/><path d="M146 320 Q77 300 54 400" fill="none" stroke="#FFFFFF" stroke-width="10"/><path d="M146 350 Q86 336 66 454" fill="none" stroke="#FFFFFF" stroke-width="10"/><path d="M366 290 Q435 264 458 340" fill="none" stroke="#FFFFFF" stroke-width="10"/><path d="M366 320 Q435 300 458 400" fill="none" stroke="#FFFFFF" stroke-width="10"/><path d="M366 350 Q426 336 446 454" fill="none" stroke="#FFFFFF" stroke-width="10"/>
+<path d="M160 270 C110 250 96 210 104 176" fill="none" stroke-width="28"/><path d="M352 270 C402 250 416 210 408 176" fill="none" stroke-width="28"/><path d="M160 270 C110 250 96 210 104 176" fill="none" stroke="#FFFFFF" stroke-width="16"/><path d="M352 270 C402 250 416 210 408 176" fill="none" stroke="#FFFFFF" stroke-width="16"/>
+<g transform="translate(104 150) scale(1 1)"><path d="M0 30 C-40 24 -54 -20 -30 -54 C-24 -36 -10 -26 4 -26 C-6 -44 -4 -62 8 -74 C40 -52 40 14 0 30 Z"/><path d="M-24 -44 C-14 -32 -4 -28 6 -28" fill="none" stroke-width="4"/></g>
+<g transform="translate(408 150) scale(-1 1)"><path d="M0 30 C-40 24 -54 -20 -30 -54 C-24 -36 -10 -26 4 -26 C-6 -44 -4 -62 8 -74 C40 -52 40 14 0 30 Z"/><path d="M-24 -44 C-14 -32 -4 -28 6 -28" fill="none" stroke-width="4"/></g>
+<path d="M226 236 V176" fill="none" stroke-width="20"/><path d="M286 236 V176" fill="none" stroke-width="20"/><path d="M226 236 V176" fill="none" stroke="#FFFFFF" stroke-width="8"/><path d="M286 236 V176" fill="none" stroke="#FFFFFF" stroke-width="8"/>
+<circle cx="226" cy="166" r="22"/><circle cx="286" cy="166" r="22"/>
+<circle cx="228" cy="166" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="231.5" cy="162.5" r="3.5" fill="#FFFFFF" stroke="none"/><circle cx="288" cy="166" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="291.5" cy="162.5" r="3.5" fill="#FFFFFF" stroke="none"/>
+<ellipse cx="256" cy="300" rx="134" ry="92"/>
+<path d="M216 318 C236 340 276 340 296 318" fill="none" stroke-width="6"/>
+<path d="M180 260 l1 1 M196 248 l1 1 M330 260 l1 1 M316 248 l1 1 M170 330 l1 1 M342 330 l1 1" fill="none" stroke-width="7"/>
+<path d="M150 300 C150 340 190 372 230 380 M362 300 C362 340 322 372 282 380" fill="none" stroke-width="3.5"/>
+</g>
+</svg>
