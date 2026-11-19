@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Lock</title>
+<desc>Line drawing of a padlock with a curved shackle, a keyhole and a key beside it.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M186 236 V164 C186 80 326 80 326 164 V236" fill="none" stroke-width="38"/><path d="M186 236 V164 C186 80 326 80 326 164 V236" fill="none" stroke="#FFFFFF" stroke-width="26"/>
+<rect x="126" y="226" width="260" height="220" rx="30"/>
+<rect x="146" y="246" width="220" height="180" rx="20" stroke-width="5"/>
+<circle cx="256" cy="316" r="24" fill="#1A1A1A" stroke-width="2"/>
+<path d="M244 326 H268 L276 382 H236 Z" fill="#1A1A1A" stroke-width="2"/>
+<path d="M168 280 V340" fill="none" stroke-width="6"/>
+<g transform="rotate(-30 420 420)">
+<circle cx="420" cy="380" r="30"/><circle cx="420" cy="380" r="11" stroke-width="5"/>
+<path d="M412 410 H428 V486 H412 Z"/>
+<path d="M428 446 H446 V458 H428 M428 470 H440 V480 H428" fill="none" stroke-width="5"/>
+</g>
+</g>
+</svg>

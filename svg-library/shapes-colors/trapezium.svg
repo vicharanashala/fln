@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Trapezium</title>
+<desc>Line drawing of a trapezium: a four-sided shape with one pair of parallel sides.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M150.0 150.0 L362.0 150.0 L456.0 370.0 L56.0 370.0 Z"/>
+</g>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Carrom</title>
+<desc>Line drawing of a carrom board with four corner pockets, base lines, the coins arranged in the centre circle and a striker.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="36" y="36" width="440" height="440" rx="18"/>
+<rect x="66" y="66" width="380" height="380" stroke-width="5"/>
+<circle cx="86" cy="86" r="18" fill="#1A1A1A" stroke-width="3"/>
+<circle cx="426" cy="86" r="18" fill="#1A1A1A" stroke-width="3"/>
+<circle cx="86" cy="426" r="18" fill="#1A1A1A" stroke-width="3"/>
+<circle cx="426" cy="426" r="18" fill="#1A1A1A" stroke-width="3"/>
+<path d="M136 120 H376 M136 136 H376 M136 392 H376 M136 376 H376 M120 136 V376 M136 136 V376 M392 136 V376 M376 136 V376" fill="none" stroke-width="3.5"/>
+<circle cx="136" cy="128" r="8" stroke-width="3.5"/><circle cx="376" cy="128" r="8" stroke-width="3.5"/><circle cx="136" cy="384" r="8" stroke-width="3.5"/><circle cx="376" cy="384" r="8" stroke-width="3.5"/><circle cx="128" cy="136" r="8" stroke-width="3.5"/><circle cx="128" cy="376" r="8" stroke-width="3.5"/><circle cx="384" cy="136" r="8" stroke-width="3.5"/><circle cx="384" cy="376" r="8" stroke-width="3.5"/>
+<path d="M120 120 L170 170 M392 120 L342 170 M120 392 L170 342 M392 392 L342 342" fill="none" stroke-width="3.5"/>
+<circle cx="256" cy="256" r="70" stroke-width="4"/>
+<circle cx="256.0" cy="256.0" r="14"/><circle cx="256.0" cy="256.0" r="7" stroke-width="3"/><circle cx="286.0" cy="256.0" r="14"/><circle cx="286.0" cy="256.0" r="7" stroke-width="3"/><circle cx="271.0" cy="282.0" r="14"/><circle cx="271.0" cy="282.0" r="7" stroke-width="3"/><circle cx="241.0" cy="282.0" r="14"/><circle cx="241.0" cy="282.0" r="7" stroke-width="3"/><circle cx="226.0" cy="256.0" r="14"/><circle cx="226.0" cy="256.0" r="7" stroke-width="3"/><circle cx="241.0" cy="230.0" r="14"/><circle cx="241.0" cy="230.0" r="7" stroke-width="3"/><circle cx="271.0" cy="230.0" r="14"/><circle cx="271.0" cy="230.0" r="7" stroke-width="3"/>
+<circle cx="300" cy="384" r="22" stroke-width="7"/><circle cx="300" cy="384" r="12" stroke-width="3"/>
+</g>
+</svg>

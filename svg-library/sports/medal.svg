@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Medal</title>
+<desc>Line drawing of a winner's medal with a star in the middle, hanging from a striped ribbon.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M140 40 H220 L280 250 H232 Z"/><path d="M372 40 H292 L232 250 H280 Z"/>
+<path d="M160 40 L240 250 M200 40 L262 230 M352 40 L272 250 M312 40 L250 230" fill="none" stroke-width="3.5"/>
+<rect x="220" y="236" width="72" height="26" rx="8"/>
+<circle cx="256" cy="352" r="104"/>
+<circle cx="256" cy="352" r="82" stroke-width="5"/>
+<path d="M256.0 292.0 L271.3 331.0 L313.1 333.5 L280.7 360.0 L291.3 400.5 L256.0 378.0 L220.7 400.5 L231.3 360.0 L198.9 333.5 L240.7 331.0 Z" stroke-width="6"/>
+<path d="M190 300 C200 284 214 274 230 268" fill="none" stroke-width="6"/>
+</g>
+</svg>

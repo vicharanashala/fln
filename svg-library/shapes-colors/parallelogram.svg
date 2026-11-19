@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Parallelogram</title>
+<desc>Line drawing of a parallelogram: a slanted four-sided shape whose opposite sides are parallel and equal.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M160.0 150.0 L456.0 150.0 L352.0 370.0 L56.0 370.0 Z"/>
+</g>
+</svg>

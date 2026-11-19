@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Jellyfish</title>
+<desc>Line drawing of a smiling jellyfish with a round bell, a wavy edge and long flowing tentacles.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M140 262 C120 320 160 360 140 420 C130 450 146 470 160 476 M372 262 C392 320 352 360 372 420 C382 450 366 470 352 476 M180 262 C170 310 196 350 184 400 M332 262 C342 310 316 350 328 400" fill="none" stroke-width="5"/>
+<path d="M232 262 C214 320 252 360 228 420 C218 446 230 466 244 474" fill="none" stroke-width="26"/><path d="M282 262 C300 320 262 360 286 420 C296 446 284 466 270 474" fill="none" stroke-width="26"/><path d="M232 262 C214 320 252 360 228 420 C218 446 230 466 244 474" fill="none" stroke="#FFFFFF" stroke-width="14"/><path d="M282 262 C300 320 262 360 286 420 C296 446 284 466 270 474" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+<path d="M100 250 C100 128 176 66 256 66 C336 66 412 128 412 250 Q392 280 373 250 Q354 280 334 250 Q314 280 295 250 Q276 280 256 250 Q236 280 217 250 Q198 280 178 250 Q158 280 139 250 Q120 280 100 250 Z"/>
+<circle cx="212" cy="186" r="12" fill="#1A1A1A" stroke-width="2"/><circle cx="216.2" cy="181.8" r="4.2" fill="#FFFFFF" stroke="none"/><circle cx="300" cy="186" r="12" fill="#1A1A1A" stroke-width="2"/><circle cx="304.2" cy="181.8" r="4.2" fill="#FFFFFF" stroke="none"/>
+<path d="M228 222 C244 236 268 236 284 222" fill="none" stroke-width="6"/>
+<path d="M150 150 C166 120 192 100 222 92" fill="none" stroke-width="6"/>
+<circle cx="332" cy="120" r="10" stroke-width="5"/><circle cx="360" cy="160" r="7" stroke-width="5"/>
+<path d="M168 214 l1 1 M344 214 l1 1" fill="none" stroke-width="12"/>
+</g>
+</svg>

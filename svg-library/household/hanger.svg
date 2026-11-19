@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Hanger</title>
+<desc>Line drawing of a clothes hanger with a curved hook on top.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 176 V150 C256 128 276 120 290 108 C304 96 300 66 278 60 C258 56 244 70 246 84" fill="none" stroke-width="22"/><path d="M256 176 V150 C256 128 276 120 290 108 C304 96 300 66 278 60 C258 56 244 70 246 84" fill="none" stroke="#FFFFFF" stroke-width="10"/>
+<path d="M256 176 C200 220 120 280 64 324 C46 338 52 362 76 362 H436 C460 362 466 338 448 324 C392 280 312 220 256 176 Z" fill="none" stroke-width="30"/><path d="M256 176 C200 220 120 280 64 324 C46 338 52 362 76 362 H436 C460 362 466 338 448 324 C392 280 312 220 256 176 Z" fill="none" stroke="#FFFFFF" stroke-width="18"/>
+<circle cx="256" cy="180" r="16"/>
+</g>
+</svg>

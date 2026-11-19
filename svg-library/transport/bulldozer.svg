@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Bulldozer</title>
+<desc>Line drawing of a bulldozer with a big front blade, a driver's cab, an exhaust pipe and caterpillar tracks.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="228" y="190" width="18" height="70" rx="4"/>
+<rect x="296" y="120" width="140" height="136" rx="8"/>
+<rect x="314" y="138" width="104" height="80" rx="6" stroke-width="5"/>
+<rect x="168" y="250" width="280" height="96" rx="8"/>
+<path d="M190 278 H290 M190 300 H290 M190 322 H290" fill="none" stroke-width="4"/>
+<path d="M100 320 H180" fill="none" stroke-width="26"/><path d="M100 270 L176 262" fill="none" stroke-width="26"/><path d="M100 320 H180" fill="none" stroke="#FFFFFF" stroke-width="14"/><path d="M100 270 L176 262" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+<path d="M108 236 C76 264 64 330 74 392 L60 420 H118 V236 Z"/>
+<path d="M100 250 C86 290 82 350 92 400" fill="none" stroke-width="4"/>
+<rect x="146" y="344" width="306" height="94" rx="46"/>
+<rect x="160" y="358" width="278" height="66" rx="33" stroke-width="5"/>
+<circle cx="196" cy="391" r="26"/><circle cx="402" cy="391" r="26"/>
+<circle cx="250" cy="398" r="14" stroke-width="5"/><circle cx="298" cy="398" r="14" stroke-width="5"/><circle cx="346" cy="398" r="14" stroke-width="5"/>
+<path d="M170 344 V352 M170 430 V438 M192 344 V352 M192 430 V438 M214 344 V352 M214 430 V438 M236 344 V352 M236 430 V438 M258 344 V352 M258 430 V438 M280 344 V352 M280 430 V438 M302 344 V352 M302 430 V438 M324 344 V352 M324 430 V438 M346 344 V352 M346 430 V438 M368 344 V352 M368 430 V438 M390 344 V352 M390 430 V438 M412 344 V352 M412 430 V438 M434 344 V352 M434 430 V438" fill="none" stroke-width="4"/>
+<path d="M30 444 H490" fill="none" stroke-width="5"/>
+</g>
+</svg>

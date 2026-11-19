@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Balloons</title>
+<desc>Line drawing of three shiny balloons with their strings tied together in a bow.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M150 266 C144 306 266 340 256 420" fill="none" stroke-width="4"/><g transform="rotate(-14 150 266)"><ellipse cx="150" cy="170" rx="78" ry="96"/><path d="M141 278 L150 264 L159 278 Z" stroke-width="5"/><path d="M107 146 C111 112 134 93 154 95" fill="none" stroke-width="6"/></g>
+<path d="M362 266 C356 306 266 340 256 420" fill="none" stroke-width="4"/><g transform="rotate(14 362 266)"><ellipse cx="362" cy="170" rx="78" ry="96"/><path d="M353 278 L362 264 L371 278 Z" stroke-width="5"/><path d="M319 146 C323 112 346 93 366 95" fill="none" stroke-width="6"/></g>
+<path d="M256 234 C250 274 266 340 256 420" fill="none" stroke-width="4"/><g transform="rotate(0 256 234)"><ellipse cx="256" cy="130" rx="84" ry="104"/><path d="M247 246 L256 232 L265 246 Z" stroke-width="5"/><path d="M210 104 C214 68 239 47 260 49" fill="none" stroke-width="6"/></g>
+<path d="M256 420 C226 400 206 414 216 432 C226 446 246 436 256 420 C266 436 286 446 296 432 C306 414 286 400 256 420 Z" stroke-width="5"/>
+<path d="M256 420 L240 486 M256 420 L274 488" fill="none" stroke-width="4"/>
+</g>
+</svg>

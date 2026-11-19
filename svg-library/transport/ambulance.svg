@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Ambulance</title>
+<desc>Line drawing of an ambulance with a big cross on its side and a flashing siren light on the roof.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M196 60 l-12 -14 M236 52 V32 M276 60 l12 -14" fill="none" stroke-width="5"/>
+<path d="M210 100 C210 76 222 66 236 66 C250 66 262 76 262 100 Z"/>
+<rect x="200" y="96" width="72" height="12" rx="4"/>
+<path d="M40 330 V262 L92 200 C100 190 110 184 124 184 H180 V122 C180 112 188 104 198 104 H458 C470 104 478 112 478 124 V330 C478 342 470 350 458 350 H60 C48 350 40 342 40 330 Z"/>
+<path d="M96 210 C102 202 108 198 118 198 H164 V262 H58 Z" stroke-width="6"/>
+<path d="M320 160 H360 V200 H400 V240 H360 V280 H320 V240 H280 V200 H320 Z" stroke-width="7"/>
+<path d="M320 160 H360 V200 H400 V240 H360 V280 H320 V240 H280 V200 H320 Z" transform="translate(340 220) scale(0.72) translate(-340 -220)" fill="none" stroke-width="4"/>
+<path d="M40 292 H478" fill="none" stroke-width="5"/>
+<path d="M180 184 V330 M190 196 V286" fill="none" stroke-width="5"/>
+<rect x="430" y="130" width="30" height="130" rx="6" stroke-width="5"/>
+<path d="M42 300 H64 V322 H42" fill="none" stroke-width="5"/>
+<path d="M76 350 A46 46 0 0 1 168 350 Z"/><path d="M356 350 A46 46 0 0 1 448 350 Z"/>
+<circle cx="122" cy="360" r="38"/><circle cx="122" cy="360" r="14" stroke-width="6"/>
+<circle cx="402" cy="360" r="38"/><circle cx="402" cy="360" r="14" stroke-width="6"/>
+<path d="M20 404 H492" fill="none" stroke-width="5"/>
+</g>
+</svg>

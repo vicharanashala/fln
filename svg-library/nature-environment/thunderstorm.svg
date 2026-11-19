@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Thunderstorm</title>
+<desc>Line drawing of a storm cloud with a lightning bolt and heavy slanting rain.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256.0 74.0 A62.3 62.3 0 0 1 358.7 89.2 A48.7 48.7 0 0 1 428.8 130.1 A33.4 33.4 0 0 1 444.1 183.7 A39.8 39.8 0 0 1 399.6 232.9 A56.8 56.8 0 0 1 309.5 262.1 A64.2 64.2 0 0 1 202.5 262.1 A56.8 56.8 0 0 1 112.4 232.9 A39.8 39.8 0 0 1 67.9 183.7 A33.4 33.4 0 0 1 83.2 130.1 A48.7 48.7 0 0 1 153.3 89.2 A62.3 62.3 0 0 1 256.0 74.0 Z"/>
+<path d="M120 200 C180 220 330 220 392 200" fill="none" stroke-width="4"/>
+<path d="M250 230 H330 L292 310 H340 L230 470 L262 344 H214 Z"/>
+<path d="M110 290 L90 340 M150 300 L130 350 M110 380 L90 430 M370 290 L350 340 M410 300 L390 350 M380 380 L360 430 M180 360 L160 410" fill="none" stroke-width="6"/>
+</g>
+</svg>

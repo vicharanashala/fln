@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Capsicum</title>
+<desc>Line drawing of a capsicum (bell pepper) with its lumpy lobes, a thick curved stem and a shine.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 150 C210 130 140 140 120 200 C100 260 110 330 130 380 C140 420 170 452 202 440 C220 462 240 462 256 446 C272 462 292 462 310 440 C342 452 372 420 382 380 C402 330 412 260 392 200 C372 140 302 130 256 150 Z"/>
+<path d="M202 440 C186 360 192 260 214 170 M310 440 C326 360 320 260 298 170" fill="none" stroke-width="5"/>
+<path d="M256 446 C252 400 252 360 256 330" fill="none" stroke-width="4"/>
+<path d="M156 230 C150 270 152 320 164 360" fill="none" stroke-width="8"/>
+<path d="M256 150 C254 118 264 96 290 82" fill="none" stroke-width="26"/><path d="M256 150 C254 118 264 96 290 82" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+<path d="M206 158 C214 138 298 138 306 158 C296 174 216 174 206 158 Z"/>
+<path d="M226 156 l10 8 M256 152 v12 M286 156 l-10 8" fill="none" stroke-width="4"/>
+</g>
+</svg>

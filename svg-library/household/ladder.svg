@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Ladder</title>
+<desc>Line drawing of a wooden ladder with two long side rails and evenly spaced steps.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-8 256 256)">
+<rect x="146" y="26" width="28" height="460" rx="8"/><rect x="338" y="26" width="28" height="460" rx="8"/>
+<rect x="170" y="80" width="172" height="20" rx="5"/>
+<rect x="170" y="144" width="172" height="20" rx="5"/>
+<rect x="170" y="208" width="172" height="20" rx="5"/>
+<rect x="170" y="272" width="172" height="20" rx="5"/>
+<rect x="170" y="336" width="172" height="20" rx="5"/>
+<rect x="170" y="400" width="172" height="20" rx="5"/>
+<rect x="170" y="464" width="172" height="20" rx="5"/>
+<path d="M156 60 V140 M162 200 V300 M356 120 V220 M350 330 V430" fill="none" stroke-width="3"/>
+</g>
+<path d="M40 488 H472" fill="none" stroke-width="5"/>
+</g>
+</svg>

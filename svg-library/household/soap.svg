@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Soap</title>
+<desc>Line drawing of a bar of soap with SOAP pressed into the top and bubbles floating around it.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M110 280 C100 260 115 240 140 236 L360 200 C390 195 420 205 425 230 L430 250 C435 275 420 290 395 295 L170 335 C140 340 118 320 110 300 Z" transform="translate(0 52)"/>
+<path d="M106 296 L433 256 L433 308 L106 348 Z" stroke="none"/>
+<path d="M108 290 V342 M433 248 V300" fill="none" stroke-width="8"/>
+<path d="M110 280 C100 260 115 240 140 236 L360 200 C390 195 420 205 425 230 L430 250 C435 275 420 290 395 295 L170 335 C140 340 118 320 110 300 Z"/>
+<path d="M110 280 C100 260 115 240 140 236 L360 200 C390 195 420 205 425 230 L430 250 C435 275 420 290 395 295 L170 335 C140 340 118 320 110 300 Z" transform="translate(268 266) scale(0.84) translate(-268 -266)" stroke-width="4"/>
+<g transform="rotate(-9 268 266)"><path d="M27 6 C20 -1 2 -1 2 10 C2 22 26 18 26 30 C26 42 6 42 1 34" transform="translate(190.0 246) scale(1.0)" fill="none" stroke-width="7.0"/><path d="M14 0 C28 0 28 40 14 40 C0 40 0 0 14 0 Z" transform="translate(230.0 246) scale(1.0)" fill="none" stroke-width="7.0"/><path d="M0 40 L14 0 L28 40 M6 26 H22" transform="translate(270.0 246) scale(1.0)" fill="none" stroke-width="7.0"/><path d="M0 40 V0 H16 C30 0 30 20 16 20 H0" transform="translate(310.0 246) scale(1.0)" fill="none" stroke-width="7.0"/></g>
+<circle cx="110" cy="160" r="40"/><circle cx="96" cy="148" r="8" stroke-width="3"/>
+<circle cx="196" cy="118" r="28"/><circle cx="188" cy="110" r="6" stroke-width="3"/>
+<circle cx="296" cy="140" r="34"/><circle cx="286" cy="130" r="7" stroke-width="3"/>
+<circle cx="390" cy="106" r="22"/><circle cx="440" cy="160" r="16"/><circle cx="56" cy="236" r="14"/><circle cx="470" cy="216" r="10"/>
+</g>
+</svg>

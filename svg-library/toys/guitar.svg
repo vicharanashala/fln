@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Guitar</title>
+<desc>Line drawing of an acoustic guitar with a round sound hole, six strings, frets on the neck and tuning pegs.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(20 14) scale(0.92)"><path d="M226 16 H286 L280 84 H232 Z"/>
+<circle cx="214" cy="32" r="8" stroke-width="4"/><circle cx="214" cy="52" r="8" stroke-width="4"/><circle cx="214" cy="72" r="8" stroke-width="4"/><circle cx="298" cy="32" r="8" stroke-width="4"/><circle cx="298" cy="52" r="8" stroke-width="4"/><circle cx="298" cy="72" r="8" stroke-width="4"/>
+<path d="M222 32 H230 M222 52 H230 M222 72 H230 M282 32 H290 M282 52 H290 M282 72 H290" fill="none" stroke-width="4"/>
+<circle cx="256" cy="282" r="82"/><circle cx="256" cy="396" r="104"/>
+<circle cx="256" cy="282" r="78" fill="#FFFFFF" stroke="none"/><circle cx="256" cy="396" r="100" fill="#FFFFFF" stroke="none"/>
+<circle cx="256" cy="320" r="38"/><circle cx="256" cy="320" r="48" fill="none" stroke-width="3"/>
+<rect x="214" y="420" width="84" height="20" rx="6"/>
+<rect x="238" y="80" width="36" height="200" rx="4"/>
+<path d="M238 104 H274 M238 128 H274 M238 152 H274 M238 176 H274 M238 200 H274 M238 224 H274 M238 248 H274 M238 272 H274" fill="none" stroke-width="3"/>
+<path d="M243 84 V430 M249 84 V430 M254 84 V430 M259 84 V430 M264 84 V430 M269 84 V430" fill="none" stroke-width="1.6"/>
+<path d="M170 250 C176 232 186 220 198 212" fill="none" stroke-width="5"/></g>
+</g>
+</svg>

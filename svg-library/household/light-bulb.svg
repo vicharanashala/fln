@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Light bulb</title>
+<desc>Line drawing of a glowing light bulb with a filament inside, a screw base and light rays around it.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M106.0 190.0 L70.0 190.0 M126.1 115.0 L94.9 97.0 M181.0 60.1 L163.0 28.9 M256.0 40.0 L256.0 4.0 M331.0 60.1 L349.0 28.9 M385.9 115.0 L417.1 97.0 M406.0 190.0 L442.0 190.0" fill="none" stroke-width="7"/>
+<path d="M200 316 C200 284 150 252 150 186 C150 124 198 78 256 78 C314 78 362 124 362 186 C362 252 312 284 312 316 Z"/>
+<path d="M232 316 L238 214 M280 316 L274 214" fill="none" stroke-width="4"/>
+<path d="M238 214 l6 -12 l6 12 l6 -12 l6 12 l6 -12 l6 12" fill="none" stroke-width="4"/>
+<path d="M186 160 C192 132 212 112 236 106" fill="none" stroke-width="6"/>
+<rect x="196" y="316" width="120" height="26" rx="6"/>
+<rect x="202" y="342" width="108" height="22" rx="8"/>
+<rect x="206" y="364" width="100" height="22" rx="8"/>
+<rect x="210" y="386" width="92" height="22" rx="8"/>
+<path d="M226 408 H286 L272 438 H240 Z"/>
+<rect x="244" y="436" width="24" height="14" rx="4"/>
+</g>
+</svg>

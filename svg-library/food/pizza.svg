@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Pizza</title>
+<desc>Line drawing of a slice of pizza with a thick crust, melted cheese and round toppings.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M100 170 C190 140 322 140 412 170 L272 460 C266 472 246 472 240 460 Z"/>
+<path d="M122 196 C140 210 132 236 150 246 C168 256 160 290 180 300 C196 308 190 340 206 350 C220 360 214 392 230 404 M390 196 C372 210 380 236 362 246 C344 256 352 290 332 300 C316 308 322 340 306 350 C292 360 298 392 282 404" fill="none" stroke-width="4"/>
+<path d="M80 160 C70 130 90 110 120 108 C200 92 312 92 392 108 C422 110 442 130 432 160 C422 180 400 186 380 180 C300 164 212 164 132 180 C112 186 90 180 80 160 Z"/>
+<path d="M120 132 C200 118 312 118 392 132" fill="none" stroke-width="4"/>
+<circle cx="200" cy="220" r="30"/><path d="M192 214 l1 1 M208 224 l1 1 M198 230 l1 1" fill="none" stroke-width="5"/><circle cx="310" cy="224" r="28"/><path d="M302 218 l1 1 M318 228 l1 1 M308 234 l1 1" fill="none" stroke-width="5"/><circle cx="256" cy="300" r="30"/><path d="M248 294 l1 1 M264 304 l1 1 M254 310 l1 1" fill="none" stroke-width="5"/><circle cx="256" cy="400" r="20"/><path d="M248 394 l1 1 M264 404 l1 1 M254 410 l1 1" fill="none" stroke-width="5"/>
+<circle cx="256" cy="200" r="11" stroke-width="5"/><circle cx="256" cy="200" r="3" fill="#1A1A1A" stroke-width="2"/><circle cx="190" cy="280" r="11" stroke-width="5"/><circle cx="190" cy="280" r="3" fill="#1A1A1A" stroke-width="2"/><circle cx="320" cy="300" r="11" stroke-width="5"/><circle cx="320" cy="300" r="3" fill="#1A1A1A" stroke-width="2"/><circle cx="226" cy="352" r="11" stroke-width="5"/><circle cx="226" cy="352" r="3" fill="#1A1A1A" stroke-width="2"/><circle cx="290" cy="360" r="11" stroke-width="5"/><circle cx="290" cy="360" r="3" fill="#1A1A1A" stroke-width="2"/>
+<path d="M160 200 l14 6 M346 196 l-10 10 M300 410 l-10 -6" fill="none" stroke-width="6"/>
+</g>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Flamingo</title>
+<desc>Line drawing of a flamingo standing on one long leg with the other folded, an S-shaped neck and a bent black-tipped beak.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M110 476 C150 466 190 482 230 472 C270 462 310 482 350 472 C380 466 400 474 420 470" fill="none" stroke-width="4"/>
+<path d="M296 292 L300 386 L294 470 M294 470 l-24 6 M294 470 l22 4" fill="none" stroke-width="6"/>
+<path d="M318 292 L322 360 L364 336 L374 306" fill="none" stroke-width="6"/>
+<circle cx="300" cy="386" r="6" stroke-width="4"/><circle cx="322" cy="360" r="6" stroke-width="4"/>
+<path d="M374 306 L392 312 L378 324 Z" stroke-width="4"/>
+<path d="M200 236 C152 214 140 166 168 124 C194 86 188 54 160 46 C140 40 126 52 126 66" fill="none" stroke-width="26"/><path d="M200 236 C152 214 140 166 168 124 C194 86 188 54 160 46 C140 40 126 52 126 66" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+<path d="M182 250 C182 202 240 178 300 182 C360 186 420 212 452 244 C414 260 372 294 302 302 C232 308 182 292 182 250 Z"/>
+<path d="M240 210 C290 202 350 216 400 244 M250 240 C300 238 350 252 390 270 M300 210 C340 222 372 240 396 262" fill="none" stroke-width="4"/>
+<path d="M410 230 L452 222 M414 246 L458 248" fill="none" stroke-width="4"/>
+<ellipse cx="130" cy="64" rx="24" ry="20"/>
+<path d="M110 58 C92 56 78 64 74 78 C70 92 76 104 86 112 C90 102 92 92 104 84 C110 80 112 70 110 58 Z"/>
+<path d="M76 92 C78 102 82 108 86 112 C90 102 92 96 96 90 C88 92 80 92 76 92 Z" fill="#1A1A1A" stroke-width="3"/>
+<path d="M106 72 C96 76 90 82 86 90" fill="none" stroke-width="3"/>
+<circle cx="128" cy="58" r="5" fill="#1A1A1A" stroke-width="2"/><circle cx="129.8" cy="56.2" r="1.8" fill="#FFFFFF" stroke="none"/>
+</g>
+</svg>

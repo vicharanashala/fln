@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Hockey</title>
+<desc>Line drawing of a hockey stick with a curved hook and a taped grip, next to a hockey ball.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(28 256 256)">
+<rect x="238" y="20" width="32" height="370" rx="10"/>
+<path d="M238 56 L270 42 M238 72 L270 58 M238 88 L270 74 M238 104 L270 90 M238 120 L270 106 M238 136 L270 122 M238 152 L270 138 M238 168 L270 154" fill="none" stroke-width="4"/>
+<path d="M238 170 H270" fill="none" stroke-width="5"/>
+<path d="M270 380 C274 452 230 484 178 480 C146 478 132 452 142 432 C152 416 174 418 186 426 C210 440 236 420 238 380 Z"/>
+<path d="M252 400 C248 440 226 462 196 462" fill="none" stroke-width="3.5"/>
+</g>
+<circle cx="390" cy="430" r="38"/>
+<circle cx="376" cy="414" r="5" stroke-width="3"/><circle cx="398" cy="410" r="5" stroke-width="3"/><circle cx="410" cy="432" r="5" stroke-width="3"/><circle cx="392" cy="448" r="5" stroke-width="3"/><circle cx="372" cy="438" r="5" stroke-width="3"/><circle cx="390" cy="430" r="5" stroke-width="3"/>
+<path d="M310 452 H340 M318 470 H344" fill="none" stroke-width="5"/>
+</g>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Paper clip</title>
+<desc>Line drawing of two bent-wire paper clips.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-22 210 260)"><path d="M210 170 V370 C210 404 250 404 250 370 V110 C250 54 160 54 160 110 V400 C160 470 290 470 290 400 V160" fill="none" stroke-width="22"/><path d="M210 170 V370 C210 404 250 404 250 370 V110 C250 54 160 54 160 110 V400 C160 470 290 470 290 400 V160" fill="none" stroke="#FFFFFF" stroke-width="10"/></g>
+<g transform="rotate(18 380 300) translate(250 120) scale(0.6)"><path d="M210 170 V370 C210 404 250 404 250 370 V110 C250 54 160 54 160 110 V400 C160 470 290 470 290 400 V160" fill="none" stroke-width="26"/><path d="M210 170 V370 C210 404 250 404 250 370 V110 C250 54 160 54 160 110 V400 C160 470 290 470 290 400 V160" fill="none" stroke="#FFFFFF" stroke-width="14"/></g>
+</g>
+</svg>

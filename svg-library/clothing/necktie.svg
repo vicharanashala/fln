@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Necktie</title>
+<desc>Line drawing of a striped necktie with its knot under a shirt collar.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<defs><clipPath id="tb"><path d="M236 130 L210 392 L256 452 L302 392 L276 130 Z"/></clipPath></defs>
+<path d="M150 40 L240 70 L208 150 Z"/><path d="M362 40 L272 70 L304 150 Z"/>
+<path d="M236 130 L210 392 L256 452 L302 392 L276 130 Z"/>
+<g clip-path="url(#tb)"><path d="M180 180 L340 90 M180 230 L340 140 M180 280 L340 190 M180 330 L340 240 M180 380 L340 290 M180 430 L340 340 M180 480 L340 390 M180 530 L340 440 M180 580 L340 490" fill="none" stroke-width="6"/></g>
+<path d="M236 130 L210 392 L256 452 L302 392 L276 130 Z" fill="none"/>
+<path d="M224 66 H288 L276 132 H236 Z"/>
+<path d="M244 76 L246 120 M268 76 L266 120" fill="none" stroke-width="3"/>
+</g>
+</svg>

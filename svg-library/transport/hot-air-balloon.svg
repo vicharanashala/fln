@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Hot air balloon</title>
+<desc>Line drawing of a hot air balloon with striped panels, a zig-zag band, ropes and a woven basket, floating among clouds.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M90.0 94.0 A29.1 29.1 0 0 1 136.8 107.0 A15.6 15.6 0 0 1 136.8 133.0 A29.1 29.1 0 0 1 90.0 146.0 A29.1 29.1 0 0 1 43.2 133.0 A15.6 15.6 0 0 1 43.2 107.0 A29.1 29.1 0 0 1 90.0 94.0 Z"/>
+<path d="M430.0 276.0 A27.0 27.0 0 0 1 473.3 288.0 A14.4 14.4 0 0 1 473.3 312.0 A27.0 27.0 0 0 1 430.0 324.0 A27.0 27.0 0 0 1 386.7 312.0 A14.4 14.4 0 0 1 386.7 288.0 A27.0 27.0 0 0 1 430.0 276.0 Z"/>
+<path d="M256 34 C384 34 446 124 426 218 C406 298 324 328 302 360 H210 C188 328 106 298 86 218 C66 124 128 34 256 34 Z"/>
+<path d="M256 34 V360 M256 34 C190 60 168 240 226 360 M256 34 C322 60 344 240 286 360 M256 34 C136 64 112 236 214 350 M256 34 C376 64 400 236 298 350" fill="none" stroke-width="4"/>
+<path d="M90 190 C150 220 362 220 422 190" fill="none" stroke-width="6"/>
+<path d="M98 240 L120 222 L142 246 L166 226 L190 250 L214 230 L238 252 L262 232 L286 252 L310 230 L334 250 L358 226 L382 246 L404 222 L420 238" fill="none" stroke-width="4"/>
+<rect x="206" y="356" width="100" height="22" rx="6"/>
+<path d="M214 378 L222 420 M298 378 L290 420 M240 378 L244 420 M272 378 L268 420" fill="none" stroke-width="4"/>
+<path d="M206 420 H306 L298 484 H214 Z"/>
+<path d="M210 442 H302 M212 462 H300 M236 420 V484 M256 420 V484 M276 420 V484" fill="none" stroke-width="3.5"/>
+<rect x="200" y="414" width="112" height="14" rx="5"/>
+</g>
+</svg>

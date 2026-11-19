@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Toy blocks</title>
+<desc>Line drawing of three wooden toy blocks stacked up, with the letters A, B and C on them.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M70.0 330.0 L216.0 330.0 L256.0 290.0 L110.0 290.0 Z"/><path d="M216.0 330.0 L256.0 290.0 L256.0 436.0 L216.0 476.0 Z"/><rect x="70" y="330" width="146" height="146"/>
+<rect x="82" y="342" width="122" height="122" rx="4" stroke-width="4"/>
+<path d="M0 40 L14 0 L28 40 M6 26 H22" transform="translate(117.8 367.0) scale(1.8)" fill="none" stroke-width="5.0"/>
+<circle cx="236" cy="383" r="6" fill="#1A1A1A" stroke-width="2"/>
+<path d="M226.0 330.0 L372.0 330.0 L412.0 290.0 L266.0 290.0 Z"/><path d="M372.0 330.0 L412.0 290.0 L412.0 436.0 L372.0 476.0 Z"/><rect x="226" y="330" width="146" height="146"/>
+<rect x="238" y="342" width="122" height="122" rx="4" stroke-width="4"/>
+<path d="M0 0 V40 H17 C31 40 31 20 17 20 H0 M0 0 H15 C27 0 27 20 15 20" transform="translate(273.8 367.0) scale(1.8)" fill="none" stroke-width="5.0"/>
+<circle cx="392" cy="383" r="6" fill="#1A1A1A" stroke-width="2"/>
+<path d="M148.0 182.0 L294.0 182.0 L334.0 142.0 L188.0 142.0 Z"/><path d="M294.0 182.0 L334.0 142.0 L334.0 288.0 L294.0 328.0 Z"/><rect x="148" y="182" width="146" height="146"/>
+<rect x="160" y="194" width="122" height="122" rx="4" stroke-width="4"/>
+<path d="M28 6 C20 -2 0 -2 0 20 C0 42 20 42 28 34" transform="translate(195.8 219.0) scale(1.8)" fill="none" stroke-width="5.0"/>
+<circle cx="314" cy="235" r="6" fill="#1A1A1A" stroke-width="2"/>
+</g>
+</svg>

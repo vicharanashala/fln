@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Jacket</title>
+<desc>Line drawing of a hooded jacket with a zip down the front, drawstrings, two pockets and ribbed cuffs and hem.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M178 104 C164 50 210 26 256 26 C302 26 348 50 334 104 Z"/>
+<path d="M190 92 L112 118 C86 128 70 146 64 176 L30 390 L86 398 L116 224 V442 H396 V224 L426 398 L482 390 L448 176 C442 146 426 128 400 118 L322 92 C306 120 280 150 256 160 C232 150 206 120 190 92 Z"/>
+<path d="M30 390 L86 398 L82 432 L24 424 Z"/><path d="M482 390 L426 398 L430 432 L488 424 Z"/>
+<path d="M42 394 l-4 34 M56 396 l-4 34 M70 398 l-4 34 M470 394 l4 34 M456 396 l4 34 M442 398 l4 34" fill="none" stroke-width="3.5"/>
+<rect x="116" y="418" width="280" height="36" rx="6"/>
+<path d="M132 422 V450 M148 422 V450 M164 422 V450 M180 422 V450 M196 422 V450 M212 422 V450 M228 422 V450 M244 422 V450 M260 422 V450 M276 422 V450 M292 422 V450 M308 422 V450 M324 422 V450 M340 422 V450 M356 422 V450 M372 422 V450 M388 422 V450" fill="none" stroke-width="3.5"/>
+<path d="M190 92 C204 64 226 50 256 50 C286 50 308 64 322 92 C306 120 280 150 256 160 C232 150 206 120 190 92 Z"/>
+<path d="M206 92 C220 74 236 66 256 66 C276 66 292 74 306 92" fill="none" stroke-width="4"/>
+<path d="M256 160 V418" fill="none" stroke-width="5"/>
+<path d="M250 176 H262 M250 190 H262 M250 204 H262 M250 218 H262 M250 232 H262 M250 246 H262 M250 260 H262 M250 274 H262 M250 288 H262 M250 302 H262 M250 316 H262 M250 330 H262 M250 344 H262 M250 358 H262 M250 372 H262 M250 386 H262 M250 400 H262" fill="none" stroke-width="3"/>
+<rect x="248" y="170" width="16" height="30" rx="5"/>
+<path d="M226 134 L220 220 M286 134 L292 220" fill="none" stroke-width="4"/>
+<rect x="214" y="218" width="12" height="18" rx="4"/><rect x="286" y="218" width="12" height="18" rx="4"/>
+<path d="M140 320 H232 V400 H140 Z M280 320 H372 V400 H280 Z" stroke-width="5"/>
+</g>
+</svg>

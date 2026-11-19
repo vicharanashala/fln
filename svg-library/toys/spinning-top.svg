@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Spinning top</title>
+<desc>Line drawing of a wooden spinning top (lattu) with painted bands, a knob on top and a metal tip, spinning on the ground.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M170 476 C210 492 302 492 342 476" fill="none" stroke-width="5"/>
+<path d="M120 230 C104 260 104 300 120 330 M392 230 C408 260 408 300 392 330 M90 250 C80 270 80 292 90 312 M422 250 C432 270 432 292 422 312" fill="none" stroke-width="5"/>
+<path d="M248 420 L256 462 L264 420 Z"/>
+<path d="M150 200 C150 150 200 128 256 128 C312 128 362 150 362 200 C362 262 302 330 272 404 L256 430 L240 404 C210 330 150 262 150 200 Z"/>
+<path d="M152 206 C190 228 322 228 360 206 M166 256 C204 276 308 276 346 256 M196 312 C224 326 288 326 316 312" fill="none" stroke-width="5"/>
+<path d="M184 228 L198 266 M224 236 L234 272 M264 238 L264 274 M302 236 L294 272 M338 228 L324 266" fill="none" stroke-width="4"/>
+<path d="M210 290 C230 300 282 300 302 290" fill="none" stroke-width="3.5"/>
+<rect x="236" y="88" width="40" height="46" rx="10"/>
+<ellipse cx="256" cy="90" rx="26" ry="10"/>
+<path d="M184 180 C196 160 214 150 236 146" fill="none" stroke-width="5"/>
+</g>
+</svg>

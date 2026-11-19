@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Woodpecker</title>
+<desc>Line drawing of a woodpecker clinging to a tree trunk, with a pointed crest, a strong chisel beak, a barred wing and a stiff tail braced against the bark.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M310 10 H450 V502 H310 Z"/>
+<path d="M340 60 C336 120 344 180 338 240 M420 100 C426 180 418 260 424 340 M350 300 C346 360 354 420 348 480 M396 420 C400 450 396 480 398 500" fill="none" stroke-width="4"/>
+<ellipse cx="392" cy="210" rx="14" ry="18"/><ellipse cx="376" cy="430" rx="12" ry="16"/>
+<path d="M248 360 L286 460 L314 456 L292 356 Z"/>
+<path d="M264 370 L296 452 M280 366 L304 446" fill="none" stroke-width="3.5"/>
+<path d="M210 180 C258 170 304 210 306 276 C308 338 280 378 240 380 C198 382 180 344 180 294 C180 244 186 200 210 180 Z"/>
+<path d="M238 222 C288 232 310 300 300 362 C274 344 258 314 248 284 C240 260 234 240 238 222 Z"/>
+<path d="M252 262 l20 4 M254 288 l24 4 M260 314 l26 4 M268 340 l24 4" fill="none" stroke-width="6"/>
+<path d="M296 296 l20 -4 l-8 12 M292 336 l22 -2 l-10 12" fill="none" stroke-width="6"/>
+<circle cx="208" cy="156" r="56"/>
+<path d="M176 108 C178 80 206 64 234 74 C250 82 258 100 254 116 C236 108 204 104 176 108 Z"/>
+<path d="M234 74 C252 70 266 74 274 84 C262 86 256 92 254 102" fill="none" stroke-width="5"/>
+<path d="M158 148 L82 162 L160 170 Z"/>
+<path d="M158 160 L96 163" fill="none" stroke-width="3"/>
+<circle cx="200" cy="146" r="11" stroke-width="5"/><circle cx="202" cy="146" r="6" fill="#1A1A1A" stroke-width="2"/><circle cx="204.1" cy="143.9" r="2.1" fill="#FFFFFF" stroke="none"/>
+<path d="M176 178 C192 190 216 192 236 184" fill="none" stroke-width="4"/>
+<path d="M54 120 l-14 -10 M56 162 l-18 0 M58 202 l-14 10" fill="none" stroke-width="4"/>
+</g>
+</svg>

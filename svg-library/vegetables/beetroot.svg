@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Beetroot</title>
+<desc>Line drawing of a beetroot with leafy stalks and a thin tail, next to a sliced piece showing its rings.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(30 20) scale(0.88)">
+<path d="M190 140 C170 90 150 60 120 40 C100 60 110 110 150 150 Z"/><path d="M180 140 C160 104 140 76 122 50" fill="none" stroke-width="3.5"/>
+<path d="M226 134 C230 80 244 40 280 20 C296 50 280 100 244 140 Z"/><path d="M232 132 C240 90 254 56 276 32" fill="none" stroke-width="3.5"/>
+<path d="M250 150 C290 110 340 96 380 104 C370 140 320 160 262 160 Z"/><path d="M256 152 C296 130 336 116 372 110" fill="none" stroke-width="3.5"/>
+<path d="M190 140 L206 176 M232 134 L224 176 M252 156 L236 180" fill="none" stroke-width="7"/>
+<path d="M220 172 C150 172 100 230 100 300 C100 370 160 412 210 420 C226 440 236 470 252 494 C256 470 252 440 250 420 C306 408 350 360 350 296 C350 226 296 172 220 172 Z"/>
+<path d="M140 250 C150 230 166 216 186 210 M150 330 l12 4 M200 380 l14 0 M300 330 l-12 6 M290 240 l-10 -6" fill="none" stroke-width="4"/>
+<ellipse cx="392" cy="410" rx="84" ry="74"/>
+<ellipse cx="392" cy="410" rx="62" ry="54" stroke-width="4"/>
+<ellipse cx="392" cy="410" rx="40" ry="34" stroke-width="4"/>
+<ellipse cx="392" cy="410" rx="18" ry="14" stroke-width="4"/>
+</g>
+</g>
+</svg>

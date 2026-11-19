@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Ant</title>
+<desc>Line drawing of a cartoon ant with a head, a thin middle and a big round back part, six legs and two bent antennae.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M40 420 H472" fill="none" stroke-width="5"/>
+<path d="M220 280 L196 340 L170 418 M244 288 L246 350 L232 418 M262 284 L300 344 L320 418" fill="none" stroke-width="7"/>
+<ellipse cx="370" cy="276" rx="96" ry="72"/>
+<path d="M330 214 C346 250 346 300 330 340 M376 206 C392 250 392 300 376 346" fill="none" stroke-width="4"/>
+<ellipse cx="246" cy="270" rx="52" ry="36"/>
+<circle cx="132" cy="236" r="62"/>
+<path d="M112 178 L96 120 L60 96 M150 176 L170 116 L206 94" fill="none" stroke-width="6"/>
+<circle cx="58" cy="94" r="10"/><circle cx="208" cy="92" r="10"/>
+<circle cx="110" cy="226" r="11" fill="#1A1A1A" stroke-width="2"/><circle cx="113.8" cy="222.2" r="3.8" fill="#FFFFFF" stroke="none"/><circle cx="154" cy="226" r="11" fill="#1A1A1A" stroke-width="2"/><circle cx="157.8" cy="222.2" r="3.8" fill="#FFFFFF" stroke="none"/>
+<path d="M110 262 C122 276 144 276 156 262" fill="none" stroke-width="6"/>
+</g>
+</svg>

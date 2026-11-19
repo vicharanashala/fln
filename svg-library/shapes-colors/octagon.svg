@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Octagon</title>
+<desc>Line drawing of an octagon, a shape with eight equal straight sides.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M440.8 332.5 L332.5 440.8 L179.5 440.8 L71.2 332.5 L71.2 179.5 L179.5 71.2 L332.5 71.2 L440.8 179.5 Z"/>
+</g>
+</svg>

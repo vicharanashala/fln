@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cheese</title>
+<desc>Line drawing of a wedge of cheese with round holes on every side.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M390.0 350.0 L440.0 190.0 L440.0 290.0 L390.0 450.0 Z"/>
+<path d="M60.0 300.0 L390.0 350.0 L390.0 450.0 L60.0 400.0 Z"/>
+<path d="M60.0 300.0 L390.0 350.0 L440.0 190.0 Z"/>
+<ellipse cx="140" cy="360" rx="22" ry="16" stroke-width="5"/><ellipse cx="250" cy="390" rx="30" ry="22" stroke-width="5"/><ellipse cx="330" cy="404" rx="14" ry="11" stroke-width="5"/><ellipse cx="190" cy="408" rx="12" ry="9" stroke-width="5"/>
+<ellipse cx="300" cy="290" rx="30" ry="12" stroke-width="5"/><ellipse cx="200" cy="300" rx="20" ry="8" stroke-width="5"/><ellipse cx="370" cy="270" rx="14" ry="6" stroke-width="5"/>
+<ellipse cx="414" cy="300" rx="10" ry="18" stroke-width="5"/><ellipse cx="420" cy="380" rx="8" ry="14" stroke-width="5"/>
+<path d="M100 306 A22 16 0 0 0 144 312" fill="#FFFFFF" stroke-width="5"/>
+</g>
+</svg>

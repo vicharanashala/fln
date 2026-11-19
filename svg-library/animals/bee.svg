@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Bee</title>
+<desc>Line drawing of a cute bee with a striped body, two eyes and a smile, antennae, see-through wings and a stinger.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<defs><clipPath id="bb"><path d="M180 300 C180 236 236 200 300 200 C370 200 430 244 434 300 C430 356 370 400 300 400 C236 400 180 364 180 300 Z"/></clipPath></defs>
+<ellipse cx="280" cy="150" rx="56" ry="88" transform="rotate(-24 280 150)"/>
+<ellipse cx="350" cy="166" rx="48" ry="76" transform="rotate(22 350 166)"/>
+<path d="M290 210 C286 170 276 130 262 100 M342 220 C348 190 356 160 370 132" fill="none" stroke-width="3.5"/>
+<path d="M430 300 L476 300 L432 318 Z"/>
+<path d="M240 396 l-8 30 M290 404 l-4 32 M340 398 l4 30" fill="none" stroke-width="6"/>
+<path d="M180 300 C180 236 236 200 300 200 C370 200 430 244 434 300 C430 356 370 400 300 400 C236 400 180 364 180 300 Z"/>
+<g clip-path="url(#bb)"><rect x="262" y="190" width="34" height="220" fill="#1A1A1A" stroke="none" transform="rotate(8 279 300)"/><rect x="340" y="190" width="34" height="220" fill="#1A1A1A" stroke="none" transform="rotate(8 357 300)"/></g>
+<path d="M180 300 C180 236 236 200 300 200 C370 200 430 244 434 300 C430 356 370 400 300 400 C236 400 180 364 180 300 Z" fill="none"/>
+<path d="M146 200 C140 160 120 130 96 120 M184 196 C190 156 206 126 230 112" fill="none" stroke-width="5"/>
+<circle cx="94" cy="118" r="10"/><circle cx="232" cy="110" r="10"/>
+<circle cx="166" cy="270" r="84"/>
+<circle cx="138" cy="256" r="12" fill="#1A1A1A" stroke-width="2"/><circle cx="142.2" cy="251.8" r="4.2" fill="#FFFFFF" stroke="none"/><circle cx="194" cy="256" r="12" fill="#1A1A1A" stroke-width="2"/><circle cx="198.2" cy="251.8" r="4.2" fill="#FFFFFF" stroke="none"/>
+<path d="M140 300 C156 318 180 318 196 300" fill="none" stroke-width="6"/>
+<path d="M118 290 l1 1 M218 290 l1 1" fill="none" stroke-width="10"/>
+
+<path d="M450 410 C480 400 492 370 474 352" fill="none" stroke-width="4" stroke-dasharray="10 12"/>
+</g>
+</svg>
