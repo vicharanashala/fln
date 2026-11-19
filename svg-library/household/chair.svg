@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Chair</title>
+<desc>Line drawing of a wooden chair with a slatted backrest.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="352" y="282" width="20" height="132" rx="5"/>
+<rect x="190" y="282" width="20" height="120" rx="5"/>
+<rect x="190" y="70" width="22" height="214" rx="6"/>
+<rect x="350" y="70" width="22" height="214" rx="6"/>
+<rect x="190" y="70" width="182" height="40" rx="10"/>
+<rect x="226" y="110" width="20" height="160" rx="4" stroke-width="6"/>
+<rect x="271" y="110" width="20" height="160" rx="4" stroke-width="6"/>
+<rect x="316" y="110" width="20" height="160" rx="4" stroke-width="6"/>
+<path d="M150 312 L196 262 H376 L330 312 Z"/>
+<rect x="150" y="312" width="180" height="24" rx="4"/>
+<path d="M330 336 L376 286 V262 L330 312 Z"/>
+<rect x="156" y="336" width="22" height="118" rx="5"/>
+<rect x="304" y="336" width="22" height="118" rx="5"/>
+<path d="M178 400 H304" fill="none" stroke-width="6"/>
+</g>
+</svg>

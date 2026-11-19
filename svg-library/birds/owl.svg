@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Owl</title>
+<desc>Line drawing of an owl perched on a branch, with big round eyes and ear tufts.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M60 410 C170 400 340 412 452 398" fill="none" stroke-width="12"/>
+<path d="M164 130 L148 70 L206 108 Z"/><path d="M348 130 L364 70 L306 108 Z"/>
+<path d="M256 96 C340 96 380 160 376 250 C372 340 330 410 256 410 C182 410 140 340 136 250 C132 160 172 96 256 96 Z"/>
+<path d="M146 230 C104 270 112 350 160 390 C170 340 168 280 146 230 Z"/>
+<path d="M366 230 C408 270 400 350 352 390 C342 340 344 280 366 230 Z"/>
+<circle cx="208" cy="196" r="46"/><circle cx="304" cy="196" r="46"/>
+<circle cx="208" cy="196" r="28" stroke-width="5"/><circle cx="304" cy="196" r="28" stroke-width="5"/>
+<circle cx="208" cy="196" r="13" fill="#1A1A1A" stroke-width="2"/><circle cx="212.6" cy="191.4" r="4.5" fill="#FFFFFF" stroke="none"/><circle cx="304" cy="196" r="13" fill="#1A1A1A" stroke-width="2"/><circle cx="308.6" cy="191.4" r="4.5" fill="#FFFFFF" stroke="none"/>
+<path d="M256 214 L240 238 L256 262 L272 238 Z"/>
+<path d="M196.0 300.0 Q208.0 310.0 220.0 300.0 Q232.0 310.0 244.0 300.0 Q256.0 310.0 268.0 300.0 Q280.0 310.0 292.0 300.0 Q304.0 310.0 316.0 300.0 " fill="none" stroke-width="3.5"/><path d="M206.0 336.0 Q218.5 346.0 231.0 336.0 Q243.5 346.0 256.0 336.0 Q268.5 346.0 281.0 336.0 Q293.5 346.0 306.0 336.0 " fill="none" stroke-width="3.5"/><path d="M222.0 368.0 Q233.3 378.0 244.7 368.0 Q256.0 378.0 267.3 368.0 Q278.7 378.0 290.0 368.0 " fill="none" stroke-width="3.5"/>
+<path d="M220 406 L212 424 M236 408 L234 426 M276 408 L278 426 M292 406 L300 424" fill="none" stroke-width="6"/>
+</g>
+</svg>

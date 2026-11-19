@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Aeroplane</title>
+<desc>Line drawing of an aeroplane seen from above, with wings, engines, tail and windows.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(40 256 256)">
+<path d="M226 214 L54 300 C46 304 44 316 52 320 L60 324 L226 286 Z"/>
+<path d="M286 214 L458 300 C466 304 468 316 460 320 L452 324 L286 286 Z"/>
+<rect x="116" y="266" width="34" height="62" rx="16"/>
+<rect x="362" y="266" width="34" height="62" rx="16"/>
+<path d="M236 420 L168 456 L170 474 L242 458 Z"/>
+<path d="M276 420 L344 456 L342 474 L270 458 Z"/>
+<path d="M256 30 C282 30 290 70 290 110 V430 C290 456 274 480 256 486 C238 480 222 456 222 430 V110 C222 70 230 30 256 30 Z"/>
+<path d="M238 74 C244 62 268 62 274 74 L270 88 H242 Z" stroke-width="5"/>
+<circle cx="256" cy="124" r="6" stroke-width="4"/><circle cx="256" cy="150" r="6" stroke-width="4"/><circle cx="256" cy="176" r="6" stroke-width="4"/><circle cx="256" cy="202" r="6" stroke-width="4"/><circle cx="256" cy="228" r="6" stroke-width="4"/><circle cx="256" cy="254" r="6" stroke-width="4"/><circle cx="256" cy="280" r="6" stroke-width="4"/><circle cx="256" cy="306" r="6" stroke-width="4"/><circle cx="256" cy="332" r="6" stroke-width="4"/><circle cx="256" cy="358" r="6" stroke-width="4"/><circle cx="256" cy="384" r="6" stroke-width="4"/>
+<path d="M256 420 V476" fill="none" stroke-width="5"/>
+</g>
+</g>
+</svg>

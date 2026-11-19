@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Shorts</title>
+<desc>Line drawing of a pair of shorts with a waistband and drawstring.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M120 100 H392 L430 400 H290 L256 220 L222 400 H82 Z"/>
+<rect x="114" y="90" width="284" height="48" rx="8"/>
+<path d="M240 138 C236 160 230 176 220 186 M272 138 C276 160 282 176 292 186" fill="none" stroke-width="5"/>
+<circle cx="236" cy="114" r="6" stroke-width="4"/><circle cx="276" cy="114" r="6" stroke-width="4"/>
+<path d="M88 370 H222 M290 370 H426" fill="none" stroke-width="5"/>
+<path d="M150 160 C170 190 180 220 184 250 M362 160 C342 190 332 220 328 250" fill="none" stroke-width="4"/>
+</g>
+</svg>

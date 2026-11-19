@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Hat</title>
+<desc>Line drawing of a sun hat with a wide brim and a ribbon bow.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="256" cy="330" rx="226" ry="80"/>
+<path d="M140 320 C140 180 190 130 256 130 C322 130 372 180 372 320 C330 346 182 346 140 320 Z"/>
+<path d="M144 274 C190 296 322 296 368 274 L370 310 C324 332 188 332 142 310 Z" stroke-width="6"/>
+<path d="M326 300 C350 280 390 286 392 306 C392 326 352 330 326 300 Z" stroke-width="5"/>
+<path d="M326 300 C330 330 340 360 356 380 M326 300 C346 324 370 344 396 356" fill="none" stroke-width="5"/>
+<path d="M60 340 C120 380 390 380 452 340" fill="none" stroke-width="4"/>
+</g>
+</svg>

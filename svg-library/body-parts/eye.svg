@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Eye</title>
+<desc>Line drawing of an open eye with eyelashes and an eyebrow.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M92 160 C170 84 340 84 420 132 C340 110 182 114 102 166 Z"/>
+<path d="M70 290 C150 170 362 170 442 290 C362 390 150 390 70 290 Z"/>
+<circle cx="256" cy="284" r="78"/>
+<path d="M256 222 V236 M300 238 L292 250 M318 284 H304 M212 238 L220 250 M194 284 H208 M226 330 L232 318 M286 330 L280 318" fill="none" stroke-width="3.5"/>
+<circle cx="256" cy="284" r="32" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="272" cy="268" r="10" fill="#FFFFFF" stroke="none"/>
+<path d="M100 248 L78 222 M140 214 L124 186 M190 192 L182 162 M256 184 V152 M322 192 L330 162 M372 214 L388 186 M412 248 L434 222" fill="none" stroke-width="6"/>
+</g>
+</svg>

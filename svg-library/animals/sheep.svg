@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Sheep</title>
+<desc>Line drawing of a woolly sheep standing, seen from the side.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="190" y="320" width="22" height="120" rx="8"/><rect x="236" y="330" width="22" height="110" rx="8"/>
+<rect x="340" y="330" width="22" height="110" rx="8"/><rect x="384" y="320" width="22" height="120" rx="8"/>
+<rect x="190" y="424" width="22" height="16" rx="4" fill="#1A1A1A" stroke-width="3"/><rect x="236" y="424" width="22" height="16" rx="4" fill="#1A1A1A" stroke-width="3"/><rect x="340" y="424" width="22" height="16" rx="4" fill="#1A1A1A" stroke-width="3"/><rect x="384" y="424" width="22" height="16" rx="4" fill="#1A1A1A" stroke-width="3"/>
+<path d="M296.0 168.0 A40.1 40.1 0 0 1 360.3 175.6 A36.4 36.4 0 0 1 414.8 197.3 A30.2 30.2 0 0 1 451.2 229.7 A25.0 25.0 0 0 1 464.0 268.0 A25.0 25.0 0 0 1 451.2 306.3 A30.2 30.2 0 0 1 414.8 338.7 A36.4 36.4 0 0 1 360.3 360.4 A40.1 40.1 0 0 1 296.0 368.0 A40.1 40.1 0 0 1 231.7 360.4 A36.4 36.4 0 0 1 177.2 338.7 A30.2 30.2 0 0 1 140.8 306.3 A25.0 25.0 0 0 1 128.0 268.0 A25.0 25.0 0 0 1 140.8 229.7 A30.2 30.2 0 0 1 177.2 197.3 A36.4 36.4 0 0 1 231.7 175.6 A40.1 40.1 0 0 1 296.0 168.0 Z"/>
+<path d="M240 240 c10 -14 26 -14 34 0 M310 220 c10 -14 26 -14 34 0 M360 270 c10 -14 26 -14 34 0 M270 300 c10 -14 26 -14 34 0" fill="none" stroke-width="4"/>
+<ellipse cx="78" cy="214" rx="34" ry="14" transform="rotate(-24 78 214)"/>
+<ellipse cx="190" cy="196" rx="34" ry="14" transform="rotate(24 190 196)"/>
+<g transform="rotate(18 134 236)"><ellipse cx="134" cy="236" rx="52" ry="70"/></g>
+<path d="M94.0 172.0 A16.6 16.6 0 0 1 111.3 151.7 A24.3 24.3 0 0 1 150.2 146.7 A21.2 21.2 0 0 1 181.4 160.7 A14.0 14.0 0 0 1 181.4 183.3 A21.2 21.2 0 0 1 150.2 197.3 A24.3 24.3 0 0 1 111.3 192.3 A16.6 16.6 0 0 1 94.0 172.0 Z" stroke-width="6"/>
+<circle cx="118" cy="226" r="8" fill="#1A1A1A" stroke-width="2"/><circle cx="120.8" cy="223.2" r="2.8" fill="#FFFFFF" stroke="none"/><circle cx="156" cy="232" r="8" fill="#1A1A1A" stroke-width="2"/><circle cx="158.8" cy="229.2" r="2.8" fill="#FFFFFF" stroke="none"/>
+<ellipse cx="124" cy="282" rx="6" ry="4" fill="#1A1A1A" stroke-width="2"/><ellipse cx="144" cy="286" rx="6" ry="4" fill="#1A1A1A" stroke-width="2"/>
+<path d="M124 296 C130 304 140 304 146 298" fill="none" stroke-width="4"/>
+</g>
+</svg>

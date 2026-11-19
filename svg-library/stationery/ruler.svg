@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Ruler</title>
+<desc>Line drawing of a straight ruler with measuring marks.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-22 256 256)">
+<rect x="30" y="206" width="452" height="100" rx="8"/>
+<path d="M52.0 206 V240 M70.5 206 V226 M89.0 206 V226 M107.5 206 V226 M126.0 206 V226 M144.5 206 V240 M163.0 206 V226 M181.5 206 V226 M200.0 206 V226 M218.5 206 V226 M237.0 206 V240 M255.5 206 V226 M274.0 206 V226 M292.5 206 V226 M311.0 206 V226 M329.5 206 V240 M348.0 206 V226 M366.5 206 V226 M385.0 206 V226 M403.5 206 V226 M422.0 206 V240 M440.5 206 V226 M459.0 206 V226" fill="none" stroke-width="4"/>
+<circle cx="450" cy="272" r="10" stroke-width="5"/>
+</g>
+</g>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Pig</title>
+<desc>Line drawing of a cute cartoon pig standing, with its face turned towards us, a round snout and a curly tail.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M438 232 C478 222 482 268 456 272 C438 276 438 252 456 252" fill="none" stroke-width="7"/>
+<path d="M204 340 L206 430 C206 440 236 440 236 430 L238 340 Z"/><path d="M366 340 L368 430 C368 440 398 440 398 430 L400 340 Z"/>
+<path d="M206 418 H236 M221 418 V438 M368 418 H398 M383 418 V438" fill="none" stroke-width="4"/>
+<path d="M168 300 C150 200 240 160 316 162 C400 164 448 210 446 280 C444 350 390 378 310 378 C240 378 180 360 168 300 Z"/>
+<path d="M150 314 L160 420 C160 430 190 430 190 420 L196 340 Z"/>
+<path d="M300 370 L304 430 C304 440 334 440 334 430 L334 370 Z"/>
+<path d="M160 410 H190 M175 410 V428 M304 418 H334 M319 418 V436" fill="none" stroke-width="4"/>
+<path d="M110 150 C90 120 96 80 120 70 C140 92 156 120 158 146 Z"/>
+<path d="M250 146 C262 112 288 92 312 100 C306 130 290 156 262 166 Z"/>
+<circle cx="190" cy="230" r="98"/>
+<ellipse cx="186" cy="262" rx="48" ry="34"/>
+<ellipse cx="170" cy="262" rx="8" ry="12" fill="#1A1A1A" stroke-width="2"/><ellipse cx="202" cy="262" rx="8" ry="12" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="150" cy="204" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="153.5" cy="200.5" r="3.5" fill="#FFFFFF" stroke="none"/><circle cx="222" cy="204" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="225.5" cy="200.5" r="3.5" fill="#FFFFFF" stroke="none"/>
+<path d="M156 312 C176 326 200 326 218 312" fill="none" stroke-width="5"/>
+<ellipse cx="114" cy="262" rx="14" ry="9" stroke-width="3"/><ellipse cx="260" cy="262" rx="14" ry="9" stroke-width="3"/>
+</g>
+</svg>

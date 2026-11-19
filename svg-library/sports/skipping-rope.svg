@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Skipping rope</title>
+<desc>Line drawing of a girl jumping with a skipping rope swinging over her head.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="256" cy="470" rx="90" ry="14"/>
+<path d="M190 450 l-20 6 M330 450 l20 6 M200 462 l-26 2 M312 462 l26 2" fill="none" stroke-width="4"/>
+<path d="M134 300 C60 -40 452 -40 378 300" fill="none" stroke-width="7"/>
+<path d="M226 300 C214 340 208 360 218 392 M284 300 C298 340 304 360 292 392" fill="none" stroke-width="14"/>
+<path d="M226 300 C214 340 208 360 218 392 M284 300 C298 340 304 360 292 392" fill="none" stroke-width="2"/>
+<path d="M200 392 C200 380 236 380 240 392 C240 402 204 404 200 392 Z"/>
+<path d="M272 392 C276 380 312 380 312 392 C308 404 272 402 272 392 Z"/>
+<path d="M226 180 C196 210 166 240 140 260" fill="none" stroke-width="22"/><path d="M286 180 C316 210 346 240 372 260" fill="none" stroke-width="22"/><path d="M226 180 C196 210 166 240 140 260" fill="none" stroke="#FFFFFF" stroke-width="10"/><path d="M286 180 C316 210 346 240 372 260" fill="none" stroke="#FFFFFF" stroke-width="10"/>
+<rect x="124" y="252" width="22" height="56" rx="10" transform="rotate(-20 135 280)"/>
+<rect x="366" y="252" width="22" height="56" rx="10" transform="rotate(20 377 280)"/>
+<circle cx="140" cy="262" r="12"/><circle cx="372" cy="262" r="12"/>
+<path d="M226 170 H286 L320 304 C290 316 222 316 192 304 Z"/>
+<path d="M226 170 C236 186 276 186 286 170" fill="none" stroke-width="5"/>
+<path d="M206 290 C236 298 276 298 306 290" fill="none" stroke-width="4"/>
+<rect x="246" y="150" width="20" height="22" rx="6"/>
+<path d="M200 120 C176 110 166 136 176 150 C186 160 200 152 204 140 Z"/>
+<path d="M312 120 C336 110 346 136 336 150 C326 160 312 152 308 140 Z"/>
+<circle cx="256" cy="110" r="50"/>
+<path d="M208 104 C210 70 236 58 256 58 C282 58 304 72 304 104 C290 86 270 80 256 82 C240 80 220 88 208 104 Z"/>
+<circle cx="238" cy="112" r="6" fill="#1A1A1A" stroke-width="2"/><circle cx="240.1" cy="109.9" r="2.1" fill="#FFFFFF" stroke="none"/><circle cx="274" cy="112" r="6" fill="#1A1A1A" stroke-width="2"/><circle cx="276.1" cy="109.9" r="2.1" fill="#FFFFFF" stroke="none"/>
+<path d="M240 134 C250 144 262 144 272 134" fill="none" stroke-width="5"/>
+<path d="M110 120 C100 140 98 160 102 180 M402 120 C412 140 414 160 410 180" fill="none" stroke-width="4"/>
+</g>
+</svg>

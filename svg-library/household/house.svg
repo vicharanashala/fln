@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>House</title>
+<desc>Line drawing of a house with a sloping roof, chimney, door and windows.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="340" y="100" width="46" height="90"/>
+<rect x="332" y="86" width="62" height="20" rx="4"/>
+<path d="M40 250 L256 70 L472 250 Z"/>
+<rect x="80" y="230" width="352" height="230"/>
+<path d="M220 460 V330 C220 314 232 304 256 304 C280 304 292 314 292 330 V460 Z"/>
+<circle cx="276" cy="388" r="7" stroke-width="5"/>
+<rect x="110" y="290" width="76" height="76" rx="4"/><path d="M148 290 V366 M110 328 H186" fill="none" stroke-width="5"/>
+<rect x="326" y="290" width="76" height="76" rx="4"/><path d="M364 290 V366 M326 328 H402" fill="none" stroke-width="5"/>
+<circle cx="256" cy="186" r="30"/><path d="M256 156 V216 M226 186 H286" fill="none" stroke-width="5"/>
+<path d="M40 460 H472" fill="none" stroke-width="6"/>
+</g>
+</svg>

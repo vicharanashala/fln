@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Book</title>
+<desc>Line drawing of an open book with lines of text.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M40 152 V400 C120 380 200 382 256 410 C312 382 392 380 472 400 V152"/>
+<path d="M256 150 C200 116 118 116 58 136 V384 C118 364 200 366 256 394 Z"/>
+<path d="M256 150 C312 116 394 116 454 136 V384 C394 364 312 366 256 394 Z"/>
+<path d="M256 150 V394" fill="none" stroke-width="6"/>
+<path d="M86 172 C130 160 190 160 230 176 M86 206 C130 194 190 194 230 210 M86 240 C130 228 190 228 230 244 M86 274 C130 262 190 262 230 278 M86 308 C130 296 170 296 200 306" fill="none" stroke-width="4"/>
+<path d="M282 176 C322 160 382 160 426 172 M282 210 C322 194 382 194 426 206 M282 244 C322 228 382 228 426 240 M282 278 C322 262 382 262 426 274 M312 306 C342 296 382 296 426 308" fill="none" stroke-width="4"/>
+</g>
+</svg>

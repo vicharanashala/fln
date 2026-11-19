@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cherries</title>
+<desc>Line drawing of a pair of cherries joined at the stalks with a leaf.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M178 300 C196 210 236 148 270 102" fill="none" stroke-width="7"/>
+<path d="M334 290 C324 210 300 150 270 102" fill="none" stroke-width="7"/>
+<path d="M270 102 C300 68 362 66 396 88 C366 120 304 126 270 102 Z"/>
+<path d="M280 100 C316 92 350 90 384 90" fill="none" stroke-width="4"/>
+<circle cx="176" cy="368" r="74"/>
+<circle cx="334" cy="356" r="74"/>
+<path d="M160 300 C170 308 186 308 196 300 M318 288 C328 296 344 296 354 288" fill="none" stroke-width="5"/>
+<path d="M132 350 C130 330 138 314 150 306 M290 338 C288 318 296 302 308 294" fill="none" stroke-width="5"/>
+</g>
+</svg>

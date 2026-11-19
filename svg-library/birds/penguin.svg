@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Penguin</title>
+<desc>Line drawing of a penguin standing, facing forward, with flippers, a white belly and webbed feet.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M206 446 C190 446 170 456 176 468 H236 C240 456 226 446 206 446 Z"/>
+<path d="M306 446 C290 446 270 456 276 468 H336 C340 456 326 446 306 446 Z"/>
+<path d="M136 210 C100 250 86 320 98 360 C120 340 136 300 144 260 Z"/>
+<path d="M376 210 C412 250 426 320 414 360 C392 340 376 300 368 260 Z"/>
+<path d="M256 70 C342 70 382 150 384 250 C388 380 340 456 256 456 C172 456 124 380 128 250 C130 150 170 70 256 70 Z"/>
+<path d="M256 176 C320 176 338 264 338 320 C338 402 302 436 256 436 C210 436 174 402 174 320 C174 264 192 176 256 176 Z" stroke-width="6"/>
+<path d="M256 140 C230 102 166 112 176 172 C186 214 230 216 256 192 C282 216 326 214 336 172 C346 112 282 102 256 140 Z" stroke-width="6"/>
+<circle cx="214" cy="160" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="217.5" cy="156.5" r="3.5" fill="#FFFFFF" stroke="none"/><circle cx="298" cy="160" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="301.5" cy="156.5" r="3.5" fill="#FFFFFF" stroke="none"/>
+<path d="M232 186 L256 214 L280 186 Z"/>
+<path d="M216 300 C230 290 244 288 256 292 M256 340 C270 330 284 330 296 334" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

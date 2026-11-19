@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cricket bat and ball</title>
+<desc>Line drawing of a cricket bat with a cricket ball beside it.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-45 256 256)">
+<rect x="40" y="238" width="140" height="36" rx="16"/>
+<path d="M70 240 L84 272" fill="none" stroke-width="4"/><path d="M96 240 L110 272" fill="none" stroke-width="4"/><path d="M122 240 L136 272" fill="none" stroke-width="4"/><path d="M148 240 L162 272" fill="none" stroke-width="4"/>
+<path d="M176 244 C190 244 196 222 214 222 H440 C460 222 472 236 472 256 C472 276 460 290 440 290 H214 C196 290 190 268 176 268 Z"/>
+<path d="M226 256 H440" fill="none" stroke-width="5"/>
+</g>
+<circle cx="386" cy="390" r="46"/>
+<path d="M352 360 C374 380 398 404 414 428" fill="none" stroke-width="4"/>
+<path d="M362 352 C384 372 408 396 424 418" fill="none" stroke-width="4"/>
+</g>
+</svg>

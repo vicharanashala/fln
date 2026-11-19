@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Star</title>
+<desc>Outline of a five-pointed star.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256.0 66.0 L307.7 204.8 L455.7 211.1 L339.7 303.2 L379.4 445.9 L256.0 364.0 L132.6 445.9 L172.3 303.2 L56.3 211.1 L204.3 204.8 Z" stroke-width="10"/>
+</g>
+</svg>

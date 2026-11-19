@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cat</title>
+<desc>Friendly line drawing of a cat sitting, facing forward, with a curled tail.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M330 444 C424 448 452 362 404 314 C394 306 382 316 388 326 C420 366 402 420 332 422 Z"/>
+<path d="M206 236 C152 300 146 420 182 446 H330 C366 420 360 300 306 236 Z"/>
+<path d="M236 330 V436" fill="none" stroke-width="5"/><path d="M276 330 V436" fill="none" stroke-width="5"/>
+<ellipse cx="216" cy="440" rx="28" ry="14"/>
+<ellipse cx="296" cy="440" rx="28" ry="14"/>
+<path d="M206 434 V446" fill="none" stroke-width="4"/><path d="M222 434 V446" fill="none" stroke-width="4"/><path d="M290 434 V446" fill="none" stroke-width="4"/><path d="M306 434 V446" fill="none" stroke-width="4"/>
+<path d="M182 132 L186 52 L248 98 Z"/>
+<path d="M330 132 L326 52 L264 98 Z"/>
+<circle cx="256" cy="178" r="88"/>
+<path d="M196 110 L198 76 L222 96" fill="none" stroke-width="5"/><path d="M316 110 L314 76 L290 96" fill="none" stroke-width="5"/>
+<ellipse cx="222" cy="168" rx="11" ry="16" fill="#1A1A1A" stroke-width="2"/>
+<ellipse cx="290" cy="168" rx="11" ry="16" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="225" cy="162" r="4" fill="#FFFFFF" stroke="none"/>
+<circle cx="293" cy="162" r="4" fill="#FFFFFF" stroke="none"/>
+<path d="M245 198 H267 L256 210 Z" fill="#1A1A1A" stroke-width="4"/>
+<path d="M256 210 C250 224 236 224 230 216" fill="none" stroke-width="5"/><path d="M256 210 C262 224 276 224 282 216" fill="none" stroke-width="5"/>
+<path d="M214 202 L158 194" fill="none" stroke-width="3.5"/><path d="M214 214 L160 220" fill="none" stroke-width="3.5"/>
+<path d="M298 202 L354 194" fill="none" stroke-width="3.5"/><path d="M298 214 L352 220" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

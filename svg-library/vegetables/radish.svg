@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Radish</title>
+<desc>Line drawing of a round radish with a thin root tail and leafy top.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M240 226 C216 160 170 110 120 90 C110 120 128 170 170 206 C150 196 130 196 112 204 C134 232 176 242 216 232 Z"/>
+<path d="M272 226 C296 160 342 110 392 90 C402 120 384 170 342 206 C362 196 382 196 400 204 C378 232 336 242 296 232 Z"/>
+<path d="M256 226 C246 160 250 100 266 52 C290 100 286 170 268 226 Z"/>
+<path d="M240 222 C206 180 170 140 130 104 M272 222 C306 180 342 140 382 104 M260 222 C260 170 262 110 266 64" fill="none" stroke-width="3.5"/>
+<path d="M256 218 C344 218 384 292 342 362 C318 402 280 428 262 470 L250 470 C232 428 194 402 170 362 C128 292 168 218 256 218 Z"/>
+<path d="M256 470 C256 486 260 500 268 506" fill="none" stroke-width="4"/>
+<path d="M178 290 C176 316 182 340 196 360" fill="none" stroke-width="5"/>
+<path d="M314 380 l14 -4 M292 404 l12 -2" fill="none" stroke-width="3"/>
+</g>
+</svg>

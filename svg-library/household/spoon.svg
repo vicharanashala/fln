@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Spoon</title>
+<desc>Line drawing of a spoon standing upright, with an oval bowl and a long handle.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-14 256 256)">
+<path d="M256 34 C300 34 326 80 326 134 C326 190 294 228 266 236 C262 250 262 262 264 280 C268 340 276 400 286 440 C292 466 274 482 256 482 C238 482 220 466 226 440 C236 400 244 340 248 280 C250 262 250 250 246 236 C218 228 186 190 186 134 C186 80 212 34 256 34 Z"/>
+<path d="M212 128 C214 92 230 66 252 58" fill="none" stroke-width="5"/>
+<path d="M300 150 C298 188 282 210 262 220" fill="none" stroke-width="4"/>
+<path d="M248 420 C250 440 254 452 262 460" fill="none" stroke-width="4"/>
+</g>
+</g>
+</svg>

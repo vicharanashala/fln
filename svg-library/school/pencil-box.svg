@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Pencil box</title>
+<desc>Line drawing of an open pencil box with pencils, an eraser and a sharpener inside.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="60" y="60" width="392" height="150" rx="16"/>
+<rect x="84" y="84" width="344" height="102" rx="8" stroke-width="5"/>
+<circle cx="256" cy="135" r="24" stroke-width="5"/><path d="M256 115 L262 129 L276 130 L265 139 L268 153 L256 145 L244 153 L247 139 L236 130 L250 129 Z" fill="none" stroke-width="3"/>
+<path d="M120 210 V224 M392 210 V224" fill="none" stroke-width="8"/>
+<rect x="60" y="224" width="392" height="220" rx="16"/>
+<rect x="84" y="248" width="344" height="172" rx="8" stroke-width="5"/>
+<path d="M110 270 H340 L380 284 L340 298 H110 Z" stroke-width="6"/><path d="M370 281 L380 284 L370 287 Z" fill="#1A1A1A" stroke-width="3"/>
+<path d="M132 270 V298" fill="none" stroke-width="4"/>
+<path d="M110 312 H320 L360 326 L320 340 H110 Z" stroke-width="6"/><path d="M350 323 L360 326 L350 329 Z" fill="#1A1A1A" stroke-width="3"/>
+<path d="M132 312 V340" fill="none" stroke-width="4"/>
+<rect x="114" y="360" width="80" height="40" rx="8" stroke-width="5"/>
+<path d="M150 360 V400" fill="none" stroke-width="4"/>
+<rect x="230" y="360" width="50" height="40" rx="6" stroke-width="5"/>
+<circle cx="255" cy="380" r="10" stroke-width="4"/>
+<rect x="320" y="360" width="90" height="16" rx="4" stroke-width="5"/>
+</g>
+</svg>

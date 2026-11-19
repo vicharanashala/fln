@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Motorcycle</title>
+<desc>Line drawing of a motorcycle seen from the side.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="110" cy="370" r="70"/><circle cx="110" cy="370" r="22" stroke-width="6"/>
+<circle cx="400" cy="370" r="70"/><circle cx="400" cy="370" r="22" stroke-width="6"/>
+<path d="M110 370 L190 300 M400 370 L350 220" fill="none" stroke-width="10"/>
+<path d="M170 300 H320 L350 250 H260 C230 250 200 260 170 300 Z"/>
+<path d="M150 260 C150 240 170 230 200 230 H270 C280 230 284 240 280 250 H160 C154 250 150 256 150 260 Z"/>
+<path d="M260 250 C270 220 300 210 340 214 L350 250 Z"/>
+<rect x="190" y="300" width="110" height="60" rx="12"/>
+<path d="M210 320 H280 M210 340 H280" fill="none" stroke-width="4"/>
+<path d="M330 210 L372 200 M346 216 L340 196" fill="none" stroke-width="7"/>
+<path d="M370 196 C380 186 396 188 400 198 L374 206 Z" stroke-width="5"/>
+<path d="M60 300 C80 290 110 290 130 296 L120 310 C100 306 80 306 66 312 Z" stroke-width="5"/>
+<path d="M300 340 C330 340 350 346 370 356 L420 356" fill="none" stroke-width="7"/>
+</g>
+</svg>

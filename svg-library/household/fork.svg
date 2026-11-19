@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Fork</title>
+<desc>Line drawing of a fork standing upright, with four prongs.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(14 256 256)">
+<path d="M186 40 C180 40 178 46 178 52 V150 C178 200 206 236 240 248 L242 268 H270 L272 248 C306 236 334 200 334 150 V52 C334 46 332 40 326 40 C320 40 318 46 318 52 V160 H302 V52 C302 46 300 40 294 40 C288 40 286 46 286 52 V160 H272 V52 C272 46 270 40 264 40 H248 C242 40 240 46 240 52 V160 H226 V52 C226 46 224 40 218 40 C212 40 210 46 210 52 V160 H194 V52 C194 46 192 40 186 40 Z"/>
+<path d="M242 268 C240 330 236 400 230 450 C228 476 284 476 282 450 C276 400 272 330 270 268 Z"/>
+</g>
+</g>
+</svg>

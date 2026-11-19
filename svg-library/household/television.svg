@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Television</title>
+<desc>Line drawing of a television on a stand showing a picture of hills and the sun.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M206 420 L190 460 H322 L306 420 Z"/>
+<rect x="40" y="100" width="432" height="320" rx="20"/>
+<rect x="66" y="126" width="380" height="250" rx="8"/>
+<circle cx="360" cy="190" r="26" stroke-width="5"/>
+<path d="M66 340 C120 260 200 250 260 320 C300 280 380 270 446 330 V376 H66 Z" stroke-width="5"/>
+<circle cx="440" cy="398" r="8" stroke-width="4"/>
+<path d="M96 398 H160" fill="none" stroke-width="4"/>
+</g>
+</svg>

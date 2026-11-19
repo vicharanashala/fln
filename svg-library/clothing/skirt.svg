@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Skirt</title>
+<desc>Line drawing of a pleated skirt with a waistband and button.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="150" y="90" width="212" height="44" rx="8"/>
+<circle cx="330" cy="112" r="8" stroke-width="5"/>
+<path d="M152 134 H360 L456 420 C400 446 112 446 56 420 Z"/>
+<path d="M190 134 L130 432 M226 134 L204 440 M256 134 V442 M286 134 L308 440 M322 134 L382 432" fill="none" stroke-width="5"/>
+<path d="M70 400 C150 422 362 422 442 400" fill="none" stroke-width="4"/>
+</g>
+</svg>

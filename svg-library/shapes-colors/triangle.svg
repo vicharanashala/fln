@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Triangle</title>
+<desc>Outline of an equilateral triangle.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 56 L478 440 H34 Z" stroke-width="10"/>
+</g>
+</svg>

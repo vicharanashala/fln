@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Lollipop</title>
+<desc>Line drawing of a round swirl lollipop on a stick with a ribbon bow.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 300 V490" fill="none" stroke-width="22"/><path d="M256 300 V490" fill="none" stroke="#FFFFFF" stroke-width="10"/>
+<path d="M256 330 C226 310 200 316 196 334 C194 352 226 352 256 336 C286 352 318 352 316 334 C312 316 286 310 256 330 Z" stroke-width="6"/>
+<path d="M252 338 C244 360 236 376 224 390 M260 338 C268 360 276 376 288 390" fill="none" stroke-width="6"/>
+<circle cx="256" cy="200" r="140"/>
+<path d="M256 200 m-12 0 a12 12 0 1 1 24 0 a26 26 0 1 1 -52 0 a42 42 0 1 1 84 0 a58 58 0 1 1 -116 0 a76 76 0 1 1 152 0 a94 94 0 1 1 -188 0 a112 112 0 1 1 224 0" fill="none" stroke-width="6"/>
+</g>
+</svg>

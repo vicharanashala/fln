@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Tractor</title>
+<desc>Line drawing of a farm tractor with a big back wheel and a small front wheel.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="160" y="90" width="150" height="20" rx="6"/>
+<path d="M180 110 V230 M300 110 V230" fill="none" stroke-width="10"/>
+<path d="M190 120 H292 V230 H190 Z" stroke-width="6"/>
+<path d="M374 140 V230" fill="none" stroke-width="14"/><path d="M366 130 H384 L380 140 H368 Z" stroke-width="5"/>
+<path d="M150 230 H330 L440 250 C460 254 470 266 470 286 V350 H150 Z"/>
+<path d="M340 270 H450 M340 300 H450" fill="none" stroke-width="4"/>
+<circle cx="180" cy="360" r="104"/><circle cx="180" cy="360" r="76" stroke-width="5"/><circle cx="180" cy="360" r="26" stroke-width="6"/>
+<path d="M284.0 360.0 L272.0 360.0 M277.7 395.6 L266.5 391.5 M259.7 426.8 L250.5 419.1 M232.0 450.1 L226.0 439.7 M198.1 462.4 L196.0 450.6 M161.9 462.4 L164.0 450.6 M128.0 450.1 L134.0 439.7 M100.3 426.8 L109.5 419.1 M82.3 395.6 L93.5 391.5 M76.0 360.0 L88.0 360.0 M82.3 324.4 L93.5 328.5 M100.3 293.2 L109.5 300.9 M128.0 269.9 L134.0 280.3 M161.9 257.6 L164.0 269.4 M198.1 257.6 L196.0 269.4 M232.0 269.9 L226.0 280.3 M259.7 293.2 L250.5 300.9 M277.7 324.4 L266.5 328.5" fill="none" stroke-width="8"/>
+<circle cx="410" cy="400" r="56"/><circle cx="410" cy="400" r="20" stroke-width="6"/>
+<path d="M466.0 400.0 L456.0 400.0 M458.5 428.0 L449.8 423.0 M438.0 448.5 L433.0 439.8 M410.0 456.0 L410.0 446.0 M382.0 448.5 L387.0 439.8 M361.5 428.0 L370.2 423.0 M354.0 400.0 L364.0 400.0 M361.5 372.0 L370.2 377.0 M382.0 351.5 L387.0 360.2 M410.0 344.0 L410.0 354.0 M438.0 351.5 L433.0 360.2 M458.5 372.0 L449.8 377.0" fill="none" stroke-width="6"/>
+</g>
+</svg>

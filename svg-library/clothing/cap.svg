@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cap</title>
+<desc>Line drawing of a baseball cap seen at an angle, showing the front panels, top button and curved peak.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M118 300 C98 190 180 108 282 106 C382 106 434 186 420 290 C404 318 160 328 118 300 Z"/>
+<path d="M282 108 C236 160 214 240 210 318 M282 108 C324 160 346 230 350 314 M282 108 C370 140 412 210 420 290" fill="none" stroke-width="5"/>
+<ellipse cx="282" cy="106" rx="18" ry="9"/>
+<circle cx="244" cy="180" r="6" stroke-width="4"/><circle cx="324" cy="180" r="6" stroke-width="4"/>
+<path d="M118 298 C180 322 320 326 406 298 C360 342 250 380 150 388 C88 392 38 376 42 350 C46 324 80 304 118 298 Z"/>
+<path d="M70 350 C120 362 220 350 330 318" fill="none" stroke-width="4"/>
+</g>
+</svg>

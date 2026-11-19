@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Shirt</title>
+<desc>Line drawing of a collared full-sleeve shirt with buttons and a pocket.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M190 90 L120 120 L60 380 C60 392 70 398 80 396 L120 392 L150 220 V450 H362 V220 L392 392 L432 396 C442 398 452 392 452 380 L392 120 L322 90 Z"/>
+<path d="M70 350 L124 356 M442 350 L388 356" fill="none" stroke-width="5"/>
+<path d="M190 90 L256 150 L210 176 L170 120 Z"/>
+<path d="M322 90 L256 150 L302 176 L342 120 Z"/>
+<path d="M256 150 V450" fill="none" stroke-width="6"/>
+<circle cx="270" cy="200" r="7" stroke-width="4"/><circle cx="270" cy="260" r="7" stroke-width="4"/><circle cx="270" cy="320" r="7" stroke-width="4"/><circle cx="270" cy="380" r="7" stroke-width="4"/>
+<path d="M170 230 H226 V286 C226 292 222 296 216 296 H180 C174 296 170 292 170 286 Z" stroke-width="5"/>
+<path d="M170 246 H226" fill="none" stroke-width="4"/>
+</g>
+</svg>

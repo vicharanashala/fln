@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>T-shirt</title>
+<desc>Line drawing of a half-sleeve T-shirt.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M190 98 C214 124 298 124 322 98 L424 146 L396 232 L350 212 V436 H162 V212 L116 232 L88 146 Z"/>
+<path d="M190 98 C204 146 308 146 322 98" fill="none"/>
+<path d="M206 104 C222 128 290 128 306 104" fill="none" stroke-width="5"/>
+<path d="M104 196 L132 208" fill="none" stroke-width="5"/><path d="M408 196 L380 208" fill="none" stroke-width="5"/>
+<path d="M162 412 H350" fill="none" stroke-width="4"/>
+</g>
+</svg>

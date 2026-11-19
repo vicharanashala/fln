@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Orange</title>
+<desc>Line drawing of a whole orange with a leaf and a cut half showing its juicy segments.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="196" cy="232" r="146"/>
+<path d="M120 200 l1 1 M150 260 l1 1 M200 170 l1 1 M240 220 l1 1 M270 280 l1 1 M130 310 l1 1 M190 330 l1 1 M300 180 l1 1 M230 120 l1 1 M170 230 l1 1 M110 250 l1 1" fill="none" stroke-width="6"/>
+<path d="M98 200 C96 166 112 136 136 118" fill="none" stroke-width="5"/>
+<path d="M196 88 C192 74 198 62 208 56" fill="none" stroke-width="10"/>
+<path d="M206 70 C236 32 296 26 332 42 C310 80 250 92 206 70 Z"/>
+<path d="M214 68 C246 56 280 48 320 46" fill="none" stroke-width="4"/>
+<circle cx="346" cy="356" r="122"/>
+<circle cx="346" cy="356" r="106" stroke-width="5"/>
+<path d="M355.5 359.1 L441.8 362.7 A96 96 0 0 1 427.4 406.9 Z" stroke-width="4"/>
+<ellipse cx="396.2" cy="372.3" rx="5" ry="9" transform="rotate(108 396.2 372.3)" stroke-width="3"/>
+<path d="M351.9 364.1 L419.5 417.7 A96 96 0 0 1 382.0 445.0 Z" stroke-width="4"/>
+<path d="M346.0 366.0 L369.2 449.1 A96 96 0 0 1 322.8 449.1 Z" stroke-width="4"/>
+<path d="M340.1 364.1 L310.0 445.0 A96 96 0 0 1 272.5 417.7 Z" stroke-width="4"/>
+<ellipse cx="315.0" cy="398.7" rx="5" ry="9" transform="rotate(216 315.0 398.7)" stroke-width="3"/>
+<path d="M336.5 359.1 L264.6 406.9 A96 96 0 0 1 250.2 362.7 Z" stroke-width="4"/>
+<path d="M336.5 352.9 L250.2 349.3 A96 96 0 0 1 264.6 305.1 Z" stroke-width="4"/>
+<path d="M340.1 347.9 L272.5 294.3 A96 96 0 0 1 310.0 267.0 Z" stroke-width="4"/>
+<ellipse cx="315.0" cy="313.3" rx="5" ry="9" transform="rotate(324 315.0 313.3)" stroke-width="3"/>
+<path d="M346.0 346.0 L322.8 262.9 A96 96 0 0 1 369.2 262.9 Z" stroke-width="4"/>
+<path d="M351.9 347.9 L382.0 267.0 A96 96 0 0 1 419.5 294.3 Z" stroke-width="4"/>
+<path d="M355.5 352.9 L427.4 305.1 A96 96 0 0 1 441.8 349.3 Z" stroke-width="4"/>
+<ellipse cx="396.2" cy="339.7" rx="5" ry="9" transform="rotate(432 396.2 339.7)" stroke-width="3"/>
+</g>
+</svg>

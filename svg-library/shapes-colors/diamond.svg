@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Diamond</title>
+<desc>Outline of a diamond (rhombus).</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 40 L420 256 L256 472 L92 256 Z" stroke-width="10"/>
+</g>
+</svg>

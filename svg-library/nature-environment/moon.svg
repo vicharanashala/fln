@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Moon</title>
+<desc>Line drawing of a crescent moon with two small stars.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M300 72 A190 190 0 1 0 446 372 A150 150 0 1 1 300 72 Z"/>
+<path d="M392 120 L400 142 L422 146 L404 160 L410 182 L392 170 L374 182 L380 160 L362 146 L384 142 Z" stroke-width="5"/>
+<path d="M440 220 L445 234 L460 236 L448 246 L452 260 L440 252 L428 260 L432 246 L420 236 L435 234 Z" stroke-width="5"/>
+<path d="M150 260 C150 210 170 170 200 146" fill="none" stroke-width="5"/>
+</g>
+</svg>

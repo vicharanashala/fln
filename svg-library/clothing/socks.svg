@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Socks</title>
+<desc>Line drawing of a pair of striped socks with ribbed cuffs.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(-20 10) scale(0.9)"><g transform="translate(110 -40) rotate(8 256 256)">
+<path d="M180 120 H322 V300 C322 330 342 350 382 360 C442 376 452 440 402 456 H240 C196 456 180 420 180 380 Z"/>
+<rect x="172" y="70" width="158" height="58" rx="8"/>
+<path d="M196 76 V122 M220 76 V122 M244 76 V122 M268 76 V122 M292 76 V122 M312 76 V122" fill="none" stroke-width="4"/>
+<path d="M180 190 H322 M180 220 H322" fill="none" stroke-width="5"/>
+<path d="M180 380 C204 380 230 400 236 456 H240 C196 456 180 420 180 380 Z" stroke-width="5"/>
+<path d="M402 360 C380 380 372 420 384 456 H402 C452 440 442 376 402 360 Z" stroke-width="5"/>
+</g><g transform="translate(0 0) rotate(0 256 256)">
+<path d="M180 120 H322 V300 C322 330 342 350 382 360 C442 376 452 440 402 456 H240 C196 456 180 420 180 380 Z"/>
+<rect x="172" y="70" width="158" height="58" rx="8"/>
+<path d="M196 76 V122 M220 76 V122 M244 76 V122 M268 76 V122 M292 76 V122 M312 76 V122" fill="none" stroke-width="4"/>
+<path d="M180 190 H322 M180 220 H322" fill="none" stroke-width="5"/>
+<path d="M180 380 C204 380 230 400 236 456 H240 C196 456 180 420 180 380 Z" stroke-width="5"/>
+<path d="M402 360 C380 380 372 420 384 456 H402 C452 440 442 376 402 360 Z" stroke-width="5"/>
+</g></g>
+</g>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Tomato</title>
+<desc>Line drawing of a round tomato with a green top.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 168 C156 156 88 226 100 314 C112 404 192 446 256 446 C320 446 400 404 412 314 C424 226 356 156 256 168 Z"/>
+<path d="M198 186 C176 236 178 290 194 318" fill="none" stroke-width="5"/>
+<path d="M314 186 C336 236 334 290 318 318" fill="none" stroke-width="5"/>
+<path d="M256 172 L212 144 L234 182 L184 190 L236 198 L218 234 L256 204 L294 234 L276 198 L328 190 L278 182 L300 144 Z"/>
+<path d="M256 176 L256 120" fill="none" stroke-width="10"/>
+<path d="M146 286 C146 254 160 228 182 212" fill="none" stroke-width="5"/>
+</g>
+</svg>

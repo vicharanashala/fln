@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Bus</title>
+<desc>Line drawing of a long passenger bus seen from the side, with windows, door, lights and two wheels.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(0 40)">
+<path d="M104 136 L114 124 H448 L458 136" fill="none" stroke-width="6"/>
+<path d="M40 310 V196 C40 184 44 174 52 166 L76 144 C82 138 90 136 98 136 H456 C468 136 476 144 476 156 V310 C476 324 468 332 456 332 H58 C48 332 40 324 40 310 Z"/>
+<path d="M52 200 L82 156 H112 V252 H52 Z"/>
+<rect x="124" y="156" width="50" height="168" rx="6"/>
+<path d="M149 160 V320 M128 240 H170" fill="none" stroke-width="5"/>
+<rect x="186" y="156" width="42" height="74" rx="6"/>
+<rect x="234" y="156" width="42" height="74" rx="6"/>
+<rect x="282" y="156" width="42" height="74" rx="6"/>
+<rect x="330" y="156" width="42" height="74" rx="6"/>
+<rect x="378" y="156" width="42" height="74" rx="6"/>
+<rect x="426" y="156" width="36" height="74" rx="6"/>
+<path d="M174 258 H476 M174 272 H476" fill="none" stroke-width="5"/>
+<circle cx="60" cy="290" r="10" stroke-width="6"/>
+<rect x="30" y="306" width="34" height="20" rx="6"/>
+<rect x="462" y="286" width="14" height="26" rx="3" stroke-width="5"/>
+<path d="M42 180 L28 178 V214 L40 216" fill="none" stroke-width="6"/>
+<path d="M68 332 A52 52 0 0 1 172 332 Z" stroke="none"/><path d="M68 332 A52 52 0 0 1 172 332" fill="none" stroke-width="6"/>
+<path d="M336 332 A52 52 0 0 1 440 332 Z" stroke="none"/><path d="M336 332 A52 52 0 0 1 440 332" fill="none" stroke-width="6"/>
+<circle cx="120" cy="338" r="40"/><circle cx="120" cy="338" r="16" stroke-width="6"/>
+<circle cx="388" cy="338" r="40"/><circle cx="388" cy="338" r="16" stroke-width="6"/>
+</g>
+</g>
+</svg>

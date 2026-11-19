@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Ship</title>
+<desc>Line drawing of a big ship with portholes, a cabin and two funnels sailing on the water.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M150 150 H200 L196 230 H150 Z"/><path d="M230 130 H280 L276 230 H230 Z"/>
+<path d="M146 168 H200 M226 148 H280" fill="none" stroke-width="6"/>
+<path d="M196 116 C186 100 200 86 216 94 C224 76 252 80 252 98" fill="none" stroke-width="5"/>
+<rect x="120" y="230" width="270" height="70" rx="6"/>
+<rect x="144" y="250" width="34" height="28" rx="4" stroke-width="5"/><rect x="196" y="250" width="34" height="28" rx="4" stroke-width="5"/><rect x="248" y="250" width="34" height="28" rx="4" stroke-width="5"/><rect x="300" y="250" width="34" height="28" rx="4" stroke-width="5"/><rect x="340" y="250" width="34" height="28" rx="4" stroke-width="5"/>
+<path d="M36 300 H476 L420 410 C416 418 408 422 400 422 H112 C104 422 96 418 92 410 Z"/>
+<circle cx="120" cy="350" r="12" stroke-width="5"/><circle cx="180" cy="350" r="12" stroke-width="5"/><circle cx="240" cy="350" r="12" stroke-width="5"/><circle cx="300" cy="350" r="12" stroke-width="5"/><circle cx="360" cy="350" r="12" stroke-width="5"/><circle cx="420" cy="350" r="12" stroke-width="5"/>
+<path d="M70 382 H444" fill="none" stroke-width="4"/>
+<path d="M30 444 C60 430 90 458 120 444 C150 430 180 458 210 444 C240 430 270 458 300 444 C330 430 360 458 390 444 C420 430 450 458 480 444" fill="none" stroke-width="5"/>
+</g>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Paintbrush</title>
+<desc>Line drawing of a paint palette with blobs of paint and a paintbrush resting across it.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M70 300 C50 200 140 110 260 110 C380 110 470 180 460 270 C452 340 380 350 340 330 C300 310 280 350 300 380 C320 410 290 440 230 440 C140 440 84 380 70 300 Z"/>
+<ellipse cx="300" cy="380" rx="0" ry="0"/>
+<path d="M262 340 C262 320 290 312 304 326 C316 338 306 360 286 360 C272 360 262 352 262 340 Z"/>
+<path d="M120 270 C110 250 130 230 150 238 C170 232 180 256 168 270 C160 284 132 288 120 270 Z" stroke-width="6"/>
+<path d="M150 180 C146 160 170 148 186 160 C204 152 216 176 202 188 C194 200 162 200 150 180 Z" stroke-width="6"/>
+<path d="M250 150 C250 132 276 126 286 140 C304 138 308 162 292 168 C284 180 256 178 250 150 Z" stroke-width="6"/>
+<path d="M360 170 C364 152 390 150 398 166 C414 172 410 196 392 196 C378 204 356 192 360 170 Z" stroke-width="6"/>
+<path d="M150 380 C140 360 164 344 182 356 C200 352 206 376 192 388 C180 398 158 396 150 380 Z" stroke-width="6"/>
+<g transform="rotate(-38 300 300)">
+<path d="M120 300 C120 290 130 286 146 286 L360 292 V312 L146 318 C130 318 120 312 120 300 Z"/>
+<rect x="360" y="284" width="60" height="36" rx="4"/>
+<path d="M378 286 V318 M396 286 V318" fill="none" stroke-width="4"/>
+<path d="M420 282 C450 276 480 286 500 298 C506 302 506 306 500 310 C480 320 450 328 420 322 Z"/>
+<path d="M468 282 C482 288 494 294 500 298 C506 302 506 306 500 310 C494 314 482 320 468 322 C474 310 474 296 468 282 Z" fill="#1A1A1A" stroke-width="3"/>
+</g>
+</g>
+</svg>

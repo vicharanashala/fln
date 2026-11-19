@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Onion</title>
+<desc>Line drawing of a whole onion with papery skin and roots, and an onion cut in half showing its layers.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M190 80 C204 130 236 150 274 176 C350 226 342 354 256 390 C228 402 156 402 128 390 C42 354 32 226 110 176 C148 150 178 130 190 80 Z"/>
+<path d="M190 88 C172 150 134 200 134 276 C134 340 154 376 174 394 M190 88 C208 150 246 200 246 276 C246 340 226 376 206 394" fill="none" stroke-width="4"/>
+<path d="M120 230 C112 250 110 274 114 296" fill="none" stroke-width="5"/>
+<path d="M190 80 C184 60 188 44 198 34 M190 80 C200 64 214 58 226 58 M196 100 L210 112" fill="none" stroke-width="5"/>
+<path d="M168 400 L156 424 M180 402 L174 430 M192 402 L194 432 M204 402 L214 428 M216 398 L230 420" fill="none" stroke-width="4"/>
+<path d="M366 200 C390.0 250 474.0 280 486 370 C492.0 430 438.0 470 366 470 C294.0 470 240.0 430 246 370 C258.0 280 342.0 250 366 200 Z"/>
+<path d="M366 230 C394.8 290 462.0 320 462.0 380 C462.0 420 414.0 456 366 456 C318.0 456 270.0 420 270.0 380 C270.0 320 337.2 290 366 230 Z" stroke-width="4"/>
+<path d="M366 230 C387.6 290 438.0 320 438.0 380 C438.0 420 402.0 456 366 456 C330.0 456 294.0 420 294.0 380 C294.0 320 344.4 290 366 230 Z" stroke-width="4"/>
+<path d="M366 230 C381.12 290 416.4 320 416.4 380 C416.4 420 391.2 456 366 456 C340.8 456 315.6 420 315.6 380 C315.6 320 350.88 290 366 230 Z" stroke-width="4"/>
+<path d="M366 230 C375.0 290 396.0 320 396.0 380 C396.0 420 381.0 456 366 456 C351.0 456 336.0 420 336.0 380 C336.0 320 357.0 290 366 230 Z" stroke-width="4"/>
+<path d="M340 464 H392" fill="none" stroke-width="10"/>
+</g>
+</svg>

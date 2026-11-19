@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Key</title>
+<desc>Line drawing of a door key.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-30 256 256)">
+<path d="M196 240 H436 V272 H426 V312 H402 V290 H382 V316 H358 V272 H196 Z"/>
+<rect x="190" y="230" width="22" height="52" rx="6"/>
+<circle cx="126" cy="256" r="72"/>
+<circle cx="126" cy="256" r="28"/>
+<path d="M84 220 C92 208 104 200 118 198" fill="none" stroke-width="5"/>
+</g>
+</g>
+</svg>

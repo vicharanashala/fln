@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Table</title>
+<desc>Line drawing of a wooden table with four legs.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="420" y="184" width="22" height="206" rx="5"/>
+<rect x="150" y="270" width="20" height="120" rx="5"/>
+<path d="M350 244 L430 184 V224 L350 284 Z"/>
+<rect x="90" y="244" width="260" height="40" rx="3"/>
+<path d="M70 220 L150 160 H450 L370 220 Z"/>
+<rect x="70" y="220" width="300" height="24" rx="4"/>
+<path d="M370 220 L450 160 V184 L370 244 Z"/>
+<path d="M80 244 H106 L102 452 C102 458 98 460 92 460 C86 460 82 458 82 452 Z"/>
+<path d="M334 244 H360 L356 452 C356 458 352 460 346 460 C340 460 336 458 336 452 Z"/>
+<path d="M150 196 C200 186 260 188 310 196 M210 178 C250 172 300 172 340 178" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Pentagon</title>
+<desc>Outline of a regular pentagon.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256.0 62.0 L459.5 209.9 L381.8 449.1 L130.2 449.1 L52.5 209.9 Z" stroke-width="10"/>
+</g>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Parrot</title>
+<desc>Line drawing of a parakeet perched on a branch, with a hooked beak, neck ring and long pointed tail.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M278 326 C304 382 334 440 372 496 C356 448 334 388 316 330 Z"/>
+<path d="M266 326 C286 384 306 440 330 490 C324 440 314 384 298 330 Z"/>
+<path d="M44 326 C160 322 300 334 456 318 L458 340 C300 356 160 346 46 350 Z"/>
+<path d="M400 326 C412 306 432 296 452 296" fill="none" stroke-width="6"/>
+<path d="M440 300 C452 282 474 278 488 284 C478 300 458 306 440 300 Z" stroke-width="6"/>
+<path d="M200 98 C242 96 264 128 264 168 C272 220 292 270 304 322 L270 336 C230 320 200 282 190 232 C184 206 178 188 170 172 C160 140 172 100 200 98 Z"/>
+<path d="M246 162 C290 176 312 258 320 332 C298 322 272 302 254 262 C242 232 238 192 246 162 Z"/>
+<path d="M262 252 C280 272 296 298 308 324" fill="none" stroke-width="5"/><path d="M254 212 C270 222 286 242 294 264" fill="none" stroke-width="5"/>
+<path d="M250 198 C264 204 278 200 288 190" fill="none" stroke-width="4"/>
+<path d="M172 172 C202 192 242 184 264 162" fill="none" stroke-width="5"/>
+<path d="M172 124 C144 116 128 142 136 170 C142 158 152 152 168 154 Z"/>
+<path d="M168 154 C154 158 152 172 164 176 C170 172 174 166 174 160 Z"/>
+<circle cx="208" cy="128" r="12"/>
+<circle cx="208" cy="128" r="6" fill="#1A1A1A" stroke-width="2"/>
+<path d="M226 318 C222 328 224 338 232 344" fill="none" stroke-width="6"/>
+<path d="M246 322 C246 332 248 340 256 346" fill="none" stroke-width="6"/>
+</g>
+</svg>

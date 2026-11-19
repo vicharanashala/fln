@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Abacus</title>
+<desc>Line drawing of a counting abacus with five rows of ten beads on a stand.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M96 390 L76 450 H136 L124 390 Z"/><path d="M416 390 L436 450 H376 L388 390 Z"/>
+<rect x="70" y="84" width="372" height="312" rx="16"/>
+<rect x="96" y="110" width="320" height="260" rx="6"/>
+<path d="M96 140 H416" fill="none" stroke-width="5"/>
+<ellipse cx="112" cy="140" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="136" cy="140" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="160" cy="140" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="184" cy="140" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="208" cy="140" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="232" cy="140" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="256" cy="140" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="400" cy="140" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="376" cy="140" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="352" cy="140" rx="12" ry="18" stroke-width="5"/>
+<path d="M96 190 H416" fill="none" stroke-width="5"/>
+<ellipse cx="112" cy="190" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="136" cy="190" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="160" cy="190" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="184" cy="190" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="400" cy="190" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="376" cy="190" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="352" cy="190" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="328" cy="190" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="304" cy="190" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="280" cy="190" rx="12" ry="18" stroke-width="5"/>
+<path d="M96 240 H416" fill="none" stroke-width="5"/>
+<ellipse cx="112" cy="240" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="136" cy="240" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="160" cy="240" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="184" cy="240" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="208" cy="240" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="232" cy="240" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="256" cy="240" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="280" cy="240" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="304" cy="240" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="400" cy="240" rx="12" ry="18" stroke-width="5"/>
+<path d="M96 290 H416" fill="none" stroke-width="5"/>
+<ellipse cx="112" cy="290" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="136" cy="290" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="400" cy="290" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="376" cy="290" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="352" cy="290" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="328" cy="290" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="304" cy="290" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="280" cy="290" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="256" cy="290" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="232" cy="290" rx="12" ry="18" stroke-width="5"/>
+<path d="M96 340 H416" fill="none" stroke-width="5"/>
+<ellipse cx="112" cy="340" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="136" cy="340" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="160" cy="340" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="184" cy="340" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="208" cy="340" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="400" cy="340" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="376" cy="340" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="352" cy="340" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="328" cy="340" rx="12" ry="18" stroke-width="5"/>
+<ellipse cx="304" cy="340" rx="12" ry="18" stroke-width="5"/>
+</g>
+</svg>

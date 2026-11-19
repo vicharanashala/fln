@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Broom</title>
+<desc>Line drawing of a soft grass broom (jhadoo) tied at the handle.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-24 256 256)">
+<path d="M226 40 C226 30 286 30 286 40 L292 240 H220 Z"/>
+<path d="M240 50 V230 M256 46 V230 M272 50 V230" fill="none" stroke-width="3.5"/>
+<rect x="210" y="200" width="92" height="20" rx="6"/><rect x="210" y="236" width="92" height="20" rx="6"/>
+<path d="M220 256 C180 340 140 420 110 480 H402 C372 420 332 340 292 256 Z"/>
+<path d="M236 260 C210 340 180 420 160 476 M256 260 C246 340 232 420 222 478 M276 260 C282 340 290 420 296 478 M292 260 C320 340 344 420 360 476 M226 300 C200 360 176 420 140 476 M290 300 C320 360 350 420 384 476" fill="none" stroke-width="3.5"/>
+</g>
+</g>
+</svg>

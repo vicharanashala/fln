@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Laddoo</title>
+<desc>Line drawing of a plate of round laddoos stacked in a pile.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="256" cy="400" rx="220" ry="60"/>
+<ellipse cx="256" cy="394" rx="184" ry="42" stroke-width="5"/>
+<circle cx="170" cy="340" r="58"/>
+<path d="M146 320 l1 1 M176 310 l1 1 M196 334 l1 1 M140 350 l1 1 M170 344 l1 1 M190 368 l1 1 M158 370 l1 1" fill="none" stroke-width="6"/>
+<path d="M136 326 C140 310 150 300 164 296" fill="none" stroke-width="4"/>
+<circle cx="256" cy="350" r="58"/>
+<path d="M232 330 l1 1 M262 320 l1 1 M282 344 l1 1 M226 360 l1 1 M256 354 l1 1 M276 378 l1 1 M244 380 l1 1" fill="none" stroke-width="6"/>
+<path d="M222 336 C226 320 236 310 250 306" fill="none" stroke-width="4"/>
+<circle cx="342" cy="340" r="58"/>
+<path d="M318 320 l1 1 M348 310 l1 1 M368 334 l1 1 M312 350 l1 1 M342 344 l1 1 M362 368 l1 1 M330 370 l1 1" fill="none" stroke-width="6"/>
+<path d="M308 326 C312 310 322 300 336 296" fill="none" stroke-width="4"/>
+<circle cx="212" cy="262" r="58"/>
+<path d="M188 242 l1 1 M218 232 l1 1 M238 256 l1 1 M182 272 l1 1 M212 266 l1 1 M232 290 l1 1 M200 292 l1 1" fill="none" stroke-width="6"/>
+<path d="M178 248 C182 232 192 222 206 218" fill="none" stroke-width="4"/>
+<circle cx="300" cy="262" r="58"/>
+<path d="M276 242 l1 1 M306 232 l1 1 M326 256 l1 1 M270 272 l1 1 M300 266 l1 1 M320 290 l1 1 M288 292 l1 1" fill="none" stroke-width="6"/>
+<path d="M266 248 C270 232 280 222 294 218" fill="none" stroke-width="4"/>
+<circle cx="256" cy="186" r="58"/>
+<path d="M232 166 l1 1 M262 156 l1 1 M282 180 l1 1 M226 196 l1 1 M256 190 l1 1 M276 214 l1 1 M244 216 l1 1" fill="none" stroke-width="6"/>
+<path d="M222 172 C226 156 236 146 250 142" fill="none" stroke-width="4"/>
+</g>
+</svg>

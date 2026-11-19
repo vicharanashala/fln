@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Helicopter</title>
+<desc>Line drawing of a helicopter with a big window, main rotor, tail rotor and landing skids.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(0 20)">
+<path d="M40 104 L240 120 M272 120 L472 104" fill="none" stroke-width="12"/>
+<rect x="232" y="108" width="48" height="18" rx="8"/>
+<path d="M256 126 V156" fill="none" stroke-width="12"/>
+<path d="M330 236 L450 214 C460 212 466 220 466 228 V236 L330 270 Z"/>
+<path d="M440 222 L470 170 L484 176 L470 236 Z"/>
+<circle cx="458" cy="226" r="28" stroke-width="5"/>
+<path d="M458 192 V260 M424 226 H492" fill="none" stroke-width="5"/>
+<path d="M80 262 C80 194 150 156 240 156 C320 156 360 200 360 262 C360 322 310 346 240 346 H150 C106 346 80 312 80 262 Z"/>
+<path d="M96 258 C98 208 140 178 200 176 V258 Z" stroke-width="6"/>
+<rect x="216" y="190" width="58" height="56" rx="10" stroke-width="6"/>
+<path d="M206 176 V340" fill="none" stroke-width="5"/>
+<path d="M290 280 H340" fill="none" stroke-width="6"/>
+<path d="M150 346 L136 396 M290 346 L304 396" fill="none" stroke-width="9"/>
+<path d="M70 396 C80 406 92 408 106 408 H380 C396 408 408 400 412 388" fill="none" stroke-width="9"/>
+</g>
+</g>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Football</title>
+<desc>Line drawing of a football (soccer ball) with pentagon patches.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<clipPath id="c"><circle cx="256" cy="256" r="186"/></clipPath>
+<circle cx="256" cy="256" r="190"/>
+<g clip-path="url(#c)">
+<path d="M317.0 119.0 L367.5 155.6 L421.8 144.2 L392.4 68.3 L311.1 63.7 Z" stroke-width="6"/>
+<path d="M405.2 271.7 L385.9 331.0 L413.6 379.1 L476.6 327.7 L455.9 249.0 Z" stroke-width="6"/>
+<path d="M287.2 402.7 L224.8 402.7 L187.6 443.9 L256.0 488.0 L324.4 443.9 Z" stroke-width="6"/>
+<path d="M126.1 331.0 L106.8 271.7 L56.1 249.0 L35.4 327.7 L98.4 379.1 Z" stroke-width="6"/>
+<path d="M144.5 155.6 L195.0 119.0 L200.9 63.7 L119.6 68.3 L90.2 144.2 Z" stroke-width="6"/>
+<path d="M256.0 194.0 L256.0 138.0 M256.0 138.0 L195.0 119.0 M256.0 138.0 L317.0 119.0 M317.0 119.0 L317.0 119.0 M367.5 155.6 L367.5 155.6 M315.0 236.8 L368.2 219.5 M368.2 219.5 L367.5 155.6 M368.2 219.5 L405.2 271.7 M405.2 271.7 L405.2 271.7 M385.9 331.0 L385.9 331.0 M292.4 306.2 L325.4 351.5 M325.4 351.5 L385.9 331.0 M325.4 351.5 L287.2 402.7 M287.2 402.7 L287.2 402.7 M224.8 402.7 L224.8 402.7 M219.6 306.2 L186.6 351.5 M186.6 351.5 L224.8 402.7 M186.6 351.5 L126.1 331.0 M126.1 331.0 L126.1 331.0 M106.8 271.7 L106.8 271.7 M197.0 236.8 L143.8 219.5 M143.8 219.5 L106.8 271.7 M143.8 219.5 L144.5 155.6 M144.5 155.6 L144.5 155.6 M195.0 119.0 L195.0 119.0" fill="none" stroke-width="6"/>
+<path d="M256.0 194.0 L315.0 236.8 L292.4 306.2 L219.6 306.2 L197.0 236.8 Z" stroke-width="6"/>
+</g>
+<circle cx="256" cy="256" r="190" fill="none"/>
+</g>
+</svg>

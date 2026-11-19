@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Mango</title>
+<desc>Line drawing of a mango with a short stalk and two long leaves.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M304 92 C260 48 196 40 150 52 C190 92 256 108 304 92 Z"/>
+<path d="M296 92 C250 82 200 66 164 56" fill="none" stroke-width="5"/>
+<path d="M308 92 C362 54 432 54 474 72 C434 102 362 110 308 92 Z"/>
+<path d="M318 90 C370 78 420 72 460 72" fill="none" stroke-width="5"/>
+<path d="M296 112 C360 104 414 152 414 232 C416 322 362 410 282 448 C248 462 212 456 204 428 C200 412 212 402 202 386 C158 338 140 268 160 200 C180 140 236 116 296 112 Z"/>
+<path d="M298 116 C296 98 300 86 310 76" fill="none" stroke-width="11"/>
+<path d="M368 200 C388 250 382 320 350 380" fill="none" stroke-width="5"/>
+<path d="M194 220 C202 196 216 178 232 168" fill="none" stroke-width="4"/>
+</g>
+</svg>

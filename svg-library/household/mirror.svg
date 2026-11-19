@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Mirror</title>
+<desc>Line drawing of a dressing mirror with a decorative frame on a stand.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M176 470 C176 440 336 440 336 470 Z"/>
+<path d="M256 400 V448" fill="none" stroke-width="14"/>
+<ellipse cx="256" cy="226" rx="150" ry="190"/>
+<ellipse cx="256" cy="226" rx="124" ry="164"/>
+<path d="M176 160 L240 96 M176 214 L282 108 M190 250 L230 210" fill="none" stroke-width="6"/>
+<path d="M406.0 226.0 L394.0 226.0 M397.0 277.3 L385.7 273.2 M370.9 322.4 L361.7 314.7 M331.0 355.9 L325.0 345.5 M282.0 373.7 L280.0 361.9 M230.0 373.7 L232.0 361.9 M181.0 355.9 L187.0 345.5 M141.1 322.4 L150.3 314.7 M115.0 277.3 L126.3 273.2 M106.0 226.0 L118.0 226.0 M115.0 174.7 L126.3 178.8 M141.1 129.6 L150.3 137.3 M181.0 96.1 L187.0 106.5 M230.0 78.3 L232.0 90.1 M282.0 78.3 L280.0 90.1 M331.0 96.1 L325.0 106.5 M370.9 129.6 L361.7 137.3 M397.0 174.7 L385.7 178.8" fill="none" stroke-width="4"/>
+</g>
+</svg>

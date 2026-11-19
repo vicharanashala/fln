@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Lamp</title>
+<desc>Line drawing of a table lamp with a shade, stand and base, glowing with light.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M120 230 L80 222 M128 290 L86 304 M392 230 L432 222 M384 290 L426 304" fill="none" stroke-width="6"/>
+<ellipse cx="256" cy="462" rx="110" ry="24"/>
+<path d="M146 462 C146 440 366 440 366 462" fill="none"/>
+<rect x="244" y="290" width="24" height="160" rx="8"/>
+<ellipse cx="256" cy="330" rx="34" ry="14"/>
+<path d="M190 80 H322 L400 280 H112 Z"/>
+<ellipse cx="256" cy="80" rx="66" ry="12"/>
+<path d="M112 280 Q256 304 400 280" fill="none" stroke-width="6"/>
+<path d="M330 280 V330" fill="none" stroke-width="3"/><circle cx="330" cy="338" r="7" stroke-width="4"/>
+<path d="M160 250 L206 110" fill="none" stroke-width="4"/>
+</g>
+</svg>

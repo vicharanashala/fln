@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Toothbrush</title>
+<desc>Line drawing of a toothbrush with a swirl of toothpaste on its bristles.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-30 256 256)">
+<path d="M40 264 C40 252 50 248 64 248 H300 C312 248 316 252 320 256 C324 262 330 266 340 266 H460 C472 266 476 272 476 280 C476 288 472 294 460 294 H330 C316 294 312 290 306 284 C302 278 296 276 288 276 H64 C50 276 40 274 40 264 Z"/>
+<path d="M80 262 H260" fill="none" stroke-width="4"/>
+<rect x="350" y="228" width="120" height="40" rx="4" stroke-width="5"/>
+<path d="M362 232 V266 M378 232 V266 M394 232 V266 M410 232 V266 M426 232 V266 M442 232 V266 M458 232 V266" fill="none" stroke-width="3.5"/>
+<path d="M350 226 C340 210 360 196 380 204 C390 186 420 186 428 204 C446 196 466 206 462 222 C470 226 470 232 464 232 H352 C346 232 346 228 350 226 Z" stroke-width="6"/>
+<path d="M374 214 C392 208 414 208 432 214" fill="none" stroke-width="3.5"/>
+</g>
+</g>
+</svg>
