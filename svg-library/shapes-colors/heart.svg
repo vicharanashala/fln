@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Heart</title>
+<desc>Outline of a heart.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 440 C150 360 50 280 50 180 C50 110 100 70 160 70 C210 70 240 100 256 130 C272 100 302 70 352 70 C412 70 462 110 462 180 C462 280 362 360 256 440 Z" stroke-width="10"/>
+</g>
+</svg>

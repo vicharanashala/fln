@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Frock</title>
+<desc>Line drawing of a girl's frock with puff sleeves, a collar and a flared skirt.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M184 230 H328 C362 300 404 380 424 444 Q384 460 344 444 Q300 462 256 446 Q212 462 168 444 Q128 460 88 444 C108 380 150 300 184 230 Z"/>
+<path d="M184 124 C140 120 116 160 136 194 C158 202 176 190 186 178 Z"/>
+<path d="M328 124 C372 120 396 160 376 194 C354 202 336 190 326 178 Z"/>
+<path d="M206 104 C230 124 282 124 306 104 L330 120 L326 232 H186 L182 120 Z"/>
+<path d="M206 104 C204 138 236 150 256 132 C276 150 308 138 306 104 C282 124 230 124 206 104 Z" stroke-width="6"/>
+<rect x="180" y="222" width="152" height="26" rx="6"/>
+<circle cx="256" cy="170" r="6" stroke-width="4"/><circle cx="256" cy="196" r="6" stroke-width="4"/>
+<path d="M210 270 C190 330 170 390 160 430 M302 270 C322 330 342 390 352 430 M256 260 V436" fill="none" stroke-width="4"/>
+</g>
+</svg>

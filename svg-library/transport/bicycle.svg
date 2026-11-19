@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Bicycle</title>
+<desc>Line drawing of a bicycle seen from the side, with spoked wheels, seat, handlebar and pedal.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="130" cy="330" r="96"/><circle cx="130" cy="330" r="80" stroke-width="5"/>
+<path d="M130 330 L210.0 330.0 M130 330 L199.3 370.0 M130 330 L170.0 399.3 M130 330 L130.0 410.0 M130 330 L90.0 399.3 M130 330 L60.7 370.0 M130 330 L50.0 330.0 M130 330 L60.7 290.0 M130 330 L90.0 260.7 M130 330 L130.0 250.0 M130 330 L170.0 260.7 M130 330 L199.3 290.0" fill="none" stroke-width="3"/>
+<circle cx="130" cy="330" r="9" stroke-width="5"/>
+<circle cx="382" cy="330" r="96"/><circle cx="382" cy="330" r="80" stroke-width="5"/>
+<path d="M382 330 L462.0 330.0 M382 330 L451.3 370.0 M382 330 L422.0 399.3 M382 330 L382.0 410.0 M382 330 L342.0 399.3 M382 330 L312.7 370.0 M382 330 L302.0 330.0 M382 330 L312.7 290.0 M382 330 L342.0 260.7 M382 330 L382.0 250.0 M382 330 L422.0 260.7 M382 330 L451.3 290.0" fill="none" stroke-width="3"/>
+<circle cx="382" cy="330" r="9" stroke-width="5"/>
+<path d="M130 330 L250 340" fill="none" stroke-width="20"/><path d="M130 330 L226 214" fill="none" stroke-width="20"/><path d="M226 214 L250 340" fill="none" stroke-width="20"/><path d="M226 214 L350 210" fill="none" stroke-width="20"/><path d="M250 340 L356 236" fill="none" stroke-width="20"/><path d="M346 196 L382 330" fill="none" stroke-width="20"/><path d="M130 330 L250 340" fill="none" stroke="#FFFFFF" stroke-width="8"/><path d="M130 330 L226 214" fill="none" stroke="#FFFFFF" stroke-width="8"/><path d="M226 214 L250 340" fill="none" stroke="#FFFFFF" stroke-width="8"/><path d="M226 214 L350 210" fill="none" stroke="#FFFFFF" stroke-width="8"/><path d="M250 340 L356 236" fill="none" stroke="#FFFFFF" stroke-width="8"/><path d="M346 196 L382 330" fill="none" stroke="#FFFFFF" stroke-width="8"/>
+
+<circle cx="250" cy="340" r="24" stroke-width="6"/>
+<path d="M250 340 L276 380 M262 384 H292" fill="none" stroke-width="7"/>
+<path d="M226 214 L220 190" fill="none" stroke-width="10"/>
+<path d="M190 182 C200 170 236 170 252 180 C246 194 226 196 196 194 C186 194 184 188 190 182 Z"/>
+<path d="M346 196 L340 164 C356 156 370 160 378 170" fill="none" stroke-width="8"/>
+<rect x="300" y="152" width="40" height="18" rx="8" stroke-width="5"/>
+</g>
+</svg>

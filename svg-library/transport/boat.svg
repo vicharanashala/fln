@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Boat</title>
+<desc>Line drawing of a sailing boat on water with two sails and a flag.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M48 430 C80 414 112 446 144 430 C176 414 208 446 240 430 C272 414 304 446 336 430 C368 414 400 446 432 430 C448 422 460 426 468 432" fill="none" stroke-width="5"/>
+<path d="M110 466 C136 454 162 474 188 462 M300 468 C326 456 352 476 378 464" fill="none" stroke-width="4"/>
+<path d="M248 80 V330" fill="none" stroke-width="10"/>
+<path d="M248 80 L292 92 L248 106 Z"/>
+<path d="M262 104 C330 170 392 240 424 312 H262 Z"/>
+<path d="M234 120 C190 190 140 250 110 312 H234 Z"/>
+<path d="M262 208 H374 M262 260 H404" fill="none" stroke-width="4"/>
+<path d="M58 332 H460 L414 404 C410 410 404 414 396 414 H118 C110 414 104 410 100 404 Z"/>
+<path d="M78 360 H442" fill="none" stroke-width="5"/>
+<circle cx="160" cy="384" r="10" stroke-width="5"/><circle cx="256" cy="384" r="10" stroke-width="5"/><circle cx="352" cy="384" r="10" stroke-width="5"/>
+</g>
+</svg>

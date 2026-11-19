@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Monkey</title>
+<desc>Line drawing of a cheerful monkey sitting, facing forward, holding a banana, with a curly tail.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M340 400 C420 420 470 360 440 310 C426 290 400 300 410 320" fill="none" stroke-width="8"/>
+<path d="M170 300 C150 360 160 430 186 452 H326 C352 430 362 360 342 300 Z"/>
+<path d="M210 330 C230 380 282 380 302 330 C302 400 280 440 256 440 C232 440 210 400 210 330 Z" stroke-width="5"/>
+<ellipse cx="200" cy="452" rx="34" ry="16"/><ellipse cx="312" cy="452" rx="34" ry="16"/>
+<path d="M170 320 C130 340 120 380 150 396 C170 404 196 390 210 376" fill="none" stroke-width="14"/>
+<path d="M170 320 C130 340 120 380 150 396 C170 404 196 390 210 376" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+<path d="M200 360 C230 330 280 330 310 350 C300 370 270 382 236 380 C220 378 206 372 200 360 Z"/>
+<path d="M300 352 L316 340 M206 362 L196 368" fill="none" stroke-width="6"/>
+<circle cx="124" cy="186" r="40"/><circle cx="388" cy="186" r="40"/>
+<circle cx="124" cy="186" r="22" stroke-width="5"/><circle cx="388" cy="186" r="22" stroke-width="5"/>
+<circle cx="256" cy="180" r="124"/>
+<path d="M256 140 C226 108 170 116 168 170 C164 210 180 236 196 254 C210 290 302 290 316 254 C332 236 348 210 344 170 C342 116 286 108 256 140 Z" stroke-width="6"/>
+<circle cx="220" cy="172" r="11" fill="#1A1A1A" stroke-width="2"/><circle cx="223.8" cy="168.2" r="3.8" fill="#FFFFFF" stroke="none"/><circle cx="292" cy="172" r="11" fill="#1A1A1A" stroke-width="2"/><circle cx="295.9" cy="168.2" r="3.8" fill="#FFFFFF" stroke="none"/>
+<ellipse cx="248" cy="216" rx="5" ry="7" fill="#1A1A1A" stroke-width="1"/><ellipse cx="264" cy="216" rx="5" ry="7" fill="#1A1A1A" stroke-width="1"/>
+<path d="M216 240 C236 262 276 262 296 240" fill="none" stroke-width="6"/>
+<path d="M230 70 C240 56 256 52 270 58" fill="none" stroke-width="5"/>
+</g>
+</svg>

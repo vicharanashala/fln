@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Shoe</title>
+<desc>Line drawing of a sports shoe with laces, seen from the side.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M50 376 H462 C466 398 456 414 440 414 H70 C56 414 46 398 50 376 Z"/>
+<path d="M68 376 V272 C68 242 90 228 120 230 C160 234 200 236 238 222 C256 216 270 214 282 224 C302 252 332 272 382 288 C432 304 458 330 458 376 Z"/>
+<path d="M236 222 C232 198 248 182 272 186 L286 226 Z" stroke-width="6"/>
+<path d="M120 230 C170 252 232 250 282 224" fill="none" stroke-width="5"/>
+<path d="M250 240 L298 236 M262 260 L314 252 M276 278 L330 268 M250 240 L314 252 M262 260 L330 268" fill="none" stroke-width="4"/>
+<circle cx="250" cy="240" r="4" stroke-width="3"/><circle cx="262" cy="260" r="4" stroke-width="3"/><circle cx="276" cy="278" r="4" stroke-width="3"/>
+<path d="M384 288 C372 320 380 356 404 376" fill="none" stroke-width="5"/>
+<path d="M68 272 C58 260 62 240 80 232" fill="none" stroke-width="5"/>
+<path d="M58 394 H454" fill="none" stroke-width="4"/>
+<path d="M110 330 C170 340 230 330 280 300" fill="none" stroke-width="5"/>
+</g>
+</svg>

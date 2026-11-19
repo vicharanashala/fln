@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Pen</title>
+<desc>Line drawing of a ballpoint pen with a clip.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-35 256 256)">
+<path d="M60 236 H120 V276 H60 C48 276 40 268 40 256 C40 244 48 236 60 236 Z"/>
+<rect x="120" y="232" width="220" height="48" rx="6"/>
+<path d="M76 228 H160 C166 228 168 232 168 236 V244 H84 C78 244 76 240 76 236 Z" stroke-width="6"/>
+<path d="M220 238 V274 M232 238 V274" fill="none" stroke-width="4"/>
+<path d="M340 236 L420 250 C428 252 428 260 420 262 L340 276 Z"/>
+<path d="M420 250 L452 256 L420 262 Z" fill="#1A1A1A" stroke-width="4"/>
+<path d="M380 244 V268" fill="none" stroke-width="4"/>
+</g>
+</g>
+</svg>

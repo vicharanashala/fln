@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cactus</title>
+<desc>Line drawing of a cactus with two arms and spines, growing in a pot, with a flower on top.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M220 400 V140 C220 110 240 96 256 96 C272 96 292 110 292 140 V400 Z"/>
+<path d="M220 300 H176 C150 300 136 286 136 260 V200 C136 186 146 178 158 178 C170 178 180 186 180 200 V256 H220 Z"/>
+<path d="M292 250 H336 C362 250 376 236 376 210 V160 C376 146 366 138 354 138 C342 138 332 146 332 160 V206 H292 Z"/>
+<path d="M256 110 V390 M238 130 V390 M274 130 V390" fill="none" stroke-width="3"/>
+<path d="M220 170 l-12 -6 M220 230 l-12 -6 M292 190 l12 -6 M292 310 l12 -6 M220 350 l-12 -6 M292 360 l12 -6 M136 220 l-12 -4 M376 180 l12 -4 M158 178 l0 -12 M354 138 l0 -12" fill="none" stroke-width="4"/>
+<path d="M256 96 C244 74 236 60 242 52 C252 52 254 66 256 74 C258 66 262 52 272 52 C276 60 268 74 256 96 Z" stroke-width="5"/>
+<path d="M160 400 H352 V432 H160 Z"/>
+<path d="M172 432 H340 L322 486 H190 Z"/>
+</g>
+</svg>

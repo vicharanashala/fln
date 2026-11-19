@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Face</title>
+<desc>Line drawing of a smiling child's face, front view.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="108" cy="270" rx="26" ry="38"/><ellipse cx="404" cy="270" rx="26" ry="38"/>
+<ellipse cx="256" cy="266" rx="152" ry="176"/>
+<path d="M104 236 C96 120 170 80 256 80 C346 80 420 120 408 236 C380 196 330 170 300 150 C280 180 220 196 160 200 C134 210 116 222 104 236 Z"/>
+<path d="M190 228 C202 220 220 220 232 228 M280 228 C292 220 310 220 322 228" fill="none" stroke-width="6"/>
+<circle cx="210" cy="262" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="213.5" cy="258.5" r="3.5" fill="#FFFFFF" stroke="none"/><circle cx="302" cy="262" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="305.5" cy="258.5" r="3.5" fill="#FFFFFF" stroke="none"/>
+<path d="M256 280 C250 308 246 322 258 328 C264 330 270 328 272 324" fill="none" stroke-width="5"/>
+<path d="M206 362 C230 392 282 392 306 362" fill="none" stroke-width="6"/>
+<path d="M160 320 C168 314 178 314 186 320 M326 320 C334 314 344 314 352 320" fill="none" stroke-width="4"/>
+</g>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Kite</title>
+<desc>Line drawing of a diamond-shaped paper kite (patang) with its string.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 356 C300 400 360 420 400 440 C430 456 450 470 468 492" fill="none" stroke-width="4"/>
+<path d="M256 56 L424 206 L256 356 L88 206 Z"/>
+<path d="M256 356 L222 410 H290 Z"/>
+<path d="M256 56 V356" fill="none" stroke-width="6"/>
+<path d="M88 206 C150 128 362 128 424 206" fill="none" stroke-width="6"/>
+<path d="M172 131 L256 206 L340 131" fill="none" stroke-width="4"/>
+<circle cx="256" cy="206" r="22" stroke-width="5"/>
+</g>
+</svg>

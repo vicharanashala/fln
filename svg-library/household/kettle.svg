@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Kettle</title>
+<desc>Line drawing of a kettle with a spout, lid and handle, with steam rising.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M170 190 C170 100 342 100 342 190" fill="none" stroke-width="26"/><path d="M170 190 C170 100 342 100 342 190" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+<path d="M370 300 C400 280 420 250 440 210 C450 200 466 208 460 222 L432 300 C424 330 400 350 370 350 Z"/>
+<path d="M120 420 C100 330 140 210 256 200 C372 210 412 330 392 420 C390 432 380 440 368 440 H144 C132 440 122 432 120 420 Z"/>
+<path d="M176 212 C190 196 322 196 336 212 C320 228 192 228 176 212 Z"/>
+<ellipse cx="256" cy="196" rx="20" ry="10"/>
+<path d="M126 400 H386" fill="none" stroke-width="5"/>
+<path d="M168 280 C158 310 156 344 162 374" fill="none" stroke-width="5"/>
+<path d="M456 180 C444 158 470 146 456 124 M482 176 C470 154 496 142 482 120" fill="none" stroke-width="5"/>
+</g>
+</svg>

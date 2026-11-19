@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cupcake</title>
+<desc>Line drawing of a cupcake with a pleated paper cup, swirled icing and a cherry on top.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M130 286 H382 L346 460 C344 468 338 472 330 472 H182 C174 472 168 468 166 460 Z"/>
+<path d="M170 290 L190 468 M210 290 L222 470 M256 290 V472 M302 290 L290 470 M342 290 L322 468" fill="none" stroke-width="5"/>
+<path d="M110 288 C90 270 100 238 132 236 C124 196 170 176 200 196 C210 160 260 150 284 176 C310 160 356 172 356 206 C392 200 420 236 400 262 C412 286 392 298 370 292 C300 312 200 312 140 296 C126 296 114 294 110 288 Z"/>
+<path d="M176 216 C220 200 300 200 344 220 C330 180 290 160 256 160 C222 160 186 180 176 216 Z" stroke-width="6"/>
+<path d="M210 168 C226 128 290 128 302 168 C276 156 236 156 210 168 Z" stroke-width="6"/>
+<circle cx="258" cy="116" r="24"/>
+<path d="M262 92 C266 72 280 60 296 56" fill="none" stroke-width="6"/>
+<path d="M250 108 C254 102 260 100 266 102" fill="none" stroke-width="3.5"/>
+<path d="M160 250 l10 6 M220 230 l8 10 M300 236 l-6 10 M352 252 l-10 6 M260 262 l0 10 M196 270 l10 2 M330 276 l-10 2" fill="none" stroke-width="4"/>
+</g>
+</svg>

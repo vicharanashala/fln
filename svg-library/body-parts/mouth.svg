@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Mouth</title>
+<desc>Line drawing of a smiling mouth with lips and teeth.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M110 236 C140 366 372 366 402 236 C350 318 162 318 110 236 Z"/>
+<path d="M110 236 C180 258 332 258 402 236 C350 318 162 318 110 236 Z"/>
+<path d="M144 252 C200 270 312 270 368 252 L356 278 C300 292 212 292 156 278 Z"/>
+<path d="M198 266 V286 M232 270 V290 M266 270 V290 M300 268 V288 M330 262 V282" fill="none" stroke-width="4"/>
+<path d="M200 300 C224 286 288 286 312 300 C290 312 222 312 200 300 Z" stroke-width="5"/>
+<path d="M110 236 C160 200 216 192 256 216 C296 192 352 200 402 236 C332 256 180 256 110 236 Z"/>
+<path d="M110 236 L98 228 M402 236 L414 228" fill="none" stroke-width="6"/>
+<path d="M200 340 C230 352 282 352 312 340" fill="none" stroke-width="4"/>
+</g>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Crayon</title>
+<desc>Line drawing of a wax crayon with a paper wrapper.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-35 256 256)">
+<rect x="70" y="220" width="300" height="72" rx="14"/>
+<path d="M368 226 L428 240 C446 244 446 268 428 272 L368 286 Z"/>
+<rect x="130" y="214" width="200" height="84" rx="6"/>
+<path d="M152 214 V298 M308 214 V298" fill="none" stroke-width="5"/>
+<path d="M164 240 Q184 228 204 240 T244 240 T284 240 M164 272 Q184 260 204 272 T244 272 T284 272" fill="none" stroke-width="4"/>
+<path d="M90 236 V276" fill="none" stroke-width="4"/>
+</g>
+</g>
+</svg>

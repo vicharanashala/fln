@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Rocket</title>
+<desc>Line drawing of a space rocket with a round window, fins and flames.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(35 256 256)">
+<path d="M220 400 C214 430 230 460 256 490 C282 460 298 430 292 400 Z"/>
+<path d="M236 400 C232 420 242 440 256 460 C270 440 280 420 276 400 Z" stroke-width="5"/>
+<path d="M200 300 L140 380 V420 L206 384 Z"/>
+<path d="M312 300 L372 380 V420 L306 384 Z"/>
+<path d="M256 30 C320 80 330 180 316 300 L306 400 H206 L196 300 C182 180 192 80 256 30 Z"/>
+<path d="M216 110 C230 100 282 100 296 110" fill="none" stroke-width="6"/>
+<circle cx="256" cy="200" r="38"/><circle cx="256" cy="200" r="24" stroke-width="5"/>
+<path d="M206 360 H306" fill="none" stroke-width="6"/>
+<path d="M256 330 V400" fill="none" stroke-width="6"/>
+</g>
+<path d="M70 120 l0 20 M60 130 h20 M420 420 l0 20 M410 430 h20 M100 400 l0 16 M92 408 h16" fill="none" stroke-width="4"/>
+</g>
+</svg>

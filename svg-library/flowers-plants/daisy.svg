@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Daisy</title>
+<desc>Line drawing of a daisy flower with white petals, a round centre, stem and leaves.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 300 C252 360 260 420 256 488" fill="none" stroke-width="10"/>
+<path d="M254 420 C210 430 168 410 152 376 C196 364 238 386 254 420 Z"/>
+<path d="M258 450 C302 456 342 434 356 400 C314 390 274 414 258 450 Z"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(0.0 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(25.7 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(51.4 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(77.1 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(102.9 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(128.6 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(154.3 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(180.0 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(205.7 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(231.4 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(257.1 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(282.9 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(308.6 256 196)"/>
+<ellipse cx="256" cy="110" rx="24" ry="66" transform="rotate(334.3 256 196)"/>
+<circle cx="256" cy="196" r="52"/>
+<path d="M240 180 l1 1 M262 172 l1 1 M276 190 l1 1 M264 210 l1 1 M242 208 l1 1 M256 192 l1 1" fill="none" stroke-width="6"/>
+</g>
+</svg>

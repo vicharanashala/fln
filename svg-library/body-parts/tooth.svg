@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Tooth</title>
+<desc>Line drawing of a clean shining tooth.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M160 136 C160 92 220 82 256 112 C292 82 352 92 352 136 C352 204 330 240 330 300 C330 380 310 432 290 432 C268 432 266 382 256 342 C246 382 244 432 222 432 C202 432 182 380 182 300 C182 240 160 204 160 136 Z"/>
+<path d="M192 136 C192 118 210 110 226 116" fill="none" stroke-width="6"/>
+<path d="M398 96 V146 M373 121 H423 M118 196 V228 M102 212 H134 M400 236 V258 M389 247 H411" fill="none" stroke-width="6"/>
+</g>
+</svg>

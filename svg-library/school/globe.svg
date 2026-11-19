@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Globe</title>
+<desc>Line drawing of a decorative world globe on a stand, with a full meridian ring, continents and a little aeroplane flying around it.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M180 468 C180 438 332 438 332 468 Z"/>
+<rect x="160" y="466" width="192" height="18" rx="8"/>
+<path d="M240 400 C240 420 246 432 256 440 C266 432 272 420 272 400 Z"/>
+<circle cx="256" cy="236" r="146"/>
+<clipPath id="gl"><circle cx="256" cy="236" r="142"/></clipPath>
+<g clip-path="url(#gl)">
+<path d="M110 236 H402" fill="none" stroke-width="5"/>
+<path d="M120 166 C200 182 312 182 392 166 M120 306 C200 290 312 290 392 306 M256 90 C196 150 196 322 256 382 M256 90 C316 150 316 322 256 382 M256 90 V382" fill="none" stroke-width="3"/>
+<path d="M132 130 C162 110 212 116 228 140 C238 166 216 180 208 204 C202 226 222 240 216 262 C208 290 198 320 188 340 C174 320 174 290 168 270 C152 260 138 240 142 220 C126 204 120 166 132 130 Z" stroke-width="5"/>
+<path d="M278 120 C322 106 372 122 394 160 C406 184 390 200 368 196 C358 222 332 228 320 212 C308 240 314 270 298 290 C278 280 278 250 272 230 C260 212 252 190 264 170 C254 150 260 130 278 120 Z" stroke-width="5"/>
+<path d="M326 290 C352 282 374 296 370 320 C364 340 338 338 328 320 C322 308 320 296 326 290 Z" stroke-width="5"/>
+<path d="M150 380 q8 -6 16 0 q8 -6 16 0 M320 370 q8 -6 16 0 q8 -6 16 0 M210 108 q8 -6 16 0" fill="none" stroke-width="3"/>
+</g>
+<circle cx="256" cy="236" r="146" fill="none"/>
+<circle cx="256" cy="236" r="172" fill="none" stroke-width="12"/>
+<circle cx="256" cy="236" r="172" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+<path d="M416.0 236.0 L422.0 236.0 M410.5 277.4 L416.3 279.0 M394.6 316.0 L399.8 319.0 M369.1 349.1 L373.4 353.4 M336.0 374.6 L339.0 379.8 M297.4 390.5 L299.0 396.3 M256.0 396.0 L256.0 402.0 M214.6 390.5 L213.0 396.3 M176.0 374.6 L173.0 379.8 M142.9 349.1 L138.6 353.4 M117.4 316.0 L112.2 319.0 M101.5 277.4 L95.7 279.0 M96.0 236.0 L90.0 236.0 M101.5 194.6 L95.7 193.0 M117.4 156.0 L112.2 153.0 M142.9 122.9 L138.6 118.6 M176.0 97.4 L173.0 92.2 M214.6 81.5 L213.0 75.7 M256.0 76.0 L256.0 70.0 M297.4 81.5 L299.0 75.7 M336.0 97.4 L339.0 92.2 M369.1 122.9 L373.4 118.6 M394.6 156.0 L399.8 153.0 M410.5 194.6 L416.3 193.0" fill="none" stroke-width="3"/>
+<circle cx="256" cy="64" r="10"/><circle cx="256" cy="408" r="10"/>
+<path d="M60 120 C80 60 150 30 220 36" fill="none" stroke-width="4" stroke-dasharray="10 12"/>
+<g transform="translate(236 34) rotate(10)"><path d="M0 0 L-30 -6 L-30 6 Z M-14 -2 L-22 -18 L-16 -18 L-6 -2 Z M-14 2 L-22 18 L-16 18 L-6 2 Z" stroke-width="4"/></g>
+</g>
+</svg>

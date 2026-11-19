@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Water bottle</title>
+<desc>Line drawing of a school water bottle with a cap and a carry strap.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M222 108 C150 120 120 220 176 250" fill="none" stroke-width="20"/><path d="M222 108 C150 120 120 220 176 250" fill="none" stroke="#FFFFFF" stroke-width="8"/>
+<rect x="214" y="70" width="84" height="22" rx="8"/>
+<rect x="198" y="88" width="116" height="52" rx="12"/>
+<path d="M218 100 V128 M240 100 V128 M262 100 V128 M284 100 V128 M300 100 V128" fill="none" stroke-width="3.5"/>
+<path d="M210 140 H302 C302 160 336 168 336 196 V430 C336 446 324 456 308 456 H204 C188 456 176 446 176 430 V196 C176 168 210 160 210 140 Z"/>
+<rect x="176" y="250" width="160" height="110" stroke-width="6"/>
+<path d="M196 280 C210 270 226 270 238 280 M196 300 H300 M196 326 H270" fill="none" stroke-width="4"/>
+<path d="M200 384 C200 404 206 418 216 428" fill="none" stroke-width="5"/>
+</g>
+</svg>

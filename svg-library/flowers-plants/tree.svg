@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Tree</title>
+<desc>Line drawing of a big leafy tree with a trunk and branches.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M120 448 H392" fill="none" stroke-width="6"/>
+<path d="M226 448 C236 410 236 360 232 300 L280 300 C276 360 276 410 286 448 Z"/>
+<path d="M226 448 C214 446 204 448 196 452 M286 448 C298 446 308 448 316 452" fill="none" stroke-width="6"/>
+<path d="M256.0 50.0" fill="none"/>
+<path d="M256.0 50.0 A52.2 52.2 0 0 1 344.0 68.8 A47.7 47.7 0 0 1 408.4 120.0 A42.8 42.8 0 0 1 432.0 190.0 A42.8 42.8 0 0 1 408.4 260.0 A47.7 47.7 0 0 1 344.0 311.2 A52.2 52.2 0 0 1 256.0 330.0 A52.2 52.2 0 0 1 168.0 311.2 A47.7 47.7 0 0 1 103.6 260.0 A42.8 42.8 0 0 1 80.0 190.0 A42.8 42.8 0 0 1 103.6 120.0 A47.7 47.7 0 0 1 168.0 68.8 A52.2 52.2 0 0 1 256.0 50.0 Z"/>
+<path d="M236 330 C226 300 206 280 186 268 M276 320 C288 296 306 282 326 274 M256 330 V270" fill="none" stroke-width="6"/>
+<path d="M160 170 C170 150 186 140 204 136 M320 220 C336 214 350 200 356 184 M200 250 C214 256 230 256 244 250" fill="none" stroke-width="4"/>
+<path d="M246 360 C250 370 252 384 250 396 M262 400 C266 408 266 418 264 426" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

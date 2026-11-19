@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Domino</title>
+<desc>Line drawing of a domino tile showing three dots and five dots.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-12 256 256)">
+<rect x="66" y="166" width="380" height="180" rx="22"/>
+<path d="M256 180 V332" fill="none" stroke-width="6"/>
+<circle cx="110" cy="208" r="15" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="212" cy="304" r="15" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="161" cy="256" r="15" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="300" cy="208" r="15" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="402" cy="208" r="15" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="351" cy="256" r="15" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="300" cy="304" r="15" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="402" cy="304" r="15" fill="#1A1A1A" stroke-width="2"/>
+</g>
+</g>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Island</title>
+<desc>Line drawing of a small sandy island with a coconut palm tree, the sun and sea waves.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="410" cy="100" r="44"/>
+<path d="M410 40 V28 M458 60 L468 50 M470 100 H484 M362 60 L352 50" fill="none" stroke-width="5"/>
+<path d="M80 400 C120 340 220 320 300 330 C370 338 420 370 440 400 Z"/>
+<path d="M220 360 l2 1 M300 370 l2 1 M260 384 l2 1 M350 384 l2 1" fill="none" stroke-width="6"/>
+<path d="M250 340 C246 280 236 220 214 170 L232 162 C256 214 266 276 272 340 Z"/>
+<path d="M240 300 l18 -4 M234 260 l18 -4 M226 220 l16 -6" fill="none" stroke-width="4"/>
+<path d="M222 166 C180 130 120 130 80 160 C120 156 160 160 222 166 Z"/>
+<path d="M222 166 C190 110 140 90 100 96 C140 110 180 136 222 166 Z"/>
+<path d="M226 164 C260 120 320 110 360 128 C320 136 280 148 226 164 Z"/>
+<path d="M226 164 C270 150 330 160 360 196 C320 180 280 172 226 164 Z"/>
+<path d="M222 166 C220 120 236 86 260 72 C250 110 240 140 222 166 Z"/>
+<circle cx="214" cy="178" r="12"/><circle cx="234" cy="180" r="12"/>
+<path d="M30 420 C60 406 90 434 120 420 C150 406 180 434 210 420 C240 406 270 434 300 420 C330 406 360 434 390 420 C420 406 450 434 482 420" fill="none" stroke-width="5"/>
+<path d="M60 460 C90 446 120 474 150 460 M300 464 C330 450 360 478 390 464" fill="none" stroke-width="4"/>
+</g>
+</svg>

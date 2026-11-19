@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Swan</title>
+<desc>Line drawing of a graceful swan swimming, with its long S-shaped neck rising from the front of its body.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M40 430 C70 416 100 444 130 430 C160 416 190 444 220 430 C250 416 280 444 310 430 C340 416 370 444 400 430 C430 416 460 444 480 434" fill="none" stroke-width="5"/>
+<path d="M110 340 C110 400 200 420 300 420 C390 420 456 390 468 330 L492 254 C462 276 432 296 400 302 C340 312 260 300 200 296 C170 296 120 310 110 340 Z"/>
+<path d="M150 312 C126 270 124 222 148 182 C168 148 168 116 148 100 C128 86 98 92 88 110 L104 120 C112 108 132 106 140 118 C148 132 138 160 124 186 C102 228 106 278 128 316 Z"/>
+<path d="M88 110 L50 128 L92 128 Z"/>
+<path d="M88 110 C84 118 86 126 92 128 L100 120 Z" fill="#1A1A1A" stroke-width="3"/>
+<circle cx="116" cy="106" r="5" fill="#1A1A1A" stroke-width="2"/><circle cx="117.8" cy="104.2" r="1.8" fill="#FFFFFF" stroke="none"/>
+<path d="M220 326 C290 294 410 296 452 336 C400 376 290 376 220 346 Z"/>
+<path d="M250 340 C300 326 370 326 426 340 M270 354 C320 348 370 348 410 354" fill="none" stroke-width="4"/>
+<path d="M456 306 L480 274 M446 316 L472 294" fill="none" stroke-width="4"/>
+</g>
+</svg>

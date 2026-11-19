@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cloud</title>
+<desc>Line drawing of a fluffy cloud.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M128 370 C70 370 52 296 108 278 C96 206 180 170 228 210 C252 132 372 136 382 222 C448 210 480 290 432 324 C462 358 432 384 400 370 Z"/>
+<path d="M150 300 C150 278 166 262 188 258" fill="none" stroke-width="5"/>
+</g>
+</svg>

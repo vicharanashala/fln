@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Sun</title>
+<desc>Friendly line drawing of a smiling sun with rays.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M372.5 237.5 L474.0 256.0 L372.5 274.5 Z"/>
+<path d="M366.2 298.3 L417.1 349.0 L347.7 330.3 Z"/>
+<path d="M330.3 347.7 L365.0 444.8 L298.3 366.2 Z"/>
+<path d="M274.5 372.5 L256.0 442.0 L237.5 372.5 Z"/>
+<path d="M213.7 366.2 L147.0 444.8 L181.7 347.7 Z"/>
+<path d="M164.3 330.3 L94.9 349.0 L145.8 298.3 Z"/>
+<path d="M139.5 274.5 L38.0 256.0 L139.5 237.5 Z"/>
+<path d="M145.8 213.7 L94.9 163.0 L164.3 181.7 Z"/>
+<path d="M181.7 164.3 L147.0 67.2 L213.7 145.8 Z"/>
+<path d="M237.5 139.5 L256.0 70.0 L274.5 139.5 Z"/>
+<path d="M298.3 145.8 L365.0 67.2 L330.3 164.3 Z"/>
+<path d="M347.7 181.7 L417.1 163.0 L366.2 213.7 Z"/>
+<circle cx="256" cy="256" r="104"/>
+<circle cx="222" cy="240" r="9" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="290" cy="240" r="9" fill="#1A1A1A" stroke-width="2"/>
+<path d="M214 284 C236 310 276 310 298 284" fill="none" stroke-width="5"/>
+</g>
+</svg>

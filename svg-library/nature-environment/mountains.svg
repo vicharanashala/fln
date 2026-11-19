@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Mountains</title>
+<desc>Line drawing of snow-capped mountains with pine trees at their foot and the sun behind.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="404" cy="110" r="40"/>
+<path d="M404 54 V40 M448 70 L458 60 M462 110 H476 M360 70 L350 60" fill="none" stroke-width="5"/>
+<path d="M30 420 L180 140 L330 420 Z"/>
+<path d="M190 420 L340 110 L490 420 Z"/>
+<path d="M136 222 L180 140 L222 222 L204 212 L190 232 L176 210 L160 230 L150 210 Z"/>
+<path d="M294 204 L340 110 L384 204 L368 192 L352 214 L338 194 L322 214 L308 192 Z"/>
+<path d="M180 140 L196 230 L232 330 M340 110 L356 210 L392 300" fill="none" stroke-width="4"/>
+<path d="M70 360 L48 404 H92 Z" stroke-width="5"/><path d="M70 384 L44 430 H96 Z" stroke-width="5"/><rect x="65" y="430" width="10" height="16" stroke-width="4"/><path d="M120 370 L98 414 H142 Z" stroke-width="5"/><path d="M120 394 L94 440 H146 Z" stroke-width="5"/><rect x="115" y="440" width="10" height="16" stroke-width="4"/><path d="M396 352 L374 396 H418 Z" stroke-width="5"/><path d="M396 376 L370 422 H422 Z" stroke-width="5"/><rect x="391" y="422" width="10" height="16" stroke-width="4"/><path d="M448 364 L426 408 H470 Z" stroke-width="5"/><path d="M448 388 L422 434 H474 Z" stroke-width="5"/><rect x="443" y="434" width="10" height="16" stroke-width="4"/>
+<path d="M30 450 H482" fill="none" stroke-width="6"/>
+</g>
+</svg>

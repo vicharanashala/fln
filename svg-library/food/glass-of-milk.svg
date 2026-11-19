@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Glass of milk</title>
+<desc>Line drawing of a tall glass filled with milk.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M150 90 H362 L336 436 C335 448 326 456 314 456 H198 C186 456 177 448 176 436 Z"/>
+<path d="M156 160 C200 176 312 176 356 160 L336 436 C335 448 326 456 314 456 H198 C186 456 177 448 176 436 Z" stroke-width="6"/>
+<ellipse cx="256" cy="90" rx="106" ry="18"/>
+<path d="M156 160 C200 146 312 146 356 160" fill="none" stroke-width="5"/>
+<path d="M196 200 L210 400" fill="none" stroke-width="5"/>
+<path d="M356 160 C366 172 368 188 362 200 C356 210 346 204 350 190" fill="none" stroke-width="5"/>
+<path d="M216 190 C222 194 230 194 236 190" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Coconut</title>
+<desc>Line drawing of a green tender coconut with a drinking straw, and a brown coconut half showing the white flesh.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M226 128 L196 30 L150 24" fill="none" stroke-width="22"/><path d="M226 128 L196 30 L150 24" fill="none" stroke="#FFFFFF" stroke-width="10"/>
+<path d="M206 470 C96 470 56 384 64 304 C72 224 122 160 176 132 H236 C290 160 340 224 348 304 C356 384 316 470 206 470 Z"/>
+<path d="M176 132 C150 170 140 200 136 230 M236 132 C262 170 272 200 276 230 M206 136 V226" fill="none" stroke-width="5"/>
+<path d="M136 230 C160 222 184 220 206 226 C228 220 252 222 276 230" fill="none" stroke-width="5"/>
+<ellipse cx="206" cy="132" rx="30" ry="10"/>
+<path d="M100 330 C96 370 104 404 124 430" fill="none" stroke-width="5"/>
+<path d="M300 400 C300 460 360 488 400 488 C440 488 500 460 500 400 Z"/>
+<path d="M318 428 l10 10 M348 452 l8 12 M452 452 l-8 12 M482 428 l-10 10 M400 462 v14" fill="none" stroke-width="4"/>
+<ellipse cx="400" cy="400" rx="100" ry="40"/>
+<ellipse cx="400" cy="400" rx="84" ry="31" stroke-width="5"/>
+<ellipse cx="400" cy="400" rx="62" ry="20" stroke-width="5"/>
+</g>
+</svg>

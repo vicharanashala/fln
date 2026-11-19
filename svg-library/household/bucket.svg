@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Bucket</title>
+<desc>Line drawing of a bucket filled with water, with a handle and grip.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M126 206 C140 52 372 52 386 206" fill="none" stroke-width="19"/><path d="M126 206 C140 52 372 52 386 206" fill="none" stroke="#FFFFFF" stroke-width="7"/>
+<rect x="226" y="66" width="60" height="22" rx="10"/>
+<path d="M118 200 H394 L362 432 C360 446 348 454 334 454 H178 C164 454 152 446 150 432 Z"/>
+<ellipse cx="256" cy="200" rx="138" ry="30"/>
+<ellipse cx="256" cy="204" rx="116" ry="18" stroke-width="5"/>
+<path d="M190 206 C206 200 222 200 238 206 M276 206 C292 200 308 200 324 206" fill="none" stroke-width="4"/>
+<path d="M114 196 C114 186 128 182 136 192 L138 218 C130 226 116 222 114 212 Z" stroke-width="5"/>
+<path d="M398 196 C398 186 384 182 376 192 L374 218 C382 226 396 222 398 212 Z" stroke-width="5"/>
+<path d="M128 266 C200 284 312 284 384 266 M142 372 C210 388 302 388 370 372" fill="none" stroke-width="6"/>
+<path d="M176 300 C172 320 172 340 176 356" fill="none" stroke-width="5"/>
+</g>
+</svg>

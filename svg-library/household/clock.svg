@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Clock</title>
+<desc>Line drawing of an alarm clock with two bells, legs and hands showing ten past ten.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M196 412 L170 452 M316 412 L342 452" fill="none" stroke-width="10"/>
+<path d="M104 160 C96 110 136 82 178 98 Z"/>
+<path d="M408 160 C416 110 376 82 334 98 Z"/>
+<path d="M256 112 V94" fill="none" stroke-width="8"/>
+<rect x="232" y="78" width="48" height="18" rx="8"/>
+<circle cx="256" cy="282" r="150"/>
+<circle cx="256" cy="282" r="124" stroke-width="5"/>
+<path d="M256.0 184.0 L256.0 164.0 M310.0 188.5 L315.0 179.8 M349.5 228.0 L358.2 223.0 M354.0 282.0 L374.0 282.0 M349.5 336.0 L358.2 341.0 M310.0 375.5 L315.0 384.2 M256.0 380.0 L256.0 400.0 M202.0 375.5 L197.0 384.2 M162.5 336.0 L153.8 341.0 M158.0 282.0 L138.0 282.0 M162.5 228.0 L153.8 223.0 M202.0 188.5 L197.0 179.8" fill="none" stroke-width="5"/>
+<path d="M256 282 L202 246 M256 282 L322 220" fill="none" stroke-width="9"/>
+<circle cx="256" cy="282" r="10" fill="#1A1A1A" stroke-width="2"/>
+</g>
+</svg>

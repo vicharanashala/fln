@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Tulip</title>
+<desc>Line drawing of a tulip flower with a long stem and two long leaves.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 250 C252 330 258 410 256 480" fill="none" stroke-width="10"/>
+<path d="M252 470 C190 450 150 380 150 300 C190 330 230 390 252 440 Z"/>
+<path d="M260 480 C330 456 372 380 364 310 C320 340 280 400 262 450 Z"/>
+<path d="M250 452 C210 410 180 360 164 314 M264 462 C306 420 338 370 354 322" fill="none" stroke-width="4"/>
+<path d="M256 260 C176 260 156 190 168 100 C196 120 214 140 224 160 C232 120 244 90 256 70 C268 90 280 120 288 160 C298 140 316 120 344 100 C356 190 336 260 256 260 Z"/>
+<path d="M224 160 C222 200 230 236 256 258 M288 160 C290 200 282 236 256 258" fill="none" stroke-width="5"/>
+</g>
+</svg>

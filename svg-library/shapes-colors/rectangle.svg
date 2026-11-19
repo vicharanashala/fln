@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Rectangle</title>
+<desc>Outline of a rectangle.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="46" y="136" width="420" height="240" stroke-width="10"/>
+</g>
+</svg>

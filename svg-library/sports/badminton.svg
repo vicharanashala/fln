@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Badminton</title>
+<desc>Line drawing of a badminton racket and a shuttlecock.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-35 220 250)">
+<rect x="208" y="330" width="24" height="150" rx="10"/>
+<path d="M210 420 L230 436 M210 440 L230 456 M210 460 L230 476" fill="none" stroke-width="3.5"/>
+<path d="M220 330 L220 290" fill="none" stroke-width="10"/>
+<ellipse cx="220" cy="190" rx="90" ry="110"/>
+<clipPath id="rk"><ellipse cx="220" cy="190" rx="82" ry="102"/></clipPath>
+<path d="M148 70 V310 M166 70 V310 M184 70 V310 M202 70 V310 M220 70 V310 M238 70 V310 M256 70 V310 M274 70 V310 M292 70 V310 M120 98 H320 M120 116 H320 M120 134 H320 M120 152 H320 M120 170 H320 M120 188 H320 M120 206 H320 M120 224 H320 M120 242 H320 M120 260 H320 M120 278 H320 M120 296 H320" fill="none" stroke-width="2.5" clip-path="url(#rk)"/>
+<ellipse cx="220" cy="190" rx="82" ry="102" fill="none" stroke-width="5"/>
+</g>
+<g transform="rotate(25 400 360)">
+<path d="M360 300 L330 210 H470 L440 300 Z"/>
+<path d="M366 300 L350 210 M384 300 L378 210 M400 300 V210 M416 300 L422 210 M434 300 L450 210" fill="none" stroke-width="3.5"/>
+<path d="M340 240 H460 M348 270 H452" fill="none" stroke-width="4"/>
+<path d="M360 300 H440 V320 C440 350 420 366 400 366 C380 366 360 350 360 320 Z"/>
+</g>
+</g>
+</svg>

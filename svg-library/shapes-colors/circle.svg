@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Circle</title>
+<desc>Outline of a circle.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="256" cy="256" r="196" stroke-width="10"/>
+</g>
+</svg>

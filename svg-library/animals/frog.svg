@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Frog</title>
+<desc>Line drawing of a frog sitting on a lily pad, with bulging eyes, a wide mouth and webbed toes.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="256" cy="436" rx="220" ry="44"/>
+<path d="M256 436 L380 410" fill="none" stroke-width="5"/><path d="M120 430 L200 444 M300 448 L370 438" fill="none" stroke-width="3.5"/>
+<path d="M120 400 C80 390 70 340 110 320 C150 300 190 330 196 370 Z"/>
+<path d="M392 400 C432 390 442 340 402 320 C362 300 322 330 316 370 Z"/>
+<path d="M256 168 C360 168 416 250 410 330 C404 396 340 424 256 424 C172 424 108 396 102 330 C96 250 152 168 256 168 Z"/>
+<path d="M176 300 C190 360 322 360 336 300 C320 330 192 330 176 300 Z" stroke="none"/>
+<ellipse cx="256" cy="356" rx="90" ry="56" stroke-width="5"/>
+<path d="M196 390 C188 410 180 420 168 428 M316 390 C324 410 332 420 344 428" fill="none" stroke-width="8"/>
+<circle cx="144" cy="432" r="9" stroke-width="5"/><circle cx="162" cy="440" r="9" stroke-width="5"/><circle cx="182" cy="442" r="9" stroke-width="5"/><circle cx="330" cy="442" r="9" stroke-width="5"/><circle cx="350" cy="440" r="9" stroke-width="5"/><circle cx="368" cy="432" r="9" stroke-width="5"/>
+<path d="M168 428 L144 432 M168 428 L162 440 M168 428 L182 442 M344 428 L330 442 M344 428 L350 440 M344 428 L368 432" fill="none" stroke-width="5"/>
+<circle cx="186" cy="176" r="48"/><circle cx="326" cy="176" r="48"/>
+<circle cx="186" cy="180" r="26" stroke-width="5"/><circle cx="326" cy="180" r="26" stroke-width="5"/>
+<circle cx="188" cy="182" r="13" fill="#1A1A1A" stroke-width="2"/><circle cx="192.6" cy="177.4" r="4.5" fill="#FFFFFF" stroke="none"/><circle cx="328" cy="182" r="13" fill="#1A1A1A" stroke-width="2"/><circle cx="332.6" cy="177.4" r="4.5" fill="#FFFFFF" stroke="none"/>
+<path d="M136 266 C190 312 322 312 376 266" fill="none" stroke-width="7"/>
+<circle cx="238" cy="238" r="5" fill="#1A1A1A" stroke-width="2"/><circle cx="274" cy="238" r="5" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="140" cy="250" r="10" stroke-width="4"/><circle cx="372" cy="250" r="10" stroke-width="4"/><circle cx="160" cy="226" r="7" stroke-width="4"/>
+</g>
+</svg>

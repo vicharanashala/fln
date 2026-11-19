@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cow</title>
+<desc>Line drawing of a cow standing, seen from the side, with horns, ear, patches, udder and tail.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M232 300 L236 426 H260 L262 300 Z"/>
+<path d="M352 300 L360 426 H384 L380 300 Z"/>
+<path d="M232 412 H260 V426 H236 Z" fill="#1A1A1A" stroke-width="5"/>
+<path d="M358 412 H384 V426 H360 Z" fill="#1A1A1A" stroke-width="5"/>
+<path d="M430 196 C448 240 448 300 442 350" fill="none" stroke-width="6"/>
+<path d="M442 344 C456 358 456 380 442 392 C430 380 430 358 442 344 Z"/>
+<path d="M168 170 C230 158 330 166 392 162 C418 160 432 174 432 196 C436 236 432 270 418 300 C410 318 412 340 418 362 L420 432 H396 L394 372 C390 350 380 330 366 322 C330 330 260 326 214 316 C206 334 206 352 210 368 L212 432 H188 L186 368 C184 340 176 316 160 300 C146 290 126 270 108 250 L128 160 C142 164 154 168 168 170 Z"/>
+<path d="M188 418 H212 V432 H188 Z" fill="#1A1A1A" stroke-width="5"/>
+<path d="M396 418 H420 V432 H396 Z" fill="#1A1A1A" stroke-width="5"/>
+<path d="M330 324 C330 352 366 354 366 322" />
+<path d="M340 346 V362" fill="none" stroke-width="5"/><path d="M356 346 V362" fill="none" stroke-width="5"/>
+<path d="M200 196 C212 236 208 276 196 300" fill="none" stroke-width="5"/>
+<path d="M366 236 C376 268 374 300 366 322" fill="none" stroke-width="5"/>
+<path d="M120 262 C134 276 148 288 160 300" fill="none" stroke-width="4"/>
+<path d="M250 172 C290 168 318 190 304 220 C292 246 252 240 240 216 C232 196 236 176 250 172 Z" stroke-width="5"/>
+<path d="M360 200 C392 196 420 216 412 248 C404 276 366 270 356 248 C348 228 348 206 360 200 Z" stroke-width="5"/>
+<path d="M260 270 C282 262 300 278 292 296 C284 312 258 308 254 292 C252 282 254 274 260 270 Z" stroke-width="5"/>
+<path d="M104 142 C100 120 108 104 122 98 C118 112 116 126 118 142 Z"/>
+<path d="M118 154 C140 140 162 142 174 152 C162 166 140 168 122 164 Z"/>
+<path d="M112 140 C134 150 140 180 128 206 C118 226 100 248 86 262 C72 274 50 270 44 256 C38 240 46 226 56 216 C72 196 86 166 92 148 C96 138 106 134 112 140 Z"/>
+<path d="M64 214 C76 220 84 232 86 246" fill="none" stroke-width="4"/>
+<ellipse cx="102" cy="180" rx="6" ry="8" fill="#1A1A1A" stroke-width="2"/>
+<path d="M92 172 C98 166 108 166 112 172" fill="none" stroke-width="3.5"/>
+<ellipse cx="54" cy="246" rx="5" ry="7" fill="#1A1A1A" stroke-width="2" transform="rotate(-30 54 246)"/>
+<path d="M50 262 C60 266 70 266 78 262" fill="none" stroke-width="4"/>
+</g>
+</svg>

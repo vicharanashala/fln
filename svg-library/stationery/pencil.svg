@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Pencil</title>
+<desc>Line drawing of a sharpened pencil with an eraser.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-35 256 256)">
+<rect x="34" y="222" width="72" height="68" rx="14"/>
+<rect x="98" y="215" width="54" height="82" rx="5"/>
+<path d="M116 217 V295" fill="none" stroke-width="5"/><path d="M134 217 V295" fill="none" stroke-width="5"/>
+<path d="M152 222 H376 Q384 233 376 244 Q384 256 376 268 Q384 279 376 290 H152 Z"/>
+<path d="M152 244 H376" fill="none" stroke-width="5"/><path d="M152 268 H376" fill="none" stroke-width="5"/>
+<path d="M376 222 Q384 233 376 244 Q384 256 376 268 Q384 279 376 290 L476 256 Z"/>
+<path d="M446 246 L476 256 L446 266 Z" fill="#1A1A1A" stroke-width="6"/>
+</g>
+</g>
+</svg>

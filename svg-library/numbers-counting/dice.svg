@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Dice</title>
+<desc>Line drawing of a dice cube showing one, two and three dots.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 110 L410 190 L256 270 L102 190 Z"/>
+<path d="M102 190 L256 270 V440 L102 360 Z"/>
+<path d="M256 270 L410 190 V360 L256 440 Z"/>
+<circle cx="0.5" cy="0.5" r="0.1" transform="matrix(154 -80 154 80 102 190)" fill="#1A1A1A" stroke="none"/>
+<circle cx="0.28" cy="0.28" r="0.1" transform="matrix(154 80 0 170 102 190)" fill="#1A1A1A" stroke="none"/>
+<circle cx="0.72" cy="0.72" r="0.1" transform="matrix(154 80 0 170 102 190)" fill="#1A1A1A" stroke="none"/>
+<circle cx="0.25" cy="0.25" r="0.1" transform="matrix(154 -80 0 170 256 270)" fill="#1A1A1A" stroke="none"/>
+<circle cx="0.5" cy="0.5" r="0.1" transform="matrix(154 -80 0 170 256 270)" fill="#1A1A1A" stroke="none"/>
+<circle cx="0.75" cy="0.75" r="0.1" transform="matrix(154 -80 0 170 256 270)" fill="#1A1A1A" stroke="none"/>
+</g>
+</svg>

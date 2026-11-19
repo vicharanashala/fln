@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Comb</title>
+<desc>Line drawing of a hair comb with fine and wide teeth.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-18 256 256)">
+<path d="M60 190 H452 C462 190 466 196 466 204 V236 H46 V204 C46 196 50 190 60 190 Z"/>
+<path d="M62 236 V330 M80 236 V330 M98 236 V330 M116 236 V330 M134 236 V330 M152 236 V330 M170 236 V330 M188 236 V330 M206 236 V330 M224 236 V330 M242 236 V330 M260 236 V340 M278 236 V340 M296 236 V340 M314 236 V340 M332 236 V340 M350 236 V340 M368 236 V340 M386 236 V340 M404 236 V340 M422 236 V340 M440 236 V340 M458 236 V340" fill="none" stroke-width="7"/>
+<path d="M70 212 H440" fill="none" stroke-width="3.5"/>
+</g>
+</g>
+</svg>

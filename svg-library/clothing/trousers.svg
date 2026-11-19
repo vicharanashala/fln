@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Trousers</title>
+<desc>Line drawing of a pair of long trousers with a belt, pockets and creases.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M146 70 H366 L400 470 H286 L256 170 L226 470 H112 Z"/>
+<rect x="140" y="60" width="232" height="40" rx="6"/>
+<path d="M176 60 V100 M216 60 V100 M296 60 V100 M336 60 V100" fill="none" stroke-width="4"/>
+<circle cx="256" cy="80" r="7" stroke-width="4"/>
+<path d="M256 100 V160" fill="none" stroke-width="5"/>
+<path d="M156 110 C180 130 200 140 220 142 M356 110 C332 130 312 140 292 142" fill="none" stroke-width="5"/>
+<path d="M170 200 L152 440 M342 200 L360 440" fill="none" stroke-width="3.5"/>
+<path d="M116 440 H224 M288 440 H396" fill="none" stroke-width="5"/>
+</g>
+</svg>

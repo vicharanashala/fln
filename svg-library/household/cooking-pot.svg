@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cooking pot</title>
+<desc>Line drawing of a cooking pot with a lid, two handles and steam rising.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M200 110 C186 88 214 76 200 54 M256 104 C242 80 272 68 256 42 M312 110 C298 88 326 76 312 54" fill="none" stroke-width="5"/>
+<path d="M110 216 C110 196 140 180 256 180 C372 180 402 196 402 216 Z"/>
+<rect x="236" y="150" width="40" height="30" rx="10"/>
+<path d="M100 230 H412 V400 C412 430 380 452 340 452 H172 C132 452 100 430 100 400 Z"/>
+<rect x="90" y="216" width="332" height="24" rx="8"/>
+<path d="M100 266 C70 266 60 280 60 290 C60 300 70 310 100 310" fill="none" stroke-width="12"/>
+<path d="M412 266 C442 266 452 280 452 290 C452 300 442 310 412 310" fill="none" stroke-width="12"/>
+<path d="M130 290 C136 340 150 380 176 410" fill="none" stroke-width="5"/>
+<path d="M100 340 H412" fill="none" stroke-width="4"/>
+</g>
+</svg>

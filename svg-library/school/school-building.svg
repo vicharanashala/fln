@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>School</title>
+<desc>Line drawing of a school building with a flag, a clock, windows, a door and steps.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 120 V30" fill="none" stroke-width="6"/><path d="M256 30 L316 46 L256 62 Z"/>
+<path d="M60 220 L256 120 L452 220 Z"/>
+<circle cx="256" cy="176" r="26"/><path d="M256 176 V160 M256 176 L268 182" fill="none" stroke-width="4"/>
+<rect x="80" y="220" width="352" height="230"/>
+<rect x="104" y="250" width="56" height="50" rx="4" stroke-width="6"/><path d="M132 250 V300 M104 275 H160" fill="none" stroke-width="4"/><rect x="176" y="250" width="56" height="50" rx="4" stroke-width="6"/><path d="M204 250 V300 M176 275 H232" fill="none" stroke-width="4"/><rect x="280" y="250" width="56" height="50" rx="4" stroke-width="6"/><path d="M308 250 V300 M280 275 H336" fill="none" stroke-width="4"/><rect x="352" y="250" width="56" height="50" rx="4" stroke-width="6"/><path d="M380 250 V300 M352 275 H408" fill="none" stroke-width="4"/><rect x="104" y="340" width="56" height="50" rx="4" stroke-width="6"/><path d="M132 340 V390 M104 365 H160" fill="none" stroke-width="4"/><rect x="352" y="340" width="56" height="50" rx="4" stroke-width="6"/><path d="M380 340 V390 M352 365 H408" fill="none" stroke-width="4"/>
+<path d="M210 450 V352 C210 332 228 320 256 320 C284 320 302 332 302 352 V450 Z"/>
+<path d="M256 324 V450" fill="none" stroke-width="5"/>
+<rect x="190" y="450" width="132" height="14" rx="3"/><rect x="176" y="464" width="160" height="14" rx="3"/>
+<path d="M40 478 H472" fill="none" stroke-width="6"/>
+</g>
+</svg>

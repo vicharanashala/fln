@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cricket stumps</title>
+<desc>Line drawing of three cricket stumps with bails on top and a cricket ball.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="150" y="90" width="28" height="350" rx="8"/><rect x="242" y="90" width="28" height="350" rx="8"/><rect x="334" y="90" width="28" height="350" rx="8"/>
+<path d="M150 440 L164 470 L178 440 Z M242 440 L256 470 L270 440 Z M334 440 L348 470 L362 440 Z" stroke-width="5"/>
+<rect x="160" y="70" width="96" height="18" rx="9"/><rect x="256" y="70" width="96" height="18" rx="9"/>
+<path d="M60 470 H452" fill="none" stroke-width="6"/>
+<circle cx="430" cy="410" r="40"/>
+<path d="M400 384 C420 400 440 420 456 440 M408 376 C428 392 448 412 464 432" fill="none" stroke-width="4"/>
+</g>
+</svg>

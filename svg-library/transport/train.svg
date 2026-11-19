@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Train</title>
+<desc>Line drawing of a steam train engine with a chimney puffing smoke.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M150 120 C130 100 140 70 170 72 C176 48 214 46 222 70 C246 62 262 86 248 104 C256 120 236 136 216 126 C206 140 172 140 166 124 C156 126 150 124 150 120 Z" stroke-width="6"/>
+<path d="M90 70 C80 56 94 40 110 46 C118 30 142 32 144 50 C158 50 162 68 150 74 Z" stroke-width="5"/>
+<path d="M150 230 L140 150 H200 L190 230 Z"/>
+<path d="M136 150 H204" fill="none" stroke-width="9"/>
+<rect x="300" y="130" width="160" height="210" rx="10"/>
+<rect x="326" y="160" width="60" height="60" rx="6" stroke-width="6"/>
+<path d="M290 120 H470" fill="none" stroke-width="14"/>
+<path d="M90 230 H300 V340 H90 C70 340 60 326 60 306 V264 C60 244 70 230 90 230 Z"/>
+<circle cx="76" cy="286" r="12" stroke-width="5"/>
+<path d="M60 340 L30 400 H90 Z"/>
+<rect x="60" y="340" width="400" height="30" rx="6"/>
+<circle cx="150" cy="390" r="44"/><circle cx="150" cy="390" r="14" stroke-width="5"/>
+<circle cx="260" cy="390" r="44"/><circle cx="260" cy="390" r="14" stroke-width="5"/>
+<circle cx="390" cy="400" r="34"/><circle cx="390" cy="400" r="12" stroke-width="5"/>
+<path d="M150 390 H260" fill="none" stroke-width="8"/>
+<path d="M110 260 H280 M110 290 H280" fill="none" stroke-width="4"/>
+</g>
+</svg>

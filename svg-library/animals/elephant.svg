@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Elephant</title>
+<desc>Line drawing of an Indian elephant standing, seen from the side, with trunk, ear, small tusk and tail.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M452 206 C472 236 474 280 466 312" fill="none" stroke-width="6"/>
+<path d="M466 312 L458 330 M466 312 L468 332 M466 312 L476 328" fill="none" stroke-width="4"/>
+<rect x="246" y="320" width="46" height="104" rx="10"/>
+<rect x="334" y="320" width="46" height="104" rx="10"/>
+<path d="M160 130 C230 90 400 110 446 170 C470 205 468 260 450 300 C444 315 436 330 432 345 L434 432 H386 L384 362 C340 374 280 374 240 360 L238 432 H190 L186 330 C170 300 150 280 140 250 Z"/>
+<path d="M194 432 q8 -8 16 0 M214 432 q8 -8 16 0 M390 432 q8 -8 16 0 M410 432 q8 -8 16 0" fill="none" stroke-width="4"/>
+<path d="M250 424 q8 -8 16 0 M270 424 q8 -8 16 0 M338 424 q8 -8 16 0 M358 424 q8 -8 16 0" fill="none" stroke-width="4"/>
+<path d="M384 362 C390 330 400 300 420 280" fill="none" stroke-width="4"/>
+<path d="M150 112 C110 110 86 140 88 180 C84 240 72 320 74 380 C74 400 66 412 52 414 C42 414 38 426 48 432 C76 440 104 420 108 390 C110 340 116 290 132 260 C150 240 180 240 200 230 Z"/>
+<path d="M78 300 h22 M76 330 h24 M76 360 h26 M80 390 h22" fill="none" stroke-width="3.5"/>
+<path d="M120 250 C124 276 112 292 92 298 C102 282 106 268 106 254 Z"/>
+<path d="M150 140 C204 116 248 150 240 206 C234 252 200 274 168 264 C158 240 148 200 150 140 Z"/>
+<path d="M166 160 C196 150 220 172 216 208 C212 236 194 248 176 246" fill="none" stroke-width="5"/>
+<ellipse cx="118" cy="178" rx="5" ry="7" fill="#1A1A1A" stroke-width="2"/>
+<path d="M106 168 C112 162 122 162 128 168" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

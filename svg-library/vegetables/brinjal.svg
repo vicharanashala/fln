@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Brinjal</title>
+<desc>Line drawing of a long brinjal (eggplant) with its leafy cap and stalk.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M300 150 C352 160 382 212 372 282 C360 372 282 452 190 442 C130 434 108 382 140 342 C170 304 212 282 230 232 C246 186 260 150 300 150 Z"/>
+<path d="M178 340 C160 360 156 384 166 404" fill="none" stroke-width="5"/>
+<path d="M330 230 C340 270 334 310 316 344" fill="none" stroke-width="4"/>
+<path d="M292 144 C290 112 302 86 320 70 L334 80 C318 96 310 118 312 144 Z"/>
+<path d="M236 190 C246 150 290 128 330 138 C362 146 380 170 378 196 L360 186 L352 218 L334 190 L312 222 L300 188 L274 214 L270 186 L246 208 Z"/>
+</g>
+</svg>

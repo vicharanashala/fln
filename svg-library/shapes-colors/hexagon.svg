@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Hexagon</title>
+<desc>Outline of a regular hexagon.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M470.0 256.0 L363.0 441.3 L149.0 441.3 L42.0 256.0 L149.0 70.7 L363.0 70.7 Z" stroke-width="10"/>
+</g>
+</svg>

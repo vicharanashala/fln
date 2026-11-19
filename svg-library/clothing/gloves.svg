@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Gloves</title>
+<desc>Line drawing of a pair of woollen gloves with ribbed cuffs.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(-80 -20) rotate(-10 256 256) ">
+<path d="M176 470 V370 C140 340 120 300 128 270 C134 252 156 250 168 268 L190 300 V150 C190 132 214 132 214 150 V260 H222 V112 C222 94 248 94 248 112 V256 H256 V122 C256 104 282 104 282 122 V262 H290 V162 C290 144 314 144 314 162 V350 C314 380 300 400 292 410 V470 Z"/>
+<rect x="166" y="420" width="136" height="54" rx="8"/>
+<path d="M190 430 V466 M212 430 V466 M234 430 V466 M256 430 V466 M278 430 V466" fill="none" stroke-width="3.5"/>
+</g><g transform="translate(80 10) rotate(10 256 256) scale(-1 1) translate(-512 0)">
+<path d="M176 470 V370 C140 340 120 300 128 270 C134 252 156 250 168 268 L190 300 V150 C190 132 214 132 214 150 V260 H222 V112 C222 94 248 94 248 112 V256 H256 V122 C256 104 282 104 282 122 V262 H290 V162 C290 144 314 144 314 162 V350 C314 380 300 400 292 410 V470 Z"/>
+<rect x="166" y="420" width="136" height="54" rx="8"/>
+<path d="M190 430 V466 M212 430 V466 M234 430 V466 M256 430 V466 M278 430 V466" fill="none" stroke-width="3.5"/>
+</g>
+</g>
+</svg>

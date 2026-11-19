@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Butterfly</title>
+<desc>Line drawing of a butterfly with patterned wings and antennae.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M250 236 C206 122 86 84 72 160 C64 222 140 264 250 254 Z"/><path d="M250 262 C164 262 104 320 132 380 C160 432 232 384 252 292 Z"/><path d="M120 160 C140 140 176 150 190 180 M150 330 C166 316 190 318 204 334" fill="none" stroke-width="4"/><circle cx="134" cy="194" r="18" stroke-width="5"/><circle cx="174" cy="356" r="12" stroke-width="5"/>
+<g transform="translate(512 0) scale(-1 1)"><path d="M250 236 C206 122 86 84 72 160 C64 222 140 264 250 254 Z"/><path d="M250 262 C164 262 104 320 132 380 C160 432 232 384 252 292 Z"/><path d="M120 160 C140 140 176 150 190 180 M150 330 C166 316 190 318 204 334" fill="none" stroke-width="4"/><circle cx="134" cy="194" r="18" stroke-width="5"/><circle cx="174" cy="356" r="12" stroke-width="5"/></g>
+<ellipse cx="256" cy="282" rx="16" ry="86"/>
+<circle cx="256" cy="186" r="20"/>
+<path d="M248 170 C236 130 214 104 190 96 M264 170 C276 130 298 104 322 96" fill="none" stroke-width="5"/>
+<circle cx="186" cy="94" r="8" stroke-width="5"/><circle cx="326" cy="94" r="8" stroke-width="5"/>
+<path d="M244 240 H268 M242 270 H270 M242 300 H270 M244 330 H268" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

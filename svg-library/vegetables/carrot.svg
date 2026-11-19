@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Carrot</title>
+<desc>Line drawing of a carrot with leafy top.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M326 160 C318 116 330 78 352 50 C362 92 356 130 340 162 Z"/>
+<path d="M336 166 C364 126 404 110 452 112 C428 150 392 172 346 178 Z"/>
+<path d="M318 160 C290 128 278 92 280 56 C312 82 328 120 330 160 Z"/>
+<path d="M290 150 C326 128 384 168 372 214 C334 300 224 400 142 442 C130 448 120 438 126 428 C170 350 244 230 290 150 Z"/>
+<path d="M262 232 L292 248" fill="none" stroke-width="5"/>
+<path d="M226 300 L254 314" fill="none" stroke-width="5"/>
+<path d="M190 366 L212 378" fill="none" stroke-width="5"/>
+<path d="M318 214 L340 226" fill="none" stroke-width="5"/>
+</g>
+</svg>

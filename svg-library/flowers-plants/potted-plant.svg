@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Potted plant</title>
+<desc>Line drawing of a leafy plant growing in a clay pot.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 300 C254 240 250 190 240 140 M256 300 C264 250 280 210 304 176 M256 300 C236 270 210 250 176 240" fill="none" stroke-width="6"/>
+<path d="M240 140 C210 110 200 70 220 40 C250 60 260 100 240 140 Z"/>
+<path d="M304 176 C320 136 360 116 396 124 C384 160 344 180 304 176 Z"/>
+<path d="M176 240 C150 214 112 210 86 226 C110 254 146 258 176 240 Z"/>
+<path d="M248 210 C214 196 188 170 186 136 C220 144 242 172 248 210 Z"/>
+<path d="M270 250 C300 236 340 238 364 256 C336 276 300 274 270 250 Z"/>
+<path d="M240 136 C232 104 226 76 222 48 M304 174 C330 150 360 134 388 128 M176 238 C150 228 120 226 94 228 M246 206 C224 186 204 164 192 142 M272 250 C300 248 330 252 356 256" fill="none" stroke-width="3"/>
+<path d="M140 300 H372 V340 H140 Z"/>
+<path d="M156 340 H356 L332 466 C330 476 322 482 312 482 H200 C190 482 182 476 180 466 Z"/>
+<path d="M190 380 C206 372 222 372 238 380" fill="none" stroke-width="4"/>
+</g>
+</svg>

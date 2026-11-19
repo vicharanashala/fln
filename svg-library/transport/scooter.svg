@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Scooter</title>
+<desc>Line drawing of a scooter seen from the side, with a seat, handlebar and two wheels.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="120" cy="390" r="56"/><circle cx="120" cy="390" r="20" stroke-width="6"/>
+<circle cx="400" cy="390" r="56"/><circle cx="400" cy="390" r="20" stroke-width="6"/>
+<path d="M60 360 C60 300 110 270 170 270 H260 C280 270 290 290 290 310 V340 C290 360 300 370 330 370 H360 C370 330 380 300 360 250 L340 160" fill="none"/>
+<path d="M60 360 C60 300 110 270 170 270 H250 C270 270 280 290 280 310 V350 C280 366 290 380 320 380 H360 C372 340 380 300 364 254 L344 164 L366 160 L388 250 C404 300 400 350 390 380 H66 C62 380 60 372 60 360 Z"/>
+<path d="M120 260 C120 240 140 230 170 230 H240 C256 230 262 240 262 252 C262 262 256 270 240 270 H120 Z"/>
+<path d="M330 150 L380 140 C396 136 404 148 396 156 L340 168 Z"/>
+<path d="M320 150 L302 138" fill="none" stroke-width="8"/>
+<circle cx="392" cy="200" r="14" stroke-width="5"/>
+<path d="M370 330 C400 330 430 340 450 370 L456 384" fill="none"/>
+<path d="M100 320 H200" fill="none" stroke-width="4"/>
+</g>
+</svg>

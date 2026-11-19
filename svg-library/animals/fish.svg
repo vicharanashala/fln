@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Fish</title>
+<desc>Line drawing of a fish with fins, scales and a forked tail.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M196 182 C222 122 298 122 322 188 Z"/>
+<path d="M214 334 C236 376 280 380 300 342 Z"/>
+<path d="M70 256 C130 160 300 150 370 240 L450 170 C460 164 468 172 462 182 L430 256 L462 330 C468 340 460 348 450 342 L370 272 C300 362 130 352 70 256 Z"/>
+<path d="M384 238 L440 190 M384 274 L440 322 M392 256 H432" fill="none" stroke-width="4"/>
+<path d="M180 196 C202 228 202 284 180 316" fill="none" stroke-width="5"/>
+<path d="M220.0 200.0 Q208.0 214.0 220.0 228.0 Q208.0 242.0 220.0 256.0 Q208.0 270.0 220.0 284.0 Q208.0 298.0 220.0 312.0 " fill="none" stroke-width="3.5"/><path d="M262.0 200.0 Q250.0 214.0 262.0 228.0 Q250.0 242.0 262.0 256.0 Q250.0 270.0 262.0 284.0 Q250.0 298.0 262.0 312.0 " fill="none" stroke-width="3.5"/><path d="M304.0 214.0 Q292.0 228.3 304.0 242.7 Q292.0 257.0 304.0 271.3 Q292.0 285.7 304.0 300.0 " fill="none" stroke-width="3.5"/>
+<circle cx="128" cy="236" r="16" stroke-width="5"/><circle cx="128" cy="236" r="7" fill="#1A1A1A" stroke-width="2"/>
+<path d="M74 262 C86 270 96 270 104 264" fill="none" stroke-width="4"/>
+</g>
+</svg>

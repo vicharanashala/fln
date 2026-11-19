@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>School bag</title>
+<desc>Line drawing of a school backpack with a top handle, front flap and pocket.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M206 128 C206 66 306 66 306 128 H286 C286 92 226 92 226 128 Z"/>
+<path d="M152 200 C116 214 112 334 140 384" fill="none" stroke-width="5"/><path d="M360 200 C396 214 400 334 372 384" fill="none" stroke-width="5"/>
+<path d="M150 152 C150 128 170 116 196 116 H316 C342 116 362 128 362 152 V420 C362 440 348 452 326 452 H186 C164 452 150 440 150 420 Z"/>
+<path d="M160 146 C160 132 172 126 190 126 H322 C340 126 352 132 352 146 V232 C352 262 160 262 160 232 Z"/>
+<rect x="234" y="230" width="44" height="36" rx="8"/>
+<path d="M248 248 H264" fill="none" stroke-width="5"/>
+<rect x="186" y="298" width="140" height="120" rx="22"/>
+<path d="M198 326 H314" fill="none" stroke-width="5"/>
+<rect x="294" y="318" width="12" height="26" rx="4"/>
+</g>
+</svg>

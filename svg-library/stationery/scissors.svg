@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Scissors</title>
+<desc>Line drawing of a pair of open scissors pointing upward.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M282 302 L250 290 L312 54 C322 52 330 60 328 70 Z"/>
+<path d="M240 296 L204 382 L222 388 L262 300 Z"/>
+<path d="M230 302 L262 290 L200 54 C190 52 182 60 184 70 Z"/>
+<path d="M272 296 L308 382 L290 388 L250 300 Z"/>
+<ellipse cx="186" cy="424" rx="60" ry="46"/><ellipse cx="186" cy="424" rx="36" ry="24"/>
+<ellipse cx="326" cy="424" rx="60" ry="46"/><ellipse cx="326" cy="424" rx="36" ry="24"/>
+<circle cx="256" cy="292" r="13"/>
+<circle cx="256" cy="292" r="4" fill="#1A1A1A" stroke-width="2"/>
+<path d="M226 250 L204 80 M286 250 L308 80" fill="none" stroke-width="3"/>
+</g>
+</svg>

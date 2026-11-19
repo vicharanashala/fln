@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Apple</title>
+<desc>Line drawing of a round apple with a stem and one leaf.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 160 C218 124 122 120 102 214 C82 312 150 444 214 448 C236 449 244 438 256 438 C268 438 276 449 298 448 C362 444 430 312 410 214 C390 120 294 124 256 160 Z"/>
+<path d="M256 160 C252 128 258 98 274 74" fill="none" stroke-width="9"/>
+<path d="M266 118 C286 76 338 64 372 76 C356 116 312 132 266 118 Z"/>
+<path d="M272 114 C302 102 332 90 360 80" fill="none" stroke-width="5"/>
+<path d="M150 228 C142 266 150 306 168 336" fill="none" stroke-width="5"/>
+</g>
+</svg>

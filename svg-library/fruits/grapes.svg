@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Grapes</title>
+<desc>Line drawing of a bunch of grapes with a stalk, a curly tendril and a leaf.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M262 60 C258 90 256 110 256 130" fill="none" stroke-width="12"/>
+<path d="M262 80 C300 60 320 88 300 104 C288 114 276 100 290 92" fill="none" stroke-width="5"/>
+<path d="M250 96 C226 58 172 44 132 62 C146 76 140 92 118 98 C132 112 130 130 112 142 C150 156 196 146 222 130 C238 120 248 108 250 96 Z"/>
+<path d="M246 98 C210 92 170 90 132 104 M200 94 C186 80 166 70 150 66 M200 96 C186 110 168 122 148 128" fill="none" stroke-width="4"/>
+<circle cx="142.0" cy="150" r="30"/>
+<path d="M128.0 144 C128.0 136 134.0 132 140.0 132" fill="none" stroke-width="4"/>
+<circle cx="199.0" cy="150" r="30"/>
+<path d="M185.0 144 C185.0 136 191.0 132 197.0 132" fill="none" stroke-width="4"/>
+<circle cx="256.0" cy="150" r="30"/>
+<path d="M242.0 144 C242.0 136 248.0 132 254.0 132" fill="none" stroke-width="4"/>
+<circle cx="313.0" cy="150" r="30"/>
+<path d="M299.0 144 C299.0 136 305.0 132 311.0 132" fill="none" stroke-width="4"/>
+<circle cx="370.0" cy="150" r="30"/>
+<path d="M356.0 144 C356.0 136 362.0 132 368.0 132" fill="none" stroke-width="4"/>
+<circle cx="170.5" cy="196" r="30"/>
+<path d="M156.5 190 C156.5 182 162.5 178 168.5 178" fill="none" stroke-width="4"/>
+<circle cx="227.5" cy="196" r="30"/>
+<path d="M213.5 190 C213.5 182 219.5 178 225.5 178" fill="none" stroke-width="4"/>
+<circle cx="284.5" cy="196" r="30"/>
+<path d="M270.5 190 C270.5 182 276.5 178 282.5 178" fill="none" stroke-width="4"/>
+<circle cx="341.5" cy="196" r="30"/>
+<path d="M327.5 190 C327.5 182 333.5 178 339.5 178" fill="none" stroke-width="4"/>
+<circle cx="142.0" cy="238" r="30"/>
+<path d="M128.0 232 C128.0 224 134.0 220 140.0 220" fill="none" stroke-width="4"/>
+<circle cx="199.0" cy="238" r="30"/>
+<path d="M185.0 232 C185.0 224 191.0 220 197.0 220" fill="none" stroke-width="4"/>
+<circle cx="256.0" cy="238" r="30"/>
+<path d="M242.0 232 C242.0 224 248.0 220 254.0 220" fill="none" stroke-width="4"/>
+<circle cx="313.0" cy="238" r="30"/>
+<path d="M299.0 232 C299.0 224 305.0 220 311.0 220" fill="none" stroke-width="4"/>
+<circle cx="370.0" cy="238" r="30"/>
+<path d="M356.0 232 C356.0 224 362.0 220 368.0 220" fill="none" stroke-width="4"/>
+<circle cx="170.5" cy="282" r="30"/>
+<path d="M156.5 276 C156.5 268 162.5 264 168.5 264" fill="none" stroke-width="4"/>
+<circle cx="227.5" cy="282" r="30"/>
+<path d="M213.5 276 C213.5 268 219.5 264 225.5 264" fill="none" stroke-width="4"/>
+<circle cx="284.5" cy="282" r="30"/>
+<path d="M270.5 276 C270.5 268 276.5 264 282.5 264" fill="none" stroke-width="4"/>
+<circle cx="341.5" cy="282" r="30"/>
+<path d="M327.5 276 C327.5 268 333.5 264 339.5 264" fill="none" stroke-width="4"/>
+<circle cx="199.0" cy="324" r="30"/>
+<path d="M185.0 318 C185.0 310 191.0 306 197.0 306" fill="none" stroke-width="4"/>
+<circle cx="256.0" cy="324" r="30"/>
+<path d="M242.0 318 C242.0 310 248.0 306 254.0 306" fill="none" stroke-width="4"/>
+<circle cx="313.0" cy="324" r="30"/>
+<path d="M299.0 318 C299.0 310 305.0 306 311.0 306" fill="none" stroke-width="4"/>
+<circle cx="227.5" cy="366" r="30"/>
+<path d="M213.5 360 C213.5 352 219.5 348 225.5 348" fill="none" stroke-width="4"/>
+<circle cx="284.5" cy="366" r="30"/>
+<path d="M270.5 360 C270.5 352 276.5 348 282.5 348" fill="none" stroke-width="4"/>
+<circle cx="256.0" cy="406" r="30"/>
+<path d="M242.0 400 C242.0 392 248.0 388 254.0 388" fill="none" stroke-width="4"/>
+</g>
+</svg>

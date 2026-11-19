@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Truck</title>
+<desc>Line drawing of a cargo truck seen from the side.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="40" y="130" width="290" height="220" rx="10"/>
+<path d="M70 160 V320 M130 160 V320 M190 160 V320 M250 160 V320 M300 160 V320" fill="none" stroke-width="4"/>
+<path d="M340 190 H420 C436 190 446 196 454 210 L478 260 C482 268 484 276 484 284 V340 C484 346 480 350 474 350 H340 Z"/>
+<path d="M360 210 H418 L446 266 H360 Z"/>
+<path d="M396 290 H420" fill="none" stroke-width="6"/>
+<rect x="470" y="306" width="16" height="22" rx="4" stroke-width="5"/>
+<rect x="32" y="350" width="456" height="20" rx="6"/>
+<circle cx="110" cy="388" r="42"/><circle cx="110" cy="388" r="16" stroke-width="6"/>
+<circle cx="230" cy="388" r="42"/><circle cx="230" cy="388" r="16" stroke-width="6"/>
+<circle cx="410" cy="388" r="42"/><circle cx="410" cy="388" r="16" stroke-width="6"/>
+</g>
+</svg>

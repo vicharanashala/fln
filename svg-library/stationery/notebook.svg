@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Notebook</title>
+<desc>Line drawing of a spiral notebook with ruled lines.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="96" y="70" width="330" height="400" rx="12"/>
+<rect x="110" y="84" width="330" height="400" rx="12" fill="none" stroke-width="0"/>
+<path d="M140 170 H400 M140 204 H400 M140 238 H400 M140 272 H400 M140 306 H400 M140 340 H400 M140 374 H400 M140 408 H400 M140 442 H400" fill="none" stroke-width="4"/>
+<path d="M164 120 V460" fill="none" stroke-width="4"/>
+<path d="M120 92 C120 60 144 60 144 78" fill="none" stroke-width="7"/><circle cx="144" cy="92" r="7" stroke-width="4"/><path d="M166 92 C166 60 190 60 190 78" fill="none" stroke-width="7"/><circle cx="190" cy="92" r="7" stroke-width="4"/><path d="M212 92 C212 60 236 60 236 78" fill="none" stroke-width="7"/><circle cx="236" cy="92" r="7" stroke-width="4"/><path d="M258 92 C258 60 282 60 282 78" fill="none" stroke-width="7"/><circle cx="282" cy="92" r="7" stroke-width="4"/><path d="M304 92 C304 60 328 60 328 78" fill="none" stroke-width="7"/><circle cx="328" cy="92" r="7" stroke-width="4"/><path d="M350 92 C350 60 374 60 374 78" fill="none" stroke-width="7"/><circle cx="374" cy="92" r="7" stroke-width="4"/><path d="M396 92 C396 60 420 60 420 78" fill="none" stroke-width="7"/><circle cx="420" cy="92" r="7" stroke-width="4"/>
+</g>
+</svg>

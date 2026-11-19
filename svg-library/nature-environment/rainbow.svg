@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Rainbow</title>
+<desc>Line drawing of a rainbow with four bands and a cloud at each end.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M46 380 A210 210 0 0 1 466 380 H432 A176 176 0 0 0 80 380 Z"/>
+<path d="M80 380 A176 176 0 0 1 432 380 H398 A142 142 0 0 0 114 380 Z"/>
+<path d="M114 380 A142 142 0 0 1 398 380 H364 A108 108 0 0 0 148 380 Z"/>
+<path d="M148 380 A108 108 0 0 1 364 380 H330 A74 74 0 0 0 182 380 Z"/>
+<path d="M20 400 C10 370 40 346 66 360 C74 330 116 326 128 352 C152 344 172 366 160 388 C170 410 150 420 130 414 H40 C24 414 16 408 20 400 Z"/>
+<path d="M352 400 C342 370 372 346 398 360 C406 330 448 326 460 352 C484 344 504 366 492 388 C502 410 482 420 462 414 H372 C356 414 348 408 352 400 Z"/>
+</g>
+</svg>

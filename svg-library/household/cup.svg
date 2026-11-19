@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cup</title>
+<desc>Line drawing of a tea cup on a saucer with steam rising.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="256" cy="384" rx="182" ry="40"/>
+<ellipse cx="256" cy="378" rx="110" ry="20" stroke-width="5"/>
+<path d="M352 246 C434 228 444 334 336 342 L342 318 C406 312 404 262 356 270 Z"/>
+<path d="M126 220 H372 C370 320 330 378 256 380 C182 378 142 320 126 220 Z"/>
+<ellipse cx="249" cy="220" rx="123" ry="24"/>
+<ellipse cx="249" cy="222" rx="104" ry="14" stroke-width="5"/>
+<path d="M178 268 C182 300 196 330 214 348" fill="none" stroke-width="5"/>
+<path d="M210 176 C196 154 224 142 210 120 M250 170 C236 146 266 134 250 106 M290 176 C276 154 304 142 290 120" fill="none" stroke-width="5"/>
+</g>
+</svg>

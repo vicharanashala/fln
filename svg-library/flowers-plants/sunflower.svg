@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Sunflower</title>
+<desc>Line drawing of a sunflower with petals, a seed centre, stem and leaves.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 330 C252 380 260 430 256 484" fill="none" stroke-width="12"/>
+<path d="M254 410 C210 420 166 400 150 366 C194 354 236 376 254 410 Z"/>
+<path d="M258 440 C302 446 342 424 356 390 C314 380 274 404 258 440 Z"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(0.0 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(22.5 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(45.0 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(67.5 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(90.0 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(112.5 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(135.0 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(157.5 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(180.0 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(202.5 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(225.0 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(247.5 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(270.0 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(292.5 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(315.0 256 196)"/>
+<ellipse cx="256" cy="96" rx="26" ry="60" transform="rotate(337.5 256 196)"/>
+<circle cx="256" cy="196" r="70"/>
+<path d="M278.0 196.0 l1 1 M267.0 215.1 l1 1 M245.0 215.1 l1 1 M234.0 196.0 l1 1 M245.0 176.9 l1 1 M267.0 176.9 l1 1 M297.4 203.3 l1 1 M288.2 223.0 l1 1 M270.4 235.5 l1 1 M248.7 237.4 l1 1 M229.0 228.2 l1 1 M216.5 210.4 l1 1 M214.6 188.7 l1 1 M223.8 169.0 l1 1 M241.6 156.5 l1 1 M263.3 154.6 l1 1 M283.0 163.8 l1 1 M295.5 181.6 l1 1 M310.5 215.8 l1 1 M298.8 235.2 l1 1 M280.5 248.6 l1 1 M258.5 253.9 l1 1 M236.2 250.5 l1 1 M216.8 238.8 l1 1 M203.4 220.5 l1 1 M198.1 198.5 l1 1 M201.5 176.2 l1 1 M213.2 156.8 l1 1 M231.5 143.4 l1 1 M253.5 138.1 l1 1 M275.8 141.5 l1 1 M295.2 153.2 l1 1 M308.6 171.5 l1 1 M313.9 193.5 l1 1 M256 196 l1 1" fill="none" stroke-width="7"/>
+</g>
+</svg>
