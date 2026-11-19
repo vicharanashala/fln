@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Robot</title>
+<desc>Line drawing of a friendly toy robot with an antenna, round eyes, a control panel on its chest and claw hands.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 70 V36" fill="none" stroke-width="6"/><circle cx="256" cy="28" r="14"/>
+<rect x="140" y="226" width="232" height="170" rx="16"/>
+<rect x="176" y="252" width="160" height="80" rx="8" stroke-width="5"/>
+<circle cx="210" cy="292" r="18" stroke-width="5"/><path d="M210 292 L222 280" fill="none" stroke-width="4"/>
+<rect x="248" y="270" width="24" height="14" rx="3" stroke-width="4"/><rect x="284" y="270" width="24" height="14" rx="3" stroke-width="4"/>
+<rect x="248" y="300" width="60" height="14" rx="3" stroke-width="4"/>
+<circle cx="206" cy="364" r="9" stroke-width="4"/><circle cx="256" cy="364" r="9" stroke-width="4"/><circle cx="306" cy="364" r="9" stroke-width="4"/>
+<path d="M140 260 C100 270 84 310 90 350" fill="none" stroke-width="30"/><path d="M372 260 C412 270 428 310 422 350" fill="none" stroke-width="30"/><path d="M140 260 C100 270 84 310 90 350" fill="none" stroke="#FFFFFF" stroke-width="18"/><path d="M372 260 C412 270 428 310 422 350" fill="none" stroke="#FFFFFF" stroke-width="18"/>
+<path d="M90 350 C70 360 66 384 78 396 L92 380 L104 396 C116 384 112 360 90 350 Z"/>
+<path d="M422 350 C402 360 398 384 410 396 L424 380 L436 396 C448 384 444 360 422 350 Z"/>
+<rect x="176" y="396" width="56" height="60" rx="6"/><rect x="280" y="396" width="56" height="60" rx="6"/>
+<rect x="160" y="456" width="84" height="26" rx="10"/><rect x="268" y="456" width="84" height="26" rx="10"/>
+<rect x="234" y="206" width="44" height="24" rx="4"/>
+<rect x="150" y="70" width="212" height="140" rx="22"/>
+<rect x="126" y="114" width="26" height="50" rx="8"/><rect x="360" y="114" width="26" height="50" rx="8"/>
+<circle cx="208" cy="130" r="26"/><circle cx="304" cy="130" r="26"/>
+<circle cx="208" cy="130" r="12" fill="#1A1A1A" stroke-width="2"/><circle cx="212.2" cy="125.8" r="4.2" fill="#FFFFFF" stroke="none"/><circle cx="304" cy="130" r="12" fill="#1A1A1A" stroke-width="2"/><circle cx="308.2" cy="125.8" r="4.2" fill="#FFFFFF" stroke="none"/>
+<rect x="206" y="172" width="100" height="22" rx="6" stroke-width="5"/>
+<path d="M226 172 V194 M246 172 V194 M266 172 V194 M286 172 V194" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

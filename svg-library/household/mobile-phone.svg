@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Mobile phone</title>
+<desc>Line drawing of a mobile phone with a camera, a speaker and app icons on the screen.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="150" y="26" width="212" height="460" rx="34"/>
+<rect x="166" y="74" width="180" height="356" rx="8" stroke-width="5"/>
+<circle cx="230" cy="50" r="8" stroke-width="4"/><path d="M250 50 H286" fill="none" stroke-width="6"/>
+<rect x="186" y="96" width="40" height="40" rx="10" stroke-width="4"/><rect x="242" y="96" width="40" height="40" rx="10" stroke-width="4"/><rect x="298" y="96" width="40" height="40" rx="10" stroke-width="4"/><rect x="186" y="160" width="40" height="40" rx="10" stroke-width="4"/><rect x="242" y="160" width="40" height="40" rx="10" stroke-width="4"/><rect x="298" y="160" width="40" height="40" rx="10" stroke-width="4"/><rect x="186" y="224" width="40" height="40" rx="10" stroke-width="4"/><rect x="242" y="224" width="40" height="40" rx="10" stroke-width="4"/><rect x="298" y="224" width="40" height="40" rx="10" stroke-width="4"/><rect x="186" y="288" width="40" height="40" rx="10" stroke-width="4"/><rect x="242" y="288" width="40" height="40" rx="10" stroke-width="4"/><rect x="298" y="288" width="40" height="40" rx="10" stroke-width="4"/>
+<rect x="186" y="364" width="140" height="40" rx="20" stroke-width="4"/>
+<path d="M226 456 H286" fill="none" stroke-width="6"/>
+<rect x="362" y="130" width="8" height="40" rx="3" stroke-width="4"/><rect x="142" y="140" width="8" height="60" rx="3" stroke-width="4"/>
+</g>
+</svg>

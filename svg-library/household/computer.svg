@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Computer</title>
+<desc>Line drawing of a desktop computer with a monitor on a stand, a keyboard and a mouse.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="90" y="44" width="332" height="236" rx="16"/>
+<rect x="112" y="66" width="288" height="180" rx="6" stroke-width="5"/>
+<circle cx="350" cy="110" r="22" stroke-width="5"/>
+<path d="M130 236 L200 160 L250 206 L290 172 L382 236 Z" stroke-width="5"/>
+<circle cx="256" cy="264" r="5" stroke-width="3"/>
+<rect x="234" y="280" width="44" height="40" rx="4"/>
+<path d="M180 340 C180 324 210 318 256 318 C302 318 332 324 332 340 Z"/>
+<path d="M70 382 H370 L394 450 H46 Z"/>
+<path d="M84 396 H360 M76 414 H368 M68 432 H378 M120 382 L110 450 M170 382 L164 450 M220 382 L218 450 M270 382 L272 450 M320 382 L326 450" fill="none" stroke-width="3"/>
+<path d="M402 340 C430 320 450 340 450 380" fill="none" stroke-width="4"/>
+<ellipse cx="450" cy="420" rx="28" ry="40"/>
+<path d="M422 410 H478 M450 380 V410" fill="none" stroke-width="4"/>
+</g>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Hen</title>
+<desc>Line drawing of a cartoon hen standing, with a red-style comb on its head, a wattle, a short beak, a folded wing and tail feathers pointing up.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M60 456 H452" fill="none" stroke-width="5"/>
+<path d="M226 376 L222 446 M222 446 l-20 6 M222 446 l-4 10 M222 446 l16 4 M284 380 L288 446 M288 446 l-16 6 M288 446 l2 10 M288 446 l18 2" fill="none" stroke-width="7"/>
+<path d="M376 214 C390 160 420 120 452 104 C448 148 430 186 400 214 Z"/>
+<path d="M386 224 C414 186 450 166 484 166 C470 204 440 228 404 236 Z"/>
+<path d="M392 244 C426 226 460 228 486 244 C460 270 426 276 398 264 Z"/>
+<path d="M120 292 C120 232 170 198 240 208 C300 216 350 220 390 202 C420 232 430 292 400 332 C370 372 300 386 240 382 C170 378 120 348 120 292 Z"/>
+<path d="M214 280 C256 252 334 252 360 276 C344 324 284 340 232 324 C208 316 202 294 214 280 Z"/>
+<path d="M232.0 296.0 Q246.2 304.0 259.0 294.0 Q273.2 302.0 286.0 292.0 Q300.2 300.0 313.0 290.0 Q327.2 298.0 340.0 288.0 " fill="none" stroke-width="3.5"/>
+<path d="M300 312 L340 306" fill="none" stroke-width="4"/>
+<path d="M128 132 C122 110 140 98 152 114 C152 92 176 86 182 108 C190 90 214 94 210 118 Z"/>
+<circle cx="164" cy="176" r="56"/>
+<path d="M112 168 L80 182 L112 194 Z"/>
+<path d="M114 200 C104 214 106 234 120 236 C132 238 136 222 130 206 Z"/>
+<circle cx="160" cy="166" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="163.5" cy="162.5" r="3.5" fill="#FFFFFF" stroke="none"/>
+</g>
+</svg>
