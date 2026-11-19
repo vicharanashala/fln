@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Tap</title>
+<desc>Line drawing of a water tap fixed to a wall, with a handle on top and drops of water falling.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="36" y="140" width="56" height="130" rx="12"/>
+<path d="M92 176 H300 C364 176 404 220 404 282 V316 H350 V286 C350 252 330 232 300 232 H92 Z"/>
+<rect x="340" y="312" width="74" height="24" rx="6"/>
+<rect x="168" y="128" width="64" height="48" rx="6"/>
+<rect x="190" y="100" width="20" height="30"/>
+<path d="M120 84 C120 72 132 66 200 66 C268 66 280 72 280 84 V96 C280 106 268 110 200 110 C132 110 120 106 120 96 Z"/>
+<circle cx="200" cy="88" r="12" stroke-width="5"/>
+<path d="M120 204 H300" fill="none" stroke-width="4"/>
+<path d="M377 360.2 C389.6 376.4 391.4 385.4 391.4 389.0 C391.4 398.0 384.2 403.4 377 403.4 C369.8 403.4 362.6 398.0 362.6 389.0 C362.6 385.4 364.4 376.4 377 360.2 Z" stroke-width="6"/><path d="M377 434.6 C386.8 447.2 388.2 454.2 388.2 457.0 C388.2 464.0 382.6 468.2 377 468.2 C371.4 468.2 365.8 464.0 365.8 457.0 C365.8 454.2 367.2 447.2 377 434.6 Z" stroke-width="6"/>
+<path d="M330 490 C350 478 404 478 424 490" fill="none" stroke-width="5"/>
+</g>
+</svg>

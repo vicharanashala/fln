@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Pear</title>
+<desc>Line drawing of a pear with its typical shape, a stem, a leaf, a shine and tiny speckles on the skin.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 112 C230 112 220 142 222 172 C224 204 204 222 178 250 C128 302 118 372 158 422 C198 472 314 472 354 422 C394 372 384 302 334 250 C308 222 288 204 290 172 C292 142 282 112 256 112 Z"/>
+<path d="M256 114 C254 92 262 72 276 58" fill="none" stroke-width="9"/>
+<path d="M266 90 C290 52 340 44 372 60 C342 92 302 100 266 90 Z"/>
+<path d="M272 88 C300 74 330 66 356 64" fill="none" stroke-width="3.5"/>
+<path d="M172 340 C170 300 186 272 206 256" fill="none" stroke-width="7"/>
+<path d="M250 200 l1 1 M270 240 l1 1 M230 280 l1 1 M300 290 l1 1 M330 340 l1 1 M220 360 l1 1 M280 380 l1 1 M240 420 l1 1 M320 410 l1 1 M190 400 l1 1 M350 380 l1 1 M270 320 l1 1" fill="none" stroke-width="7"/>
+<path d="M246 456 l10 -8 l10 8" fill="none" stroke-width="4"/>
+</g>
+</svg>
