@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Sphere</title>
+<desc>Line drawing of a sphere (ball shape) with a curved line around its middle; the hidden back half is dashed.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="256" cy="256" r="190"/>
+<path d="M66 256 C66 300 152 332 256 332 C360 332 446 300 446 256" fill="none" stroke-width="5"/>
+<path d="M66 256 C66 212 152 180 256 180 C360 180 446 212 446 256" fill="none" stroke-width="4" stroke-dasharray="14 12"/>
+<path d="M150 130 C170 110 196 96 224 90" fill="none" stroke-width="6"/>
+</g>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Sofa</title>
+<desc>Line drawing of a two-seater sofa seen from the front, with back cushions, seat cushions, rounded armrests and short legs.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M100 300 V170 C100 140 120 124 150 124 H362 C392 124 412 140 412 170 V300 Z"/>
+<path d="M120 300 V176 C120 160 130 150 146 150 H244 C252 150 256 156 256 164 V300 Z" stroke-width="6"/>
+<path d="M392 300 V176 C392 160 382 150 366 150 H268 C260 150 256 156 256 164 V300 Z" stroke-width="6"/>
+<circle cx="160" cy="200" r="5" stroke-width="3"/><circle cx="220" cy="200" r="5" stroke-width="3"/><circle cx="190" cy="250" r="5" stroke-width="3"/><circle cx="292" cy="200" r="5" stroke-width="3"/><circle cx="352" cy="200" r="5" stroke-width="3"/><circle cx="322" cy="250" r="5" stroke-width="3"/>
+<path d="M110 300 H402 C410 300 414 306 414 314 V360 H98 V314 C98 306 102 300 110 300 Z"/>
+<path d="M116 300 C112 330 112 350 120 360 M256 300 V360 M396 300 C400 330 400 350 392 360" fill="none" stroke-width="5"/>
+<rect x="84" y="358" width="344" height="52" rx="10"/>
+<path d="M44 240 C44 220 58 210 76 210 C96 210 110 224 110 244 V410 H44 Z"/>
+<path d="M468 240 C468 220 454 210 436 210 C416 210 402 224 402 244 V410 H468 Z"/>
+<path d="M60 244 C60 232 68 226 78 226 M452 244 C452 232 444 226 434 226" fill="none" stroke-width="4"/>
+<path d="M60 410 L66 452 H82 L88 410 Z"/><path d="M452 410 L446 452 H430 L424 410 Z"/>
+<path d="M150 410 L154 440 H168 L172 410 Z"/><path d="M362 410 L358 440 H344 L340 410 Z"/>
+</g>
+</svg>

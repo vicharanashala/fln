@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Whale</title>
+<desc>Line drawing of a big friendly whale with a water spout, a tail fluke, a flipper and lines on its belly.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M196 150 C190 120 170 100 150 92 M210 148 V84 M224 150 C230 120 250 100 270 92" fill="none" stroke-width="6"/>
+<path d="M140 80 c-6 -14 -24 -14 -30 0 M206 66 c-6 -14 -24 -14 -30 0 M290 80 c-6 -14 -24 -14 -30 0" fill="none" stroke-width="5"/>
+<path d="M408 270 C420 240 430 214 424 184 C440 196 452 214 458 232 C466 208 482 190 506 182 C508 214 490 246 466 266 L440 292 Z"/>
+<path d="M50 300 C50 210 140 160 250 160 C350 160 400 214 418 262 C428 290 438 304 446 296 L460 310 C446 366 390 390 320 392 H160 C94 392 50 356 50 300 Z"/>
+<path d="M66 330 C110 372 300 384 440 326" fill="none" stroke-width="5"/>
+<path d="M120 356 L126 376 M170 366 L174 386 M220 372 L222 390 M270 374 L270 392 M320 372 L318 390 M370 364 L366 382" fill="none" stroke-width="4"/>
+<path d="M196 322 C230 326 272 348 290 388 C294 400 284 408 272 404 C240 394 208 370 190 344 Z"/>
+<circle cx="138" cy="262" r="11" fill="#1A1A1A" stroke-width="2"/><circle cx="141.8" cy="258.1" r="3.8" fill="#FFFFFF" stroke="none"/>
+<path d="M60 298 C80 312 104 316 124 310" fill="none" stroke-width="6"/>
+<path d="M320 200 C344 206 366 220 380 236" fill="none" stroke-width="5"/>
+<path d="M40 444 C70 430 100 458 130 444 C160 430 190 458 220 444 C250 430 280 458 310 444 C340 430 370 458 400 444 C430 430 460 458 482 444" fill="none" stroke-width="5"/>
+</g>
+</svg>

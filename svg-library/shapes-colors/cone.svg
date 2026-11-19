@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cone</title>
+<desc>Line drawing of a cone with a pointed top, a round base, and its hidden back edge shown dashed.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 50 L136 400 C136 430 190 450 256 450 C322 450 376 430 376 400 Z"/>
+<path d="M136 400 C136 370 190 350 256 350 C322 350 376 370 376 400" fill="none" stroke-width="4" stroke-dasharray="14 12"/>
+</g>
+</svg>

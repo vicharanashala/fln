@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Burger</title>
+<desc>Line drawing of a burger with a sesame bun, lettuce, a slice of cheese, a patty and tomato.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M84 382 H428 C440 382 446 392 444 404 C438 436 404 452 360 452 H152 C108 452 74 436 68 404 C66 392 72 382 84 382 Z"/>
+<path d="M90 352 H422 C432 352 438 360 436 370 L434 382 H78 L76 370 C74 360 80 352 90 352 Z"/>
+<path d="M150 352 C160 368 180 370 196 352 M280 352 C290 368 310 370 326 352" fill="none" stroke-width="4"/>
+<path d="M84 300 C70 300 64 312 66 324 C68 344 84 354 104 354 H408 C428 354 444 344 446 324 C448 312 442 300 428 300 Z"/>
+<path d="M120 320 l1 1 M160 334 l1 1 M200 316 l1 1 M250 330 l1 1 M300 318 l1 1 M350 334 l1 1 M390 320 l1 1 M140 342 l1 1 M280 342 l1 1" fill="none" stroke-width="7"/>
+<path d="M70 286 H442 L436 302 L404 302 L392 330 L378 302 H170 L154 334 L140 302 H76 Z"/>
+<path d="M58 272 C74 290 90 262 108 280 C126 298 142 266 162 284 C182 302 198 270 218 288 C238 306 254 274 274 292 C294 310 310 278 330 296 C350 314 366 282 386 300 C406 316 428 284 456 296 L454 274 Z"/>
+<path d="M70 250 C70 132 168 84 256 84 C344 84 442 132 442 250 C442 264 432 272 418 272 H94 C80 272 70 264 70 250 Z"/>
+<ellipse cx="170" cy="150" rx="9" ry="5" transform="rotate(-20 170 150)" stroke-width="3.5"/><ellipse cx="220" cy="124" rx="9" ry="5" transform="rotate(-8 220 124)" stroke-width="3.5"/><ellipse cx="280" cy="120" rx="9" ry="5" transform="rotate(6 280 120)" stroke-width="3.5"/><ellipse cx="336" cy="140" rx="9" ry="5" transform="rotate(20 336 140)" stroke-width="3.5"/><ellipse cx="140" cy="200" rx="9" ry="5" transform="rotate(-30 140 200)" stroke-width="3.5"/><ellipse cx="200" cy="186" rx="9" ry="5" transform="rotate(-10 200 186)" stroke-width="3.5"/><ellipse cx="256" cy="170" rx="9" ry="5" transform="rotate(0 256 170)" stroke-width="3.5"/><ellipse cx="312" cy="184" rx="9" ry="5" transform="rotate(12 312 184)" stroke-width="3.5"/><ellipse cx="370" cy="196" rx="9" ry="5" transform="rotate(28 370 196)" stroke-width="3.5"/><ellipse cx="230" cy="226" rx="9" ry="5" transform="rotate(-4 230 226)" stroke-width="3.5"/><ellipse cx="300" cy="228" rx="9" ry="5" transform="rotate(8 300 228)" stroke-width="3.5"/>
+<path d="M120 170 C136 140 160 120 188 108" fill="none" stroke-width="6"/>
+</g>
+</svg>

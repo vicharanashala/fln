@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Boots</title>
+<desc>Line drawing of a pair of tall rain boots with thick ridged soles and pull tabs.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(46 -36) scale(0.86)">
+<path d="M140 90 H274 L276 316 C296 338 336 344 384 350 C432 356 458 382 454 420 H136 Z"/>
+<rect x="128" y="76" width="158" height="34" rx="8"/>
+<path d="M286 84 C310 84 316 112 290 114" fill="none" stroke-width="6"/>
+<path d="M128 418 H462 V436 C462 448 454 456 442 456 H140 C132 456 128 450 128 442 Z"/>
+<path d="M160 456 v-12 M200 456 v-12 M240 456 v-12 M280 456 v-12 M320 456 v-12 M360 456 v-12 M400 456 v-12 M440 456 v-12" fill="none" stroke-width="4"/>
+<path d="M152 140 V390 M300 340 C340 366 400 372 440 390" fill="none" stroke-width="4"/>
+</g>
+<g transform="translate(-90 40) scale(0.86)">
+<path d="M140 90 H274 L276 316 C296 338 336 344 384 350 C432 356 458 382 454 420 H136 Z"/>
+<rect x="128" y="76" width="158" height="34" rx="8"/>
+<path d="M286 84 C310 84 316 112 290 114" fill="none" stroke-width="6"/>
+<path d="M128 418 H462 V436 C462 448 454 456 442 456 H140 C132 456 128 450 128 442 Z"/>
+<path d="M160 456 v-12 M200 456 v-12 M240 456 v-12 M280 456 v-12 M320 456 v-12 M360 456 v-12 M400 456 v-12 M440 456 v-12" fill="none" stroke-width="4"/>
+<path d="M152 140 V390 M300 340 C340 366 400 372 440 390" fill="none" stroke-width="4"/>
+</g>
+</g>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Caterpillar</title>
+<desc>Line drawing of a smiling caterpillar with a round segmented body, little legs and two antennae, crawling on the ground.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M30 452 C140 430 360 430 482 452" fill="none" stroke-width="6"/>
+<path d="M60 444 C120 420 200 420 260 434 M300 436 C360 424 420 426 470 440" fill="none" stroke-width="3.5"/>
+<path d="M62 398.0 l-6 22 M90 398.0 l6 22" fill="none" stroke-width="6"/>
+<path d="M118 421.17139136159733 l-6 22 M146 421.17139136159733 l6 22" fill="none" stroke-width="6"/>
+<path d="M174 419.0209064993093 l-6 22 M202 419.0209064993093 l6 22" fill="none" stroke-width="6"/>
+<path d="M230 393.89861195227553 l-6 22 M258 393.89861195227553 l6 22" fill="none" stroke-width="6"/>
+<path d="M286 373.2583460788726 l-6 22 M314 373.2583460788726 l6 22" fill="none" stroke-width="6"/>
+<path d="M342 379.65595153516983 l-6 22 M370 379.65595153516983 l6 22" fill="none" stroke-width="6"/>
+<circle cx="76" cy="360.0" r="46"/>
+<circle cx="84" cy="346.0" r="9" stroke-width="4"/>
+<circle cx="132" cy="383.2" r="46"/>
+<circle cx="140" cy="369.2" r="9" stroke-width="4"/>
+<circle cx="188" cy="381.0" r="46"/>
+<circle cx="196" cy="367.0" r="9" stroke-width="4"/>
+<circle cx="244" cy="355.9" r="46"/>
+<circle cx="252" cy="341.9" r="9" stroke-width="4"/>
+<circle cx="300" cy="335.3" r="46"/>
+<circle cx="308" cy="321.3" r="9" stroke-width="4"/>
+<circle cx="356" cy="341.7" r="46"/>
+<circle cx="364" cy="327.7" r="9" stroke-width="4"/>
+<path d="M392 210 C380 170 360 150 340 146 M432 206 C440 166 456 146 476 142" fill="none" stroke-width="5"/>
+<circle cx="338" cy="144" r="10"/><circle cx="478" cy="140" r="10"/>
+<circle cx="412" cy="270" r="68"/>
+<circle cx="388" cy="258" r="11" fill="#1A1A1A" stroke-width="2"/><circle cx="391.9" cy="254.2" r="3.8" fill="#FFFFFF" stroke="none"/><circle cx="436" cy="258" r="11" fill="#1A1A1A" stroke-width="2"/><circle cx="439.9" cy="254.2" r="3.8" fill="#FFFFFF" stroke="none"/>
+<path d="M388 294 C402 310 424 310 438 294" fill="none" stroke-width="6"/>
+<path d="M364 284 l1 1 M460 284 l1 1" fill="none" stroke-width="10"/>
+</g>
+</svg>

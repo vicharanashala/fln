@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Cube</title>
+<desc>Line drawing of a cube with its hidden edges shown as dashed lines.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M120 200 L330 200 L400 120 L190 120 Z"/>
+<path d="M330 200 L400 120 V330 L330 410 Z"/>
+<rect x="120" y="200" width="210" height="210"/>
+<path d="M190 120 V330 L120 410 M190 330 H400" fill="none" stroke-width="4" stroke-dasharray="14 12"/>
+</g>
+</svg>

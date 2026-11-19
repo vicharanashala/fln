@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Door</title>
+<desc>Line drawing of a wooden door in its frame, with four panels, a round knob, hinges and a doormat in front.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="118" y="36" width="276" height="414" rx="6"/>
+<rect x="140" y="58" width="232" height="392"/>
+<rect x="166" y="86" width="76" height="140" rx="4" stroke-width="5"/><rect x="270" y="86" width="76" height="140" rx="4" stroke-width="5"/>
+<rect x="166" y="262" width="76" height="160" rx="4" stroke-width="5"/><rect x="270" y="262" width="76" height="160" rx="4" stroke-width="5"/>
+<rect x="178" y="98" width="52" height="116" rx="2" stroke-width="3"/><rect x="282" y="98" width="52" height="116" rx="2" stroke-width="3"/>
+<rect x="178" y="274" width="52" height="136" rx="2" stroke-width="3"/><rect x="282" y="274" width="52" height="136" rx="2" stroke-width="3"/>
+<rect x="336" y="226" width="22" height="52" rx="8" stroke-width="5"/>
+<circle cx="347" cy="244" r="13"/>
+<path d="M347 262 v8" fill="none" stroke-width="4"/>
+<rect x="134" y="104" width="12" height="36" rx="3" stroke-width="4"/><rect x="134" y="360" width="12" height="36" rx="3" stroke-width="4"/>
+<path d="M40 450 H472" fill="none" stroke-width="6"/>
+<path d="M150 462 H362 L380 492 H132 Z"/>
+<path d="M140 492 v8 M156 492 v8 M172 492 v8 M188 492 v8 M204 492 v8 M220 492 v8 M236 492 v8 M252 492 v8 M268 492 v8 M284 492 v8 M300 492 v8 M316 492 v8 M332 492 v8 M348 492 v8 M364 492 v8" fill="none" stroke-width="3.5"/>
+<path d="M170 476 H342" fill="none" stroke-width="3.5"/>
+</g>
+</svg>
