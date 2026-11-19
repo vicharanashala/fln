@@ -19,5 +19,5 @@ await build({ ...shared, entryPoints: [fileURLToPath(new URL('./create-superadmi
 await build({ ...shared, entryPoints: [fileURLToPath(new URL('../src/qrWorker.ts', import.meta.url))], outfile: `${out}/qrWorker.mjs` });
 await build({ ...shared, entryPoints: [fileURLToPath(new URL('./import-questions.ts', import.meta.url))], outfile: `${out}/import-questions.mjs` });
 copyFileSync(`${root}/data/questionBank.json`, `${out}/questionBank.json`);
-copyFileSync(`${root}/data/balvatika-pilot-questions.json`, `${out}/balvatika-pilot-questions.json`);
-console.log('Built apps/api/dist/server.mjs, qrWorker.mjs, create-superadmin.mjs, import-questions.mjs, questionBank.json and the pilot questions');
+copyFileSync(`${root}/data/balvatika-questions.json`, `${out}/balvatika-questions.json`);
+console.log('Built apps/api/dist/server.mjs, qrWorker.mjs, create-superadmin.mjs, import-questions.mjs, questionBank.json and the Balvatika questions');
