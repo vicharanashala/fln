@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Drum</title>
+<desc>Line drawing of a toy drum with zig-zag ropes around it and two drumsticks resting on top.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M96 170 V380 C96 420 168 446 256 446 C344 446 416 420 416 380 V170 Z"/>
+<path d="M96 368 C96 404 168 430 256 430 C344 430 416 404 416 368" fill="none" stroke-width="6"/>
+<path d="M96 382 C96 418 168 444 256 444 C344 444 416 418 416 382" fill="none" stroke-width="4"/>
+<ellipse cx="256" cy="170" rx="160" ry="54"/>
+<ellipse cx="256" cy="170" rx="138" ry="42" stroke-width="5"/>
+<path d="M96 186 C96 222 168 248 256 248 C344 248 416 222 416 186" fill="none" stroke-width="6"/>
+<path d="M110 232 L150 404 L194 258 L238 428 L274 264 L318 426 L352 256 L392 404 L406 228" fill="none" stroke-width="5"/>
+<circle cx="110" cy="232" r="7" stroke-width="4"/><circle cx="194" cy="258" r="7" stroke-width="4"/><circle cx="274" cy="264" r="7" stroke-width="4"/><circle cx="352" cy="256" r="7" stroke-width="4"/><circle cx="406" cy="228" r="7" stroke-width="4"/><circle cx="150" cy="404" r="7" stroke-width="4"/><circle cx="238" cy="428" r="7" stroke-width="4"/><circle cx="318" cy="426" r="7" stroke-width="4"/><circle cx="392" cy="404" r="7" stroke-width="4"/>
+<g transform="rotate(-28 210 120)"><rect x="90" y="112" width="220" height="14" rx="7"/><circle cx="310" cy="119" r="15"/></g>
+<g transform="rotate(24 300 112)"><rect x="200" y="104" width="220" height="14" rx="7"/><circle cx="200" cy="111" r="15"/></g>
+</g>
+</svg>

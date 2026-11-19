@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Bird's nest</title>
+<desc>Line drawing of a woven bird's nest with three speckled eggs, resting on a branch.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M30 400 C160 390 340 404 482 388 L484 414 C340 430 160 420 32 428 Z"/>
+<path d="M400 396 C420 370 440 360 470 356" fill="none" stroke-width="6"/>
+<path d="M460 358 C474 340 494 336 504 344 C494 360 476 366 460 358 Z" stroke-width="5"/>
+<ellipse cx="200" cy="270" rx="34" ry="44" transform="rotate(-10 200 270)"/>
+<ellipse cx="256" cy="262" rx="36" ry="46" transform="rotate(0 256 262)"/>
+<ellipse cx="314" cy="272" rx="34" ry="44" transform="rotate(12 314 272)"/>
+<path d="M190 256 l1 1 M212 280 l1 1 M248 248 l1 1 M266 274 l1 1 M304 258 l1 1 M322 284 l1 1" fill="none" stroke-width="6"/>
+<path d="M96 290 C96 270 160 280 256 280 C352 280 416 270 416 290 C416 360 352 400 256 400 C160 400 96 360 96 290 Z"/>
+<path d="M108 299 Q209 300 379 297 M147 312 Q251 315 400 317 M118 322 Q277 313 385 323 M139 337 Q266 336 378 335 M138 349 Q208 347 339 352 M146 362 Q254 364 347 362 M186 373 Q243 370 335 375 M154 382 Q282 370 350 381" fill="none" stroke-width="3"/>
+<path d="M128 303 Q262 291 407 298 M129 318 Q205 328 354 316 M134 331 Q217 319 370 327 M156 344 Q273 344 379 348 M151 352 Q281 359 383 353 M180 368 Q281 356 355 370 M162 375 Q233 363 365 378 M189 390 Q287 384 326 389" fill="none" stroke-width="3"/>
+<path d="M96 290 C110 300 180 306 256 306 C332 306 402 300 416 290" fill="none" stroke-width="6"/>
+<path d="M100 286 l-22 -14 M128 300 l-24 -2 M384 300 l24 -4 M414 286 l20 -16 M150 384 l-18 10 M360 386 l20 8" fill="none" stroke-width="4"/>
+</g>
+</svg>

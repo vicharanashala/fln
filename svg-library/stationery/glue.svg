@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Glue</title>
+<desc>Line drawing of a bottle of glue with GLUE written on its label and glue oozing from the nozzle and dripping down.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M236 78 L246 44 H266 L276 78 Z"/>
+<path d="M216 78 H296 V122 H216 Z"/>
+<path d="M226 78 V122 M246 78 V122 M266 78 V122 M286 78 V122" fill="none" stroke-width="4"/>
+<path d="M196 122 H316 C330 122 338 140 352 150 C372 164 380 180 380 206 V436 C380 458 364 474 340 474 H172 C148 474 132 458 132 436 V206 C132 180 140 164 160 150 C174 140 182 122 196 122 Z"/>
+<path d="M242 50 C236 40 244 28 256 28 C268 28 276 40 270 50 C266 56 246 56 242 50 Z" stroke-width="6"/>
+<path d="M248 36 C252 32 260 32 264 36" fill="none" stroke-width="3"/>
+<rect x="152" y="240" width="208" height="160" rx="12" stroke-width="6"/>
+<path d="M28 6 C20 -2 0 -2 0 20 C0 42 20 42 28 34 V22 H16" transform="translate(184.0 274) scale(1.0)" fill="none" stroke-width="7.0"/><path d="M0 0 V40 H24" transform="translate(222.0 274) scale(1.0)" fill="none" stroke-width="7.0"/><path d="M0 0 V26 C0 44 28 44 28 26 V0" transform="translate(260.0 274) scale(1.0)" fill="none" stroke-width="7.0"/><path d="M26 0 H0 V40 H26 M0 20 H20" transform="translate(298.0 274) scale(1.0)" fill="none" stroke-width="7.0"/>
+<path d="M176 350 H336 M196 374 H316" fill="none" stroke-width="4"/>
+<path d="M176 424 C180 444 190 456 204 462" fill="none" stroke-width="5"/>
+<path d="M300 122 C314 128 322 144 322 162 C322 176 306 176 306 162 C306 146 302 132 294 122 Z" stroke-width="5"/>
+</g>
+</svg>

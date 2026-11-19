@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Candle</title>
+<desc>Line drawing of a lit candle with a flame, a wick and wax drips, standing in a holder.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="256" cy="440" rx="150" ry="34"/>
+<path d="M106 440 V452 C106 470 172 486 256 486 C340 486 406 470 406 452 V440" fill="none"/>
+<path d="M396 436 C430 420 456 430 456 446 C456 462 430 468 404 456" fill="none" stroke-width="8"/>
+<path d="M196 190 V420 C196 436 222 446 256 446 C290 446 316 436 316 420 V190 Z"/>
+<ellipse cx="256" cy="190" rx="60" ry="18"/>
+<path d="M210 196 C210 216 222 222 222 240 C222 256 236 256 236 240 V200 Z" stroke-width="5"/>
+<path d="M286 200 C286 230 300 236 300 262 C300 280 314 280 314 262 V196 Z" stroke-width="5"/>
+<path d="M216 300 C214 340 214 380 218 410" fill="none" stroke-width="4"/>
+<path d="M256 190 V164" fill="none" stroke-width="6"/>
+<path d="M256 50 C236 86 216 110 216 136 C216 158 234 172 256 172 C278 172 296 158 296 136 C296 110 276 86 256 50 Z"/>
+<path d="M256 100 C246 118 238 130 238 142 C238 154 246 160 256 160 C266 160 274 154 274 142 C274 130 266 118 256 100 Z" stroke-width="5"/>
+<path d="M176 96 l-20 -10 M168 140 h-22 M336 96 l20 -10 M344 140 h22" fill="none" stroke-width="5"/>
+</g>
+</svg>
