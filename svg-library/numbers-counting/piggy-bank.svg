@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Piggy bank</title>
+<desc>Line drawing of a piggy bank with a coin going into the slot on its back.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M410 300 C450 300 470 270 456 250 C446 236 426 246 436 260" fill="none" stroke-width="6"/>
+<rect x="140" y="380" width="40" height="70" rx="10"/><rect x="330" y="380" width="40" height="70" rx="10"/>
+<ellipse cx="256" cy="300" rx="176" ry="132"/>
+<rect x="190" y="390" width="40" height="66" rx="10"/><rect x="290" y="390" width="40" height="66" rx="10"/>
+<path d="M150 196 L132 132 L196 172 Z"/>
+<ellipse cx="88" cy="300" rx="28" ry="42"/>
+<ellipse cx="80" cy="284" rx="5" ry="9" fill="#1A1A1A" stroke-width="1"/><ellipse cx="80" cy="316" rx="5" ry="9" fill="#1A1A1A" stroke-width="1"/>
+<circle cx="160" cy="250" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="163.5" cy="246.5" r="3.5" fill="#FFFFFF" stroke="none"/>
+<path d="M130 340 C150 352 170 352 186 344" fill="none" stroke-width="5"/>
+<rect x="226" y="172" width="70" height="14" rx="6" fill="#1A1A1A" stroke-width="3"/>
+<ellipse cx="261" cy="110" rx="56" ry="56"/>
+<ellipse cx="261" cy="110" rx="44" ry="44" stroke-width="4"/>
+<path d="M0 2 H28 M0 14 H28 M5 2 C30 2 30 27 5 27 H1 L25 48" transform="translate(232.4 90.4) scale(0.9)" fill="none" stroke-width="5.6"/><path d="M26 0 H4 L2 18 C14 12 28 18 26 28 C24 40 8 42 0 36" transform="translate(264.4 92.0) scale(0.9)" fill="none" stroke-width="6.7"/>
+<path d="M330 240 C350 250 366 266 374 284" fill="none" stroke-width="5"/>
+</g>
+</svg>

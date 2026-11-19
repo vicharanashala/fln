@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Seahorse</title>
+<desc>Line drawing of a seahorse with a long snout, a curled tail, a little back fin and ridges on its body.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M330 250 C370 240 400 260 404 290 C386 300 360 300 336 290 Z"/>
+<path d="M342 256 L372 274 M340 270 L384 282" fill="none" stroke-width="3"/>
+<path d="M290 360 C282 420 300 470 344 470 C376 470 386 438 364 424 C346 414 330 430 340 446" fill="none" stroke-width="38"/><path d="M290 360 C282 420 300 470 344 470 C376 470 386 438 364 424 C346 414 330 430 340 446" fill="none" stroke="#FFFFFF" stroke-width="26"/>
+<path d="M236 150 C200 180 180 228 190 278 C200 326 232 356 262 374 L304 378 C346 336 362 288 342 238 C326 198 302 176 292 148 Z"/>
+<path d="M206 220 C230 228 250 226 268 214 M198 258 C224 266 248 264 268 252 M204 296 C228 304 252 302 270 290 M222 332 C244 340 262 338 278 328" fill="none" stroke-width="4"/>
+<path d="M200 134 L118 146" fill="none" stroke-width="32"/><path d="M200 134 L118 146" fill="none" stroke="#FFFFFF" stroke-width="20"/>
+<ellipse cx="114" cy="146" rx="6" ry="14"/>
+<circle cx="242" cy="124" r="54"/>
+<path d="M222 76 L232 54 L246 74 L262 56 L268 80 L288 70 L282 96 Z"/>
+<circle cx="240" cy="116" r="10" fill="#1A1A1A" stroke-width="2"/><circle cx="243.5" cy="112.5" r="3.5" fill="#FFFFFF" stroke="none"/>
+<path d="M230 160 C240 166 252 166 262 160" fill="none" stroke-width="4"/>
+<circle cx="120" cy="280" r="12"/><circle cx="96" cy="230" r="8"/><circle cx="110" cy="190" r="5"/>
+</g>
+</svg>

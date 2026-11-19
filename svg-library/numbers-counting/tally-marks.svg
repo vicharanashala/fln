@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Tally marks</title>
+<desc>Line drawing of tally marks: one bundle of five equals 5, and a bundle of five plus three more equals 8.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M72 70 L73 180 M98 70 L98 180 M131 70 L131 180 M161 70 L159 180 M52 154 L180 96 M70 290 L71 400 M100 290 L98 400 M130 290 L129 400 M161 290 L163 400 M52 374 L180 316 M232 290 L230 400 M260 290 L259 400 M288 290 L287 400" fill="none" stroke-width="9"/>
+<path d="M346 116 H386 M346 136 H386 M346 336 H386 M346 356 H386" fill="none" stroke-width="6"/>
+<path d="M26 0 H4 L2 18 C14 12 28 18 26 28 C24 40 8 42 0 36" transform="translate(407.6 94.0) scale(1.6)" fill="none" stroke-width="5.0"/><path d="M14 0 C26 0 26 18 14 18 C2 18 2 0 14 0 Z M14 18 C28 18 28 40 14 40 C0 40 0 18 14 18 Z" transform="translate(407.6 314.0) scale(1.6)" fill="none" stroke-width="5.0"/>
+</g>
+</svg>
