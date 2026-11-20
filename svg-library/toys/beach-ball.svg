@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Beach ball</title>
+<desc>Line drawing of a beach ball with curved panels meeting at a small circle on top.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<defs><clipPath id="bb"><circle cx="256" cy="256" r="196"/></clipPath></defs>
+<circle cx="256" cy="256" r="196"/>
+<g clip-path="url(#bb)"><path d="M255.5 201.2 Q375.9 190.8 408.9 375.4 M236.3 224.2 Q305.5 323.2 229.0 448.1 M206.7 219.0 Q155.6 328.4 76.1 328.7 M196.5 190.8 Q76.1 201.2 103.1 136.6 M215.7 167.8 Q146.5 68.8 283.0 63.9 M245.3 173.0 Q296.4 63.6 435.9 183.3" fill="none" stroke-width="6"/></g>
+<circle cx="256" cy="256" r="196" fill="none"/>
+<circle cx="226" cy="196" r="30"/>
+<path d="M110 170 C126 130 152 104 182 90" fill="none" stroke-width="7"/>
+</g>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Thermometer</title>
+<desc>Line drawing of a thermometer with a scale from 10 to 40 and the liquid rising up the tube.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="208" y="36" width="96" height="390" rx="48"/>
+<circle cx="256" cy="420" r="62"/>
+<rect x="216" y="380" width="80" height="20" fill="#FFFFFF" stroke="none"/>
+<rect x="244" y="72" width="24" height="320" rx="12" stroke-width="5"/>
+<rect x="249" y="200" width="14" height="210" rx="7" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="256" cy="420" r="38" fill="#1A1A1A" stroke-width="2"/>
+<path d="M272 100 H292 M272 120 H284 M272 140 H292 M272 160 H284 M272 180 H292 M272 200 H284 M272 220 H292 M272 240 H284 M272 260 H292 M272 280 H284 M272 300 H292 M272 320 H284 M272 340 H292 M272 360 H284" fill="none" stroke-width="4"/>
+<path d="M20 40 V0 L0 28 H28" transform="translate(324.5 90.0) scale(0.5)" fill="none" stroke-width="8.0"/><path d="M14 0 C26 0 28 14 28 20 C28 26 26 40 14 40 C2 40 0 26 0 20 C0 14 2 0 14 0 Z" transform="translate(341.5 90.0) scale(0.5)" fill="none" stroke-width="8.0"/><path d="M2 4 C12 -4 28 4 16 18 C32 20 28 44 2 36" transform="translate(324.5 170.0) scale(0.5)" fill="none" stroke-width="8.0"/><path d="M14 0 C26 0 28 14 28 20 C28 26 26 40 14 40 C2 40 0 26 0 20 C0 14 2 0 14 0 Z" transform="translate(341.5 170.0) scale(0.5)" fill="none" stroke-width="8.0"/><path d="M2 8 C4 -2 26 -2 26 10 C26 22 2 30 2 40 H28" transform="translate(324.5 250.0) scale(0.5)" fill="none" stroke-width="8.0"/><path d="M14 0 C26 0 28 14 28 20 C28 26 26 40 14 40 C2 40 0 26 0 20 C0 14 2 0 14 0 Z" transform="translate(341.5 250.0) scale(0.5)" fill="none" stroke-width="8.0"/><path d="M4 8 L14 0 V40" transform="translate(324.5 330.0) scale(0.5)" fill="none" stroke-width="8.0"/><path d="M14 0 C26 0 28 14 28 20 C28 26 26 40 14 40 C2 40 0 26 0 20 C0 14 2 0 14 0 Z" transform="translate(341.5 330.0) scale(0.5)" fill="none" stroke-width="8.0"/>
+<path d="M226 80 V160" fill="none" stroke-width="5"/>
+</g>
+</svg>

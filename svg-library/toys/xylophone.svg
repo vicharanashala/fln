@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Xylophone</title>
+<desc>Line drawing of a xylophone with eight bars getting shorter from left to right, and two mallets.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M52 160 L456 222" fill="none" stroke-width="26"/><path d="M52 360 L456 298" fill="none" stroke-width="26"/><path d="M52 160 L456 222" fill="none" stroke="#FFFFFF" stroke-width="14"/><path d="M52 360 L456 298" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+<rect x="56" y="110" width="40" height="280" rx="8"/>
+<circle cx="76" cy="164" r="6" stroke-width="4"/><circle cx="76" cy="356" r="6" stroke-width="4"/>
+<rect x="106" y="120" width="40" height="260" rx="8"/>
+<circle cx="126" cy="171" r="6" stroke-width="4"/><circle cx="126" cy="349" r="6" stroke-width="4"/>
+<rect x="156" y="130" width="40" height="240" rx="8"/>
+<circle cx="176" cy="179" r="6" stroke-width="4"/><circle cx="176" cy="341" r="6" stroke-width="4"/>
+<rect x="206" y="140" width="40" height="220" rx="8"/>
+<circle cx="226" cy="187" r="6" stroke-width="4"/><circle cx="226" cy="333" r="6" stroke-width="4"/>
+<rect x="256" y="150" width="40" height="200" rx="8"/>
+<circle cx="276" cy="194" r="6" stroke-width="4"/><circle cx="276" cy="326" r="6" stroke-width="4"/>
+<rect x="306" y="160" width="40" height="180" rx="8"/>
+<circle cx="326" cy="202" r="6" stroke-width="4"/><circle cx="326" cy="318" r="6" stroke-width="4"/>
+<rect x="356" y="170" width="40" height="160" rx="8"/>
+<circle cx="376" cy="210" r="6" stroke-width="4"/><circle cx="376" cy="310" r="6" stroke-width="4"/>
+<rect x="406" y="180" width="40" height="140" rx="8"/>
+<circle cx="426" cy="217" r="6" stroke-width="4"/><circle cx="426" cy="303" r="6" stroke-width="4"/>
+<path d="M110 470 L300 428" fill="none" stroke-width="20"/><path d="M210 486 L390 446" fill="none" stroke-width="20"/><path d="M110 470 L300 428" fill="none" stroke="#FFFFFF" stroke-width="8"/><path d="M210 486 L390 446" fill="none" stroke="#FFFFFF" stroke-width="8"/>
+<circle cx="318" cy="424" r="22"/><circle cx="408" cy="442" r="22"/>
+</g>
+</svg>

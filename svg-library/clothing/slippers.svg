@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Slippers</title>
+<desc>Line drawing of a pair of flip-flop slippers seen from above, with V-shaped straps.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(-6 162 260)"><path d="M160 64 C212 62 232 112 228 166 C224 228 210 262 214 322 C218 384 216 448 162 454 C108 452 108 384 112 322 C116 262 102 226 98 166 C94 112 110 66 160 64 Z"/><path d="M160 64 C212 62 232 112 228 166 C224 228 210 262 214 322 C218 384 216 448 162 454 C108 452 108 384 112 322 C116 262 102 226 98 166 C94 112 110 66 160 64 Z" transform="translate(162 260) scale(0.86) translate(-162 -260)" fill="none" stroke-width="4"/><path d="M106 250 C124 196 146 152 162 132 C178 152 200 196 218 250" fill="none" stroke-width="28"/><path d="M106 250 C124 196 146 152 162 132 C178 152 200 196 218 250" fill="none" stroke="#FFFFFF" stroke-width="16"/><circle cx="162" cy="132" r="9"/></g>
+<g transform="translate(512 0) scale(-1 1) rotate(-6 162 260)"><path d="M160 64 C212 62 232 112 228 166 C224 228 210 262 214 322 C218 384 216 448 162 454 C108 452 108 384 112 322 C116 262 102 226 98 166 C94 112 110 66 160 64 Z"/><path d="M160 64 C212 62 232 112 228 166 C224 228 210 262 214 322 C218 384 216 448 162 454 C108 452 108 384 112 322 C116 262 102 226 98 166 C94 112 110 66 160 64 Z" transform="translate(162 260) scale(0.86) translate(-162 -260)" fill="none" stroke-width="4"/><path d="M106 250 C124 196 146 152 162 132 C178 152 200 196 218 250" fill="none" stroke-width="28"/><path d="M106 250 C124 196 146 152 162 132 C178 152 200 196 218 250" fill="none" stroke="#FFFFFF" stroke-width="16"/><circle cx="162" cy="132" r="9"/></g>
+</g>
+</svg>
