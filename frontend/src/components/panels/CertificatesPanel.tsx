@@ -111,7 +111,7 @@ function RankCertificate({
               Certificate
             </span>
             <span className="rank-certificate__title-sub">
-              of Appreciation
+              Weekly Recognition
             </span>
           </p>
 
@@ -126,7 +126,7 @@ function RankCertificate({
           <div className="rank-certificate__divider" />
 
           <p className="rank-certificate__achievement">
-            For earning a top class rank as of {ordinal(weekOfMonth)} week of {month}
+            In recognition of consistent learning progress during {month}
           </p>
 
           <div className="rank-certificate__facts">
@@ -649,10 +649,10 @@ export const CertificatesPanel: React.FC<{
       {variant !== 'individual' && <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="mb-4">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-            {rankingTitle ?? `Top ${rankingLimit} Students`}
+            {rankingTitle ?? `Weekly Recognition`}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Ranked using current level, learning streak, and name.
+            Recognition is based on current level, learning streak, and name.
           </p>
         </div>
 
@@ -707,7 +707,7 @@ export const CertificatesPanel: React.FC<{
             <div className="mb-3 flex items-center justify-between gap-3 text-white">
               <div>
                 <p className="text-sm font-bold">
-                  Top {rankingLimit} Rank Certificate
+                  Weekly Recognition
                 </p>
                 <p className="text-xs text-slate-300">
                   {rankCertificate.student.name} ·{' '}
