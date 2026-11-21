@@ -11,15 +11,23 @@ import { apiFetch } from '../../services/apiClient';
 import { User, UserRole, Student, School, EvaluationReport, Worksheet } from '../../types';
 import { DISTRICT_NAMES, BLOCK_NAMES } from '../../constants';
 
-// Panels that render without ever reading the `students` variable — skipping
-// the fetch on these avoids an up-to-86,400-record national payload on
-// screens that don't display any student data.
+// Panels that do not consume the shared student roster. PanelViews.tsx was
+// checked branch by branch: these screens either render without student data
+// or fetch their own paged student data (Aadhaar Reveal). Skipping the
+// `?all=1` request avoids an unnecessary national roster payload.
 const STUDENTS_NOT_NEEDED_PANELS = new Set([
   'aadhaar_reveal',  // Panel does its own paged + debounced-server-search fetch; the up-to-86k-row firehose is unused.
+  'adaptive_test',   // Placeholder panel; it does not render roster data.
+  'certification_reviews', // Review panel fetches certification records directly.
+  'content',
+  'question_bank',   // Fetches question-bank data directly.
+  'schools',
+  'security',
+  'system_settings',
+  'teachers',
+  'test_history',
   'users',
   'worksheet_templates',
-  'content',
-  'system_settings',
 ]);
 
 export function usePanelData(token: string, currentUser: User, activePanel: string) {
@@ -67,9 +75,8 @@ export function usePanelData(token: string, currentUser: User, activePanel: stri
   }, [token, currentUser.role]);
 
   // GET /api/students returns the caller's whole role-scoped list — up to
-  // 86,400 records nationally for Superadmin — so skip it entirely on the
-  // handful of Superadmin-only panels that never read `students` at all
-  // (verified by grepping for the identifier in each branch below).
+  // 86,400 records nationally for Superadmin — so skip it entirely on panels
+  // that do not consume the shared student roster (verified in PanelViews.tsx).
   // Opt in to the full role-scoped roster via `?all=1` for all roles.
   // The backend defaults `GET /api/students` to DEFAULT_LIMIT = 10 unless `?all=1` is set;
   // fetching `?all=1` ensures teachers, volunteers, and admins see their full roster.
