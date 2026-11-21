@@ -260,7 +260,7 @@ export const CertificatesPanel: React.FC<{
     : null;
 
   useEffect(() => {
-    if (variant === 'ranked' || !selectedStudent || selectedClassNumber === null) {
+    if (!canIssueCertificates || variant === 'ranked' || !selectedStudent || selectedClassNumber === null) {
       setCertificateRecords([]);
       setCertificateConcepts([]);
       setCertificateLoading(false);
@@ -300,7 +300,7 @@ export const CertificatesPanel: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [selectedStudent?.id, selectedClassNumber, variant]);
+  }, [selectedStudent?.id, selectedClassNumber, variant, canIssueCertificates]);
 
   const selectedCertification = useMemo(() => {
     if (selectedClassNumber === null) return null;
