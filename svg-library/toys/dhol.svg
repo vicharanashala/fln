@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Dhol</title>
+<desc>Line drawing of a dhol: a barrel-shaped drum lying on its side, with zigzag ropes and a shoulder strap.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M126 160 C150 46 362 46 386 160" fill="none" stroke-width="22"/><path d="M126 160 C150 46 362 46 386 160" fill="none" stroke="#FFFFFF" stroke-width="10"/>
+<path d="M90 150 C190 130 322 130 422 150 L422 390 C322 410 190 410 90 390 A40 120 0 0 1 90 150 Z"/>
+<path d="M100 160 L408 198 L100 236 L408 274 L100 312 L408 350 L100 384" fill="none" stroke-width="5"/>
+<path d="M112 150 C102 190 98 230 98 270 C98 310 102 350 112 390" fill="none" stroke-width="5"/>
+<ellipse cx="422" cy="270" rx="42" ry="120"/>
+<ellipse cx="422" cy="270" rx="28" ry="102" stroke-width="3.5"/>
+<path d="M430 380 C450 420 470 440 486 452" fill="none" stroke-width="20"/><path d="M430 380 C450 420 470 440 486 452" fill="none" stroke="#FFFFFF" stroke-width="8"/>
+</g>
+</svg>

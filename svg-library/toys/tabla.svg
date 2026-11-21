@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Tabla</title>
+<desc>Line drawing of a tabla: a pair of Indian drums, one tall and narrow and one round, each with a black centre spot.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(0 -22)">
+<ellipse cx="350" cy="436" rx="84" ry="18"/>
+<ellipse cx="150" cy="432" rx="66" ry="16"/>
+<path d="M80 150 C78 250 84 350 96 420 C110 442 190 442 204 420 C216 350 222 250 220 150 Z"/>
+<path d="M96 168 L108 414 M122 172 L128 420 M150 174 V422 M178 172 L172 420 M204 168 L192 414" fill="none" stroke-width="3.5"/>
+<rect x="113" y="318" width="18" height="38" rx="7" stroke-width="5"/>
+<rect x="141" y="318" width="18" height="38" rx="7" stroke-width="5"/>
+<rect x="169" y="318" width="18" height="38" rx="7" stroke-width="5"/>
+<ellipse cx="150" cy="150" rx="70" ry="22"/>
+<ellipse cx="150" cy="150" rx="54" ry="15" stroke-width="5"/>
+<ellipse cx="150" cy="150" rx="22" ry="7" fill="#1A1A1A" stroke-width="3"/>
+<path d="M236 238 C226 300 240 380 290 420 C320 446 380 446 410 420 C460 380 474 300 464 238 Z"/>
+<path d="M262 262 C262 320 280 380 310 420 M350 268 V436 M438 262 C438 320 420 380 390 420" fill="none" stroke-width="3.5"/>
+<ellipse cx="350" cy="238" rx="114" ry="30"/>
+<ellipse cx="350" cy="238" rx="96" ry="23" stroke-width="5"/>
+<ellipse cx="328" cy="240" rx="30" ry="9" fill="#1A1A1A" stroke-width="3"/>
+</g>
+</g>
+</svg>

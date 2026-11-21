@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Crown</title>
+<desc>Line drawing of a king's crown with five pointed peaks topped with balls and a band of jewels.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M96 330 L78 164 L136 262 L168 196 L212 262 L256 112 L300 262 L344 196 L376 262 L434 164 L416 330 Z"/>
+<circle cx="78" cy="150" r="17" stroke-width="5"/>
+<circle cx="168" cy="182" r="17" stroke-width="5"/>
+<circle cx="256" cy="98" r="17" stroke-width="5"/>
+<circle cx="344" cy="182" r="17" stroke-width="5"/>
+<circle cx="434" cy="150" r="17" stroke-width="5"/>
+<path d="M92 330 H420 C428 330 432 336 432 344 V398 C432 408 426 414 416 414 H96 C86 414 80 408 80 398 V344 C80 336 84 330 92 330 Z"/>
+<ellipse cx="256" cy="372" rx="26" ry="20" stroke-width="5"/>
+<path d="M160 352 L180 372 L160 392 L140 372 Z" stroke-width="5"/><path d="M352 352 L372 372 L352 392 L332 372 Z" stroke-width="5"/>
+<path d="M112 372 H116 M206 372 H210 M302 372 H306 M396 372 H400" fill="none" stroke-width="5"/>
+<path d="M256 214 L240 262 M256 214 L272 262" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

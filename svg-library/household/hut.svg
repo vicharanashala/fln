@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Hut</title>
+<desc>Line drawing of a round mud hut with a thatched roof, a doorway and a small window.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M120 300 V432 C120 452 392 452 392 432 V300 Z"/>
+<path d="M150 330 h16 M196 352 h18 M150 392 h14 M330 344 h16 M350 396 h16 M300 420 h14" fill="none" stroke-width="3.5"/>
+<path d="M218 446 V366 C218 334 294 334 294 366 V446 Z"/>
+<path d="M232 446 V370 C232 352 280 352 280 370 V446" fill="none" stroke-width="3.5"/>
+<rect x="320" y="340" width="44" height="40" rx="4" stroke-width="5"/>
+<path d="M342 340 V380" fill="none" stroke-width="3.5"/>
+<path d="M256 66 L56 300 L84 296 L100 314 L130 300 L158 318 L190 302 L222 320 L256 304 L290 320 L322 302 L354 318 L382 300 L412 314 L428 296 L456 300 Z"/>
+<path d="M256 66 L110 304 M256 66 L170 312 M256 66 L232 314 M256 66 L280 314 M256 66 L342 312 M256 66 L402 304" fill="none" stroke-width="3.5"/>
+<path d="M150 230 C200 240 312 240 362 230 M196 160 C230 168 282 168 316 160" fill="none" stroke-width="5"/>
+<path d="M256 66 L246 44 M256 66 L268 46" fill="none" stroke-width="16"/><path d="M256 66 L246 44 M256 66 L268 46" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+</g>
+</svg>

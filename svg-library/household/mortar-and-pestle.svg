@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Mortar and pestle</title>
+<desc>Line drawing of a deep stone bowl (okhli) with a club-shaped pestle standing in it.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M190 404 L176 458 H336 L322 404 Z"/>
+<path d="M100 254 C100 362 170 420 256 420 C342 420 412 362 412 254 Z"/>
+<ellipse cx="256" cy="254" rx="156" ry="40"/>
+<ellipse cx="256" cy="254" rx="130" ry="28" stroke-width="5"/>
+<path d="M257.1 281.9 C309.0 213.7 337.9 158.4 397.3 80.6 A17.0 17.0 0 0 0 370.7 59.4 C308.5 135.2 261.4 175.9 206.9 242.1 A32.0 32.0 0 0 0 257.1 281.9 Z" stroke-width="8"/>
+<path d="M246 230 L292 166" fill="none" stroke-width="3.5"/>
+<path d="M136 330 C170 370 210 388 250 394" fill="none" stroke-width="5"/>
+</g>
+</svg>

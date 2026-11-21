@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Ink pot</title>
+<desc>Line drawing of an ink pot (dawat) with a feather pen dipped in it.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M262 232 L452 48" fill="none" stroke-width="18"/><path d="M262 232 L452 48" fill="none" stroke="#FFFFFF" stroke-width="6"/>
+<path d="M300 186 C326 128 380 74 446 50 C428 110 384 168 322 210 Z"/>
+<path d="M318 188 L436 60 M312 162 C330 160 344 162 356 168 M332 140 C350 138 364 140 376 146 M356 114 C372 112 386 114 398 120" fill="none" stroke-width="3.5"/>
+<path d="M130 300 C130 262 170 252 210 252 H302 C342 252 382 262 382 300 V420 C382 446 362 456 336 456 H176 C150 456 130 446 130 420 Z"/>
+<rect x="206" y="206" width="100" height="50" rx="8"/>
+<rect x="194" y="192" width="124" height="24" rx="8"/>
+<rect x="166" y="320" width="180" height="80" rx="10" stroke-width="5"/>
+</g>
+</svg>
