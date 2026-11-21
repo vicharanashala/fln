@@ -18,6 +18,8 @@ import express from 'express';
 import { randomUUID } from 'crypto';
 import { dbStore, Certification, CertificationStatus, UserRole, Student } from '../db';
 import { getAuthUser, canAccessStudent } from '../auth';
+import { CURRICULUM_MAPPING } from '../config/curriculumMap';
+import { getCompetencyForConcept } from '../config/ncfCompetencies';
 import {
   runCertificationEligibility,
   resolveCertificationReview,
@@ -35,6 +37,33 @@ export function canViewStudentCertificate(role: UserRole): boolean {
 }
 
 export function registerCertificationRoutes(app: express.Express) {
+  // Public curriculum metadata for the certificate renderer. Student records
+  // remain protected by the per-student certifications route below.
+  app.get('/api/certification/concepts', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!canViewStudentCertificate(user.role)) {
+      return res.status(403).json({ error: 'Forbidden: certificate access is limited to teachers and volunteers.' });
+    }
+
+    const rawClassNumber = req.query.classNumber;
+    const classNumber = typeof rawClassNumber === 'string' ? Number(rawClassNumber) : NaN;
+    if (!Number.isInteger(classNumber) || ![0, 1, 2, 3].includes(classNumber)) {
+      return res.status(400).json({ error: 'classNumber must be 0 (Balvatika) or 1, 2, or 3.' });
+    }
+
+    const stage = classNumber + 3;
+    const concepts = Object.values(CURRICULUM_MAPPING)
+      .filter((concept) => concept.stage === stage)
+      .map((concept) => ({
+        id: concept.conceptId,
+        title: concept.levelTitle,
+        competency: getCompetencyForConcept(concept.conceptId) ?? null,
+      }));
+
+    return res.json(concepts);
+  });
+
   // Admins resolve a 'review_needed' cert to either 'active' (confirm) or 'revoked'.
   app.post('/api/certification/review/:certificationId', async (req, res) => {
     const user = getAuthUser(req);
