@@ -11,13 +11,15 @@
  *
  *   GET /api/certifications?status=&studentId=
  *     - Queue view (no studentId): SUPERADMIN, ADMIN
- *     - Per-student view (with studentId): any role that passes canAccessStudent
+ *     - Per-student view (with studentId): teachers/volunteers who pass canAccessStudent
  *     - status filter is optional; default returns all
  */
 import express from 'express';
 import { randomUUID } from 'crypto';
 import { dbStore, Certification, CertificationStatus, UserRole, Student } from '../db';
 import { getAuthUser, canAccessStudent } from '../auth';
+import { CURRICULUM_MAPPING } from '../config/curriculumMap';
+import { getCompetencyForConcept } from '../config/ncfCompetencies';
 import {
   runCertificationEligibility,
   resolveCertificationReview,
@@ -27,9 +29,58 @@ import {
 
 const ALLOWED_REVIEW_ROLES = [UserRole.SUPERADMIN, UserRole.ADMIN];
 const QUEUE_VIEW_ROLES = [UserRole.SUPERADMIN, UserRole.ADMIN];
+const CERTIFICATE_VIEW_ROLES = [UserRole.TEACHER, UserRole.VOLUNTEER];
 const VALID_STATUSES: CertificationStatus[] = ['active', 'review_needed', 'revoked'];
 
+// Core concepts from the issue #836 requirements table. Balvatika's six
+// concepts are confirmed there; Class 1–3 entries are explicitly interim
+// assignments pending curriculum-lead confirmation.
+const CORE_CONCEPT_IDS_BY_CLASS: Record<number, Set<string>> = {
+  0: new Set(['S3.1', 'S3.2', 'S3.3', 'S3.4', 'S3.5', 'S3.7']),
+  1: new Set(['S4.3', 'S4.4', 'S4.6', 'S4.7', 'S4.8', 'S4.9', 'S4.10']),
+  2: new Set(['S5.1', 'S5.4', 'S5.5', 'S5.6', 'S5.7', 'S5.8', 'S5.11', 'S5.12']),
+  3: new Set(['S6.4', 'S6.5', 'S6.6', 'S6.7', 'S6.8', 'S6.9', 'S6.10', 'S6.12', 'S6.13']),
+};
+
+export function canViewStudentCertificate(role: UserRole): boolean {
+  return CERTIFICATE_VIEW_ROLES.includes(role);
+}
+
+export function getCertificateConceptsForClass(classNumber: number) {
+  if (!Object.prototype.hasOwnProperty.call(CORE_CONCEPT_IDS_BY_CLASS, classNumber)) {
+    throw new RangeError('classNumber must be 0 (Balvatika) or 1, 2, or 3.');
+  }
+
+  const stage = classNumber + 3;
+  return Object.values(CURRICULUM_MAPPING)
+    .filter((concept) => concept.stage === stage)
+    .map((concept) => ({
+      id: concept.conceptId,
+      title: concept.levelTitle,
+      competency: getCompetencyForConcept(concept.conceptId) ?? null,
+      core: CORE_CONCEPT_IDS_BY_CLASS[classNumber].has(concept.conceptId),
+    }));
+}
+
 export function registerCertificationRoutes(app: express.Express) {
+  // Public curriculum metadata for the certificate renderer. Student records
+  // remain protected by the per-student certifications route below.
+  app.get('/api/certification/concepts', async (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!canViewStudentCertificate(user.role)) {
+      return res.status(403).json({ error: 'Forbidden: certificate access is limited to teachers and volunteers.' });
+    }
+
+    const rawClassNumber = req.query.classNumber;
+    const classNumber = typeof rawClassNumber === 'string' ? Number(rawClassNumber) : NaN;
+    if (!Number.isInteger(classNumber) || ![0, 1, 2, 3].includes(classNumber)) {
+      return res.status(400).json({ error: 'classNumber must be 0 (Balvatika) or 1, 2, or 3.' });
+    }
+
+    return res.json(getCertificateConceptsForClass(classNumber));
+  });
+
   // Admins resolve a 'review_needed' cert to either 'active' (confirm) or 'revoked'.
   app.post('/api/certification/review/:certificationId', async (req, res) => {
     const user = getAuthUser(req);
@@ -130,7 +181,13 @@ export function registerCertificationRoutes(app: express.Express) {
     }
 
     if (studentId) {
-      // Per-student view — any role with access to the student.
+      // Certificate views are limited to the roles exposed by CertificatesPanel.
+      // School/principal and administrative roles must not gain access merely
+      // because canAccessStudent would otherwise permit a profile lookup.
+      if (!canViewStudentCertificate(user.role)) {
+        return res.status(403).json({ error: 'Forbidden: certificate access is limited to teachers and volunteers.' });
+      }
+
       const students = await dbStore.getStudents();
       const student = students.find(s => s.id === studentId);
       if (!student) return res.status(404).json({ error: 'Student not found.' });

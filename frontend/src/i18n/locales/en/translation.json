@@ -98,5 +98,39 @@
   "footer.built": "Vicharanashala — Lab for Education Design, IIT Ropar.",
   "footer.license": "The source code is public on GitHub.",
   "footer.copyright": "© 2026 Vicharanashala, Indian Institute of Technology Ropar.",
-  "language.select": "Language"
+  "language.select": "Language",
+  "certificate": {
+    "skill": {
+      "eyebrow": "SKILLS DEMONSTRATED",
+      "title": "Certificate of Foundational Skills",
+      "intro": "This certificate recognises the foundational skills demonstrated by the learner.",
+      "presentedTo": "Presented to",
+      "class": "Class",
+      "certificateId": "Certificate ID",
+      "issuedAt": "Issued on",
+      "skills": "Skills demonstrated",
+      "competencyLevel": "Competency level",
+      "core": "Core concept",
+      "other": "Other",
+      "teacherSignature": "Teacher",
+      "noConceptDetails": "No concept-level details are stored in this certification record.",
+      "loading": "Loading certification record…",
+      "error": "Unable to load the skill certificate.",
+      "noRecord": "No skill certificate record is available for this class.",
+      "incompleteTitle": "Result incomplete",
+      "incompleteMessage": "These core concepts are not yet assessed. A printable skill certificate is not available yet.",
+      "notYetAssessed": "Not yet assessed",
+      "legacyRecord": "This certification record uses an earlier result format. A skill certificate requires a complete concept-level snapshot.",
+      "print": "Print skill certificate",
+      "notActive": "This certification is not active. Please contact an administrator before issuing a certificate.",
+      "legacyTitle": "Skill certificate unavailable",
+      "noRecordDescription": "A certificate appears here when an end-of-year certification record is available for this class."
+    },
+    "level": {
+      "Beginner": "Beginner",
+      "Progressing": "Progressing",
+      "Proficient": "Proficient",
+      "Not available": "Not available"
+    }
+  }
 }

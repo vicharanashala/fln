@@ -229,3 +229,279 @@ input, select, textarea {
   border-collapse: separate;
   border-spacing: 2px;
 }
+
+
+/* Skill certificate preview — retains the three class-specific visual identities. */
+.skill-certificate {
+  width: 100%;
+  max-width: 1120px;
+  min-height: 560px;
+  overflow: visible;
+  box-sizing: border-box;
+  color: #182435;
+  background: #fffdf8;
+  border: 4px solid #d6a94d;
+  border-radius: 18px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+.skill-certificate--class-one {
+  border-color: #f59e0b;
+  background: linear-gradient(145deg, #fff 0%, #fffaf0 100%);
+}
+.skill-certificate--class-two {
+  border-color: #0d99ff;
+  background: #cfe9fb;
+}
+.skill-certificate--default {
+  border-color: #d6a94d;
+  background: #fffdf8;
+}
+.skill-certificate__inner {
+  min-height: inherit;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 5.5% 7%;
+}
+.skill-certificate__header {
+  text-align: center;
+}
+.skill-certificate__portal {
+  margin: 0;
+  color: #0f766e;
+  font: 700 10px/1.4 Arial, sans-serif;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.skill-certificate__eyebrow {
+  margin: 14px 0 4px;
+  color: #64748b;
+  font: 700 10px/1.4 Arial, sans-serif;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.skill-certificate__title {
+  margin: 0;
+  color: #173b68;
+  font-size: clamp(25px, 3vw, 42px);
+  font-weight: 700;
+  line-height: 1.12;
+}
+.skill-certificate--class-one .skill-certificate__title { color: #b45309; }
+.skill-certificate--class-two .skill-certificate__title { color: #0878c9; }
+.skill-certificate__intro {
+  margin: 6px auto 0;
+  max-width: 720px;
+  color: #526174;
+  font: 13px/1.45 Arial, sans-serif;
+}
+.skill-certificate__recipient {
+  margin: 22px 0 16px;
+  text-align: center;
+}
+.skill-certificate__recipient > p {
+  margin: 0;
+  color: #64748b;
+  font: 12px/1.4 Arial, sans-serif;
+}
+.skill-certificate__recipient h3 {
+  display: inline-block;
+  min-width: 45%;
+  margin: 5px 0 10px;
+  padding: 0 18px 7px;
+  border-bottom: 2px solid #475569;
+  color: #1e3a8a;
+  font-size: clamp(22px, 2.7vw, 38px);
+  font-weight: 700;
+}
+.skill-certificate__metadata {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px 22px;
+  color: #526174;
+  font: 10px/1.4 Arial, sans-serif;
+}
+.skill-certificate__metadata strong { color: #172554; }
+.skill-certificate__competencies {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 9px;
+  margin-top: 4px;
+}
+.skill-certificate__group {
+  min-width: 0;
+  border: 1px solid rgba(71, 85, 105, 0.28);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.78);
+  overflow: visible;
+}
+.skill-certificate__group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.18);
+  background: rgba(226, 232, 240, 0.55);
+}
+.skill-certificate__group-heading h4 {
+  margin: 0;
+  color: #1e3a8a;
+  font: 700 11px/1.25 Arial, sans-serif;
+}
+.skill-certificate__group-heading span {
+  color: #475569;
+  font: 600 9px/1.25 Arial, sans-serif;
+  text-align: right;
+}
+.skill-certificate__group ul {
+  margin: 0;
+  padding: 3px 9px;
+  list-style: none;
+}
+.skill-certificate__concept {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  font: 10px/1.35 Arial, sans-serif;
+}
+.skill-certificate__concept:last-child { border-bottom: 0; }
+.skill-certificate__concept-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.skill-certificate__icon {
+  flex: 0 0 auto;
+  font-size: 15px;
+}
+.skill-certificate__concept-title {
+  min-width: 0;
+  color: #334155;
+  overflow-wrap: anywhere;
+}
+.skill-certificate__core {
+  flex: 0 0 auto;
+  padding: 2px 5px;
+  border: 1px solid #d6a94d;
+  border-radius: 999px;
+  color: #855b13;
+  font: 700 8px/1.2 Arial, sans-serif;
+  text-transform: uppercase;
+}
+.skill-certificate__level {
+  flex: 0 0 auto;
+  color: #1e3a8a;
+  font: 700 9px/1.25 Arial, sans-serif;
+}
+.skill-certificate__empty {
+  grid-column: 1 / -1;
+  margin: 12px 0;
+  color: #64748b;
+  font: 12px/1.4 Arial, sans-serif;
+  text-align: center;
+}
+.skill-certificate__footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  gap: 24px;
+  margin-top: auto;
+  padding-top: 18px;
+  text-align: center;
+}
+.skill-certificate__footer > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.skill-certificate__footer strong {
+  display: block;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #64748b;
+  color: #1e293b;
+  font: 700 11px/1.3 Arial, sans-serif;
+  overflow-wrap: anywhere;
+}
+.skill-certificate__footer span:not(.skill-certificate__seal) {
+  color: #64748b;
+  font: 9px/1.3 Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.skill-certificate__seal {
+  color: #d6a94d;
+  font-size: 42px;
+  line-height: 1;
+}
+
+@media (max-width: 760px) {
+  .skill-certificate {
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+  .skill-certificate__inner { padding: 26px 18px; }
+  .skill-certificate__competencies { grid-template-columns: 1fr; }
+  .skill-certificate__footer { gap: 10px; }
+}
+
+@media print {
+  html:has(body.printing-skill-certificate) {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body.printing-skill-certificate {
+    width: 297mm !important;
+    height: auto !important;
+    min-height: 210mm !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  body.printing-skill-certificate > :not([data-certificate-preview]) {
+    display: none !important;
+  }
+  body.printing-skill-certificate > [data-certificate-preview] {
+    position: static !important;
+    inset: auto !important;
+    width: 297mm !important;
+    min-width: 297mm !important;
+    max-width: 297mm !important;
+    height: auto !important;
+    min-height: 210mm !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    aspect-ratio: auto !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    page-break-after: auto !important;
+  }
+  body.printing-skill-certificate .skill-certificate__inner {
+    min-height: 210mm !important;
+    height: auto !important;
+    padding: 10mm 12mm !important;
+    box-sizing: border-box !important;
+  }
+  body.printing-skill-certificate .skill-certificate__group,
+  body.printing-skill-certificate .skill-certificate__concept,
+  body.printing-skill-certificate .skill-certificate__footer {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  body.printing-skill-certificate .skill-certificate__competencies {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 5mm !important;
+  }
+}

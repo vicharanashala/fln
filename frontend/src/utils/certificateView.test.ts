@@ -1,0 +1,199 @@
+import { describe, expect, it } from 'vitest';
+import en from '../i18n/locales/en/translation.json';
+import hi from '../i18n/locales/hi/translation.json';
+import {
+  buildCertificateView,
+  LEVEL_ICON,
+  LEVEL_LABEL,
+  type CertificateConcept,
+  type CertificateRecord,
+} from './certificateView';
+
+const concepts: CertificateConcept[] = [
+  { id: 'S3.1', title: 'Numerals to 10', competency: 'C-8.5', core: true },
+  { id: 'S3.2', title: 'Counts to 10', competency: 'C-8.3', core: true },
+  { id: 'S3.8', title: 'Number games', competency: 'C-8.5', core: false },
+];
+
+const completeRecord: CertificateRecord = {
+  id: 'record-1',
+  certificateId: 'FLN-2026-001',
+  issuedAt: '2026-10-20T00:00:00.000Z',
+  decisionSnapshot: {
+    outcome: 'complete',
+    conceptLevels: {
+      'S3.1': 'Proficient',
+      'S3.2': 'Progressive',
+      'S3.8': 'Beginner',
+    },
+    unassessedConcepts: [],
+  },
+};
+
+describe('buildCertificateView', () => {
+  it('builds one presentation row for every assessed concept with HPC labels and neutral icons', () => {
+    const view = buildCertificateView(completeRecord, concepts);
+    const rows = view.groups.flatMap(group => group.concepts);
+
+    expect(view.canPrint).toBe(true);
+    expect(rows).toHaveLength(3);
+    const byId = new Map(rows.map(row => [row.id, row]));
+    expect(byId.get('S3.1')?.level).toBe('Proficient');
+    expect(byId.get('S3.2')?.level).toBe('Progressing');
+    expect(byId.get('S3.8')?.level).toBe('Beginner');
+    expect(byId.get('S3.1')?.icon).toBe(LEVEL_ICON.Proficient);
+    expect(byId.get('S3.2')?.icon).toBe(LEVEL_ICON.Progressive);
+    expect(byId.get('S3.8')?.icon).toBe(LEVEL_ICON.Beginner);
+    expect(LEVEL_LABEL.Progressive).toBe('Progressing');
+  });
+
+  it('groups concepts by competency and reports the lowest level in each group', () => {
+    const view = buildCertificateView(completeRecord, concepts);
+    const numberCompetency = view.groups.find(group => group.competency === 'C-8.5');
+
+    expect(numberCompetency?.level).toBe('Beginner');
+    expect(numberCompetency?.concepts.map(row => row.id)).toEqual(['S3.1', 'S3.8']);
+  });
+
+  it('places core concepts before non-core concepts within a competency', () => {
+    const view = buildCertificateView(completeRecord, concepts);
+    const numberCompetency = view.groups.find(group => group.competency === 'C-8.5');
+
+    expect(numberCompetency?.concepts.map(row => row.core)).toEqual([true, false]);
+  });
+
+  it('does not make an incomplete record printable and exposes unassessed concepts', () => {
+    const record: CertificateRecord = {
+      decisionSnapshot: {
+        outcome: 'incomplete',
+        conceptLevels: { 'S3.1': 'Proficient' },
+        unassessedConcepts: ['S3.2'],
+      },
+    };
+
+    const view = buildCertificateView(record, concepts);
+
+    expect(view.canPrint).toBe(false);
+    expect(view.notYetAssessed).toEqual(['S3.2']);
+    expect(view.groups.flatMap(group => group.concepts).map(row => row.id)).toEqual(['S3.1']);
+  });
+
+  it('uses the concept id when a title is missing and groups unmapped concepts under Other', () => {
+    const view = buildCertificateView(completeRecord, [
+      { id: 'S9.9', competency: null, core: true },
+    ]);
+
+    expect(view.groups[0].competency).toBe('Other');
+    expect(view.groups[0].concepts[0].title).toBe('S9.9');
+  });
+
+  it('handles legacy records without per-concept levels without throwing', () => {
+    const legacyRecord: CertificateRecord = {
+      id: 'legacy-record',
+      decisionSnapshot: { outcome: 'complete' },
+    };
+
+    const view = buildCertificateView(legacyRecord, concepts);
+
+    expect(view.canPrint).toBe(true);
+    expect(view.groups.flatMap(group => group.concepts).every(row => row.level === 'Not available')).toBe(true);
+    expect(view.certificateId).toBe('legacy-record');
+    expect(view.issuedAt).toBe('Not available');
+  });
+
+  it('does not include prohibited assessment wording in the certificate view', () => {
+    const view = buildCertificateView(completeRecord, concepts);
+    const output = JSON.stringify(view).toLowerCase();
+
+    for (const word of ['pass', 'fail', 'score', 'mark']) {
+      expect(output).not.toContain(word);
+    }
+  });
+
+  it('does not treat legacy eligibility outcomes as a printable skill certificate', () => {
+    const legacyEligibilityRecord: CertificateRecord = {
+      ...completeRecord,
+      decisionSnapshot: {
+        ...completeRecord.decisionSnapshot,
+        outcome: 'eligible',
+      },
+    };
+
+    expect(buildCertificateView(legacyEligibilityRecord, concepts).canPrint).toBe(false);
+  });
+
+  it('keeps a required core concept visible when its level is missing from a complete record', () => {
+    const recordWithMissingCoreLevel: CertificateRecord = {
+      ...completeRecord,
+      decisionSnapshot: {
+        ...completeRecord.decisionSnapshot,
+        conceptLevels: {
+          'S3.2': 'Progressive',
+          'S3.8': 'Beginner',
+        },
+      },
+    };
+
+    const view = buildCertificateView(recordWithMissingCoreLevel, concepts);
+    const coreRow = view.groups.flatMap(group => group.concepts).find(row => row.id === 'S3.1');
+
+    expect(view.canPrint).toBe(true);
+    expect(coreRow?.level).toBe('Not available');
+    expect(coreRow?.core).toBe(true);
+  });
+
+  it('does not invent a row for an unassessed non-core concept on a complete record', () => {
+    const recordWithoutNonCoreLevel: CertificateRecord = {
+      ...completeRecord,
+      decisionSnapshot: {
+        ...completeRecord.decisionSnapshot,
+        conceptLevels: {
+          'S3.1': 'Proficient',
+          'S3.2': 'Progressive',
+        },
+      },
+    };
+
+    const view = buildCertificateView(recordWithoutNonCoreLevel, concepts);
+    const ids = view.groups.flatMap(group => group.concepts).map(row => row.id);
+
+    expect(ids).toEqual(['S3.1', 'S3.2']);
+  });
+
+  it('retains long concept lists so the print layout can paginate them', () => {
+    const longConceptList: CertificateConcept[] = Array.from({ length: 48 }, (_, index) => ({
+      id: `S6.${index + 1}`,
+      title: `Concept ${index + 1}`,
+      competency: index % 2 === 0 ? 'C-8.3' : 'C-8.5',
+      core: index < 9,
+    }));
+    const conceptLevels = Object.fromEntries(
+      longConceptList.map((concept, index) => [
+        concept.id,
+        index % 3 === 0 ? 'Beginner' : index % 3 === 1 ? 'Progressive' : 'Proficient',
+      ])
+    ) as Record<string, 'Beginner' | 'Progressive' | 'Proficient'>;
+    const view = buildCertificateView({
+      decisionSnapshot: { outcome: 'complete', conceptLevels },
+    }, longConceptList);
+
+    expect(view.groups.reduce((count, group) => count + group.concepts.length, 0)).toBe(48);
+  });
+
+  it('provides skill-certificate and level labels in English and Hindi', () => {
+    expect(en.certificate.skill.title).toBeTruthy();
+    expect(hi.certificate.skill.title).toBeTruthy();
+    for (const level of ['Beginner', 'Progressing', 'Proficient', 'Not available'] as const) {
+      expect(en.certificate.level[level]).toBeTruthy();
+      expect(hi.certificate.level[level]).toBeTruthy();
+    }
+  });
+
+  it('returns the same certificate id and issue date for repeated rendering', () => {
+    const first = buildCertificateView(completeRecord, concepts);
+    const second = buildCertificateView(completeRecord, concepts);
+
+    expect(second.certificateId).toBe(first.certificateId);
+    expect(second.issuedAt).toBe(first.issuedAt);
+  });
+});

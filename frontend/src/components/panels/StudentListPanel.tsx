@@ -529,7 +529,7 @@ export const StudentListPanel: React.FC<StudentListPanelProps> = ({
               currentUser={currentUser}
               variant="ranked"
               rankingLimit={3}
-              rankingTitle={`Top 3 Students — ${c.classGroup} - ${c.section}`}
+              rankingTitle={`Weekly Recognition — ${c.classGroup} - ${c.section}`}
             />
           );
         })}
