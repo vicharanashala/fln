@@ -121,7 +121,8 @@
       "incompleteMessage": "These core concepts are not yet assessed. A printable skill certificate is not available yet.",
       "notYetAssessed": "Not yet assessed",
       "legacyRecord": "This certification record uses an earlier result format. A skill certificate requires a complete concept-level snapshot.",
-      "print": "Print skill certificate"
+      "print": "Print skill certificate",
+      "notActive": "This certification is not active. Please contact an administrator before issuing a certificate."
     },
     "level": {
       "Beginner": "Beginner",
