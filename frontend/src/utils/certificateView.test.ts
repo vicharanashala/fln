@@ -99,6 +99,15 @@ describe('buildCertificateView', () => {
     expect(view.issuedAt).toBe('Not available');
   });
 
+  it('does not include prohibited assessment wording in the certificate view', () => {
+    const view = buildCertificateView(completeRecord, concepts);
+    const output = JSON.stringify(view).toLowerCase();
+
+    for (const word of ['pass', 'fail', 'score', 'mark']) {
+      expect(output).not.toContain(word);
+    }
+  });
+
   it('returns the same certificate id and issue date for repeated rendering', () => {
     const first = buildCertificateView(completeRecord, concepts);
     const second = buildCertificateView(completeRecord, concepts);
