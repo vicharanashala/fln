@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Weighing scale</title>
+<desc>Line drawing of a kitchen weighing scale with a pan on top and a round dial with tick marks and a needle.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(0 -14)">
+<path d="M226 196 H286 V236 H226 Z"/>
+<path d="M120 230 H392 C408 230 416 240 418 256 L440 440 C442 456 432 464 416 464 H96 C80 464 70 456 72 440 L94 256 C96 240 104 230 120 230 Z"/>
+<circle cx="256" cy="330" r="96"/>
+<circle cx="256" cy="330" r="78" stroke-width="3.5"/>
+<path d="M256.0 272.0 L256.0 254.0 M273.1 266.2 L275.7 256.6 M289.0 272.8 L294.0 264.2 M302.7 283.3 L309.7 276.3 M313.2 297.0 L321.8 292.0 M319.8 312.9 L329.4 310.3 M314.0 330.0 L332.0 330.0 M319.8 347.1 L329.4 349.7 M313.2 363.0 L321.8 368.0 M302.7 376.7 L309.7 383.7 M289.0 387.2 L294.0 395.8 M273.1 393.8 L275.7 403.4 M256.0 388.0 L256.0 406.0 M238.9 393.8 L236.3 403.4 M223.0 387.2 L218.0 395.8 M209.3 376.7 L202.3 383.7 M198.8 363.0 L190.2 368.0 M192.2 347.1 L182.6 349.7 M198.0 330.0 L180.0 330.0 M192.2 312.9 L182.6 310.3 M198.8 297.0 L190.2 292.0 M209.3 283.3 L202.3 276.3 M223.0 272.8 L218.0 264.2 M238.9 266.2 L236.3 256.6" fill="none" stroke-width="3.5"/>
+<path d="M256.0 330.0 L297.1 281.0" fill="none" stroke-width="5"/>
+<circle cx="256" cy="330" r="9" fill="#1A1A1A" stroke-width="2"/>
+<path d="M96 464 V478 H140 V464 M372 464 V478 H416 V464" stroke-width="5"/>
+<path d="M58 152 C58 192 140 206 256 206 C372 206 454 192 454 152 Z"/>
+<ellipse cx="256" cy="152" rx="198" ry="28"/>
+<ellipse cx="256" cy="152" rx="170" ry="18" stroke-width="3.5"/>
+</g>
+</g>
+</svg>

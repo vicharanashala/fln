@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>School bus</title>
+<desc>Line drawing of a school bus seen from the side, with a row of windows, a front door, a short bonnet, a stop-sign arm and a blank sign board on the roof.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="128" y="104" width="190" height="36" rx="8" stroke-width="5"/>
+<path d="M160 140 V150 M286 140 V150" fill="none" stroke-width="5"/>
+<path d="M40 166 C40 154 50 148 62 148 H404 C418 148 426 158 428 170 L432 262 H470 C482 262 488 272 488 284 V366 C488 374 482 380 474 380 H452 A46 46 0 0 0 360 380 H170 A46 46 0 0 0 78 380 H50 C44 380 40 374 40 368 Z"/>
+<rect x="62" y="176" width="48" height="66" rx="8" stroke-width="5"/>
+<rect x="120" y="176" width="48" height="66" rx="8" stroke-width="5"/>
+<rect x="178" y="176" width="48" height="66" rx="8" stroke-width="5"/>
+<rect x="236" y="176" width="48" height="66" rx="8" stroke-width="5"/>
+<rect x="294" y="176" width="48" height="66" rx="8" stroke-width="5"/>
+<rect x="362" y="172" width="54" height="196" rx="6" stroke-width="5"/>
+<path d="M389 172 V368 M366 260 H412" fill="none" stroke-width="3.5"/>
+<path d="M44 290 H360 M44 316 H360" fill="none" stroke-width="5"/>
+<path d="M432 262 L428 172" fill="none" stroke-width="3.5"/>
+<circle cx="476" cy="294" r="9" stroke-width="5"/>
+<rect x="456" y="354" width="38" height="14" rx="6" stroke-width="5"/>
+<path d="M340 334 H360" fill="none" stroke-width="5"/>
+<path d="M348.2 343.2 L335.2 356.2 L316.8 356.2 L303.8 343.2 L303.8 324.8 L316.8 311.8 L335.2 311.8 L348.2 324.8 Z" stroke-width="5"/>
+<path d="M340.8 340.1 L332.1 348.8 L319.9 348.8 L311.2 340.1 L311.2 327.9 L319.9 319.2 L332.1 319.2 L340.8 327.9 Z" stroke-width="3.5"/>
+<circle cx="124" cy="386" r="44"/><path d="M158.0 386.0 L168.0 386.0 M153.4 403.0 L162.1 408.0 M141.0 415.4 L146.0 424.1 M124.0 420.0 L124.0 430.0 M107.0 415.4 L102.0 424.1 M94.6 403.0 L85.9 408.0 M90.0 386.0 L80.0 386.0 M94.6 369.0 L85.9 364.0 M107.0 356.6 L102.0 347.9 M124.0 352.0 L124.0 342.0 M141.0 356.6 L146.0 347.9 M153.4 369.0 L162.1 364.0" fill="none" stroke-width="5"/><circle cx="124" cy="386" r="18" stroke-width="5"/><circle cx="124" cy="386" r="6" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="406" cy="386" r="44"/><path d="M440.0 386.0 L450.0 386.0 M435.4 403.0 L444.1 408.0 M423.0 415.4 L428.0 424.1 M406.0 420.0 L406.0 430.0 M389.0 415.4 L384.0 424.1 M376.6 403.0 L367.9 408.0 M372.0 386.0 L362.0 386.0 M376.6 369.0 L367.9 364.0 M389.0 356.6 L384.0 347.9 M406.0 352.0 L406.0 342.0 M423.0 356.6 L428.0 347.9 M435.4 369.0 L444.1 364.0" fill="none" stroke-width="5"/><circle cx="406" cy="386" r="18" stroke-width="5"/><circle cx="406" cy="386" r="6" fill="#1A1A1A" stroke-width="2"/>
+</g>
+</svg>

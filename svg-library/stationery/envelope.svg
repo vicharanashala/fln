@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Envelope</title>
+<desc>Line drawing of a closed envelope seen from the back, with its triangle flap and a round seal.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<rect x="48" y="120" width="416" height="280" rx="14"/>
+<path d="M56 392 L214 268 M456 392 L298 268" fill="none" stroke-width="5"/>
+<path d="M56 128 L256 288 L456 128" stroke-width="5"/>
+<circle cx="256" cy="284" r="36" stroke-width="5"/>
+<circle cx="256" cy="284" r="22" stroke-width="3.5"/>
+</g>
+</svg>

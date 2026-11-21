@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Volleyball</title>
+<desc>Line drawing of a volleyball with curved panels in three groups.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="256" cy="256" r="212"/>
+<path d="M256.0 256.0 A250 250 0 0 0 448.0 166.1 M411.4 111.8 A188 188 0 0 1 100.6 111.8 M362.8 72.9 A126 126 0 0 1 149.2 72.9 M256.0 256.0 A250 250 0 0 0 237.8 467.2 M303.2 462.7 A188 188 0 0 1 458.6 193.5 M361.2 440.1 A126 126 0 0 1 468.0 255.1 M256.0 256.0 A250 250 0 0 0 82.2 134.7 M53.4 193.5 A188 188 0 0 1 208.8 462.7 M44.0 255.1 A126 126 0 0 1 150.8 440.1" fill="none" stroke-width="5"/>
+</g>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Plate</title>
+<desc>Line drawing of an empty round plate seen from slightly above, with a raised rim.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="256" cy="282" rx="230" ry="148"/>
+<ellipse cx="256" cy="268" rx="230" ry="148"/>
+<ellipse cx="256" cy="268" rx="206" ry="130" stroke-width="3.5"/>
+<ellipse cx="256" cy="276" rx="144" ry="88" stroke-width="5"/>
+<path d="M102 230 C120 196 160 172 206 160" fill="none" stroke-width="5"/>
+<path d="M330 372 C360 366 386 354 404 338" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

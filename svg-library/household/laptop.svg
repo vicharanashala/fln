@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Laptop</title>
+<desc>Line drawing of an open laptop with a screen, a keyboard and a touchpad.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M100 272 H412 L470 438 H42 Z"/>
+<path d="M42 438 H470 V450 Q470 462 458 462 H54 Q42 462 42 450 Z"/>
+<path d="M226 438 Q256 450 286 438" fill="none" stroke-width="3.5"/>
+<path d="M130 296 H382 L406 374 H106 Z" stroke-width="5"/>
+<path d="M123.8 316 H388.2 M117.7 336 H394.3 M111.5 356 H400.5" fill="none" stroke-width="3.5"/>
+<path d="M151.0 296 L131.0 374 M172.0 296 L156.0 374 M193.0 296 L181.0 374 M214.0 296 L207.8 356 M235.0 296 L231.9 356 M256.0 296 L256.0 356 M277.0 296 L280.1 356 M298.0 296 L304.2 356 M319.0 296 L331.0 374 M340.0 296 L356.0 374 M361.0 296 L381.0 374" fill="none" stroke-width="3.5"/>
+<path d="M208 390 H304 L312 426 H200 Z" stroke-width="5"/>
+<rect x="106" y="50" width="300" height="222" rx="16"/>
+<rect x="126" y="70" width="260" height="182" rx="6" stroke-width="5"/>
+<circle cx="256" cy="60" r="3.5" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="338" cy="116" r="20" stroke-width="3.5"/>
+<path d="M146 242 L204 174 L248 218 L284 186 L366 242 Z" stroke-width="3.5"/>
+<rect x="134" y="266" width="244" height="12" rx="6" stroke-width="5"/>
+</g>
+</svg>

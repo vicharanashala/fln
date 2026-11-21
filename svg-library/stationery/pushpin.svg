@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Pushpin</title>
+<desc>Line drawing of a pushpin (drawing pin) with a round head, a grip and a sharp metal point.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(28 256 266)">
+<path d="M246 300 L250 452 L256 474 L262 452 L266 300 Z" stroke-width="5"/>
+<rect x="156" y="270" width="200" height="34" rx="16"/>
+<path d="M198 126 C220 166 220 230 194 272 H318 C292 230 292 166 314 126 Z"/>
+<path d="M136 120 C136 76 196 54 256 54 C316 54 376 76 376 120 C376 132 366 136 354 136 H158 C146 136 136 132 136 120 Z"/>
+<path d="M172 104 C188 82 214 72 240 70" fill="none" stroke-width="5"/>
+<path d="M216 156 C224 190 224 224 216 252" fill="none" stroke-width="3.5"/>
+</g>
+</g>
+</svg>
