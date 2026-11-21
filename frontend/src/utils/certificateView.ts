@@ -81,6 +81,7 @@ export function buildCertificateView(
   const snapshot = cert.decisionSnapshot;
   const conceptLevels = snapshot?.conceptLevels;
   const hasLegacyLevels = !conceptLevels;
+  const isComplete = snapshot?.outcome === 'complete';
   const rowsByCompetency = new Map<string, Array<{
     row: CertificateViewRow;
     rawLevel?: CertificateConceptLevel;
@@ -88,9 +89,11 @@ export function buildCertificateView(
 
   for (const concept of concepts) {
     const rawLevel = conceptLevels?.[concept.id];
-    // Old records predate per-concept levels. Keep their concepts visible,
-    // but never infer a level that was not stored.
-    if (!hasLegacyLevels && !isConceptLevel(rawLevel) && conceptLevels && Object.prototype.hasOwnProperty.call(conceptLevels, concept.id)) continue;
+    // Legacy records have no per-concept levels; retain their curriculum rows
+    // with "Not available" rather than inventing a level.
+    if (!hasLegacyLevels && !isConceptLevel(rawLevel) && !(isComplete && rawLevel === undefined)) {
+      continue;
+    }
 
     const competency = concept.competency?.trim() || 'Other';
     const row: CertificateViewRow = {
@@ -121,7 +124,7 @@ export function buildCertificateView(
   });
 
   return {
-    canPrint: snapshot?.outcome === 'complete',
+    canPrint: isComplete,
     certificateId: cert.certificateId || cert.id || 'Not available',
     issuedAt: cert.issuedAt || 'Not available',
     groups,
