@@ -108,6 +108,56 @@ describe('buildCertificateView', () => {
     }
   });
 
+  it('does not treat legacy eligibility outcomes as a printable skill certificate', () => {
+    const legacyEligibilityRecord: CertificateRecord = {
+      ...completeRecord,
+      decisionSnapshot: {
+        ...completeRecord.decisionSnapshot,
+        outcome: 'eligible',
+      },
+    };
+
+    expect(buildCertificateView(legacyEligibilityRecord, concepts).canPrint).toBe(false);
+  });
+
+  it('keeps a required core concept visible when its level is missing from a complete record', () => {
+    const recordWithMissingCoreLevel: CertificateRecord = {
+      ...completeRecord,
+      decisionSnapshot: {
+        ...completeRecord.decisionSnapshot,
+        conceptLevels: {
+          'S3.2': 'Progressive',
+          'S3.8': 'Beginner',
+        },
+      },
+    };
+
+    const view = buildCertificateView(recordWithMissingCoreLevel, concepts);
+    const coreRow = view.groups.flatMap(group => group.concepts).find(row => row.id === 'S3.1');
+
+    expect(view.canPrint).toBe(true);
+    expect(coreRow?.level).toBe('Not available');
+    expect(coreRow?.core).toBe(true);
+  });
+
+  it('does not invent a row for an unassessed non-core concept on a complete record', () => {
+    const recordWithoutNonCoreLevel: CertificateRecord = {
+      ...completeRecord,
+      decisionSnapshot: {
+        ...completeRecord.decisionSnapshot,
+        conceptLevels: {
+          'S3.1': 'Proficient',
+          'S3.2': 'Progressive',
+        },
+      },
+    };
+
+    const view = buildCertificateView(recordWithoutNonCoreLevel, concepts);
+    const ids = view.groups.flatMap(group => group.concepts).map(row => row.id);
+
+    expect(ids).toEqual(['S3.1', 'S3.2']);
+  });
+
   it('returns the same certificate id and issue date for repeated rendering', () => {
     const first = buildCertificateView(completeRecord, concepts);
     const second = buildCertificateView(completeRecord, concepts);
