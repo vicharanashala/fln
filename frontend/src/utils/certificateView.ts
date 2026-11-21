@@ -90,7 +90,7 @@ export function buildCertificateView(
     const rawLevel = conceptLevels?.[concept.id];
     // Old records predate per-concept levels. Keep their concepts visible,
     // but never infer a level that was not stored.
-    if (!hasLegacyLevels && !isConceptLevel(rawLevel)) continue;
+    if (!hasLegacyLevels && !isConceptLevel(rawLevel) && conceptLevels && Object.prototype.hasOwnProperty.call(conceptLevels, concept.id)) continue;
 
     const competency = concept.competency?.trim() || 'Other';
     const row: CertificateViewRow = {
