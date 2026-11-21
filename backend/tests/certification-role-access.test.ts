@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { UserRole } from '../src/db.js';
-import { canViewStudentCertificate } from '../src/routes/certification.js';
+import { canViewStudentCertificate, getCertificateConceptsForClass } from '../src/routes/certification.js';
 
 test('per-student certificate access allows teachers and volunteers', () => {
   assert.equal(canViewStudentCertificate(UserRole.TEACHER), true);
@@ -22,7 +22,6 @@ test('per-student certificate access denies school and administrative roles', ()
 
 
 test('certificate concept metadata uses the Balvatika core concept list and NCF mapping', async () => {
-  const { getCertificateConceptsForClass } = await import('../src/routes/certification.js');
   const concepts = getCertificateConceptsForClass(0);
   const coreIds = concepts.filter((concept) => concept.core).map((concept) => concept.id).sort();
 
@@ -32,7 +31,6 @@ test('certificate concept metadata uses the Balvatika core concept list and NCF 
 });
 
 test('certificate concept metadata covers Class 1 to Class 3 and rejects out-of-scope classes', async () => {
-  const { getCertificateConceptsForClass } = await import('../src/routes/certification.js');
 
   for (const classNumber of [1, 2, 3]) {
     const concepts = getCertificateConceptsForClass(classNumber);
