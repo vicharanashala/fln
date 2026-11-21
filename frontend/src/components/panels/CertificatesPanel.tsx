@@ -76,7 +76,6 @@ function RankCertificate({
     year: 'numeric',
   });
 
-  const weekOfMonth = Math.ceil(issuedAt.getDate() / 7);
   const month = issuedAt.toLocaleDateString('en-IN', {
     month: 'long',
   });
@@ -516,6 +515,10 @@ export const CertificatesPanel: React.FC<{
               ) : (
                 <p className="mt-3 text-xs text-amber-800 dark:text-amber-300">{t('certificate.skill.notYetAssessed')}</p>
               )}
+            </div>
+          ) : selectedCertification.status !== 'active' ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+              {t('certificate.skill.notActive')}
             </div>
           ) : !certificateView.canPrint ? (
             <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
