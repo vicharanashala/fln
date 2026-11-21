@@ -11,6 +11,7 @@ const __dotenv_dir = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dotenv_dir, '..', '.env') });
 
 import express from 'express';
+import compression from 'compression';
 import { createServer as createViteServer } from 'vite';
 import { dbStore, connectDB, UserRole, User, Student, School, Question, Worksheet, LevelWorksheet, AnswerSubmission, EvaluationReport, Ticket, LogEntry, Intervention, BestPractice, CYCLE_NAMES } from './db';
 import { generateAIDiagnostic, evaluateAIDiagnostic, generateAIPersonalizedWorksheet, evaluateAIWorksheet } from './gemini';
@@ -244,6 +245,7 @@ async function startServer() {
 
   const app = express();
   app.set('trust proxy', 1);
+  app.use(compression());
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
 

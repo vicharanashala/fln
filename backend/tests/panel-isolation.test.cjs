@@ -95,10 +95,8 @@ test('REGRESSION: STUDENTS_NOT_NEEDED_PANELS includes aadhaar_reveal', () => {
 });
 
 test('REGRESSION: STUDENTS_NOT_NEEDED_PANELS retains the original 4 entries (no regression)', () => {
-  // The pre-fix set was:
-  //   new Set(['users', 'worksheet_templates', 'content', 'system_settings'])
-  // Locking these in too means a future "we don't need this anymore"
-  // removal of any of them fails loud.
+  // The original set skipped these panels. Keep them covered while the
+  // screen-by-screen audit adds other panels that do not consume students.
   const src = readSource();
   const members = extractSetMembers(src);
   assert.ok(members, 'could not parse STUDENTS_NOT_NEEDED_PANELS set literal');
@@ -107,6 +105,52 @@ test('REGRESSION: STUDENTS_NOT_NEEDED_PANELS retains the original 4 entries (no 
       members.includes(expect),
       `STUDENTS_NOT_NEEDED_PANELS must still include '${expect}'. ` +
       `Found: [${members.join(', ')}]`,
+    );
+  }
+});
+
+test('REGRESSION: panels that do not read the shared student list skip the all=1 fetch', () => {
+  const src = readSource();
+  const members = extractSetMembers(src);
+  assert.ok(members, 'could not parse STUDENTS_NOT_NEEDED_PANELS set literal');
+
+  // Verified against the branches and props in frontend/src/components/PanelViews.tsx.
+  // These screens do not consume the shared student roster. Aadhaar Reveal
+  // performs its own paged fetch; the remaining screens do not display students.
+  for (const panel of [
+    'adaptive_test',
+    'certification_reviews',
+    'question_bank',
+    'schools',
+    'security',
+    'teachers',
+    'test_history',
+  ]) {
+    assert.ok(
+      members.includes(panel),
+      `STUDENTS_NOT_NEEDED_PANELS must include '${panel}'. Found: [${members.join(', ')}]`,
+    );
+  }
+
+  // These panels do use students or aggregates derived from them and must
+  // continue to load the shared roster.
+  for (const panel of [
+    'student_list',
+    'student_profile',
+    'diagnostic_test',
+    'worksheets',
+    'performance',
+    'assigned_schools',
+    'student_progress',
+    'attendance',
+    'students',
+    'districts',
+    'blocks',
+    'analytics',
+  ]) {
+    assert.ok(
+      !members.includes(panel),
+      `STUDENTS_NOT_NEEDED_PANELS must not include '${panel}'. Found: [${members.join(', ')}]`,
     );
   }
 });
