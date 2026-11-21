@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Printer, Search, ChevronDown } from 'lucide-react';
 import { Student, User, UserRole } from '../../types';
+import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../../services/apiClient';
 import { buildCertificateView, type CertificateConcept, type CertificateRecord } from '../../utils/certificateView';
 import { SkillCertificate } from './SkillCertificate';
@@ -14,7 +15,7 @@ type RankedStudent = {
 const getCertificationClassNumber = (classGroup: string): number | null => {
   const label = classGroup.trim();
   if (/^balvatika$/i.test(label)) return 0;
-  const match = label.match(/^class\\s*([1-3])(?:\\D|$)/i);
+  const match = label.match(/^class\s*([1-3])(?:\D|$)/i);
   return match ? Number(match[1]) : null;
 };
 
@@ -233,6 +234,7 @@ export const CertificatesPanel: React.FC<{
   const [certificateConcepts, setCertificateConcepts] = useState<CertificateConcept[]>([]);
   const [certificateLoading, setCertificateLoading] = useState(false);
   const [certificateError, setCertificateError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const certificatePreviewRef =
     useRef<HTMLDivElement>(null);
@@ -481,24 +483,24 @@ export const CertificatesPanel: React.FC<{
           {certificateLoading ? (
             <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-900">
               <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent align-middle" />
-              Loading certification record…
+              {t('certificate.skill.loading')}
             </div>
           ) : certificateError ? (
             <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
-              Unable to load the skill certificate. {certificateError}
+              {t('certificate.skill.error')} {certificateError}
             </div>
           ) : !selectedCertification || !certificateView ? (
             <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-              <h3 className="font-bold">No skill certificate record available</h3>
+              <h3 className="font-bold">{t('certificate.skill.noRecord')}</h3>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 A certificate will appear here when an end-of-year certification record is available for this class.
               </p>
             </div>
           ) : selectedCertification.decisionSnapshot?.outcome === 'incomplete' ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/30">
-              <h3 className="font-bold text-amber-900 dark:text-amber-200">Result incomplete</h3>
+              <h3 className="font-bold text-amber-900 dark:text-amber-200">{t('certificate.skill.incompleteTitle')}</h3>
               <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
-                These core concepts are not yet assessed. A printable skill certificate is not available yet.
+                {t('certificate.skill.incompleteMessage')}
               </p>
               {certificateView.notYetAssessed.length > 0 ? (
                 <ul className="mt-3 flex flex-wrap gap-2">
@@ -512,14 +514,14 @@ export const CertificatesPanel: React.FC<{
                   })}
                 </ul>
               ) : (
-                <p className="mt-3 text-xs text-amber-800 dark:text-amber-300">The record does not include a missing-concept list.</p>
+                <p className="mt-3 text-xs text-amber-800 dark:text-amber-300">{t('certificate.skill.notYetAssessed')}</p>
               )}
             </div>
           ) : !certificateView.canPrint ? (
             <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
               <h3 className="font-bold">Skill certificate not available for this record</h3>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                This certification record uses an earlier result format. A skill certificate requires a complete concept-level snapshot.
+                {t('certificate.skill.legacyRecord')}
               </p>
             </div>
           ) : (
@@ -538,7 +540,7 @@ export const CertificatesPanel: React.FC<{
                   className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
                 >
                   <Printer className="h-4 w-4" />
-                  Print skill certificate
+                  {t('certificate.skill.print')}
                 </button>
               </div>
             </>
