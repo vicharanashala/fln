@@ -122,7 +122,9 @@
       "notYetAssessed": "Not yet assessed",
       "legacyRecord": "This certification record uses an earlier result format. A skill certificate requires a complete concept-level snapshot.",
       "print": "Print skill certificate",
-      "notActive": "This certification is not active. Please contact an administrator before issuing a certificate."
+      "notActive": "This certification is not active. Please contact an administrator before issuing a certificate.",
+      "legacyTitle": "Skill certificate unavailable",
+      "noRecordDescription": "A certificate appears here when an end-of-year certification record is available for this class."
     },
     "level": {
       "Beginner": "Beginner",
