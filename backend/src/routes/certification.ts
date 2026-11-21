@@ -27,7 +27,12 @@ import {
 
 const ALLOWED_REVIEW_ROLES = [UserRole.SUPERADMIN, UserRole.ADMIN];
 const QUEUE_VIEW_ROLES = [UserRole.SUPERADMIN, UserRole.ADMIN];
+const CERTIFICATE_VIEW_ROLES = [UserRole.TEACHER, UserRole.VOLUNTEER];
 const VALID_STATUSES: CertificationStatus[] = ['active', 'review_needed', 'revoked'];
+
+export function canViewStudentCertificate(role: UserRole): boolean {
+  return CERTIFICATE_VIEW_ROLES.includes(role);
+}
 
 export function registerCertificationRoutes(app: express.Express) {
   // Admins resolve a 'review_needed' cert to either 'active' (confirm) or 'revoked'.
@@ -133,7 +138,7 @@ export function registerCertificationRoutes(app: express.Express) {
       // Certificate views are limited to the roles exposed by CertificatesPanel.
       // School/principal and administrative roles must not gain access merely
       // because canAccessStudent would otherwise permit a profile lookup.
-      if (![UserRole.TEACHER, UserRole.VOLUNTEER].includes(user.role)) {
+      if (!canViewStudentCertificate(user.role)) {
         return res.status(403).json({ error: 'Forbidden: certificate access is limited to teachers and volunteers.' });
       }
 
