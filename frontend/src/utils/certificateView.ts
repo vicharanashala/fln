@@ -97,7 +97,7 @@ export function buildCertificateView(
     const rawLevel = conceptLevels?.[concept.id];
     // Legacy records have no per-concept levels; retain their curriculum rows
     // with "Not available" rather than inventing a level.
-    if (!hasLegacyLevels && !isConceptLevel(rawLevel) && !(isComplete && rawLevel === undefined)) {
+    if (!hasLegacyLevels && !isConceptLevel(rawLevel) && !(isComplete && concept.core === true)) {
       continue;
     }
 
@@ -107,8 +107,7 @@ export function buildCertificateView(
       title: concept.title?.trim() || concept.id,
       icon: isConceptLevel(rawLevel) ? LEVEL_ICON[rawLevel] : '○',
       level: isConceptLevel(rawLevel) ? LEVEL_LABEL[rawLevel] : 'Not available',
-      // In the agreed certification snapshot, conceptLevels contains core concept IDs.
-      core: concept.core === true || isConceptLevel(rawLevel),
+      core: concept.core === true,
     };
 
     const group = rowsByCompetency.get(competency) ?? [];
