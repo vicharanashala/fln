@@ -29,7 +29,13 @@ export interface CertificateConcept {
 export interface CertificateRecord {
   id?: string;
   certificateId?: string;
+  studentId?: string;
+  classNumber?: number;
+  level?: number;
+  status?: 'active' | 'review_needed' | 'revoked';
   issuedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
   decisionSnapshot?: {
     outcome?: string;
     conceptLevels?: Record<string, CertificateConceptLevel>;
@@ -101,7 +107,8 @@ export function buildCertificateView(
       title: concept.title?.trim() || concept.id,
       icon: isConceptLevel(rawLevel) ? LEVEL_ICON[rawLevel] : '○',
       level: isConceptLevel(rawLevel) ? LEVEL_LABEL[rawLevel] : 'Not available',
-      core: concept.core === true,
+      // In the agreed certification snapshot, conceptLevels contains core concept IDs.
+      core: concept.core === true || isConceptLevel(rawLevel),
     };
 
     const group = rowsByCompetency.get(competency) ?? [];
