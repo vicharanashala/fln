@@ -130,7 +130,13 @@ export function registerCertificationRoutes(app: express.Express) {
     }
 
     if (studentId) {
-      // Per-student view — any role with access to the student.
+      // Certificate views are limited to the roles exposed by CertificatesPanel.
+      // School/principal and administrative roles must not gain access merely
+      // because canAccessStudent would otherwise permit a profile lookup.
+      if (![UserRole.TEACHER, UserRole.VOLUNTEER].includes(user.role)) {
+        return res.status(403).json({ error: 'Forbidden: certificate access is limited to teachers and volunteers.' });
+      }
+
       const students = await dbStore.getStudents();
       const student = students.find(s => s.id === studentId);
       if (!student) return res.status(404).json({ error: 'Student not found.' });
