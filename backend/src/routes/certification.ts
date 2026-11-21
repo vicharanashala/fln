@@ -46,6 +46,22 @@ export function canViewStudentCertificate(role: UserRole): boolean {
   return CERTIFICATE_VIEW_ROLES.includes(role);
 }
 
+export function getCertificateConceptsForClass(classNumber: number) {
+  if (!Object.prototype.hasOwnProperty.call(CORE_CONCEPT_IDS_BY_CLASS, classNumber)) {
+    throw new RangeError('classNumber must be 0 (Balvatika) or 1, 2, or 3.');
+  }
+
+  const stage = classNumber + 3;
+  return Object.values(CURRICULUM_MAPPING)
+    .filter((concept) => concept.stage === stage)
+    .map((concept) => ({
+      id: concept.conceptId,
+      title: concept.levelTitle,
+      competency: getCompetencyForConcept(concept.conceptId) ?? null,
+      core: CORE_CONCEPT_IDS_BY_CLASS[classNumber].has(concept.conceptId),
+    }));
+}
+
 export function registerCertificationRoutes(app: express.Express) {
   // Public curriculum metadata for the certificate renderer. Student records
   // remain protected by the per-student certifications route below.
@@ -62,17 +78,7 @@ export function registerCertificationRoutes(app: express.Express) {
       return res.status(400).json({ error: 'classNumber must be 0 (Balvatika) or 1, 2, or 3.' });
     }
 
-    const stage = classNumber + 3;
-    const concepts = Object.values(CURRICULUM_MAPPING)
-      .filter((concept) => concept.stage === stage)
-      .map((concept) => ({
-        id: concept.conceptId,
-        title: concept.levelTitle,
-        competency: getCompetencyForConcept(concept.conceptId) ?? null,
-        core: CORE_CONCEPT_IDS_BY_CLASS[classNumber].has(concept.conceptId),
-      }));
-
-    return res.json(concepts);
+    return res.json(getCertificateConceptsForClass(classNumber));
   });
 
   // Admins resolve a 'review_needed' cert to either 'active' (confirm) or 'revoked'.
