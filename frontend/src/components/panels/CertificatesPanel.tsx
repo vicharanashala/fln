@@ -1,11 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Printer, Search, ChevronDown } from 'lucide-react';
 import { Student, User, UserRole } from '../../types';
+import { apiFetch } from '../../services/apiClient';
+import { buildCertificateView, type CertificateConcept, type CertificateRecord } from '../../utils/certificateView';
+import { SkillCertificate } from './SkillCertificate';
 
 type RankedStudent = {
   student: Student;
   rank: number;
   issuedAt?: string;
+};
+
+const getCertificationClassNumber = (classGroup: string): number | null => {
+  const label = classGroup.trim();
+  if (/^balvatika$/i.test(label)) return 0;
+  const match = label.match(/^class\\s*([1-3])(?:\\D|$)/i);
+  return match ? Number(match[1]) : null;
 };
 
 const ordinal = (rank: number) => {
@@ -14,7 +24,7 @@ const ordinal = (rank: number) => {
   return `${rank}${endings[(remainder - 20) % 10] || endings[remainder] || endings[0]}`;
 };
 
-const printCertificate = async (certificate?: HTMLDivElement | null) => {
+const printCertificate = async (certificate?: HTMLDivElement | null, kind: 'normal' | 'skill' = 'normal') => {
   if (!certificate) return;
 
   await document.fonts?.ready;
@@ -27,6 +37,7 @@ const printCertificate = async (certificate?: HTMLDivElement | null) => {
   const cleanup = () => {
     document.body.classList.remove('printing-certificate');
     document.body.classList.remove('printing-normal-certificate');
+    document.body.classList.remove('printing-skill-certificate');
 
     if (originalParent) {
       originalParent.insertBefore(
@@ -37,7 +48,7 @@ const printCertificate = async (certificate?: HTMLDivElement | null) => {
   };
 
   document.body.classList.add('printing-certificate');
-  document.body.classList.add('printing-normal-certificate');
+  document.body.classList.add(kind === 'skill' ? 'printing-skill-certificate' : 'printing-normal-certificate');
 
   window.addEventListener('afterprint', cleanup, { once: true });
   window.print();
@@ -218,6 +229,10 @@ export const CertificatesPanel: React.FC<{
   const [showDropdown, setShowDropdown] = useState(false);
   const [rankCertificate, setRankCertificate] =
     useState<RankedStudent | null>(null);
+  const [certificateRecords, setCertificateRecords] = useState<CertificateRecord[]>([]);
+  const [certificateConcepts, setCertificateConcepts] = useState<CertificateConcept[]>([]);
+  const [certificateLoading, setCertificateLoading] = useState(false);
+  const [certificateError, setCertificateError] = useState<string | null>(null);
 
   const certificatePreviewRef =
     useRef<HTMLDivElement>(null);
@@ -235,6 +250,74 @@ export const CertificatesPanel: React.FC<{
       setSelectedStudentId(students[0].id);
     }
   }, [students, selectedStudentId]);
+
+  const selectedStudent =
+    students.find(student => student.id === selectedStudentId) ??
+    students[0];
+  const selectedClassNumber = selectedStudent
+    ? getCertificationClassNumber(selectedStudent.classGroup)
+    : null;
+
+  useEffect(() => {
+    if (variant === 'ranked' || !selectedStudent || selectedClassNumber === null) {
+      setCertificateRecords([]);
+      setCertificateConcepts([]);
+      setCertificateLoading(false);
+      setCertificateError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setCertificateLoading(true);
+    setCertificateError(null);
+    setCertificateRecords([]);
+    setCertificateConcepts([]);
+
+    Promise.all([
+      apiFetch(`/api/certifications?studentId=${encodeURIComponent(selectedStudent.id)}`),
+      apiFetch(`/api/certification/concepts?classNumber=${selectedClassNumber}`),
+    ])
+      .then(async ([recordsResponse, conceptsResponse]) => {
+        if (!recordsResponse.ok) throw new Error(`Certifications request failed (${recordsResponse.status}).`);
+        if (!conceptsResponse.ok) throw new Error(`Curriculum request failed (${conceptsResponse.status}).`);
+        const [records, concepts] = await Promise.all([
+          recordsResponse.json() as Promise<CertificateRecord[]>,
+          conceptsResponse.json() as Promise<CertificateConcept[]>,
+        ]);
+        if (cancelled) return;
+        setCertificateRecords(Array.isArray(records) ? records : []);
+        setCertificateConcepts(Array.isArray(concepts) ? concepts : []);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setCertificateError(error instanceof Error ? error.message : 'Unable to load certificate data.');
+      })
+      .finally(() => {
+        if (!cancelled) setCertificateLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStudent?.id, selectedClassNumber, variant]);
+
+  const selectedCertification = useMemo(() => {
+    if (selectedClassNumber === null) return null;
+    return certificateRecords
+      .filter(record => record.classNumber === selectedClassNumber)
+      .sort((a, b) => {
+        const aDate = Date.parse(a.issuedAt ?? a.updatedAt ?? a.createdAt ?? '');
+        const bDate = Date.parse(b.issuedAt ?? b.updatedAt ?? b.createdAt ?? '');
+        return bDate - aDate;
+      })[0] ?? null;
+  }, [certificateRecords, selectedClassNumber]);
+
+  const certificateView = useMemo(
+    () => selectedCertification
+      ? buildCertificateView(selectedCertification, certificateConcepts)
+      : null,
+    [selectedCertification, certificateConcepts]
+  );
 
   if (!canIssueCertificates) {
     return (
@@ -260,10 +343,6 @@ export const CertificatesPanel: React.FC<{
       </div>
     );
   }
-
-  const selectedStudent =
-    students.find(student => student.id === selectedStudentId) ??
-    students[0];
 
   const filteredStudents = students.filter(student =>
     student.name
@@ -301,7 +380,7 @@ export const CertificatesPanel: React.FC<{
     if (!certificatePreviewRef.current) return;
 
     try {
-      await printCertificate(certificatePreviewRef.current);
+      await printCertificate(certificatePreviewRef.current, 'skill');
     } catch (error) {
       console.error(error);
       alert(
@@ -396,254 +475,76 @@ export const CertificatesPanel: React.FC<{
         )}
       </div>}
 
-      {/* Normal certificate */}
-      {variant !== 'ranked' && <div className="max-w-4xl">
-        <div
-          ref={certificatePreviewRef}
-          data-certificate-preview
-          className={`aspect-[297/210] overflow-hidden rounded-2xl border-4 shadow-lg ${
-            isClassOne
-              ? 'border-orange-400 bg-white'
-              : isClassTwo
-                ? 'border-[#0D99FF] bg-[#CFE9FB] p-2'
-                : 'border-amber-300 bg-[#fffdf8]'
-          }`}
-        >
-          <div
-            className={
-              isClassTwo
-                ? ''
-                : `h-3 ${
-                    isClassOne
-                      ? 'bg-gradient-to-r from-rose-500 via-orange-500 to-amber-300'
-                      : 'bg-gradient-to-r from-rose-500 via-orange-400 to-amber-300'
-                  }`
-            }
-          />
-
-          <div
-            className={`relative px-6 py-10 text-center sm:px-12 ${
-              isClassTwo
-                ? 'h-full rounded-xl border-2 border-[#0D99FF]'
-                : ''
-            }`}
-          >
-            {isClassOne ? (
-              <>
-                <div className="absolute left-4 top-3 text-6xl text-amber-400">
-                  ☀
-                </div>
-                <div className="absolute left-4 top-20 -rotate-12 text-[10px] font-black text-cyan-500">
-                  FANTASTIC!
-                </div>
-                <div className="absolute right-5 top-7 rotate-12 rounded-t-full border-8 border-b-0 border-orange-500 bg-cyan-400 px-3 py-2 text-sm font-black text-white">
-                  Brilliant!
-                </div>
-                <div className="absolute bottom-5 left-7 text-3xl text-amber-400">
-                  ★ ✦
-                </div>
-                <div className="absolute bottom-4 right-8 text-4xl">
-                  🏆
-                </div>
-              </>
-            ) : isClassTwo ? (
-              <>
-                <div className="certificate-star absolute left-3 top-2 text-3xl">
-                  ★
-                </div>
-                <div className="certificate-star absolute left-9 top-9 text-base">
-                  ★
-                </div>
-                <div className="certificate-star absolute left-14 top-6 text-xs">
-                  ★
-                </div>
-                <div className="certificate-star absolute right-4 top-2 text-3xl">
-                  ★
-                </div>
-                <div className="certificate-star absolute bottom-3 left-6 text-base">
-                  ★
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="absolute left-5 top-5 text-4xl text-amber-400">
-                  ★
-                </div>
-                <div className="absolute right-6 top-7 text-4xl text-teal-500">
-                  ✦
-                </div>
-                <div className="absolute bottom-5 left-8 text-3xl text-orange-400">
-                  ✶
-                </div>
-                <div className="absolute bottom-5 right-8 text-3xl text-rose-500">
-                  ✹
-                </div>
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-4 border-orange-500 bg-amber-300 text-3xl text-white shadow-[0_0_0_5px_#fffdf8,0_0_0_8px_#14b8a6]">
-                  ★
-                </div>
-              </>
-            )}
-
-            <p
-              className={`mt-5 text-[10px] font-bold uppercase tracking-[0.25em] ${
-                isClassTwo
-                  ? 'text-[#0D99FF]'
-                  : 'text-teal-700'
-              }`}
-            >
-              FLN Portal · Foundational Literacy &amp; Numeracy
-            </p>
-
-            <h3
-              className={`mt-3 text-3xl font-bold sm:text-4xl ${
-                isClassTwo
-                  ? 'font-script font-normal text-[#0D99FF] normal-case'
-                  : `text-slate-900 ${
-                      isClassOne
-                        ? 'font-sans'
-                        : 'font-serif'
-                    }`
-              }`}
-            >
-              Certificate of
-            </h3>
-
-            <p
-              className={`mt-1 text-3xl sm:text-5xl ${
-                isClassTwo
-                  ? 'font-hand font-bold normal-case tracking-normal text-[#0D99FF] text-4xl sm:text-6xl'
-                  : `font-black uppercase tracking-wider text-orange-500 ${
-                      isClassOne ? 'font-sans' : ''
-                    }`
-              }`}
-            >
-              Excellence
-            </p>
-
-            <p
-              className={`mt-7 text-base ${
-                isClassTwo
-                  ? 'text-[#0D99FF]'
-                  : 'text-slate-600'
-              }`}
-            >
-              This certificate is proudly presented to
-            </p>
-
-            <p
-              className={`mx-auto mt-3 max-w-xl border-b-2 px-4 pb-2 text-2xl font-bold sm:text-4xl ${
-                isClassTwo
-                  ? 'border-[#0D99FF] text-[#1E1E1E]'
-                  : 'border-slate-700 text-blue-700'
-              }`}
-            >
-              {selectedStudent.name}
-            </p>
-
-            <p
-              className={`mx-auto mt-6 max-w-2xl text-sm leading-6 ${
-                isClassTwo
-                  ? 'text-[#0D99FF]'
-                  : 'text-slate-600'
-              }`}
-            >
-              for dedication and progress in foundational literacy
-              and numeracy.
-            </p>
-
-            <div className="mx-auto mt-7 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
-              {[
-                [
-                  'Class',
-                  `${selectedStudent.classGroup} - ${selectedStudent.section}`,
-                ],
-                [
-                  'Current Level',
-                  `L${selectedStudent.currentLevel}.${selectedStudent.currentSubLevel ?? 0}`,
-                ],
-                [
-                  'Learning Streak',
-                  `${selectedStudent.streak} days`,
-                ],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className={`rounded-xl border px-3 py-3 text-xs font-bold ${
-                    isClassTwo
-                      ? 'border-[#0D99FF] bg-white text-[#0D99FF]'
-                      : 'border-cyan-200 bg-cyan-50 text-cyan-900'
-                  }`}
-                >
-                  {label}
-                  <span
-                    className={`mt-1 block text-lg ${
-                      isClassTwo
-                        ? 'text-[#0D99FF]'
-                        : 'text-teal-700'
-                    }`}
-                  >
-                    {value}
-                  </span>
-                </div>
-              ))}
+      {/* Skill-based certificate */}
+      {variant !== 'ranked' && (
+        <section className="max-w-6xl space-y-4" aria-live="polite">
+          {certificateLoading ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent align-middle" />
+              Loading certification record…
             </div>
-
-            <div
-              className={`mx-auto mt-10 grid max-w-xl grid-cols-2 gap-10 text-xs ${
-                isClassTwo
-                  ? 'text-[#0D99FF]'
-                  : 'text-slate-600'
-              }`}
-            >
-              <div className="pt-2">
-                <strong
-                  className={`block ${
-                    isClassTwo
-                      ? 'text-[#1E1E1E]'
-                      : 'text-slate-800'
-                  }`}
-                >
-                  {new Date().toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
+          ) : certificateError ? (
+            <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+              Unable to load the skill certificate. {certificateError}
+            </div>
+          ) : !selectedCertification || !certificateView ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+              <h3 className="font-bold">No skill certificate record available</h3>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                A certificate will appear here when an end-of-year certification record is available for this class.
+              </p>
+            </div>
+          ) : selectedCertification.decisionSnapshot?.outcome === 'incomplete' ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/30">
+              <h3 className="font-bold text-amber-900 dark:text-amber-200">Result incomplete</h3>
+              <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
+                These core concepts are not yet assessed. A printable skill certificate is not available yet.
+              </p>
+              {certificateView.notYetAssessed.length > 0 ? (
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {certificateView.notYetAssessed.map(id => {
+                    const concept = certificateConcepts.find(item => item.id === id);
+                    return (
+                      <li key={id} className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 dark:border-amber-800 dark:bg-slate-900 dark:text-amber-200">
+                        {concept?.title || id}
+                      </li>
+                    );
                   })}
-                </strong>
-                Date issued
-              </div>
-
-              <div
-                className={`border-t pt-2 ${
-                  isClassTwo
-                    ? 'border-[#0D99FF]'
-                    : 'border-slate-600'
-                }`}
-              >
-                <strong
-                  className={`block ${
-                    isClassTwo
-                      ? 'text-[#1E1E1E]'
-                      : 'text-slate-800'
-                  }`}
-                >
-                  {currentUser.name}
-                </strong>
-                Teacher signature
-              </div>
+                </ul>
+              ) : (
+                <p className="mt-3 text-xs text-amber-800 dark:text-amber-300">The record does not include a missing-concept list.</p>
+              )}
             </div>
-          </div>
-        </div>
-
-        <div className="mt-5 flex justify-end">
-          <button
-            onClick={() => void handlePrintCertificate()}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
-          >
-            <Printer className="h-4 w-4" />
-            Print Certificate
-          </button>
-        </div>
-      </div>}
+          ) : !certificateView.canPrint ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+              <h3 className="font-bold">Skill certificate not available for this record</h3>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                This certification record uses an earlier result format. A skill certificate requires a complete concept-level snapshot.
+              </p>
+            </div>
+          ) : (
+            <>
+              <SkillCertificate
+                student={selectedStudent}
+                teacherName={currentUser.name}
+                view={certificateView}
+                isClassOne={isClassOne}
+                isClassTwo={isClassTwo}
+                certificateRef={certificatePreviewRef}
+              />
+              <div className="flex justify-end">
+                <button
+                  onClick={() => void handlePrintCertificate()}
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print skill certificate
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
 
       {/* Ranked students */}
       {variant !== 'individual' && <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
