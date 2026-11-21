@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Diya</title>
+<desc>Line drawing of a diya: a small clay lamp with a pinched spout and a flame.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(-26 -24)">
+<path d="M474 302 C440 276 444 226 470 172 C500 226 506 276 476 302 Z"/>
+<path d="M474 290 C460 274 462 248 472 222 C486 248 488 274 476 290 Z" stroke-width="5"/>
+<path d="M96 330 C104 404 182 434 256 434 C332 434 392 410 412 346 Z"/>
+<path d="M90 324 C90 294 180 284 256 284 C320 284 380 294 420 304 L484 312 C476 328 444 344 402 348 C352 360 302 364 256 364 C170 364 90 354 90 324 Z"/>
+<path d="M118 324 C118 306 184 300 256 300 C320 300 372 306 404 314 C380 334 330 344 256 344 C184 344 118 338 118 324 Z" stroke-width="5"/>
+<path d="M468 312 L476 302" fill="none" stroke-width="5"/>
+<path d="M150 380 Q166 396 182 380 Q198 396 214 380 Q230 396 246 380 Q262 396 278 380 Q294 396 310 380 Q326 396 342 380" fill="none" stroke-width="3.5"/>
+</g>
+</g>
+</svg>

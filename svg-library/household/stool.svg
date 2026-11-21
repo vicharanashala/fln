@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Stool</title>
+<desc>Line drawing of a round wooden stool with four legs and a ring joining the legs.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M183.0 179.2 L169.0 433.3 L191.0 434.7 L209.0 180.8 Z" stroke-width="8"/>
+<path d="M303.0 180.8 L321.0 434.7 L343.0 433.3 L329.0 179.2 Z" stroke-width="8"/>
+<ellipse cx="256" cy="346" rx="122" ry="26" fill="none"/>
+<path d="M136.1 174.2 L100.1 468.5 L123.9 471.5 L163.9 177.8 Z" stroke-width="8"/>
+<path d="M348.1 177.8 L388.1 471.5 L411.9 468.5 L375.9 174.2 Z" stroke-width="8"/>
+<path d="M104 136 V162 C104 196 408 196 408 162 V136 Z"/>
+<ellipse cx="256" cy="136" rx="152" ry="46"/>
+<ellipse cx="256" cy="136" rx="116" ry="32" stroke-width="3.5"/>
+</g>
+</svg>

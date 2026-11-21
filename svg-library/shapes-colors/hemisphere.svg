@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Hemisphere</title>
+<desc>Line drawing of a hemisphere: half of a ball resting on its flat round face, with the hidden back edge dashed.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M60 340 A196 196 0 0 1 452 340 A196 56 0 0 1 60 340 Z"/>
+<path d="M60 340 A196 56 0 0 1 452 340" fill="none" stroke-width="4" stroke-dasharray="14 12"/>
+<path d="M116 250 C136 210 170 180 214 166" fill="none" stroke-width="6"/>
+</g>
+</svg>

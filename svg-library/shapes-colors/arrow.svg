@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Arrow</title>
+<desc>Line drawing of a thick arrow shape pointing to the right.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M50.0 194.0 L290.0 194.0 L290.0 100.0 L462.0 256.0 L290.0 412.0 L290.0 318.0 L50.0 318.0 Z"/>
+</g>
+</svg>

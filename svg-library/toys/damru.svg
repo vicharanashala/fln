@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Damru</title>
+<desc>Line drawing of a damru: a small hourglass-shaped hand drum with a cord and two beads.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M230 256 C190 266 150 252 122 232" fill="none" stroke-width="5"/>
+<path d="M282 256 C322 266 360 280 392 296" fill="none" stroke-width="5"/>
+<circle cx="110" cy="226" r="16" stroke-width="5"/><circle cx="110" cy="226" r="5" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="404" cy="302" r="16" stroke-width="5"/><circle cx="404" cy="302" r="5" fill="#1A1A1A" stroke-width="2"/>
+<path d="M146 120 C180 180 226 230 240 256 C226 282 180 332 146 392 A110 30 0 0 0 366 392 C332 332 286 282 272 256 C286 230 332 180 366 120 Z"/>
+<path d="M172 144 L300 236 M340 144 L212 236 M172 372 L300 278 M340 372 L212 278" fill="none" stroke-width="3.5"/>
+<rect x="226" y="242" width="60" height="28" rx="8" stroke-width="5"/>
+<ellipse cx="256" cy="120" rx="110" ry="30"/>
+<ellipse cx="256" cy="120" rx="90" ry="22" stroke-width="5"/>
+<path d="M256 270 C250 320 262 360 252 400 M262 400 L248 426 M254 400 L262 428" fill="none" stroke-width="5"/>
+</g>
+</svg>

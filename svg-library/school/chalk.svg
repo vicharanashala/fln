@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Chalk</title>
+<desc>Line drawing of an open box of chalk sticks labelled CHALK.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M96 236 L136 196 H456 L416 236 Z"/>
+<rect x="132" y="150" width="34" height="150" rx="4"/><ellipse cx="149" cy="150" rx="17" ry="7"/><rect x="176" y="124" width="34" height="176" rx="4"/><ellipse cx="193" cy="124" rx="17" ry="7"/><rect x="220" y="160" width="34" height="140" rx="4"/><ellipse cx="237" cy="160" rx="17" ry="7"/><rect x="264" y="132" width="34" height="168" rx="4"/><ellipse cx="281" cy="132" rx="17" ry="7"/><rect x="308" y="146" width="34" height="154" rx="4"/><ellipse cx="325" cy="146" rx="17" ry="7"/><rect x="352" y="120" width="34" height="180" rx="4"/><ellipse cx="369" cy="120" rx="17" ry="7"/>
+<path d="M416 236 L456 196 V420 L416 460 Z"/>
+<rect x="96" y="236" width="320" height="224"/>
+<rect x="128" y="290" width="256" height="104" rx="12" stroke-width="5"/>
+<path d="M28 6 C20 -2 0 -2 0 20 C0 42 20 42 28 34" transform="translate(160.0 322) scale(1.0)" fill="none" stroke-width="6.0"/><path d="M0 0 V40 M28 0 V40 M0 20 H28" transform="translate(200.0 322) scale(1.0)" fill="none" stroke-width="6.0"/><path d="M0 40 L14 0 L28 40 M6 26 H22" transform="translate(240.0 322) scale(1.0)" fill="none" stroke-width="6.0"/><path d="M0 0 V40 H24" transform="translate(280.0 322) scale(1.0)" fill="none" stroke-width="6.0"/><path d="M0 0 V40 M26 0 L0 24 M8 18 L28 40" transform="translate(320.0 322) scale(1.0)" fill="none" stroke-width="6.0"/>
+</g>
+</svg>

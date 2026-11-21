@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Matka</title>
+<desc>Line drawing of a matka: a round clay water pot with a narrow neck and a plate lid.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M150 210 C70 252 60 382 140 440 C200 482 312 482 372 440 C452 382 442 252 362 210 Z"/>
+<path d="M192 172 C188 192 172 206 150 214 L362 214 C340 206 324 192 320 172 Z"/>
+<path d="M88 300 C180 330 332 330 424 300" fill="none" stroke-width="5"/>
+<path d="M96 336 Q118 350 140 336 Q162 350 184 336 Q206 350 228 336 Q250 350 272 336 Q294 350 316 336 Q338 350 360 336 Q382 350 404 336" fill="none" stroke-width="3.5"/>
+<path d="M110 380 C190 404 322 404 402 380" fill="none" stroke-width="5"/>
+<ellipse cx="256" cy="170" rx="86" ry="20"/>
+<path d="M160 150 C168 172 344 172 352 150 Z"/>
+<ellipse cx="256" cy="150" rx="96" ry="18"/>
+<ellipse cx="256" cy="136" rx="18" ry="8" stroke-width="5"/>
+<path d="M374 250 C398 280 408 320 404 360" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

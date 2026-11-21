@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Shark</title>
+<desc>Line drawing of a shark swimming, with a pointed dorsal fin, side fins, gill slits and a crescent tail.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M188 296 C184 316 174 334 160 344 C186 338 206 322 216 300 Z"/>
+<path d="M90 262 L28 170 C56 190 84 222 112 252 Z"/>
+<path d="M92 274 L40 346 C70 328 96 306 116 284 Z"/>
+<path d="M228 210 C238 164 256 126 282 100 C286 142 296 180 314 206 Z"/>
+<path d="M120 236 C128 222 136 212 146 206 C146 220 148 230 152 238 Z"/>
+<path d="M40 266 C110 218 220 196 322 200 C382 202 442 222 478 258 C452 284 402 300 332 304 C242 310 132 300 40 266 Z"/>
+<path d="M474 262 C410 272 310 284 92 268" fill="none" stroke-width="4"/>
+<path d="M300 298 C290 334 268 364 236 386 C280 378 322 344 342 302 Z"/>
+<path d="M356 228 C350 244 350 262 356 278 M372 226 C366 242 366 260 372 276 M388 226 C382 242 382 258 388 272" fill="none" stroke-width="4"/>
+<circle cx="420" cy="238" r="8" fill="#1A1A1A" stroke-width="2"/><circle cx="422.8" cy="235.2" r="2.8" fill="#FFFFFF" stroke="none"/>
+<path d="M410 282 C428 290 446 284 460 272" fill="none" stroke-width="5"/>
+</g>
+</svg>

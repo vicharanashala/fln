@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Shuttlecock</title>
+<desc>Line drawing of a badminton shuttlecock with a round cork base and a cone of feathers.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(18 256 256)">
+<path d="M96 96 Q114 50 132 96 Q149 50 167 96 Q185 50 203 96 Q220 50 238 96 Q256 50 274 96 Q292 50 309 96 Q327 50 345 96 Q363 50 380 96 Q398 50 416 96 L310 352 H202 Z"/>
+<path d="M202 352 L96 96 M214 352 L132 96 M226 352 L167 96 M238 352 L203 96 M250 352 L238 96 M262 352 L274 96 M274 352 L309 96 M286 352 L345 96 M298 352 L380 96 M310 352 L416 96" fill="none" stroke-width="3.5"/>
+<path d="M150 230 C220 244 292 244 362 230 M166 268 C226 280 286 280 346 268" fill="none" stroke-width="5"/>
+<rect x="196" y="348" width="120" height="30" rx="6"/>
+<path d="M200 376 H312 C312 454 200 454 200 376 Z"/>
+<path d="M222 396 C226 414 236 426 248 432" fill="none" stroke-width="5"/>
+</g>
+</g>
+</svg>

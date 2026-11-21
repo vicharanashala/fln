@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Tent</title>
+<desc>Line drawing of a triangular camping tent with an open door flap, guy ropes and pegs.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M150 276 L40 432 M362 276 L472 432" fill="none" stroke-width="3.5"/>
+<path d="M32 420 L44 444 L52 424 Z" stroke-width="5"/><path d="M480 420 L468 444 L460 424 Z" stroke-width="5"/>
+<path d="M256 92 V56" fill="none" stroke-width="5"/>
+<path d="M256 56 L300 68 L256 80 Z" stroke-width="5"/>
+<path d="M256 92 L64 432 H448 Z"/>
+<path d="M256 150 L196 432 H316 Z" stroke-width="5"/>
+<path d="M256 150 C238 250 200 330 150 432 H196 Z" stroke-width="5"/>
+<path d="M256 150 C274 250 312 330 362 432 H316 Z" stroke-width="5"/>
+<path d="M150 350 C170 352 186 360 196 372 M362 350 C342 352 326 360 316 372" fill="none" stroke-width="3.5"/>
+<path d="M30 440 H482" fill="none" stroke-width="5"/>
+</g>
+</svg>
