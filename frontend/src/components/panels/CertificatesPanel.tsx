@@ -492,7 +492,7 @@ export const CertificatesPanel: React.FC<{
             <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
               <h3 className="font-bold">{t('certificate.skill.noRecord')}</h3>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                A certificate will appear here when an end-of-year certification record is available for this class.
+                {t('certificate.skill.noRecordDescription')}
               </p>
             </div>
           ) : selectedCertification.decisionSnapshot?.outcome === 'incomplete' ? (
@@ -522,7 +522,7 @@ export const CertificatesPanel: React.FC<{
             </div>
           ) : !certificateView.canPrint ? (
             <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-              <h3 className="font-bold">Skill certificate not available for this record</h3>
+              <h3 className="font-bold">{t('certificate.skill.legacyTitle')}</h3>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {t('certificate.skill.legacyRecord')}
               </p>
