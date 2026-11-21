@@ -32,6 +32,16 @@ const QUEUE_VIEW_ROLES = [UserRole.SUPERADMIN, UserRole.ADMIN];
 const CERTIFICATE_VIEW_ROLES = [UserRole.TEACHER, UserRole.VOLUNTEER];
 const VALID_STATUSES: CertificationStatus[] = ['active', 'review_needed', 'revoked'];
 
+// Core concepts from the issue #836 requirements table. Balvatika's six
+// concepts are confirmed there; Class 1–3 entries are explicitly interim
+// assignments pending curriculum-lead confirmation.
+const CORE_CONCEPT_IDS_BY_CLASS: Record<number, Set<string>> = {
+  0: new Set(['S3.1', 'S3.2', 'S3.3', 'S3.4', 'S3.5', 'S3.7']),
+  1: new Set(['S4.3', 'S4.4', 'S4.6', 'S4.7', 'S4.8', 'S4.9', 'S4.10']),
+  2: new Set(['S5.1', 'S5.4', 'S5.5', 'S5.6', 'S5.7', 'S5.8', 'S5.11', 'S5.12']),
+  3: new Set(['S6.4', 'S6.5', 'S6.6', 'S6.7', 'S6.8', 'S6.9', 'S6.10', 'S6.12', 'S6.13']),
+};
+
 export function canViewStudentCertificate(role: UserRole): boolean {
   return CERTIFICATE_VIEW_ROLES.includes(role);
 }
@@ -59,6 +69,7 @@ export function registerCertificationRoutes(app: express.Express) {
         id: concept.conceptId,
         title: concept.levelTitle,
         competency: getCompetencyForConcept(concept.conceptId) ?? null,
+        core: CORE_CONCEPT_IDS_BY_CLASS[classNumber].has(concept.conceptId),
       }));
 
     return res.json(concepts);
