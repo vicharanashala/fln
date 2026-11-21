@@ -11,7 +11,7 @@
  *
  *   GET /api/certifications?status=&studentId=
  *     - Queue view (no studentId): SUPERADMIN, ADMIN
- *     - Per-student view (with studentId): any role that passes canAccessStudent
+ *     - Per-student view (with studentId): teachers/volunteers who pass canAccessStudent
  *     - status filter is optional; default returns all
  */
 import express from 'express';
