@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import en from '../i18n/locales/en/translation.json';
+import hi from '../i18n/locales/hi/translation.json';
 import {
   buildCertificateView,
   LEVEL_ICON,
@@ -156,6 +158,35 @@ describe('buildCertificateView', () => {
     const ids = view.groups.flatMap(group => group.concepts).map(row => row.id);
 
     expect(ids).toEqual(['S3.1', 'S3.2']);
+  });
+
+  it('retains long concept lists so the print layout can paginate them', () => {
+    const longConceptList: CertificateConcept[] = Array.from({ length: 48 }, (_, index) => ({
+      id: `S6.${index + 1}`,
+      title: `Concept ${index + 1}`,
+      competency: index % 2 === 0 ? 'C-8.3' : 'C-8.5',
+      core: index < 9,
+    }));
+    const conceptLevels = Object.fromEntries(
+      longConceptList.map((concept, index) => [
+        concept.id,
+        index % 3 === 0 ? 'Beginner' : index % 3 === 1 ? 'Progressive' : 'Proficient',
+      ])
+    ) as Record<string, 'Beginner' | 'Progressive' | 'Proficient'>;
+    const view = buildCertificateView({
+      decisionSnapshot: { outcome: 'complete', conceptLevels },
+    }, longConceptList);
+
+    expect(view.groups.reduce((count, group) => count + group.concepts.length, 0)).toBe(48);
+  });
+
+  it('provides skill-certificate and level labels in English and Hindi', () => {
+    expect(en.certificate.skill.title).toBeTruthy();
+    expect(hi.certificate.skill.title).toBeTruthy();
+    for (const level of ['Beginner', 'Progressing', 'Proficient', 'Not available'] as const) {
+      expect(en.certificate.level[level]).toBeTruthy();
+      expect(hi.certificate.level[level]).toBeTruthy();
+    }
   });
 
   it('returns the same certificate id and issue date for repeated rendering', () => {
