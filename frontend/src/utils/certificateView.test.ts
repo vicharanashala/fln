@@ -35,16 +35,13 @@ describe('buildCertificateView', () => {
 
     expect(view.canPrint).toBe(true);
     expect(rows).toHaveLength(3);
-    expect(rows.map(row => row.level)).toEqual([
-      'Proficient',
-      'Progressing',
-      'Beginner',
-    ]);
-    expect(rows.map(row => row.icon)).toEqual([
-      LEVEL_ICON.Proficient,
-      LEVEL_ICON.Progressive,
-      LEVEL_ICON.Beginner,
-    ]);
+    const byId = new Map(rows.map(row => [row.id, row]));
+    expect(byId.get('S3.1')?.level).toBe('Proficient');
+    expect(byId.get('S3.2')?.level).toBe('Progressing');
+    expect(byId.get('S3.8')?.level).toBe('Beginner');
+    expect(byId.get('S3.1')?.icon).toBe(LEVEL_ICON.Proficient);
+    expect(byId.get('S3.2')?.icon).toBe(LEVEL_ICON.Progressive);
+    expect(byId.get('S3.8')?.icon).toBe(LEVEL_ICON.Beginner);
     expect(LEVEL_LABEL.Progressive).toBe('Progressing');
   });
 
