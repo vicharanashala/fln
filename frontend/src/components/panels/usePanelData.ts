@@ -18,6 +18,7 @@ const STUDENTS_NOT_NEEDED_PANELS = new Set([
   'aadhaar_reveal',  // Panel does its own paged + debounced-server-search fetch; the up-to-86k-row firehose is unused.
   'users',
   'worksheet_templates',
+  'template_builder',
   'content',
   'system_settings',
 ]);

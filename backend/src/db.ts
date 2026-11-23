@@ -8,6 +8,7 @@ import { CURRICULUM_MAPPING } from './config/curriculumMap';
 import type { StudentCycleLock } from './paperLock';
 import type { ScanQualityResult } from './scanQuality';
 import type { QuestionFamily } from './types/questionTemplateParams';
+import type { LayoutTemplate } from './types/layoutTemplate';
 import type { ErrorType } from './errorClassification';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -225,6 +226,7 @@ extractedResponses: ExtractedResponse[];
   questionLogics: QuestionLogic[];
   questionTemplates: QuestionTemplate[];
   questionOptions: QuestionOption[];
+  layoutTemplates: LayoutTemplate[];
   curriculumLevels: CurriculumLevel[];
   studentCycleLocks: StudentCycleLock[];
   generationWindows: WorksheetGenerationWindow[];
@@ -262,6 +264,7 @@ extractedResponses: 'extracted_responses',
   questionLogics: 'questionLogics',
   questionTemplates: 'questionTemplates',
   questionOptions: 'questionOptions',
+  layoutTemplates: 'layoutTemplates',
   curriculumLevels: 'curriculumLevels',
   studentCycleLocks: 'studentCycleLocks',
   generationWindows: 'generationWindows',
@@ -461,6 +464,12 @@ export class DBStore {
           await templatesColl.createIndex({ skills: 1, deletedAt: 1 });
           await templatesColl.createIndex({ subskills: 1, deletedAt: 1 });
           await templatesColl.createIndex({ assessmentMode: 1, deletedAt: 1 });
+
+          // Template Builder layouts: fetched by id, and by level when a
+          // worksheet is generated ("approved layouts for this concept").
+          const layoutsColl = db.collection('layoutTemplates');
+          await layoutsColl.createIndex({ id: 1 }, { unique: true });
+          await layoutsColl.createIndex({ conceptId: 1, status: 1, deletedAt: 1 });
 
           const optionsColl = db.collection('questionOptions');
           await optionsColl.createIndex({ id: 1 }, { unique: true });
@@ -2585,6 +2594,59 @@ export class DBStore {
       if (idx !== -1) this.data.questionTemplates[idx] = t;
     }
     return t || undefined;
+  }
+
+  // --- Layout Template Methods (Template Builder) --------------------------
+  // How one level's question looks on paper. See types/layoutTemplate.ts.
+
+  async getLayoutTemplates(includeDeleted = false): Promise<LayoutTemplate[]> {
+    if (!this.mongoDb) {
+      const list = this.data?.layoutTemplates || [];
+      return list.filter(t => includeDeleted || t.deletedAt == null);
+    }
+    return await this.mongoDb!.collection<LayoutTemplate>('layoutTemplates')
+      .find(includeDeleted ? {} : { deletedAt: null }, { projection: { _id: 0 } }).toArray() as LayoutTemplate[];
+  }
+
+  async getLayoutTemplateById(id: string): Promise<LayoutTemplate | undefined> {
+    if (!this.mongoDb) return (this.data?.layoutTemplates || []).find(t => t.id === id);
+    return (await this.mongoDb!.collection<LayoutTemplate>('layoutTemplates').findOne({ id }, { projection: { _id: 0 } })) || undefined;
+  }
+
+  /** Approved, not-deleted layouts for a concept: the ones real worksheets may use. */
+  async getApprovedLayoutTemplatesByConcept(conceptId: string): Promise<LayoutTemplate[]> {
+    if (!this.mongoDb) {
+      return (this.data?.layoutTemplates || []).filter(t => t.conceptId === conceptId && t.status === 'approved' && t.deletedAt == null);
+    }
+    return await this.mongoDb!.collection<LayoutTemplate>('layoutTemplates')
+      .find({ conceptId, status: 'approved', deletedAt: null }, { projection: { _id: 0 } }).toArray() as LayoutTemplate[];
+  }
+
+  async addLayoutTemplate(template: LayoutTemplate): Promise<LayoutTemplate> {
+    if (!this.mongoDb) {
+      if (this.data) {
+        (this.data.layoutTemplates ||= []).push(template);
+        await this.save();
+      }
+      return template;
+    }
+    await this.mongoDb!.collection('layoutTemplates').insertOne({ ...template });
+    return template;
+  }
+
+  async updateLayoutTemplate(id: string, updates: Partial<LayoutTemplate>): Promise<LayoutTemplate | undefined> {
+    if (!this.mongoDb) {
+      const list = this.data?.layoutTemplates;
+      if (!list) return undefined;
+      const idx = list.findIndex(x => x.id === id);
+      if (idx === -1) return undefined;
+      list[idx] = { ...list[idx], ...updates, id };
+      await this.save();
+      return list[idx];
+    }
+    const { id: _ignored, ...rest } = updates as any;
+    await this.mongoDb!.collection('layoutTemplates').updateOne({ id }, { $set: rest });
+    return this.getLayoutTemplateById(id);
   }
 
   // --- Question Option Methods -------------------------------------------
@@ -4948,6 +5010,8 @@ extractedResponses: [],
       questionLogics: [],
       questionTemplates: [],
             questionOptions: [],
+      // Authored by a real Superadmin in the Template Builder; nothing to seed.
+      layoutTemplates: [],
       // Populated by `npm run seed:levels`, not by the demo seed — the
       // curriculum is real data with one source, not fixture content.
       curriculumLevels: [],

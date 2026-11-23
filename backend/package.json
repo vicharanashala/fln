@@ -64,6 +64,7 @@
     "test:svg-pdf": "tsx --test tests/svg-pdf.test.ts",
     "test:concept-worksheet": "tsx --test tests/concept-worksheet.test.ts",
     "test:template-renderer": "tsx src/services/questionTemplateRenderer.test.ts",
+    "test:layout-templates": "tsx --test tests/layout-templates.test.ts",
     "test:balvatika-levels": "tsx --test tests/balvatika-levels.test.ts",
     "test:worksheet-no-content": "tsx --test tests/worksheet-generate-no-content.test.ts",
     "test:evaluation-override": "tsx --test tests/evaluation-override.test.ts",
