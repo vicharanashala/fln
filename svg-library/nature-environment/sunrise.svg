@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Sunrise</title>
+<desc>Line drawing of half a sun rising over the horizon, with rays, hills and two birds in the sky.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M102.6 266.5 L58.3 248.1" fill="none" stroke-width="8"/>
+<path d="M138.6 212.6 L117.4 191.4" fill="none" stroke-width="8"/>
+<path d="M192.5 176.6 L174.1 132.3" fill="none" stroke-width="8"/>
+<path d="M256.0 164.0 L256.0 134.0" fill="none" stroke-width="8"/>
+<path d="M319.5 176.6 L337.9 132.3" fill="none" stroke-width="8"/>
+<path d="M373.4 212.6 L394.6 191.4" fill="none" stroke-width="8"/>
+<path d="M409.4 266.5 L453.7 248.1" fill="none" stroke-width="8"/>
+<path d="M116 330 A140 140 0 0 1 396 330 Z"/>
+<path d="M28 330 H484" fill="none" stroke-width="8"/>
+<path d="M28 386 C110 352 190 356 262 388 C330 360 420 354 484 376" fill="none" stroke-width="8"/>
+<path d="M90 430 C170 414 240 418 300 436 M330 440 C380 428 430 428 470 436" fill="none" stroke-width="5"/>
+<path d="M64 120 Q78 106 92 120 Q106 106 120 120 M392 92 Q404 80 416 92 Q428 80 440 92" fill="none" stroke-width="5"/>
+</g>
+</svg>

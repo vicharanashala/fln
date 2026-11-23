@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Candy</title>
+<desc>Line drawing of a striped sweet in a wrapper twisted at both ends.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M150 232 L58 150 C40 190 36 322 58 362 L150 280 Z"/>
+<path d="M150 232 L58 150 C40 190 36 322 58 362 L150 280 Z" transform="translate(512 0) scale(-1 1)"/>
+<path d="M150 256 L50 210 M150 256 L46 256 M150 256 L50 302 M150 256 L86 172 M150 256 L86 340" fill="none" stroke-width="4"/>
+<g transform="translate(512 0) scale(-1 1)"><path d="M150 256 L50 210 M150 256 L46 256 M150 256 L50 302 M150 256 L86 172 M150 256 L86 340" fill="none" stroke-width="4"/></g>
+<rect x="136" y="226" width="30" height="60" rx="10"/>
+<rect x="346" y="226" width="30" height="60" rx="10"/>
+<defs><clipPath id="cd"><ellipse cx="256" cy="256" rx="104" ry="80"/></clipPath></defs>
+<ellipse cx="256" cy="256" rx="104" ry="80"/>
+<g clip-path="url(#cd)"><path d="M60 140 L180 380 M100 140 L220 380 M140 140 L260 380 M180 140 L300 380 M220 140 L340 380 M260 140 L380 380 M300 140 L420 380 M340 140 L460 380 M380 140 L500 380" fill="none" stroke-width="14"/><g stroke="#FFFFFF"><path d="M60 140 L180 380 M100 140 L220 380 M140 140 L260 380 M180 140 L300 380 M220 140 L340 380 M260 140 L380 380 M300 140 L420 380 M340 140 L460 380 M380 140 L500 380" fill="none" stroke-width="6"/></g></g>
+<ellipse cx="256" cy="256" rx="104" ry="80" fill="none"/>
+</g>
+</svg>

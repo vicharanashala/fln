@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Jeep</title>
+<desc>Line drawing of an open-top jeep seen from the side, with big tyres, a spare wheel at the back, a roll bar and a windscreen frame.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="72" cy="292" r="46"/><path d="M108.0 292.0 L118.0 292.0 M103.2 310.0 L111.8 315.0 M90.0 323.2 L95.0 331.8 M72.0 328.0 L72.0 338.0 M54.0 323.2 L49.0 331.8 M40.8 310.0 L32.2 315.0 M36.0 292.0 L26.0 292.0 M40.8 274.0 L32.2 269.0 M54.0 260.8 L49.0 252.2 M72.0 256.0 L72.0 246.0 M90.0 260.8 L95.0 252.2 M103.2 274.0 L111.8 269.0" fill="none" stroke-width="5"/><circle cx="72" cy="292" r="18" stroke-width="5"/><circle cx="72" cy="292" r="6" fill="#1A1A1A" stroke-width="2"/>
+<path d="M96 266 H120 V318 H96" fill="none" stroke-width="5"/>
+<path d="M126 248 L134 172 H204 L212 248" fill="none" stroke-width="22"/><path d="M126 248 L134 172 H204 L212 248" fill="none" stroke="#FFFFFF" stroke-width="10"/>
+<path d="M310 248 L286 158" fill="none" stroke-width="22"/><path d="M310 248 L286 158" fill="none" stroke="#FFFFFF" stroke-width="10"/>
+<path d="M222 248 L216 200 C216 190 238 190 240 200 L246 248 Z" stroke-width="5"/>
+<path d="M272 236 L256 204" fill="none" stroke-width="18"/><path d="M272 236 L256 204" fill="none" stroke="#FFFFFF" stroke-width="6"/>
+<ellipse cx="254" cy="200" rx="16" ry="6" stroke-width="5"/>
+<path d="M110 246 H312 L460 256 C470 258 476 264 476 272 V350 H458 A70 70 0 0 0 318 350 H246 A70 70 0 0 0 106 350 H100 C96 350 92 346 92 340 V256 C92 250 100 246 110 246 Z"/>
+<path d="M150 262 H300 C306 262 308 266 308 272 V316 C308 330 300 336 288 336 H252" fill="none" stroke-width="5"/>
+<path d="M320 262 V336 M350 270 H458" fill="none" stroke-width="3.5"/>
+<circle cx="462" cy="282" r="10" stroke-width="5"/>
+<rect x="440" y="344" width="46" height="16" rx="6" stroke-width="5"/>
+<circle cx="176" cy="366" r="62"/><path d="M228.0 366.0 L238.0 366.0 M221.0 392.0 L229.7 397.0 M202.0 411.0 L207.0 419.7 M176.0 418.0 L176.0 428.0 M150.0 411.0 L145.0 419.7 M131.0 392.0 L122.3 397.0 M124.0 366.0 L114.0 366.0 M131.0 340.0 L122.3 335.0 M150.0 321.0 L145.0 312.3 M176.0 314.0 L176.0 304.0 M202.0 321.0 L207.0 312.3 M221.0 340.0 L229.7 335.0" fill="none" stroke-width="5"/><circle cx="176" cy="366" r="26" stroke-width="5"/><circle cx="176" cy="366" r="6" fill="#1A1A1A" stroke-width="2"/>
+<circle cx="388" cy="366" r="62"/><path d="M440.0 366.0 L450.0 366.0 M433.0 392.0 L441.7 397.0 M414.0 411.0 L419.0 419.7 M388.0 418.0 L388.0 428.0 M362.0 411.0 L357.0 419.7 M343.0 392.0 L334.3 397.0 M336.0 366.0 L326.0 366.0 M343.0 340.0 L334.3 335.0 M362.0 321.0 L357.0 312.3 M388.0 314.0 L388.0 304.0 M414.0 321.0 L419.0 312.3 M433.0 340.0 L441.7 335.0" fill="none" stroke-width="5"/><circle cx="388" cy="366" r="26" stroke-width="5"/><circle cx="388" cy="366" r="6" fill="#1A1A1A" stroke-width="2"/>
+</g>
+</svg>

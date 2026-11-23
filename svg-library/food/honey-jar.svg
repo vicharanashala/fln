@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Honey jar</title>
+<desc>Line drawing of a jar of honey labelled HONEY, with honey dripping over the rim and a dipper stick.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M290 160 L392 50" fill="none" stroke-width="24"/><path d="M290 160 L392 50" fill="none" stroke="#FFFFFF" stroke-width="12"/>
+<path d="M128 196 C104 260 104 400 144 452 H368 C408 400 408 260 384 196 Z"/>
+<path d="M134 196 H378 V222 C378 240 360 240 360 222 V214 C360 250 334 254 334 222 C334 268 308 268 306 230 C306 244 290 246 290 232 C288 260 262 262 262 228 C262 240 246 240 246 226 C246 252 220 254 220 222 C220 236 202 236 202 222 C202 266 176 266 176 226 C176 240 158 240 158 222 V214 C158 238 134 238 134 222 Z"/>
+<rect x="140" y="160" width="232" height="40" rx="10"/>
+<ellipse cx="256" cy="160" rx="116" ry="14"/>
+<rect x="164" y="300" width="184" height="112" rx="16"/>
+<path d="M0 0 V40 M28 0 V40 M0 20 H28" transform="translate(184.0 336) scale(0.8)" fill="none" stroke-width="6.2"/><path d="M14 0 C-4 0 -4 40 14 40 C32 40 32 0 14 0 Z" transform="translate(216.0 336) scale(0.8)" fill="none" stroke-width="6.2"/><path d="M0 40 V0 L28 40 V0" transform="translate(248.0 336) scale(0.8)" fill="none" stroke-width="6.2"/><path d="M26 0 H0 V40 H26 M0 20 H20" transform="translate(280.0 336) scale(0.8)" fill="none" stroke-width="6.2"/><path d="M0 0 L14 20 L28 0 M14 20 V40" transform="translate(312.0 336) scale(0.8)" fill="none" stroke-width="6.2"/>
+<path d="M138 260 C132 300 132 360 144 400" fill="none" stroke-width="6"/>
+</g>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Hammer</title>
+<desc>Line drawing of a claw hammer with a wooden handle and a metal head.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<g transform="rotate(32 256 270)">
+<rect x="238" y="150" width="36" height="320" rx="18"/>
+<rect x="232" y="330" width="48" height="146" rx="22"/>
+<path d="M234 360 H278 M234 392 H278 M234 424 H278" fill="none" stroke-width="3.5"/>
+<path d="M216 104 H124 C114 104 108 110 108 120 V144 C108 152 114 158 124 158 H216 Z"/>
+<rect x="88" y="96" width="26" height="70" rx="8"/>
+<path d="M296 98 C336 100 366 118 382 150 C384 158 376 162 370 156 C356 136 330 126 296 126 Z"/>
+<rect x="210" y="84" width="92" height="88" rx="10"/>
+<path d="M300 112 C330 114 352 126 368 144" fill="none" stroke-width="3.5"/>
+</g>
+</g>
+</svg>

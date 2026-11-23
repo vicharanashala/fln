@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Dumbbell</title>
+<desc>Line drawing of a dumbbell: a short bar with round weight plates on both ends.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M120 256 H392" fill="none" stroke-width="36"/><path d="M120 256 H392" fill="none" stroke="#FFFFFF" stroke-width="24"/>
+<path d="M206 248 L214 264 M220 248 L228 264 M234 248 L242 264 M248 248 L256 264 M262 248 L270 264 M276 248 L284 264 M290 248 L298 264 M304 248 L312 264" fill="none" stroke-width="3.5"/>
+<g><rect x="26" y="226" width="26" height="60" rx="8"/><rect x="48" y="146" width="44" height="220" rx="12"/><rect x="90" y="170" width="34" height="172" rx="10"/><path d="M62 170 V200 M62 312 V342" fill="none" stroke-width="4"/></g>
+<g transform="translate(512 0) scale(-1 1)"><rect x="26" y="226" width="26" height="60" rx="8"/><rect x="48" y="146" width="44" height="220" rx="12"/><rect x="90" y="170" width="34" height="172" rx="10"/><path d="M62 170 V200 M62 312 V342" fill="none" stroke-width="4"/></g>
+</g>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Well</title>
+<desc>Line drawing of a round brick well with a wooden frame, a pulley, a rope and a bucket.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M86 290 V430 C86 470 426 470 426 430 V290 Z"/>
+<path d="M88 330 C140 364 372 364 424 330 M88 370 C140 404 372 404 424 370 M88 410 C140 444 372 444 424 410 M140 326 V352 M210 326 V352 M290 326 V352 M370 326 V352 M176 356 V392 M256 356 V392 M336 356 V392 M140 396 V432 M210 396 V432 M290 396 V432 M370 396 V432 M176 436 V474 M256 436 V474 M336 436 V474" fill="none" stroke-width="3.5"/>
+<rect x="108" y="104" width="26" height="194" rx="6"/><rect x="378" y="104" width="26" height="194" rx="6"/>
+<ellipse cx="256" cy="290" rx="170" ry="44"/>
+<ellipse cx="256" cy="290" rx="140" ry="30" stroke-width="5"/>
+<path d="M108 290 V320 M134 290 V324 M378 290 V324 M404 290 V320" stroke-width="8" fill="none"/>
+<rect x="88" y="94" width="336" height="26" rx="8"/>
+<path d="M256 120 V136" fill="none" stroke-width="5"/>
+<circle cx="256" cy="156" r="22" stroke-width="5"/><circle cx="256" cy="156" r="5" fill="#1A1A1A" stroke-width="2"/>
+<path d="M234 156 V214 M278 156 C300 190 350 214 378 230" fill="none" stroke-width="5"/>
+<path d="M206 214 H262 L254 262 H214 Z" stroke-width="5"/>
+<path d="M210 214 C214 196 254 196 258 214" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

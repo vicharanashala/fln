@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Goat</title>
+<desc>Line drawing of a goat standing sideways, with curved horns, a floppy ear, a beard and a short tail.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M205 300 C209 340 216 350 217 373 L218 446 H232 L233 373 C234 350 241 340 245 300 Z"/><path d="M357 296 C361 336 368 346 369 371 L370 446 H384 L385 371 C386 346 393 336 397 296 Z"/>
+<path d="M158 300 C162 340 170 350 171 376 L172 452 H188 L189 376 C190 350 198 340 202 300 Z"/><path d="M314 300 C318 340 326 350 327 376 L328 452 H344 L345 376 C346 350 354 340 358 300 Z"/>
+<path d="M168 440 H192 M214 434 H236 M324 440 H348 M366 434 H388" fill="none" stroke-width="5"/>
+<path d="M150 228 C128 210 126 188 138 180 C150 192 158 208 164 222 Z"/>
+<path d="M350 236 C358 196 370 160 390 132 C408 106 446 102 466 120 C482 136 488 168 482 190 C476 212 452 220 434 208 C420 228 412 262 404 292 Z"/>
+<path d="M150 220 C200 200 320 198 372 210 C402 220 410 262 400 300 C382 330 330 336 262 334 C200 334 152 330 140 302 C130 272 132 236 150 220 Z"/>
+<path d="M432 112 C424 74 400 52 372 54 C394 66 410 90 418 118 Z"/>
+<path d="M418 118 C404 76 372 56 340 64 C366 76 388 98 402 126 Z"/>
+<path d="M410 142 C388 134 362 142 348 158 C370 166 392 160 414 154 Z"/>
+<path d="M444 204 C444 228 448 246 456 262 C464 242 468 224 466 202 Z"/>
+<circle cx="448" cy="140" r="8" fill="#1A1A1A" stroke-width="2"/><circle cx="450.8" cy="137.2" r="2.8" fill="#FFFFFF" stroke="none"/>
+<circle cx="476" cy="176" r="4" fill="#1A1A1A" stroke-width="2"/>
+<path d="M460 198 C468 200 474 196 478 190" fill="none" stroke-width="4"/>
+<path d="M200 240 C214 250 230 252 244 248 M280 300 C296 310 312 310 326 304 M188 290 C200 298 214 298 226 292" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

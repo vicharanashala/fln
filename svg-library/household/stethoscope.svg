@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Stethoscope</title>
+<desc>Line drawing of a doctor's stethoscope with two ear pieces, a Y-shaped tube and a round chest piece.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M190 74 C172 130 186 206 256 250" fill="none" stroke-width="22"/><path d="M322 74 C340 130 326 206 256 250" fill="none" stroke-width="22"/><path d="M190 74 C172 130 186 206 256 250" fill="none" stroke="#FFFFFF" stroke-width="10"/><path d="M322 74 C340 130 326 206 256 250" fill="none" stroke="#FFFFFF" stroke-width="10"/>
+<path d="M256 250 C256 360 300 420 340 412" fill="none" stroke-width="24"/><path d="M256 250 C256 360 300 420 340 412" fill="none" stroke="#FFFFFF" stroke-width="12"/>
+<ellipse cx="192" cy="64" rx="12" ry="16" fill="#1A1A1A" stroke-width="2"/><ellipse cx="320" cy="64" rx="12" ry="16" fill="#1A1A1A" stroke-width="2"/>
+<rect x="238" y="232" width="36" height="30" rx="8" stroke-width="5"/>
+<rect x="334" y="390" width="26" height="30" rx="6" stroke-width="5"/>
+<circle cx="398" cy="404" r="54"/>
+<circle cx="398" cy="404" r="38" stroke-width="5"/>
+<path d="M378 386 C384 378 392 374 400 374" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

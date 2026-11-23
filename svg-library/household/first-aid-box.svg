@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>First-aid box</title>
+<desc>Line drawing of a first-aid box with a handle and a plus-shaped cross on the front.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M190 168 V118 H322 V168" fill="none" stroke-width="26"/><path d="M190 168 V118 H322 V168" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+<rect x="66" y="158" width="380" height="270" rx="26"/>
+<path d="M68 206 H444" fill="none" stroke-width="5"/>
+<rect x="96" y="194" width="34" height="24" rx="5" stroke-width="5"/>
+<rect x="382" y="194" width="34" height="24" rx="5" stroke-width="5"/>
+<path d="M226.0 230.0 L286.0 230.0 L286.0 282.0 L338.0 282.0 L338.0 342.0 L286.0 342.0 L286.0 394.0 L226.0 394.0 L226.0 342.0 L174.0 342.0 L174.0 282.0 L226.0 282.0 Z" stroke-width="8"/>
+</g>
+</svg>

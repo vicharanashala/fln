@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Pinwheel</title>
+<desc>Line drawing of a paper pinwheel with four curled blades on a stick.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 210 V484" fill="none" stroke-width="26"/><path d="M256 210 V484" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+<path d="M256 210 L256 50 C324 48 384 82 372 144 C360 186 304 206 256 210 Z" transform="rotate(0 256 210)"/><g transform="rotate(0 256 210)"><path d="M256 210 L330 92" fill="none" stroke-width="4"/></g><path d="M256 210 L256 50 C324 48 384 82 372 144 C360 186 304 206 256 210 Z" transform="rotate(90 256 210)"/><g transform="rotate(90 256 210)"><path d="M256 210 L330 92" fill="none" stroke-width="4"/></g><path d="M256 210 L256 50 C324 48 384 82 372 144 C360 186 304 206 256 210 Z" transform="rotate(180 256 210)"/><g transform="rotate(180 256 210)"><path d="M256 210 L330 92" fill="none" stroke-width="4"/></g><path d="M256 210 L256 50 C324 48 384 82 372 144 C360 186 304 206 256 210 Z" transform="rotate(270 256 210)"/><g transform="rotate(270 256 210)"><path d="M256 210 L330 92" fill="none" stroke-width="4"/></g>
+<circle cx="256" cy="210" r="14"/>
+</g>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Bow and arrow</title>
+<desc>Line drawing of a curved bow with its string pulled back and an arrow with a pointed head and feathers.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M300 62 L132 256 L300 450" fill="none" stroke-width="3.5"/>
+<path d="M300 60 C440 140 440 372 300 452" fill="none" stroke-width="26"/><path d="M300 60 C440 140 440 372 300 452" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+<rect x="392" y="222" width="34" height="68" rx="12" stroke-width="5"/>
+<path d="M132 256 H440" fill="none" stroke-width="18"/><path d="M132 256 H440" fill="none" stroke="#FFFFFF" stroke-width="6"/>
+<path d="M436 236 L486 256 L436 276 Z"/>
+<path d="M196 256 L170 222 H130 L156 256 Z" stroke-width="5"/>
+<path d="M196 256 L170 290 H130 L156 256 Z" stroke-width="5"/>
+<path d="M150 232 L166 252 M146 280 L162 260" fill="none" stroke-width="3.5"/>
+</g>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>Rolling pin</title>
+<desc>Line drawing of a rolling pin (belan) resting on a round board with flattened dough.</desc>
+<g fill="#FFFFFF" stroke="#1A1A1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="256" cy="330" rx="226" ry="112"/>
+<ellipse cx="256" cy="326" rx="196" ry="90" stroke-width="5"/>
+<path d="M40 340 V362 C40 410 140 448 256 448 C372 448 472 410 472 362 V340" fill="none" stroke-width="6"/>
+<ellipse cx="236" cy="336" rx="118" ry="52" stroke-width="5"/>
+<g transform="rotate(-14 256 240)">
+<rect x="24" y="222" width="92" height="40" rx="20"/>
+<rect x="396" y="222" width="92" height="40" rx="20"/>
+<rect x="108" y="194" width="296" height="96" rx="34"/>
+<path d="M138 214 H370" fill="none" stroke-width="5"/>
+<path d="M116 230 V254 M396 230 V254" fill="none" stroke-width="4"/>
+</g>
+</g>
+</svg>
