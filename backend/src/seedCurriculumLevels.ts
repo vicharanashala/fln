@@ -1,12 +1,12 @@
-// Seeds the canonical 93-level curriculum into MongoDB.
+// Seeds the canonical 109-level curriculum into MongoDB.
 //
-//   npm run seed:levels                  # upsert all 93 levels
+//   npm run seed:levels                  # upsert all 109 levels
 //   npm run seed:levels -- --dry-run     # report what would change, write nothing
 //
-// Why this exists: the 93 levels previously lived only as TypeScript in the
+// Why this exists: the 109 levels previously lived only as TypeScript in the
 // frontend package, with no queryable home. Every backend feature that needed
 // curriculum data hand-authored its own copy — six copies, across two different
-// id spaces (1..93 and the retired 1..59 worksheet-engine space). This script
+// id spaces (1..109 and the retired 1..59 worksheet-engine space). This script
 // establishes one source and one destination.
 //
 // IMPORTANT — this is an ADDITIVE script, deliberately separate from
@@ -39,15 +39,15 @@ const CROSSWALK_PATH = path.join(REPO_ROOT, 'Research', 'fln_59_to_93_crosswalk.
 const CURRICULUM_VERSION = 'v1';
 
 interface Crosswalk {
-  /** "59" -> 93-space levelNumber. Reviewed by the pedagogy team, not inferred. */
+  /** "59" -> 109-space levelNumber. Reviewed by the pedagogy team, not inferred. */
   legacy59_to_level: Record<string, number>;
 }
 
 /**
- * The 59 -> 93 mapping is a curriculum judgement, so it is an *input* to this
+ * The 59 -> 109 mapping is a curriculum judgement, so it is an *input* to this
  * script rather than something computed here. Until the reviewed file exists,
  * every level seeds with `legacyLevel59: null` and no content flags — which is
- * honest: we genuinely do not yet know which 93-level owns which old worksheet.
+ * honest: we genuinely do not yet know which 109-level owns which old worksheet.
  */
 function loadCrosswalk(): Crosswalk | null {
   if (!fs.existsSync(CROSSWALK_PATH)) return null;
@@ -121,10 +121,10 @@ async function main() {
 
   /**
    * Invert the crosswalk once, and refuse to silently pick a winner when two
-   * legacy levels claim the same 93-level.
+   * legacy levels claim the same 109-level.
    *
    * This is the "split" case the migration plan flags as a curriculum decision:
-   * the finer 93 taxonomy means one old worksheet can legitimately correspond to
+   * the finer 109 taxonomy means one old worksheet can legitimately correspond to
    * more than one new level, and *which* one inherits the content is a judgement
    * nobody should make by accident. Seeding the first match and dropping the rest
    * would lose content quietly, so collisions abort the run.
@@ -143,7 +143,7 @@ async function main() {
     }
     if (collisions.length) {
       console.error('');
-      console.error(`Crosswalk has ${collisions.length} collision(s) — two legacy levels mapped to one 93-level:`);
+      console.error(`Crosswalk has ${collisions.length} collision(s) — two legacy levels mapped to one 109-level:`);
       for (const c of collisions) console.error(`  ${c}`);
       console.error('');
       console.error('Decide which level inherits the content (or split it deliberately), then re-run.');
