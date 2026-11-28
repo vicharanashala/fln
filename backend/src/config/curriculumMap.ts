@@ -191,6 +191,10 @@ export const CURRICULUM_MAPPING: Record<number, LevelConceptConfig> = {
   109: { levelNumber: 109, levelTitle: "Perimeter & Area",                         conceptId: "S7.18", stage: 7, ageGroup: "9-10", strand: "Measurement" },
 };
 
+// Maximum level number in the curriculum (automatically calculated)
+// Issue #706: replaces hardcoded 59 caps throughout the backend
+export const MAX_LEVEL = Math.max(...Object.keys(CURRICULUM_MAPPING).map(Number));
+
 // Build reverse lookup: Concept ID -> Level Number
 const CONCEPT_TO_LEVEL: Record<string, LevelConceptConfig> = {};
 for (const config of Object.values(CURRICULUM_MAPPING)) {

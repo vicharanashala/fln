@@ -12,6 +12,8 @@
  * This module determines the resulting FLN level/sub-level.
  */
 
+import { MAX_LEVEL } from './config/curriculumMap';
+
 export interface AdvancementResult {
   newLevel: number;
   newSubLevel: number;
@@ -59,7 +61,7 @@ export function calculateStandardAdvancement(
   let newLevel = currentLevel;
 
   if (score >= 0.8) {
-    newLevel = Math.min(59, currentLevel + 1);
+    newLevel = Math.min(MAX_LEVEL, currentLevel + 1);
   }
 
   let newSubLevel: number;

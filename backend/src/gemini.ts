@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "./db";
 import { LEVEL_COUNT } from "./config/skillLevelMap";
 import { matchesChoiceLetter } from './answerMatching';
+import { MAX_LEVEL } from './config/curriculumMap';
 
 // Valid Gemini model IDs, primary first then fallbacks (used by generateContentWithRetry).
 // Centralized here so the call sites below don't drift.
@@ -499,10 +500,9 @@ Provide a clean narrative feedback summary.`;
     recommendedLevel = Math.min(...failedLevels);
   } else {
     // If they got all questions correct, place them at highest level + 1.
-    // Capped at 59, not 93: worksheet generation (levels_main.html) still
-    // throws UnknownLevelError above 59 until the 59->93 migration finishes.
+    // Capped at MAX_LEVEL to allow progression through the full 109-level curriculum.
     const maxLevel = Math.max(...questions.map(q => q.source_level), 0);
-    recommendedLevel = Math.min(59, maxLevel + 1);
+    recommendedLevel = Math.min(MAX_LEVEL, maxLevel + 1);
   }
 
   return {
